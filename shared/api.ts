@@ -143,3 +143,36 @@ export interface HealthResult {
   ok: true;
   t3: ConnectionStatus["t3"];
 }
+
+export interface LinearIssue {
+  id: string;
+  identifier: string;
+  title: string;
+  url: string;
+  state: { name: string; type: string; color: string };
+  priority: number;
+  priorityLabel: string;
+  project: { id: string; name: string } | null;
+  team: { key: string; name: string };
+  workspace: string;
+  updatedAt: string;
+}
+
+export interface LinearWorkspaceStatus {
+  name: string;
+  ok: boolean;
+  error: string | null;
+  t3ProjectId: string | null;
+}
+
+export interface BoardResult {
+  workspaces: LinearWorkspaceStatus[];
+  issues: LinearIssue[];
+  fetchedAt: string;
+}
+
+export interface AssignIssueBody {
+  workspace: string;
+  issueId: string;
+  agent: "claude" | "codex";
+}
