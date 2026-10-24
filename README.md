@@ -54,7 +54,7 @@ Le dashboard lit un fichier hors git, avec le mode 600 :
 - `apiKey` : une clé API personnelle.
 - `t3Project` : le titre ou l'id du projet T3 Code qui reçoit les sessions créées depuis ce workspace.
 
-Pour créer une clé : dans Linear, ouvrez Settings, Account, Security & access, puis « Personal API keys » et « New API key ». Un fichier absent ou une clé vide ne bloque pas le serveur : l'onglet Board affiche « Clé API manquante ». Le serveur ne logge et ne renvoie jamais une clé.
+Pour créer une clé : dans Linear, ouvrez Settings, Account, Security & access, puis « Personal API keys » et « New API key ». Un fichier absent ou une clé vide ne bloque pas le serveur. Avec un fichier absent, l'onglet Board reste vide ; avec une clé vide, il affiche « Clé API manquante ». Le serveur ne logge et ne renvoie jamais une clé.
 
 Chaque workspace est lu séparément. Le serveur garde le résultat 60 s ; `GET /api/board?refresh=1` force la relecture.
 

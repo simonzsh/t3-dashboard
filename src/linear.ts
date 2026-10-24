@@ -16,11 +16,14 @@ export interface LinearBoardOptions {
 
 type Nodes = Array<Omit<LinearIssue, "workspace">>;
 
+// A stalled Linear would otherwise hold the board request for minutes.
+const FETCH_TIMEOUT_MS = 15_000;
+
 // Error texts never include the response body or the key: both can echo it back.
 async function fetchIssues(options: LinearBoardOptions, apiKey: string): Promise<Nodes> {
   let response: Response;
   try {
-    response = await options.fetch(ENDPOINT, { method: "POST", headers: { "content-type": "application/json", authorization: apiKey }, body: JSON.stringify({ query: QUERY }) });
+    response = await options.fetch(ENDPOINT, { method: "POST", headers: { "content-type": "application/json", authorization: apiKey }, body: JSON.stringify({ query: QUERY }), signal: AbortSignal.timeout(FETCH_TIMEOUT_MS) });
   } catch {
     throw new Error("Linear est injoignable");
   }
