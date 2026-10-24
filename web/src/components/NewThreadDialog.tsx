@@ -13,8 +13,7 @@ interface Props {
 
 function presetFor(project: DashboardProject | undefined, providers: DashboardProvider[]): { provider: string; model: string } {
   const sel = project?.defaultModelSelection;
-  const match = sel && providers.find((p) => p.instanceId === sel.instanceId && p.models.some((m) => m.slug === sel.model));
-  if (match && sel) return { provider: sel.instanceId, model: sel.model };
+  if (sel && providers.some((p) => p.instanceId === sel.instanceId && p.models.some((m) => m.slug === sel.model))) return { provider: sel.instanceId, model: sel.model };
   const first = providers[0];
   return { provider: first?.instanceId ?? "", model: first?.models[0]?.slug ?? "" };
 }
