@@ -48,7 +48,9 @@ export class T3Client implements T3Port {
       (opened) => {
         connection = opened;
         if (cancelled) return opened.close();
-        cancelStream = opened.stream("orchestration.subscribeShell", {}, (values) => onItems(values as ShellItem[]), finish).cancel;
+        // Without the marker T3 never sends `synchronized`, and the store would never commit.
+        const payload = { requestCompletionMarker: true };
+        cancelStream = opened.stream("orchestration.subscribeShell", payload, (values) => onItems(values as ShellItem[]), finish).cancel;
       },
       (error: Error) => finish(error),
     );

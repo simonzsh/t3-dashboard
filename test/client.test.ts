@@ -89,7 +89,7 @@ test("subscribeShell streams items on a long-lived socket and cancel interrupts 
   const handle = client.subscribeShell((items) => seen.push(items), () => {});
   const socket = await nextSocket();
   assert.equal(socket.sent[0]!.tag, "orchestration.subscribeShell");
-  assert.deepEqual(socket.sent[0]!.payload, {});
+  assert.deepEqual(socket.sent[0]!.payload, { requestCompletionMarker: true });
   socket.receive({ _tag: "Chunk", requestId: "1", values: [{ kind: "synchronized" }] });
   assert.deepEqual(seen, [[{ kind: "synchronized" }]]);
   assert.equal(socket.closed, false);
