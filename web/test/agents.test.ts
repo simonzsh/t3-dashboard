@@ -65,6 +65,13 @@ test("groupAgents sorts projects: waiting, then working, then latest activity", 
     thread("b", { projectId: "p2", status: "completed", lastActivityAt: hoursAgo(2) }),
   ];
   assert.deepEqual(groupAgents(tie, projects, now).map((g) => g.project.id), ["p2", "p1"]);
+  // A finished card can carry a project's latest activity even behind an older working card.
+  const mixed = [
+    thread("a1", { projectId: "p1", status: "running", lastActivityAt: hoursAgo(2) }),
+    thread("a2", { projectId: "p1", status: "completed", lastActivityAt: hoursAgo(0.1) }),
+    thread("b1", { projectId: "p2", status: "running", lastActivityAt: hoursAgo(1) }),
+  ];
+  assert.deepEqual(groupAgents(mixed, projects, now).map((g) => g.project.id), ["p1", "p2"]);
 });
 
 test("groupAgents falls back to the project id when the project is unknown", () => {

@@ -42,10 +42,9 @@ export function groupAgents(threads: DashboardThread[], projects: DashboardProje
     cards.sort((a, b) => RANK[a.status] - RANK[b.status] || recent(a.thread, b.thread));
     groups.push({ project: { id, title: titles.get(id) ?? id }, cards });
   }
-  // Cards are sorted, so the first card carries the group's best status and latest activity within it.
-  return groups.sort(
-    (a, b) => RANK[a.cards[0]!.status] - RANK[b.cards[0]!.status] || recent(a.cards[0]!.thread, b.cards[0]!.thread),
-  );
+  // Cards are sorted, so the first card carries the group's best status; ties go to the most recent activity of any card.
+  const latest = (g: AgentGroup) => g.cards.reduce((max, c) => (c.thread.lastActivityAt > max ? c.thread.lastActivityAt : max), "");
+  return groups.sort((a, b) => RANK[a.cards[0]!.status] - RANK[b.cards[0]!.status] || latest(b).localeCompare(latest(a)));
 }
 
 export function providerKind(provider: string): "claude" | "codex" | "other" {
