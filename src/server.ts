@@ -54,6 +54,18 @@ const CONTENT_TYPES: Record<string, string> = {
 };
 const MISSING_BUILD_PAGE = "<!doctype html><meta charset=utf-8><p>Interface non construite : lancez <code>npm run build</code>.</p>";
 
+const SIMPLE_ACTIONS = new Map([
+  ["archive", archiveCommand],
+  ["pin", pinCommand],
+  ["unpin", unpinCommand],
+]);
+
+const SECURITY_HEADERS = {
+  "x-frame-options": "DENY",
+  "content-security-policy": "frame-ancestors 'none'",
+  "x-content-type-options": "nosniff",
+};
+
 class HttpError extends Error {
   readonly status: number;
   constructor(status: number, message: string) {
@@ -204,7 +216,7 @@ export function createDashboardServer(options: DashboardServerOptions): Server {
           await interrupt(id);
           return sendJson(res, 200, { ok: true });
         }
-        const simple = { archive: archiveCommand, pin: pinCommand, unpin: unpinCommand }[action ?? ""];
+        const simple = SIMPLE_ACTIONS.get(action ?? "");
         if (simple) {
           await send(simple(id, newId));
           return sendJson(res, 200, { ok: true });
@@ -255,7 +267,10 @@ export function createDashboardServer(options: DashboardServerOptions): Server {
   }
 
   return createServer((req, res) => {
+    // Forbids framing: a hostile page could otherwise clickjack the approval buttons.
+    for (const [name, value] of Object.entries(SECURITY_HEADERS)) res.setHeader(name, value);
     handle(req, res).catch((error: unknown) => {
+      if (!(error instanceof HttpError)) console.error(error);
       const status = error instanceof HttpError ? error.status : 500;
       const message = error instanceof HttpError ? error.message : "Internal error";
       if (res.headersSent) return res.end();

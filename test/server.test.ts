@@ -208,6 +208,21 @@ test("archive, pin and unpin", async () => {
   );
 });
 
+test("every response forbids framing and sniffing", async () => {
+  const { server } = await start(staticDirWith({ "index.html": "<html></html>" }));
+  for (const reply of [await call(server, "GET", "/api/state"), await call(server, "GET", "/"), await post(server, "/api/threads/x/nope")]) {
+    assert.equal(reply.headers["x-frame-options"], "DENY");
+    assert.equal(reply.headers["content-security-policy"], "frame-ancestors 'none'");
+    assert.equal(reply.headers["x-content-type-options"], "nosniff");
+  }
+});
+
+test("prototype keys are not thread actions", async () => {
+  const { server, port } = await start();
+  for (const action of ["constructor", "toString"]) assert.equal((await post(server, `/api/threads/idle-1/${action}`)).status, 404);
+  assert.deepEqual(port.commands, []);
+});
+
 test("respond: decisions and answers", async () => {
   const { server, port } = await start();
   const path = "/api/threads/run-1/requests/req-1/respond";
