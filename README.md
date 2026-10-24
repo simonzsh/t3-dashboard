@@ -1,6 +1,9 @@
 # t3-dashboard
 
-Dashboard web local pour gérer les threads et les agents de T3 Code. Il remplace la vue en fil par un tableau par statut (À traiter, En cours, Terminé, Inactif), des filtres et des graphiques. Il permet aussi d'envoyer un message, d'interrompre un run, de répondre aux demandes d'approbation et de saisie, d'épingler et d'archiver.
+Dashboard web local pour gérer les threads et les agents de T3 Code. Il remplace la vue en fil par deux onglets.
+
+- **Agents** : une carte par session T3 Code, regroupées par projet. Les agents qui attendent l'utilisateur passent en haut. Un clic ouvre la conversation : envoi de message, interruption, réponse aux approbations et aux questions, épinglage, archivage.
+- **Board** : les tickets Linear assignés à vous, groupés par projet Linear. Un clic ouvre le ticket dans Linear. Le bouton « assigner à un agent » crée une session T3 Code (Claude ou Codex) qui traite le ticket. Elle apparaît seule dans l'onglet Agents.
 
 Le serveur Node (TypeScript, sans dépendance d'exécution) parle à T3 Code et expose une API locale. L'interface React se trouve dans `web/`.
 
@@ -36,7 +39,24 @@ npm run dev:web   # Vite sur http://127.0.0.1:5173, proxy /api vers le serveur
 |---|---|---|
 | `PORT` | `4310` | Port local. L'hôte est toujours `127.0.0.1`. |
 | `T3_DASHBOARD_TOKEN_FILE` | `~/.config/t3-agent/perso.json` | Fichier JSON avec le champ `token`. |
+| `T3_DASHBOARD_LINEAR_FILE` | `~/.config/t3-dashboard/linear.json` | Fichier JSON des workspaces Linear (voir ci-dessous). |
 | `T3_SERVER_RUNTIME` | `~/.t3/userdata/server-runtime.json` | Fichier JSON avec le champ `origin`, relu à chaque connexion à T3. Repli : `http://127.0.0.1:3773`. |
+
+## Configuration de Linear
+
+Le dashboard lit un fichier hors git, avec le mode 600 :
+
+```json
+{ "workspaces": [ { "name": "Workspace 1", "apiKey": "lin_api_...", "t3Project": "Project A" } ] }
+```
+
+- `name` : le nom affiché.
+- `apiKey` : une clé API personnelle.
+- `t3Project` : le titre ou l'id du projet T3 Code qui reçoit les sessions créées depuis ce workspace.
+
+Pour créer une clé : dans Linear, ouvrez Settings, Account, Security & access, puis « Personal API keys » et « New API key ». Un fichier absent ou une clé vide ne bloque pas le serveur : l'onglet Board affiche « Clé API manquante ». Le serveur ne logge et ne renvoie jamais une clé.
+
+Chaque workspace est lu séparément. Le serveur garde le résultat 60 s ; `GET /api/board?refresh=1` force la relecture.
 
 ## Sécurité
 

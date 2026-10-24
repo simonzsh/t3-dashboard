@@ -16,7 +16,7 @@ export interface LiveSyncOptions {
   now?: () => Date;
 }
 
-const toProviders = (config: RawConfig): DashboardProvider[] =>
+export const toProviders = (config: RawConfig): DashboardProvider[] =>
   (config.providers ?? [])
     .filter((provider) => provider.enabled && provider.status === "ready")
     .map((provider) => ({

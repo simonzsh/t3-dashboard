@@ -5,14 +5,19 @@ import { extname, join, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 import type {
   ApprovalDecision,
+  AssignIssueBody,
   ConnectionStatus,
   CreateThreadBody,
   DashboardState,
+  LinearIssue,
+  ModelSelection,
   RespondBody,
   SendMessageBody,
   UserInputAnswers,
 } from "../shared/api.ts";
 import { ACTIVE_STATUSES } from "./classify.ts";
+import { toProviders } from "./live.ts";
+import type { LinearBoard } from "./linear.ts";
 import type { ShellStore } from "./shellStore.ts";
 import type { SseHub } from "./sse.ts";
 import {
@@ -32,7 +37,8 @@ import type { Command, T3Port } from "./t3/types.ts";
 
 export interface DashboardServerOptions {
   port: T3Port;
-  store: Pick<ShellStore, "thread">;
+  store: Pick<ShellStore, "thread" | "project">;
+  board: Pick<LinearBoard, "get" | "workspace">;
   hub: SseHub;
   getState: () => DashboardState;
   connection: () => ConnectionStatus;
@@ -43,6 +49,9 @@ export interface DashboardServerOptions {
 const MAX_BODY_BYTES = 1024 * 1024;
 const LOCAL_HOSTS = new Set(["127.0.0.1", "localhost"]);
 const RUNNING_STATUSES = new Set(["preparing", "starting", "running", "waiting"]);
+const CLAUDE_INSTANCE = "claudeAgent";
+const CLAUDE_FALLBACK_MODEL = "claude-opus-5-5";
+const CODEX_INSTANCE = "codex";
 const DECISIONS = new Set<string>(["accept", "acceptForSession", "decline"]);
 const CONTENT_TYPES: Record<string, string> = {
   ".html": "text/html; charset=utf-8",
@@ -135,6 +144,13 @@ function validCreate(body: Record<string, unknown>): CreateThreadBody {
   };
 }
 
+function validAssign(body: Record<string, unknown>): AssignIssueBody {
+  if (!isText(body.workspace) || !isText(body.issueId) || (body.agent !== "claude" && body.agent !== "codex")) {
+    throw new HttpError(400, "workspace, issueId and agent (claude or codex) are required");
+  }
+  return { workspace: body.workspace, issueId: body.issueId, agent: body.agent };
+}
+
 function validRespond(body: Record<string, unknown>): RespondBody {
   const hasDecision = "decision" in body;
   const hasAnswers = "answers" in body;
@@ -150,7 +166,7 @@ function validRespond(body: Record<string, unknown>): RespondBody {
 }
 
 export function createDashboardServer(options: DashboardServerOptions): Server {
-  const { port, store, hub, getState, connection } = options;
+  const { port, store, hub, board, getState, connection } = options;
   const newId = options.newId ?? (() => crypto.randomUUID());
   const staticRoot = resolve(typeof options.staticDir === "string" ? options.staticDir : fileURLToPath(options.staticDir));
 
@@ -188,16 +204,59 @@ export function createDashboardServer(options: DashboardServerOptions): Server {
     await send(interruptCommand(threadId, runId, newId));
   }
 
+  async function findIssue(body: AssignIssueBody): Promise<LinearIssue> {
+    const lookup = async (refresh: boolean) => {
+      const result = await board.get(refresh);
+      const status = result.workspaces.find((workspace) => workspace.name === body.workspace);
+      if (!status) throw new HttpError(404, "Unknown workspace");
+      const issue = result.issues.find((entry) => entry.workspace === body.workspace && entry.id === body.issueId);
+      return { status, issue };
+    };
+    let { status, issue } = await lookup(false);
+    if (!issue) ({ status, issue } = await lookup(true));
+    if (issue) return issue;
+    if (!status.ok) throw new HttpError(502, status.error ?? "Linear error");
+    throw new HttpError(404, "Unknown issue");
+  }
+
+  async function modelFor(agent: AssignIssueBody["agent"], defaultSelection: ModelSelection | null): Promise<ModelSelection> {
+    if (agent === "claude") {
+      return defaultSelection?.instanceId === CLAUDE_INSTANCE ? defaultSelection : { instanceId: CLAUDE_INSTANCE, model: CLAUDE_FALLBACK_MODEL };
+    }
+    const provider = toProviders(await t3(port.getConfig())).find((entry) => entry.instanceId === CODEX_INSTANCE);
+    const first = provider?.models[0];
+    if (!first) throw new HttpError(409, "No Codex model available");
+    return { instanceId: CODEX_INSTANCE, model: first.slug };
+  }
+
+  async function assign(body: AssignIssueBody): Promise<string> {
+    const issue = await findIssue(body);
+    const project = store.project(board.workspace(body.workspace)?.t3Project ?? "");
+    if (!project) throw new HttpError(409, "T3 project not found");
+    const modelSelection = await modelFor(body.agent, project.defaultModelSelection);
+    const create = { projectId: project.id, title: `${issue.identifier} ${issue.title}`, text: `Traite le ticket Linear ${issue.identifier} : ${issue.url}`, modelSelection };
+    const { threadId, commands } = createThreadCommands(create, newId);
+    await send(...commands);
+    return threadId;
+  }
+
   async function api(req: IncomingMessage, res: ServerResponse, segments: string[]): Promise<void> {
     const [, resource, id, action, requestId, requestAction] = segments;
     const method = req.method;
     if (method === "GET") {
       if (segments.length === 2 && resource === "health") return sendJson(res, 200, { ok: true, t3: connection().t3 });
       if (segments.length === 2 && resource === "state") return sendJson(res, 200, getState());
+      if (segments.length === 2 && resource === "board") {
+        const refresh = new URL(req.url ?? "/", "http://localhost").searchParams.get("refresh") === "1";
+        return sendJson(res, 200, await board.get(refresh));
+      }
       if (segments.length === 2 && resource === "events") return hub.add(res, getState());
       if (segments.length === 3 && resource === "threads" && id) {
         return sendJson(res, 200, toThreadDetail(id, await t3(port.threadProjection(id)), store.thread(id)));
       }
+    } else if (method === "POST" && resource === "board" && id === "assign" && segments.length === 3) {
+      const threadId = await assign(validAssign(await readJson(req)));
+      return sendJson(res, 200, { ok: true, threadId });
     } else if (method === "POST" && resource === "threads") {
       const body = await readJson(req);
       if (segments.length === 2) {

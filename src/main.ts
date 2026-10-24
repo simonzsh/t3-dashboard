@@ -2,6 +2,8 @@ import { readFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { loadConfig, resolveOrigin } from "./config.ts";
 import { LiveSync } from "./live.ts";
+import { LinearBoard } from "./linear.ts";
+import { linearFile, readLinearWorkspaces } from "./linearConfig.ts";
 import { createDashboardServer } from "./server.ts";
 import { ShellStore } from "./shellStore.ts";
 import { SseHub } from "./sse.ts";
@@ -35,10 +37,19 @@ const live = new LiveSync({
 });
 const getState = () => store.state(live.connection(), providers);
 
+const linearPath = linearFile(process.env, homedir());
+const board = new LinearBoard({
+  fetch: (url, init) => fetch(url, init),
+  readWorkspaces: () => readLinearWorkspaces(linearPath, readText),
+  resolveProject: (t3Project) => store.project(t3Project)?.id ?? null,
+  now: () => new Date(),
+});
+
 const server = createDashboardServer({
   port: client,
   store,
   hub,
+  board,
   getState,
   connection: () => live.connection(),
   staticDir: new URL("../web/dist/", import.meta.url),

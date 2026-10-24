@@ -68,6 +68,13 @@ export class ShellStore {
     return this.derived.get(id);
   }
 
+  // The id wins over the title, so a title equal to another project's id stays unambiguous.
+  project(idOrTitle: string): DashboardProject | undefined {
+    if (idOrTitle === "") return undefined;
+    const projects = [...this.live.projects.values()].map(toProject);
+    return projects.find((project) => project.id === idOrTitle) ?? projects.find((project) => project.title === idOrTitle);
+  }
+
   reclassify(now: Date): void {
     for (const [id, raw] of this.live.threads) {
       const next = toDashboardThread(raw, now);

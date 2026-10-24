@@ -190,3 +190,14 @@ test("state carries connection and providers", () => {
   assert.equal(state.providers.length, 1);
   assert.equal(typeof state.generatedAt, "string");
 });
+
+test("project() finds a project by id first, then by exact title", () => {
+  const { store } = setup();
+  store.beginSync();
+  store.apply([snapshot([], [{ id: "project-1", title: "Project A" }, { id: "Project A", title: "Project B" }]), { kind: "synchronized" }]);
+  assert.equal(store.project("project-1")?.title, "Project A");
+  assert.equal(store.project("Project A")?.id, "Project A");
+  assert.equal(store.project("Project B")?.id, "Project A");
+  assert.equal(store.project("Missing"), undefined);
+  assert.equal(store.project(""), undefined);
+});

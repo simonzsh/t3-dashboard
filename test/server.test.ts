@@ -7,10 +7,12 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, test } from "node:test";
 import type { ConnectionStatus, DashboardState } from "../shared/api.ts";
+import { LinearBoard } from "../src/linear.ts";
+import type { LinearWorkspaceConfig } from "../src/linearConfig.ts";
 import { createDashboardServer } from "../src/server.ts";
 import { ShellStore } from "../src/shellStore.ts";
 import { SseHub } from "../src/sse.ts";
-import type { Command, RawProjection, ShellItem, T3Port } from "../src/t3/types.ts";
+import type { Command, RawConfig, RawProjection, ShellItem, T3Port } from "../src/t3/types.ts";
 
 const now = new Date("2026-03-20T12:00:00.000Z");
 const connection: ConnectionStatus = { t3: "live", origin: "http://127.0.0.1:3773", serverVersion: "1.0.0", protocolMismatch: false, error: null, since: "x" };
@@ -29,8 +31,9 @@ class FakePort implements T3Port {
     this.commands.push(command);
     return { sequence: 1 };
   }
+  config: RawConfig = {};
   async getConfig() {
-    return {};
+    return this.config;
   }
   subscribeShell() {
     return { cancel() {} };
@@ -42,7 +45,37 @@ afterEach(async () => {
   for (const stop of running.splice(0)) await stop();
 });
 
-async function start(staticDir?: string) {
+const linearNode = (n: number) => ({
+  id: `issue-${n}`,
+  identifier: `TEAM-${n}`,
+  title: `Issue ${n}`,
+  url: `https://linear.example/TEAM-${n}`,
+  priority: 2,
+  priorityLabel: "High",
+  updatedAt: "2026-03-20T10:00:00.000Z",
+  state: { name: "Todo", type: "unstarted", color: "#ccc" },
+  project: null,
+  team: { key: "TEAM", name: "Team 1" },
+});
+
+interface StartOptions {
+  staticDir?: string;
+  workspaces?: LinearWorkspaceConfig[];
+  linearFetch?: (url: string, init: RequestInit) => Promise<Response>;
+}
+
+async function start(startOptions: StartOptions = {}) {
+  const { staticDir, workspaces = [], linearFetch } = startOptions;
+  const linearCalls: string[] = [];
+  const board = new LinearBoard({
+    fetch: async (url, init) => {
+      linearCalls.push(String(new Headers(init.headers).get("authorization")));
+      return linearFetch ? linearFetch(url, init) : new Response(JSON.stringify({ data: { viewer: { assignedIssues: { nodes: [linearNode(1)] } } } }));
+    },
+    readWorkspaces: () => workspaces,
+    resolveProject: (title) => store.project(title)?.id ?? null,
+    now: () => now,
+  });
   const port = new FakePort();
   const hub = new SseHub({ batchMs: 10, pingMs: 60_000 });
   let counter = 0;
@@ -72,6 +105,7 @@ async function start(staticDir?: string) {
     port,
     store,
     hub,
+    board,
     getState,
     connection: () => connection,
     staticDir: staticDir ?? join(tmpdir(), "t3-dashboard-missing-dir"),
@@ -83,7 +117,7 @@ async function start(staticDir?: string) {
     server.closeAllConnections();
     await new Promise((resolve) => server.close(resolve));
   });
-  return { port, store, hub, server, origin: (server.address() as AddressInfo).port };
+  return { port, store, hub, server, linearCalls, origin: (server.address() as AddressInfo).port };
 }
 
 interface Reply {
@@ -209,7 +243,7 @@ test("archive, pin and unpin", async () => {
 });
 
 test("every response forbids framing and sniffing", async () => {
-  const { server } = await start(staticDirWith({ "index.html": "<html></html>" }));
+  const { server } = await start({ staticDir: staticDirWith({ "index.html": "<html></html>" }) });
   for (const reply of [await call(server, "GET", "/api/state"), await call(server, "GET", "/"), await post(server, "/api/threads/x/nope")]) {
     assert.equal(reply.headers["x-frame-options"], "DENY");
     assert.equal(reply.headers["content-security-policy"], "frame-ancestors 'none'");
@@ -336,7 +370,7 @@ test("static: a missing build answers a short page", async () => {
 
 test("static: files, content types and SPA fallback", async () => {
   const dir = staticDirWith({ "index.html": "<p>app</p>", "assets/app.js": "console.log(1)", "assets/app.css": "a{}", "icon.svg": "<svg/>" });
-  const { server } = await start(dir);
+  const { server } = await start({ staticDir: dir });
   assert.equal((await call(server, "GET", "/")).text, "<p>app</p>");
   const js = await call(server, "GET", "/assets/app.js");
   assert.equal(js.text, "console.log(1)");
@@ -348,9 +382,114 @@ test("static: files, content types and SPA fallback", async () => {
 
 test("static: traversal is blocked", async () => {
   const dir = staticDirWith({ "web/dist/index.html": "<p>app</p>", "secret.txt": "top secret" });
-  const { server } = await start(join(dir, "web", "dist"));
+  const { server } = await start({ staticDir: join(dir, "web", "dist") });
   for (const path of ["/%2e%2e/%2e%2e/secret.txt", "/..%2f..%2fsecret.txt", "/%2e%2e%2f%2e%2e%2fsecret.txt", "/%00"]) {
     const reply = await call(server, "GET", path);
     assert.ok(!reply.text.includes("top secret"), path);
   }
+});
+
+const space = (name: string, t3Project = "Project A"): LinearWorkspaceConfig => ({ name, apiKey: "key-1", t3Project });
+const assignBody = { workspace: "Space 1", issueId: "issue-1", agent: "claude" };
+const providers: RawConfig = {
+  providers: [
+    { instanceId: "provider-b", enabled: true, status: "ready", models: [{ slug: "model-y" }] },
+    { instanceId: "codex", enabled: true, status: "ready", models: [{ slug: "model-c1" }, { slug: "model-c2" }] },
+  ],
+};
+
+test("GET /api/board returns the board and caches it until ?refresh=1", async () => {
+  const { server, linearCalls } = await start({ workspaces: [space("Space 1")] });
+  const first = await call(server, "GET", "/api/board");
+  assert.equal(first.status, 200);
+  assert.deepEqual(first.json.workspaces, [{ name: "Space 1", ok: true, error: null, t3ProjectId: "project-1" }]);
+  assert.deepEqual(first.json.issues.map((issue: { identifier: string; workspace: string }) => [issue.identifier, issue.workspace]), [["TEAM-1", "Space 1"]]);
+  await call(server, "GET", "/api/board");
+  assert.equal(linearCalls.length, 1);
+  await call(server, "GET", "/api/board?refresh=1");
+  assert.equal(linearCalls.length, 2);
+  assert.ok(!first.text.includes("key-1"));
+});
+
+test("POST /api/board/assign with claude creates a thread in the workspace project", async () => {
+  const { server, port } = await start({ workspaces: [space("Space 1")] });
+  const reply = await post(server, "/api/board/assign", assignBody);
+  assert.deepEqual(reply.json, { ok: true, threadId: "id-1" });
+  assert.deepEqual(
+    port.commands.map((command) => command.type),
+    ["thread.create", "message.dispatch"],
+  );
+  assert.equal(port.commands[0]!.projectId, "project-1");
+  assert.equal(port.commands[0]!.title, "TEAM-1 Issue 1");
+  assert.equal(port.commands[1]!.text, "Traite le ticket Linear TEAM-1 : https://linear.example/TEAM-1");
+  assert.deepEqual(port.commands[0]!.modelSelection, { instanceId: "claudeAgent", model: "claude-opus-5-5" });
+});
+
+test("assign with claude keeps the project default when it uses claudeAgent", async () => {
+  const { server, port, store } = await start({ workspaces: [space("Space 1")] });
+  store.apply([{ kind: "project.updated", project: { id: "project-1", title: "Project A", defaultModelSelection: { instanceId: "claudeAgent", model: "model-d" } } }]);
+  await post(server, "/api/board/assign", assignBody);
+  assert.deepEqual(port.commands[0]!.modelSelection, { instanceId: "claudeAgent", model: "model-d" });
+});
+
+test("assign with claude ignores a project default on another provider", async () => {
+  const { server, port, store } = await start({ workspaces: [space("Space 1")] });
+  store.apply([{ kind: "project.updated", project: { id: "project-1", title: "Project A", defaultModelSelection: { instanceId: "codex", model: "model-d" } } }]);
+  await post(server, "/api/board/assign", assignBody);
+  assert.deepEqual(port.commands[0]!.modelSelection, { instanceId: "claudeAgent", model: "claude-opus-5-5" });
+});
+
+test("assign with codex uses the first model of the codex provider", async () => {
+  const { server, port } = await start({ workspaces: [space("Space 1")] });
+  port.config = providers;
+  const reply = await post(server, "/api/board/assign", { ...assignBody, agent: "codex" });
+  assert.equal(reply.status, 200);
+  assert.deepEqual(port.commands[0]!.modelSelection, { instanceId: "codex", model: "model-c1" });
+});
+
+test("assign with codex answers 409 when no codex model exists", async () => {
+  const { server, port } = await start({ workspaces: [space("Space 1")] });
+  port.config = { providers: [providers.providers![0]!] };
+  const reply = await post(server, "/api/board/assign", { ...assignBody, agent: "codex" });
+  assert.equal(reply.status, 409);
+  assert.deepEqual(port.commands, []);
+});
+
+test("assign finds the project by id as well as by title", async () => {
+  const { server, port } = await start({ workspaces: [space("Space 1", "project-1")] });
+  assert.equal((await post(server, "/api/board/assign", assignBody)).status, 200);
+  assert.equal(port.commands[0]!.projectId, "project-1");
+});
+
+test("assign errors: 400 invalid body, 404 unknown workspace or issue, 409 unknown T3 project", async () => {
+  const { server, port } = await start({ workspaces: [space("Space 1"), space("Space 2", "Missing")] });
+  assert.equal((await post(server, "/api/board/assign", { ...assignBody, agent: "other" })).status, 400);
+  assert.equal((await post(server, "/api/board/assign", { workspace: "Space 1" })).status, 400);
+  assert.equal((await post(server, "/api/board/assign", { ...assignBody, workspace: "Nope" })).status, 404);
+  assert.equal((await post(server, "/api/board/assign", { ...assignBody, issueId: "nope" })).status, 404);
+  assert.equal((await post(server, "/api/board/assign", { ...assignBody, workspace: "Space 2" })).status, 409);
+  assert.deepEqual(port.commands, []);
+});
+
+test("assign rereads Linear once when the issue is not in the cached board", async () => {
+  let nodes = [linearNode(1)];
+  const { server, linearCalls } = await start({
+    workspaces: [space("Space 1")],
+    linearFetch: async () => new Response(JSON.stringify({ data: { viewer: { assignedIssues: { nodes } } } })),
+  });
+  await call(server, "GET", "/api/board");
+  nodes = [linearNode(1), linearNode(2)];
+  const reply = await post(server, "/api/board/assign", { ...assignBody, issueId: "issue-2" });
+  assert.equal(reply.status, 200);
+  assert.equal(linearCalls.length, 2);
+});
+
+test("assign answers 502 when Linear fails and when T3 fails", async () => {
+  const down = await start({ workspaces: [space("Space 1")], linearFetch: async () => new Response("no", { status: 500 }) });
+  const linear = await post(down.server, "/api/board/assign", assignBody);
+  assert.equal(linear.status, 502);
+  assert.ok(!linear.text.includes("key-1"));
+  const { server, port } = await start({ workspaces: [space("Space 1")] });
+  port.dispatchError = new Error("T3 down");
+  assert.equal((await post(server, "/api/board/assign", assignBody)).status, 502);
 });
