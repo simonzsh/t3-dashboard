@@ -1,6 +1,6 @@
 import { readFile, stat } from "node:fs/promises";
-import type { IncomingMessage, Server, ServerResponse } from "node:http";
 import { createServer } from "node:http";
+import type { IncomingMessage, Server, ServerResponse } from "node:http";
 import { extname, join, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 import type {
@@ -12,6 +12,7 @@ import type {
   SendMessageBody,
   UserInputAnswers,
 } from "../shared/api.ts";
+import { ACTIVE_STATUSES } from "./classify.ts";
 import type { ShellStore } from "./shellStore.ts";
 import type { SseHub } from "./sse.ts";
 import {
@@ -41,7 +42,6 @@ export interface DashboardServerOptions {
 
 const MAX_BODY_BYTES = 1024 * 1024;
 const LOCAL_HOSTS = new Set(["127.0.0.1", "localhost"]);
-const ACTIVE_STATUSES = new Set(["preparing", "queued", "starting", "running", "waiting"]);
 const RUNNING_STATUSES = new Set(["preparing", "starting", "running", "waiting"]);
 const DECISIONS = new Set<string>(["accept", "acceptForSession", "decline"]);
 const CONTENT_TYPES: Record<string, string> = {

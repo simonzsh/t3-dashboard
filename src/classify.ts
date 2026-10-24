@@ -6,7 +6,7 @@ const PREVIEW_MAX = 280;
 const DAY_MS = 24 * 60 * 60 * 1000;
 const EPOCH = new Date(0).toISOString();
 
-const ACTIVE_STATUSES = new Set(["preparing", "queued", "starting", "running", "waiting"]);
+export const ACTIVE_STATUSES = new Set(["preparing", "queued", "starting", "running", "waiting"]);
 const FINISHED_STATUSES = new Set(["completed", "interrupted", "rolled_back"]);
 const APPROVAL_KINDS = new Set(["command", "file-read", "file-change", "permission", "mcp-elicitation"]);
 
