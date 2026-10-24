@@ -1,45 +1,55 @@
-import { useEffect, useMemo, useState } from "react";
-import { Board } from "./components/Board.tsx";
-import { Charts } from "./components/Charts.tsx";
-import { ConversationPanel } from "./components/ConversationPanel.tsx";
+import { useEffect, useState } from "react";
+import { AgentsView } from "./components/AgentsView.tsx";
+import { BoardView } from "./components/BoardView.tsx";
 import { ConnectionBanner } from "./components/ConnectionBanner.tsx";
-import { FiltersBar } from "./components/FiltersBar.tsx";
-import { Kpis } from "./components/Kpis.tsx";
+import { ConversationPanel } from "./components/ConversationPanel.tsx";
 import { NewThreadDialog } from "./components/NewThreadDialog.tsx";
-import { filterThreads, type Filters } from "./filters.ts";
 import { useDashboard } from "./useDashboard.ts";
+
+type Tab = "agents" | "board";
 
 export function App() {
   const { state, sseDown, lastEvent } = useDashboard();
-  const [filters, setFilters] = useState<Filters>({ projectId: null, provider: null, search: "" });
+  const [tab, setTab] = useState<Tab>("agents");
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [creating, setCreating] = useState(false);
   const [now, setNow] = useState(() => new Date());
 
-  // Relative times and the 30-day window need a clock that moves.
+  // Relative times and the 24 h window need a clock that moves.
   useEffect(() => {
     const id = setInterval(() => setNow(new Date()), 30_000);
     return () => clearInterval(id);
   }, []);
 
-  const threads = useMemo(() => (state ? filterThreads(state.threads, filters) : []), [state, filters]);
+  const live = !sseDown && state?.connection.t3 === "live";
 
   return (
     <div className="app">
       <header className="topbar">
         <h1>T3 Dashboard</h1>
-        {state && <FiltersBar filters={filters} onChange={setFilters} projects={state.projects} threads={state.threads} onNewThread={() => setCreating(true)} />}
+        <nav className="tabs" role="tablist">
+          {(["agents", "board"] as const).map((id) => (
+            <button key={id} role="tab" aria-selected={tab === id} className={tab === id ? "active" : ""} onClick={() => setTab(id)}>
+              {id === "agents" ? "Agents" : "Board"}
+            </button>
+          ))}
+        </nav>
+        <span className="spacer" />
+        <span className={`conn ${live ? "up" : "down"}`} title={live ? "Connecté à T3 Code" : "Connexion perdue"}>
+          <span className="conn-dot" /> {live ? "Connecté" : "Hors ligne"}
+        </span>
+        {state && (
+          <button className="primary" onClick={() => setCreating(true)}>
+            Nouveau thread
+          </button>
+        )}
       </header>
       <ConnectionBanner connection={state?.connection ?? null} sseDown={sseDown} />
-      {!state ? (
-        <p className="empty">Chargement…</p>
-      ) : (
-        <main>
-          <Kpis threads={threads} />
-          <Charts threads={threads} projects={state.projects} now={now} />
-          <Board threads={threads} projects={state.projects} now={now} selectedId={selectedId} onOpen={setSelectedId} />
-        </main>
-      )}
+      <main>
+        {tab === "agents" &&
+          (state ? <AgentsView state={state} now={now} selectedId={selectedId} onOpen={setSelectedId} /> : <p className="empty">Chargement…</p>)}
+        {tab === "board" && <BoardView onShowAgents={() => setTab("agents")} />}
+      </main>
       {state && selectedId && (
         <ConversationPanel
           key={selectedId}
@@ -53,10 +63,11 @@ export function App() {
         <NewThreadDialog
           projects={state.projects}
           providers={state.providers}
-          defaultProjectId={filters.projectId}
+          defaultProjectId={null}
           onClose={() => setCreating(false)}
           onCreated={(id) => {
             setCreating(false);
+            setTab("agents");
             setSelectedId(id);
           }}
         />

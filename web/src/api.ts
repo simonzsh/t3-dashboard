@@ -1,4 +1,6 @@
 import type {
+  AssignIssueBody,
+  BoardResult,
   CreateThreadBody,
   CreateThreadResult,
   DashboardState,
@@ -25,6 +27,8 @@ export function createApi(fetchImpl: Fetch) {
   const t = (id: string) => `/api/threads/${encodeURIComponent(id)}`;
   return {
     getState: () => call<DashboardState>("/api/state"),
+    getBoard: (refresh = false) => call<BoardResult>(refresh ? "/api/board?refresh=1" : "/api/board"),
+    assignIssue: (b: AssignIssueBody) => call<CreateThreadResult>("/api/board/assign", b),
     getThread: (id: string) => call<ThreadDetail>(t(id)),
     createThread: (b: CreateThreadBody) => call<CreateThreadResult>("/api/threads", b),
     sendMessage: (id: string, b: SendMessageBody) => call<OkResult>(`${t(id)}/messages`, b),

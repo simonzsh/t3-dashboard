@@ -69,3 +69,21 @@ test("non-2xx without JSON error body still throws", async () => {
   const fetch = (async () => new Response("boom", { status: 500 })) as typeof globalThis.fetch;
   await assert.rejects(() => createApi(fetch).getState(), /500/);
 });
+
+test("getBoard reads the cache by default and forces a refresh on demand", async () => {
+  const { calls, api } = fake(200, { workspaces: [], issues: [], fetchedAt: "" });
+  await api.getBoard();
+  await api.getBoard(true);
+  assert.deepEqual(calls.map((c) => c.url), ["/api/board", "/api/board?refresh=1"]);
+  assert.equal(calls[0]?.init?.method ?? "GET", "GET");
+});
+
+test("assignIssue posts the body to the assign route", async () => {
+  const { calls, api } = fake(200, { ok: true, threadId: "thread-7" });
+  const body = { workspace: "ws-1", issueId: "i1", agent: "codex" as const };
+  const res = await api.assignIssue(body);
+  assert.equal(res.threadId, "thread-7");
+  assert.equal(calls[0]?.url, "/api/board/assign");
+  assert.equal(calls[0]?.init?.method, "POST");
+  assert.deepEqual(JSON.parse(String(calls[0]?.init?.body)), body);
+});
