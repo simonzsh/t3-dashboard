@@ -5,6 +5,7 @@ import { ConversationPanel } from "./components/ConversationPanel.tsx";
 import { ConnectionBanner } from "./components/ConnectionBanner.tsx";
 import { FiltersBar } from "./components/FiltersBar.tsx";
 import { Kpis } from "./components/Kpis.tsx";
+import { NewThreadDialog } from "./components/NewThreadDialog.tsx";
 import { filterThreads, type Filters } from "./filters.ts";
 import { useDashboard } from "./useDashboard.ts";
 
@@ -12,6 +13,7 @@ export function App() {
   const { state, sseDown, lastEvent } = useDashboard();
   const [filters, setFilters] = useState<Filters>({ projectId: null, provider: null, search: "" });
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [creating, setCreating] = useState(false);
   const [now, setNow] = useState(() => new Date());
 
   // Relative times and the 30-day window need a clock that moves.
@@ -26,7 +28,7 @@ export function App() {
     <div className="app">
       <header className="topbar">
         <h1>T3 Dashboard</h1>
-        {state && <FiltersBar filters={filters} onChange={setFilters} projects={state.projects} threads={state.threads} onNewThread={() => {}} />}
+        {state && <FiltersBar filters={filters} onChange={setFilters} projects={state.projects} threads={state.threads} onNewThread={() => setCreating(true)} />}
       </header>
       <ConnectionBanner connection={state?.connection ?? null} sseDown={sseDown} />
       {!state ? (
@@ -45,6 +47,18 @@ export function App() {
           thread={state.threads.find((t) => t.id === selectedId) ?? null}
           lastEvent={lastEvent}
           onClose={() => setSelectedId(null)}
+        />
+      )}
+      {state && creating && (
+        <NewThreadDialog
+          projects={state.projects}
+          providers={state.providers}
+          defaultProjectId={filters.projectId}
+          onClose={() => setCreating(false)}
+          onCreated={(id) => {
+            setCreating(false);
+            setSelectedId(id);
+          }}
         />
       )}
     </div>
