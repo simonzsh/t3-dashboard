@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import type { DashboardEvent, DashboardThread, ThreadDetail } from "../../../shared/api.ts";
 import { api } from "../api.ts";
+import { PendingRequestView } from "./PendingRequestView.tsx";
 import { useAction } from "./useAction.ts";
 
 interface Props {
@@ -94,6 +95,13 @@ export function ConversationPanel({ threadId, thread, lastEvent, onClose }: Prop
         ))}
         <div ref={bottom} />
       </div>
+      {detail && detail.pendingRequests.length > 0 && (
+        <div className="requests">
+          {detail.pendingRequests.map((r) => (
+            <PendingRequestView key={r.requestId} threadId={threadId} request={r} />
+          ))}
+        </div>
+      )}
       <form
         className="composer"
         onSubmit={(e) => {
