@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import type { DashboardProject, DashboardProvider } from "../../../shared/api.ts";
 import { api } from "../api.ts";
 import { useAction } from "./useAction.ts";
@@ -25,6 +25,11 @@ export function NewThreadDialog({ projects, providers, defaultProjectId, onClose
   const [text, setText] = useState("");
   const action = useAction();
   const models = providers.find((p) => p.instanceId === provider)?.models ?? [];
+
+  // Providers can arrive after the dialog opens: pick a preset once the choice is no longer valid.
+  useEffect(() => {
+    if (!models.some((m) => m.slug === model)) setChoice(presetFor(projects.find((p) => p.id === projectId), providers));
+  }, [providers]);
   const valid = projectId && provider && model && title.trim() && text.trim();
 
   async function create() {

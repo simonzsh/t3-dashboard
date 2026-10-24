@@ -16,8 +16,7 @@ export function PendingRequestView({ threadId, request }: { threadId: string; re
   const locked = !request.resumable;
 
   function setDraft(id: string, patch: Partial<{ choices: string[]; custom: string }>) {
-    const cur = drafts[id] ?? { choices: [], custom: "" };
-    setDrafts({ ...drafts, [id]: { ...cur, ...patch } });
+    setDrafts((prev) => ({ ...prev, [id]: { ...(prev[id] ?? { choices: [], custom: "" }), ...patch } }));
   }
 
   return (

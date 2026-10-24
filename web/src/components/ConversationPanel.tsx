@@ -4,6 +4,8 @@ import { api } from "../api.ts";
 import { PendingRequestView } from "./PendingRequestView.tsx";
 import { useAction } from "./useAction.ts";
 
+const ROLE_LABELS: Record<string, string> = { user: "Vous", assistant: "Agent", system: "Système" };
+
 interface Props {
   threadId: string;
   thread: DashboardThread | null;
@@ -29,16 +31,20 @@ export function ConversationPanel({ threadId, thread, lastEvent, onClose }: Prop
     }
   }
 
+  const reload = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+
   useEffect(() => {
     setDetail(null);
     void load();
+    return () => clearTimeout(reload.current);
   }, [threadId]);
 
   // A live update of this thread means new messages: reload, debounced.
+  // The timer lives in a ref so that unrelated events do not cancel it.
   useEffect(() => {
     if (lastEvent?.type !== "threads" || !lastEvent.data.upserted.some((t) => t.id === threadId)) return;
-    const id = setTimeout(() => void load(), 500);
-    return () => clearTimeout(id);
+    clearTimeout(reload.current);
+    reload.current = setTimeout(() => void load(), 500);
   }, [lastEvent]);
 
   useEffect(() => {
@@ -87,7 +93,7 @@ export function ConversationPanel({ threadId, thread, lastEvent, onClose }: Prop
         {detail?.messages.map((m) => (
           <div key={m.id} className={`msg ${m.role}`}>
             <small>
-              {m.role} · {new Date(m.createdAt).toLocaleString("fr-FR")}
+              {ROLE_LABELS[m.role] ?? m.role} · {new Date(m.createdAt).toLocaleString("fr-FR")}
               {m.streaming ? " · en cours…" : ""}
             </small>
             {m.text}
