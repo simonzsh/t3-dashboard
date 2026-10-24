@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Board } from "./components/Board.tsx";
 import { Charts } from "./components/Charts.tsx";
+import { ConversationPanel } from "./components/ConversationPanel.tsx";
 import { ConnectionBanner } from "./components/ConnectionBanner.tsx";
 import { FiltersBar } from "./components/FiltersBar.tsx";
 import { Kpis } from "./components/Kpis.tsx";
@@ -8,7 +9,7 @@ import { filterThreads, type Filters } from "./filters.ts";
 import { useDashboard } from "./useDashboard.ts";
 
 export function App() {
-  const { state, sseDown } = useDashboard();
+  const { state, sseDown, lastEvent } = useDashboard();
   const [filters, setFilters] = useState<Filters>({ projectId: null, provider: null, search: "" });
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [now, setNow] = useState(() => new Date());
@@ -36,6 +37,15 @@ export function App() {
           <Charts threads={threads} projects={state.projects} now={now} />
           <Board threads={threads} projects={state.projects} now={now} selectedId={selectedId} onOpen={setSelectedId} />
         </main>
+      )}
+      {state && selectedId && (
+        <ConversationPanel
+          key={selectedId}
+          threadId={selectedId}
+          thread={state.threads.find((t) => t.id === selectedId) ?? null}
+          lastEvent={lastEvent}
+          onClose={() => setSelectedId(null)}
+        />
       )}
     </div>
   );
