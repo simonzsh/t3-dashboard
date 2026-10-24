@@ -44,14 +44,14 @@ export interface RawSnapshot {
   projects?: RawProject[];
 }
 
+// Unknown kinds can still arrive at runtime; consumers ignore them.
 export type ShellItem =
   | { kind: "snapshot"; snapshot?: RawSnapshot }
   | { kind: "synchronized" }
   | { kind: "thread.updated"; thread: RawThread; location?: string }
   | { kind: "thread.removed"; threadId: string }
   | { kind: "project.updated"; project: RawProject }
-  | { kind: "project.removed"; projectId: string }
-  | { kind: string };
+  | { kind: "project.removed"; projectId: string };
 
 export interface RawMessage {
   id: string;
