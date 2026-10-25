@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "bun:test";
 import { createSettings } from "../src/settings.ts";
-import type { KeyCheck } from "../src/linear.ts";
+import type { KeyCheck } from "../src/integrations/linear/client.ts";
 
 const FILE = "/cfg/linear.json";
 const KEY = "lin_api_abcdefghijWXYZ";

@@ -8,6 +8,7 @@ import { TokenManager } from "./auth.ts";
 import { agentConfigDir, loadBrains } from "./brains.ts";
 import { envAllowedHosts, envPort } from "./config.ts";
 import { findT3, runCommand } from "./integrations/t3/cli.ts";
+import { LinearClient } from "./integrations/linear/client.ts";
 import { T3Client, validateWith } from "./integrations/t3/client.ts";
 import { environmentIdFile, readEnvironmentId, readServerVersion, resolveOrigin, runtimeFile } from "./integrations/t3/runtime.ts";
 import { LiveSync } from "./live.ts";
@@ -96,7 +97,7 @@ export async function start({ port, log, env }: StartOptions): Promise<void> {
 
   const linearPath = linearFile(env, home);
   const board = new LinearBoard({
-    fetch: (url, init) => fetch(url, init),
+    client: new LinearClient((url, init) => fetch(url, init)),
     readWorkspaces: () => readLinearWorkspaces(linearPath, readText),
     now: () => new Date(),
   });

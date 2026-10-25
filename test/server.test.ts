@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { afterEach, test } from "bun:test";
 import type { AutomationsResult, ConnectionStatus, DashboardState } from "../shared/api.ts";
+import { LinearClient } from "../src/integrations/linear/client.ts";
 import { LinearBoard } from "../src/linear.ts";
 import { readLinearWorkspaces } from "../src/linearConfig.ts";
 import type { LinearWorkspaceConfig } from "../src/linearConfig.ts";
@@ -50,6 +51,8 @@ afterEach(async () => {
   for (const stop of running.splice(0)) await stop();
 });
 
+const linearPage = (nodes: unknown[]) => new Response(JSON.stringify({ data: { viewer: { id: "u1", assignedIssues: { nodes, pageInfo: { hasNextPage: false, endCursor: null } } } } }));
+
 const linearNode = (n: number) => ({
   id: `issue-${n}`,
   identifier: `TEAM-${n}`,
@@ -86,10 +89,10 @@ async function start(startOptions: StartOptions = {}) {
     throw new Error("ENOENT");
   };
   const board = new LinearBoard({
-    fetch: async (url, init) => {
+    client: new LinearClient(async (url, init) => {
       linearCalls.push(String(new Headers(init.headers).get("authorization")));
-      return linearFetch ? linearFetch(url, init) : new Response(JSON.stringify({ data: { viewer: { assignedIssues: { nodes: [linearNode(1)] } } } }));
-    },
+      return linearFetch ? linearFetch(url, init) : linearPage([linearNode(1)]);
+    }),
     readWorkspaces: () => (startOptions.linear === undefined ? workspaces : readLinearWorkspaces(LINEAR_FILE, readFile)),
     now: () => now,
   });
@@ -588,7 +591,7 @@ test("assign errors: 400 invalid body or no project, 404 unknown workspace or is
 test("the board shows the issues of every team", async () => {
   const teamNode = (n: number, key: string) => ({ ...linearNode(n), team: { key, name: `Team ${key}` } });
   const nodes = [teamNode(1, "ENG"), teamNode(2, "OPS"), teamNode(3, "HR")];
-  const { server } = await start({ workspaces: [space("Linear")], linearFetch: async () => new Response(JSON.stringify({ data: { viewer: { assignedIssues: { nodes } } } })) });
+  const { server } = await start({ workspaces: [space("Linear")], linearFetch: async () => linearPage(nodes) });
   const board = await call(server, "GET", "/api/board");
   assert.deepEqual(board.json.issues.map((issue: { id: string }) => issue.id), ["issue-1", "issue-2", "issue-3"]);
 });
@@ -597,7 +600,7 @@ test("assign rereads Linear once when the issue is not in the cached board", asy
   let nodes = [linearNode(1)];
   const { server, linearCalls } = await start({
     workspaces: [space("Space 1")],
-    linearFetch: async () => new Response(JSON.stringify({ data: { viewer: { assignedIssues: { nodes } } } })),
+    linearFetch: async () => linearPage(nodes),
   });
   await call(server, "GET", "/api/board");
   nodes = [linearNode(1), linearNode(2)];
