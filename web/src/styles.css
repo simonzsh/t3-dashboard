@@ -115,9 +115,9 @@ kbd { font: 11px/1 var(--font-mono); padding: 2px 5px; border-radius: 4px; borde
 .banner { padding: 8px 24px; background: var(--warn-bg); color: var(--warn-text); border-bottom: 1px solid var(--line); }
 .empty { color: var(--text-secondary); margin: 0; }
 .loader { flex: 1; display: grid; place-items: center; min-height: 96px; }
-.loader svg { width: 36px; height: 36px; }
-.loader line { stroke: var(--accent); stroke-width: 2.4; stroke-linecap: round; opacity: 0.25; animation: ray 0.9s ease-in-out infinite; }
-@keyframes ray { 0%, 100% { opacity: 0.25; } 30% { opacity: 1; } }
+.loader svg { width: 36px; height: 36px; animation: loader-breathe 1.6s ease-in-out infinite; }
+.loader line { stroke: var(--accent); stroke-width: 2.4; stroke-linecap: round; }
+@keyframes loader-breathe { 0%, 100% { transform: scale(0.82); opacity: 0.55; } 50% { transform: scale(1); opacity: 1; } }
 /* The page never scrolls: main fills the window and each view scrolls its own areas. */
 main { flex: 1; min-height: 0; overflow: hidden; padding: 24px; display: flex; flex-direction: column; gap: 28px; }
 .group h2 { display: flex; align-items: baseline; gap: 8px; font-size: 13px; margin: 0 0 12px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-secondary); }
@@ -501,7 +501,7 @@ button.auto-row:hover { background: var(--surface-0); }
 /* After every animated rule, so it wins on equal specificity. */
 @media (prefers-reduced-motion: reduce) {
   .pulse, .agent.working::after, .desk-window.state-running .desk-window-head::after, .streaming, .subagent.running .subagent-dot, .activity-item.running .icon, .spinning { animation: none; }
-  .loader line { animation: none; opacity: 1; }
+  .loader svg { animation: none; }
   .agent { transition: none; }
 }
 .msg.pending { opacity: 0.6; }
