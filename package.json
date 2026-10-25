@@ -9,7 +9,8 @@
     "test": "bun test",
     "check": "bun run typecheck && bun test",
     "build": "bun run scripts/build.ts",
-    "smoke": "bun run scripts/smoke.ts"
+    "smoke": "bun run scripts/smoke.ts",
+    "contracts": "bun run scripts/contracts.ts"
   },
   "dependencies": {
     "croner": "^10.0.1",

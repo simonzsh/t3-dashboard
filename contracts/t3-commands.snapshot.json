@@ -1,0 +1,77 @@
+{
+  "image upload": {
+    "dataUrl": "required",
+    "id": "optional",
+    "mimeType": "required",
+    "name": "required",
+    "sizeBytes": "required",
+    "source": "optional"
+  },
+  "message.dispatch": {
+    "attachments": "required",
+    "commandId": "required",
+    "context": "optional",
+    "createdBy": "required: agent | system | user",
+    "creationSource": "required: mcp | mobile | provider | server | web",
+    "delegatedCompletion": "optional",
+    "deliveryIntent": "optional: auto | restart | steer",
+    "dispatchMode": "required: defer_start | queue_after_active | restart_active | start_immediately | steer_active",
+    "manualContinuationOfRunId": "optional",
+    "messageId": "required",
+    "modelSelection": "optional",
+    "notification": "optional",
+    "restartContinuationOfRunId": "optional",
+    "scheduledTaskId": "optional",
+    "senderThreadId": "optional",
+    "sourcePlanRef": "optional",
+    "text": "required",
+    "threadId": "required",
+    "titleSeed": "optional",
+    "usageLimitContinuationOfRunId": "optional",
+    "usageLimitRecoveryRequestId": "optional"
+  },
+  "run.interrupt": {
+    "commandId": "required",
+    "holdQueue": "optional",
+    "reason": "optional",
+    "runId": "required",
+    "threadId": "required"
+  },
+  "runtime-request.respond": {
+    "answers": "optional",
+    "attachmentsByQuestionId": "optional",
+    "commandId": "required",
+    "decision": "optional: accept | acceptAlways | acceptForSession | cancel | decline",
+    "requestId": "required",
+    "threadId": "required"
+  },
+  "thread.create": {
+    "branch": "required",
+    "commandId": "required",
+    "createdBy": "required: agent | system | user",
+    "creationSource": "required: mcp | mobile | provider | server | web",
+    "importedNativeThread": "optional: strong",
+    "interactionMode": "required: default | plan",
+    "modelSelection": "required",
+    "projectId": "required",
+    "runtimeMode": "required: approval-required | auto | auto-accept-edits | full-access",
+    "threadId": "required",
+    "title": "required",
+    "worktreePath": "required"
+  },
+  "thread.model-selection.set": {
+    "commandId": "required",
+    "modelSelection": "required",
+    "threadId": "required"
+  },
+  "thread.runtime-mode.set": {
+    "commandId": "required",
+    "runtimeMode": "required: approval-required | auto | auto-accept-edits | full-access",
+    "threadId": "required"
+  },
+  "thread.user-input.dismiss": {
+    "commandId": "required",
+    "requestId": "required",
+    "threadId": "required"
+  }
+}
