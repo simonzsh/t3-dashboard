@@ -21,7 +21,7 @@ export interface KeyInfo {
   target: { tagName: string; isContentEditable: boolean } | null;
 }
 
-const KEYS: Record<string, ShortcutAction> = { "1": "agents", "2": "board", "3": "desk", n: "new-agent", ",": "settings" };
+const KEYS: Record<string, ShortcutAction> = { "1": "agents", "2": "desk", "3": "board", n: "new-agent", ",": "settings" };
 const DESK_KEYS: Record<string, ShortcutAction> = { x: "close-window", m: "toggle-maximize", escape: "unmaximize" };
 const TYPING = new Set(["INPUT", "TEXTAREA", "SELECT"]);
 

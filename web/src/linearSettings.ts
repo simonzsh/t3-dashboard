@@ -11,4 +11,4 @@ export function boardNeedsKey(board: BoardResult): boolean {
   return board.workspaces.length > 0 && board.workspaces.every((workspace) => !workspace.ok && (workspace.error ?? "").startsWith(REFUSED));
 }
 
-export const keyLabel = (keyTail: string | null): string => (keyTail ? `Connected, key ending in ${keyTail}` : "Not connected");
+export const maskedKey = (keyTail: string): string => `lin_api_••••${keyTail}`;

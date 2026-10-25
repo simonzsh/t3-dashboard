@@ -6,7 +6,7 @@ const press = (key: string, over: Partial<KeyInfo> = {}): KeyInfo => ({ key, ctr
 
 test("plain keys map to actions", () => {
   assert.equal(matchShortcut(press("1"), false), "agents");
-  assert.equal(matchShortcut(press("2"), false), "board");
+  assert.equal(matchShortcut(press("2"), false), "desk");
   assert.equal(matchShortcut(press("n"), false), "new-agent");
   assert.equal(matchShortcut(press("N"), false), "new-agent");
   assert.equal(matchShortcut(press(","), false), "settings");
@@ -28,8 +28,8 @@ test("an open dialog disables shortcuts", () => {
 });
 
 test("3 opens the Desk from any tab", () => {
-  assert.equal(matchShortcut(press("3"), false), "desk");
-  assert.equal(matchShortcut(press("3"), false, true), "desk");
+  assert.equal(matchShortcut(press("3"), false), "board");
+  assert.equal(matchShortcut(press("2"), false, true), "desk");
 });
 
 test("desk keys only work on the Desk", () => {

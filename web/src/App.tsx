@@ -18,8 +18,8 @@ type Tab = "agents" | "board" | "desk";
 
 const TABS: Array<{ id: Tab; label: string; key: string }> = [
   { id: "agents", label: "Agents", key: "1" },
-  { id: "board", label: "Board", key: "2" },
-  { id: "desk", label: "Desk", key: "3" },
+  { id: "desk", label: "Desk", key: "2" },
+  { id: "board", label: "Board", key: "3" },
 ];
 const TOAST_MS = 8000;
 
