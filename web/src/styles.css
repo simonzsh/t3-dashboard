@@ -113,8 +113,7 @@ main { padding: 24px; display: flex; flex-direction: column; gap: 28px; }
 .provider-icon { flex: none; width: 20px; height: 20px; margin-top: 1px; }
 .agent-title { font-weight: 600; word-break: break-word; }
 .agent-meta { color: var(--text-secondary); font-size: 12px; }
-.agent-status { display: flex; gap: 6px; flex-wrap: wrap; }
-.agent-status:empty { display: none; }
+.agent-foot { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
 .agent-preview { color: var(--text-secondary); font-size: 13px; word-break: break-word; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
 .pill { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 600; padding: 2px 10px; border-radius: 999px; }
 .pill.waiting { background: var(--warn-bg); color: var(--warn-text); }

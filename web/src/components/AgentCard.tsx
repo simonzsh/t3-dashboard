@@ -24,10 +24,8 @@ export function AgentCard({ card, now, onDesk, t3EnvironmentId, onOpen, onToggle
           <ProviderIcon provider={t.provider} />
           <span className="agent-title">{t.title || "(untitled)"}</span>
         </span>
-        <span className="agent-meta">
-          {t.model ?? t.provider} · {relativeTime(t.lastActivityAt, now)}
-        </span>
-        <span className="agent-status">
+        {t.preview && <span className="agent-preview">{cut(t.preview.text, 160)}</span>}
+        <span className="agent-foot">
           {status === "waiting" && <span className="pill waiting">Waiting for your reply{t.pending ? ` · ${pendingLabel(t.pending.category).toLowerCase()}` : ""}</span>}
           {status === "working" && (
             <span className="pill working">
@@ -37,8 +35,8 @@ export function AgentCard({ card, now, onDesk, t3EnvironmentId, onOpen, onToggle
           )}
           {status === "finished" && <span className={`pill ${failed ? "failed" : "finished"}`}>{failed ? "Error" : "Finished"}</span>}
           {t.pinned && <span className="pill pinned">Pinned</span>}
+          <span className="agent-meta">{relativeTime(t.lastActivityAt, now)}</span>
         </span>
-        {t.preview && <span className="agent-preview">{cut(t.preview.text, 160)}</span>}
       </button>
       <OpenInT3 environmentId={t3EnvironmentId} threadId={t.id} className="card-open-t3" />
       <button
