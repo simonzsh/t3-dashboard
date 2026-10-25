@@ -82,13 +82,23 @@ export class LiveSync {
 
   private async run(): Promise<void> {
     let attempt = 0;
+    let idle = 0;
     while (!this.stopped) {
       this.refreshed = false;
       if (this.options.auth.current() === null) {
-        this.setStatus({ t3: "needs-token", origin: this.options.origin(), error: null, setup: this.options.auth.setup() });
-        await this.pause(null);
+        const setup = this.options.auth.setup();
+        this.setStatus({ t3: "needs-token", origin: this.options.origin(), error: null, setup });
+        if (setup?.reason !== "t3-stopped") {
+          idle = 0;
+          await this.pause(null);
+          continue;
+        }
+        // T3 was not running: look for a token again by itself once it starts.
+        await this.pause(BACKOFF_MS[Math.min(idle++, BACKOFF_MS.length - 1)]!);
+        if (!this.stopped) await this.options.auth.refresh();
         continue;
       }
+      idle = 0;
       // The setup screen stays up while a retry connects, so it does not flash.
       this.setStatus({ t3: "connecting", origin: this.options.origin(), error: null, setup: this.status.t3 === "needs-token" ? null : this.status.setup });
       await this.loadConfig();

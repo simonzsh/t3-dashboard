@@ -324,3 +324,30 @@ test("retryNow cuts the backoff short", async () => {
   await until(() => port.subscriptions.length === 2);
   slow.stop();
 });
+
+test("a stopped T3 is looked for again on the backoff timer, without Retry", async () => {
+  const auth = new FakeAuth();
+  auth.token = null;
+  auth.info = { ...tokenSetup, reason: "t3-stopped" };
+  auth.onRefresh = () => {
+    if (auth.refreshes === 2) auth.token = "token-2";
+  };
+  const { port, live, sleeps } = setup(new FakePort(), auth);
+  live.start();
+  await until(() => port.subscriptions.length === 1);
+  assert.equal(auth.refreshes, 2);
+  assert.deepEqual(sleeps.slice(0, 2), [1000, 2000]);
+  live.stop();
+});
+
+test("a missing token that is not a stopped T3 waits for Retry", async () => {
+  const auth = new FakeAuth();
+  auth.token = null;
+  auth.info = tokenSetup;
+  const { live, sleeps } = setup(new FakePort(), auth);
+  live.start();
+  for (let i = 0; i < 10; i++) await tick();
+  assert.equal(auth.refreshes, 0);
+  assert.deepEqual(sleeps, []);
+  live.stop();
+});
