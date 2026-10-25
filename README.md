@@ -5,32 +5,32 @@ Dashboard web local pour gérer les threads et les agents de T3 Code. Il remplac
 - **Agents** : une carte par session T3 Code, regroupées par projet. Une colonne « Automatisations » (lecture seule) liste les routines et les rappels des cerveaux t3-agent. Les agents qui attendent l'utilisateur passent en haut. Un clic ouvre la conversation : envoi de message, interruption, réponse aux approbations et aux questions, épinglage, archivage.
 - **Board** : les tickets Linear assignés à vous, groupés par projet Linear. Un clic ouvre le ticket dans Linear. Le bouton « assigner à un agent » crée une session T3 Code (Claude ou Codex) qui traite le ticket. Elle apparaît seule dans l'onglet Agents.
 
-Le serveur Node (TypeScript, deux dépendances d'exécution : `yaml` et `croner`) parle à T3 Code et expose une API locale. L'interface React se trouve dans `web/`.
+Le serveur Bun (TypeScript) parle à T3 Code et expose une API locale. Il sert aussi l'interface React, qui se trouve dans `web/`.
 
 ## Installation
 
 ```sh
-npm install && npm --prefix web install
+bun install
 ```
 
-Node 24 ou plus récent est nécessaire.
+Bun 1.4 ou plus récent est nécessaire.
 
 ## Lancement
 
 Production :
 
 ```sh
-npm run build
-npm start
+bun start
 ```
 
 Ouvrez `http://127.0.0.1:4310`.
 
-Développement, dans deux terminaux :
+Développement : `bun run dev` sert l'interface avec rechargement à chaud et relance le serveur à chaque changement.
+
+Binaire unique, qui contient le serveur et l'interface :
 
 ```sh
-npm run dev       # serveur avec rechargement
-npm run dev:web   # Vite sur http://127.0.0.1:5173, proxy /api vers le serveur
+bun run build   # écrit dist/t3-dashboard
 ```
 
 ## Variables d'environnement
@@ -89,8 +89,8 @@ La colonne de droite de l'onglet Agents lit les cerveaux t3-agent, sans jamais �
 ## Vérifications
 
 ```sh
-npm run typecheck && npm test   # serveur
-npm run check                   # serveur et interface
+bun run check   # types et tests, serveur et interface
+bun run smoke   # construit le binaire et vérifie qu'il sert l'interface
 ```
 
 Aucun test ne contacte T3 Code.
