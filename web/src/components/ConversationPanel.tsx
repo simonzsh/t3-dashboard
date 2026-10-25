@@ -3,18 +3,26 @@ import type { ChatMessage, DashboardEvent, DashboardProvider, DashboardThread, I
 import { runActive } from "../agents.ts";
 import { api } from "../api.ts";
 import { renderMarkdown } from "../markdown.tsx";
+import { type PendingMessage, countSame, isSettled, pendingLabel } from "../pending.ts";
 import { Composer } from "./Composer.tsx";
 import { PendingRequestView } from "./PendingRequestView.tsx";
+import { RunActivityView } from "./RunActivity.tsx";
 import { SubagentStrip } from "./SubagentStrip.tsx";
 import { useAction } from "./useAction.ts";
 
 const ROLE_LABELS: Record<string, string> = { user: "You", assistant: "Agent", system: "System" };
 // Subagent progress does not always reach the shell stream: poll while one runs.
 const SUBAGENT_POLL_MS = 4000;
+// Run activity (commands, thinking) has no shell event per step: poll faster while a run is active.
+const RUN_POLL_MS = 2500;
 // Windows remount when they move between grid, minimized bar and mobile view: keep what they showed.
 const detailCache = new Map<string, ThreadDetail>();
 const drafts = new Map<string, string>();
 const NEAR_BOTTOM_PX = 40;
+// After a send the thread may not be marked running yet: poll for a short window anyway.
+const SEND_POLL_WINDOW_MS = 15_000;
+// The server persists a message a moment after the send: reload a second time.
+const SEND_RELOAD_MS = 1500;
 
 // Streaming re-renders the whole list: parse a message again only when its text changes.
 const MarkdownText = memo(function MarkdownText({ text }: { text: string }) {
@@ -34,6 +42,15 @@ function Message({ message: m }: { message: ChatMessage }) {
   );
 }
 
+function PendingBubble({ message: p }: { message: PendingMessage }) {
+  return (
+    <div className="msg user pending">
+      <div className="bubble">{p.text}</div>
+      <small>{pendingLabel(p.images)}</small>
+    </div>
+  );
+}
+
 interface Props {
   threadId: string;
   thread: DashboardThread | null;
@@ -45,6 +62,10 @@ export function ConversationPanel({ threadId, thread, lastEvent, providers }: Pr
   const [detail, setDetail] = useState<ThreadDetail | null>(() => detailCache.get(threadId) ?? null);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [text, setText] = useState(() => drafts.get(threadId) ?? "");
+  const [pending, setPending] = useState<PendingMessage[]>([]);
+  const [sendWindow, setSendWindow] = useState(false);
+  const sendWindowTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  const [revealSubagents, setRevealSubagents] = useState(0);
   const scroller = useRef<HTMLDivElement>(null);
   const stick = useRef(true);
   // One action per control, so an error of one does not wipe another.
@@ -62,6 +83,11 @@ export function ConversationPanel({ threadId, thread, lastEvent, providers }: Pr
       if (mine !== epoch.current) return;
       detailCache.set(threadId, next);
       setDetail(next);
+      setPending((list) => {
+        const now = Date.now();
+        const rest = list.filter((p) => !isSettled(p, next.messages, now));
+        return rest.length === list.length ? list : rest;
+      });
       setLoadError(null);
     } catch (e) {
       if (mine !== epoch.current) return;
@@ -76,6 +102,9 @@ export function ConversationPanel({ threadId, thread, lastEvent, providers }: Pr
     return () => {
       epoch.current++;
       clearTimeout(reload.current);
+      clearTimeout(sendWindowTimer.current);
+      setPending([]);
+      setSendWindow(false);
     };
   }, [threadId]);
 
@@ -90,8 +119,9 @@ export function ConversationPanel({ threadId, thread, lastEvent, providers }: Pr
   const t = thread ?? detail?.thread ?? null;
   const running = t !== null && runActive(t);
 
-  // Poll only while pending background tasks or a running subagent exist: a bare thread wait has nothing to show.
-  const polling = Boolean(t?.pendingTasks) || (detail?.subagents.some((s) => s.status === "running") ?? false);
+  // Poll only while a run, pending background tasks or a running subagent exist: a bare thread wait has nothing to show.
+  const polling = running || sendWindow || Boolean(t?.pendingTasks) || (detail?.subagents.some((s) => s.status === "running") ?? false);
+  const pollMs = running || sendWindow ? RUN_POLL_MS : SUBAGENT_POLL_MS;
   useEffect(() => {
     if (!polling) return;
     let stopped = false;
@@ -99,20 +129,20 @@ export function ConversationPanel({ threadId, thread, lastEvent, providers }: Pr
     // The next poll starts after the load ends, so slow responses never pile up.
     const tick = async () => {
       await load();
-      if (!stopped) timer = setTimeout(() => void tick(), SUBAGENT_POLL_MS);
+      if (!stopped) timer = setTimeout(() => void tick(), pollMs);
     };
-    timer = setTimeout(() => void tick(), SUBAGENT_POLL_MS);
+    timer = setTimeout(() => void tick(), pollMs);
     return () => {
       stopped = true;
       clearTimeout(timer);
     };
-  }, [polling, threadId]);
+  }, [polling, pollMs, threadId]);
 
   // Follow new messages unless the user scrolled up to read.
   useEffect(() => {
     const el = scroller.current;
     if (el && stick.current) el.scrollTop = el.scrollHeight;
-  }, [detail?.messages.length, detail?.messages.at(-1)?.text, detail?.pendingRequests.length]);
+  }, [pending.length, detail?.messages.length, detail?.messages.at(-1)?.text, detail?.pendingRequests.length, detail?.activity?.items.length]);
 
   function setDraft(value: string) {
     setText(value);
@@ -121,12 +151,22 @@ export function ConversationPanel({ threadId, thread, lastEvent, providers }: Pr
 
   // While a run is active the message steers it instead of waiting in the queue.
   async function send(body: string, attachments: ImageAttachment[]): Promise<boolean> {
+    const entry: PendingMessage = { id: crypto.randomUUID(), text: body, images: attachments.length, sentAt: Date.now(), baseline: countSame(detail?.messages ?? [], body) };
+    setPending((list) => [...list, entry]);
+    stick.current = true;
     const ok = await sendAction.run(() => api.sendMessage(threadId, { text: body, ...(running && { mode: "steer" as const }), ...(attachments.length && { attachments }) }));
-    if (ok) {
-      stick.current = true;
-      setDraft("");
+    if (!ok) {
+      setPending((list) => list.filter((p) => p.id !== entry.id));
+      return false;
     }
-    return ok;
+    setDraft("");
+    setSendWindow(true);
+    clearTimeout(sendWindowTimer.current);
+    sendWindowTimer.current = setTimeout(() => setSendWindow(false), SEND_POLL_WINDOW_MS);
+    void load();
+    clearTimeout(reload.current);
+    reload.current = setTimeout(() => void load(), SEND_RELOAD_MS);
+    return true;
   }
 
   async function updateSettings(change: ThreadSettingsBody): Promise<boolean> {
@@ -151,6 +191,8 @@ export function ConversationPanel({ threadId, thread, lastEvent, providers }: Pr
         {detail?.messages.map((m) => (
           <Message key={m.id} message={m} />
         ))}
+        {detail && pending.map((p) => <PendingBubble key={p.id} message={p} />)}
+        {detail?.activity && <RunActivityView activity={detail.activity} running={running} onShowSubagents={() => setRevealSubagents((n) => n + 1)} />}
         {detail && detail.pendingRequests.length > 0 && (
           <div className="requests">
             {detail.pendingRequests.map((r) => (
@@ -159,7 +201,7 @@ export function ConversationPanel({ threadId, thread, lastEvent, providers }: Pr
           </div>
         )}
       </div>
-      {detail && <SubagentStrip key={threadId} subagents={detail.subagents} />}
+      {detail && <SubagentStrip key={threadId} subagents={detail.subagents} reveal={revealSubagents} />}
       <Composer
         providers={providers}
         selection={detail?.modelSelection ?? null}

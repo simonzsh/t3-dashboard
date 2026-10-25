@@ -149,6 +149,24 @@ export interface SubagentInfo {
   completedAt: string | null;
 }
 
+export interface ActivityItem {
+  id: string;
+  kind: "thinking" | "command" | "tool" | "file" | "subagent";
+  /** Thinking text, command, tool name, file path or subagent title; truncated. */
+  text: string;
+  /** Tool input summary; null for other kinds. */
+  detail: string | null;
+  status: "running" | "done" | "failed";
+}
+
+/** What the active run (or the latest one) did, oldest first. */
+export interface RunActivity {
+  runId: string;
+  startedAt: string | null;
+  completedAt: string | null;
+  items: ActivityItem[];
+}
+
 export interface ThreadDetail {
   threadId: string;
   thread: DashboardThread | null;
@@ -158,6 +176,7 @@ export interface ThreadDetail {
   /** The thread's current model, effort and access, as the composer shows them. */
   modelSelection: ModelSelection | null;
   runtimeMode: RuntimeMode | null;
+  activity: RunActivity | null;
 }
 
 export type ApprovalDecision = "accept" | "acceptForSession" | "decline";

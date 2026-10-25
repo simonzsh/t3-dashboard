@@ -1,4 +1,4 @@
-import type { ChatMessage, DashboardThread, PendingRequestDetail, SubagentInfo, ThreadDetail } from "../shared/api.ts";
+import type { ActivityItem, ChatMessage, DashboardThread, RunActivity, PendingRequestDetail, SubagentInfo, ThreadDetail } from "../shared/api.ts";
 import { isRuntimeMode } from "./t3/commands.ts";
 import type { RawBackgroundTask, RawProjection, RawRuntimeRequest, RawSubagent, RawTurnItem } from "./t3/types.ts";
 
@@ -86,6 +86,56 @@ function subagentsOf(projection: RawProjection, tasks: RawBackgroundTask[]): Sub
   );
 }
 
+// Texts are cut so a long run never sends megabytes to the browser.
+const ACTIVITY_CHARS = 300;
+const ACTIVITY_ITEMS = 200;
+const ACTIVITY_KINDS: Record<string, ActivityItem["kind"]> = {
+  reasoning: "thinking",
+  command_execution: "command",
+  dynamic_tool: "tool",
+  file_change: "file",
+  subagent: "subagent",
+};
+const SUMMARY_KEYS = ["description", "summary", "query", "url", "skill", "command", "file_path", "path", "pattern", "expression", "title", "prompt"];
+
+function toolSummary(input: unknown): string | null {
+  if (!input || typeof input !== "object") return null;
+  const record = input as Record<string, unknown>;
+  const value = SUMMARY_KEYS.map((key) => record[key]).find((candidate) => typeof candidate === "string" && candidate.trim());
+  return typeof value === "string" ? truncate(value.trim(), ACTIVITY_CHARS) : null;
+}
+
+function activityStatus(item: RawTurnItem): ActivityItem["status"] {
+  if (FAILED.has(item.status ?? "") || item.outputIndicatesFailure || (item.exitCode ?? 0) !== 0) return "failed";
+  if (item.status === "completed" || item.completedAt) return "done";
+  return "running";
+}
+
+function toActivity(item: RawTurnItem, kind: ActivityItem["kind"]): ActivityItem {
+  const raw = {
+    thinking: () => item.text?.trim() || item.title || "Thinking",
+    command: () => (typeof item.input === "string" ? item.input : ""),
+    // MCP tools are named mcp__<server>__<tool>: the last part is enough.
+    tool: () => item.title || item.toolName?.split("__").at(-1) || "Tool",
+    file: () => item.fileName ?? "",
+    subagent: () => item.title?.trim() || item.prompt?.trim() || "Subagent",
+  }[kind]();
+  return { id: item.id!, kind, text: truncate(raw, ACTIVITY_CHARS), detail: kind === "tool" ? toolSummary(item.input) : null, status: activityStatus(item) };
+}
+
+function activityOf(projection: RawProjection, items: RawTurnItem[]): RunActivity | null {
+  const runId = projection.thread?.activeRunId ?? latestRunId(projection);
+  const run = projection.runs?.find((candidate) => candidate.id === runId);
+  if (!run) return null;
+  // turnItems and visibleTurnItems repeat the same items: keep one per id.
+  const ofRun = new Map(items.filter((item) => item.id && item.runId === run.id && ACTIVITY_KINDS[item.type ?? ""]).map((item) => [item.id, item]));
+  const activity = [...ofRun.values()]
+    .sort((a, b) => (a.ordinal ?? 0) - (b.ordinal ?? 0))
+    .slice(-ACTIVITY_ITEMS)
+    .map((item) => toActivity(item, ACTIVITY_KINDS[item.type!]!));
+  return { runId: run.id, startedAt: run.startedAt ?? null, completedAt: run.completedAt ?? null, items: activity };
+}
+
 /** `tasks` are the shell thread's pending background tasks: they say which subagents still run. */
 export function toThreadDetail(threadId: string, projection: RawProjection, thread: DashboardThread | undefined, tasks: RawBackgroundTask[] = []): ThreadDetail {
   const visible = new Set((projection.visibleTurnItems ?? []).map((element) => unwrap(element).messageId));
@@ -103,5 +153,6 @@ export function toThreadDetail(threadId: string, projection: RawProjection, thre
     subagents: subagentsOf(projection, tasks),
     modelSelection: projection.thread?.modelSelection ?? null,
     runtimeMode: isRuntimeMode(runtimeMode) ? runtimeMode : null,
+    activity: activityOf(projection, items),
   };
 }

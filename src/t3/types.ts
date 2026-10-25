@@ -88,6 +88,18 @@ export interface RawTurnItem {
     required?: boolean;
   }>;
   messageId?: string;
+  id?: string;
+  runId?: string | null;
+  ordinal?: number;
+  status?: string | null;
+  title?: string | null;
+  completedAt?: string | null;
+  text?: string | null;
+  input?: unknown;
+  toolName?: string | null;
+  fileName?: string | null;
+  exitCode?: number | null;
+  outputIndicatesFailure?: boolean | null;
 }
 
 export interface RawBackgroundTask {
@@ -113,7 +125,7 @@ export interface RawSubagent {
 
 export interface RawProjection {
   messages?: RawMessage[];
-  runs?: Array<{ id: string; status?: string; startedAt?: string | null; createdAt?: string | null }>;
+  runs?: Array<{ id: string; status?: string; startedAt?: string | null; createdAt?: string | null; completedAt?: string | null }>;
   runtimeRequests?: RawRuntimeRequest[];
   turnItems?: Array<{ item?: RawTurnItem } | RawTurnItem>;
   visibleTurnItems?: Array<{ item?: RawTurnItem } | RawTurnItem>;

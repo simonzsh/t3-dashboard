@@ -254,3 +254,80 @@ test("orphan rows count only kept subagents; a title never overrides ids", () =>
   ]);
   assert.deepEqual(detail.subagents.map((s) => s.id).sort(), ["task:task-1", "task:task-2"]);
 });
+
+test("activity: null without runs", () => {
+  assert.equal(toThreadDetail("t", {}, undefined).activity, null);
+});
+
+test("activity: the thread's active run, else the latest run, with its times", () => {
+  const runs = [
+    { id: "r1", status: "running", startedAt: "2026-03-01T10:00:00Z", completedAt: null },
+    { id: "r2", status: "completed", startedAt: "2026-03-01T11:00:00Z", completedAt: "2026-03-01T11:12:00Z" },
+  ];
+  const active = toThreadDetail("t", { runs, thread: { id: "t", activeRunId: "r1" } }, undefined).activity;
+  assert.deepEqual(active, { runId: "r1", startedAt: "2026-03-01T10:00:00Z", completedAt: null, items: [] });
+  const latest = toThreadDetail("t", { runs }, undefined).activity;
+  assert.deepEqual(latest, { runId: "r2", startedAt: "2026-03-01T11:00:00Z", completedAt: "2026-03-01T11:12:00Z", items: [] });
+});
+
+const item = (id: string, type: string, ordinal: number, extra: Record<string, unknown> = {}) => ({ id, type, runId: "r1", ordinal, status: "completed", completedAt: "2026-03-01T10:05:00Z", ...extra });
+const activityRun = { runs: [{ id: "r1", status: "running", startedAt: "2026-03-01T10:00:00Z" }], thread: { id: "t", activeRunId: "r1" } };
+
+test("activity: maps each work item of the run in ordinal order and skips messages and bookkeeping", () => {
+  const detail = toThreadDetail("t", {
+    ...activityRun,
+    turnItems: [
+      item("cmd", "command_execution", 4, { input: "bun test" }),
+      item("think", "reasoning", 2, { title: "Thinking", text: "Check the tests first" }),
+      item("user", "user_message", 1, { text: "go" }),
+      { item: item("edit", "file_change", 5, { fileName: "/repo/src/a.ts" }) },
+      item("tool", "dynamic_tool", 6, { toolName: "mcp__server-x__preview_open", input: { url: "http://localhost:3000" } }),
+      item("sub", "subagent", 7, { title: "Explore", status: "running", completedAt: null }),
+      item("reply", "assistant_message", 8, { text: "Done" }),
+      item("cp", "checkpoint", 9),
+      item("other-run", "command_execution", 3, { runId: "r0", input: "ls" }),
+    ],
+  }, undefined);
+  assert.deepEqual(detail.activity!.items, [
+    { id: "think", kind: "thinking", text: "Check the tests first", detail: null, status: "done" },
+    { id: "cmd", kind: "command", text: "bun test", detail: null, status: "done" },
+    { id: "edit", kind: "file", text: "/repo/src/a.ts", detail: null, status: "done" },
+    { id: "tool", kind: "tool", text: "preview_open", detail: "http://localhost:3000", status: "done" },
+    { id: "sub", kind: "subagent", text: "Explore", detail: null, status: "running" },
+  ]);
+});
+
+test("activity: failures, live items, fallbacks and truncation", () => {
+  const long = "y".repeat(400);
+  const detail = toThreadDetail("t", {
+    ...activityRun,
+    turnItems: [
+      item("failed-flag", "command_execution", 1, { input: "false", outputIndicatesFailure: true }),
+      item("exit", "command_execution", 2, { input: "exit 2", exitCode: 2 }),
+      item("failed", "dynamic_tool", 3, { toolName: "Skill", title: "Skill: review", status: "failed", input: { skill: "review" } }),
+      item("live", "reasoning", 4, { title: "Thinking", text: "", status: "running", completedAt: null }),
+      item("long", "reasoning", 5, { text: long }),
+      item("no-summary", "dynamic_tool", 6, { toolName: "Probe", input: { flag: true } }),
+      item("prompt", "subagent", 7, { title: null, prompt: "Review the diff" }),
+    ],
+  }, undefined);
+  assert.deepEqual(
+    detail.activity!.items.map((i) => [i.id, i.text, i.detail, i.status]),
+    [
+      ["failed-flag", "false", null, "failed"],
+      ["exit", "exit 2", null, "failed"],
+      ["failed", "Skill: review", "review", "failed"],
+      ["live", "Thinking", null, "running"],
+      ["long", `${"y".repeat(299)}…`, null, "done"],
+      ["no-summary", "Probe", null, "done"],
+      ["prompt", "Review the diff", null, "done"],
+    ],
+  );
+});
+
+test("activity: keeps only the latest items of a long run", () => {
+  const turnItems = Array.from({ length: 250 }, (_, n) => item(`c${n}`, "command_execution", n, { input: `step ${n}` }));
+  const items = toThreadDetail("t", { ...activityRun, turnItems }, undefined).activity!.items;
+  assert.equal(items.length, 200);
+  assert.deepEqual([items[0]!.id, items.at(-1)!.id], ["c50", "c249"]);
+});
