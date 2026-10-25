@@ -469,7 +469,8 @@ button.auto-row:hover { background: var(--surface-0); }
 .state-dot.error { background: var(--danger); }
 .desk.compact .desk-area { padding: 0; }
 .desk.compact .desk-window { border-radius: 0; border: 0; box-shadow: none; }
-.toast { position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%); z-index: 30; display: flex; align-items: center; gap: 10px; padding: 10px 10px 10px 16px; border-radius: 12px; background: var(--surface-1); border: 1px solid var(--line); box-shadow: var(--shadow), 0 8px 24px var(--backdrop); }
+.toast { position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%); width: max-content; max-width: calc(100vw - 24px); box-sizing: border-box; z-index: 30; display: flex; align-items: center; gap: 10px; padding: 10px 10px 10px 16px; border-radius: 12px; background: var(--surface-1); border: 1px solid var(--line); box-shadow: var(--shadow), 0 8px 24px var(--backdrop); }
+/* Without max-content the box stops at half the screen: left: 50% halves the room it can take. */
 @media (max-width: 700px) {
   /* One line: short title, small tabs, icon actions. The insets keep it clear of the iPhone notch in landscape. */
   .topbar { gap: 8px; padding: max(8px, env(safe-area-inset-top)) max(12px, env(safe-area-inset-right)) 8px max(12px, env(safe-area-inset-left)); }
