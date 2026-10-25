@@ -1,8 +1,8 @@
 import { useEffect, useId, useRef, useState, type KeyboardEvent, type ReactNode } from "react";
 import { filterOptions, moveActive, showsFilter, type DropdownOption } from "../dropdown.ts";
-import { NO_AUTOFILL } from "../noAutofill.ts";
 import { Icon } from "./Icon.tsx";
 import { Popover } from "./Popover.tsx";
+import { TextInput } from "./TextInput.tsx";
 
 interface Props {
   label: string;
@@ -105,10 +105,8 @@ export function Dropdown({ label, value, options, onPick, icon, placeholder, dis
           onClose={(reason) => close(reason === "escape")}
         >
           {withFilter && (
-            <input
-              {...NO_AUTOFILL}
+            <TextInput
               ref={filter}
-              type="text"
               className="dropdown-filter"
               placeholder="Filter…"
               aria-label={`Filter ${label}`}

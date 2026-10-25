@@ -15,6 +15,7 @@ import { useDeskBackground } from "./useDeskBackground.ts";
 import { useShortcuts } from "./useShortcuts.ts";
 import { useTheme } from "./useTheme.ts";
 import { useUpdate } from "./useUpdate.ts";
+import { Button, Icon, IconButton, Kbd, Pressable } from "./ui/index.ts";
 import { updateLabel } from "./updateFlow.ts";
 
 type Tab = "agents" | "board" | "desk";
@@ -110,36 +111,30 @@ export function App() {
         <h1>T3 Dashboard</h1>
         <nav className="tabs" role="tablist">
           {TABS.map(({ id, label, key }) => (
-            <button key={id} role="tab" aria-selected={tab === id} className={tab === id ? "active" : ""} title={`${label} (${key})`} onClick={() => setTab(id)}>
+            <Pressable key={id} role="tab" aria-selected={tab === id} className={tab === id ? "active" : ""} title={`${label} (${key})`} onClick={() => setTab(id)}>
               {label}
               {id === "desk" && deskWaiting && <span className="tab-alert" role="img" aria-label="An agent is waiting for your reply" />}
-              <kbd>{key}</kbd>
-            </button>
+              <Kbd>{key}</Kbd>
+            </Pressable>
           ))}
         </nav>
         <div className="topbar-right">
           {update.status?.available && update.status.canUpdate && (
-            <button className="update-pill" title="A new version is available" disabled={update.updating || update.status.updating} onClick={() => setConfirmingUpdate(true)}>
-              {update.updating || update.status.updating ? "Updating…" : updateLabel(update.status)}
-            </button>
+            <Button className="update-pill" title="A new version is available" loading={(update.updating || update.status.updating) && "Updating…"} onClick={() => setConfirmingUpdate(true)}>
+              {updateLabel(update.status)}
+            </Button>
           )}
           <span className={`conn ${live ? "up" : "down"}`} title={live ? "Connected to T3 Code" : "Connection lost"}>
             <span className="conn-dot" /> {live ? "Connected" : "Offline"}
           </span>
           {state && (
-            <button className="primary" title="New Agent (n)" onClick={() => setCreating(true)}>
-              New Agent <kbd>N</kbd>
-            </button>
+            <Button variant="primary" title="New Agent (n)" kbd="N" onClick={() => setCreating(true)}>
+              New Agent
+            </Button>
           )}
-          <button className="icon-button" aria-label="Settings" title="Settings (,)" onClick={() => setSettingsOpen(true)}>
-            <svg className="icon" viewBox="0 0 24 24" aria-hidden="true">
-              <g fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-                <circle cx="12" cy="12" r="3" />
-                <path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3h0a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5h0a1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8v0a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z" />
-              </g>
-            </svg>
-            <kbd>,</kbd>
-          </button>
+          <IconButton label="Settings" title="Settings (,)" kbd="," onClick={() => setSettingsOpen(true)}>
+            <Icon name="settings" strokeWidth={1.8} />
+          </IconButton>
         </div>
       </header>
       <ConnectionBanner connection={state?.connection ?? null} sseDown={sseDown} />
@@ -174,7 +169,7 @@ export function App() {
       {toast && (
         <div className="toast" role="status">
           <span>Desk is full ({DESK_LIMIT}). Close a window first.</span>
-          <button
+          <Button
             onClick={() => {
               dispatchDesk({ type: "replaceOldest", id: toast.id });
               if (toast.showDesk) setTab("desk");
@@ -182,10 +177,10 @@ export function App() {
             }}
           >
             Replace oldest
-          </button>
-          <button className="icon-button" aria-label="Dismiss" title="Dismiss" onClick={() => setToast(null)}>
-            ✕
-          </button>
+          </Button>
+          <IconButton label="Dismiss" variant="ghost" size="sm" onClick={() => setToast(null)}>
+            <Icon name="x" />
+          </IconButton>
         </div>
       )}
       {state && creating && (

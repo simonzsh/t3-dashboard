@@ -14,12 +14,12 @@ interface Button {
   text: string;
 }
 
-// Lowercase JSX tags only: components and TS generics (`useState<T>`) are skipped.
+// Lowercase JSX tags and the kit Button only: other components and TS generics (`useState<T>`) are skipped.
 // A group is the buttons with the same parent element, in source order.
 function buttonGroups(text: string): Button[][] {
   const groups: Button[][] = [];
   const stack: Button[][] = [[]];
-  const tag = /<(\/?)([a-z][\w-]*)?(?=[\s/>])/g;
+  const tag = /<(\/?)([a-z][\w-]*|Button)?(?=[\s/>])/g;
   let match: RegExpExecArray | null;
   while ((match = tag.exec(text))) {
     const [, closing, name] = match;
@@ -45,10 +45,11 @@ function buttonGroups(text: string): Button[][] {
       continue;
     }
     if (open.endsWith("/>")) continue;
-    if (name === "button") {
-      const end = text.indexOf("</button>", tag.lastIndex);
+    if (name === "button" || name === "Button") {
+      const close = `</${name}>`;
+      const end = text.indexOf(close, tag.lastIndex);
       stack.at(-1)!.push({ tag: open, text: text.slice(tag.lastIndex, end).replace(/<[^>]*>/g, " ") });
-      tag.lastIndex = end + "</button>".length;
+      tag.lastIndex = end + close.length;
       continue;
     }
     stack.push([]);
@@ -56,7 +57,7 @@ function buttonGroups(text: string): Button[][] {
   return groups;
 }
 
-const isPrimary = (b: Button) => /className=(\{`[^`]*|")[^"`]*\bprimary\b/.test(b.tag);
+const isPrimary = (b: Button) => /className=(\{`[^`]*|")[^"`]*\bprimary\b/.test(b.tag) || /variant="primary"/.test(b.tag);
 const isCancel = (b: Button) => /\b(Cancel|Dismiss|Decline)\b/.test(b.text) || /aria-label="(Cancel|Dismiss|Decline)/.test(b.tag);
 
 test("Cancel comes before the primary button in every button row", () => {
@@ -75,6 +76,17 @@ test("the guard sees a Cancel after a primary button", () => {
   const groups = buttonGroups(`<div className="buttons"><button className="primary" onClick={() => go(a > b)}>Create</button><button type="button">Cancel</button></div>`);
   assert.equal(groups.length, 1);
   assert.deepEqual(groups[0]!.map((b) => [isPrimary(b), isCancel(b)]), [[true, false], [false, true]]);
+});
+
+test("the guard sees a kit Button row", () => {
+  const groups = buttonGroups(`<div><Button variant="primary" onClick={go}>Save</Button><Button>Cancel</Button></div>`);
+  assert.deepEqual(groups[0]!.map((b) => [isPrimary(b), isCancel(b)]), [[true, false], [false, true]]);
+});
+
+// Controls come from web/src/ui: it holds the focus ring, the heights and the autofill guard.
+test("no raw button, input, textarea or select outside web/src/ui", () => {
+  const raw = sources.filter(({ file }) => !file.startsWith("ui/")).flatMap(({ file, text }) => [...text.matchAll(/<(button|input|textarea|select)\b/g)].map((m) => `${file}: <${m[1]}`));
+  assert.deepEqual(raw, []);
 });
 
 // A native <select> opens the system menu: the dashboard uses its own Dropdown.

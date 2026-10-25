@@ -31,6 +31,7 @@ export interface RawThread {
   deletedAt?: string | null;
   settledOverride?: string | null;
   settledAt?: string | null;
+  unsettledAt?: string | null;
   snoozedUntil?: string | null;
   pinnedAt?: string | null;
 }

@@ -1,6 +1,6 @@
 import type { DashboardProject, DashboardThread, PendingCategory } from "../../shared/api.ts";
 
-export type AgentStatus = "waiting" | "working" | "finished";
+export type AgentStatus = "waiting" | "working" | "finished" | "idle";
 
 export interface AgentCard {
   thread: DashboardThread;
@@ -10,22 +10,21 @@ export interface AgentCard {
 export interface AgentGroup {
   project: { id: string; title: string };
   cards: AgentCard[];
+  /** Threads in T3 Code's Settled section, most recent first. */
+  settled: DashboardThread[];
 }
 
 const WORKING = new Set(["preparing", "queued", "starting", "running", "waiting"]);
 const FINISHED = new Set(["completed", "interrupted", "failed", "cancelled", "rolled_back"]);
-const FINISHED_WINDOW_MS = 24 * 60 * 60 * 1000;
-const RANK: Record<AgentStatus, number> = { waiting: 0, working: 1, finished: 2 };
+const RANK: Record<AgentStatus, number> = { waiting: 0, working: 1, finished: 2, idle: 3 };
 /** A run is in progress: it can be stopped or steered (background subagents alone cannot). */
 export const runActive = (t: DashboardThread) => WORKING.has(t.status) || t.activeRunId !== null;
 const isWorking = (t: DashboardThread) => runActive(t) || t.backgroundWork;
 
-// Returns null for threads the Agents tab hides (idle or finished long ago).
-export function agentStatus(t: DashboardThread, now: Date): AgentStatus | null {
+export function agentStatus(t: DashboardThread): AgentStatus {
   if (t.pending) return "waiting";
   if (isWorking(t)) return "working";
-  if (FINISHED.has(t.status) && now.getTime() - Date.parse(t.lastActivityAt) < FINISHED_WINDOW_MS) return "finished";
-  return null;
+  return FINISHED.has(t.status) ? "finished" : "idle";
 }
 
 export type ThreadState = "waiting" | "running" | "done" | "error" | "idle";
@@ -39,24 +38,27 @@ export function threadState(t: DashboardThread): ThreadState {
 
 const recent = (a: DashboardThread, b: DashboardThread) => b.lastActivityAt.localeCompare(a.lastActivityAt);
 
-export function groupAgents(threads: DashboardThread[], projects: DashboardProject[], now: Date): AgentGroup[] {
+// Like the T3 Code sidebar: every live thread shows, settled ones in their own list.
+// A settled thread that waits or works stays a card, so it is never missed.
+export function groupAgents(threads: DashboardThread[], projects: DashboardProject[]): AgentGroup[] {
   const titles = new Map(projects.map((p) => [p.id, p.title]));
-  const byProject = new Map<string, AgentCard[]>();
+  const byProject = new Map<string, AgentGroup>();
   for (const thread of threads) {
-    const status = agentStatus(thread, now);
-    if (!status) continue;
-    const cards = byProject.get(thread.projectId) ?? [];
-    cards.push({ thread, status });
-    byProject.set(thread.projectId, cards);
+    const group = byProject.get(thread.projectId) ?? { project: { id: thread.projectId, title: titles.get(thread.projectId) ?? thread.projectId }, cards: [], settled: [] };
+    byProject.set(thread.projectId, group);
+    const status = agentStatus(thread);
+    if (thread.settled && (status === "finished" || status === "idle")) group.settled.push(thread);
+    else group.cards.push({ thread, status });
   }
-  const groups: AgentGroup[] = [];
-  for (const [id, cards] of byProject) {
-    cards.sort((a, b) => RANK[a.status] - RANK[b.status] || recent(a.thread, b.thread));
-    groups.push({ project: { id, title: titles.get(id) ?? id }, cards });
+  const groups = [...byProject.values()];
+  for (const g of groups) {
+    g.cards.sort((a, b) => RANK[a.status] - RANK[b.status] || recent(a.thread, b.thread));
+    g.settled.sort(recent);
   }
-  // Cards are sorted, so the first card carries the group's best status; ties go to the most recent activity of any card.
-  const latest = (g: AgentGroup) => g.cards.reduce((max, c) => (c.thread.lastActivityAt > max ? c.thread.lastActivityAt : max), "");
-  return groups.sort((a, b) => RANK[a.cards[0]!.status] - RANK[b.cards[0]!.status] || latest(b).localeCompare(latest(a)));
+  // Cards are sorted, so the first card carries the group's best status; settled-only groups go last.
+  const rank = (g: AgentGroup) => (g.cards[0] ? RANK[g.cards[0].status] : Object.keys(RANK).length);
+  const latest = (g: AgentGroup) => g.cards.reduce((max, c) => (c.thread.lastActivityAt > max ? c.thread.lastActivityAt : max), g.cards.length > 0 ? "" : (g.settled[0]?.lastActivityAt ?? ""));
+  return groups.sort((a, b) => rank(a) - rank(b) || latest(b).localeCompare(latest(a)));
 }
 
 export function providerKind(provider: string): "claude" | "codex" | "other" {
