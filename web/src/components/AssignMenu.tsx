@@ -1,7 +1,7 @@
 import { useState } from "react";
 import type { DashboardProject, LinearIssue } from "../../../shared/api.ts";
 import { api } from "../api.ts";
-import { loadAssignProject, saveAssignProject } from "../assignProject.ts";
+import { browserStorage, loadAssignProject, saveAssignProject } from "../assignProject.ts";
 import { ProviderIcon } from "./ProviderIcon.tsx";
 import { useAction } from "./useAction.ts";
 
@@ -25,7 +25,7 @@ export function AssignMenu({ issue, projects, onAssigned, onShowDesk }: Props) {
       threadId = (await api.assignIssue({ workspace: issue.workspace, issueId: issue.id, agent, projectId })).threadId;
     });
     if (!ok) return;
-    saveAssignProject(localStorage, issue.team.key, projectId);
+    saveAssignProject(browserStorage(), issue.team.key, projectId);
     setDone(true);
     onAssigned(threadId);
   }
@@ -51,7 +51,7 @@ export function AssignMenu({ issue, projects, onAssigned, onShowDesk }: Props) {
           title="Assign to an agent"
           onClick={() => {
             // The last project chosen for this team is preselected: the browser remembers it.
-            if (!open) setProjectId(loadAssignProject(localStorage, issue.team.key, projects));
+            if (!open) setProjectId(loadAssignProject(browserStorage(), issue.team.key, projects));
             setOpen(!open);
           }}
         >
