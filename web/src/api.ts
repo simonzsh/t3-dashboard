@@ -21,7 +21,7 @@ export function createApi(fetchImpl: Fetch) {
     const data: unknown = await res.json().catch(() => null);
     if (!res.ok) {
       const msg = (data as { error?: unknown } | null)?.error;
-      throw new Error(typeof msg === "string" ? msg : `Erreur ${res.status}`);
+      throw new Error(typeof msg === "string" ? msg : `Error ${res.status}`);
     }
     return data as T;
   }

@@ -29,13 +29,13 @@ test("groupBoard groups by project, sorted by name, with unassigned last", () =>
     issue("4", { project: { id: "pb", name: "Beta" } }),
   ];
   const groups = groupBoard(issues);
-  assert.deepEqual(groups.map((g) => g.title), ["Alpha", "Beta", "Sans projet"]);
+  assert.deepEqual(groups.map((g) => g.title), ["Alpha", "Beta", "No project"]);
   assert.deepEqual(groups[1]?.issues.map((i) => i.id).sort(), ["1", "4"]);
 });
 
 test("groupBoard keeps one unassigned group per team and shows the team", () => {
   const groups = groupBoard([issue("1", { team: { key: "OPS", name: "Ops" } }), issue("2", { team: { key: "ENG", name: "Eng" } })]);
-  assert.deepEqual(groups.map((g) => [g.title, g.team]), [["Sans projet", "Eng"], ["Sans projet", "Ops"]]);
+  assert.deepEqual(groups.map((g) => [g.title, g.team]), [["No project", "Eng"], ["No project", "Ops"]]);
 });
 
 test("groupBoard sorts issues by priority (urgent first, none last) then recency", () => {
@@ -77,7 +77,7 @@ test("boardColumns merges teams that share a state name and counts the issues", 
   const todo = cols.find((c) => c.name === "Todo");
   assert.equal(todo?.count, 2);
   assert.equal(todo?.color, "#111111");
-  assert.deepEqual(todo?.groups.map((g) => [g.title, g.team]), [["Sans projet", "Eng"], ["Sans projet", "Ops"]]);
+  assert.deepEqual(todo?.groups.map((g) => [g.title, g.team]), [["No project", "Eng"], ["No project", "Ops"]]);
 });
 
 test("boardColumns groups each column by project and sorts cards by priority", () => {
@@ -88,7 +88,7 @@ test("boardColumns groups each column by project and sorts cards by priority", (
     issue("d"),
   ]);
   const todo = cols.find((c) => c.name === "Todo");
-  assert.deepEqual(todo?.groups.map((g) => g.title), ["Alpha", "Sans projet"]);
+  assert.deepEqual(todo?.groups.map((g) => g.title), ["Alpha", "No project"]);
   assert.deepEqual(todo?.groups[0]?.issues.map((i) => i.id), ["b", "a"]);
   assert.equal(cols.find((c) => c.name === "Doing")?.count, 1);
 });

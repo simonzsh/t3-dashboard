@@ -20,9 +20,9 @@ function Row({ a, thread, now, onOpen }: { a: Automation; thread: DashboardThrea
       </span>
       <span className="auto-side">
         <span className="auto-next">{nextLabel(a.nextRunAt, now)}</span>
-        {last?.kind === "waiting" && <span className="auto-state waiting">● attend votre réponse</span>}
-        {last?.kind === "running" && <span className="auto-state running">● tourne</span>}
-        {last?.kind === "failed" && <span className="auto-state failed" title="Le dernier passage a échoué">⚠</span>}
+        {last?.kind === "waiting" && <span className="auto-state waiting">● waiting for your reply</span>}
+        {last?.kind === "running" && <span className="auto-state running">● running</span>}
+        {last?.kind === "failed" && <span className="auto-state failed" title="The last run failed">⚠</span>}
         {last?.kind === "done" && <span className="auto-state done">✓ {last.at}</span>}
       </span>
     </>
@@ -62,20 +62,20 @@ export function AutomationsColumn({ result, error, threads, now, onOpen }: Props
     </section>
   );
   return (
-    <aside className="automations" aria-label="Automatisations">
-      <h2 className="auto-heading">Automatisations</h2>
+    <aside className="automations" aria-label="Automations">
+      <h2 className="auto-heading">Automations</h2>
       {error && <p className="notice error-notice">{error}</p>}
       {broken.map((b) => (
         <p className="notice" key={b.name}>
-          <strong>{b.name}</strong> : {b.error ?? "lecture impossible"}
+          <strong>{b.name}</strong> : {b.error ?? "unreadable"}
         </p>
       ))}
       {!result && !error ? (
-        <p className="empty">Chargement…</p>
+        <p className="empty">Loading…</p>
       ) : (
         <>
-          {section("Routines", routines, "Aucune routine")}
-          {section("Rappels", reminders, "Aucun rappel")}
+          {section("Routines", routines, "No routines")}
+          {section("Reminders", reminders, "No reminders")}
         </>
       )}
     </aside>

@@ -7,7 +7,7 @@ export interface BoardGroup {
   issues: LinearIssue[];
 }
 
-export const NO_PROJECT = "Sans projet";
+export const NO_PROJECT = "No project";
 
 // Linear priority 0 means "none": it sorts after urgent (1) to low (4).
 const priorityRank = (p: number) => (p === 0 ? 5 : p);

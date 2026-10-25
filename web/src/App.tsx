@@ -37,8 +37,8 @@ export function App() {
           ))}
         </nav>
         <span className="spacer" />
-        <span className={`conn ${live ? "up" : "down"}`} title={live ? "Connecté à T3 Code" : "Connexion perdue"}>
-          <span className="conn-dot" /> {live ? "Connecté" : "Hors ligne"}
+        <span className={`conn ${live ? "up" : "down"}`} title={live ? "Connected to T3 Code" : "Connection lost"}>
+          <span className="conn-dot" /> {live ? "Connected" : "Offline"}
         </span>
         {state && (
           <button className="primary" onClick={() => setCreating(true)}>
@@ -58,7 +58,7 @@ export function App() {
               automations={automations.result}
               automationsError={automations.error}
             />
-          ) : <p className="empty">Chargement…</p>)}
+          ) : <p className="empty">Loading…</p>)}
         {tab === "board" && <BoardView onShowAgents={() => setTab("agents")} />}
       </main>
       {state && selectedId && (

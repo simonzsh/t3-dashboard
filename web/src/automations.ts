@@ -3,8 +3,8 @@ import type { Automation, DashboardThread } from "../../shared/api.ts";
 export type LastRun = { kind: "waiting" } | { kind: "running" } | { kind: "failed" } | { kind: "done"; at: string };
 
 const ACTIVE = new Set(["preparing", "queued", "starting", "running", "waiting"]);
-const DAYS = ["dim.", "lun.", "mar.", "mer.", "jeu.", "ven.", "sam."];
-const MONTHS = ["janv.", "févr.", "mars", "avr.", "mai", "juin", "juil.", "août", "sept.", "oct.", "nov.", "déc."];
+const DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 const DAY_MS = 86_400_000;
 
 // Routine threads live only in the automations column; reminder targets stay agents.
@@ -41,17 +41,17 @@ export function nextLabel(iso: string | null, now: Date): string {
   if (!iso) return "";
   const at = new Date(iso);
   const min = Math.floor((at.getTime() - now.getTime()) / 60_000);
-  if (min < 1) return "maintenant";
-  if (min < 60) return `dans ${min} min`;
+  if (min < 1) return "now";
+  if (min < 60) return `in ${min} min`;
   const midnight = (d: Date) => new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
   const days = Math.round((midnight(at) - midnight(now)) / DAY_MS);
-  if (days === 0) return `aujourd'hui ${hm(at)}`;
-  if (days === 1) return `demain ${hm(at)}`;
+  if (days === 0) return `today ${hm(at)}`;
+  if (days === 1) return `tomorrow ${hm(at)}`;
   if (days < 7) return `${DAYS[at.getDay()]} ${hm(at)}`;
   return reminderDate(iso);
 }
 
 export function reminderDate(iso: string): string {
   const at = new Date(iso);
-  return `${at.getDate()} ${MONTHS[at.getMonth()]} ${hm(at)}`;
+  return `${MONTHS[at.getMonth()]} ${at.getDate()}, ${hm(at)}`;
 }

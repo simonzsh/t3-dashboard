@@ -18,11 +18,11 @@ export function AgentsView({ state, now, selectedId, onOpen, automations, automa
   // Before the first automations answer, routine threads would flash in the grid.
   const loading = automations === null && automationsError === null;
   const agents = loading ? (
-    <div className="empty-state">Chargement…</div>
+    <div className="empty-state">Loading…</div>
   ) : groups.length === 0 ? (
       <div className="empty-state">
-        <strong>Aucun agent actif</strong>
-        <span>Les agents en attente, au travail ou terminés depuis moins de 24 h apparaissent ici.</span>
+        <strong>No active agents</strong>
+        <span>Agents that are waiting, running or finished in the last 24 h appear here.</span>
       </div>
     ) : (
       <div className="agents-groups">

@@ -2,13 +2,13 @@ import type { ConnectionStatus } from "../../../shared/api.ts";
 
 export function ConnectionBanner({ connection, sseDown }: { connection: ConnectionStatus | null; sseDown: boolean }) {
   const messages: string[] = [];
-  if (sseDown) messages.push("Connexion au dashboard perdue. Reconnexion en cours…");
+  if (sseDown) messages.push("Dashboard connection lost. Reconnecting…");
   if (connection && connection.t3 !== "live") {
-    const label = connection.t3 === "connecting" ? "Connexion à T3 Code en cours…" : "T3 Code est hors ligne.";
+    const label = connection.t3 === "connecting" ? "Connecting to T3 Code…" : "T3 Code is offline.";
     messages.push(connection.error ? `${label} ${connection.error}` : label);
   }
   if (connection?.protocolMismatch) {
-    messages.push(`Version de protocole T3 Code inattendue${connection.serverVersion ? ` (serveur ${connection.serverVersion})` : ""}. Certaines actions peuvent échouer.`);
+    messages.push(`Unexpected T3 Code protocol version${connection.serverVersion ? ` (server ${connection.serverVersion})` : ""}. Some actions may fail.`);
   }
   if (messages.length === 0) return null;
   return (

@@ -10,7 +10,7 @@ function auto(id: string, over: Partial<Automation> = {}): Automation {
     brain: "Brain A",
     kind: "routine",
     title: `Job ${id}`,
-    schedule: { kind: "cron", cron: "0 9 * * *", timeZone: "UTC", label: "tous les jours à 09:00" },
+    schedule: { kind: "cron", cron: "0 9 * * *", timeZone: "UTC", label: "daily at 09:00" },
     nextRunAt: null,
     lastRunAt: null,
     threadId: null,
@@ -68,16 +68,16 @@ test("lastRunState is null without a thread", () => {
 
 test("nextLabel gives minutes, then a day word and a time", () => {
   assert.equal(nextLabel(null, NOW), "");
-  assert.equal(nextLabel(local(10, 25, 14, 0).toISOString(), NOW), "maintenant");
-  assert.equal(nextLabel(local(10, 25, 13, 50).toISOString(), NOW), "maintenant");
-  assert.equal(nextLabel(local(10, 25, 14, 12).toISOString(), NOW), "dans 12 min");
-  assert.equal(nextLabel(local(10, 25, 14, 59).toISOString(), NOW), "dans 59 min");
-  assert.equal(nextLabel(local(10, 25, 18, 5).toISOString(), NOW), "aujourd'hui 18:05");
-  assert.equal(nextLabel(local(10, 26, 9, 0).toISOString(), NOW), "demain 9:00");
-  assert.equal(nextLabel(local(10, 29, 18, 30).toISOString(), NOW), "jeu. 18:30");
-  assert.equal(nextLabel(local(11, 12, 7, 5).toISOString(), NOW), "12 nov. 7:05");
+  assert.equal(nextLabel(local(10, 25, 14, 0).toISOString(), NOW), "now");
+  assert.equal(nextLabel(local(10, 25, 13, 50).toISOString(), NOW), "now");
+  assert.equal(nextLabel(local(10, 25, 14, 12).toISOString(), NOW), "in 12 min");
+  assert.equal(nextLabel(local(10, 25, 14, 59).toISOString(), NOW), "in 59 min");
+  assert.equal(nextLabel(local(10, 25, 18, 5).toISOString(), NOW), "today 18:05");
+  assert.equal(nextLabel(local(10, 26, 9, 0).toISOString(), NOW), "tomorrow 9:00");
+  assert.equal(nextLabel(local(10, 29, 18, 30).toISOString(), NOW), "Thu 18:30");
+  assert.equal(nextLabel(local(11, 12, 7, 5).toISOString(), NOW), "Nov 12, 7:05");
 });
 
 test("reminderDate shows the day and time of the reminder", () => {
-  assert.equal(reminderDate(local(10, 26, 9, 0).toISOString()), "26 oct. 9:00");
+  assert.equal(reminderDate(local(10, 26, 9, 0).toISOString()), "Oct 26, 9:00");
 });

@@ -51,16 +51,16 @@ export function NewThreadDialog({ projects, providers, defaultProjectId, onClose
       <form
         className="dialog"
         role="dialog"
-        aria-label="Nouveau thread"
+        aria-label="New Agent"
         onClick={(e) => e.stopPropagation()}
         onSubmit={(e) => {
           e.preventDefault();
           void create();
         }}
       >
-        <h2>Nouveau thread</h2>
+        <h2>New Agent</h2>
         <label>
-          Projet
+          Project
           <select
             required
             value={projectId}
@@ -69,7 +69,7 @@ export function NewThreadDialog({ projects, providers, defaultProjectId, onClose
               setChoice(presetFor(projects.find((p) => p.id === e.target.value), providers));
             }}
           >
-            <option value="">Choisir un projet</option>
+            <option value="">Select a project</option>
             {[...projects].sort((a, b) => a.title.localeCompare(b.title)).map((p) => (
               <option key={p.id} value={p.id}>
                 {p.title}
@@ -91,7 +91,7 @@ export function NewThreadDialog({ projects, providers, defaultProjectId, onClose
           </select>
         </label>
         <label>
-          Modèle
+          Model
           <select value={model} onChange={(e) => setChoice({ provider, model: e.target.value })}>
             {models.map((m) => (
               <option key={m.slug} value={m.slug}>
@@ -101,19 +101,19 @@ export function NewThreadDialog({ projects, providers, defaultProjectId, onClose
           </select>
         </label>
         <label>
-          Titre
+          Title
           <input required value={title} onChange={(e) => setTitle(e.target.value)} />
         </label>
         <label>
-          Premier message
+          First message
           <textarea required value={text} onChange={(e) => setText(e.target.value)} />
         </label>
         <div className="buttons">
           <button className="primary" type="submit" disabled={!valid || action.busy}>
-            Créer
+            Create
           </button>
           <button type="button" onClick={onClose}>
-            Annuler
+            Cancel
           </button>
           {action.error && <span className="error">{action.error}</span>}
         </div>

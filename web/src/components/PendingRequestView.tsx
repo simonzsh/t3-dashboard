@@ -5,9 +5,9 @@ import { buildAnswers, canSubmit, type Drafts } from "../answers.ts";
 import { useAction } from "./useAction.ts";
 
 const DECISIONS: Array<[ApprovalDecision, string]> = [
-  ["accept", "Accepter"],
-  ["acceptForSession", "Accepter pour la session"],
-  ["decline", "Refuser"],
+  ["accept", "Accept"],
+  ["acceptForSession", "Accept for session"],
+  ["decline", "Decline"],
 ];
 
 export function PendingRequestView({ threadId, request }: { threadId: string; request: PendingRequestDetail }) {
@@ -23,7 +23,7 @@ export function PendingRequestView({ threadId, request }: { threadId: string; re
     <div className="request">
       {request.category === "approval" && (
         <>
-          <strong>Approbation demandée ({request.requestKind})</strong>
+          <strong>Approval requested ({request.requestKind})</strong>
           {request.prompt && <div className="msg">{request.prompt}</div>}
           {request.reason && <small>{request.reason}</small>}
           <div className="buttons">
@@ -68,7 +68,7 @@ export function PendingRequestView({ threadId, request }: { threadId: string; re
                     </span>
                   </label>
                 ))}
-                {q.allowCustomAnswer && <input type="text" placeholder="Autre réponse…" aria-label={`Réponse libre : ${q.question}`} value={d?.custom ?? ""} onChange={(e) => setDraft(q.id, { custom: e.target.value })} />}
+                {q.allowCustomAnswer && <input type="text" placeholder="Other answer…" aria-label={`Custom answer: ${q.question}`} value={d?.custom ?? ""} onChange={(e) => setDraft(q.id, { custom: e.target.value })} />}
               </fieldset>
             );
           })}
@@ -78,16 +78,16 @@ export function PendingRequestView({ threadId, request }: { threadId: string; re
               disabled={locked || action.busy || !canSubmit(request.questions, drafts)}
               onClick={() => void action.run(() => api.respond(threadId, request.requestId, { answers: buildAnswers(request.questions, drafts) }))}
             >
-              Répondre
+              Reply
             </button>
             <button disabled={locked || action.busy} onClick={() => void action.run(() => api.dismiss(threadId, request.requestId))}>
-              Ignorer
+              Dismiss
             </button>
           </div>
         </>
       )}
-      {request.category === "other" && <span>Demande de type « {request.requestKind} » : à traiter dans T3 Code.</span>}
-      {locked && <small>Session terminée, réponse impossible</small>}
+      {request.category === "other" && <span>Request of type “{request.requestKind}”: handle it in T3 Code.</span>}
+      {locked && <small>Session ended, cannot reply</small>}
       {action.error && <span className="error">{action.error}</span>}
     </div>
   );

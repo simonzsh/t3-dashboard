@@ -87,7 +87,7 @@ test("providerKind recognises the two providers and falls back", () => {
 });
 
 test("pendingLabel names the kind of request", () => {
-  assert.equal(pendingLabel("approval"), "Approbation");
+  assert.equal(pendingLabel("approval"), "Approval");
   assert.equal(pendingLabel("user-input"), "Question");
-  assert.equal(pendingLabel("other"), "Action requise");
+  assert.equal(pendingLabel("other"), "Action required");
 });

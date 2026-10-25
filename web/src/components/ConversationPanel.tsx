@@ -4,7 +4,7 @@ import { api } from "../api.ts";
 import { PendingRequestView } from "./PendingRequestView.tsx";
 import { useAction } from "./useAction.ts";
 
-const ROLE_LABELS: Record<string, string> = { user: "Vous", assistant: "Agent", system: "Système" };
+const ROLE_LABELS: Record<string, string> = { user: "You", assistant: "Agent", system: "System" };
 
 interface Props {
   threadId: string;
@@ -64,13 +64,13 @@ export function ConversationPanel({ threadId, thread, lastEvent, onClose }: Prop
   return (
     <aside className="panel" aria-label="Conversation">
       <div className="panel-head">
-        <h2>{t?.title || "(sans titre)"}</h2>
+        <h2>{t?.title || "(untitled)"}</h2>
         <button disabled={control.busy} onClick={() => void control.run(() => (t?.pinned ? api.unpin(threadId) : api.pin(threadId)))}>
-          {t?.pinned ? "Désépingler" : "Épingler"}
+          {t?.pinned ? "Unpin" : "Pin"}
         </button>
         {running && (
           <button className="danger" disabled={control.busy} onClick={() => void control.run(() => api.interrupt(threadId))}>
-            Interrompre
+            Interrupt
           </button>
         )}
         <button
@@ -79,22 +79,22 @@ export function ConversationPanel({ threadId, thread, lastEvent, onClose }: Prop
             if (await control.run(() => api.archive(threadId))) onClose();
           }}
         >
-          Archiver
+          Archive
         </button>
-        <button onClick={onClose} aria-label="Fermer">
+        <button onClick={onClose} aria-label="Close">
           ✕
         </button>
         {control.error && <span className="error">{control.error}</span>}
       </div>
       <div className="messages">
         {loadError && <p className="error">{loadError}</p>}
-        {detail && detail.messages.length === 0 && <p className="empty">Aucun message</p>}
-        {!detail && !loadError && <p className="empty">Chargement…</p>}
+        {detail && detail.messages.length === 0 && <p className="empty">No messages</p>}
+        {!detail && !loadError && <p className="empty">Loading…</p>}
         {detail?.messages.map((m) => (
           <div key={m.id} className={`msg ${m.role}`}>
             <small>
-              {ROLE_LABELS[m.role] ?? m.role} · {new Date(m.createdAt).toLocaleString("fr-FR")}
-              {m.streaming ? " · en cours…" : ""}
+              {ROLE_LABELS[m.role] ?? m.role} · {new Date(m.createdAt).toLocaleString("en-US")}
+              {m.streaming ? " · running…" : ""}
             </small>
             {m.text}
           </div>
@@ -115,16 +115,16 @@ export function ConversationPanel({ threadId, thread, lastEvent, onClose }: Prop
           void submit();
         }}
       >
-        <textarea value={text} onChange={(e) => setText(e.target.value)} placeholder="Envoyer un message à l'agent…" aria-label="Message" />
+        <textarea value={text} onChange={(e) => setText(e.target.value)} placeholder="Send a message to the agent…" aria-label="Message" />
         <div className="row">
           {running && (
-            <select aria-label="Mode d'envoi" value={mode} onChange={(e) => setMode(e.target.value as "queue" | "steer")}>
-              <option value="queue">Mettre en file</option>
-              <option value="steer">Orienter le run</option>
+            <select aria-label="Send mode" value={mode} onChange={(e) => setMode(e.target.value as "queue" | "steer")}>
+              <option value="queue">Queue</option>
+              <option value="steer">Steer the run</option>
             </select>
           )}
           <button className="primary" type="submit" disabled={send.busy || !text.trim()}>
-            Envoyer
+            Send
           </button>
           {send.error && <span className="error">{send.error}</span>}
         </div>

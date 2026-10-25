@@ -32,20 +32,20 @@ export function BoardView({ onShowAgents }: { onShowAgents: () => void }) {
     <>
       <div className="toolbar">
         <button disabled={loading} onClick={() => void load(true)}>
-          {loading ? "Chargement…" : "Rafraîchir"}
+          {loading ? "Loading…" : "Refresh"}
         </button>
       </div>
       {error && <p className="notice error-notice">{error}</p>}
       {broken.map((w) => (
         <p className="notice" key={w.name}>
-          <strong>{w.name}</strong> : {w.error ?? "Clé API manquante"}
+          <strong>{w.name}</strong> : {w.error ?? "Missing API key"}
         </p>
       ))}
-      {!board && !error && <p className="empty">Chargement…</p>}
+      {!board && !error && <p className="empty">Loading…</p>}
       {board && columns.length === 0 && broken.length === 0 && (
         <div className="empty-state">
-          <strong>Aucun ticket assigné</strong>
-          <span>Les tickets ouverts qui vous sont assignés apparaissent ici.</span>
+          <strong>No assigned issues</strong>
+          <span>Open issues assigned to you appear here.</span>
         </div>
       )}
       {columns.length > 0 && (

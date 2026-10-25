@@ -5,10 +5,10 @@ import { cut, relativeTime } from "../src/format.ts";
 const now = new Date("2026-03-01T12:00:00Z");
 
 test("relativeTime picks the unit", () => {
-  assert.equal(relativeTime("2026-03-01T11:59:40Z", now), "à l'instant");
-  assert.equal(relativeTime("2026-03-01T11:15:00Z", now), "il y a 45 min");
-  assert.equal(relativeTime("2026-03-01T07:00:00Z", now), "il y a 5 h");
-  assert.equal(relativeTime("2026-02-26T12:00:00Z", now), "il y a 3 j");
+  assert.equal(relativeTime("2026-03-01T11:59:40Z", now), "just now");
+  assert.equal(relativeTime("2026-03-01T11:15:00Z", now), "45 min ago");
+  assert.equal(relativeTime("2026-03-01T07:00:00Z", now), "5 h ago");
+  assert.equal(relativeTime("2026-02-26T12:00:00Z", now), "3 d ago");
 });
 
 test("cut adds an ellipsis only when needed", () => {

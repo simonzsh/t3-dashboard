@@ -54,6 +54,6 @@ export function providerKind(provider: string): "claude" | "codex" | "other" {
 }
 
 export function pendingLabel(category: PendingCategory): string {
-  if (category === "approval") return "Approbation";
-  return category === "user-input" ? "Question" : "Action requise";
+  if (category === "approval") return "Approval";
+  return category === "user-input" ? "Question" : "Action required";
 }
