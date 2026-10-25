@@ -1,9 +1,11 @@
+import { useState, type ReactNode } from "react";
 import type { AutomationsResult, DashboardState } from "../../../../shared/api.ts";
 import { agentStatus } from "../../../../shared/status.ts";
 import { groupAgents } from "../../lib/threads.ts";
 import { excludeRoutineThreads } from "./automations.ts";
 import { AgentCard } from "./AgentCard.tsx";
 import { AutomationsColumn } from "./AutomationsColumn.tsx";
+import { Pressable } from "../../ui/index.ts";
 
 interface Props {
   state: DashboardState;
@@ -13,6 +15,20 @@ interface Props {
   onToggleDesk: (id: string) => void;
   automations: AutomationsResult | null;
   automationsError: string | null;
+}
+
+// Collapsed by default: settled threads need no attention.
+function RecentlySettled({ count, children }: { count: number; children: ReactNode }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <div className="settled">
+      <Pressable className="settled-head" aria-expanded={open} onClick={() => setOpen(!open)}>
+        <span className={`chevron${open ? " open" : ""}`} aria-hidden="true" />
+        Recently settled ({count})
+      </Pressable>
+      {open && <div className="grid compact">{children}</div>}
+    </div>
+  );
 }
 
 export function AgentsView({ state, now, deskIds, onOpen, onToggleDesk, automations, automationsError }: Props) {
@@ -42,14 +58,11 @@ export function AgentsView({ state, now, deskIds, onOpen, onToggleDesk, automati
               </div>
             )}
             {g.settled.length > 0 && (
-              <div className="settled">
-                <h3 className="settled-head">Recently settled ({g.settled.length})</h3>
-                <div className="grid compact">
-                  {g.settled.map((t) => (
-                    <AgentCard key={t.id} card={{ thread: t, status: agentStatus(t) }} compact now={now} onDesk={deskIds.has(t.id)} t3EnvironmentId={state.t3EnvironmentId} onOpen={onOpen} onToggleDesk={onToggleDesk} />
-                  ))}
-                </div>
-              </div>
+              <RecentlySettled count={g.settled.length}>
+                {g.settled.map((t) => (
+                  <AgentCard key={t.id} card={{ thread: t, status: agentStatus(t) }} compact now={now} onDesk={deskIds.has(t.id)} t3EnvironmentId={state.t3EnvironmentId} onOpen={onOpen} onToggleDesk={onToggleDesk} />
+                ))}
+              </RecentlySettled>
             )}
           </section>
         ))}
