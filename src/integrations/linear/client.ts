@@ -3,8 +3,8 @@ import { IntegrationError, type IntegrationErrorKind } from "../errors.ts";
 import { AssignedIssuesPage, Viewer, type LinearIssueNode } from "./schemas.ts";
 
 const ENDPOINT = "https://api.linear.app/graphql";
-const VIEWER_QUERY = "{ viewer { id } }";
-const QUERY = `query($after: String) { viewer { assignedIssues(first: 100, after: $after, filter: { state: { type: { nin: ["completed", "canceled"] } } }) { nodes { id identifier title url priority priorityLabel updatedAt state { name type color } project { id name } team { key name } } pageInfo { hasNextPage endCursor } } } }`;
+export const VIEWER_QUERY = "{ viewer { id } }";
+export const QUERY = `query($after: String) { viewer { assignedIssues(first: 100, after: $after, filter: { state: { type: { nin: ["completed", "canceled"] } } }) { nodes { id identifier title url priority priorityLabel updatedAt state { name type color } project { id name } team { key name } } pageInfo { hasNextPage endCursor } } } }`;
 // 20 pages of 100: a hard stop for a runaway cursor.
 const MAX_PAGES = 20;
 // A stalled Linear would otherwise hold the board request for minutes.
@@ -51,7 +51,7 @@ export class LinearClient {
   }
 
   // Error texts never include the response body or the key: both can echo it back.
-  private async query(apiKey: string, text: string, variables?: Record<string, unknown>): Promise<unknown> {
+  async query(apiKey: string, text: string, variables?: Record<string, unknown>): Promise<unknown> {
     let response: Response;
     try {
       response = await this.fetchImpl(ENDPOINT, {

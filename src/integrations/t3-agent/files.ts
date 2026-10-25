@@ -26,6 +26,21 @@ export interface Workspace {
 export const agentConfigDir = (env: Record<string, string | undefined>, homedir: string): string =>
   env.T3_DASHBOARD_AGENT_CONFIG_DIR ?? join(homedir, ".config", "t3-agent");
 
+const STATE_FILES = { threads: "routine-threads.json", runs: "runs.json" } as const;
+export type StateName = keyof typeof STATE_FILES;
+
+export const jobsDir = (workspace: string): string => join(workspace, "jobs");
+export const stateFile = (workspace: string, name: StateName): string => join(workspace, "state", STATE_FILES[name]);
+
+/** Job file names of a brain, sorted; none when the folder is missing. */
+export function jobFiles(workspace: string): string[] {
+  try {
+    return readdirSync(jobsDir(workspace)).filter((file) => file.endsWith(".yaml")).sort();
+  } catch {
+    return [];
+  }
+}
+
 const text = (value: string): string | null => (value === "" ? null : value);
 
 // These files also hold a token: only `workspace` and `projectId` leave this function,
@@ -54,10 +69,10 @@ export function loadBrains(dir: string): Brain[] {
 }
 
 // Missing or broken state files only lose the extras: the jobs still show.
-function readState<T>(workspace: string, file: string, entry: Schema<T>): Record<string, T> {
+function readState<T>(workspace: string, name: StateName, entry: Schema<T>): Record<string, T> {
   let parsed: unknown;
   try {
-    parsed = JSON.parse(readFileSync(join(workspace, "state", file), "utf8"));
+    parsed = JSON.parse(readFileSync(stateFile(workspace, name), "utf8"));
   } catch {
     return {};
   }
@@ -67,7 +82,7 @@ function readState<T>(workspace: string, file: string, entry: Schema<T>): Record
 
 function readJob(workspace: string, file: string): Job | null {
   try {
-    const job: unknown = parseYaml(readFileSync(join(workspace, "jobs", file), "utf8"));
+    const job: unknown = parseYaml(readFileSync(join(jobsDir(workspace), file), "utf8"));
     return matches(Job, job) ? job : null;
   } catch {
     return null;
@@ -77,15 +92,10 @@ function readJob(workspace: string, file: string): Job | null {
 /** Jobs and routine state of one brain, or null when its folder does not exist. */
 export function readWorkspace(workspace: string): Workspace | null {
   if (!statSync(workspace, { throwIfNoEntry: false })?.isDirectory()) return null;
-  let files: string[] = [];
-  try {
-    files = readdirSync(join(workspace, "jobs")).filter((file) => file.endsWith(".yaml")).sort();
-  } catch {
-    // No jobs folder: the brain has no job yet.
-  }
+  const files = jobFiles(workspace);
   return {
     jobs: files.map((file) => ({ id: file.slice(0, -".yaml".length), job: readJob(workspace, file) })),
-    threads: readState(workspace, "routine-threads.json", RoutineThread),
-    runs: readState(workspace, "runs.json", RunAt),
+    threads: readState(workspace, "threads", RoutineThread),
+    runs: readState(workspace, "runs", RunAt),
   };
 }

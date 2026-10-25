@@ -4,9 +4,17 @@ import { RpcConnection } from "./rpc.ts";
 import { PersistedAttachments, ProjectionResponse, RawConfig, ShellItem, WebSocketTicket } from "./schemas.ts";
 import type { AttachmentRef, Command, ImageUpload, RawProjection, T3Port } from "./schemas.ts";
 
-const ORCHESTRATION_PROTOCOL = "2";
+export const ORCHESTRATION_PROTOCOL = "2";
 // Images go up as data URLs of up to 10 MB each: give T3 time to write them.
 const UPLOAD_TIMEOUT_MS = 60_000;
+
+/** The RPC tags the dashboard calls: the contract check looks for each one in the T3 client bundle. */
+export const RPC = {
+  getConfig: "server.getConfig",
+  persistAttachments: "assets.persistChatAttachments",
+  dispatch: "orchestration.dispatchCommand",
+  subscribeShell: "orchestration.subscribeShell",
+} as const;
 
 export type Validation = "ok" | "rejected" | "unreachable";
 
@@ -61,16 +69,16 @@ export class T3Client implements T3Port {
   }
 
   async getConfig(): Promise<RawConfig> {
-    return read(RawConfig, await this.oneShot("server.getConfig", {}), "server.getConfig");
+    return read(RawConfig, await this.oneShot(RPC.getConfig, {}), "server.getConfig");
   }
 
   async persistAttachments(threadId: string, messageId: string, images: ImageUpload[]): Promise<AttachmentRef[]> {
-    const result = await this.oneShot("assets.persistChatAttachments", { threadId, messageId, attachments: images }, UPLOAD_TIMEOUT_MS);
+    const result = await this.oneShot(RPC.persistAttachments, { threadId, messageId, attachments: images }, UPLOAD_TIMEOUT_MS);
     return read(PersistedAttachments, result, "assets.persistChatAttachments").attachments ?? [];
   }
 
   dispatch(command: Command): Promise<unknown> {
-    return this.oneShot("orchestration.dispatchCommand", command);
+    return this.oneShot(RPC.dispatch, command);
   }
 
   subscribeShell(onItems: (items: ShellItem[]) => void, onEnd: (error?: Error) => void): { cancel(): void } {
@@ -87,7 +95,7 @@ export class T3Client implements T3Port {
         if (cancelled) return opened.close();
         // Without the marker T3 never sends `synchronized`, and the store would never commit.
         const payload = { requestCompletionMarker: true };
-        cancelStream = opened.stream("orchestration.subscribeShell", payload, (values) => onItems(this.checkShell(values)), finish).cancel;
+        cancelStream = opened.stream(RPC.subscribeShell, payload, (values) => onItems(this.checkShell(values)), finish).cancel;
       },
       (error: Error) => finish(error),
     );
@@ -128,7 +136,8 @@ export class T3Client implements T3Port {
     }
   }
 
-  private async http(method: "GET" | "POST", path: string): Promise<unknown> {
+  /** The raw JSON answer: the contract check validates it with every issue, not just the first. */
+  async http(method: "GET" | "POST", path: string): Promise<unknown> {
     const token = this.token();
     if (token === null) throw new IntegrationError("No T3 token yet", { system: "t3", kind: "not-authenticated" });
     let response: Response;
