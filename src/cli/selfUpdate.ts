@@ -1,6 +1,6 @@
 import { createHash } from "node:crypto";
 import { assetName, downloadAsset, latestTag, releaseSums } from "../integrations/github/releases.ts";
-import { isNewer } from "../domain/updates.ts";
+import { isNewer } from "../config/version.ts";
 
 export interface UpdateDeps {
   fetch: typeof fetch;

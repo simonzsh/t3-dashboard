@@ -1,19 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "bun:test";
-import { isNewer, UpdateManager, type UpdateManagerOptions } from "../../src/domain/updates.ts";
-
-test("isNewer compares numbers, not strings", () => {
-  assert.equal(isNewer("v0.10.0", "0.9.9"), true);
-  assert.equal(isNewer("1.0.0", "0.99.99"), true);
-  assert.equal(isNewer("0.5.1", "0.5.0"), true);
-  assert.equal(isNewer("0.5.0", "0.5.0"), false);
-  assert.equal(isNewer("0.4.9", "0.5.0"), false);
-});
-
-test("a version that is not semver is never behind", () => {
-  assert.equal(isNewer("9.9.9", "dev"), false);
-  assert.equal(isNewer("garbage", "1.0.0"), false);
-});
+import { UpdateManager, type UpdateManagerOptions } from "../../src/domain/updates.ts";
 
 function harness(options: Partial<UpdateManagerOptions> & { tags?: Array<string | Error> } = {}) {
   const tags = options.tags ?? ["v1.1.0"];

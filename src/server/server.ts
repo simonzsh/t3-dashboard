@@ -16,7 +16,7 @@ import type {
 import { IMAGE_TYPES, MAX_IMAGE_BYTES, MAX_IMAGES, MAX_MESSAGE_BODY_BYTES, isRuntimeMode } from "../../shared/limits.ts";
 import { ACTIVE_STATUSES, RUNNING_RUN_STATUSES } from "../../shared/status.ts";
 import { HttpError } from "./httpError.ts";
-import { toProviders } from "../domain/liveSync.ts";
+import { toProviders } from "../domain/providers.ts";
 import type { LinearBoard } from "../domain/linearBoard.ts";
 import type { Settings } from "../domain/settings.ts";
 import type { Site } from "./site.ts";
