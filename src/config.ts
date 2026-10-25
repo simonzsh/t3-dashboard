@@ -8,8 +8,6 @@ export type ReadFile = (path: string) => string;
 
 export interface Config {
   port: number;
-  /** Set only by T3_DASHBOARD_TOKEN_FILE: the dashboard keeps its own token otherwise. */
-  tokenFile: string | null;
   /** Extra Host and Origin names, besides 127.0.0.1 and localhost. */
   allowedHosts: string[];
   runtimeFile: string;
@@ -26,7 +24,6 @@ export function envPort(env: Record<string, string | undefined>): number {
 export function loadConfig(env: Record<string, string | undefined>, homedir: string): Config {
   return {
     port: envPort(env),
-    tokenFile: env.T3_DASHBOARD_TOKEN_FILE || null,
     allowedHosts: (env.T3_DASHBOARD_ALLOWED_HOSTS ?? "").split(",").map((host) => host.trim().toLowerCase()).filter(Boolean),
     runtimeFile: env.T3_SERVER_RUNTIME ?? join(t3Home(env, homedir), "userdata", "server-runtime.json"),
     environmentIdFile: join(t3Home(env, homedir), "userdata", "environment-id"),

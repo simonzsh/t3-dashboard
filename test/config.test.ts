@@ -7,10 +7,9 @@ const files = (map: Record<string, string>) => (path: string) => {
   throw Object.assign(new Error(`ENOENT: ${path}`), { code: "ENOENT" });
 };
 
-test("defaults use the user data runtime file and no token file", () => {
+test("defaults use the user data runtime file", () => {
   const config = loadConfig({}, "/home/ann");
   assert.equal(config.port, 4300);
-  assert.equal(config.tokenFile, null);
   assert.equal(config.runtimeFile, "/home/ann/.t3/userdata/server-runtime.json");
   assert.equal(config.environmentIdFile, "/home/ann/.t3/userdata/environment-id");
 });
@@ -45,12 +44,8 @@ test("readEnvironmentId trims a UUID-like id and refuses anything else", () => {
 });
 
 test("environment variables override the defaults", () => {
-  const config = loadConfig({ PORT: "4999", T3_DASHBOARD_TOKEN_FILE: "/x/t.json", T3_SERVER_RUNTIME: "/x/r.json" }, "/home/ann");
-  assert.deepEqual([config.port, config.tokenFile, config.runtimeFile], [4999, "/x/t.json", "/x/r.json"]);
-});
-
-test("an empty token file variable means no token file", () => {
-  assert.equal(loadConfig({ T3_DASHBOARD_TOKEN_FILE: "" }, "/h").tokenFile, null);
+  const config = loadConfig({ PORT: "4999", T3_SERVER_RUNTIME: "/x/r.json" }, "/home/ann");
+  assert.deepEqual([config.port, config.runtimeFile], [4999, "/x/r.json"]);
 });
 
 test("resolveOrigin reads the origin field", () => {
