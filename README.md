@@ -65,7 +65,7 @@ Format compatible : une clé par workspace.
 - `t3Project` : le titre ou l'id du projet T3 Code qui reçoit les sessions de ce workspace.
 - `teams` (facultatif) : même table que ci-dessus. Sans `teams`, tous les tickets du workspace vont dans `t3Project`.
 
-Pour créer une clé : dans Linear, ouvrez Settings, Account, Security & access, puis « Personal API keys » et « New API key ». Un fichier absent ou une clé vide ne bloque pas le serveur. Avec un fichier absent, l'onglet Board reste vide ; avec une clé vide, il affiche « Clé API manquante ». Le serveur ne logge et ne renvoie jamais une clé.
+Pour créer une clé : dans Linear, ouvrez Settings, Account, Security & access, puis « Personal API keys » et « New API key ». Un fichier absent ou une clé vide ne bloque pas le serveur. Avec un fichier absent, l'onglet Board reste vide ; avec une clé vide, il affiche « Missing API key ». Le serveur ne logge et ne renvoie jamais une clé.
 
 Chaque workspace est lu séparément. Le projet T3 d'un ticket vient de son équipe (table `teams`) ou de `t3Project`. Sans projet T3 trouvé, l'assignation répond 409. Le serveur garde le résultat 60 s ; `GET /api/board?refresh=1` force la relecture.
 

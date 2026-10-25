@@ -25,17 +25,17 @@ async function fetchIssues(options: LinearBoardOptions, apiKey: string): Promise
   try {
     response = await options.fetch(ENDPOINT, { method: "POST", headers: { "content-type": "application/json", authorization: apiKey }, body: JSON.stringify({ query: QUERY }), signal: AbortSignal.timeout(FETCH_TIMEOUT_MS) });
   } catch {
-    throw new Error("Linear est injoignable");
+    throw new Error("Linear is unreachable");
   }
-  if (!response.ok) throw new Error(`Linear a répondu HTTP ${response.status}`);
+  if (!response.ok) throw new Error(`Linear answered HTTP ${response.status}`);
   let body: { data?: { viewer?: { assignedIssues?: { nodes?: Nodes } } }; errors?: unknown };
   try {
     body = await response.json();
   } catch {
-    throw new Error("Réponse Linear illisible");
+    throw new Error("Unreadable Linear response");
   }
   const nodes = body.data?.viewer?.assignedIssues?.nodes;
-  if (body.errors || !Array.isArray(nodes)) throw new Error("Linear a renvoyé une erreur");
+  if (body.errors || !Array.isArray(nodes)) throw new Error("Linear returned an error");
   return nodes;
 }
 
@@ -61,7 +61,7 @@ export class LinearBoard {
   private async read(workspace: LinearWorkspaceConfig): Promise<{ status: LinearWorkspaceStatus; issues: LinearIssue[] }> {
     const resolve = (title: string) => (title === "" ? null : this.options.resolveProject(title));
     const status: LinearWorkspaceStatus = { name: workspace.name, ok: true, error: null, t3ProjectId: resolve(workspace.t3Project) };
-    if (workspace.apiKey === "") return { status: { ...status, ok: false, error: "Clé API manquante" }, issues: [] };
+    if (workspace.apiKey === "") return { status: { ...status, ok: false, error: "Missing API key" }, issues: [] };
     try {
       const nodes = await fetchIssues(this.options, workspace.apiKey);
       // Teams outside the table are dropped so a shared key never mixes companies.

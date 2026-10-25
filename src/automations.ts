@@ -69,7 +69,7 @@ function readBrain(brain: Brain, options: AutomationsOptions): { status: BrainSt
   const fallback = workspace ? basename(dirname(workspace)) : brain.name;
   const name = (brain.projectId && options.projectTitle(brain.projectId)) || fallback;
   if (!workspace || !statSync(workspace, { throwIfNoEntry: false })?.isDirectory()) {
-    return { status: { name, ok: false, error: brain.error ?? "Dossier du cerveau introuvable", problems: 0 }, automations: [] };
+    return { status: { name, ok: false, error: brain.error ?? "Brain folder not found", problems: 0 }, automations: [] };
   }
   const now = options.now();
   const state = { threads: readState(workspace, "routine-threads.json"), runs: readState(workspace, "runs.json") };
@@ -100,7 +100,7 @@ export function readAutomations(options: AutomationsOptions): AutomationsResult 
       return readBrain(brain, options);
     } catch {
       // One unreadable brain folder must not hide the others.
-      return { status: { name: brain.name, ok: false, error: "Dossier du cerveau illisible", problems: 0 }, automations: [] };
+      return { status: { name: brain.name, ok: false, error: "Brain folder unreadable", problems: 0 }, automations: [] };
     }
   });
   return {

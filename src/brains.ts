@@ -30,10 +30,10 @@ export function loadBrains(dir: string): Brain[] {
       try {
         const parsed = JSON.parse(readFileSync(join(dir, `${name}.json`), "utf8")) as { workspace?: unknown; projectId?: unknown } | null;
         const workspace = text(parsed?.workspace);
-        if (!workspace) return { name, workspace: null, projectId: null, error: "Champ workspace absent" };
+        if (!workspace) return { name, workspace: null, projectId: null, error: "Missing workspace field" };
         return { name, workspace, projectId: text(parsed?.projectId), error: null };
       } catch {
-        return { name, workspace: null, projectId: null, error: "Fichier de config illisible" };
+        return { name, workspace: null, projectId: null, error: "Unreadable config file" };
       }
     });
 }

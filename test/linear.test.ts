@@ -59,7 +59,7 @@ test("a missing key shows an error without calling Linear", async () => {
   const { board, calls } = setup([space("Space 1", "")], () => reply([]));
   const result = await board.get();
   assert.equal(calls.length, 0);
-  assert.deepEqual(result.workspaces, [{ name: "Space 1", ok: false, error: "Clé API manquante", t3ProjectId: "project-1" }]);
+  assert.deepEqual(result.workspaces, [{ name: "Space 1", ok: false, error: "Missing API key", t3ProjectId: "project-1" }]);
 });
 
 test("one failing workspace does not block the others, and the error holds no key", async () => {

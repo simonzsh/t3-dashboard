@@ -48,7 +48,7 @@ test("a cron job becomes a routine with a French label, next run, thread and mod
       brain: "Brain A",
       kind: "routine",
       title: "Inbox watch",
-      schedule: { kind: "cron", cron: "*/20 8-19 * * *", timeZone: "Europe/Paris", label: "toutes les 20 min, 8h-19h" },
+      schedule: { kind: "cron", cron: "*/20 8-19 * * *", timeZone: "Europe/Paris", label: "every 20 min, 08:00–19:00" },
       nextRunAt: "2026-03-20T12:20:00.000Z",
       lastRunAt: "2026-03-20T11:40:00.000Z",
       threadId: "thread-1",
