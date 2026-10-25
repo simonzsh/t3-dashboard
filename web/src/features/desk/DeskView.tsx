@@ -96,8 +96,10 @@ export function DeskView({ desk, dispatch, threads, projects, background, t3Envi
 
   const renderWindow = (w: Win, compact = false) => {
     const thread = byId.get(w.id) ?? null;
+    // The key remounts the window when the narrow view switches tabs: no state leaks between threads.
     return (
       <DeskWindow
+        key={w.id}
         id={w.id}
         thread={thread}
         projectTitle={thread ? (projectTitles.get(thread.projectId) ?? null) : null}
