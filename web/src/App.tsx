@@ -118,8 +118,8 @@ export function App() {
         </nav>
         <div className="topbar-right">
           {update.status?.available && update.status.canUpdate && (
-            <button className="update-pill" title="A new version is available" disabled={update.updating} onClick={() => setConfirmingUpdate(true)}>
-              {update.updating ? "Updating…" : updateLabel(update.status)}
+            <button className="update-pill" title="A new version is available" disabled={update.updating || update.status.updating} onClick={() => setConfirmingUpdate(true)}>
+              {update.updating || update.status.updating ? "Updating…" : updateLabel(update.status)}
             </button>
           )}
           <span className={`conn ${live ? "up" : "down"}`} title={live ? "Connected to T3 Code" : "Connection lost"}>
