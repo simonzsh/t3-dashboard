@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { afterEach, test } from "bun:test";
 import type { AutomationsResult, ConnectionStatus, DashboardState } from "../../shared/api.ts";
 import { LinearClient } from "../../src/integrations/linear/client.ts";
+import { createActions } from "../../src/domain/actions.ts";
 import { LinearBoard } from "../../src/domain/linearBoard.ts";
 import { readLinearWorkspaces } from "../../src/config/linearFile.ts";
 import type { LinearWorkspaceConfig } from "../../src/config/linearFile.ts";
@@ -146,9 +147,9 @@ async function start(startOptions: StartOptions = {}) {
     },
     { kind: "synchronized" },
   ]);
+  const actions = createActions({ port, store, board, newId: () => `id-${++counter}` });
   const server: DashboardHandler = createDashboardServer({
-    port,
-    store,
+    actions,
     hub,
     board,
     automations,
@@ -159,7 +160,6 @@ async function start(startOptions: StartOptions = {}) {
     setup,
     updates,
     allowedHosts: startOptions.allowedHosts,
-    newId: () => `id-${++counter}`,
   });
   running.push(async () => hub.close());
   return { port, store, hub, server, linearCalls, files, setupCalls, updateRuns };

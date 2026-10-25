@@ -3,6 +3,7 @@ import { homedir } from "node:os";
 import { setTimeout as sleep } from "node:timers/promises";
 import index from "../../web/index.html";
 import type { DashboardProvider } from "../../shared/api.ts";
+import { createActions } from "../domain/actions.ts";
 import { readAutomations } from "../domain/automations.ts";
 import { TokenManager } from "../domain/tokenManager.ts";
 import { envAllowedHosts, envPort } from "../config/config.ts";
@@ -127,7 +128,8 @@ export async function start({ port, log, env }: StartOptions): Promise<void> {
       return installed;
     },
   });
-  const handler = createDashboardServer({ port: client, store, hub, board, automations, getState, connection: () => live.connection(), site, settings, setup, updates, allowedHosts: envAllowedHosts(env) });
+  const actions = createActions({ port: client, store, board });
+  const handler = createDashboardServer({ actions, hub, board, automations, getState, connection: () => live.connection(), site, settings, setup, updates, allowedHosts: envAllowedHosts(env) });
 
   const reclassifier = setInterval(() => store.reclassify(new Date()), RECLASSIFY_MS);
   // A dev build has no version to compare, and its runs must not call GitHub.
