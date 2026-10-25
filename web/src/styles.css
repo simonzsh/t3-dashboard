@@ -229,6 +229,9 @@ main { padding: 24px; display: flex; flex-direction: column; gap: 28px; }
 .dialog-backdrop { position: fixed; inset: 0; background: var(--backdrop); display: grid; place-items: center; z-index: 20; }
 .dialog { width: min(480px, 94vw); background: var(--surface-1); border: 1px solid var(--line); border-radius: 14px; padding: 20px; box-shadow: var(--shadow); display: flex; flex-direction: column; gap: 10px; }
 .dialog h2 { margin: 0; font-size: 15px; }
+.dialog-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.dialog-close { display: grid; place-items: center; padding: 4px; margin: -4px -6px -4px 0; border: 0; background: none; border-radius: 6px; color: var(--text-secondary); }
+.dialog-close:hover:not(:disabled) { color: var(--text-primary); background: var(--surface-0); }
 .dialog label { display: flex; flex-direction: column; gap: 4px; }
 .dialog textarea { min-height: 90px; }
 .dialog .buttons { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }

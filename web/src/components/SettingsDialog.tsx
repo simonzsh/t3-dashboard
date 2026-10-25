@@ -41,7 +41,14 @@ export function SettingsDialog({ theme, onThemeChange, background, onBackgroundC
   return (
     <div className="dialog-backdrop" onClick={onClose}>
       <div className="dialog settings" role="dialog" aria-modal="true" aria-label="Settings" onClick={(e) => e.stopPropagation()}>
-        <h2>Settings</h2>
+        <div className="dialog-head">
+          <h2>Settings</h2>
+          <button type="button" className="icon-button dialog-close" aria-label="Close" title="Close" onClick={onClose}>
+            <svg className="icon" viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M18 6 6 18M6 6l12 12" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+            </svg>
+          </button>
+        </div>
         <section className="settings-section" aria-labelledby="settings-appearance">
           <h3 id="settings-appearance">Appearance</h3>
           <div className="settings-row">
@@ -110,11 +117,6 @@ export function SettingsDialog({ theme, onThemeChange, background, onBackgroundC
           <h3 id="settings-about">About</h3>
           <AboutSettings update={update} onUpdate={onUpdate} />
         </section>
-        <div className="buttons">
-          <button type="button" onClick={onClose}>
-            Close
-          </button>
-        </div>
       </div>
     </div>
   );
