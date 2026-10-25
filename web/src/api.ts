@@ -6,11 +6,13 @@ import type {
   CreateThreadBody,
   CreateThreadResult,
   DashboardState,
+  HealthResult,
   OkResult,
   RespondBody,
   SendMessageBody,
   SettingsResult,
   ThreadDetail,
+  UpdateStatus,
 } from "../../shared/api.ts";
 
 type Fetch = (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>;
@@ -38,6 +40,10 @@ export function createApi(fetchImpl: Fetch) {
     pasteToken: (token: string) => call<ConnectionStatus>("/api/setup/token", { token }),
     connectLinear: (apiKey: string) => call<SettingsResult>("/api/settings/linear/key", { apiKey }),
     disconnectLinear: () => call<SettingsResult>("/api/settings/linear/disconnect", {}),
+    getUpdate: () => call<UpdateStatus>("/api/update"),
+    checkUpdate: () => call<UpdateStatus>("/api/update/check", {}),
+    applyUpdate: () => call<UpdateStatus>("/api/update/apply", {}),
+    getHealth: () => call<HealthResult>("/api/health"),
     getThread: (id: string) => call<ThreadDetail>(t(id)),
     createThread: (b: CreateThreadBody) => call<CreateThreadResult>("/api/threads", b),
     sendMessage: (id: string, b: SendMessageBody) => call<OkResult>(`${t(id)}/messages`, b),

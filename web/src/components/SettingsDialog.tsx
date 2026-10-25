@@ -2,6 +2,8 @@ import { useRef, useState } from "react";
 import { BACKGROUND_PRESETS, type DeskBackground } from "../deskBackground.ts";
 import { imageFileToDataUrl } from "../deskImage.ts";
 import { THEME_SETTINGS, type ThemeSetting } from "../theme.ts";
+import type { UpdateControl } from "../useUpdate.ts";
+import { AboutSettings } from "./AboutSettings.tsx";
 import { LinearSettings } from "./LinearSettings.tsx";
 import { useEscape } from "./useEscape.ts";
 
@@ -11,12 +13,14 @@ interface Props {
   background: DeskBackground;
   onBackgroundChange: (background: DeskBackground) => string | null;
   onLinearChange: () => void;
+  update: UpdateControl;
+  onUpdate: () => void;
   onClose: () => void;
 }
 
 const LABELS: Record<ThemeSetting, string> = { system: "System", light: "Light", dark: "Dark" };
 
-export function SettingsDialog({ theme, onThemeChange, background, onBackgroundChange, onLinearChange, onClose }: Props) {
+export function SettingsDialog({ theme, onThemeChange, background, onBackgroundChange, onLinearChange, update, onUpdate, onClose }: Props) {
   useEscape(onClose);
   const fileInput = useRef<HTMLInputElement>(null);
   const [error, setError] = useState<string | null>(null);
@@ -101,6 +105,10 @@ export function SettingsDialog({ theme, onThemeChange, background, onBackgroundC
         <section className="settings-section" aria-labelledby="settings-linear">
           <h3 id="settings-linear">Linear</h3>
           <LinearSettings onChange={onLinearChange} />
+        </section>
+        <section className="settings-section" aria-labelledby="settings-about">
+          <h3 id="settings-about">About</h3>
+          <AboutSettings update={update} onUpdate={onUpdate} />
         </section>
         <div className="buttons">
           <button type="button" onClick={onClose}>
