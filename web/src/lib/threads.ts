@@ -9,24 +9,30 @@ export interface AgentCard {
 export interface AgentGroup {
   project: { id: string; title: string };
   cards: AgentCard[];
-  /** Threads in T3 Code's Settled section, most recent first. */
+  /** Recent threads of T3 Code's Settled section, most recent first. */
   settled: DashboardThread[];
 }
 
 const RANK: Record<AgentStatus, number> = { waiting: 0, working: 1, finished: 2, idle: 3 };
 
+/** Older settled threads are hidden: there are hundreds of them. */
+export const RECENT_SETTLED_MS = 3 * 24 * 3_600_000;
+
 const recent = (a: DashboardThread, b: DashboardThread) => b.lastActivityAt.localeCompare(a.lastActivityAt);
 
 // Like the T3 Code sidebar: every live thread shows, settled ones in their own list.
 // A settled thread that waits or works stays a card, so it is never missed.
-export function groupAgents(threads: DashboardThread[], projects: DashboardProject[]): AgentGroup[] {
+export function groupAgents(threads: DashboardThread[], projects: DashboardProject[], now: Date): AgentGroup[] {
   const titles = new Map(projects.map((p) => [p.id, p.title]));
   const byProject = new Map<string, AgentGroup>();
+  const since = new Date(now.getTime() - RECENT_SETTLED_MS).toISOString();
   for (const thread of threads) {
+    const status = agentStatus(thread);
+    const settled = thread.settled && (status === "finished" || status === "idle");
+    if (settled && thread.lastActivityAt < since) continue;
     const group = byProject.get(thread.projectId) ?? { project: { id: thread.projectId, title: titles.get(thread.projectId) ?? thread.projectId }, cards: [], settled: [] };
     byProject.set(thread.projectId, group);
-    const status = agentStatus(thread);
-    if (thread.settled && (status === "finished" || status === "idle")) group.settled.push(thread);
+    if (settled) group.settled.push(thread);
     else group.cards.push({ thread, status });
   }
   const groups = [...byProject.values()];
