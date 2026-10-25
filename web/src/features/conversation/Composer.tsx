@@ -208,9 +208,7 @@ export function Composer({ providers, selection, runtimeMode, running, draft, on
             </IconButton>
             {running && onStop && (
               <IconButton label="Stop" title="Stop the run" className="composer-round stop" disabled={stopping} onClick={() => void attempt(onStop, setStopping)}>
-                <svg className="icon" viewBox="0 0 24 24" aria-hidden="true">
-                  <rect x="7" y="7" width="10" height="10" rx="2" fill="currentColor" />
-                </svg>
+                <Icon name="stop" />
               </IconButton>
             )}
             <IconButton type="submit" label={running ? "Steer" : "Send"} title={running ? "Send now (steers the run)" : "Send (Enter)"} variant="primary" className="composer-round send" disabled={!canSend}>

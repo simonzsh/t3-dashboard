@@ -59,17 +59,7 @@ export function AssignMenu({ issue, projects, onAssigned, onShowDesk }: Props) {
             setOpen(!open);
           }}
         >
-          <svg className="icon" viewBox="0 0 24 24" aria-hidden="true">
-            <g fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-              <rect x="2.5" y="9" width="13" height="10" rx="2.5" />
-              <path d="M9 9V6M1 13.5v2M17 13.5v2" />
-              <circle cx="9" cy="4.8" r="1.2" />
-              <circle cx="6.3" cy="13.5" r="0.6" fill="currentColor" />
-              <circle cx="11.7" cy="13.5" r="0.6" fill="currentColor" />
-              <path d="M7 16.4h4" />
-              <path d="M20 3v6M17 6h6" />
-            </g>
-          </svg>
+          <Icon name="assignBot" strokeWidth={1.8} />
         </IconButton>
       )}
       {open && (

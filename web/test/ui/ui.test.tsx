@@ -130,3 +130,14 @@ test("arrow keys move the radio selection and wrap", () => {
   assert.equal(nextRadioIndex("ArrowDown", 0, 3), 1);
   assert.equal(nextRadioIndex("a", 0, 3), null);
 });
+
+test("an Icon is hidden from assistive tech, unless it has a label", () => {
+  assert.match(html(<Icon name="x" />), /^<svg class="icon" viewBox="0 0 24 24" aria-hidden="true">/);
+  assert.match(html(<Icon name="terminal" label="Done" />), /^<svg class="icon" viewBox="0 0 24 24" role="img" aria-label="Done"><title>Done<\/title>/);
+});
+
+test("solid icon parts are filled, not stroked", () => {
+  const out = html(<Icon name="stop" />);
+  assert.match(out, /fill="currentColor"/);
+  assert.doesNotMatch(out, /stroke="currentColor"/);
+});
