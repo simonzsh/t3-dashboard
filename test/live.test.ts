@@ -1,8 +1,10 @@
 import assert from "node:assert/strict";
 import { test } from "bun:test";
-import type { ConnectionStatus, DashboardProvider } from "../shared/api.ts";
+import type { ConnectionStatus, DashboardProvider, SetupInfo } from "../shared/api.ts";
+import { INSTALL_URL, ISSUE_COMMAND } from "../src/auth.ts";
 import { LiveSync } from "../src/live.ts";
 import { ShellStore } from "../src/shellStore.ts";
+import { T3HttpError } from "../src/t3/client.ts";
 import type { RawConfig, ShellItem, T3Port } from "../src/t3/types.ts";
 import { tick } from "./helpers/fakeSocket.ts";
 
@@ -37,7 +39,26 @@ async function until(condition: () => boolean) {
   assert.ok(condition(), "condition not reached");
 }
 
-function setup(port = new FakePort()) {
+const tokenSetup = { reason: "token-needed", detail: null, issueCommand: ISSUE_COMMAND, installUrl: INSTALL_URL } as const;
+
+class FakeAuth {
+  token: string | null = "token-1";
+  info: SetupInfo | null = null;
+  refreshes = 0;
+  onRefresh: () => void = () => {};
+  current() {
+    return this.token;
+  }
+  setup() {
+    return this.info;
+  }
+  async refresh() {
+    this.refreshes++;
+    this.onRefresh();
+  }
+}
+
+function setup(port = new FakePort(), auth = new FakeAuth()) {
   const statuses: ConnectionStatus[] = [];
   const providers: DashboardProvider[][] = [];
   const sleeps: number[] = [];
@@ -46,6 +67,7 @@ function setup(port = new FakePort()) {
     port,
     store,
     origin: () => "http://127.0.0.1:3773",
+    auth,
     onConnection: (status) => statuses.push(status),
     onProviders: (list) => providers.push(list),
     sleep: async (ms) => {
@@ -53,7 +75,7 @@ function setup(port = new FakePort()) {
     },
     now,
   });
-  return { port, store, live, statuses, providers, sleeps };
+  return { port, store, live, statuses, providers, sleeps, auth };
 }
 
 const commit = (port: FakePort, index = port.subscriptions.length - 1) =>
@@ -172,4 +194,133 @@ test("stop cancels the subscription and prevents reconnects", async () => {
   for (let i = 0; i < 10; i++) await tick();
   assert.equal(port.subscriptions.length, 1);
   assert.deepEqual(sleeps, []);
+});
+
+test("without a token it shows needs-token and waits instead of spinning", async () => {
+  const auth = new FakeAuth();
+  auth.token = null;
+  auth.info = tokenSetup;
+  const { port, live, statuses, sleeps } = setup(new FakePort(), auth);
+  live.start();
+  await until(() => statuses.length === 1);
+  for (let i = 0; i < 20; i++) await tick();
+  assert.equal(statuses.length, 1);
+  assert.equal(statuses[0]!.t3, "needs-token");
+  assert.deepEqual(statuses[0]!.setup, tokenSetup);
+  assert.equal(port.subscriptions.length, 0);
+  assert.equal(sleeps.length, 0);
+  live.stop();
+});
+
+test("retryNow connects once a token exists, and the setup goes away when live", async () => {
+  const auth = new FakeAuth();
+  auth.token = null;
+  auth.info = tokenSetup;
+  const { port, live, statuses } = setup(new FakePort(), auth);
+  live.start();
+  await until(() => statuses.length === 1);
+  auth.token = "pasted";
+  auth.info = null;
+  live.retryNow();
+  assert.equal(live.connection().t3, "connecting");
+  assert.equal(live.connection().setup, null);
+  await until(() => port.subscriptions.length === 1);
+  commit(port);
+  assert.equal(live.connection().t3, "live");
+  assert.equal(live.connection().setup, null);
+  live.stop();
+});
+
+test("retryNow without a token reports the current setup at once", async () => {
+  const auth = new FakeAuth();
+  auth.token = null;
+  auth.info = tokenSetup;
+  const { live, statuses } = setup(new FakePort(), auth);
+  live.start();
+  await until(() => statuses.length === 1);
+  auth.info = { ...tokenSetup, reason: "t3-stopped" };
+  live.retryNow();
+  assert.equal(live.connection().setup?.reason, "t3-stopped");
+  live.stop();
+});
+
+test("a 401 refreshes the token exactly once per cycle", async () => {
+  const port = new FakePort();
+  let first = true;
+  port.config = async () => {
+    if (!first) return {};
+    first = false;
+    throw new T3HttpError(401, "T3 answered 401");
+  };
+  const { live, auth } = setup(port);
+  live.start();
+  await until(() => port.subscriptions.length === 1);
+  port.subscriptions[0]!.onEnd(new T3HttpError(401, "T3 answered 401"));
+  await until(() => port.subscriptions.length === 2);
+  assert.equal(auth.refreshes, 1);
+  live.stop();
+});
+
+test("a refresh that finds no token ends in needs-token", async () => {
+  const port = new FakePort();
+  const { live, auth, statuses } = setup(port);
+  auth.onRefresh = () => {
+    auth.token = null;
+    auth.info = tokenSetup;
+  };
+  live.start();
+  await until(() => port.subscriptions.length === 1);
+  port.subscriptions[0]!.onEnd(new T3HttpError(403, "T3 answered 403"));
+  await until(() => statuses.at(-1)?.t3 === "needs-token");
+  assert.deepEqual(statuses.at(-1)!.setup, tokenSetup);
+  live.stop();
+});
+
+test("a failure that is not an auth error never refreshes the token", async () => {
+  const { port, live, auth } = setup();
+  live.start();
+  await until(() => port.subscriptions.length === 1);
+  port.subscriptions[0]!.onEnd(new T3HttpError(500, "T3 answered 500"));
+  await until(() => port.subscriptions.length === 2);
+  assert.equal(auth.refreshes, 0);
+  live.stop();
+});
+
+test("T3 not answering shows the stopped setup from the second failure, and live clears it", async () => {
+  const { port, live, statuses } = setup();
+  live.start();
+  await until(() => port.subscriptions.length === 1);
+  port.subscriptions[0]!.onEnd(new TypeError("Unable to connect"));
+  await until(() => port.subscriptions.length === 2);
+  assert.equal(statuses.filter((status) => status.setup !== null).length, 0);
+  port.subscriptions[1]!.onEnd(new TypeError("Unable to connect"));
+  await until(() => port.subscriptions.length === 3);
+  const stopped = statuses.find((status) => status.setup !== null)!;
+  assert.deepEqual([stopped.t3, stopped.setup?.reason], ["offline", "t3-stopped"]);
+  commit(port);
+  assert.equal(live.connection().setup, null);
+  live.stop();
+});
+
+test("retryNow cuts the backoff short", async () => {
+  const port = new FakePort();
+  const auth = new FakeAuth();
+  const slow = new LiveSync({
+    port,
+    store: new ShellStore({ now, onState() {}, onThreads() {}, onProjects() {} }),
+    origin: () => "http://127.0.0.1:3773",
+    auth,
+    onConnection() {},
+    onProviders() {},
+    sleep: () => new Promise(() => {}),
+    now,
+  });
+  slow.start();
+  await until(() => port.subscriptions.length === 1);
+  port.subscriptions[0]!.onEnd(new Error("down"));
+  for (let i = 0; i < 10; i++) await tick();
+  assert.equal(port.subscriptions.length, 1);
+  slow.retryNow();
+  await until(() => port.subscriptions.length === 2);
+  slow.stop();
 });

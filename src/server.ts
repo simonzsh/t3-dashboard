@@ -13,8 +13,11 @@ import type {
   UserInputAnswers,
 } from "../shared/api.ts";
 import { ACTIVE_STATUSES } from "./classify.ts";
+import { HttpError } from "./httpError.ts";
 import { toProviders } from "./live.ts";
 import type { LinearBoard } from "./linear.ts";
+import { parseTeamsBody } from "./settings.ts";
+import type { Settings } from "./settings.ts";
 import type { Site } from "./site.ts";
 import type { ShellStore } from "./shellStore.ts";
 import type { SseHub } from "./sse.ts";
@@ -33,6 +36,14 @@ import type { DispatchMode } from "./t3/commands.ts";
 import { toThreadDetail } from "./threadDetail.ts";
 import type { Command, T3Port } from "./t3/types.ts";
 
+export interface SetupControl {
+  /** Resolves the token again. */
+  refresh(): Promise<void>;
+  paste(token: string): Promise<"ok" | "rejected" | "unreachable">;
+  /** Reconnects to T3 now, without waiting for the backoff. */
+  wake(): void;
+}
+
 export interface DashboardServerOptions {
   port: T3Port;
   store: Pick<ShellStore, "thread" | "project">;
@@ -42,6 +53,8 @@ export interface DashboardServerOptions {
   getState: () => DashboardState;
   connection: () => ConnectionStatus;
   site: Site;
+  settings: Settings;
+  setup: SetupControl;
   newId?: () => string;
 }
 
@@ -64,14 +77,6 @@ const SECURITY_HEADERS = {
   "content-security-policy": "frame-ancestors 'none'",
   "x-content-type-options": "nosniff",
 };
-
-class HttpError extends Error {
-  readonly status: number;
-  constructor(status: number, message: string) {
-    super(message);
-    this.status = status;
-  }
-}
 
 const isObject = (value: unknown): value is Record<string, unknown> => typeof value === "object" && value !== null && !Array.isArray(value);
 const isText = (value: unknown): value is string => typeof value === "string" && value.trim() !== "";
@@ -138,7 +143,8 @@ function validAssign(body: Record<string, unknown>): AssignIssueBody {
   if (!isText(body.workspace) || !isText(body.issueId) || (body.agent !== "claude" && body.agent !== "codex")) {
     throw new HttpError(400, "workspace, issueId and agent (claude or codex) are required");
   }
-  return { workspace: body.workspace, issueId: body.issueId, agent: body.agent };
+  if (body.projectId !== undefined && !isText(body.projectId)) throw new HttpError(400, "projectId must be a non-empty string");
+  return { workspace: body.workspace, issueId: body.issueId, agent: body.agent, ...(body.projectId !== undefined && { projectId: body.projectId }) };
 }
 
 function validRespond(body: Record<string, unknown>): RespondBody {
@@ -160,7 +166,7 @@ export interface DashboardHandler {
 }
 
 export function createDashboardServer(options: DashboardServerOptions): DashboardHandler {
-  const { port, store, hub, board, automations, getState, connection, site } = options;
+  const { port, store, hub, board, automations, getState, connection, site, settings, setup } = options;
   const newId = options.newId ?? (() => crypto.randomUUID());
 
   const t3 = async <T>(work: Promise<T>): Promise<T> => {
@@ -224,12 +230,17 @@ export function createDashboardServer(options: DashboardServerOptions): Dashboar
 
   async function assign(body: AssignIssueBody): Promise<string> {
     const issue = await findIssue(body);
-    const project = issue.t3ProjectId === null ? undefined : store.project(issue.t3ProjectId);
+    // An issue whose team has no T3 project yet needs one from the caller.
+    const chosen = issue.t3ProjectId === null ? body.projectId : undefined;
+    const projectId = issue.t3ProjectId ?? chosen;
+    if (projectId === undefined) throw new HttpError(409, "Choose a T3 project");
+    const project = store.project(projectId);
     if (!project) throw new HttpError(409, "T3 project not found");
     const modelSelection = await modelFor(body.agent, project.defaultModelSelection);
     const create = { projectId: project.id, title: `${issue.identifier} ${issue.title}`, text: `Traite le ticket Linear ${issue.identifier} : ${issue.url}`, modelSelection };
     const { threadId, commands } = createThreadCommands(create, newId);
     await send(...commands);
+    if (chosen !== undefined) settings.rememberTeam(issue.team.key, project.title);
     return threadId;
   }
 
@@ -244,6 +255,8 @@ export function createDashboardServer(options: DashboardServerOptions): Dashboar
         return json(200, await board.get(refresh));
       }
       if (segments.length === 2 && resource === "automations") return json(200, automations());
+      if (resource === "settings" && segments.length === 2) return json(200, settings.get());
+      if (resource === "settings" && segments.length === 4 && id === "linear" && action === "teams") return json(200, await settings.teams());
       if (segments.length === 2 && resource === "events") {
         server?.timeout(req, 0);
         return hub.add(getState(), req.signal);
@@ -254,6 +267,26 @@ export function createDashboardServer(options: DashboardServerOptions): Dashboar
     } else if (method === "POST" && resource === "board" && id === "assign" && segments.length === 3) {
       const threadId = await assign(validAssign(await readJson(req)));
       return json(200, { ok: true, threadId });
+    } else if (method === "POST" && resource === "setup" && segments.length === 3) {
+      const body = await readJson(req);
+      if (id === "retry") {
+        await setup.refresh();
+        setup.wake();
+        return json(200, connection());
+      }
+      if (id === "token") {
+        if (!isText(body.token)) throw new HttpError(400, "Paste a token first.");
+        const result = await setup.paste(body.token);
+        if (result === "rejected") throw new HttpError(400, "T3 Code refused this token.");
+        if (result === "unreachable") throw new HttpError(502, "T3 Code is unreachable.");
+        setup.wake();
+        return json(200, connection());
+      }
+    } else if (method === "POST" && resource === "settings" && id === "linear") {
+      const body = await readJson(req);
+      if (segments.length === 4 && action === "key") return json(200, await settings.connectKey({ apiKey: String(body.apiKey ?? "") }));
+      if (segments.length === 4 && action === "disconnect") return json(200, settings.disconnect());
+      if (segments.length === 4 && action === "teams") return json(200, settings.saveTeams(parseTeamsBody(body)));
     } else if (method === "POST" && resource === "threads") {
       const body = await readJson(req);
       if (segments.length === 2) {

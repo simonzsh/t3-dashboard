@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { beforeEach, test } from "bun:test";
-import { T3Client } from "../src/t3/client.ts";
+import { MissingTokenError, T3Client, T3HttpError } from "../src/t3/client.ts";
 import { FakeSocket, tick } from "./helpers/fakeSocket.ts";
 
 beforeEach(() => FakeSocket.reset());
@@ -20,7 +20,7 @@ function setup(origin = "http://127.0.0.1:3773/") {
   }) as unknown as typeof fetch;
   const client = new T3Client({
     origin: async () => origin,
-    token: "test-token",
+    token: () => "test-token",
     fetch: fakeFetch,
     WebSocket: FakeSocket as unknown as typeof WebSocket,
   });
@@ -100,7 +100,7 @@ test("subscribeShell streams items on a long-lived socket and cancel interrupts 
 
 test("subscribeShell reports a failed ticket request through onEnd", async () => {
   const failing = (async () => new Response("no", { status: 401 })) as unknown as typeof fetch;
-  const client = new T3Client({ origin: async () => "http://t3", token: "test-token", fetch: failing, WebSocket: FakeSocket as unknown as typeof WebSocket });
+  const client = new T3Client({ origin: async () => "http://t3", token: () => "test-token", fetch: failing, WebSocket: FakeSocket as unknown as typeof WebSocket });
   const error = await new Promise<Error | undefined>((resolve) => client.subscribeShell(() => {}, resolve));
   assert.match(error!.message, /401/);
   assert.ok(!error!.message.includes("test-token"));
@@ -112,4 +112,27 @@ test("subscribeShell cancelled before the socket opens never opens one", async (
   handle.cancel();
   for (let i = 0; i < 10; i++) await tick();
   assert.equal(FakeSocket.instances.every((socket) => socket.closed), true);
+});
+
+test("a refused ticket request throws a T3HttpError with the status", async () => {
+  const failing = (async () => new Response("no", { status: 403 })) as unknown as typeof fetch;
+  const client = new T3Client({ origin: async () => "http://t3", token: () => "test-token", fetch: failing, WebSocket: FakeSocket as unknown as typeof WebSocket });
+  const error = await client.threadProjection("t").catch((e: unknown) => e);
+  assert.ok(error instanceof T3HttpError);
+  assert.equal(error.status, 403);
+});
+
+test("without a token no request leaves, and the token is read on every request", async () => {
+  let token: string | null = null;
+  const calls: string[] = [];
+  const fakeFetch = (async (_url: string, init: RequestInit) => {
+    calls.push((init.headers as Record<string, string>).authorization!);
+    return Response.json({ projection: {} });
+  }) as unknown as typeof fetch;
+  const client = new T3Client({ origin: async () => "http://t3", token: () => token, fetch: fakeFetch, WebSocket: FakeSocket as unknown as typeof WebSocket });
+  await assert.rejects(client.threadProjection("t"), MissingTokenError);
+  assert.equal(calls.length, 0);
+  token = "later";
+  await client.threadProjection("t");
+  assert.deepEqual(calls, ["Bearer later"]);
 });

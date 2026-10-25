@@ -9,7 +9,7 @@ const iso = (hoursAgo: number) => new Date(now.getTime() - hoursAgo * 3_600_000)
 const raw = (id: string, extra: Partial<RawThread> = {}): RawThread => ({ id, projectId: "project-1", title: id, status: "idle", createdAt: iso(1000), ...extra });
 const snapshot = (threads: RawThread[], projects: RawProject[] = []): ShellItem => ({ kind: "snapshot", snapshot: { threads, projects } });
 
-const connection = { t3: "live", origin: null, serverVersion: null, protocolMismatch: false, error: null, since: "x" } as const;
+const connection = { t3: "live", origin: null, serverVersion: null, protocolMismatch: false, error: null, since: "x", setup: null } as const;
 
 function setup() {
   const states: DashboardState[] = [];
@@ -17,7 +17,7 @@ function setup() {
   const projects: Array<Diff<DashboardProject>> = [];
   const store = new ShellStore({
     now: () => now,
-    onState: () => states.push(store.state(connection, [])),
+    onState: () => states.push(store.state(connection, [], true)),
     onThreads: (diff) => threads.push(diff),
     onProjects: (diff) => projects.push(diff),
   });
@@ -29,7 +29,7 @@ test("snapshots merge by id while syncing and no state is emitted before synchro
   store.beginSync();
   store.apply([snapshot([raw("thread-1"), raw("thread-2")], [{ id: "project-1", title: "Project A" }]), snapshot([raw("thread-2", { title: "Renamed" }), raw("thread-3")])]);
   assert.equal(states.length, 0);
-  assert.deepEqual(store.state(connection, []).threads, []);
+  assert.deepEqual(store.state(connection, [], true).threads, []);
   store.apply([{ kind: "synchronized" }]);
   assert.equal(states.length, 1);
   const titles = states[0]!.threads.map((thread) => thread.title).sort();
@@ -124,7 +124,7 @@ test("a live snapshot merges by id and emits a diff", () => {
   const { store, threads } = live();
   store.apply([snapshot([raw("thread-2", { title: "Changed" }), raw("thread-9")])]);
   assert.deepEqual(threads[0]!.upserted.map((thread) => thread.id).sort(), ["thread-2", "thread-9"]);
-  assert.equal(store.state(connection, []).threads.length, 3);
+  assert.equal(store.state(connection, [], true).threads.length, 3);
 });
 
 test("several items in one call give one diff", () => {
@@ -154,7 +154,7 @@ test("project.updated and project.removed", () => {
   });
   store.apply([{ kind: "project.removed", projectId: "project-1" }]);
   assert.deepEqual(projects[1], { upserted: [], removed: ["project-1"] });
-  assert.deepEqual(store.state(connection, []).projects.map((project) => project.id), ["project-2"]);
+  assert.deepEqual(store.state(connection, [], true).projects.map((project) => project.id), ["project-2"]);
 });
 
 test("unknown kinds are ignored", () => {
@@ -185,7 +185,7 @@ test("reclassify emits only threads whose bucket changed", () => {
 
 test("state carries connection and providers", () => {
   const { store } = live();
-  const state = store.state(connection, [{ instanceId: "provider-a", displayName: "Provider A", models: [] }]);
+  const state = store.state(connection, [{ instanceId: "provider-a", displayName: "Provider A", models: [] }], true);
   assert.equal(state.connection, connection);
   assert.equal(state.providers.length, 1);
   assert.equal(typeof state.generatedAt, "string");
@@ -200,4 +200,10 @@ test("project() finds a project by id first, then by exact title", () => {
   assert.equal(store.project("Project B")?.id, "Project A");
   assert.equal(store.project("Missing"), undefined);
   assert.equal(store.project(""), undefined);
+});
+
+test("state carries whether automations are available", () => {
+  const { store } = setup();
+  assert.equal(store.state(connection, [], true).automationsAvailable, true);
+  assert.equal(store.state(connection, [], false).automationsAvailable, false);
 });

@@ -4,12 +4,16 @@ import { setTimeout as sleep } from "node:timers/promises";
 import index from "../web/index.html";
 import type { DashboardProvider } from "../shared/api.ts";
 import { readAutomations } from "./automations.ts";
-import { agentConfigDir } from "./brains.ts";
+import { TokenManager, findT3, runCommand, validateWith } from "./auth.ts";
+import { agentConfigDir, loadBrains } from "./brains.ts";
 import { loadConfig, resolveOrigin } from "./config.ts";
 import { LiveSync } from "./live.ts";
 import { LinearBoard } from "./linear.ts";
-import { linearFile, readLinearWorkspaces } from "./linearConfig.ts";
+import { readLinearWorkspaces } from "./linearConfig.ts";
+import { configDir, linearFile } from "./paths.ts";
+import { writeSecret } from "./secretFile.ts";
 import { createDashboardServer } from "./server.ts";
+import { createSettings } from "./settings.ts";
 import { ShellStore } from "./shellStore.ts";
 import { siteFromBundle } from "./site.ts";
 import { SseHub } from "./sse.ts";
@@ -39,9 +43,22 @@ export interface StartOptions {
 }
 
 export async function start({ port, env }: StartOptions): Promise<void> {
-  const config = loadConfig(env, readText, homedir());
+  const home = homedir();
+  const config = loadConfig(env, home);
   const origin = () => resolveOrigin(config.runtimeFile, readText);
-  const client = new T3Client({ origin: async () => origin(), token: config.readToken() });
+  const auth = new TokenManager({
+    env,
+    homedir: home,
+    readFile: readText,
+    writeSecret,
+    findT3: () => findT3(env, home),
+    run: runCommand,
+    validate: validateWith(origin),
+    log: (message) => console.log(message),
+  });
+  // Starts without a token: the setup screen explains what is missing.
+  await auth.refresh();
+  const client = new T3Client({ origin: async () => origin(), token: () => auth.current() });
 
   const hub = new SseHub();
   let providers: DashboardProvider[] = [];
@@ -55,15 +72,17 @@ export async function start({ port, env }: StartOptions): Promise<void> {
     port: client,
     store,
     origin,
+    auth,
     onConnection: (status) => hub.broadcast({ type: "connection", data: status }),
     onProviders: (list) => {
       providers = list;
       hub.broadcast({ type: "providers", data: list });
     },
   });
-  const getState = () => store.state(live.connection(), providers);
+  const brainsDir = agentConfigDir(env, home);
+  const getState = () => store.state(live.connection(), providers, loadBrains(brainsDir).length > 0);
 
-  const linearPath = linearFile(env, homedir());
+  const linearPath = linearFile(env, home);
   const board = new LinearBoard({
     fetch: (url, init) => fetch(url, init),
     readWorkspaces: () => readLinearWorkspaces(linearPath, readText),
@@ -71,11 +90,13 @@ export async function start({ port, env }: StartOptions): Promise<void> {
     now: () => new Date(),
   });
 
-  const brainsDir = agentConfigDir(env, homedir());
   const automations = () => readAutomations({ configDir: brainsDir, now: () => new Date(), projectTitle: (id) => store.project(id)?.title || null });
 
+  const settings = createSettings({ file: linearPath, configDir: configDir(env, home), readFile: readText, writeSecret, board, tokenSource: () => auth.source() });
+  const setup = { refresh: () => auth.refresh(), paste: (token: string) => auth.paste(token), wake: () => live.retryNow() };
+
   const site = siteFromBundle(index);
-  const handler = createDashboardServer({ port: client, store, hub, board, automations, getState, connection: () => live.connection(), site });
+  const handler = createDashboardServer({ port: client, store, hub, board, automations, getState, connection: () => live.connection(), site, settings, setup });
 
   const reclassifier = setInterval(() => store.reclassify(new Date()), RECLASSIFY_MS);
   live.start();

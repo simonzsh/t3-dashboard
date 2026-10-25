@@ -2,7 +2,9 @@ import assert from "node:assert/strict";
 import { afterEach, test } from "bun:test";
 import type { AutomationsResult, ConnectionStatus, DashboardState } from "../shared/api.ts";
 import { LinearBoard } from "../src/linear.ts";
+import { readLinearWorkspaces } from "../src/linearConfig.ts";
 import type { LinearWorkspaceConfig } from "../src/linearConfig.ts";
+import { createSettings } from "../src/settings.ts";
 import { createDashboardServer } from "../src/server.ts";
 import type { DashboardHandler } from "../src/server.ts";
 import type { Site } from "../src/site.ts";
@@ -11,7 +13,7 @@ import { SseHub } from "../src/sse.ts";
 import type { Command, RawConfig, RawProjection, ShellItem, T3Port } from "../src/t3/types.ts";
 
 const now = new Date("2026-03-20T12:00:00.000Z");
-const connection: ConnectionStatus = { t3: "live", origin: "http://127.0.0.1:3773", serverVersion: "1.0.0", protocolMismatch: false, error: null, since: "x" };
+const connection: ConnectionStatus = { t3: "live", origin: "http://127.0.0.1:3773", serverVersion: "1.0.0", protocolMismatch: false, error: null, since: "x", setup: null };
 
 class FakePort implements T3Port {
   commands: Command[] = [];
@@ -59,20 +61,49 @@ interface StartOptions {
   workspaces?: LinearWorkspaceConfig[];
   linearFetch?: (url: string, init: RequestInit) => Promise<Response>;
   automations?: () => AutomationsResult;
+  // Content of the Linear file. Without it, `workspaces` feeds the board directly.
+  linear?: unknown;
+  pasteResult?: "ok" | "rejected" | "unreachable";
 }
+
+const LINEAR_FILE = "/cfg/linear.json";
 
 async function start(startOptions: StartOptions = {}) {
   const { site = { serve: async () => null }, workspaces = [], linearFetch, automations = () => ({ automations: [], brains: [], fetchedAt: now.toISOString() }) } = startOptions;
   const linearCalls: string[] = [];
+  const files: Record<string, string> = startOptions.linear === undefined ? {} : { [LINEAR_FILE]: JSON.stringify(startOptions.linear) };
+  const readFile = (path: string) => {
+    if (path in files) return files[path]!;
+    throw new Error("ENOENT");
+  };
   const board = new LinearBoard({
     fetch: async (url, init) => {
       linearCalls.push(String(new Headers(init.headers).get("authorization")));
       return linearFetch ? linearFetch(url, init) : new Response(JSON.stringify({ data: { viewer: { assignedIssues: { nodes: [linearNode(1)] } } } }));
     },
-    readWorkspaces: () => workspaces,
+    readWorkspaces: () => (startOptions.linear === undefined ? workspaces : readLinearWorkspaces(LINEAR_FILE, readFile)),
     resolveProject: (title) => store.project(title)?.id ?? null,
     now: () => now,
   });
+  const settings = createSettings({
+    file: LINEAR_FILE,
+    configDir: "/cfg",
+    readFile,
+    writeSecret: (path, text) => {
+      files[path] = text;
+    },
+    board,
+    tokenSource: () => "issued",
+  });
+  const setupCalls: string[] = [];
+  const setup = {
+    refresh: async () => void setupCalls.push("refresh"),
+    paste: async (token: string) => {
+      setupCalls.push(`paste:${token}`);
+      return startOptions.pasteResult ?? "ok";
+    },
+    wake: () => void setupCalls.push("wake"),
+  };
   const port = new FakePort();
   const hub = new SseHub({ batchMs: 10, pingMs: 60_000 });
   let counter = 0;
@@ -82,7 +113,7 @@ async function start(startOptions: StartOptions = {}) {
     onThreads: (diff) => hub.broadcast({ type: "threads", data: diff }),
     onProjects: (diff) => hub.broadcast({ type: "projects", data: diff }),
   });
-  const getState = (): DashboardState => store.state(connection, []);
+  const getState = (): DashboardState => store.state(connection, [], true);
   store.beginSync();
   store.apply([
     {
@@ -107,10 +138,12 @@ async function start(startOptions: StartOptions = {}) {
     getState,
     connection: () => connection,
     site,
+    settings,
+    setup,
     newId: () => `id-${++counter}`,
   });
   running.push(async () => hub.close());
-  return { port, store, hub, server, linearCalls };
+  return { port, store, hub, server, linearCalls, files, setupCalls };
 }
 
 interface Reply {
@@ -347,7 +380,7 @@ test("a site page is served for GET and never for other methods", async () => {
   assert.equal((await post(server, "/")).status, 404);
 });
 
-const space = (name: string, t3Project = "Project A", teams: Record<string, string> | null = null): LinearWorkspaceConfig => ({ name, apiKey: "key-1", t3Project, teams });
+const space = (name: string, t3Project = "Project A", teams: Record<string, string> | null = null): LinearWorkspaceConfig => ({ name, apiKey: "key-1", t3Project, teams, unlisted: teams ? "hide" : "show" });
 const assignBody = { workspace: "Space 1", issueId: "issue-1", agent: "claude" };
 const providers: RawConfig = {
   providers: [
@@ -433,7 +466,7 @@ test("a team table routes each ticket to its own project and hides other teams",
   const teamNode = (n: number, key: string) => ({ ...linearNode(n), team: { key, name: `Team ${key}` } });
   const nodes = [teamNode(1, "ENG"), teamNode(2, "OPS"), teamNode(3, "HR")];
   const { server, port } = await start({
-    workspaces: [{ name: "Linear", apiKey: "key-1", t3Project: "", teams: { ENG: "Project A", OPS: "Project B" } }],
+    workspaces: [{ name: "Linear", apiKey: "key-1", t3Project: "", teams: { ENG: "Project A", OPS: "Project B" }, unlisted: "hide" }],
     linearFetch: async () => new Response(JSON.stringify({ data: { viewer: { assignedIssues: { nodes } } } })),
   });
   const board = await call(server, "GET", "/api/board");
@@ -446,7 +479,7 @@ test("a team table routes each ticket to its own project and hides other teams",
 });
 
 test("assign answers 409 when the issue team maps to a missing T3 project", async () => {
-  const { server, port } = await start({ workspaces: [{ name: "Linear", apiKey: "key-1", t3Project: "", teams: { TEAM: "Missing" } }] });
+  const { server, port } = await start({ workspaces: [{ name: "Linear", apiKey: "key-1", t3Project: "", teams: { TEAM: "Missing" }, unlisted: "hide" }] });
   assert.equal((await post(server, "/api/board/assign", { workspace: "Linear", issueId: "issue-1", agent: "claude" })).status, 409);
   assert.deepEqual(port.commands, []);
 });
@@ -483,4 +516,143 @@ test("GET /api/automations returns the automations read at each call", async () 
   assert.deepEqual(first.json, result);
   await call(server, "GET", "/api/automations");
   assert.equal(calls, 2);
+});
+
+const KEY = "lin_api_secretkey_ABCD";
+const viewerOk = async () => new Response(JSON.stringify({ data: { viewer: { id: "u1" } } }));
+
+test("GET /api/settings reports the Linear state without the key", async () => {
+  const { server } = await start({ linear: { apiKey: KEY, teams: { TEAM: "Project A" } } });
+  const reply = await call(server, "GET", "/api/settings");
+  assert.equal(reply.status, 200);
+  assert.deepEqual(reply.json, {
+    linear: { connected: true, keyTail: "ABCD", legacy: false, teams: { TEAM: "Project A" }, unlisted: "hide" },
+    t3: { tokenSource: "issued" },
+    configDir: "/cfg",
+  });
+  assert.ok(!reply.text.includes(KEY));
+});
+
+test("POST /api/settings/linear/key verifies the key, writes it and refreshes the board", async () => {
+  const { server, files, linearCalls } = await start({ linear: {}, linearFetch: viewerOk });
+  const reply = await post(server, "/api/settings/linear/key", { apiKey: ` ${KEY} ` });
+  assert.equal(reply.status, 200);
+  assert.deepEqual(reply.json.linear, { connected: true, keyTail: "ABCD", legacy: false, teams: {}, unlisted: "show" });
+  assert.ok(!reply.text.includes(KEY));
+  assert.deepEqual(linearCalls, [KEY]);
+  assert.deepEqual(JSON.parse(files["/cfg/linear.json"]!), { apiKey: KEY, teams: {}, unlisted: "show" });
+});
+
+test("a key Linear refuses is not written, and the error holds no key", async () => {
+  const { server, files } = await start({ linearFetch: async () => new Response("denied", { status: 401 }) });
+  const reply = await post(server, "/api/settings/linear/key", { apiKey: KEY });
+  assert.equal(reply.status, 400);
+  assert.deepEqual(reply.json, { error: "Linear refused this key." });
+  assert.deepEqual(files, {});
+});
+
+test("an unreachable Linear gives 502, and an empty key gives 400", async () => {
+  const down = await start({
+    linearFetch: async () => {
+      throw new Error("offline");
+    },
+  });
+  assert.deepEqual((await post(down.server, "/api/settings/linear/key", { apiKey: KEY })).json, { error: "Linear is unreachable." });
+  assert.equal((await post(down.server, "/api/settings/linear/key", { apiKey: KEY })).status, 502);
+  assert.equal((await post(down.server, "/api/settings/linear/key", { apiKey: "" })).status, 400);
+  assert.deepEqual(down.files, {});
+});
+
+test("saving a key makes the board show its issues right away", async () => {
+  const { server } = await start({ linear: {} });
+  const before = await call(server, "GET", "/api/board");
+  assert.deepEqual([before.json.configured, before.json.issues.length], [false, 0]);
+  await post(server, "/api/settings/linear/key", { apiKey: KEY });
+  const after = await call(server, "GET", "/api/board");
+  assert.deepEqual([after.json.configured, after.json.issues.length], [true, 1]);
+  assert.ok(!after.text.includes(KEY));
+});
+
+test("disconnect empties the key and keeps the table", async () => {
+  const { server, files } = await start({ linear: { apiKey: KEY, teams: { TEAM: "Project A" }, unlisted: "hide" } });
+  const reply = await post(server, "/api/settings/linear/disconnect");
+  assert.equal(reply.json.linear.connected, false);
+  assert.deepEqual(JSON.parse(files["/cfg/linear.json"]!), { apiKey: "", teams: { TEAM: "Project A" }, unlisted: "hide" });
+});
+
+test("GET /api/settings/linear/teams lists teams, and answers 409 without a key", async () => {
+  const teams = { data: { teams: { nodes: [{ key: "ENG", name: "Engineering" }] } } };
+  const connected = await start({ linear: { apiKey: KEY }, linearFetch: async () => new Response(JSON.stringify(teams)) });
+  assert.deepEqual((await call(connected.server, "GET", "/api/settings/linear/teams")).json, { teams: [{ key: "ENG", name: "Engineering" }] });
+  const empty = await start({ linear: {} });
+  assert.equal((await call(empty.server, "GET", "/api/settings/linear/teams")).status, 409);
+  const failing = await start({ linear: { apiKey: KEY }, linearFetch: async () => new Response("no", { status: 503 }) });
+  assert.equal((await call(failing.server, "GET", "/api/settings/linear/teams")).status, 502);
+});
+
+test("POST /api/settings/linear/teams replaces the table and refuses a bad shape", async () => {
+  const { server, files } = await start({ linear: { apiKey: KEY, teams: { OLD: "x" } } });
+  const reply = await post(server, "/api/settings/linear/teams", { teams: { ENG: "Project A", OPS: null, DES: "" }, unlisted: "show" });
+  assert.equal(reply.status, 200);
+  assert.deepEqual(JSON.parse(files["/cfg/linear.json"]!), { apiKey: KEY, teams: { ENG: "Project A", OPS: null, DES: "" }, unlisted: "show" });
+  assert.equal((await post(server, "/api/settings/linear/teams", { teams: { ENG: 3 }, unlisted: "show" })).status, 400);
+  assert.equal((await post(server, "/api/settings/linear/teams", { teams: {} })).status, 400);
+});
+
+test("settings routes keep the origin check, the content type and the security headers", async () => {
+  const { server } = await start({ linear: {} });
+  assert.equal((await call(server, "GET", "/api/settings", { headers: { host: "evil.example" } })).status, 403);
+  assert.equal((await post(server, "/api/settings/linear/key", { apiKey: KEY }, { origin: "https://evil.example" })).status, 403);
+  assert.equal((await call(server, "POST", "/api/settings/linear/key", { raw: "{}", headers: { "content-type": "text/plain" } })).status, 400);
+  assert.equal((await call(server, "GET", "/api/settings")).headers["x-frame-options"], "DENY");
+});
+
+test("POST /api/setup/retry resolves the token again, wakes the sync and returns the status", async () => {
+  const { server, setupCalls } = await start();
+  const reply = await post(server, "/api/setup/retry");
+  assert.equal(reply.status, 200);
+  assert.equal(reply.json.t3, "live");
+  assert.deepEqual(setupCalls, ["refresh", "wake"]);
+});
+
+test("POST /api/setup/token stores an accepted token and never echoes it", async () => {
+  const { server, setupCalls } = await start();
+  const reply = await post(server, "/api/setup/token", { token: "pasted-token-value" });
+  assert.equal(reply.status, 200);
+  assert.ok(!reply.text.includes("pasted-token-value"));
+  assert.deepEqual(setupCalls, ["paste:pasted-token-value", "wake"]);
+});
+
+test("a token T3 refuses gives 400, an unreachable T3 gives 502, an empty one gives 400", async () => {
+  const refused = await start({ pasteResult: "rejected" });
+  const reply = await post(refused.server, "/api/setup/token", { token: "pasted-token-value" });
+  assert.deepEqual([reply.status, reply.json], [400, { error: "T3 Code refused this token." }]);
+  assert.ok(!refused.setupCalls.includes("wake"));
+  const down = await start({ pasteResult: "unreachable" });
+  const second = await post(down.server, "/api/setup/token", { token: "pasted-token-value" });
+  assert.deepEqual([second.status, second.json], [502, { error: "T3 Code is unreachable." }]);
+  assert.equal((await post(down.server, "/api/setup/token", { token: "  " })).status, 400);
+});
+
+test("an issue whose team has no T3 project needs a project, then the choice is remembered for the team", async () => {
+  const { server, port, files } = await start({ linear: { apiKey: KEY, teams: { TEAM: "" }, unlisted: "hide" } });
+  const body = { workspace: "Linear", issueId: "issue-1", agent: "claude" };
+  const first = await post(server, "/api/board/assign", body);
+  assert.deepEqual([first.status, first.json], [409, { error: "Choose a T3 project" }]);
+  assert.equal(port.commands.length, 0);
+  assert.equal((await post(server, "/api/board/assign", { ...body, projectId: "missing" })).status, 409);
+  const reply = await post(server, "/api/board/assign", { ...body, projectId: "project-2" });
+  assert.equal(reply.status, 200);
+  assert.equal(port.commands[0]!.projectId, "project-2");
+  assert.deepEqual(JSON.parse(files["/cfg/linear.json"]!).teams, { TEAM: "Project B" });
+  const board = await call(server, "GET", "/api/board?refresh=1");
+  assert.equal(board.json.issues[0].t3ProjectId, "project-2");
+});
+
+test("a project id in the body is ignored when the team already has a project", async () => {
+  const { server, port, files } = await start({ linear: { apiKey: KEY, teams: { TEAM: "Project A" } } });
+  const reply = await post(server, "/api/board/assign", { workspace: "Linear", issueId: "issue-1", agent: "claude", projectId: "project-2" });
+  assert.equal(reply.status, 200);
+  assert.equal(port.commands[0]!.projectId, "project-1");
+  assert.deepEqual(JSON.parse(files["/cfg/linear.json"]!).teams, { TEAM: "Project A" });
 });

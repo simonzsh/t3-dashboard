@@ -44,13 +44,25 @@ export interface DashboardProvider {
   models: Array<{ slug: string; name: string }>;
 }
 
+export type SetupReason = "t3-missing" | "t3-stopped" | "token-needed";
+
+export interface SetupInfo {
+  reason: SetupReason;
+  /** Short and safe to show: never a token or command output. */
+  detail: string | null;
+  issueCommand: string;
+  installUrl: string;
+}
+
 export interface ConnectionStatus {
-  t3: "connecting" | "live" | "offline";
+  t3: "connecting" | "live" | "offline" | "needs-token";
   origin: string | null;
   serverVersion: string | null;
   protocolMismatch: boolean;
   error: string | null;
   since: string;
+  /** Not null: the UI shows the full-screen setup. */
+  setup: SetupInfo | null;
 }
 
 export interface DashboardState {
@@ -59,6 +71,8 @@ export interface DashboardState {
   providers: DashboardProvider[];
   threads: DashboardThread[];
   generatedAt: string;
+  /** At least one t3-agent brain file exists. */
+  automationsAvailable: boolean;
 }
 
 export interface Diff<T> {
@@ -170,12 +184,59 @@ export interface BoardResult {
   workspaces: LinearWorkspaceStatus[];
   issues: LinearIssue[];
   fetchedAt: string;
+  /** False when no Linear key is set at all: the UI shows the setup card. */
+  configured: boolean;
 }
 
 export interface AssignIssueBody {
   workspace: string;
   issueId: string;
   agent: "claude" | "codex";
+  /** Needed when the issue's team has no T3 project yet. */
+  projectId?: string;
+}
+
+export type TokenSource = "env-file" | "stored" | "issued" | "pasted";
+
+/** Team key -> T3 project title; "" asks when assigning, null hides the team. */
+export type TeamTable = Record<string, string | null>;
+
+export interface LinearSettings {
+  connected: boolean;
+  /** Last 4 characters at most: the key itself never leaves the server. */
+  keyTail: string | null;
+  /** The file uses the old workspaces list: the first save converts it and keeps the first workspace only. */
+  legacy: boolean;
+  teams: TeamTable;
+  unlisted: "show" | "hide";
+}
+
+export interface SettingsResult {
+  linear: LinearSettings;
+  t3: { tokenSource: TokenSource | null };
+  configDir: string;
+}
+
+export interface LinearTeam {
+  key: string;
+  name: string;
+}
+
+export interface LinearTeamsResult {
+  teams: LinearTeam[];
+}
+
+export interface LinearKeyBody {
+  apiKey: string;
+}
+
+export interface LinearTeamsBody {
+  teams: TeamTable;
+  unlisted: "show" | "hide";
+}
+
+export interface TokenBody {
+  token: string;
 }
 
 export type AutomationSchedule = { kind: "cron"; cron: string; timeZone: string; label: string } | { kind: "once"; at: string };
