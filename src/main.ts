@@ -6,7 +6,7 @@ import { installDeps, updateDeps } from "./system.ts";
 import { removeOldBinary, update } from "./update.ts";
 import { VERSION } from "./version.ts";
 
-const DEFAULT_PORT = 4310;
+const DEFAULT_PORT = 4300;
 const env = process.env;
 
 const args = parseArgs(Bun.argv.slice(2));

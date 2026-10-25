@@ -2,14 +2,14 @@ import assert from "node:assert/strict";
 import { test } from "bun:test";
 import { applyPlan, servicePlan, type Plan } from "../src/service.ts";
 
-const base = { exe: "/opt/my apps/t3-dashboard", port: 4310, path: "/usr/bin:/bin", uid: 501, home: "/home/ann", env: {} };
+const base = { exe: "/opt/my apps/t3-dashboard", port: 4300, path: "/usr/bin:/bin", uid: 501, home: "/home/ann", env: {} };
 
 test("linux: a systemd user unit with a quoted ExecStart and the PATH", () => {
   const plan = servicePlan("linux", base);
   assert.equal(plan.files.length, 1);
   assert.equal(plan.files[0]!.path, "/home/ann/.config/systemd/user/t3-dashboard.service");
   const unit = plan.files[0]!.content;
-  assert.match(unit, /^ExecStart="\/opt\/my apps\/t3-dashboard" start --port 4310$/m);
+  assert.match(unit, /^ExecStart="\/opt\/my apps\/t3-dashboard" start --port 4300$/m);
   assert.match(unit, /^Environment="PATH=\/usr\/bin:\/bin:\/home\/ann\/\.local\/bin"$/m);
   assert.match(unit, /^Restart=on-failure$/m);
   assert.match(unit, /^RestartSec=3$/m);
@@ -38,7 +38,7 @@ test("macos: a LaunchAgent that keeps the dashboard alive, with PATH and logs", 
   const file = plan.files[0]!;
   assert.equal(file.path, "/Users/ann/Library/LaunchAgents/t3-dashboard.plist");
   assert.match(file.content, /<key>Label<\/key>\s*<string>t3-dashboard<\/string>/);
-  assert.match(file.content, /<string>\/Users\/a b\/t3-dashboard<\/string>\s*<string>start<\/string>\s*<string>--port<\/string>\s*<string>4310<\/string>/);
+  assert.match(file.content, /<string>\/Users\/a b\/t3-dashboard<\/string>\s*<string>start<\/string>\s*<string>--port<\/string>\s*<string>4300<\/string>/);
   assert.match(file.content, /<key>RunAtLoad<\/key>\s*<true\/>/);
   assert.match(file.content, /<key>KeepAlive<\/key>\s*<true\/>/);
   assert.match(file.content, /<key>PATH<\/key>\s*<string>\/usr\/bin:\/bin:\/Users\/ann\/\.local\/bin<\/string>/);
@@ -65,7 +65,7 @@ test("windows: a logon task that runs a PowerShell launcher, with a Run-key fall
   assert.equal(plan.files[0]!.path, launcher);
   assert.equal(
     plan.files[0]!.content,
-    `\uFEFF& 'C:\\Users\\O''Neil\\AppData\\Local\\Programs\\t3-dashboard\\t3-dashboard.exe' start --port 4310 --log 'C:\\Users\\O''Neil\\AppData\\Local\\t3-dashboard\\dashboard.log'\r\n`,
+    `\uFEFF& 'C:\\Users\\O''Neil\\AppData\\Local\\Programs\\t3-dashboard\\t3-dashboard.exe' start --port 4300 --log 'C:\\Users\\O''Neil\\AppData\\Local\\t3-dashboard\\dashboard.log'\r\n`,
   );
   const tr = `powershell.exe -NoProfile -WindowStyle Hidden -ExecutionPolicy Bypass -File "${launcher}"`;
   const [create, end, run] = plan.install;
