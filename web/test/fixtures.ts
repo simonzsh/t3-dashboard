@@ -9,6 +9,7 @@ export function thread(id: string, over: Partial<DashboardThread> = {}): Dashboa
     model: "model-x",
     status: "idle",
     bucket: "inactive" as Bucket,
+    settled: false,
     pending: null,
     activeRunId: null,
     backgroundWork: false,

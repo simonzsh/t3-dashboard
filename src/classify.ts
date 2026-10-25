@@ -46,6 +46,13 @@ export function bucketOf(raw: RawThread, now: Date): Bucket {
   return "inactive";
 }
 
+// Same sections as the T3 Code sidebar: a snooze shows first, then the settled override.
+// A pending request wakes a snoozed thread.
+export function isSettled(raw: RawThread, now: Date): boolean {
+  const snoozed = raw.snoozedUntil != null && Date.parse(raw.snoozedUntil) > now.getTime() && !raw.pendingRuntimeRequest;
+  return !snoozed && raw.settledOverride === "settled";
+}
+
 function categoryOf(kind: string): PendingCategory {
   if (APPROVAL_KINDS.has(kind)) return "approval";
   return kind === "user_input" ? "user-input" : "other";
@@ -67,6 +74,7 @@ export function toDashboardThread(raw: RawThread, now: Date): DashboardThread {
     model: raw.modelSelection?.model ?? null,
     status: raw.status ?? "idle",
     bucket: bucketOf(raw, now),
+    settled: isSettled(raw, now),
     pending: pending ? { requestId: pending.id, kind: pending.kind, category: categoryOf(pending.kind) } : null,
     activeRunId: raw.activeRunId ?? null,
     backgroundWork: hasBackgroundWork(raw),

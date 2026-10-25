@@ -21,6 +21,8 @@ export interface DashboardThread {
   model: string | null;
   status: string;
   bucket: Bucket;
+  /** In the T3 Code sidebar's Settled section. */
+  settled: boolean;
   pending: { requestId: string; kind: string; category: PendingCategory } | null;
   activeRunId: string | null;
   /** Subagents or a thread wait still run after the turn ended. */

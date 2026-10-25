@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "bun:test";
-import { DONE_WINDOW_DAYS, bucketOf, isHidden, toDashboardThread } from "../src/classify.ts";
+import { DONE_WINDOW_DAYS, bucketOf, isHidden, isSettled, toDashboardThread } from "../src/classify.ts";
 import type { RawThread } from "../src/t3/types.ts";
 
 const now = new Date("2026-03-20T12:00:00.000Z");
@@ -137,4 +137,24 @@ test("isHidden", () => {
   assert.equal(isHidden(thread({ archivedAt: ago(DAY) })), true);
   assert.equal(isHidden(thread(), "archive"), true);
   assert.equal(isHidden(thread(), "active"), false);
+});
+
+// Mirrors the T3 Code sidebar: the override decides, and an active snooze shows first.
+test("isSettled follows the settled override like the T3 Code sidebar", () => {
+  assert.equal(isSettled(thread(), now), false);
+  assert.equal(isSettled(thread({ settledOverride: "settled", settledAt: ago(DAY) }), now), true);
+  assert.equal(isSettled(thread({ settledOverride: "settled" }), now), true);
+  assert.equal(isSettled(thread({ settledOverride: "active", unsettledAt: ago(DAY) }), now), false);
+  assert.equal(isSettled(thread({ settledOverride: null, settledAt: ago(DAY) }), now), false);
+});
+
+test("isSettled: a snoozed thread is not in the settled section until it wakes", () => {
+  assert.equal(isSettled(thread({ settledOverride: "settled", snoozedUntil: ago(-DAY) }), now), false);
+  assert.equal(isSettled(thread({ settledOverride: "settled", snoozedUntil: ago(DAY) }), now), true);
+  assert.equal(isSettled(thread({ settledOverride: "settled", snoozedUntil: ago(-DAY), pendingRuntimeRequest: { id: "r", kind: "command" } }), now), true);
+});
+
+test("toDashboardThread carries the settled state", () => {
+  assert.equal(toDashboardThread(thread({ settledOverride: "settled" }), now).settled, true);
+  assert.equal(toDashboardThread(thread(), now).settled, false);
 });
