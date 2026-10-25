@@ -89,12 +89,21 @@ test("the key tail is four characters at most", () => {
 });
 
 test("a legacy file reads as legacy and converts on the first save", async () => {
-  const legacy = { workspaces: [{ name: "A", apiKey: "key-a-1111", teams: { ENG: "Project A" } }, { name: "B", apiKey: "key-b-2222" }] };
+  const legacy = { workspaces: [{ name: "A", apiKey: "key-a-1111", teams: { ENG: "Project A" } }, { name: "B", apiKey: "" }] };
   const { settings, saved } = setup(legacy);
   assert.deepEqual(settings.get().linear, { connected: true, keyTail: "1111", legacy: true, teams: { ENG: "Project A" }, unlisted: "hide" });
   settings.saveTeams({ teams: { ENG: null }, unlisted: "show" });
   assert.deepEqual(saved(), { apiKey: "key-a-1111", teams: { ENG: null }, unlisted: "show" });
   assert.equal(settings.get().linear.legacy, false);
+});
+
+test("a legacy file with several keys is never rewritten from the UI", async () => {
+  const legacy = { workspaces: [{ name: "A", apiKey: "key-a-1111" }, { name: "B", apiKey: "key-b-2222" }] };
+  const { settings, saved } = setup(legacy);
+  assert.throws(() => settings.saveTeams({ teams: {}, unlisted: "show" }), /several keys/);
+  assert.throws(() => settings.disconnect(), /several keys/);
+  await assert.rejects(settings.connectKey({ apiKey: "key-new-3333" }), /several keys/);
+  assert.deepEqual(saved(), legacy);
 });
 
 test("saveTeams replaces the whole table and keeps the key", () => {

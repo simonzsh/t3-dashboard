@@ -39,6 +39,12 @@ export function createSettings(options: SettingsOptions): Settings {
     const { workspaces, legacy } = readLinearFile(file, readFile);
     return { config: toSimple(workspaces), legacy, keyed: workspaces.filter((workspace) => workspace.apiKey !== "").length };
   };
+  // Converting a legacy file with several keys would drop all but one of them.
+  const guard = () => {
+    const current = read();
+    if (current.legacy && current.keyed > 1) throw new HttpError(409, "linear.json holds several keys: edit it by hand.");
+    return current;
+  };
   const save = (next: SimpleLinearConfig) => {
     writeLinearConfig(file, next, writeSecret);
     board.invalidate();
@@ -58,6 +64,7 @@ export function createSettings(options: SettingsOptions): Settings {
     async connectKey({ apiKey }) {
       const key = typeof apiKey === "string" ? apiKey.trim() : "";
       if (key === "") throw new HttpError(400, "Enter a Linear API key.");
+      guard();
       const check = await board.verifyKey(key);
       if (check === "refused") throw new HttpError(400, "Linear refused this key.");
       if (check === "unreachable") throw new HttpError(502, "Linear is unreachable.");
@@ -65,7 +72,7 @@ export function createSettings(options: SettingsOptions): Settings {
       return result();
     },
     disconnect() {
-      save({ ...read().config, apiKey: "" });
+      save({ ...guard().config, apiKey: "" });
       return result();
     },
     async teams() {
@@ -77,12 +84,11 @@ export function createSettings(options: SettingsOptions): Settings {
       return found;
     },
     saveTeams({ teams, unlisted }) {
-      save({ apiKey: read().config.apiKey, teams, unlisted });
+      save({ apiKey: guard().config.apiKey, teams, unlisted });
       return result();
     },
     rememberTeam(teamKey, projectTitle) {
       const { config, legacy, keyed } = read();
-      // Converting a file with several keys would drop all but one of them.
       if (legacy && keyed > 1) return;
       save({ ...config, teams: { ...config.teams, [teamKey]: projectTitle } });
     },
