@@ -116,11 +116,23 @@ export type PendingRequestDetail =
   | { category: "user-input"; requestId: string; questions: UserInputQuestion[]; resumable: boolean; createdAt: string }
   | { category: "other"; requestId: string; requestKind: string; resumable: boolean; createdAt: string };
 
+export interface SubagentInfo {
+  id: string;
+  title: string;
+  status: "running" | "done" | "failed";
+  // Last step while running; null once finished.
+  progress: string | null;
+  result: string | null;
+  startedAt: string | null;
+  completedAt: string | null;
+}
+
 export interface ThreadDetail {
   threadId: string;
   thread: DashboardThread | null;
   messages: ChatMessage[];
   pendingRequests: PendingRequestDetail[];
+  subagents: SubagentInfo[];
 }
 
 export type ApprovalDecision = "accept" | "acceptForSession" | "decline";

@@ -29,7 +29,7 @@ test("passes the store thread through", () => {
 
 test("an empty projection gives empty lists", () => {
   const detail = toThreadDetail("thread-1", {}, undefined);
-  assert.deepEqual([detail.messages, detail.pendingRequests], [[], []]);
+  assert.deepEqual([detail.messages, detail.pendingRequests, detail.subagents], [[], [], []]);
 });
 
 const withRequests: RawProjection = {
@@ -123,4 +123,50 @@ test("unknown item kind or no matching item gives other", () => {
   const [, , other, orphan] = toThreadDetail("thread-1", withRequests, undefined).pendingRequests;
   assert.deepEqual(other, { category: "other", requestId: "req-other", requestKind: "dynamic_tool_call", resumable: true, createdAt: "2026-03-01T11:02:00Z" });
   assert.deepEqual(orphan, { category: "other", requestId: "req-orphan", requestKind: "command", resumable: true, createdAt: "2026-03-01T11:03:00Z" });
+});
+
+const withSubagents: RawProjection = {
+  runs: [{ id: "run-1" }, { id: "run-2" }],
+  subagents: [
+    { id: "old-done", runId: "run-1", title: "Old work", status: "completed", startedAt: "2026-03-01T09:00:00Z", completedAt: "2026-03-01T09:05:00Z", result: "Done" },
+    { id: "old-running", runId: "run-1", title: "Still busy", status: "running", progress: "Running ls", startedAt: "2026-03-01T09:10:00Z", completedAt: null },
+    { id: "done", runId: "run-2", title: "Explore", status: "completed", progress: "Running cat", startedAt: "2026-03-01T10:00:00Z", completedAt: "2026-03-01T10:02:00Z", result: "x".repeat(500) },
+    { id: "failed", runId: "run-2", title: null, prompt: "Review the diff for bugs", status: "interrupted", startedAt: "2026-03-01T10:01:00Z", completedAt: "2026-03-01T10:03:00Z" },
+    { id: "live", runId: "run-2", title: "Implement", status: "running", progress: "Running bun test", startedAt: "2026-03-01T10:04:00Z", completedAt: null },
+  ],
+};
+
+test("subagents: the latest run plus any still running, running first then newest first", () => {
+  const { subagents } = toThreadDetail("thread-1", withSubagents, undefined);
+  assert.deepEqual(
+    subagents.map((s) => s.id),
+    ["live", "old-running", "failed", "done"],
+  );
+});
+
+test("subagents: normalised status, progress only while running, result truncated", () => {
+  const [live, , failed, done] = toThreadDetail("thread-1", withSubagents, undefined).subagents;
+  assert.deepEqual(live, { id: "live", title: "Implement", status: "running", progress: "Running bun test", result: null, startedAt: "2026-03-01T10:04:00Z", completedAt: null });
+  assert.equal(failed!.status, "failed");
+  assert.equal(failed!.title, "Review the diff for bugs");
+  assert.equal(done!.status, "done");
+  assert.equal(done!.progress, null);
+  assert.equal(done!.result, `${"x".repeat(199)}…`);
+});
+
+test("subagents: an unknown status counts as running only while not completed", () => {
+  const projection: RawProjection = {
+    subagents: [
+      { id: "a", status: "queued", startedAt: "2026-03-01T10:00:00Z", completedAt: null },
+      { id: "b", status: "weird", startedAt: "2026-03-01T09:00:00Z", completedAt: "2026-03-01T09:01:00Z" },
+    ],
+  };
+  const subagents = toThreadDetail("thread-1", projection, undefined).subagents;
+  assert.deepEqual(
+    subagents.map((s) => [s.id, s.status, s.title]),
+    [
+      ["a", "running", "Subagent"],
+      ["b", "done", "Subagent"],
+    ],
+  );
 });

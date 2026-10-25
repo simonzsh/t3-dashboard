@@ -87,12 +87,25 @@ export interface RawTurnItem {
   messageId?: string;
 }
 
+export interface RawSubagent {
+  id: string;
+  runId?: string | null;
+  title?: string | null;
+  prompt?: string | null;
+  status?: string | null;
+  progress?: string | null;
+  result?: string | null;
+  startedAt?: string | null;
+  completedAt?: string | null;
+}
+
 export interface RawProjection {
   messages?: RawMessage[];
   runs?: Array<{ id: string; status?: string }>;
   runtimeRequests?: RawRuntimeRequest[];
   turnItems?: Array<{ item?: RawTurnItem } | RawTurnItem>;
   visibleTurnItems?: Array<{ item?: RawTurnItem } | RawTurnItem>;
+  subagents?: RawSubagent[];
 }
 
 export interface RawProvider {
