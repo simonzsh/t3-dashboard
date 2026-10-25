@@ -429,6 +429,8 @@ button.auto-row:hover { background: var(--surface-0); }
 .menu-project { display: flex; flex-direction: column; gap: 4px; padding: 6px 8px; }
 .menu-project small { color: var(--text-secondary); }
 .dialog.settings { max-height: 90vh; overflow-y: auto; }
+.dialog.new-agent { width: min(640px, 94vw); gap: 12px; }
+.dialog.new-agent .composer { padding: 0; }
 .linear-status { display: inline-flex; align-items: center; gap: 10px; }
 .linear-status.muted { color: var(--text-secondary); }
 .linear-status, .version-line { min-width: 0; white-space: nowrap; }

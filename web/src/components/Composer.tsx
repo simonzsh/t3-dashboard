@@ -36,9 +36,11 @@ interface Props {
   onReload: () => void;
   /** Error of the last send, stop or settings change. */
   error: string | null;
+  placeholder?: string;
+  autoFocus?: boolean;
 }
 
-export function Composer({ providers, selection, runtimeMode, running, draft, onDraft, onSend, onStop, onSettings, onReload, error: actionError }: Props) {
+export function Composer({ providers, selection, runtimeMode, running, draft, onDraft, onSend, onStop, onSettings, onReload, error: actionError, placeholder, autoFocus = false }: Props) {
   // Picks show at once; the thread values come back on the next reload.
   const [localSelection, setLocalSelection] = useState(selection);
   const [localMode, setLocalMode] = useState(runtimeMode);
@@ -154,7 +156,8 @@ export function Composer({ providers, selection, runtimeMode, running, draft, on
             e.preventDefault();
             void addFiles(files);
           }}
-          placeholder={running ? "Steer the agent…" : "Send a message to the agent…"}
+          autoFocus={autoFocus}
+          placeholder={placeholder ?? (running ? "Steer the agent…" : "Send a message to the agent…")}
           aria-label="Message"
         />
         <div className="composer-toolbar">
