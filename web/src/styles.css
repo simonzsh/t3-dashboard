@@ -435,6 +435,9 @@ button.auto-row:hover { background: var(--surface-0); }
 .desk-dock, .desk-tabs { display: flex; gap: 6px; padding: 8px 10px; overflow-x: auto; background: color-mix(in srgb, var(--header-bg) 85%, transparent); backdrop-filter: blur(8px); }
 .desk-dock { border-top: 1px solid var(--line); }
 .desk-tabs { border-bottom: 1px solid var(--line); }
+/* With a chosen background the bars let it show; the chips keep their own surface. */
+.desk.has-bg .desk-dock, .desk.has-bg .desk-tabs { background: transparent; backdrop-filter: none; border-color: transparent; }
+.desk.has-bg .desk-chip:not(.active) { background: color-mix(in srgb, var(--surface-1) 88%, transparent); }
 .desk-chip { flex: none; display: inline-flex; align-items: center; gap: 6px; max-width: 240px; padding: 4px 10px; border-radius: 999px; font-size: 12px; }
 .desk-chip.active { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 12%, var(--surface-1)); }
 .desk-chip .provider-icon { width: 14px; height: 14px; margin: 0; }
