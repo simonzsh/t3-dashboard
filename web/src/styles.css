@@ -92,7 +92,8 @@ button.primary kbd { color: var(--on-accent); border-color: color-mix(in srgb, v
 kbd { font: 11px/1 ui-monospace, SFMono-Regular, Menlo, monospace; padding: 2px 5px; border-radius: 4px; border: 1px solid var(--line); color: var(--text-secondary); opacity: 0.8; }
 .banner { padding: 8px 24px; background: var(--warn-bg); color: var(--warn-text); border-bottom: 1px solid var(--line); }
 .empty { color: var(--text-secondary); margin: 0; }
-main { padding: 24px; display: flex; flex-direction: column; gap: 28px; }
+/* The page never scrolls: main fills the window and each view scrolls its own areas. */
+main { flex: 1; min-height: 0; overflow: hidden; padding: 24px; display: flex; flex-direction: column; gap: 28px; }
 .group h2 { display: flex; align-items: baseline; gap: 8px; font-size: 13px; margin: 0 0 12px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-secondary); }
 .count { font-size: 12px; padding: 0 7px; border-radius: 999px; background: var(--line); color: var(--text-primary); }
 .workspace { text-transform: none; letter-spacing: 0; font-size: 12px; font-weight: 400; }
@@ -131,11 +132,12 @@ main { padding: 24px; display: flex; flex-direction: column; gap: 28px; }
 @keyframes shimmer { 0% { background-position: -50% 0; } 100% { background-position: 150% 0; } }
 .empty-state { display: flex; flex-direction: column; gap: 4px; align-items: center; padding: 64px 16px; text-align: center; color: var(--text-secondary); border: 1px dashed var(--line); border-radius: 14px; }
 .empty-state strong { color: var(--text-primary); font-size: 15px; }
-.toolbar { display: flex; justify-content: flex-end; margin-bottom: -16px; }
+.board { flex: 1; min-height: 0; display: flex; flex-direction: column; gap: 12px; overflow-y: auto; }
+.toolbar { display: flex; justify-content: flex-end; }
 .notice { margin: 0; padding: 10px 14px; border-radius: 10px; background: var(--warn-bg); color: var(--warn-text); }
 .error-notice { background: var(--err-bg); color: var(--err-text); }
-.kanban { display: flex; gap: 14px; align-items: flex-start; overflow-x: auto; padding-bottom: 8px; }
-.column { flex: 1 1 0; min-width: 260px; max-height: calc(100vh - 150px); display: flex; flex-direction: column; border-radius: 14px; background: var(--surface-0); border: 1px solid var(--line); }
+.kanban { flex: 1; min-height: 0; display: flex; gap: 14px; align-items: flex-start; overflow-x: auto; padding-bottom: 8px; }
+.column { flex: 1 1 0; min-width: 260px; max-height: 100%; display: flex; flex-direction: column; border-radius: 14px; background: var(--surface-0); border: 1px solid var(--line); }
 .column-head { display: flex; align-items: center; gap: 8px; margin: 0; padding: 12px 14px; font-size: 13px; }
 .column-body { display: flex; flex-direction: column; gap: 16px; padding: 0 10px 10px; overflow-y: auto; }
 .subgroup { display: flex; flex-direction: column; gap: 8px; }
@@ -310,10 +312,12 @@ main { padding: 24px; display: flex; flex-direction: column; gap: 28px; }
 .segmented { display: flex; gap: 2px; padding: 3px; border-radius: 10px; background: var(--surface-0); border: 1px solid var(--line); }
 .segmented button { border: 0; background: none; padding: 4px 14px; border-radius: 7px; color: var(--text-secondary); font-weight: 500; }
 .segmented button.active { background: var(--accent); color: var(--on-accent); }
-.agents-layout { display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 28px; align-items: start; }
+.agents-layout { flex: 1; min-height: 0; display: grid; grid-template-columns: minmax(0, 1fr) 340px; grid-template-rows: minmax(0, 1fr); gap: 28px; align-items: start; }
+/* Padding keeps card shadows and focus rings inside the scroll area. */
+.agents-layout > .agents-groups, .agents-layout > .empty-state { box-sizing: border-box; max-height: calc(100% + 8px); overflow-y: auto; padding: 4px; margin: -4px; }
 .agents-layout.wide { grid-template-columns: minmax(0, 1fr); }
 .agents-groups { display: flex; flex-direction: column; gap: 28px; }
-.automations { position: sticky; top: 76px; display: flex; flex-direction: column; gap: 20px; padding: 16px; border-radius: 14px; background: var(--surface-1); border: 1px solid var(--line); box-shadow: var(--shadow); }
+.automations { max-height: 100%; overflow-y: auto; box-sizing: border-box; display: flex; flex-direction: column; gap: 20px; padding: 16px; border-radius: 14px; background: var(--surface-1); border: 1px solid var(--line); box-shadow: var(--shadow); }
 .auto-heading { margin: 0; font-size: 15px; }
 .auto-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
 .auto-list li + li { border-top: 1px solid var(--line); }
@@ -330,9 +334,8 @@ button.auto-row:hover { background: var(--surface-0); }
 .auto-state.done { color: var(--done-text); }
 .tabs .count { font-size: 11px; padding: 0 6px; background: color-mix(in srgb, var(--accent) 18%, transparent); color: var(--accent); font-weight: 600; }
 .tab-alert { width: 8px; height: 8px; border-radius: 50%; background: var(--warn); box-shadow: 0 0 0 2px color-mix(in srgb, var(--warn) 30%, transparent); }
-.app { display: flex; flex-direction: column; min-height: 100dvh; }
-.app.desk-mode { height: 100dvh; overflow: hidden; }
-.app.desk-mode main { flex: 1; min-height: 0; padding: 0; gap: 0; }
+.app { display: flex; flex-direction: column; height: 100dvh; overflow: hidden; }
+.app.desk-mode main { padding: 0; gap: 0; }
 .desk { flex: 1; min-height: 0; display: flex; flex-direction: column; background-color: var(--surface-0); background-size: cover; background-position: center; }
 .desk-bg-none { background-color: var(--surface-0); }
 .desk-bg-dune { background-image: var(--desk-bg-dune); }
@@ -399,12 +402,12 @@ button.auto-row:hover { background: var(--surface-0); }
 @media (max-width: 700px) {
   .topbar { grid-template-columns: 1fr auto; }
   .tabs { grid-row: 2; grid-column: 1 / -1; justify-self: center; }
-  .kanban { flex-direction: column; overflow-x: visible; }
+  .kanban { flex: none; flex-direction: column; overflow-x: visible; }
   .column { width: 100%; min-width: 0; max-height: none; flex: none; }
 }
 @media (max-width: 900px) {
-  .agents-layout { grid-template-columns: minmax(0, 1fr); }
-  .automations { position: static; }
+  .agents-layout { display: flex; flex-direction: column; overflow-y: auto; }
+  .agents-layout > .agents-groups, .agents-layout > .empty-state, .automations { max-height: none; overflow: visible; flex: none; }
 }
 @media (max-width: 899px), (pointer: coarse) {
   button kbd { display: none; }

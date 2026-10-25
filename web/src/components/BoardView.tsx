@@ -40,7 +40,7 @@ export function BoardView({ projects, version, onAssigned, onShowDesk }: Props) 
   const broken = needsKey ? [] : (board?.workspaces.filter((w) => !w.ok) ?? []);
 
   return (
-    <>
+    <div className="board">
       <div className="toolbar">
         <button disabled={loading} onClick={() => void load(true)}>
           {loading ? "Loading…" : "Refresh"}
@@ -93,6 +93,6 @@ export function BoardView({ projects, version, onAssigned, onShowDesk }: Props) 
           ))}
         </div>
       )}
-    </>
+    </div>
   );
 }
