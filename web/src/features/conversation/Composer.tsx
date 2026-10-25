@@ -43,7 +43,9 @@ interface Props {
 
 export function Composer({ providers, selection, runtimeMode, running, draft, onDraft, onSend, onStop, onSettings, placeholder, autoFocus = false, errorResetKey }: Props) {
   // Picks show at once, until new values come in the props or the change fails.
-  const [override, setOverride] = useState<{ selection?: ModelSelection; mode?: RuntimeMode }>({});
+  // Each field has its own override: a model reload never drops a pending mode pick, and the reverse.
+  const [selectionOverride, setSelectionOverride] = useState<ModelSelection | null>(null);
+  const [modeOverride, setModeOverride] = useState<RuntimeMode | null>(null);
   const [images, setImages] = useState<Pending[]>([]);
   // One error line: each attempt replaces it, so an older error never hides a newer one.
   const { error, setError, run: attempt } = useAction();
@@ -53,9 +55,10 @@ export function Composer({ providers, selection, runtimeMode, running, draft, on
   const textarea = useRef<HTMLTextAreaElement>(null);
 
   // Each reload gives a new selection object: compare the values.
-  useEffect(() => setOverride({}), [JSON.stringify(selection), runtimeMode]);
-  const localSelection = override.selection ?? selection;
-  const localMode = override.mode ?? runtimeMode;
+  useEffect(() => setSelectionOverride(null), [JSON.stringify(selection)]);
+  useEffect(() => setModeOverride(null), [runtimeMode]);
+  const localSelection = selectionOverride ?? selection;
+  const localMode = modeOverride ?? runtimeMode;
   useEffect(() => setError(null), [errorResetKey]);
 
   // Grows with the text up to the CSS max height; measured again when the window resizes,
@@ -79,10 +82,14 @@ export function Composer({ providers, selection, runtimeMode, running, draft, on
   const modes = found?.provider.runtimeModes ?? (Object.keys(RUNTIME_MODE_LABELS) as RuntimeMode[]);
   const canSend = (draft.trim() !== "" || images.length > 0) && !sending;
 
-  async function change(next: { selection?: ModelSelection; mode?: RuntimeMode }) {
-    setOverride((current) => ({ ...current, ...next }));
-    const ok = await attempt(() => onSettings({ ...(next.selection && { modelSelection: next.selection }), ...(next.mode && { runtimeMode: next.mode }) }));
-    if (!ok) setOverride({});
+  async function changeSelection(next: ModelSelection) {
+    setSelectionOverride(next);
+    if (!(await attempt(() => onSettings({ modelSelection: next })))) setSelectionOverride(null);
+  }
+
+  async function changeMode(next: RuntimeMode) {
+    setModeOverride(next);
+    if (!(await attempt(() => onSettings({ runtimeMode: next })))) setModeOverride(null);
   }
 
   async function addFiles(files: File[]) {
@@ -164,7 +171,7 @@ export function Composer({ providers, selection, runtimeMode, running, draft, on
                 const [instanceId, slug] = id.split("\u0000");
                 const provider = providers.find((p) => p.instanceId === instanceId);
                 const model = provider?.models.find((m) => m.slug === slug);
-                if (provider && model) void change({ selection: selectModel(localSelection, provider, model) });
+                if (provider && model) void changeSelection(selectModel(localSelection, provider, model));
               }}
             />
             {found?.model.effort && localSelection && (
@@ -176,7 +183,7 @@ export function Composer({ providers, selection, runtimeMode, running, draft, on
                   value={effort}
                   options={found.model.effort.levels}
                   className="secondary"
-                  onPick={(level) => void change({ selection: selectEffort(localSelection, found.model, level) })}
+                  onPick={(level) => void changeSelection(selectEffort(localSelection, found.model, level))}
                 />
               </>
             )}
@@ -188,7 +195,7 @@ export function Composer({ providers, selection, runtimeMode, running, draft, on
               options={modes.map((mode) => ({ id: mode, ...RUNTIME_MODE_LABELS[mode] }))}
               disabled={!localMode}
               className="secondary"
-              onPick={(mode) => void change({ mode: mode as RuntimeMode })}
+              onPick={(mode) => void changeMode(mode as RuntimeMode)}
             />
           </div>
           <div className="composer-actions">
