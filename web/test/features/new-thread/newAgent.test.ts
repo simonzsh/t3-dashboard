@@ -40,3 +40,10 @@ test("the model preset is the project default when available, else the first mod
   assert.deepEqual(presetSelection(undefined, providers), { instanceId: "a", model: "a-1" });
   assert.equal(presetSelection(undefined, []), null);
 });
+
+test("presetSelection falls back on T3's default before the first model", () => {
+  const t3Default = { instanceId: "b", model: "b-2", options: [{ id: "effort", value: "medium" }] };
+  assert.deepEqual(presetSelection(undefined, providers, t3Default), t3Default);
+  assert.deepEqual(presetSelection(projects[0], providers, { instanceId: "a", model: "a-1" }), { instanceId: "b", model: "b-2" });
+  assert.deepEqual(presetSelection(undefined, providers, { instanceId: "gone", model: "x" }), { instanceId: "a", model: "a-1" });
+});

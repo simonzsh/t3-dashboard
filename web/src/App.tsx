@@ -1,3 +1,4 @@
+import type { ModelDefaults } from "../../shared/api.ts";
 import { useEffect, useState } from "react";
 import { AgentsView } from "./features/agents/AgentsView.tsx";
 import { BoardView } from "./features/board/BoardView.tsx";
@@ -20,6 +21,8 @@ import { useTheme } from "./features/settings/useTheme.ts";
 import { useUpdate } from "./features/update/useUpdate.ts";
 import { Button, Icon, IconButton, Kbd, Loader, Pressable } from "./ui/index.ts";
 import { updateLabel } from "./features/update/updateFlow.ts";
+
+const NO_DEFAULTS: ModelDefaults = { selection: null, runtimeMode: null };
 
 const TOAST_MS = 8000;
 // Same breakpoint as the one-line header in styles.css.
@@ -164,7 +167,7 @@ export function App() {
               automationsError={automations.error}
             />
           ) : <Loader />)}
-        {tab === "board" && <BoardView projects={state?.projects ?? []} providers={state?.providers ?? []} version={boardVersion} onAssigned={(id) => openOnDesk(id, false)} onShowDesk={() => setTab("desk")} />}
+        {tab === "board" && <BoardView projects={state?.projects ?? []} providers={state?.providers ?? []} modelDefaults={state?.modelDefaults ?? NO_DEFAULTS} version={boardVersion} onAssigned={(id) => openOnDesk(id, false)} onShowDesk={() => setTab("desk")} />}
         {tab === "desk" &&
           (state ? (
             <DeskView
@@ -199,6 +202,7 @@ export function App() {
         <NewThreadDialog
           projects={state.projects}
           providers={state.providers}
+          defaults={state.modelDefaults}
           onClose={() => setCreating(false)}
           onCreated={(id) => {
             setCreating(false);

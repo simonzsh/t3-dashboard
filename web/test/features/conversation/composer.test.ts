@@ -11,11 +11,11 @@ const providers: DashboardProvider[] = [
     displayName: "Claude",
     runtimeModes: ["approval-required", "full-access"],
     models: [
-      { slug: "opus", name: "Opus", effort: effort("effort", ["low", "medium", "high", "max"], "medium") },
-      { slug: "haiku", name: "Haiku", effort: null },
+      { slug: "opus", name: "Opus", effort: effort("effort", ["low", "medium", "high", "max"], "medium"), favorite: null },
+      { slug: "haiku", name: "Haiku", effort: null, favorite: null },
     ],
   },
-  { instanceId: "codex", displayName: "Codex", runtimeModes: ["full-access"], models: [{ slug: "gpt", name: "GPT", effort: effort("reasoningEffort", ["low", "high"], "high") }] },
+  { instanceId: "codex", displayName: "Codex", runtimeModes: ["full-access"], models: [{ slug: "gpt", name: "GPT", effort: effort("reasoningEffort", ["low", "high"], "high"), favorite: null }] },
 ];
 
 test("findModel locates the provider and model of a selection", () => {

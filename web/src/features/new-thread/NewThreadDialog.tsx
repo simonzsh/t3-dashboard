@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import type { DashboardProject, DashboardProvider, ImageAttachment, LinearIssue, ModelSelection, RuntimeMode, ThreadSettingsBody } from "../../../../shared/api.ts";
+import type { DashboardProject, DashboardProvider, ImageAttachment, LinearIssue, ModelDefaults, ModelSelection, RuntimeMode, ThreadSettingsBody } from "../../../../shared/api.ts";
 import { useApi } from "../../api/ApiContext.tsx";
 import { browserStorage } from "../../lib/storage.ts";
 import { loadAssignProject, saveAssignProject } from "../../lib/assignProject.ts";
@@ -12,26 +12,28 @@ import { Dialog, Icon } from "../../ui/index.ts";
 interface Props {
   projects: DashboardProject[];
   providers: DashboardProvider[];
+  /** T3 Code's default model and access. */
+  defaults: ModelDefaults;
   onClose: () => void;
   onCreated: (threadId: string) => void;
   /** Set when the agent is assigned to a Linear issue: the thread is named after it and links it. */
   issue?: LinearIssue;
 }
 
-// Same default as the server when no mode is sent.
+// Same default as the server when no mode is sent, used when T3 has none.
 const DEFAULT_MODE: RuntimeMode = "full-access";
 
-export function NewThreadDialog({ projects, providers, onClose, onCreated, issue }: Props) {
+export function NewThreadDialog({ projects, providers, defaults, onClose, onCreated, issue }: Props) {
   const api = useApi();
   // A Linear issue preselects the last project chosen for its team.
   const [projectId, setProjectId] = useState(() => (issue ? loadAssignProject(browserStorage(), issue.team.key, projects) : loadNewAgentProject(browserStorage(), projects)));
-  const [selection, setSelection] = useState<ModelSelection | null>(() => presetSelection(projects.find((p) => p.id === projectId), providers));
-  const [mode, setMode] = useState<RuntimeMode>(DEFAULT_MODE);
+  const [selection, setSelection] = useState<ModelSelection | null>(() => presetSelection(projects.find((p) => p.id === projectId), providers, defaults.selection));
+  const [mode, setMode] = useState<RuntimeMode>(defaults.runtimeMode ?? DEFAULT_MODE);
   const [draft, setDraft] = useState("");
 
   // Providers can arrive after the dialog opens: pick a preset once the choice is no longer valid.
   useEffect(() => {
-    if (!findModel(providers, selection)) setSelection(presetSelection(projects.find((p) => p.id === projectId), providers));
+    if (!findModel(providers, selection)) setSelection(presetSelection(projects.find((p) => p.id === projectId), providers, defaults.selection));
   }, [providers]);
 
   async function send(text: string, attachments: ImageAttachment[]): Promise<void> {
@@ -72,7 +74,7 @@ export function NewThreadDialog({ projects, providers, onClose, onCreated, issue
           allowNone
           onPick={(id) => {
             setProjectId(id);
-            setSelection(presetSelection(projects.find((p) => p.id === id), providers));
+            setSelection(presetSelection(projects.find((p) => p.id === id), providers, defaults.selection));
           }}
         />
       </div>

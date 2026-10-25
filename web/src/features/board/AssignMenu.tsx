@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { createPortal } from "react-dom";
-import type { DashboardProject, DashboardProvider, LinearIssue } from "../../../../shared/api.ts";
+import type { DashboardProject, DashboardProvider, LinearIssue, ModelDefaults } from "../../../../shared/api.ts";
 import { Button, Icon, IconButton } from "../../ui/index.ts";
 import { NewThreadDialog } from "../new-thread/NewThreadDialog.tsx";
 
@@ -8,12 +8,13 @@ interface Props {
   issue: LinearIssue;
   projects: DashboardProject[];
   providers: DashboardProvider[];
+  modelDefaults: ModelDefaults;
   onAssigned: (threadId: string) => void;
   onShowDesk: () => void;
 }
 
 // Opens the New Agent dialog on the issue; the portal keeps it clear of the board's scroll boxes.
-export function AssignMenu({ issue, projects, providers, onAssigned, onShowDesk }: Props) {
+export function AssignMenu({ issue, projects, providers, modelDefaults, onAssigned, onShowDesk }: Props) {
   const [open, setOpen] = useState(false);
   const [done, setDone] = useState(false);
 
@@ -39,6 +40,7 @@ export function AssignMenu({ issue, projects, providers, onAssigned, onShowDesk 
             issue={issue}
             projects={projects}
             providers={providers}
+            defaults={modelDefaults}
             onClose={() => setOpen(false)}
             onCreated={(threadId) => {
               setOpen(false);

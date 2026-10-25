@@ -1,5 +1,5 @@
 import type { ConnectionStatus } from "./connection.ts";
-import type { DashboardProject, DashboardProvider, DashboardThread } from "./threads.ts";
+import type { DashboardProject, DashboardProvider, DashboardThread, ModelDefaults } from "./threads.ts";
 
 // The server-sent events on /api/events.
 
@@ -7,6 +7,7 @@ export interface DashboardState {
   connection: ConnectionStatus;
   projects: DashboardProject[];
   providers: DashboardProvider[];
+  modelDefaults: ModelDefaults;
   threads: DashboardThread[];
   /** At least one t3-agent brain file exists. */
   automationsAvailable: boolean;
@@ -24,8 +25,9 @@ export type DashboardEvent =
   | { type: "threads"; data: Diff<DashboardThread> }
   | { type: "projects"; data: Diff<DashboardProject> }
   | { type: "providers"; data: DashboardProvider[] }
+  | { type: "modelDefaults"; data: ModelDefaults }
   | { type: "connection"; data: ConnectionStatus };
 
 // A record, not a list: a new event type without an entry here fails the type check.
-const EVENT_TYPES: Record<DashboardEvent["type"], true> = { state: true, threads: true, projects: true, providers: true, connection: true };
+const EVENT_TYPES: Record<DashboardEvent["type"], true> = { state: true, threads: true, projects: true, providers: true, modelDefaults: true, connection: true };
 export const DASHBOARD_EVENT_TYPES = Object.keys(EVENT_TYPES) as DashboardEvent["type"][];
