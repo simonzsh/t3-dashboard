@@ -61,7 +61,7 @@ export function AgentsView({ state, now, deskIds, onOpen, onToggleDesk, automati
         {groups.map((g) => (
           <section className="group" key={g.project.id}>
             <h2>
-              {g.project.title} <span className="count">{g.cards.length}</span>
+              {g.project.title} <span className="count">{g.cards.length + g.settled.length}</span>
             </h2>
             {g.cards.length > 0 && (
               <div className="grid">
