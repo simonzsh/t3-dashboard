@@ -167,6 +167,7 @@ export function App() {
               lastEvent={lastEvent}
               background={deskBackground}
               t3EnvironmentId={state.t3EnvironmentId}
+              providers={state.providers}
             />
           ) : <p className="empty">Loading…</p>)}
       </main>

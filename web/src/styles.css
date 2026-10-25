@@ -217,14 +217,48 @@ main { padding: 24px; display: flex; flex-direction: column; gap: 28px; }
 .subagent-time { color: var(--text-secondary); font-variant-numeric: tabular-nums; }
 .requests { display: flex; flex-direction: column; gap: 8px; }
 .request { border: 1px solid var(--line); border-left: 3px solid var(--warn); border-radius: 6px; padding: 10px; background: var(--surface-1); display: flex; flex-direction: column; gap: 8px; }
-.request .buttons, .composer .row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.request .buttons { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
 .question { display: flex; flex-direction: column; gap: 4px; border: 0; padding: 0; margin: 0; }
 .question label { display: flex; gap: 6px; align-items: baseline; }
 .question label small { color: var(--text-secondary); }
-.composer { padding: 10px; border-top: 1px solid var(--line); display: flex; flex-direction: column; gap: 8px; background: var(--surface-1); }
-.composer textarea { min-height: 52px; max-height: 40vh; resize: vertical; }
-.composer-actions { margin-left: auto; display: flex; flex-wrap: wrap; gap: 6px; }
-.composer-actions button { font-size: 12px; padding: 4px 10px; }
+/* Composer: one rounded card with the text and a toolbar, as in T3 Code. */
+.composer { padding: 6px 10px 10px; display: flex; flex-direction: column; gap: 6px; }
+.composer-card { display: flex; flex-direction: column; gap: 4px; padding: 10px 10px 6px 14px; border-radius: 18px; border: 1px solid var(--line); background: var(--surface-1); box-shadow: var(--shadow); transition: border-color 0.12s; }
+.composer-card:focus-within { border-color: color-mix(in srgb, var(--accent) 45%, var(--line)); }
+.composer-card textarea { width: 100%; box-sizing: border-box; min-height: 44px; max-height: 40vh; padding: 2px 0; border: 0; border-radius: 0; background: none; resize: none; outline: none; line-height: 1.5; }
+.composer-toolbar { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.composer-pickers { display: flex; align-items: center; gap: 2px; min-width: 0; flex: 1; }
+.composer-sep { flex: none; width: 1px; height: 16px; background: var(--line); margin: 0 4px; }
+.picker { position: relative; min-width: 0; }
+.picker-trigger { display: inline-flex; align-items: center; gap: 6px; max-width: 100%; padding: 4px 6px; border: 0; border-radius: 8px; background: none; color: var(--text-secondary); font-size: 13px; }
+.picker-trigger:hover:not(:disabled) { color: var(--text-primary); background: var(--surface-0); }
+.picker-trigger .provider-icon { width: 15px; height: 15px; margin: 0; flex: none; }
+.picker-value { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.picker-trigger .chevron-down { width: 13px; height: 13px; opacity: 0.8; }
+.picker-menu { position: absolute; bottom: calc(100% + 8px); left: 0; z-index: 6; min-width: 210px; max-height: 320px; overflow: auto; padding: 4px; border-radius: 12px; border: 1px solid var(--line); background: var(--surface-1); box-shadow: var(--shadow); }
+.picker-group { padding: 6px 8px 2px; font-size: 11px; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; color: var(--text-secondary); }
+.picker-entry button { display: flex; align-items: center; gap: 8px; width: 100%; padding: 6px 8px; border: 0; border-radius: 8px; background: none; text-align: left; font-size: 13px; }
+.picker-entry button:hover, .picker-entry button:focus-visible { background: var(--surface-0); outline: none; }
+.picker-entry .provider-icon { width: 15px; height: 15px; margin: 0; flex: none; }
+.picker-text { display: flex; flex-direction: column; flex: 1; min-width: 0; }
+.picker-text small { color: var(--text-secondary); font-size: 11px; }
+.picker-check { width: 14px; height: 14px; color: var(--accent); }
+.composer-actions { display: flex; align-items: center; gap: 6px; flex: none; margin-left: auto; }
+.composer-icon { display: grid; place-items: center; padding: 6px; border: 0; border-radius: 50%; background: none; color: var(--text-secondary); }
+.composer-icon:hover:not(:disabled) { color: var(--text-primary); background: var(--surface-0); }
+.composer-icon .icon { width: 18px; height: 18px; }
+.composer-round { display: grid; place-items: center; width: 32px; height: 32px; padding: 0; border-radius: 50%; }
+.composer-round .icon { width: 17px; height: 17px; }
+.composer-round.send { border-color: var(--accent); background: var(--accent); color: var(--on-accent); }
+.composer-round.send:disabled { opacity: 0.4; }
+.composer-round.stop { color: var(--text-primary); background: var(--surface-0); }
+.composer-files { list-style: none; margin: 0 0 4px; padding: 0; display: flex; flex-wrap: wrap; gap: 6px; }
+.file-chip { display: flex; align-items: center; gap: 6px; max-width: 220px; padding: 3px 4px 3px 3px; border-radius: 8px; border: 1px solid var(--line); background: var(--surface-0); font-size: 12px; }
+.file-chip img { width: 26px; height: 26px; border-radius: 5px; object-fit: cover; flex: none; }
+.file-chip span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.file-chip button { display: grid; place-items: center; padding: 2px; border: 0; background: none; color: var(--text-secondary); border-radius: 4px; }
+.file-chip button:hover { color: var(--text-primary); }
+.file-chip .icon { width: 13px; height: 13px; }
 .error { color: var(--danger); }
 .dialog-backdrop { position: fixed; inset: 0; background: var(--backdrop); display: grid; place-items: center; z-index: 20; }
 .dialog { width: min(480px, 94vw); background: var(--surface-1); border: 1px solid var(--line); border-radius: 14px; padding: 20px; box-shadow: var(--shadow); display: flex; flex-direction: column; gap: 10px; }

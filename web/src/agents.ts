@@ -16,7 +16,9 @@ const WORKING = new Set(["preparing", "queued", "starting", "running", "waiting"
 const FINISHED = new Set(["completed", "interrupted", "failed", "cancelled", "rolled_back"]);
 const FINISHED_WINDOW_MS = 24 * 60 * 60 * 1000;
 const RANK: Record<AgentStatus, number> = { waiting: 0, working: 1, finished: 2 };
-const isWorking = (t: DashboardThread) => WORKING.has(t.status) || t.backgroundWork;
+/** A run is in progress: it can be stopped or steered (background subagents alone cannot). */
+export const runActive = (t: DashboardThread) => WORKING.has(t.status) || t.activeRunId !== null;
+const isWorking = (t: DashboardThread) => runActive(t) || t.backgroundWork;
 
 // Returns null for threads the Agents tab hides (idle or finished long ago).
 export function agentStatus(t: DashboardThread, now: Date): AgentStatus | null {

@@ -1,7 +1,9 @@
 import { memo, useEffect, useRef, useState } from "react";
-import type { ChatMessage, DashboardEvent, DashboardThread, ThreadDetail } from "../../../shared/api.ts";
+import type { ChatMessage, DashboardEvent, DashboardProvider, DashboardThread, ImageAttachment, ThreadDetail, ThreadSettingsBody } from "../../../shared/api.ts";
+import { runActive } from "../agents.ts";
 import { api } from "../api.ts";
 import { renderMarkdown } from "../markdown.tsx";
+import { Composer } from "./Composer.tsx";
 import { PendingRequestView } from "./PendingRequestView.tsx";
 import { SubagentStrip } from "./SubagentStrip.tsx";
 import { useAction } from "./useAction.ts";
@@ -36,18 +38,16 @@ interface Props {
   threadId: string;
   thread: DashboardThread | null;
   lastEvent: DashboardEvent | null;
-  onClose: () => void;
+  providers: DashboardProvider[];
 }
 
-export function ConversationPanel({ threadId, thread, lastEvent, onClose }: Props) {
+export function ConversationPanel({ threadId, thread, lastEvent, providers }: Props) {
   const [detail, setDetail] = useState<ThreadDetail | null>(() => detailCache.get(threadId) ?? null);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [text, setText] = useState(() => drafts.get(threadId) ?? "");
-  const [mode, setMode] = useState<"queue" | "steer">("queue");
   const scroller = useRef<HTMLDivElement>(null);
   const stick = useRef(true);
-  const send = useAction();
-  const control = useAction();
+  const action = useAction();
 
   // Bumped on every thread change and cleanup: a late response from an older effect is dropped.
   const epoch = useRef(0);
@@ -85,10 +85,10 @@ export function ConversationPanel({ threadId, thread, lastEvent, onClose }: Prop
   }, [lastEvent]);
 
   const t = thread ?? detail?.thread ?? null;
-  const running = t?.bucket === "running" || Boolean(t?.activeRunId);
+  const running = t !== null && runActive(t);
 
-  // Poll only while the thread itself is active: a stale subagent must not keep it going.
-  const subagentRunning = running && (detail?.subagents.some((s) => s.status === "running") ?? false);
+  // Poll only while the thread itself is busy: a stale subagent must not keep it going.
+  const subagentRunning = (running || Boolean(t?.backgroundWork)) && (detail?.subagents.some((s) => s.status === "running") ?? false);
   useEffect(() => {
     if (!subagentRunning) return;
     const id = setInterval(() => void load(), SUBAGENT_POLL_MS);
@@ -106,14 +106,20 @@ export function ConversationPanel({ threadId, thread, lastEvent, onClose }: Prop
     drafts.set(threadId, value);
   }
 
-  async function submit() {
-    const body = text.trim();
-    if (!body) return;
-    const ok = await send.run(() => api.sendMessage(threadId, running ? { text: body, mode } : { text: body }));
+  // While a run is active the message steers it instead of waiting in the queue.
+  async function send(body: string, attachments: ImageAttachment[]): Promise<boolean> {
+    const ok = await action.run(() => api.sendMessage(threadId, { text: body, ...(running && { mode: "steer" as const }), ...(attachments.length && { attachments }) }));
     if (ok) {
       stick.current = true;
       setDraft("");
     }
+    return ok;
+  }
+
+  async function updateSettings(change: ThreadSettingsBody): Promise<boolean> {
+    const ok = await action.run(() => api.updateSettings(threadId, change));
+    if (ok) void load();
+    return ok;
   }
 
   return (
@@ -141,52 +147,18 @@ export function ConversationPanel({ threadId, thread, lastEvent, onClose }: Prop
         )}
       </div>
       {detail && <SubagentStrip key={threadId} subagents={detail.subagents} />}
-      <form
-        className="composer"
-        onSubmit={(e) => {
-          e.preventDefault();
-          void submit();
-        }}
-      >
-        <textarea
-          value={text}
-          onChange={(e) => setDraft(e.target.value)}
-          placeholder="Send a message to the agent…"
-          aria-label="Message"
-        />
-        <div className="row">
-          {running && (
-            <select aria-label="Send mode" value={mode} onChange={(e) => setMode(e.target.value as "queue" | "steer")}>
-              <option value="queue">Queue</option>
-              <option value="steer">Steer the run</option>
-            </select>
-          )}
-          <button className="primary" type="submit" disabled={send.busy || !text.trim()}>
-            Send
-          </button>
-          {send.error && <span className="error">{send.error}</span>}
-          <span className="composer-actions">
-            {running && (
-              <button type="button" className="danger" disabled={control.busy} onClick={() => void control.run(() => api.interrupt(threadId))}>
-                Interrupt
-              </button>
-            )}
-            <button type="button" disabled={control.busy} onClick={() => void control.run(() => (t?.pinned ? api.unpin(threadId) : api.pin(threadId)))}>
-              {t?.pinned ? "Unpin" : "Pin"}
-            </button>
-            <button
-              type="button"
-              disabled={control.busy}
-              onClick={async () => {
-                if (await control.run(() => api.archive(threadId))) onClose();
-              }}
-            >
-              Archive
-            </button>
-          </span>
-        </div>
-        {control.error && <span className="error">{control.error}</span>}
-      </form>
+      <Composer
+        providers={providers}
+        selection={detail?.modelSelection ?? null}
+        runtimeMode={detail?.runtimeMode ?? null}
+        running={running}
+        draft={text}
+        onDraft={setDraft}
+        onSend={send}
+        onStop={() => action.run(() => api.interrupt(threadId))}
+        onSettings={updateSettings}
+        error={action.error}
+      />
     </div>
   );
 }

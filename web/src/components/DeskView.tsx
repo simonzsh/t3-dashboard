@@ -1,6 +1,6 @@
 import { useEffect, useRef, type Dispatch, type MouseEvent, type ReactNode } from "react";
 import { Cell, Grid, Gridline, useGridRef, type GridLayout } from "react-resizable-panels";
-import type { DashboardEvent, DashboardProject, DashboardThread } from "../../../shared/api.ts";
+import type { DashboardEvent, DashboardProject, DashboardProvider, DashboardThread } from "../../../shared/api.ts";
 import { threadState } from "../agents.ts";
 import type { DeskBackground } from "../deskBackground.ts";
 import { cellOf, deskLayout, equalSizes, gridWindows, sizesFor, type DeskAction, type DeskState, type DeskWindow as Win } from "../desk.ts";
@@ -16,6 +16,7 @@ interface Props {
   lastEvent: DashboardEvent | null;
   background: DeskBackground;
   t3EnvironmentId: string | null;
+  providers: DashboardProvider[];
 }
 
 const MIN_COLUMN_PX = 220;
@@ -68,7 +69,7 @@ function DeskGrid({ windows, desk, dispatch, render }: { windows: Win[]; desk: D
   );
 }
 
-export function DeskView({ desk, dispatch, threads, projects, lastEvent, background, t3EnvironmentId }: Props) {
+export function DeskView({ desk, dispatch, threads, projects, lastEvent, background, t3EnvironmentId, providers }: Props) {
   const narrow = useMediaQuery("(max-width: 899px)");
   const byId = new Map(threads.map((t) => [t.id, t]));
   const projectTitles = new Map(projects.map((p) => [p.id, p.title]));
@@ -105,6 +106,7 @@ export function DeskView({ desk, dispatch, threads, projects, lastEvent, backgro
         compact={compact}
         lastEvent={lastEvent}
         t3EnvironmentId={t3EnvironmentId}
+        providers={providers}
         onFocus={() => dispatch({ type: "focus", id: w.id })}
         onClose={() => dispatch({ type: "close", id: w.id })}
         onMinimize={() => dispatch({ type: "minimize", id: w.id })}

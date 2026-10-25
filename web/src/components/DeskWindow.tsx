@@ -1,4 +1,4 @@
-import type { DashboardEvent, DashboardThread } from "../../../shared/api.ts";
+import type { DashboardEvent, DashboardProvider, DashboardThread } from "../../../shared/api.ts";
 import { threadState, type ThreadState } from "../agents.ts";
 import { ConversationPanel } from "./ConversationPanel.tsx";
 import { OpenInT3 } from "./OpenInT3.tsx";
@@ -17,6 +17,7 @@ interface Props {
   compact: boolean;
   lastEvent: DashboardEvent | null;
   t3EnvironmentId: string | null;
+  providers: DashboardProvider[];
   onFocus: () => void;
   onClose: () => void;
   onMinimize: () => void;
@@ -29,7 +30,7 @@ const Icon = ({ d }: { d: string }) => (
   </svg>
 );
 
-export function DeskWindow({ id, thread, projectTitle, missing, focused, maximized, compact, lastEvent, t3EnvironmentId, onFocus, onClose, onMinimize, onToggleMaximize }: Props) {
+export function DeskWindow({ id, thread, projectTitle, missing, focused, maximized, compact, lastEvent, t3EnvironmentId, providers, onFocus, onClose, onMinimize, onToggleMaximize }: Props) {
   const state = thread ? threadState(thread) : null;
   const title = thread?.title || "(untitled)";
   return (
@@ -74,7 +75,7 @@ export function DeskWindow({ id, thread, projectTitle, missing, focused, maximiz
           <button onClick={onClose}>Close</button>
         </div>
       ) : (
-        <ConversationPanel threadId={id} thread={thread} lastEvent={lastEvent} onClose={onClose} />
+        <ConversationPanel threadId={id} thread={thread} lastEvent={lastEvent} providers={providers} />
       )}
     </section>
   );
