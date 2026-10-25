@@ -187,6 +187,9 @@ export interface CreateThreadBody {
   title: string;
   text: string;
   modelSelection: ModelSelection;
+  /** Defaults to full access. */
+  runtimeMode?: RuntimeMode;
+  attachments?: ImageAttachment[];
 }
 
 export interface ImageAttachment {

@@ -11,8 +11,13 @@ const PROVENANCE = { createdBy: "user", creationSource: "server" };
 export const RUNTIME_MODES: RuntimeMode[] = ["approval-required", "auto-accept-edits", "auto", "full-access"];
 export const isRuntimeMode = (value: unknown): value is RuntimeMode => RUNTIME_MODES.includes(value as RuntimeMode);
 
-export function createThreadCommands(body: CreateThreadBody, newId: NewId = randomUUID): { threadId: string; commands: Command[] } {
-  const threadId = newId();
+// Images are persisted before the thread exists, so their caller picks the thread id.
+export function createThreadCommands(
+  body: Omit<CreateThreadBody, "attachments">,
+  newId: NewId = randomUUID,
+  start?: { threadId: string; upload: MessageAttachments },
+): { threadId: string; commands: Command[] } {
+  const threadId = start?.threadId ?? newId();
   const create: Command = {
     type: "thread.create",
     commandId: newId(),
@@ -20,14 +25,14 @@ export function createThreadCommands(body: CreateThreadBody, newId: NewId = rand
     projectId: body.projectId,
     title: body.title,
     modelSelection: body.modelSelection,
-    runtimeMode: "full-access",
+    runtimeMode: body.runtimeMode ?? "full-access",
     interactionMode: "default",
     branch: null,
     worktreePath: null,
     ...PROVENANCE,
   };
   const dispatch: Command = {
-    ...messageCommand(threadId, body.text, { type: "start_immediately" }, newId),
+    ...messageCommand(threadId, body.text, { type: "start_immediately" }, newId, start?.upload),
     modelSelection: body.modelSelection,
   };
   return { threadId, commands: [create, dispatch] };
