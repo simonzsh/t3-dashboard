@@ -9,6 +9,7 @@ import { DESK_LIMIT, gridWindows, isFull } from "./desk.ts";
 import { useAutomations } from "./useAutomations.ts";
 import { useDashboard } from "./useDashboard.ts";
 import { useDesk } from "./useDesk.ts";
+import { useDeskBackground } from "./useDeskBackground.ts";
 import { useShortcuts } from "./useShortcuts.ts";
 import { useTheme } from "./useTheme.ts";
 
@@ -40,6 +41,7 @@ export function App() {
   const [creating, setCreating] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [theme, setTheme] = useTheme();
+  const [deskBackground, setDeskBackground] = useDeskBackground();
   const [now, setNow] = useState(() => new Date());
 
   // Relative times and the 24 h window need a clock that moves.
@@ -146,7 +148,14 @@ export function App() {
         {tab === "board" && <BoardView onAssigned={(id) => openOnDesk(id, false)} onShowDesk={() => setTab("desk")} />}
         {tab === "desk" &&
           (state ? (
-            <DeskView desk={desk} dispatch={dispatchDesk} threads={state.threads} projects={state.projects} lastEvent={lastEvent} />
+            <DeskView
+              desk={desk}
+              dispatch={dispatchDesk}
+              threads={state.threads}
+              projects={state.projects}
+              lastEvent={lastEvent}
+              background={deskBackground}
+            />
           ) : <p className="empty">Loading…</p>)}
       </main>
       {toast && (
@@ -178,7 +187,15 @@ export function App() {
           }}
         />
       )}
-      {settingsOpen && <SettingsDialog theme={theme} onThemeChange={setTheme} onClose={() => setSettingsOpen(false)} />}
+      {settingsOpen && (
+        <SettingsDialog
+          theme={theme}
+          onThemeChange={setTheme}
+          background={deskBackground}
+          onBackgroundChange={setDeskBackground}
+          onClose={() => setSettingsOpen(false)}
+        />
+      )}
     </div>
   );
 }

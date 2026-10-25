@@ -2,6 +2,7 @@ import { useEffect, useRef, type Dispatch, type MouseEvent, type ReactNode } fro
 import { Cell, Grid, Gridline, useGridRef, type GridLayout } from "react-resizable-panels";
 import type { DashboardEvent, DashboardProject, DashboardThread } from "../../../shared/api.ts";
 import { threadState } from "../agents.ts";
+import type { DeskBackground } from "../deskBackground.ts";
 import { cellOf, deskLayout, equalSizes, gridWindows, sizesFor, type DeskAction, type DeskState, type DeskWindow as Win } from "../desk.ts";
 import { useMediaQuery } from "../useMediaQuery.ts";
 import { DeskWindow } from "./DeskWindow.tsx";
@@ -13,6 +14,7 @@ interface Props {
   threads: DashboardThread[];
   projects: DashboardProject[];
   lastEvent: DashboardEvent | null;
+  background: DeskBackground;
 }
 
 const MIN_COLUMN_PX = 220;
@@ -63,16 +65,19 @@ function DeskGrid({ windows, desk, dispatch, render }: { windows: Win[]; desk: D
   );
 }
 
-export function DeskView({ desk, dispatch, threads, projects, lastEvent }: Props) {
+export function DeskView({ desk, dispatch, threads, projects, lastEvent, background }: Props) {
   const narrow = useMediaQuery("(max-width: 899px)");
   const byId = new Map(threads.map((t) => [t.id, t]));
   const projectTitles = new Map(projects.map((p) => [p.id, p.title]));
   const seen = useRef(new Set<string>());
   for (const w of desk.windows) if (byId.has(w.id)) seen.current.add(w.id);
 
+  const bgClass = background.kind === "preset" ? ` desk-bg-${background.id} has-bg` : background.kind === "image" ? " has-bg" : "";
+  const bgStyle = background.kind === "image" ? { backgroundImage: `url("${background.dataUrl}")` } : undefined;
+
   if (desk.windows.length === 0) {
     return (
-      <div className="desk">
+      <div className={`desk${bgClass}`} style={bgStyle}>
         <div className="empty-state desk-empty">
           <strong>Your Desk is empty</strong>
           <span>Click an agent card to open it here, or use its + button to add it without leaving the list.</span>
@@ -118,7 +123,7 @@ export function DeskView({ desk, dispatch, threads, projects, lastEvent }: Props
   if (narrow) {
     const active = desk.windows.find((w) => w.id === desk.focusedId) ?? desk.windows[0]!;
     return (
-      <div className="desk compact">
+      <div className={`desk compact${bgClass}`} style={bgStyle}>
         <nav className="desk-tabs" aria-label="Desk windows">
           {desk.windows.map((w) => chip(w, w.id === active.id))}
         </nav>
@@ -130,7 +135,7 @@ export function DeskView({ desk, dispatch, threads, projects, lastEvent }: Props
   const visible = gridWindows(desk);
   const minimized = desk.windows.filter((w) => w.minimized);
   return (
-    <div className="desk">
+    <div className={`desk${bgClass}`} style={bgStyle}>
       <div className="desk-area">
         {visible.length > 0 ? (
           <DeskGrid windows={visible} desk={desk} dispatch={dispatch} render={(w) => renderWindow(w)} />
