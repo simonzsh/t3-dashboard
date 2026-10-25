@@ -374,15 +374,17 @@ button.auto-row:hover { background: var(--surface-0); }
 .desk-window.state-running .desk-window-head::after { content: ""; position: absolute; left: 0; right: 0; bottom: -1px; height: 3px; background: linear-gradient(90deg, transparent, var(--work), transparent); background-size: 50% 100%; background-repeat: no-repeat; animation: shimmer 1.8s ease-in-out infinite; }
 .desk-window.state-error .desk-window-head { background: color-mix(in srgb, var(--err-bg) 45%, var(--surface-1)); border-bottom-color: var(--danger); box-shadow: inset 0 -2px 0 var(--danger); }
 .desk-window.state-done .desk-window-head { background: color-mix(in srgb, var(--done-bg) 35%, var(--surface-1)); }
-/* Focus: the focused header takes a deep tint (its state colour, or the accent); the others turn grey. Placed after the state rules on purpose. */
-.desk-window.focused .desk-window-head { background: color-mix(in srgb, var(--accent) 26%, var(--surface-1)); border-bottom-color: color-mix(in srgb, var(--accent) 50%, var(--line)); }
-.desk-window.focused.state-running .desk-window-head { background: color-mix(in srgb, var(--work) 30%, var(--surface-1)); }
-.desk-window.focused.state-waiting .desk-window-head { background: color-mix(in srgb, var(--warn) 32%, var(--surface-1)); }
-.desk-window.focused.state-error .desk-window-head { background: color-mix(in srgb, var(--danger) 26%, var(--surface-1)); }
+/* The header takes the badge colour of its state; the focused window gets a deeper shade of it. Placed after the state rules on purpose. */
+.desk-window.state-running .desk-window-head { background: color-mix(in srgb, var(--work-bg) 55%, var(--surface-1)); }
+.desk-window.state-waiting .desk-window-head { background: color-mix(in srgb, var(--warn-bg) 55%, var(--surface-1)); }
+.desk-window.state-error .desk-window-head { background: color-mix(in srgb, var(--err-bg) 55%, var(--surface-1)); }
+.desk-window.state-done .desk-window-head { background: color-mix(in srgb, var(--done-bg) 55%, var(--surface-1)); }
+.desk-window.focused .desk-window-head { background: color-mix(in srgb, var(--text-secondary) 12%, var(--surface-1)); }
+.desk-window.focused.state-running .desk-window-head { background: color-mix(in srgb, var(--work-text) 16%, var(--work-bg)); }
+.desk-window.focused.state-waiting .desk-window-head { background: color-mix(in srgb, var(--warn-text) 16%, var(--warn-bg)); }
+.desk-window.focused.state-error .desk-window-head { background: color-mix(in srgb, var(--err-text) 16%, var(--err-bg)); }
+.desk-window.focused.state-done .desk-window-head { background: color-mix(in srgb, var(--done-text) 16%, var(--done-bg)); }
 .desk-window.focused .dw-title { color: var(--text-primary); font-weight: 600; }
-.desk-window:not(.focused) .desk-window-head { background: color-mix(in srgb, var(--line) 45%, var(--surface-0)); }
-.desk-window:not(.focused) .desk-window-head > * { opacity: 0.4; filter: grayscale(1); transition: opacity 0.12s, filter 0.12s; }
-.desk-window:not(.focused):hover .desk-window-head > * { opacity: 0.7; filter: none; }
 .desk-window-head .provider-icon { width: 16px; height: 16px; margin: 0; }
 .dw-title { min-width: 0; flex: 0 1 auto; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 600; }
 .dw-project { flex: 0 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--text-secondary); font-size: 12px; }
