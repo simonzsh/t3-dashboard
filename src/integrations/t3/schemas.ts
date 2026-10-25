@@ -80,6 +80,7 @@ export const RawMessage = s.object({
   text: s.optional(s.string()),
   streaming: s.optional(s.boolean()),
   createdAt: s.optional(s.string()),
+  attachments: s.optional(s.nullable(s.array(s.object({ type: s.string(), id: s.string(), name: text() })))),
 });
 
 export const RawRuntimeRequest = s.object({
@@ -121,6 +122,8 @@ export const RawTurnItem = s.object({
   fileName: text(),
   exitCode: s.optional(s.nullable(s.number())),
   outputIndicatesFailure: s.optional(s.nullable(s.boolean())),
+  startedAt: text(),
+  output: s.optional(s.unknown()),
 });
 export type RawTurnItem = Infer<typeof RawTurnItem>;
 
@@ -194,6 +197,10 @@ export type AttachmentRef = Infer<typeof AttachmentRef>;
 
 export const PersistedAttachments = s.object({ attachments: s.optional(s.array(AttachmentRef)) });
 
+/** What assets.createUrl can sign: a stored attachment, or a local file a thread shows. */
+export type AssetResource = { _tag: "attachment"; attachmentId: string } | { _tag: "media-file"; threadId: string; path: string };
+export const AssetUrl = s.object({ relativeUrl: s.string() });
+
 export interface ImageUpload {
   type: "image";
   name: string;
@@ -209,5 +216,7 @@ export interface T3Port {
   dispatch(command: Command): Promise<unknown>;
   getConfig(): Promise<RawConfig>;
   persistAttachments(threadId: string, messageId: string, images: ImageUpload[]): Promise<AttachmentRef[]>;
+  /** Fetches an asset through a short-lived signed URL; the file name ends the URL. */
+  fetchAsset(resource: AssetResource): Promise<{ response: Response; fileName: string }>;
   subscribeShell(onItems: (items: ShellItem[]) => void, onEnd: (error?: Error) => void): { cancel(): void };
 }

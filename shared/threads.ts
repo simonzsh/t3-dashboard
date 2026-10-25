@@ -56,12 +56,28 @@ export interface DashboardProvider {
   runtimeModes: RuntimeMode[];
 }
 
+/** An image the user sent with a message; GET /api/threads/:id/attachments/:attachmentId serves it. */
+export interface ChatAttachment {
+  id: string;
+  name: string;
+}
+
 export interface ChatMessage {
   id: string;
   role: "user" | "assistant" | "system";
   text: string;
   createdAt: string;
   streaming: boolean;
+  attachments: ChatAttachment[];
+}
+
+/** A page the agent showed with html_render; the same route serves it, sandboxed. */
+export interface HtmlRender {
+  id: string;
+  attachmentId: string;
+  title: string;
+  height: number;
+  createdAt: string;
 }
 
 export interface UserInputOption {
@@ -118,6 +134,7 @@ export interface ThreadDetail {
   threadId: string;
   thread: DashboardThread | null;
   messages: ChatMessage[];
+  renders: HtmlRender[];
   pendingRequests: PendingRequestDetail[];
   subagents: SubagentInfo[];
   /** The thread's current model, effort and access, as the composer shows them. */

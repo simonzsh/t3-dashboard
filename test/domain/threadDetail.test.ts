@@ -15,8 +15,8 @@ const projection: RawProjection = {
 test("keeps visible messages in their original order and defaults streaming to false", () => {
   const detail = toThreadDetail("thread-1", projection, undefined);
   assert.deepEqual(detail.messages, [
-    { id: "m1", role: "user", text: "Hello", createdAt: "2026-03-01T10:00:00Z", streaming: false },
-    { id: "m2", role: "assistant", text: "Hi there", createdAt: "2026-03-01T10:00:02Z", streaming: true },
+    { id: "m1", role: "user", text: "Hello", createdAt: "2026-03-01T10:00:00Z", streaming: false, attachments: [] },
+    { id: "m2", role: "assistant", text: "Hi there", createdAt: "2026-03-01T10:00:02Z", streaming: true, attachments: [] },
   ]);
   assert.equal(detail.threadId, "thread-1");
   assert.equal(detail.thread, null);
@@ -329,4 +329,24 @@ test("activity: keeps only the latest items of a long run", () => {
   const items = toThreadDetail("t", { ...activityRun, turnItems }, undefined).activity!.items;
   assert.equal(items.length, 200);
   assert.deepEqual([items[0]!.id, items.at(-1)!.id], ["c50", "c249"]);
+});
+
+test("keeps the images a message carries", () => {
+  const detail = toThreadDetail("t", {
+    messages: [{ id: "m1", role: "user", text: "", attachments: [{ type: "image", id: "t-a", name: "shot.png" }, { type: "file", id: "t-b", name: "notes.txt" }] }],
+    visibleTurnItems: [{ item: { type: "message", messageId: "m1" } }],
+  }, undefined);
+  assert.deepEqual(detail.messages[0]?.attachments, [{ id: "t-a", name: "shot.png" }]);
+});
+
+test("lists html_render pages once, oldest first", () => {
+  const render = (id: string, at: string) => ({ id, type: "dynamic_tool", completedAt: at, output: { htmlRender: { attachmentId: `t-${id}-html`, title: id, height: 320 } } });
+  const detail = toThreadDetail("t", {
+    turnItems: [render("b", "2026-03-01T10:00:05Z"), render("a", "2026-03-01T10:00:01Z"), { id: "x", type: "dynamic_tool", output: { text: "no page" } }],
+    visibleTurnItems: [{ item: render("b", "2026-03-01T10:00:05Z") }],
+  }, undefined);
+  assert.deepEqual(detail.renders, [
+    { id: "a", attachmentId: "t-a-html", title: "a", height: 320, createdAt: "2026-03-01T10:00:01Z" },
+    { id: "b", attachmentId: "t-b-html", title: "b", height: 320, createdAt: "2026-03-01T10:00:05Z" },
+  ]);
 });

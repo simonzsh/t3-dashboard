@@ -54,3 +54,10 @@ test("a fenced code block inside a list item renders as code", () => {
   assert.ok(out.includes('<pre><code class="language-sh">ls &lt;dir&gt;'), out);
   assert.ok(!out.includes("```"), out);
 });
+
+test("a local image shows through the caller's URL; others stay links", () => {
+  const withMedia = (text: string) => renderToStaticMarkup(renderMarkdown(text, { localImage: (path) => `/media?path=${encodeURIComponent(path)}` }));
+  assert.equal(withMedia("![shot](/tmp/a.png)"), '<p><img class="md-image" src="/media?path=%2Ftmp%2Fa.png" alt="shot" loading="lazy"/></p>');
+  assert.equal(withMedia("![logo](https://example.com/a.png)"), '<p><a href="https://example.com/a.png" target="_blank" rel="noreferrer">logo</a></p>');
+  assert.equal(html("![shot](/tmp/a.png)"), "<p>shot</p>");
+});

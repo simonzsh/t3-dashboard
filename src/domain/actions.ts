@@ -1,3 +1,4 @@
+import { marked } from "marked";
 import type { AssignIssueBody, CreateThreadBody, LinearIssue, ModelSelection, RespondBody, SendMessageBody, ThreadDetail, ThreadSettingsBody } from "../../shared/api.ts";
 import { ACTIVE_STATUSES, RUNNING_RUN_STATUSES } from "../../shared/status.ts";
 import { IntegrationError } from "../integrations/errors.ts";
@@ -14,7 +15,7 @@ import {
   type OutgoingMessage,
   type UnsentCommand,
 } from "../integrations/t3/commands.ts";
-import type { ImageUpload, T3Port } from "../integrations/t3/schemas.ts";
+import type { AssetResource, ImageUpload, T3Port } from "../integrations/t3/schemas.ts";
 import { DomainError } from "./errors.ts";
 import type { LinearBoard } from "./linearBoard.ts";
 import { toProviders } from "./providers.ts";
@@ -44,6 +45,23 @@ export interface Actions {
   respond(threadId: string, requestId: string, answer: RespondBody): Promise<void>;
   dismiss(threadId: string, requestId: string): Promise<void>;
   assign(body: AssignIssueBody): Promise<string>;
+  /** An image or page of the thread, fetched from T3. */
+  asset(threadId: string, request: AssetRequest): Promise<{ response: Response; html: boolean }>;
+}
+
+export type AssetRequest = { attachmentId: string } | { path: string };
+
+const IMAGE_FILE = /\.(png|jpe?g|gif|webp|avif)$/i;
+const ATTACHMENT_ID = /^[\w-]+$/;
+
+// Same lexer as the web view: only a real `![alt](path)` counts, not any text in parentheses.
+function citesImage(text: string | undefined, path: string): boolean {
+  if (!text) return false;
+  let found = false;
+  marked.walkTokens(marked.lexer(text, { gfm: true }), (token) => {
+    if (token.type === "image" && token.href === path) found = true;
+  });
+  return found;
 }
 
 export function createActions(options: ActionsOptions): Actions {
@@ -101,6 +119,23 @@ export function createActions(options: ActionsOptions): Actions {
   return {
     async threadDetail(threadId) {
       return toThreadDetail(threadId, await t3(port.threadProjection(threadId)), store.thread(threadId), store.backgroundTasks(threadId));
+    },
+
+    // T3 signs any readable file: only serve images the thread itself shows.
+    async asset(threadId, request) {
+      let resource: AssetResource;
+      if ("attachmentId" in request) {
+        if (!ATTACHMENT_ID.test(request.attachmentId) || !request.attachmentId.startsWith(`${threadId}-`)) throw new DomainError("not-found", "No such attachment in this thread");
+        resource = { _tag: "attachment", attachmentId: request.attachmentId };
+      } else {
+        const { path } = request;
+        if (!path.startsWith("/") || !IMAGE_FILE.test(path) || path.includes("/../") || /[\0-\x1f]/.test(path)) throw new DomainError("invalid", "Only images can be shown");
+        const projection = await t3(port.threadProjection(threadId));
+        if (!(projection.messages ?? []).some((message) => message.role === "assistant" && citesImage(message.text, path))) throw new DomainError("not-found", "This thread does not show that image");
+        resource = { _tag: "media-file", threadId, path };
+      }
+      const { response, fileName } = await t3(port.fetchAsset(resource));
+      return { response, html: resource._tag === "attachment" && fileName.endsWith(".html") };
     },
 
     async createThread(create, images) {

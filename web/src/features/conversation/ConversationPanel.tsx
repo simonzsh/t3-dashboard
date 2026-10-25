@@ -1,8 +1,9 @@
 import { memo, useEffect, useRef, useState } from "react";
-import type { ChatMessage, DashboardProvider, DashboardThread, ImageAttachment, ThreadDetail, ThreadSettingsBody } from "../../../../shared/api.ts";
+import type { ChatMessage, DashboardProvider, HtmlRender, DashboardThread, ImageAttachment, ThreadDetail, ThreadSettingsBody } from "../../../../shared/api.ts";
 import { runActive } from "../../../../shared/status.ts";
 import { useApi } from "../../api/ApiContext.tsx";
 import { Icon, IconButton, Loader } from "../../ui/index.ts";
+import { attachmentUrl, mediaUrl } from "../../api/client.ts";
 import { renderMarkdown } from "../../lib/markdown.tsx";
 import { type PendingMessage, countSame, isSettled, pendingLabel } from "./pending.ts";
 import { Composer } from "./Composer.tsx";
@@ -20,21 +21,51 @@ const drafts = new Map<string, string>();
 const NEAR_BOTTOM_PX = 40;
 
 // Streaming re-renders the whole list: parse a message again only when its text changes.
-const MarkdownText = memo(function MarkdownText({ text }: { text: string }) {
-  return renderMarkdown(text);
+const MarkdownText = memo(function MarkdownText({ text, threadId }: { text: string; threadId: string }) {
+  return renderMarkdown(text, { localImage: (path) => mediaUrl(threadId, path) });
 });
 
-function Message({ message: m }: { message: ChatMessage }) {
+function Message({ message: m, threadId }: { message: ChatMessage; threadId: string }) {
   const time = new Date(m.createdAt).toLocaleString("en-US", { dateStyle: "medium", timeStyle: "short" });
   return (
     <div className={`msg ${m.role}`}>
-      {m.role === "user" ? <div className="bubble">{m.text}</div> : <div className="md">{m.role === "assistant" ? <MarkdownText text={m.text} /> : m.text}</div>}
+      {m.attachments.length > 0 && (
+        <div className="msg-images">
+          {m.attachments.map((file) => (
+            <a key={file.id} href={attachmentUrl(threadId, file.id)} target="_blank" rel="noreferrer">
+              <img src={attachmentUrl(threadId, file.id)} alt={file.name} loading="lazy" />
+            </a>
+          ))}
+        </div>
+      )}
+      {m.role === "user" ? m.text && <div className="bubble">{m.text}</div> : <div className="md">{m.role === "assistant" ? <MarkdownText text={m.text} threadId={threadId} /> : m.text}</div>}
       <small>
         {ROLE_LABELS[m.role] ?? m.role} · {time}
         {m.streaming && <span className="streaming" role="img" aria-label="Running" />}
       </small>
     </div>
   );
+}
+
+// Sandboxed without same-origin: the page's scripts run but cannot reach the dashboard API.
+function RenderFrame({ render, threadId }: { render: HtmlRender; threadId: string }) {
+  const theme = document.documentElement.getAttribute("data-theme") ?? "light";
+  return (
+    <div className="msg assistant render">
+      <iframe title={render.title || "Page"} src={attachmentUrl(threadId, render.attachmentId, theme)} sandbox="allow-scripts allow-popups" loading="lazy" style={{ height: render.height }} />
+    </div>
+  );
+}
+
+type Entry = { kind: "message"; at: string; message: ChatMessage } | { kind: "render"; at: string; render: HtmlRender };
+
+// Pages sit between messages by time; a stable sort keeps the message order T3 gave.
+function timeline(detail: ThreadDetail): Entry[] {
+  const entries: Entry[] = [
+    ...detail.messages.map((message) => ({ kind: "message" as const, at: message.createdAt, message })),
+    ...detail.renders.map((render) => ({ kind: "render" as const, at: render.createdAt, render })),
+  ];
+  return entries.sort((a, b) => a.at.localeCompare(b.at));
 }
 
 function PendingBubble({ message: p }: { message: PendingMessage }) {
@@ -167,11 +198,12 @@ export function ConversationPanel({ threadId, thread, providers }: Props) {
           }}
         >
           {loadError && <p className="error">{loadError}</p>}
-          {detail && detail.messages.length === 0 && <p className="empty">No messages</p>}
+          {detail && detail.messages.length === 0 && detail.renders.length === 0 && <p className="empty">No messages</p>}
           {!detail && !loadError && <Loader />}
-          {detail?.messages.map((m) => (
-            <Message key={m.id} message={m} />
-          ))}
+          {detail &&
+            timeline(detail).map((entry) =>
+              entry.kind === "message" ? <Message key={entry.message.id} message={entry.message} threadId={threadId} /> : <RenderFrame key={entry.render.id} render={entry.render} threadId={threadId} />,
+            )}
           {detail && pending.map((p) => <PendingBubble key={p.id} message={p} />)}
           {detail?.activity && <RunActivityView activity={detail.activity} running={running} onShowSubagents={() => setRevealSubagents((n) => n + 1)} />}
           {detail && detail.pendingRequests.length > 0 && (

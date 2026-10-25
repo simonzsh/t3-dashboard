@@ -1,4 +1,4 @@
-import type { ActivityItem, ChatMessage, DashboardThread, RunActivity, PendingRequestDetail, SubagentInfo, ThreadDetail } from "../../shared/api.ts";
+import type { ActivityItem, ChatMessage, DashboardThread, HtmlRender, RunActivity, PendingRequestDetail, SubagentInfo, ThreadDetail } from "../../shared/api.ts";
 import { FAILED_STATUSES } from "../../shared/status.ts";
 import { isRuntimeMode } from "../../shared/limits.ts";
 import type { RawBackgroundTask, RawProjection, RawRuntimeRequest, RawSubagent, RawTurnItem } from "../integrations/t3/schemas.ts";
@@ -136,12 +136,35 @@ function activityOf(projection: RawProjection, items: RawTurnItem[]): RunActivit
   return { runId: run.id, startedAt: run.startedAt ?? null, completedAt: run.completedAt ?? null, items: activity };
 }
 
+const MAX_RENDER_HEIGHT = 4000;
+
+// html_render returns {htmlRender: {attachmentId, title, height}} as its tool output.
+function renderOf(item: RawTurnItem): HtmlRender | null {
+  const output = item.output as { htmlRender?: { attachmentId?: unknown; title?: unknown; height?: unknown } } | null | undefined;
+  const render = output?.htmlRender;
+  if (!item.id || typeof render?.attachmentId !== "string") return null;
+  const height = typeof render.height === "number" && render.height > 0 ? Math.min(render.height, MAX_RENDER_HEIGHT) : 400;
+  return { id: item.id, attachmentId: render.attachmentId, title: typeof render.title === "string" ? render.title : "", height, createdAt: item.completedAt ?? item.startedAt ?? "" };
+}
+
+function rendersOf(items: RawTurnItem[]): HtmlRender[] {
+  const byId = new Map(items.map(renderOf).filter((render) => render !== null).map((render) => [render.id, render]));
+  return [...byId.values()].sort((a, b) => a.createdAt.localeCompare(b.createdAt));
+}
+
 /** `tasks` are the shell thread's pending background tasks: they say which subagents still run. */
 export function toThreadDetail(threadId: string, projection: RawProjection, thread: DashboardThread | undefined, tasks: RawBackgroundTask[] = []): ThreadDetail {
   const visible = new Set((projection.visibleTurnItems ?? []).map((element) => unwrap(element).messageId));
   const messages: ChatMessage[] = (projection.messages ?? [])
     .filter((message) => visible.has(message.id))
-    .map((message) => ({ id: message.id, role: message.role, text: message.text ?? "", createdAt: message.createdAt ?? "", streaming: message.streaming ?? false }));
+    .map((message) => ({
+      id: message.id,
+      role: message.role,
+      text: message.text ?? "",
+      createdAt: message.createdAt ?? "",
+      streaming: message.streaming ?? false,
+      attachments: (message.attachments ?? []).filter((file) => file.type === "image").map((file) => ({ id: file.id, name: file.name ?? "image" })),
+    }));
   const items = [...(projection.turnItems ?? []), ...(projection.visibleTurnItems ?? [])].map(unwrap);
   const pendingRequests = (projection.runtimeRequests ?? []).filter((request) => request.status === "pending").map((request) => pendingDetail(request, items));
   const runtimeMode = projection.thread?.runtimeMode;
@@ -149,6 +172,7 @@ export function toThreadDetail(threadId: string, projection: RawProjection, thre
     threadId,
     thread: thread ?? null,
     messages,
+    renders: rendersOf(items),
     pendingRequests,
     subagents: subagentsOf(projection, tasks),
     modelSelection: projection.thread?.modelSelection ?? null,
