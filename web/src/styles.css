@@ -265,7 +265,7 @@ main { flex: 1; min-height: 0; overflow: hidden; padding: 24px; display: flex; f
 .dropdown.field .dropdown-value { flex: 1; text-align: left; }
 .dropdown-value.placeholder { color: var(--text-secondary); }
 .dropdown-menu { position: absolute; top: calc(100% + 4px); left: 0; z-index: 6; min-width: 210px; display: flex; flex-direction: column; gap: 4px; padding: 4px; border-radius: 12px; border: 1px solid var(--line); background: var(--surface-1); box-shadow: var(--shadow); }
-.dropdown.field .dropdown-menu { right: 0; }
+.dropdown.field .dropdown-menu { right: 0; min-width: 0; }
 .composer .dropdown-menu { top: auto; bottom: calc(100% + 8px); }
 .composer .dropdown.secondary:last-child .dropdown-menu { left: auto; right: 0; }
 .dropdown-filter { padding: 5px 8px; font-size: 13px; }
