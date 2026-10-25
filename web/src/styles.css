@@ -87,7 +87,7 @@ input.field { height: var(--control-md); padding-block: 0; }
 .icon-button.md { min-width: var(--control-md); height: var(--control-md); }
 .icon-button.sm { min-width: var(--control-sm); height: var(--control-sm); }
 .icon-button:has(kbd) { gap: 6px; padding: 0 6px; }
-.icon-button:hover:not(:disabled) { color: var(--text-primary); }
+.icon-button:not(.primary):hover:not(:disabled) { color: var(--text-primary); }
 button.primary { background: var(--accent); border-color: var(--accent); color: var(--on-accent); font-weight: 500; }
 button.primary:hover:not(:disabled) { filter: brightness(1.08); }
 button.ghost { border-color: transparent; background: none; }
@@ -297,12 +297,10 @@ main { flex: 1; min-height: 0; overflow: hidden; padding: 24px; display: flex; f
 .dropdown-check { width: 14px; height: 14px; color: var(--accent); flex: none; }
 .dropdown-empty { padding: 6px 8px; font-size: 13px; color: var(--text-secondary); }
 .composer-actions { display: flex; align-items: center; gap: 6px; flex: none; margin-left: auto; }
-.composer-icon { display: grid; place-items: center; padding: 6px; border: 0; border-radius: 50%; background: none; color: var(--text-secondary); }
-.composer-icon:hover:not(:disabled) { color: var(--text-primary); background: var(--surface-0); }
+.composer-icon { border-radius: 50%; }
 .composer-icon .icon { width: 18px; height: 18px; }
-.composer-round { display: grid; place-items: center; width: 32px; height: 32px; padding: 0; border-radius: 50%; }
+.composer-round { border-radius: 50%; }
 .composer-round .icon { width: 17px; height: 17px; }
-.composer-round.send { border-color: var(--accent); background: var(--accent); color: var(--on-accent); }
 .composer-round.send:disabled { opacity: 0.4; }
 .composer-round.stop { color: var(--text-primary); background: var(--surface-0); }
 .composer-files { list-style: none; margin: 0 0 4px; padding: 0; display: flex; flex-wrap: wrap; gap: 6px; }
@@ -414,7 +412,7 @@ button.auto-row:hover { background: var(--surface-0); }
 .dw-state.done { box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--ok) 50%, transparent); background: var(--done-bg); color: var(--done-text); }
 .dw-state.error { box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--danger) 50%, transparent); background: var(--err-bg); color: var(--err-text); }
 .dw-buttons { margin-left: auto; display: flex; gap: 2px; flex: none; }
-.dw-buttons .icon-button { display: grid; place-items: center; padding: 4px; border: 0; background: none; border-radius: 6px; color: var(--text-secondary); }
+.dw-buttons .icon-button { padding: 4px; border-radius: var(--radius-sm); }
 .dw-buttons .icon-button:hover { color: var(--text-primary); background: var(--surface-0); }
 /* macOS-style traffic lights: colour always, symbols on hover of the group. */
 .traffic { display: flex; align-items: center; gap: 7px; margin-left: 8px; padding: 0 4px; }

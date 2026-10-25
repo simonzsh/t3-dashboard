@@ -1,5 +1,6 @@
 import type { DashboardEvent, DashboardProvider, DashboardThread } from "../../../shared/api.ts";
 import { threadState, type ThreadState } from "../agents.ts";
+import { Badge, Button, Icon, Pressable } from "../ui/index.ts";
 import { ConversationPanel } from "./ConversationPanel.tsx";
 import { OpenInT3 } from "./OpenInT3.tsx";
 import { ProviderIcon } from "./ProviderIcon.tsx";
@@ -24,12 +25,6 @@ interface Props {
   onToggleMaximize: () => void;
 }
 
-const Icon = ({ d }: { d: string }) => (
-  <svg className="icon" viewBox="0 0 24 24" aria-hidden="true">
-    <path d={d} fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
-  </svg>
-);
-
 export function DeskWindow({ id, thread, projectTitle, missing, focused, maximized, compact, lastEvent, t3EnvironmentId, providers, onFocus, onClose, onMinimize, onToggleMaximize }: Props) {
   const state = thread ? threadState(thread) : null;
   const title = thread?.title || "(untitled)";
@@ -51,21 +46,25 @@ export function DeskWindow({ id, thread, projectTitle, missing, focused, maximiz
           {title}
         </span>
         {projectTitle && <span className="dw-project">{projectTitle}</span>}
-        {state && <span className={`dw-state ${state}`}>{STATE_LABELS[state]}</span>}
+        {state && (
+          <Badge variant={state === "idle" ? "neutral" : state} className="dw-state">
+            {STATE_LABELS[state]}
+          </Badge>
+        )}
         <span className="dw-buttons">
           <OpenInT3 environmentId={t3EnvironmentId} threadId={id} />
           <span className="traffic">
-            <button className="light close" aria-label="Close" title="Close (X)" onClick={onClose}>
-              <Icon d="M7 7l10 10M17 7L7 17" />
-            </button>
+            <Pressable className="light close" aria-label="Close" title="Close (X)" onClick={onClose}>
+              <Icon name="x" strokeWidth={1.8} />
+            </Pressable>
             {!compact && (
               <>
-                <button className="light minimize" aria-label="Minimize" title="Minimize (M)" onClick={onMinimize}>
-                  <Icon d="M6 12h12" />
-                </button>
-                <button className="light fullscreen" aria-label={maximized ? "Exit fullscreen" : "Fullscreen"} title={maximized ? "Exit fullscreen (F, Esc)" : "Fullscreen (F)"} onClick={onToggleMaximize}>
-                  <Icon d={maximized ? "M10 6v4H6M14 18v-4h4" : "M7 13V7h6M17 11v6h-6"} />
-                </button>
+                <Pressable className="light minimize" aria-label="Minimize" title="Minimize (M)" onClick={onMinimize}>
+                  <Icon name="minus" strokeWidth={1.8} />
+                </Pressable>
+                <Pressable className="light fullscreen" aria-label={maximized ? "Exit fullscreen" : "Fullscreen"} title={maximized ? "Exit fullscreen (F, Esc)" : "Fullscreen (F)"} onClick={onToggleMaximize}>
+                  <Icon name={maximized ? "restore" : "maximize"} strokeWidth={1.8} />
+                </Pressable>
               </>
             )}
           </span>
@@ -74,7 +73,7 @@ export function DeskWindow({ id, thread, projectTitle, missing, focused, maximiz
       {missing ? (
         <div className="desk-missing">
           <span>This thread was archived or deleted.</span>
-          <button onClick={onClose}>Close</button>
+          <Button onClick={onClose}>Close</Button>
         </div>
       ) : (
         <ConversationPanel threadId={id} thread={thread} lastEvent={lastEvent} providers={providers} />

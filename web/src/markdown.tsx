@@ -1,5 +1,6 @@
 import { marked, type Token, type Tokens } from "marked";
 import { Fragment, type ReactNode } from "react";
+import { Choice } from "./ui/index.ts";
 
 // marked is only the lexer: tokens become React elements, so raw HTML stays text.
 const SAFE_PROTOCOLS = new Set(["http:", "https:", "mailto:"]);
@@ -41,7 +42,7 @@ function inline(tokens: Token[] | undefined): ReactNode[] {
       case "image":
         return link(t.href, t.text || t.href, key);
       case "checkbox":
-        return <input key={key} type="checkbox" disabled checked={t.checked} />;
+        return <Choice key={key} type="checkbox" disabled checked={t.checked} />;
       case "text":
         return t.tokens ? <Fragment key={key}>{inline(t.tokens)}</Fragment> : t.text;
       default:

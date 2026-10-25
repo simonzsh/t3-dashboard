@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import type { SubagentInfo } from "../../../shared/api.ts";
 import { duration } from "../format.ts";
+import { Pressable } from "../ui/index.ts";
 
 const STATUS_LABELS: Record<SubagentInfo["status"], string> = { running: "Running", done: "Done", failed: "Failed" };
 
@@ -38,11 +39,11 @@ export function SubagentStrip({ subagents, reveal = 0 }: { subagents: SubagentIn
   if (subagents.length === 0) return null;
   return (
     <div className="subagents">
-      <button type="button" ref={head} className="subagents-head" aria-expanded={open} onClick={() => setOpen(!open)}>
+      <Pressable ref={head} className="subagents-head" aria-expanded={open} onClick={() => setOpen(!open)}>
         <span className={`chevron${open ? " open" : ""}`} aria-hidden="true" />
         Subagents
         <span className="subagents-count">{running > 0 ? `${running} running` : subagents.length}</span>
-      </button>
+      </Pressable>
       {open && (
         <ul className="subagent-list">
           {subagents.map((s) => {

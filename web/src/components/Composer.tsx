@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import type { DashboardProvider, ImageAttachment, ModelSelection, RuntimeMode, ThreadSettingsBody } from "../../../shared/api.ts";
 import { IMAGE_TYPES, RUNTIME_MODE_LABELS, acceptImages, currentEffort, findModel, modelLabel, selectEffort, selectModel } from "../composer.ts";
 import type { DropdownOption } from "../dropdown.ts";
-import { Dropdown, Icon, NO_AUTOFILL } from "../ui/index.ts";
+import { Dropdown, FileInput, Icon, IconButton, Pressable, TextArea } from "../ui/index.ts";
 import { ProviderIcon } from "./ProviderIcon.tsx";
 
 interface Pending {
@@ -137,15 +137,14 @@ export function Composer({ providers, selection, runtimeMode, running, draft, on
               <li key={p.key} className="file-chip">
                 <img src={p.dataUrl} alt="" />
                 <span title={p.file.name}>{p.file.name}</span>
-                <button type="button" aria-label={`Remove ${p.file.name}`} title="Remove" onClick={() => setImages((current) => current.filter((x) => x.key !== p.key))}>
+                <Pressable aria-label={`Remove ${p.file.name}`} title="Remove" onClick={() => setImages((current) => current.filter((x) => x.key !== p.key))}>
                   <Icon name="x" />
-                </button>
+                </Pressable>
               </li>
             ))}
           </ul>
         )}
-        <textarea
-          {...NO_AUTOFILL}
+        <TextArea
           ref={textarea}
           rows={2}
           value={draft}
@@ -206,26 +205,15 @@ export function Composer({ providers, selection, runtimeMode, running, draft, on
             />
           </div>
           <div className="composer-actions">
-            <input
-              ref={fileInput}
-              type="file"
-              accept={IMAGE_TYPES.join(",")}
-              multiple
-              hidden
-              onChange={(e) => {
-                void addFiles([...(e.target.files ?? [])]);
-                e.target.value = "";
-              }}
-            />
-            <button type="button" className="composer-icon" aria-label="Attach images" title="Attach images" onClick={() => fileInput.current?.click()}>
+            <FileInput ref={fileInput} accept={IMAGE_TYPES.join(",")} multiple onFiles={(files) => void addFiles(files)} />
+            <IconButton label="Attach images" variant="ghost" className="composer-icon" onClick={() => fileInput.current?.click()}>
               <Icon name="paperclip" />
-            </button>
+            </IconButton>
             {running && (
-              <button
-                type="button"
-                className="composer-round stop"
-                aria-label="Stop"
+              <IconButton
+                label="Stop"
                 title="Stop the run"
+                className="composer-round stop"
                 disabled={stopping}
                 onClick={async () => {
                   setStopping(true);
@@ -236,11 +224,11 @@ export function Composer({ providers, selection, runtimeMode, running, draft, on
                 <svg className="icon" viewBox="0 0 24 24" aria-hidden="true">
                   <rect x="7" y="7" width="10" height="10" rx="2" fill="currentColor" />
                 </svg>
-              </button>
+              </IconButton>
             )}
-            <button type="submit" className="composer-round send" aria-label={running ? "Steer" : "Send"} title={running ? "Send now (steers the run)" : "Send (Enter)"} disabled={!canSend}>
+            <IconButton type="submit" label={running ? "Steer" : "Send"} title={running ? "Send now (steers the run)" : "Send (Enter)"} variant="primary" className="composer-round send" disabled={!canSend}>
               <Icon name="arrowUp" />
-            </button>
+            </IconButton>
           </div>
         </div>
       </div>

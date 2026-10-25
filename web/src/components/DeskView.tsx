@@ -4,6 +4,7 @@ import type { DashboardEvent, DashboardProject, DashboardProvider, DashboardThre
 import { threadState } from "../agents.ts";
 import type { DeskBackground } from "../deskBackground.ts";
 import { cellOf, deskLayout, equalSizes, gridWindows, sizesFor, type DeskAction, type DeskState, type DeskWindow as Win } from "../desk.ts";
+import { Kbd, Pressable } from "../ui/index.ts";
 import { useMediaQuery } from "../useMediaQuery.ts";
 import { DeskWindow } from "./DeskWindow.tsx";
 import { ProviderIcon } from "./ProviderIcon.tsx";
@@ -86,7 +87,7 @@ export function DeskView({ desk, dispatch, threads, projects, lastEvent, backgro
           <strong>Your Desk is empty</strong>
           <span>Click an agent card to open it here, or use its + button to add it without leaving the list.</span>
           <span>
-            Press <kbd>1</kbd> to go back to the agents.
+            Press <Kbd>1</Kbd> to go back to the agents.
           </span>
         </div>
       </div>
@@ -118,11 +119,11 @@ export function DeskView({ desk, dispatch, threads, projects, lastEvent, backgro
   const chip = (w: Win, active: boolean) => {
     const thread = byId.get(w.id);
     return (
-      <button key={w.id} className={`desk-chip${active ? " active" : ""}`} title={thread?.title || "(untitled)"} onClick={() => dispatch({ type: "restore", id: w.id })}>
+      <Pressable key={w.id} className={`desk-chip${active ? " active" : ""}`} title={thread?.title || "(untitled)"} onClick={() => dispatch({ type: "restore", id: w.id })}>
         <span className={`state-dot ${thread ? threadState(thread) : "idle"}`} aria-hidden="true" />
         {thread && <ProviderIcon provider={thread.provider} />}
         <span className="desk-chip-title">{thread?.title || "(untitled)"}</span>
-      </button>
+      </Pressable>
     );
   };
 

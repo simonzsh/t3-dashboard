@@ -2,7 +2,7 @@ import { useState } from "react";
 import type { ApprovalDecision, PendingRequestDetail } from "../../../shared/api.ts";
 import { api } from "../api.ts";
 import { buildAnswers, canSubmit, type Drafts } from "../answers.ts";
-import { NO_AUTOFILL } from "../ui/index.ts";
+import { Button, Choice, TextInput } from "../ui/index.ts";
 import { useAction } from "./useAction.ts";
 
 const DECISIONS: Array<[ApprovalDecision, string]> = [
@@ -29,9 +29,9 @@ export function PendingRequestView({ threadId, request }: { threadId: string; re
           {request.reason && <small>{request.reason}</small>}
           <div className="buttons">
             {DECISIONS.map(([decision, label]) => (
-              <button key={decision} disabled={locked || action.busy} onClick={() => void action.run(() => api.respond(threadId, request.requestId, { decision }))}>
+              <Button key={decision} disabled={locked || action.busy} onClick={() => void action.run(() => api.respond(threadId, request.requestId, { decision }))}>
                 {label}
-              </button>
+              </Button>
             ))}
           </div>
         </>
@@ -49,7 +49,7 @@ export function PendingRequestView({ threadId, request }: { threadId: string; re
                 </span>
                 {q.options.map((o) => (
                   <label key={o.value}>
-                    <input
+                    <Choice
                       type={q.multiSelect ? "checkbox" : "radio"}
                       name={`${request.requestId}-${q.id}`}
                       checked={d?.choices.includes(o.value) ?? false}
@@ -69,21 +69,21 @@ export function PendingRequestView({ threadId, request }: { threadId: string; re
                     </span>
                   </label>
                 ))}
-                {q.allowCustomAnswer && <input {...NO_AUTOFILL} type="text" placeholder="Other answer…" aria-label={`Custom answer: ${q.question}`} value={d?.custom ?? ""} onChange={(e) => setDraft(q.id, { custom: e.target.value })} />}
+                {q.allowCustomAnswer && <TextInput placeholder="Other answer…" aria-label={`Custom answer: ${q.question}`} value={d?.custom ?? ""} onChange={(e) => setDraft(q.id, { custom: e.target.value })} />}
               </fieldset>
             );
           })}
           <div className="buttons">
-            <button disabled={locked || action.busy} onClick={() => void action.run(() => api.dismiss(threadId, request.requestId))}>
+            <Button disabled={locked || action.busy} onClick={() => void action.run(() => api.dismiss(threadId, request.requestId))}>
               Dismiss
-            </button>
-            <button
-              className="primary"
+            </Button>
+            <Button
+              variant="primary"
               disabled={locked || action.busy || !canSubmit(request.questions, drafts)}
               onClick={() => void action.run(() => api.respond(threadId, request.requestId, { answers: buildAnswers(request.questions, drafts) }))}
             >
               Reply
-            </button>
+            </Button>
           </div>
         </>
       )}

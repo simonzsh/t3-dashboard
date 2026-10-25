@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import type { ActivityItem, RunActivity } from "../../../shared/api.ts";
 import { duration } from "../format.ts";
+import { Button, Pressable } from "../ui/index.ts";
 
 // Collapsed, a live run shows only its latest steps.
 const PREVIEW_ITEMS = 4;
@@ -23,9 +24,9 @@ function Row({ item, onShowSubagents }: { item: ActivityItem; onShowSubagents: (
         <path d={ICONS[item.kind]} fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
       </svg>
       {item.kind === "subagent" ? (
-        <button type="button" className="link activity-text" title="Show in Subagents" onClick={onShowSubagents}>
+        <Button variant="link" className="activity-text" title="Show in Subagents" onClick={onShowSubagents}>
           {item.text}
-        </button>
+        </Button>
       ) : (
         <span className="activity-text" title={item.text}>
           {item.text}
@@ -68,10 +69,10 @@ export function RunActivityView({ activity, running, onShowSubagents }: Props) {
   const shown = open ? activity.items : live ? activity.items.slice(-PREVIEW_ITEMS) : [];
   return (
     <div className={`activity${live ? " live" : ""}`}>
-      <button type="button" className="activity-head" aria-expanded={open} disabled={activity.items.length === 0} onClick={() => setOpen(!open)}>
+      <Pressable className="activity-head" aria-expanded={open} disabled={activity.items.length === 0} onClick={() => setOpen(!open)}>
         {label}
         {activity.items.length > 0 && <span className={`chevron${open ? " open" : ""}`} aria-hidden="true" />}
-      </button>
+      </Pressable>
       {shown.length > 0 && (
         <ul className="activity-list" ref={list}>
           {shown.map((item) => (
