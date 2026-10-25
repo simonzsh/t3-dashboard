@@ -38,7 +38,18 @@ interface Option {
   group?: string;
 }
 
-function Picker({ label, icon, value, options, disabled, onPick }: { label: string; icon: ReactNode; value: string | null; options: Option[]; disabled: boolean; onPick: (id: string) => void }) {
+interface PickerProps {
+  label: string;
+  icon: ReactNode;
+  value: string | null;
+  options: Option[];
+  disabled: boolean;
+  /** Narrow composers show only the icon of a secondary picker. */
+  secondary?: boolean;
+  onPick: (id: string) => void;
+}
+
+function Picker({ label, icon, value, options, disabled, secondary = false, onPick }: PickerProps) {
   const [open, setOpen] = useState(false);
   const root = useRef<HTMLDivElement>(null);
   const current = options.find((o) => o.id === value);
@@ -61,7 +72,7 @@ function Picker({ label, icon, value, options, disabled, onPick }: { label: stri
   }
 
   return (
-    <div className="picker" ref={root} onKeyDown={onKeyDown}>
+    <div className={`picker${secondary ? " secondary" : ""}`} ref={root} onKeyDown={onKeyDown}>
       <button type="button" className="picker-trigger" aria-label={label} title={label} aria-haspopup="listbox" aria-expanded={open} disabled={disabled} onClick={() => setOpen(!open)}>
         {icon}
         <span className="picker-value">{current?.label ?? value ?? label}</span>
@@ -260,6 +271,7 @@ export function Composer({ providers, selection, runtimeMode, running, draft, on
                   value={effort}
                   options={found.model.effort.levels}
                   disabled={false}
+                  secondary
                   onPick={(level) => void change({ selection: selectEffort(localSelection, found.model, level) })}
                 />
               </>
@@ -271,6 +283,7 @@ export function Composer({ providers, selection, runtimeMode, running, draft, on
               value={localMode}
               options={modes.map((mode) => ({ id: mode, ...RUNTIME_MODE_LABELS[mode] }))}
               disabled={!localMode}
+              secondary
               onPick={(mode) => void change({ mode: mode as RuntimeMode })}
             />
           </div>
