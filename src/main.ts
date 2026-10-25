@@ -1,12 +1,11 @@
 import { rmSync } from "node:fs";
 import { parseArgs, USAGE } from "./cli.ts";
-import { install, restartService, serviceInstalled, servicePort, uninstall, waitForService } from "./install.ts";
+import { install, uninstall } from "./install.ts";
 import { start } from "./start.ts";
-import { installDeps, updateDeps } from "./system.ts";
+import { DEFAULT_PORT, installDeps, updateDeps } from "./system.ts";
 import { removeOldBinary, update } from "./update.ts";
 import { VERSION } from "./version.ts";
 
-const DEFAULT_PORT = 4300;
 const env = process.env;
 
 const args = parseArgs(Bun.argv.slice(2));
@@ -33,14 +32,7 @@ try {
       const deps = installDeps(env);
       if (args.command === "install") await install({ port: args.port ?? (Number(env.PORT) || DEFAULT_PORT), open: args.open }, deps);
       else if (args.command === "uninstall") await uninstall(deps);
-      else await update({ check: args.check }, updateDeps(
-            env,
-            async (version) => {
-              await restartService(deps);
-              await waitForService(servicePort(deps, Number(env.PORT) || DEFAULT_PORT), deps, version);
-            },
-            () => serviceInstalled(deps),
-          ));
+      else await update({ check: args.check }, updateDeps(env));
     }
   }
 } catch (error) {

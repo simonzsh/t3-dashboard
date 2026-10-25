@@ -2,11 +2,12 @@ import { chmodSync, existsSync, mkdirSync, readFileSync, renameSync, rmSync, wri
 import { homedir } from "node:os";
 import { dirname } from "node:path";
 import { setTimeout as sleep } from "node:timers/promises";
-import type { InstallDeps } from "./install.ts";
+import { restartService, serviceInstalled, servicePort, waitForService, type InstallDeps } from "./install.ts";
 import type { UpdateDeps } from "./update.ts";
 import { VERSION } from "./version.ts";
 
 const DEFAULT_REPO = "simonzsh/t3-dashboard";
+export const DEFAULT_PORT = 4300;
 
 /** Exit code of a program, or 127 when it did not start. Its output is dropped. */
 async function run(command: string, args: string[]): Promise<number> {
@@ -61,7 +62,8 @@ export function installDeps(env: Record<string, string | undefined>): InstallDep
   };
 }
 
-export function updateDeps(env: Record<string, string | undefined>, restart: (version: string) => Promise<void>, serviceInstalled: () => Promise<boolean>): UpdateDeps {
+export function updateDeps(env: Record<string, string | undefined>): UpdateDeps {
+  const deps = installDeps(env);
   return {
     fetch,
     repo: env.T3_DASHBOARD_REPO ?? DEFAULT_REPO,
@@ -73,8 +75,11 @@ export function updateDeps(env: Record<string, string | undefined>, restart: (ve
     chmod: chmodSync,
     rename: renameSync,
     rm: (path) => rmSync(path, { force: true }),
-    restart,
-    serviceInstalled,
+    restart: async (version) => {
+      await restartService(deps);
+      await waitForService(servicePort(deps, Number(env.PORT) || DEFAULT_PORT), deps, version);
+    },
+    serviceInstalled: () => serviceInstalled(deps),
     log: (message) => console.log(message),
   };
 }
