@@ -44,6 +44,8 @@ function DeskGrid({ windows, desk, dispatch, render }: { windows: Win[]; desk: D
   return (
     <Grid
       className="desk-grid"
+      // The library clips the grid and its cells: that cut the window shadows into square boxes.
+      style={{ overflow: "visible" }}
       gridRef={gridRef}
       columns={Array.from({ length: columns }, (_, i) => ({ id: `c${i}`, minSize: MIN_COLUMN_PX }))}
       rows={Array.from({ length: rows }, (_, i) => ({ id: `r${i}`, minSize: MIN_ROW_PX }))}
@@ -54,7 +56,7 @@ function DeskGrid({ windows, desk, dispatch, render }: { windows: Win[]; desk: D
       onDoubleClick={resetOnDoubleClick}
     >
       {windows.map((w, i) => (
-        <Cell key={w.id} className="desk-cell" style={{ overflow: "hidden" }} {...cellOf(i, columns)}>
+        <Cell key={w.id} className="desk-cell" style={{ overflow: "visible" }} {...cellOf(i, columns)}>
           {render(w)}
         </Cell>
       ))}
