@@ -3,7 +3,7 @@ import type { LinearIssue } from "../../shared/api.ts";
 export interface BoardGroup {
   key: string;
   title: string;
-  workspace: string;
+  team: string;
   issues: LinearIssue[];
 }
 
@@ -15,10 +15,10 @@ const priorityRank = (p: number) => (p === 0 ? 5 : p);
 export function groupBoard(issues: LinearIssue[]): BoardGroup[] {
   const map = new Map<string, BoardGroup>();
   for (const issue of issues) {
-    const key = issue.project ? issue.project.id : `none:${issue.workspace}`;
+    const key = issue.project ? issue.project.id : `none:${issue.workspace}:${issue.team.key}`;
     let group = map.get(key);
     if (!group) {
-      group = { key, title: issue.project?.name ?? NO_PROJECT, workspace: issue.workspace, issues: [] };
+      group = { key, title: issue.project?.name ?? NO_PROJECT, team: issue.team.name, issues: [] };
       map.set(key, group);
     }
     group.issues.push(issue);
@@ -27,6 +27,6 @@ export function groupBoard(issues: LinearIssue[]): BoardGroup[] {
     g.issues.sort((a, b) => priorityRank(a.priority) - priorityRank(b.priority) || b.updatedAt.localeCompare(a.updatedAt));
   }
   return [...map.values()].sort(
-    (a, b) => Number(a.title === NO_PROJECT) - Number(b.title === NO_PROJECT) || a.title.localeCompare(b.title) || a.workspace.localeCompare(b.workspace),
+    (a, b) => Number(a.title === NO_PROJECT) - Number(b.title === NO_PROJECT) || a.title.localeCompare(b.title) || a.team.localeCompare(b.team),
   );
 }

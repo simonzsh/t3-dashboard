@@ -15,6 +15,7 @@ function issue(id: string, over: Partial<LinearIssue> = {}): LinearIssue {
     project: null,
     team: { key: "ABC", name: "Team" },
     workspace: "ws-1",
+    t3ProjectId: null,
     updatedAt: "2026-03-01T10:00:00.000Z",
     ...over,
   };
@@ -32,9 +33,9 @@ test("groupBoard groups by project, sorted by name, with unassigned last", () =>
   assert.deepEqual(groups[1]?.issues.map((i) => i.id).sort(), ["1", "4"]);
 });
 
-test("groupBoard keeps one unassigned group per workspace and shows the workspace", () => {
-  const groups = groupBoard([issue("1", { workspace: "ws-2" }), issue("2", { workspace: "ws-1" })]);
-  assert.deepEqual(groups.map((g) => [g.title, g.workspace]), [["Sans projet", "ws-1"], ["Sans projet", "ws-2"]]);
+test("groupBoard keeps one unassigned group per team and shows the team", () => {
+  const groups = groupBoard([issue("1", { team: { key: "OPS", name: "Ops" } }), issue("2", { team: { key: "ENG", name: "Eng" } })]);
+  assert.deepEqual(groups.map((g) => [g.title, g.team]), [["Sans projet", "Eng"], ["Sans projet", "Ops"]]);
 });
 
 test("groupBoard sorts issues by priority (urgent first, none last) then recency", () => {

@@ -51,7 +51,7 @@ export function BoardView({ onShowAgents }: { onShowAgents: () => void }) {
       {groups.map((g) => (
         <section className="group" key={g.key}>
           <h2>
-            {g.title} <span className="workspace">{g.workspace}</span> <span className="count">{g.issues.length}</span>
+            {g.title} <span className="workspace">{g.team}</span> <span className="count">{g.issues.length}</span>
           </h2>
           <ul className="issues">
             {g.issues.map((i) => (
