@@ -1,11 +1,9 @@
 import { test } from "bun:test";
 import assert from "node:assert/strict";
+import { memoryStore } from "../../fixtures.ts";
 import { THEME_KEY, loadTheme, parseTheme, resolveTheme, saveTheme } from "../../../src/features/settings/theme.ts";
 
-function store(initial?: string): Pick<Storage, "getItem" | "setItem"> & { data: Map<string, string> } {
-  const data = new Map<string, string>(initial === undefined ? [] : [[THEME_KEY, initial]]);
-  return { data, getItem: (k) => data.get(k) ?? null, setItem: (k, v) => void data.set(k, v) };
-}
+const store = (initial?: string) => memoryStore(initial === undefined ? {} : { [THEME_KEY]: initial });
 
 test("parseTheme accepts the three settings and falls back to system", () => {
   assert.equal(parseTheme("light"), "light");

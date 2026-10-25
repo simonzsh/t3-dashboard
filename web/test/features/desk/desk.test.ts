@@ -16,6 +16,7 @@ import {
   sizesFor,
   type DeskState,
 } from "../../../src/features/desk/desk.ts";
+import { memoryStore } from "../../fixtures.ts";
 
 const open = (s: DeskState, ...ids: string[]) => ids.reduce((acc, id) => deskReducer(acc, { type: "open", id }), s);
 const ids = (s: DeskState) => s.windows.map((w) => w.id);
@@ -165,11 +166,10 @@ test("parseDesk repairs inconsistent data", () => {
 });
 
 test("loadDesk and saveDesk use storage and survive errors", () => {
-  const data = new Map<string, string>();
-  const store = { getItem: (k: string) => data.get(k) ?? null, setItem: (k: string, v: string) => void data.set(k, v) };
+  const store = memoryStore();
   const s = open(EMPTY_DESK, "a");
   saveDesk(store, s);
-  assert.ok(data.has(DESK_KEY));
+  assert.ok(store.data.has(DESK_KEY));
   assert.deepEqual(loadDesk(store), s);
   const broken = { getItem: () => { throw new Error("denied"); }, setItem: () => { throw new Error("denied"); } };
   assert.deepEqual(loadDesk(broken), EMPTY_DESK);

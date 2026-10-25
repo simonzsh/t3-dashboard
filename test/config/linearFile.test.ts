@@ -1,11 +1,8 @@
 import assert from "node:assert/strict";
 import { test } from "bun:test";
 import { readLinearKey, writeLinearKey } from "../../src/config/linearFile.ts";
+import { files } from "../helpers/files.ts";
 
-const files = (map: Record<string, string>) => (path: string) => {
-  if (path in map) return map[path]!;
-  throw Object.assign(new Error(`ENOENT: ${path}`), { code: "ENOENT" });
-};
 const read = (root: unknown) => readLinearKey("/x/l.json", files({ "/x/l.json": JSON.stringify(root) }));
 
 test("reads the key, trimmed, and ignores the other fields", () => {

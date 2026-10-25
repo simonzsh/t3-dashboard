@@ -2,22 +2,7 @@ import assert from "node:assert/strict";
 import { test } from "bun:test";
 import { IntegrationError } from "../../../src/integrations/errors.ts";
 import { LinearClient } from "../../../src/integrations/linear/client.ts";
-
-const node = (n: number) => ({
-  id: `issue-${n}`,
-  identifier: `TEAM-${n}`,
-  title: `Issue ${n}`,
-  url: `https://linear.example/TEAM-${n}`,
-  priority: 2,
-  priorityLabel: "High",
-  updatedAt: "2026-03-20T10:00:00.000Z",
-  state: { name: "Todo", type: "unstarted", color: "#ccc" },
-  project: null,
-  team: { key: "TEAM", name: "Team 1" },
-});
-
-const reply = (nodes: unknown[], pageInfo: { hasNextPage: boolean; endCursor: string | null } = { hasNextPage: false, endCursor: null }) =>
-  new Response(JSON.stringify({ data: { viewer: { assignedIssues: { nodes, pageInfo } } } }), { status: 200 });
+import { linearNode, linearPage } from "../../helpers/linear.ts";
 
 interface Call {
   url: string;
@@ -40,8 +25,8 @@ function setup(respond: (key: string, variables: Call["variables"]) => Response 
 const failure = (promise: Promise<unknown>) => promise.then(() => assert.fail("should fail"), (error: unknown) => error as IntegrationError);
 
 test("assignedIssues posts the query with the raw key as Authorization", async () => {
-  const { client, calls } = setup(() => reply([node(1)]));
-  assert.deepEqual(await client.assignedIssues("key-1"), [node(1)]);
+  const { client, calls } = setup(() => linearPage([linearNode(1)]));
+  assert.deepEqual(await client.assignedIssues("key-1"), [linearNode(1)]);
   assert.equal(calls.length, 1);
   assert.equal(calls[0]!.url, "https://api.linear.app/graphql");
   assert.equal(calls[0]!.authorization, "key-1");
@@ -51,9 +36,9 @@ test("assignedIssues posts the query with the raw key as Authorization", async (
 
 test("follows pageInfo until the last page and keeps every issue in order", async () => {
   const { client, calls } = setup((_key, variables) => {
-    if (variables?.after === undefined) return reply([node(1), node(2)], { hasNextPage: true, endCursor: "c1" });
-    if (variables.after === "c1") return reply([node(3)], { hasNextPage: true, endCursor: "c2" });
-    return reply([node(4)]);
+    if (variables?.after === undefined) return linearPage([linearNode(1), linearNode(2)], { hasNextPage: true, endCursor: "c1" });
+    if (variables.after === "c1") return linearPage([linearNode(3)], { hasNextPage: true, endCursor: "c2" });
+    return linearPage([linearNode(4)]);
   });
   const issues = await client.assignedIssues("key-1");
   assert.deepEqual(issues.map((issue) => issue.identifier), ["TEAM-1", "TEAM-2", "TEAM-3", "TEAM-4"]);
@@ -62,14 +47,14 @@ test("follows pageInfo until the last page and keeps every issue in order", asyn
 });
 
 test("endless pages fail loudly instead of truncating", async () => {
-  const { client, calls } = setup(() => reply([node(1)], { hasNextPage: true, endCursor: "next" }));
+  const { client, calls } = setup(() => linearPage([linearNode(1)], { hasNextPage: true, endCursor: "next" }));
   const error = await failure(client.assignedIssues("key-1"));
   assert.equal(calls.length, 20);
   assert.equal(error.message, "Too many assigned issues to load (over 2000)");
 });
 
 test("a next page without a cursor is a protocol error that names the field", async () => {
-  const { client } = setup(() => reply([node(1)], { hasNextPage: true, endCursor: null }));
+  const { client } = setup(() => linearPage([linearNode(1)], { hasNextPage: true, endCursor: null }));
   const error = await failure(client.assignedIssues("key-1"));
   assert.ok(error instanceof IntegrationError);
   assert.deepEqual([error.system, error.kind], ["linear", "protocol"]);
@@ -77,7 +62,7 @@ test("a next page without a cursor is a protocol error that names the field", as
 });
 
 test("an issue of the wrong shape names the field and never quotes the response", async () => {
-  const { client } = setup(() => reply([node(1), { ...node(2), title: 42, url: "https://private.example" }]));
+  const { client } = setup(() => linearPage([linearNode(1), { ...linearNode(2), title: 42, url: "https://private.example" }]));
   const error = await failure(client.assignedIssues("key-1"));
   assert.equal(error.kind, "protocol");
   assert.equal(error.message, "Unexpected Linear issues: viewer.assignedIssues.nodes[1].title should be string, got number");

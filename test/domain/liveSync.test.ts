@@ -5,34 +5,10 @@ import { INSTALL_URL, ISSUE_COMMAND } from "../../src/integrations/t3/cli.ts";
 import { LiveSync } from "../../src/domain/liveSync.ts";
 import { ShellStore } from "../../src/domain/shellStore.ts";
 import { IntegrationError } from "../../src/integrations/errors.ts";
-import type { RawConfig, ShellItem, T3Port } from "../../src/integrations/t3/schemas.ts";
 import { tick } from "../helpers/fakeSocket.ts";
+import { FakePort } from "../helpers/fakePort.ts";
 
 const now = () => new Date("2026-03-20T12:00:00.000Z");
-
-class FakePort implements T3Port {
-  config: () => Promise<RawConfig> = async () => ({ providers: [], environment: { serverVersion: "1.0.0", orchestrationProtocolVersion: 2 } });
-  subscriptions: Array<{ onItems(items: ShellItem[]): void; onEnd(error?: Error): void; cancelled: boolean }> = [];
-  async threadProjection() {
-    return {};
-  }
-  async dispatch() {}
-  getConfig() {
-    return this.config();
-  }
-  async persistAttachments() {
-    return [];
-  }
-  subscribeShell(onItems: (items: ShellItem[]) => void, onEnd: (error?: Error) => void) {
-    const subscription = { onItems, onEnd, cancelled: false };
-    this.subscriptions.push(subscription);
-    return {
-      cancel() {
-        subscription.cancelled = true;
-      },
-    };
-  }
-}
 
 // A status can repeat while the config arrives: compare the sequence of distinct states.
 const sequence = (statuses: ConnectionStatus[]) => statuses.map((status) => status.t3).filter((t3, i, all) => t3 !== all[i - 1]);

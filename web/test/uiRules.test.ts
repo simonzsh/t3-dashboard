@@ -1,13 +1,8 @@
 import assert from "node:assert/strict";
 import { test } from "bun:test";
-import { readdirSync, readFileSync } from "node:fs";
-import { join } from "node:path";
+import { tsxSources } from "./fixtures.ts";
 
-const root = join(import.meta.dir, "../src");
-const sources = readdirSync(root, { recursive: true })
-  .map(String)
-  .filter((file) => file.endsWith(".tsx"))
-  .map((file) => ({ file, text: readFileSync(join(root, file), "utf8") }));
+const sources = tsxSources();
 
 interface Button {
   tag: string;
@@ -84,12 +79,9 @@ test("the guard sees a kit Button row", () => {
 });
 
 // Controls come from web/src/ui: it holds the focus ring, the heights and the autofill guard.
-test("no raw button, input, textarea or select outside web/src/ui", () => {
+// A native <select> opens the system menu, so not even ui/ has one: it uses its own Dropdown.
+test("no raw button, input or textarea outside web/src/ui, and no native select anywhere", () => {
   const raw = sources.filter(({ file }) => !file.startsWith("ui/")).flatMap(({ file, text }) => [...text.matchAll(/<(button|input|textarea|select)\b/g)].map((m) => `${file}: <${m[1]}`));
   assert.deepEqual(raw, []);
-});
-
-// A native <select> opens the system menu: the dashboard uses its own Dropdown.
-test("no native select anywhere", () => {
   for (const { file, text } of sources) assert.ok(!text.includes("<select"), file);
 });

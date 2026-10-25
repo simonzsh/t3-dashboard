@@ -2,11 +2,8 @@ import assert from "node:assert/strict";
 import { test } from "bun:test";
 import type { DashboardProvider } from "../../../../shared/api.ts";
 import { loadNewAgentProject, presetSelection, saveNewAgentProject, titleFromMessage } from "../../../src/features/new-thread/newAgent.ts";
+import { memoryStore } from "../../fixtures.ts";
 
-const memory = () => {
-  const data = new Map<string, string>();
-  return { getItem: (key: string) => data.get(key) ?? null, setItem: (key: string, value: string) => void data.set(key, value) };
-};
 const projects = [
   { id: "p1", title: "Project A", defaultModelSelection: { instanceId: "b", model: "b-2" } },
   { id: "p2", title: "Project B", defaultModelSelection: { instanceId: "gone", model: "x" } },
@@ -28,7 +25,7 @@ test("a long first line is cut to 60 characters with an ellipsis", () => {
 });
 
 test("the last project used is preselected while it still exists", () => {
-  const storage = memory();
+  const storage = memoryStore();
   assert.equal(loadNewAgentProject(storage, projects), "");
   saveNewAgentProject(storage, "p2");
   assert.equal(loadNewAgentProject(storage, projects), "p2");

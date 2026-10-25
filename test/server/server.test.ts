@@ -13,57 +13,16 @@ import { UpdateManager } from "../../src/domain/updates.ts";
 import { ShellStore } from "../../src/domain/shellStore.ts";
 import { SseHub } from "../../src/server/sse.ts";
 import { VERSION } from "../../src/config/version.ts";
-import type { Command, ImageUpload, RawConfig, RawProjection, ShellItem, T3Port } from "../../src/integrations/t3/schemas.ts";
+import { FakePort } from "../helpers/fakePort.ts";
+import { linearNode, linearPage } from "../helpers/linear.ts";
+import type { RawConfig, ShellItem } from "../../src/integrations/t3/schemas.ts";
 
 const now = new Date("2026-03-20T12:00:00.000Z");
 const connection: ConnectionStatus = { t3: "live", serverVersion: "1.0.0", protocolMismatch: false, error: null, setup: null };
 
-class FakePort implements T3Port {
-  commands: Command[] = [];
-  projection: RawProjection = {};
-  dispatchError: Error | null = null;
-  projectionError: Error | null = null;
-  async threadProjection(): Promise<RawProjection> {
-    if (this.projectionError) throw this.projectionError;
-    return this.projection;
-  }
-  async dispatch(command: Command) {
-    if (this.dispatchError) throw this.dispatchError;
-    this.commands.push(command);
-    return { sequence: 1 };
-  }
-  config: RawConfig = {};
-  async getConfig() {
-    return this.config;
-  }
-  uploads: Array<{ threadId: string; messageId: string; images: ImageUpload[] }> = [];
-  async persistAttachments(threadId: string, messageId: string, images: ImageUpload[]) {
-    this.uploads.push({ threadId, messageId, images });
-    return images.map((image, index) => ({ type: "image", id: `stored-${index}`, name: image.name, mimeType: image.mimeType, sizeBytes: image.sizeBytes }));
-  }
-  subscribeShell() {
-    return { cancel() {} };
-  }
-}
-
 const running = [] as Array<() => Promise<void>>;
 afterEach(async () => {
   for (const stop of running.splice(0)) await stop();
-});
-
-const linearPage = (nodes: unknown[]) => new Response(JSON.stringify({ data: { viewer: { id: "u1", assignedIssues: { nodes, pageInfo: { hasNextPage: false, endCursor: null } } } } }));
-
-const linearNode = (n: number) => ({
-  id: `issue-${n}`,
-  identifier: `TEAM-${n}`,
-  title: `Issue ${n}`,
-  url: `https://linear.example/TEAM-${n}`,
-  priority: 2,
-  priorityLabel: "High",
-  updatedAt: "2026-03-20T10:00:00.000Z",
-  state: { name: "Todo", type: "unstarted", color: "#ccc" },
-  project: null,
-  team: { key: "TEAM", name: "Team 1" },
 });
 
 interface StartOptions {
@@ -578,7 +537,7 @@ test("assign with claude ignores a project default on another provider", async (
 
 test("assign with codex uses the first model of the codex provider", async () => {
   const { server, port } = await start({ linearKey: "key-1" });
-  port.config = providers;
+  port.config = async () => providers;
   const reply = await post(server, "/api/board/assign", { ...assignBody, agent: "codex" });
   assert.equal(reply.status, 200);
   assert.deepEqual(port.commands[0]!.modelSelection, { instanceId: "codex", model: "model-c1" });
@@ -586,7 +545,7 @@ test("assign with codex uses the first model of the codex provider", async () =>
 
 test("assign with codex answers 409 when no codex model exists", async () => {
   const { server, port } = await start({ linearKey: "key-1" });
-  port.config = { providers: [providers.providers![0]!] };
+  port.config = async () => ({ providers: [providers.providers![0]!] });
   const reply = await post(server, "/api/board/assign", { ...assignBody, agent: "codex" });
   assert.equal(reply.status, 409);
   assert.deepEqual(port.commands, []);

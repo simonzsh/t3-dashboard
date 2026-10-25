@@ -9,11 +9,8 @@ import {
   parseBackground,
   saveBackground,
 } from "../../../src/features/desk/deskBackground.ts";
+import { memoryStore } from "../../fixtures.ts";
 
-function store() {
-  const data = new Map<string, string>();
-  return { data, getItem: (k: string) => data.get(k) ?? null, setItem: (k: string, v: string) => void data.set(k, v) };
-}
 
 test("presets offer None plus four to six gradients", () => {
   assert.equal(BACKGROUND_PRESETS[0]?.id, "none");
@@ -37,14 +34,14 @@ test("fitWithin keeps the ratio and never upscales", () => {
 });
 
 test("saveBackground stores the value and loadBackground reads it", () => {
-  const s = store();
+  const s = memoryStore();
   assert.equal(saveBackground(s, { kind: "preset", id: "sage" }), null);
   assert.ok(s.data.has(BACKGROUND_KEY));
   assert.deepEqual(loadBackground(s), { kind: "preset", id: "sage" });
 });
 
 test("saveBackground refuses an image that is too large or that storage rejects", () => {
-  const s = store();
+  const s = memoryStore();
   const big = `data:image/jpeg;base64,${"A".repeat(MAX_IMAGE_CHARS)}`;
   assert.match(saveBackground(s, { kind: "image", dataUrl: big }) ?? "", /too large/i);
   assert.equal(s.data.size, 0);

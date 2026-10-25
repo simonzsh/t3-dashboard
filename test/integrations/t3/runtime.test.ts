@@ -1,11 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "bun:test";
 import { environmentIdFile, readEnvironmentId, readServerVersion, resolveOrigin, runtimeFile } from "../../../src/integrations/t3/runtime.ts";
-
-const files = (map: Record<string, string>) => (path: string) => {
-  if (path in map) return map[path]!;
-  throw Object.assign(new Error(`ENOENT: ${path}`), { code: "ENOENT" });
-};
+import { files } from "../../helpers/files.ts";
 
 test("defaults use the user data runtime file", () => {
   assert.equal(runtimeFile({}, "/home/ann"), "/home/ann/.t3/userdata/server-runtime.json");
