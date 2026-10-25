@@ -37,6 +37,11 @@ const buckets: Array<[string, Partial<RawThread>, string]> = [
   ["idle", { status: "idle" }, "inactive"],
   ["cancelled", { status: "cancelled", latestRunCompletedAt: ago(DAY) }, "inactive"],
   ["unknown status", { status: "weird" }, "inactive"],
+  ["subagents still running after the turn", { status: "completed", latestRunCompletedAt: ago(DAY), pendingBackgroundTasks: [{ taskId: "t1", kind: "subagent" }] }, "running"],
+  ["blocked on a thread wait", { status: "completed", latestRunCompletedAt: ago(DAY), blockedOnThreadWait: true }, "running"],
+  ["background work beats settled", { status: "completed", settledAt: ago(DAY), pendingBackgroundTasks: [{ taskId: "t1" }] }, "running"],
+  ["pending beats background work", { pendingRuntimeRequest: { id: "r", kind: "command" }, pendingBackgroundTasks: [{ taskId: "t1" }] }, "todo"],
+  ["no background task left", { status: "completed", latestRunCompletedAt: ago(DAY), pendingBackgroundTasks: [], blockedOnThreadWait: false }, "done"],
 ];
 for (const [name, extra, expected] of buckets) {
   test(`bucket: ${name} -> ${expected}`, () => assert.equal(bucketOf(thread(extra), now), expected));
@@ -111,6 +116,9 @@ test("field mapping with fallbacks", () => {
   assert.equal(bare.pullRequestUrl, null);
   assert.equal(bare.hasActionableProposedPlan, false);
   assert.equal(bare.projectId, "");
+  assert.equal(bare.backgroundWork, false);
+  assert.equal(toDashboardThread(thread({ status: "completed", pendingBackgroundTasks: [{ taskId: "t1" }] }), now).backgroundWork, true);
+  assert.equal(toDashboardThread(thread({ blockedOnThreadWait: true }), now).backgroundWork, true);
 
   const viaSelection = toDashboardThread(thread({ modelSelection: { instanceId: "provider-b", model: "model-x" } }), now);
   assert.equal(viaSelection.provider, "provider-b");

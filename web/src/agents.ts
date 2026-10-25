@@ -16,11 +16,12 @@ const WORKING = new Set(["preparing", "queued", "starting", "running", "waiting"
 const FINISHED = new Set(["completed", "interrupted", "failed", "cancelled", "rolled_back"]);
 const FINISHED_WINDOW_MS = 24 * 60 * 60 * 1000;
 const RANK: Record<AgentStatus, number> = { waiting: 0, working: 1, finished: 2 };
+const isWorking = (t: DashboardThread) => WORKING.has(t.status) || t.backgroundWork;
 
 // Returns null for threads the Agents tab hides (idle or finished long ago).
 export function agentStatus(t: DashboardThread, now: Date): AgentStatus | null {
   if (t.pending) return "waiting";
-  if (WORKING.has(t.status)) return "working";
+  if (isWorking(t)) return "working";
   if (FINISHED.has(t.status) && now.getTime() - Date.parse(t.lastActivityAt) < FINISHED_WINDOW_MS) return "finished";
   return null;
 }
@@ -29,7 +30,7 @@ export type ThreadState = "waiting" | "running" | "done" | "error" | "idle";
 
 export function threadState(t: DashboardThread): ThreadState {
   if (t.pending) return "waiting";
-  if (WORKING.has(t.status)) return "running";
+  if (isWorking(t)) return "running";
   if (t.status === "failed" || t.lastError !== null) return "error";
   return FINISHED.has(t.status) ? "done" : "idle";
 }

@@ -23,6 +23,8 @@ export interface DashboardThread {
   bucket: Bucket;
   pending: { requestId: string; kind: string; category: PendingCategory } | null;
   activeRunId: string | null;
+  /** Subagents or a thread wait still run after the turn ended. */
+  backgroundWork: boolean;
   lastError: string | null;
   hasActionableProposedPlan: boolean;
   preview: { role: string; text: string } | null;

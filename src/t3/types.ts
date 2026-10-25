@@ -15,6 +15,8 @@ export interface RawThread {
   creationSource?: string | null;
   status?: string | null;
   activeRunId?: string | null;
+  pendingBackgroundTasks?: Array<{ taskId?: string; kind?: string; description?: string; childThreadId?: string | null }> | null;
+  blockedOnThreadWait?: boolean | null;
   activityRunStartedAt?: string | null;
   latestRunStartedAt?: string | null;
   latestRunCompletedAt?: string | null;

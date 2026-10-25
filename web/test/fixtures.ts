@@ -11,6 +11,7 @@ export function thread(id: string, over: Partial<DashboardThread> = {}): Dashboa
     bucket: "inactive" as Bucket,
     pending: null,
     activeRunId: null,
+    backgroundWork: false,
     lastError: null,
     hasActionableProposedPlan: false,
     preview: null,

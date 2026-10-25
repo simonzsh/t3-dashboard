@@ -92,6 +92,13 @@ test("pendingLabel names the kind of request", () => {
   assert.equal(pendingLabel("other"), "Action required");
 });
 
+test("a finished turn with subagents still running stays working", () => {
+  const busy = thread("1", { status: "completed", backgroundWork: true, lastActivityAt: hoursAgo(1) });
+  assert.equal(agentStatus(busy, now), "working");
+  assert.equal(threadState(busy), "running");
+  assert.equal(threadState(thread("1", { pending, status: "completed", backgroundWork: true })), "waiting");
+});
+
 test("threadState gives the desk window colour", () => {
   assert.equal(threadState(thread("1", { pending, status: "running" })), "waiting");
   assert.equal(threadState(thread("1", { status: "running" })), "running");
