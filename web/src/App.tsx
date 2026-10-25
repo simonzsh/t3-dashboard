@@ -13,18 +13,13 @@ import { useDashboard } from "./api/events.ts";
 import { useDesk } from "./features/desk/useDesk.ts";
 import { useDeskBackground } from "./features/desk/useDeskBackground.ts";
 import { useShortcuts } from "./lib/useShortcuts.ts";
+import { TABS } from "./lib/tabs.ts";
+import { useTab } from "./lib/useTab.ts";
 import { useTheme } from "./features/settings/useTheme.ts";
 import { useUpdate } from "./features/update/useUpdate.ts";
 import { Button, Icon, IconButton, Kbd, Pressable } from "./ui/index.ts";
 import { updateLabel } from "./features/update/updateFlow.ts";
 
-type Tab = "agents" | "board" | "desk";
-
-const TABS: Array<{ id: Tab; label: string; key: string }> = [
-  { id: "agents", label: "Agents", key: "1" },
-  { id: "desk", label: "Desk", key: "2" },
-  { id: "board", label: "Board", key: "3" },
-];
 const TOAST_MS = 8000;
 
 // A full Desk keeps the request so "Replace oldest" can finish it.
@@ -39,7 +34,7 @@ function focusComposer(threadId: string) {
 
 export function App() {
   const { state, sseDown } = useDashboard();
-  const [tab, setTab] = useState<Tab>("agents");
+  const [tab, setTab] = useTab();
   const automations = useAutomations(tab === "agents" && state?.automationsAvailable === true);
   const [desk, dispatchDesk] = useDesk(state?.connection.t3 === "live" ? state.threads : null);
   const [toast, setToast] = useState<FullToast | null>(null);
