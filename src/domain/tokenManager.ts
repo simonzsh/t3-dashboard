@@ -3,6 +3,7 @@ import type { ReadFile } from "../config/config.ts";
 import { INSTALL_URL, ISSUE_COMMAND, issueToken, type Run } from "../integrations/t3/cli.ts";
 import type { Validation } from "../integrations/t3/client.ts";
 import { authFile } from "../config/paths.ts";
+import { readStoredToken } from "../config/storedToken.ts";
 
 type Env = Record<string, string | undefined>;
 
@@ -18,23 +19,6 @@ export interface TokenManagerOptions {
   log(message: string): void;
   now?: () => Date;
 }
-
-const field = (text: string, name: string): string | null => {
-  try {
-    const value = (JSON.parse(text) as Record<string, unknown> | null)?.[name];
-    return typeof value === "string" && value.trim() !== "" ? value.trim() : null;
-  } catch {
-    return null;
-  }
-};
-
-const tryRead = (readFile: ReadFile, path: string): string | null => {
-  try {
-    return readFile(path);
-  } catch {
-    return null;
-  }
-};
 
 /** Owns the T3 token: where it comes from, how it is checked, and what to show when none works. */
 export class TokenManager {
@@ -94,16 +78,12 @@ export class TokenManager {
   }
 
   private async resolve(): Promise<void> {
-    const { env, readFile, validate } = this.options;
+    const { env, homedir, readFile, validate } = this.options;
+    const token = readStoredToken(env, homedir, readFile);
+    if (token !== null && (await validate(token)) !== "rejected") return this.use(token);
     if (env.T3_DASHBOARD_TOKEN_FILE) {
-      const raw = tryRead(readFile, env.T3_DASHBOARD_TOKEN_FILE);
-      const token = raw === null ? null : field(raw, "token");
-      if (token !== null && (await validate(token)) !== "rejected") return this.use(token);
       return this.fail("token-needed", token === null ? "The token file cannot be read" : "T3 Code refused the token in the token file");
     }
-    const raw = tryRead(readFile, this.file);
-    const stored = raw === null ? null : field(raw, "token");
-    if (raw !== null && stored !== null && (await validate(stored)) !== "rejected") return this.use(stored);
     return this.issue();
   }
 
