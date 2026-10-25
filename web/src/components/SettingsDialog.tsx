@@ -5,6 +5,7 @@ import { THEME_SETTINGS, type ThemeSetting } from "../theme.ts";
 import type { UpdateControl } from "../useUpdate.ts";
 import { AboutSettings } from "./AboutSettings.tsx";
 import { LinearSettings } from "./LinearSettings.tsx";
+import { onRadioKeyDown } from "../ui/radioKeys.ts";
 import { Button, Dialog, FileInput, Pressable, Segmented } from "../ui/index.ts";
 
 interface Props {
@@ -51,12 +52,13 @@ export function SettingsDialog({ theme, onThemeChange, background, onBackgroundC
         <div className="settings-row settings-row-top">
           <span>Background</span>
           <div className="bg-choices">
-            <div className="swatches" role="radiogroup" aria-label="Background">
+            <div className="swatches" role="radiogroup" aria-label="Background" onKeyDown={onRadioKeyDown}>
               {BACKGROUND_PRESETS.map((p) => (
                 <Pressable
                   key={p.id}
                   role="radio"
                   aria-checked={presetId === p.id}
+                  tabIndex={presetId === p.id || (presetId === null && p.id === BACKGROUND_PRESETS[0]?.id) ? 0 : -1}
                   aria-label={p.label}
                   title={p.label}
                   className={`swatch desk-bg-${p.id}${presetId === p.id ? " active" : ""}`}
