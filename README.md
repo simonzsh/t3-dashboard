@@ -38,7 +38,7 @@ bun run build   # écrit dist/t3-dashboard
 | Variable | Défaut | Rôle |
 |---|---|---|
 | `PORT` | `4310` | Port local. L'hôte est toujours `127.0.0.1`. |
-| `T3_DASHBOARD_TOKEN_FILE` | `~/.config/t3-agent/perso.json` | Fichier JSON avec le champ `token`. |
+| `T3_DASHBOARD_TOKEN_FILE` | aucun | Fichier JSON avec le champ `token`. Sans lui, le dashboard garde son propre jeton dans `auth.json`. |
 | `T3_DASHBOARD_LINEAR_FILE` | `~/.config/t3-dashboard/linear.json` | Fichier JSON de la config Linear (voir ci-dessous). |
 | `T3_DASHBOARD_AGENT_CONFIG_DIR` | `~/.config/t3-agent` | Dossier des configs t3-agent, un `*.json` par cerveau. |
 | `T3_SERVER_RUNTIME` | `~/.t3/userdata/server-runtime.json` | Fichier JSON avec le champ `origin`, relu à chaque connexion à T3. Repli : `http://127.0.0.1:3773`. |
