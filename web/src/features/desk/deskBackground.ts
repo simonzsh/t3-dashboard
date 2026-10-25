@@ -6,20 +6,26 @@ export const MAX_IMAGE_CHARS = 3_000_000;
 export const MAX_IMAGE_SIDE = 1920;
 export const TOO_LARGE = "Image is too large to store. Try a smaller one.";
 
-export type BackgroundPresetId = "none" | "dune" | "clay" | "sage" | "dusk" | "linen";
+export type BackgroundPresetId = "none" | "ocean" | "forest" | "lagoon" | "lavender" | "sunset" | "rose" | "aurora" | "sand" | "graphite";
 export type DeskBackground = { kind: "none" } | { kind: "preset"; id: Exclude<BackgroundPresetId, "none"> } | { kind: "image"; dataUrl: string };
 
 // Gradients live in styles.css (per theme); only the ids and labels are here.
 export const BACKGROUND_PRESETS: Array<{ id: BackgroundPresetId; label: string }> = [
   { id: "none", label: "None" },
-  { id: "dune", label: "Dune" },
-  { id: "clay", label: "Clay" },
-  { id: "sage", label: "Sage" },
-  { id: "dusk", label: "Dusk" },
-  { id: "linen", label: "Linen" },
+  { id: "ocean", label: "Ocean" },
+  { id: "forest", label: "Forest" },
+  { id: "lagoon", label: "Lagoon" },
+  { id: "lavender", label: "Lavender" },
+  { id: "sunset", label: "Sunset" },
+  { id: "rose", label: "Rose" },
+  { id: "aurora", label: "Aurora" },
+  { id: "sand", label: "Sand" },
+  { id: "graphite", label: "Graphite" },
 ];
 
 const NONE: DeskBackground = { kind: "none" };
+// Old preset ids: a saved one falls back to Sand, the closest beige.
+const RETIRED = new Set(["dune", "clay", "sage", "dusk", "linen"]);
 
 export function parseBackground(raw: string | null): DeskBackground {
   let data: unknown;
@@ -30,6 +36,7 @@ export function parseBackground(raw: string | null): DeskBackground {
   }
   if (typeof data !== "object" || data === null) return NONE;
   const { kind, id, dataUrl } = data as Record<string, unknown>;
+  if (kind === "preset" && typeof id === "string" && RETIRED.has(id)) return { kind, id: "sand" };
   if (kind === "preset" && id !== "none" && BACKGROUND_PRESETS.some((p) => p.id === id)) return { kind, id: id as Exclude<BackgroundPresetId, "none"> };
   if (kind === "image" && typeof dataUrl === "string" && dataUrl.startsWith("data:image/")) return { kind, dataUrl };
   return NONE;

@@ -12,14 +12,14 @@ import {
 import { memoryStore } from "../../fixtures.ts";
 
 
-test("presets offer None plus four to six gradients", () => {
+test("presets offer None plus nine distinct gradients", () => {
   assert.equal(BACKGROUND_PRESETS[0]?.id, "none");
-  const gradients = BACKGROUND_PRESETS.length - 1;
-  assert.ok(gradients >= 4 && gradients <= 6, String(gradients));
+  assert.equal(BACKGROUND_PRESETS.length - 1, 9);
 });
 
 test("parseBackground accepts known values and falls back to none", () => {
-  assert.deepEqual(parseBackground(JSON.stringify({ kind: "preset", id: "dune" })), { kind: "preset", id: "dune" });
+  assert.deepEqual(parseBackground(JSON.stringify({ kind: "preset", id: "ocean" })), { kind: "preset", id: "ocean" });
+  assert.deepEqual(parseBackground(JSON.stringify({ kind: "preset", id: "clay" })), { kind: "preset", id: "sand" });
   assert.deepEqual(parseBackground(JSON.stringify({ kind: "image", dataUrl: "data:image/jpeg;base64,AAAA" })), { kind: "image", dataUrl: "data:image/jpeg;base64,AAAA" });
   assert.deepEqual(parseBackground(JSON.stringify({ kind: "preset", id: "neon" })), { kind: "none" });
   assert.deepEqual(parseBackground(JSON.stringify({ kind: "image", dataUrl: "https://example.com/x.png" })), { kind: "none" });
@@ -35,9 +35,9 @@ test("fitWithin keeps the ratio and never upscales", () => {
 
 test("saveBackground stores the value and loadBackground reads it", () => {
   const s = memoryStore();
-  assert.equal(saveBackground(s, { kind: "preset", id: "sage" }), null);
+  assert.equal(saveBackground(s, { kind: "preset", id: "forest" }), null);
   assert.ok(s.data.has(BACKGROUND_KEY));
-  assert.deepEqual(loadBackground(s), { kind: "preset", id: "sage" });
+  assert.deepEqual(loadBackground(s), { kind: "preset", id: "forest" });
 });
 
 test("saveBackground refuses an image that is too large or that storage rejects", () => {

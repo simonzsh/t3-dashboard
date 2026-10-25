@@ -23,11 +23,15 @@
   --done-text: #53613f;
   --err-bg: #f3d3c9;
   --err-text: #8a2a1c;
-  --desk-bg-dune: linear-gradient(135deg, #f5ead8 0%, #e6d1b0 100%);
-  --desk-bg-clay: linear-gradient(160deg, #f7e7da 0%, #e2b49a 100%);
-  --desk-bg-sage: linear-gradient(150deg, #f0f1e4 0%, #cdd7ba 100%);
-  --desk-bg-dusk: linear-gradient(160deg, #f3e4d8 0%, #cbb5c3 100%);
-  --desk-bg-linen: radial-gradient(circle at 20% 10%, #fffaf1 0%, #e9dcc6 75%);
+  --desk-bg-ocean: linear-gradient(150deg, #dcebf7 0%, #9cc3e6 100%);
+  --desk-bg-forest: linear-gradient(150deg, #e3f0df 0%, #9fc896 100%);
+  --desk-bg-lagoon: linear-gradient(150deg, #d9f2ee 0%, #86cfc3 100%);
+  --desk-bg-lavender: linear-gradient(150deg, #ece4f7 0%, #b9a3e0 100%);
+  --desk-bg-sunset: linear-gradient(135deg, #ffe2c4 0%, #f6a6a0 100%);
+  --desk-bg-rose: linear-gradient(150deg, #fbe4ec 0%, #eba7c0 100%);
+  --desk-bg-aurora: linear-gradient(135deg, #cfe0ff 0%, #e3c6f2 100%);
+  --desk-bg-sand: linear-gradient(135deg, #f5ead8 0%, #e6d1b0 100%);
+  --desk-bg-graphite: linear-gradient(150deg, #ebebee 0%, #bfc1c8 100%);
 }
 :root[data-theme="dark"] {
   color-scheme: dark;
@@ -53,11 +57,15 @@
   --done-text: #aab98f;
   --err-bg: #4f302a;
   --err-text: #f0a99b;
-  --desk-bg-dune: linear-gradient(135deg, #3b3229 0%, #2a241e 100%);
-  --desk-bg-clay: linear-gradient(160deg, #3a2b23 0%, #5b3a2b 100%);
-  --desk-bg-sage: linear-gradient(150deg, #2e3229 0%, #3f4836 100%);
-  --desk-bg-dusk: linear-gradient(160deg, #322a2f 0%, #483a49 100%);
-  --desk-bg-linen: radial-gradient(circle at 20% 10%, #48423b 0%, #2b2723 75%);
+  --desk-bg-ocean: linear-gradient(150deg, #1d2b3a 0%, #2f4f6e 100%);
+  --desk-bg-forest: linear-gradient(150deg, #1d2a20 0%, #335a3a 100%);
+  --desk-bg-lagoon: linear-gradient(150deg, #16302d 0%, #24605a 100%);
+  --desk-bg-lavender: linear-gradient(150deg, #262035 0%, #4b3b6e 100%);
+  --desk-bg-sunset: linear-gradient(135deg, #3a2420 0%, #6b3540 100%);
+  --desk-bg-rose: linear-gradient(150deg, #33202a 0%, #64374c 100%);
+  --desk-bg-aurora: linear-gradient(135deg, #1e2747 0%, #4a2e5c 100%);
+  --desk-bg-sand: linear-gradient(135deg, #3b3229 0%, #2a241e 100%);
+  --desk-bg-graphite: linear-gradient(150deg, #1f2023 0%, #3a3c42 100%);
 }
 /* Kit tokens (web/src/ui): the one focus ring, the radii and the control heights. */
 :root {
@@ -128,7 +136,8 @@ main { flex: 1; min-height: 0; overflow: hidden; padding: 24px; display: flex; f
 .group h2 { display: flex; align-items: baseline; gap: 8px; font-size: 13px; margin: 0 0 12px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-secondary); }
 .count { font-size: 12px; padding: 0 7px; border-radius: 999px; background: var(--line); color: var(--text-primary); }
 .workspace { text-transform: none; letter-spacing: 0; font-size: 12px; font-weight: 400; }
-.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(280px, 100%), 1fr)); gap: 14px; }
+/* Capped width: a card never stretches across a half-empty row. */
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(280px, 100%), 360px)); gap: 14px; }
 .agent { position: relative; display: flex; flex-direction: column; gap: 8px; align-items: flex-start; text-align: left; width: 100%; padding: 14px 16px; border-radius: 14px; box-shadow: var(--shadow); transition: transform 0.12s, box-shadow 0.12s, border-color 0.12s; }
 .agent:hover:not(:disabled) { transform: translateY(-1px); }
 .agent.on-desk { border-color: color-mix(in srgb, var(--accent) 55%, var(--line)); }
@@ -140,9 +149,10 @@ main { flex: 1; min-height: 0; overflow: hidden; padding: 24px; display: flex; f
 .card-open-t3 { position: absolute; top: 10px; right: 44px; border-radius: var(--radius-md); border: 1px solid var(--line); background: var(--surface-1); }
 .card-open-t3:hover { color: var(--text-primary); border-color: var(--accent); }
 .open-t3 .icon { width: 16px; height: 16px; }
-.agent-head { display: flex; gap: 10px; align-items: flex-start; }
+.agent-head { display: flex; gap: 10px; align-items: center; min-width: 0; max-width: 100%; }
 .provider-icon { flex: none; width: 20px; height: 20px; margin-top: 1px; }
-.agent-title { font-weight: 600; word-break: break-word; }
+/* One line: a long title must not make the card taller. */
+.agent-title { font-weight: 600; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .agent-meta { color: var(--text-secondary); font-size: 12px; }
 .agent-foot { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
 .agent-preview { color: var(--text-secondary); font-size: 13px; word-break: break-word; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
@@ -339,8 +349,8 @@ main { flex: 1; min-height: 0; overflow: hidden; padding: 24px; display: flex; f
 .settings-row { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
 .settings-row-top { align-items: flex-start; }
 .bg-choices { display: flex; flex-direction: column; align-items: flex-end; gap: 8px; }
-.swatches { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 6px; }
-.swatch { width: 32px; height: 32px; padding: 0; border-radius: 8px; border: 1px solid var(--line); background-size: cover; background-position: center; }
+.swatches { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 5px; }
+.swatch { width: 28px; height: 28px; padding: 0; border-radius: 8px; border: 1px solid var(--line); background-size: cover; background-position: center; }
 .swatch.active { box-shadow: 0 0 0 2px var(--surface-1), 0 0 0 4px var(--accent); }
 .segmented { display: flex; gap: 2px; padding: 3px; border-radius: 10px; background: var(--surface-0); border: 1px solid var(--line); }
 .segmented button { border: 0; background: none; padding: 4px 14px; border-radius: 7px; color: var(--text-secondary); font-weight: 500; }
@@ -354,9 +364,8 @@ main { flex: 1; min-height: 0; overflow: hidden; padding: 24px; display: flex; f
 .settled-head { display: inline-flex; align-items: center; gap: 8px; padding: 4px 6px; border: 0; background: none; color: var(--text-secondary); font-size: 12px; font-weight: 500; }
 .settled-head:hover:not(:disabled) { color: var(--text-primary); }
 .settled-head + .grid { margin-top: 8px; }
-.grid.compact { grid-template-columns: repeat(auto-fill, minmax(min(220px, 100%), 1fr)); gap: 10px; }
+.grid.compact { grid-template-columns: repeat(auto-fill, minmax(min(220px, 100%), 360px)); gap: 10px; }
 .agent.compact { gap: 6px; padding: 10px 12px; border-radius: 12px; font-size: 13px; }
-.agent.compact .agent-title { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
 .automations { max-height: 100%; overflow-y: auto; box-sizing: border-box; display: flex; flex-direction: column; gap: 20px; padding: 16px; border-radius: 14px; background: var(--surface-1); border: 1px solid var(--line); box-shadow: var(--shadow); }
 .auto-heading { margin: 0; font-size: 15px; }
 .auto-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
@@ -378,11 +387,15 @@ button.auto-row:hover { background: var(--surface-0); }
 .app.desk-mode main { padding: 0; gap: 0; }
 .desk { flex: 1; min-height: 0; display: flex; flex-direction: column; background-color: var(--surface-0); background-size: cover; background-position: center; }
 .desk-bg-none { background-color: var(--surface-0); }
-.desk-bg-dune { background-image: var(--desk-bg-dune); }
-.desk-bg-clay { background-image: var(--desk-bg-clay); }
-.desk-bg-sage { background-image: var(--desk-bg-sage); }
-.desk-bg-dusk { background-image: var(--desk-bg-dusk); }
-.desk-bg-linen { background-image: var(--desk-bg-linen); }
+.desk-bg-ocean { background-image: var(--desk-bg-ocean); }
+.desk-bg-forest { background-image: var(--desk-bg-forest); }
+.desk-bg-lagoon { background-image: var(--desk-bg-lagoon); }
+.desk-bg-lavender { background-image: var(--desk-bg-lavender); }
+.desk-bg-sunset { background-image: var(--desk-bg-sunset); }
+.desk-bg-rose { background-image: var(--desk-bg-rose); }
+.desk-bg-aurora { background-image: var(--desk-bg-aurora); }
+.desk-bg-sand { background-image: var(--desk-bg-sand); }
+.desk-bg-graphite { background-image: var(--desk-bg-graphite); }
 .desk.has-bg .desk-window { box-shadow: 0 2px 6px rgb(0 0 0 / 0.12), 0 10px 28px rgb(0 0 0 / 0.14); }
 .desk.has-bg .empty-state { background: color-mix(in srgb, var(--surface-1) 88%, transparent); backdrop-filter: blur(6px); }
 .desk-area { position: relative; flex: 1; min-height: 0; padding: 10px; display: flex; flex-direction: column; }
@@ -432,13 +445,21 @@ button.auto-row:hover { background: var(--surface-0); }
 .dw-buttons .icon-button { min-width: 0; height: auto; padding: 4px; border-radius: var(--radius-sm); }
 .dw-buttons .icon-button:hover { color: var(--text-primary); background: var(--surface-0); }
 .desk-missing { flex: 1; display: flex; flex-direction: column; gap: 10px; align-items: center; justify-content: center; padding: 16px; text-align: center; color: var(--text-secondary); }
-.desk-dock, .desk-tabs { display: flex; gap: 6px; padding: 8px 10px; overflow-x: auto; background: color-mix(in srgb, var(--header-bg) 85%, transparent); backdrop-filter: blur(8px); }
-.desk-dock { border-top: 1px solid var(--line); }
-.desk-tabs { border-bottom: 1px solid var(--line); }
+/* The bars sit on the desk background; only the chips have a surface. */
+.desk-dock, .desk-tabs { display: flex; gap: 6px; padding: 8px 10px; overflow-x: auto; }
+/* The window area already pads 10px above the dock. */
+.desk-dock { padding: 0 10px 10px; }
+.desk.has-bg .desk-chip:not(.active) { background: color-mix(in srgb, var(--surface-1) 88%, transparent); }
 .desk-chip { flex: none; display: inline-flex; align-items: center; gap: 6px; max-width: 240px; padding: 4px 10px; border-radius: 999px; font-size: 12px; }
 .desk-chip.active { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 12%, var(--surface-1)); }
 .desk-chip .provider-icon { width: 14px; height: 14px; margin: 0; }
 .desk-chip-title { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* The close cross shows on hover or keyboard focus, over the end of the chip. */
+.desk-chip-wrap { position: relative; flex: none; display: inline-flex; }
+.desk-chip-wrap .desk-chip-close { position: absolute; right: 3px; top: 50%; transform: translateY(-50%); min-width: 0; width: 20px; height: 20px; border-radius: 50%; background: var(--surface-1); box-shadow: -6px 0 6px var(--surface-1); opacity: 0; transition: opacity 0.1s; }
+.desk-chip-close .icon { width: 12px; height: 12px; }
+.desk-chip-wrap:hover .desk-chip-close, .desk-chip-wrap:focus-within .desk-chip-close { opacity: 1; }
+@media (hover: none) { .desk-chip-close { opacity: 1; } .desk-chip-wrap .desk-chip { padding-right: 26px; } }
 .state-dot { flex: none; width: 8px; height: 8px; border-radius: 50%; background: var(--line); }
 .state-dot.waiting { background: var(--warn); }
 .state-dot.running { background: var(--work); }
@@ -458,6 +479,9 @@ button.auto-row:hover { background: var(--surface-0); }
   .topbar-right button.update-pill { padding: 0; }
   .kanban { flex: none; flex-direction: column; overflow-x: visible; }
   .column { width: 100%; min-width: 0; max-height: none; flex: none; }
+}
+@media (max-width: 700px) {
+  .grid, .grid.compact { grid-template-columns: 1fr; }
 }
 @media (max-width: 380px) {
   .topbar { gap: 6px; padding-inline: max(8px, env(safe-area-inset-left)) max(8px, env(safe-area-inset-right)); }
