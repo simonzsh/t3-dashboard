@@ -349,8 +349,8 @@ main { flex: 1; min-height: 0; overflow: hidden; padding: 24px; display: flex; f
 .settings-row { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
 .settings-row-top { align-items: flex-start; }
 .bg-choices { display: flex; flex-direction: column; align-items: flex-end; gap: 8px; }
-.swatches { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 6px; }
-.swatch { width: 32px; height: 32px; padding: 0; border-radius: 8px; border: 1px solid var(--line); background-size: cover; background-position: center; }
+.swatches { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 5px; }
+.swatch { width: 28px; height: 28px; padding: 0; border-radius: 8px; border: 1px solid var(--line); background-size: cover; background-position: center; }
 .swatch.active { box-shadow: 0 0 0 2px var(--surface-1), 0 0 0 4px var(--accent); }
 .segmented { display: flex; gap: 2px; padding: 3px; border-radius: 10px; background: var(--surface-0); border: 1px solid var(--line); }
 .segmented button { border: 0; background: none; padding: 4px 14px; border-radius: 7px; color: var(--text-secondary); font-weight: 500; }
