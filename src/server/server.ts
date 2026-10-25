@@ -92,40 +92,68 @@ export interface DashboardHandler {
   fetch(req: Request, server?: Server<undefined>): Promise<Response>;
 }
 
+interface RouteContext {
+  req: Request;
+  server: Server<undefined> | undefined;
+  params: Record<string, string>;
+  body: Record<string, unknown>;
+}
+
+interface Route {
+  method: "GET" | "POST";
+  path: string;
+  /** Body limit of a POST; 1 MB by default. */
+  maxBytes?: number;
+  handle(ctx: RouteContext): Promise<Response> | Response;
+}
+
+// `:name` matches one non-empty segment.
+function matchRoute(pattern: string[], segments: string[]): Record<string, string> | null {
+  if (pattern.length !== segments.length) return null;
+  const params: Record<string, string> = {};
+  for (const [index, part] of pattern.entries()) {
+    const segment = segments[index]!;
+    if (part.startsWith(":") && segment !== "") params[part.slice(1)] = segment;
+    else if (part !== segment) return null;
+  }
+  return params;
+}
+
 export function createDashboardServer(options: DashboardServerOptions): DashboardHandler {
   const { actions, hub, board, automations, getState, connection, site, settings, setup, updates } = options;
   const allowedHosts = new Set([...LOCAL_HOSTS, ...(options.allowedHosts ?? [])]);
+  const ok = (extra: Record<string, unknown> = {}) => json(200, { ok: true, ...extra });
+  const done = async (work: Promise<unknown>) => (await work, ok());
 
-  async function api(req: Request, server: Server<undefined> | undefined, segments: string[]): Promise<Response> {
-    const [, resource, id, action, requestId, requestAction] = segments;
-    const method = req.method;
-    if (method === "GET") {
-      if (segments.length === 2 && resource === "health") return json(200, { ok: true, t3: connection().t3, version: VERSION });
-      if (segments.length === 2 && resource === "board") {
-        const refresh = new URL(req.url).searchParams.get("refresh") === "1";
-        return json(200, await board.get(refresh));
-      }
-      if (segments.length === 2 && resource === "automations") return json(200, automations());
-      if (resource === "settings" && segments.length === 2) return json(200, settings.get());
-      if (resource === "update" && segments.length === 2) return json(200, updates.status());
-      if (segments.length === 2 && resource === "events") {
+  const routes: Route[] = [
+    { method: "GET", path: "/api/health", handle: () => json(200, { ok: true, t3: connection().t3, version: VERSION }) },
+    { method: "GET", path: "/api/board", handle: async ({ req }) => json(200, await board.get(new URL(req.url).searchParams.get("refresh") === "1")) },
+    { method: "GET", path: "/api/automations", handle: () => json(200, automations()) },
+    { method: "GET", path: "/api/settings", handle: () => json(200, settings.get()) },
+    { method: "GET", path: "/api/update", handle: () => json(200, updates.status()) },
+    {
+      method: "GET",
+      path: "/api/events",
+      handle: ({ req, server }) => {
         server?.timeout(req, 0);
         return hub.add(getState(), req.signal);
-      }
-      if (segments.length === 3 && resource === "threads" && id) {
-        return json(200, await actions.threadDetail(id));
-      }
-    } else if (method === "POST" && resource === "board" && id === "assign" && segments.length === 3) {
-      const threadId = await actions.assign(validAssign(await readJson(req)));
-      return json(200, { ok: true, threadId });
-    } else if (method === "POST" && resource === "setup" && segments.length === 3) {
-      const body = await readJson(req);
-      if (id === "retry") {
+      },
+    },
+    { method: "GET", path: "/api/threads/:id", handle: async ({ params }) => json(200, await actions.threadDetail(params.id!)) },
+    { method: "POST", path: "/api/board/assign", handle: async ({ body }) => ok({ threadId: await actions.assign(validAssign(body)) }) },
+    {
+      method: "POST",
+      path: "/api/setup/retry",
+      handle: async () => {
         await setup.refresh();
         setup.wake();
         return json(200, connection());
-      }
-      if (id === "token") {
+      },
+    },
+    {
+      method: "POST",
+      path: "/api/setup/token",
+      handle: async ({ body }) => {
         if (!isText(body.token)) throw new HttpError(400, "Paste a token first.");
         const result = await setup.paste(body.token);
         if (result === "locked") throw new HttpError(409, "T3_DASHBOARD_TOKEN_FILE is set: put the token in that file.");
@@ -133,51 +161,55 @@ export function createDashboardServer(options: DashboardServerOptions): Dashboar
         if (result === "unreachable") throw new HttpError(502, "T3 Code is unreachable.");
         setup.wake();
         return json(200, connection());
-      }
-    } else if (method === "POST" && resource === "update" && segments.length === 3) {
-      await readJson(req);
-      if (id === "check") return json(200, await updates.check());
-      if (id === "apply") {
+      },
+    },
+    { method: "POST", path: "/api/update/check", handle: async () => json(200, await updates.check()) },
+    {
+      method: "POST",
+      path: "/api/update/apply",
+      handle: () => {
         const result = updates.apply();
         if (!result.started) throw new HttpError(409, result.reason);
         return json(202, updates.status());
-      }
-    } else if (method === "POST" && resource === "settings" && id === "linear") {
-      const body = await readJson(req);
-      if (segments.length === 4 && action === "key") return json(200, await settings.connectKey({ apiKey: String(body.apiKey ?? "") }));
-      if (segments.length === 4 && action === "disconnect") return json(200, settings.disconnect());
-    } else if (method === "POST" && resource === "threads") {
-      const withImages = segments.length === 2 || (segments.length === 4 && action === "messages");
-      const body = await readJson(req, withImages ? MAX_MESSAGE_BODY_BYTES : MAX_BODY_BYTES);
-      if (segments.length === 2) {
-        const threadId = await actions.createThread(validCreate(body), validImages(body.attachments));
-        return json(200, { ok: true, threadId });
-      }
-      if (id && segments.length === 4) {
-        if (action === "messages") {
-          const { message, images } = validMessage(body);
-          await actions.sendMessage(id, message, images);
-          return json(200, { ok: true });
-        }
-        if (action === "settings") {
-          await actions.changeSettings(id, validSettings(body));
-          return json(200, { ok: true });
-        }
-        if (action === "interrupt") {
-          await actions.interrupt(id);
-          return json(200, { ok: true });
-        }
-      }
-      if (id && segments.length === 6 && action === "requests" && requestId) {
-        if (requestAction === "respond") {
-          await actions.respond(id, requestId, validRespond(body));
-          return json(200, { ok: true });
-        }
-        if (requestAction === "dismiss") {
-          await actions.dismiss(id, requestId);
-          return json(200, { ok: true });
-        }
-      }
+      },
+    },
+    { method: "POST", path: "/api/settings/linear/key", handle: async ({ body }) => json(200, await settings.connectKey({ apiKey: String(body.apiKey ?? "") })) },
+    { method: "POST", path: "/api/settings/linear/disconnect", handle: () => json(200, settings.disconnect()) },
+    {
+      method: "POST",
+      path: "/api/threads",
+      maxBytes: MAX_MESSAGE_BODY_BYTES,
+      handle: async ({ body }) => ok({ threadId: await actions.createThread(validCreate(body), validImages(body.attachments)) }),
+    },
+    {
+      method: "POST",
+      path: "/api/threads/:id/messages",
+      maxBytes: MAX_MESSAGE_BODY_BYTES,
+      handle: async ({ params, body }) => {
+        const { message, images } = validMessage(body);
+        await actions.sendMessage(params.id!, message, images);
+        return ok();
+      },
+    },
+    { method: "POST", path: "/api/threads/:id/settings", handle: ({ params, body }) => done(actions.changeSettings(params.id!, validSettings(body))) },
+    { method: "POST", path: "/api/threads/:id/interrupt", handle: ({ params }) => done(actions.interrupt(params.id!)) },
+    {
+      method: "POST",
+      path: "/api/threads/:id/requests/:requestId/respond",
+      handle: ({ params, body }) => done(actions.respond(params.id!, params.requestId!, validRespond(body))),
+    },
+    { method: "POST", path: "/api/threads/:id/requests/:requestId/dismiss", handle: ({ params }) => done(actions.dismiss(params.id!, params.requestId!)) },
+  ];
+  const table = routes.map((route) => ({ ...route, pattern: route.path.split("/").slice(1) }));
+
+  async function api(req: Request, server: Server<undefined> | undefined, segments: string[]): Promise<Response> {
+    for (const route of table) {
+      if (route.method !== req.method) continue;
+      const params = matchRoute(route.pattern, segments);
+      if (!params) continue;
+      // Every POST goes through readJson: its JSON content-type check is the CSRF guard.
+      const body = route.method === "POST" ? await readJson(req, route.maxBytes) : {};
+      return route.handle({ req, server, params, body });
     }
     throw new HttpError(404, "Unknown route");
   }

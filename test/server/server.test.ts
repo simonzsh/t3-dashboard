@@ -462,6 +462,29 @@ test("allowed hosts extend the local ones for Host and Origin, ports ignored", a
   assert.equal(await get({ host: "127.0.0.1", origin: "http://localhost:5173" }), 200);
 });
 
+test("every POST route refuses a body that is not JSON", async () => {
+  const { server, port } = await start();
+  const posts = [
+    "/api/board/assign",
+    "/api/setup/retry",
+    "/api/setup/token",
+    "/api/update/check",
+    "/api/update/apply",
+    "/api/settings/linear/key",
+    "/api/settings/linear/disconnect",
+    "/api/threads",
+    "/api/threads/run-1/messages",
+    "/api/threads/run-1/settings",
+    "/api/threads/run-1/interrupt",
+    "/api/threads/run-1/requests/req-1/respond",
+    "/api/threads/run-1/requests/req-1/dismiss",
+  ];
+  for (const path of posts) {
+    assert.equal((await call(server, "POST", path, { headers: { "content-type": "text/plain" }, raw: "{}" })).status, 400, path);
+  }
+  assert.deepEqual(port.commands, []);
+});
+
 test("unknown API routes give 404 and never CORS headers", async () => {
   const { server } = await start();
   const reply = await call(server, "GET", "/api/nope");
