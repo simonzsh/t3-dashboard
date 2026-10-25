@@ -4,7 +4,9 @@ import type { LinearWorkspaceConfig } from "./linearConfig.ts";
 const ENDPOINT = "https://api.linear.app/graphql";
 const CACHE_MS = 60_000;
 const VIEWER_QUERY = "{ viewer { id } }";
-const QUERY = `{ viewer { assignedIssues(first: 100, filter: { state: { type: { nin: ["completed", "canceled"] } } }) { nodes { id identifier title url priority priorityLabel updatedAt state { name type color } project { id name } team { key name } } } } }`;
+const QUERY = `query($after: String) { viewer { assignedIssues(first: 100, after: $after, filter: { state: { type: { nin: ["completed", "canceled"] } } }) { nodes { id identifier title url priority priorityLabel updatedAt state { name type color } project { id name } team { key name } } pageInfo { hasNextPage endCursor } } } }`;
+// 20 pages of 100: a hard stop for a runaway cursor.
+const MAX_PAGES = 20;
 
 export type FetchLike = (url: string, init: RequestInit) => Promise<Response>;
 
@@ -33,10 +35,10 @@ class LinearError extends Error {
 }
 
 // Error texts never include the response body or the key: both can echo it back.
-async function query(options: LinearBoardOptions, apiKey: string, text: string): Promise<Record<string, any>> {
+async function query(options: LinearBoardOptions, apiKey: string, text: string, variables?: Record<string, unknown>): Promise<Record<string, any>> {
   let response: Response;
   try {
-    response = await options.fetch(ENDPOINT, { method: "POST", headers: { "content-type": "application/json", authorization: apiKey }, body: JSON.stringify({ query: text }), signal: AbortSignal.timeout(FETCH_TIMEOUT_MS) });
+    response = await options.fetch(ENDPOINT, { method: "POST", headers: { "content-type": "application/json", authorization: apiKey }, body: JSON.stringify({ query: text, variables }), signal: AbortSignal.timeout(FETCH_TIMEOUT_MS) });
   } catch {
     throw new LinearError("unreachable", "Linear is unreachable");
   }
@@ -53,9 +55,17 @@ async function query(options: LinearBoardOptions, apiKey: string, text: string):
 }
 
 async function fetchIssues(options: LinearBoardOptions, apiKey: string): Promise<Nodes> {
-  const nodes = (await query(options, apiKey, QUERY)).viewer?.assignedIssues?.nodes;
-  if (!Array.isArray(nodes)) throw new LinearError("refused", "Linear returned an error");
-  return nodes;
+  const issues: Nodes = [];
+  let after: string | undefined;
+  for (let page = 0; page < MAX_PAGES; page++) {
+    const connection = (await query(options, apiKey, QUERY, { after })).viewer?.assignedIssues;
+    if (!Array.isArray(connection?.nodes)) throw new LinearError("refused", "Linear returned an error");
+    issues.push(...connection.nodes);
+    if (connection.pageInfo?.hasNextPage !== true) return issues;
+    if (typeof connection.pageInfo.endCursor !== "string") throw new LinearError("refused", "Linear returned an error");
+    after = connection.pageInfo.endCursor;
+  }
+  throw new LinearError("unreachable", `Too many assigned issues to load (over ${MAX_PAGES * 100})`);
 }
 
 /** Assigned Linear issues per workspace, cached for a minute. Each workspace is read on its own. */
