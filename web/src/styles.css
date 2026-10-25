@@ -456,7 +456,7 @@ button.auto-row:hover { background: var(--surface-0); }
 .desk-chip-title { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 /* The close cross shows on hover or keyboard focus, over the end of the chip. */
 .desk-chip-wrap { position: relative; flex: none; display: inline-flex; }
-.desk-chip-close { position: absolute; right: 3px; top: 50%; transform: translateY(-50%); min-width: 0; width: 20px; height: 20px; border-radius: 50%; background: var(--surface-1); opacity: 0; transition: opacity 0.1s; }
+.desk-chip-wrap .desk-chip-close { position: absolute; right: 3px; top: 50%; transform: translateY(-50%); min-width: 0; width: 20px; height: 20px; border-radius: 50%; background: var(--surface-1); box-shadow: -6px 0 6px var(--surface-1); opacity: 0; transition: opacity 0.1s; }
 .desk-chip-close .icon { width: 12px; height: 12px; }
 .desk-chip-wrap:hover .desk-chip-close, .desk-chip-wrap:focus-within .desk-chip-close { opacity: 1; }
 @media (hover: none) { .desk-chip-close { opacity: 1; } .desk-chip-wrap .desk-chip { padding-right: 26px; } }
