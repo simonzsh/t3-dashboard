@@ -3,6 +3,7 @@ import type { UpdateStatus } from "../../../../shared/api.ts";
 import { useApi } from "../../api/ApiContext.tsx";
 import { waitForRestart } from "./updateFlow.ts";
 import { errorMessage } from "../../lib/format.ts";
+import { useAction } from "../../lib/useAction.ts";
 import { usePoll } from "../../lib/usePoll.ts";
 
 const POLL_MS = 60 * 60 * 1000;
@@ -20,25 +21,16 @@ export function useUpdate(): UpdateControl {
   const api = useApi();
   const [status, setStatus] = useState<UpdateStatus | null>(null);
   const [updating, setUpdating] = useState(false);
-  const [checking, setChecking] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const { busy: checking, error, setError, run } = useAction();
 
   // The server checks once a day: the page only reads the answer.
   const load = () => api.getUpdate().then(setStatus, () => {});
   useEffect(() => void load(), []);
   usePoll(load, POLL_MS);
 
-  const check = useCallback(async () => {
-    setChecking(true);
-    setError(null);
-    try {
-      setStatus(await api.checkUpdate());
-    } catch (e) {
-      setError(errorMessage(e));
-    } finally {
-      setChecking(false);
-    }
-  }, []);
+  const check = async () => {
+    await run(async () => setStatus(await api.checkUpdate()));
+  };
 
   const apply = useCallback(async () => {
     if (!status) return;

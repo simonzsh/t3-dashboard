@@ -6,6 +6,7 @@ import type { DropdownOption } from "../../lib/dropdown.ts";
 import { Dropdown, FileInput, Icon, IconButton, Pressable, TextArea } from "../../ui/index.ts";
 import { ProviderIcon } from "../../lib/ProviderIcon.tsx";
 import { errorMessage } from "../../lib/format.ts";
+import { useAction } from "../../lib/useAction.ts";
 
 interface Pending {
   key: string;
@@ -44,7 +45,8 @@ export function Composer({ providers, selection, runtimeMode, running, draft, on
   // Picks show at once, until new values come in the props or the change fails.
   const [override, setOverride] = useState<{ selection?: ModelSelection; mode?: RuntimeMode }>({});
   const [images, setImages] = useState<Pending[]>([]);
-  const [error, setError] = useState<string | null>(null);
+  // One error line: each attempt replaces it, so an older error never hides a newer one.
+  const { error, setError, run: attempt } = useAction();
   const [sending, setSending] = useState(false);
   const [stopping, setStopping] = useState(false);
   const fileInput = useRef<HTMLInputElement>(null);
@@ -55,21 +57,6 @@ export function Composer({ providers, selection, runtimeMode, running, draft, on
   const localSelection = override.selection ?? selection;
   const localMode = override.mode ?? runtimeMode;
   useEffect(() => setError(null), [errorResetKey]);
-
-  // One error line: each attempt replaces it, so an older error never hides a newer one.
-  async function attempt(work: () => unknown, setBusy?: (busy: boolean) => void): Promise<boolean> {
-    setError(null);
-    setBusy?.(true);
-    try {
-      await work();
-      return true;
-    } catch (e) {
-      setError(errorMessage(e));
-      return false;
-    } finally {
-      setBusy?.(false);
-    }
-  }
 
   // Grows with the text up to the CSS max height; measured again when the window resizes,
   // since a size taken while the window was narrow or hidden would stick.

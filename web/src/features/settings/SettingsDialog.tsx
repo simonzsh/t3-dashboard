@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useRef } from "react";
 import { BACKGROUND_PRESETS, type DeskBackground } from "../desk/deskBackground.ts";
 import { imageFileToDataUrl } from "../desk/deskImage.ts";
 import { THEME_SETTINGS, type ThemeSetting } from "./theme.ts";
@@ -7,7 +7,7 @@ import { AboutSettings } from "./AboutSettings.tsx";
 import { LinearSettings } from "./LinearSettings.tsx";
 import { onRadioKeyDown } from "../../ui/radioKeys.ts";
 import { Button, Dialog, FileInput, Pressable, Segmented } from "../../ui/index.ts";
-import { errorMessage } from "../../lib/format.ts";
+import { useAction } from "../../lib/useAction.ts";
 
 interface Props {
   theme: ThemeSetting;
@@ -24,20 +24,11 @@ const LABELS: Record<ThemeSetting, string> = { system: "System", light: "Light",
 
 export function SettingsDialog({ theme, onThemeChange, background, onBackgroundChange, onLinearChange, update, onUpdate, onClose }: Props) {
   const fileInput = useRef<HTMLInputElement>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [busy, setBusy] = useState(false);
+  const { busy, error, setError, run } = useAction();
   const presetId = background.kind === "preset" ? background.id : background.kind === "none" ? "none" : null;
 
-  async function upload(file: File) {
-    setBusy(true);
-    try {
-      setError(onBackgroundChange({ kind: "image", dataUrl: await imageFileToDataUrl(file) }));
-    } catch (e) {
-      setError(errorMessage(e));
-    } finally {
-      setBusy(false);
-    }
-  }
+  // onBackgroundChange returns its refusal instead of throwing.
+  const upload = (file: File) => run(async () => setError(onBackgroundChange({ kind: "image", dataUrl: await imageFileToDataUrl(file) })));
 
   return (
     <Dialog title="Settings" className="settings" onClose={onClose}>
