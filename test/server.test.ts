@@ -10,6 +10,7 @@ import type { DashboardHandler } from "../src/server.ts";
 import type { Site } from "../src/site.ts";
 import { ShellStore } from "../src/shellStore.ts";
 import { SseHub } from "../src/sse.ts";
+import { VERSION } from "../src/version.ts";
 import type { Command, RawConfig, RawProjection, ShellItem, T3Port } from "../src/t3/types.ts";
 
 const now = new Date("2026-03-20T12:00:00.000Z");
@@ -63,7 +64,7 @@ interface StartOptions {
   automations?: () => AutomationsResult;
   // Content of the Linear file. Without it, `workspaces` feeds the board directly.
   linear?: unknown;
-  pasteResult?: "ok" | "rejected" | "unreachable";
+  pasteResult?: "ok" | "rejected" | "unreachable" | "locked";
 }
 
 const LINEAR_FILE = "/cfg/linear.json";
@@ -167,7 +168,7 @@ const model = { instanceId: "provider-a", model: "model-x" };
 test("GET /api/health and /api/state", async () => {
   const { server } = await start();
   const health = await call(server, "GET", "/api/health");
-  assert.deepEqual(health.json, { ok: true, t3: "live" });
+  assert.deepEqual(health.json, { ok: true, t3: "live", version: VERSION, pid: process.pid });
   assert.equal(health.headers["content-type"], "application/json; charset=utf-8");
   assert.equal(health.headers["access-control-allow-origin"], undefined);
   const state = (await call(server, "GET", "/api/state")).json as DashboardState;
@@ -632,6 +633,13 @@ test("a token T3 refuses gives 400, an unreachable T3 gives 502, an empty one gi
   const second = await post(down.server, "/api/setup/token", { token: "pasted-token-value" });
   assert.deepEqual([second.status, second.json], [502, { error: "T3 Code is unreachable." }]);
   assert.equal((await post(down.server, "/api/setup/token", { token: "  " })).status, 400);
+});
+
+test("a pasted token is refused with 409 when the token file variable is set", async () => {
+  const { server, setupCalls } = await start({ pasteResult: "locked" });
+  const reply = await post(server, "/api/setup/token", { token: "pasted-token-value" });
+  assert.deepEqual([reply.status, reply.json], [409, { error: "T3_DASHBOARD_TOKEN_FILE is set: put the token in that file." }]);
+  assert.ok(!setupCalls.includes("wake"));
 });
 
 test("an issue whose team has no T3 project needs a project, then the choice is remembered for the team", async () => {
