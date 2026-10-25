@@ -1,4 +1,6 @@
-import type { Bucket, DashboardState, DashboardThread } from "../../shared/api.ts";
+import { readdirSync, readFileSync } from "node:fs";
+import { join } from "node:path";
+import type { DashboardState, DashboardThread } from "../../shared/api.ts";
 
 export function thread(id: string, over: Partial<DashboardThread> = {}): DashboardThread {
   return {
@@ -6,22 +8,15 @@ export function thread(id: string, over: Partial<DashboardThread> = {}): Dashboa
     projectId: "project-a",
     title: `Thread ${id}`,
     provider: "provider-a",
-    model: "model-x",
     status: "idle",
-    bucket: "inactive" as Bucket,
     settled: false,
     pending: null,
     activeRunId: null,
     backgroundWork: false,
     pendingTasks: false,
     lastError: null,
-    hasActionableProposedPlan: false,
     preview: null,
     pinned: false,
-    branch: null,
-    pullRequestUrl: null,
-    createdAt: "2026-01-10T10:00:00.000Z",
-    updatedAt: "2026-01-10T10:00:00.000Z",
     lastActivityAt: "2026-01-10T10:00:00.000Z",
     ...over,
   };
@@ -29,12 +24,26 @@ export function thread(id: string, over: Partial<DashboardThread> = {}): Dashboa
 
 export function baseState(threads: DashboardThread[] = []): DashboardState {
   return {
-    connection: { t3: "live", origin: null, serverVersion: null, protocolMismatch: false, error: null, since: "2026-01-10T10:00:00.000Z", setup: null },
+    connection: { t3: "live", serverVersion: null, protocolMismatch: false, error: null, setup: null },
     projects: [{ id: "project-a", title: "Project A", defaultModelSelection: null }],
     providers: [],
     threads,
-    generatedAt: "2026-01-10T10:00:00.000Z",
     automationsAvailable: true,
     t3EnvironmentId: null,
   };
+}
+
+/** In-memory localStorage; `data` shows what was saved. */
+export function memoryStore(initial: Record<string, string> = {}) {
+  const data = new Map(Object.entries(initial));
+  return { data, getItem: (key: string) => data.get(key) ?? null, setItem: (key: string, value: string) => void data.set(key, value) };
+}
+
+/** Every .tsx file of web/src, with its path relative to web/src. */
+export function tsxSources(): Array<{ file: string; text: string }> {
+  const root = join(import.meta.dir, "../src");
+  return readdirSync(root, { recursive: true })
+    .map(String)
+    .filter((file) => file.endsWith(".tsx"))
+    .map((file) => ({ file, text: readFileSync(join(root, file), "utf8") }));
 }

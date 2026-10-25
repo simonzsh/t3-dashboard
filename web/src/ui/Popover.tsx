@@ -1,6 +1,6 @@
 import { useEffect, useLayoutEffect, useRef, type ReactNode, type RefObject } from "react";
 import { createPortal } from "react-dom";
-import { placeMenu } from "../dropdown.ts";
+import { placeMenu } from "../lib/dropdown.ts";
 
 interface Props {
   anchor: RefObject<HTMLElement | null>;

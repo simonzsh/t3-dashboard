@@ -1,14 +1,9 @@
 import assert from "node:assert/strict";
 import { test } from "bun:test";
-import { readdirSync, readFileSync } from "node:fs";
-import { join } from "node:path";
+import { tsxSources } from "./fixtures.ts";
 
 // Password managers (Safari, 1Password…) pop up on fields that look like a login: guard every field.
-const root = join(import.meta.dir, "../src");
-const sources = readdirSync(root, { recursive: true })
-  .map(String)
-  .filter((file) => file.endsWith(".tsx"))
-  .map((file) => ({ file, text: readFileSync(join(root, file), "utf8") }));
+const sources = tsxSources();
 
 const tags = (text: string, tag: string) => [...text.matchAll(new RegExp(`<${tag}\\b[^>]*?/?>`, "gs"))].map((m) => m[0]);
 

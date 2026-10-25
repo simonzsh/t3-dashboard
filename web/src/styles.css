@@ -67,6 +67,7 @@
   --radius-lg: 14px;
   --control-sm: 28px;
   --control-md: 32px;
+  --font-mono: var(--font-mono);
   accent-color: var(--accent);
 }
 * { box-sizing: border-box; }
@@ -109,7 +110,7 @@ button.primary kbd { color: var(--on-accent); border-color: color-mix(in srgb, v
 .conn { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; color: var(--text-secondary); }
 .conn-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--warn); }
 .conn.up .conn-dot { background: var(--ok); }
-kbd { font: 11px/1 ui-monospace, SFMono-Regular, Menlo, monospace; padding: 2px 5px; border-radius: 4px; border: 1px solid var(--line); color: var(--text-secondary); opacity: 0.8; }
+kbd { font: 11px/1 var(--font-mono); padding: 2px 5px; border-radius: 4px; border: 1px solid var(--line); color: var(--text-secondary); opacity: 0.8; }
 .banner { padding: 8px 24px; background: var(--warn-bg); color: var(--warn-text); border-bottom: 1px solid var(--line); }
 .empty { color: var(--text-secondary); margin: 0; }
 /* The page never scrolls: main fills the window and each view scrolls its own areas. */
@@ -174,9 +175,9 @@ main { flex: 1; min-height: 0; overflow: hidden; padding: 24px; display: flex; f
 .card .assign { align-self: flex-end; }
 .dot { flex: none; width: 10px; height: 10px; border-radius: 50%; }
 .ident { flex: none; color: var(--text-secondary); font-variant-numeric: tabular-nums; font-size: 12px; }
-.prio { flex: none; font-size: 11px; font-weight: 600; padding: 1px 8px; border-radius: 999px; background: var(--surface-0); color: var(--text-secondary); }
-.prio.p1 { background: var(--err-bg); color: var(--err-text); }
-.prio.p2 { background: var(--warn-bg); color: var(--warn-text); }
+/* Small pills: a Badge with the colours of its variant. */
+.prio, .dw-state { flex: none; font-size: 11px; font-weight: 600; padding: 1px 8px; }
+.prio.neutral, .dw-state.neutral { font-weight: 600; }
 .assign { position: relative; display: flex; gap: 8px; align-items: center; font-size: 12px; }
 .icon { flex: none; width: 16px; height: 16px; }
 .confirm { display: inline-flex; gap: 6px; align-items: center; color: var(--done-text); }
@@ -210,7 +211,7 @@ main { flex: 1; min-height: 0; overflow: hidden; padding: 24px; display: flex; f
 .md li > p { margin: 0.2em 0; }
 .md li input[type="checkbox"] { margin: 0 6px 0 0; vertical-align: -1px; }
 .md a { color: var(--accent); text-decoration: underline; text-underline-offset: 2px; }
-.md code { font: 0.88em/1.4 ui-monospace, SFMono-Regular, Menlo, monospace; padding: 1px 5px; border-radius: 4px; background: color-mix(in srgb, var(--text-primary) 8%, transparent); }
+.md code { font: 0.88em/1.4 var(--font-mono); padding: 1px 5px; border-radius: 4px; background: color-mix(in srgb, var(--text-primary) 8%, transparent); }
 .md pre { padding: 10px 12px; border-radius: 8px; border: 1px solid var(--line); background: color-mix(in srgb, var(--text-primary) 5%, var(--surface-1)); overflow-x: auto; }
 .md pre code { padding: 0; background: none; font-size: 12px; line-height: 1.5; white-space: pre; overflow-wrap: normal; }
 .md blockquote { padding: 2px 0 2px 12px; border-left: 3px solid var(--line); color: var(--text-secondary); }
@@ -247,15 +248,14 @@ main { flex: 1; min-height: 0; overflow: hidden; padding: 24px; display: flex; f
 .activity-item.failed .icon { color: var(--danger); }
 .activity-text { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; text-align: left; }
 .activity-item.thinking .activity-text { white-space: normal; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow-wrap: anywhere; }
-.activity-item.command .activity-text, .activity-item.file .activity-text { font: 12px/1.5 ui-monospace, SFMono-Regular, Menlo, monospace; }
+.activity-item.command .activity-text, .activity-item.file .activity-text { font: 12px/1.5 var(--font-mono); }
 .activity-item.failed .activity-text { color: var(--err-text); }
 .activity-detail { opacity: 0.75; }
 .activity-item button.activity-text { font-size: inherit; }
 @keyframes breathe { 0%, 100% { opacity: 1; } 50% { opacity: 0.35; } }
 .requests { display: flex; flex-direction: column; gap: 8px; }
 .request { border: 1px solid var(--line); border-left: 3px solid var(--warn); border-radius: 6px; padding: 10px; background: var(--surface-1); display: flex; flex-direction: column; gap: 8px; }
-.request .buttons { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
-.question { display: flex; flex-direction: column; gap: 4px; border: 0; padding: 0; margin: 0; }
+.request .buttons, .question { display: flex; flex-direction: column; gap: 4px; border: 0; padding: 0; margin: 0; }
 .question label { display: flex; gap: 6px; align-items: baseline; }
 .question label small { color: var(--text-secondary); }
 /* Composer: one rounded card with the text and a toolbar, as in T3 Code. */
@@ -316,7 +316,6 @@ main { flex: 1; min-height: 0; overflow: hidden; padding: 24px; display: flex; f
 .dialog-close { margin: -6px -8px -6px 0; }
 .dialog label, .dialog-field { display: flex; flex-direction: column; gap: 4px; }
 .dialog textarea { min-height: 90px; }
-.dialog .buttons { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
 .settings { gap: 16px; }
 .settings-section { display: flex; flex-direction: column; gap: 10px; }
 .settings-section h3 { margin: 0; font-size: 12px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-secondary); }
@@ -410,12 +409,10 @@ button.auto-row:hover { background: var(--surface-0); }
 .desk-window-head .provider-icon { width: 16px; height: 16px; margin: 0; }
 .dw-title { min-width: 0; flex: 0 1 auto; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 600; }
 .dw-project { flex: 0 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--text-secondary); font-size: 12px; }
-.dw-state { flex: none; font-size: 11px; font-weight: 600; padding: 1px 8px; border-radius: 999px; background: var(--surface-0); color: var(--text-secondary); }
-.dw-state.neutral { font-weight: 600; }
-.dw-state.waiting { box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--warn) 50%, transparent); background: var(--warn-bg); color: var(--warn-text); }
-.dw-state.running { box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--work) 50%, transparent); background: var(--work-bg); color: var(--work-text); }
-.dw-state.done { box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--ok) 50%, transparent); background: var(--done-bg); color: var(--done-text); }
-.dw-state.error { box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--danger) 50%, transparent); background: var(--err-bg); color: var(--err-text); }
+.dw-state.waiting { box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--warn) 50%, transparent); }
+.dw-state.running { box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--work) 50%, transparent); }
+.dw-state.done { box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--ok) 50%, transparent); }
+.dw-state.error { box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--danger) 50%, transparent); }
 .dw-buttons { margin-left: auto; display: flex; gap: 2px; flex: none; }
 .dw-buttons .icon-button { padding: 4px; border-radius: var(--radius-sm); }
 .dw-buttons .icon-button:hover { color: var(--text-primary); background: var(--surface-0); }
@@ -472,7 +469,7 @@ button.auto-row:hover { background: var(--surface-0); }
 .setup-detail { margin: 0; color: var(--text-secondary); font-size: 13px; }
 .setup-steps { margin: 0; padding-left: 20px; display: flex; flex-direction: column; gap: 4px; }
 .setup-command { display: flex; gap: 8px; align-items: flex-start; padding: 8px 10px; border-radius: 8px; background: var(--surface-0); border: 1px solid var(--line); }
-.setup-command code { flex: 1; min-width: 0; overflow-wrap: anywhere; font: 12px/1.5 ui-monospace, SFMono-Regular, Menlo, monospace; }
+.setup-command code { flex: 1; min-width: 0; overflow-wrap: anywhere; font: 12px/1.5 var(--font-mono); }
 .setup-link, .linear-card a, .key-box a { color: var(--accent); }
 .setup-paste, .key-row { display: flex; gap: 8px; }
 .setup-paste input, .key-row input { flex: 1; min-width: 0; }
@@ -495,9 +492,7 @@ button.auto-row:hover { background: var(--surface-0); }
 .row-icons { align-items: center; }
 .row-icons .spinning .icon { animation: spin 0.9s linear infinite; }
 @keyframes spin { to { transform: rotate(360deg); } }
-.settings-note { align-self: flex-end; font-size: 12px; color: var(--text-secondary); }
-.settings-note.error { color: var(--danger); }
-.key-mask { font: 12px/1 ui-monospace, SFMono-Regular, Menlo, monospace; padding: 4px 7px; border-radius: 6px; border: 1px solid var(--line); color: var(--text-secondary); background: var(--surface-0); }
+.key-mask { font: 12px/1 var(--font-mono); padding: 4px 7px; border-radius: 6px; border: 1px solid var(--line); color: var(--text-secondary); background: var(--surface-0); }
 /* After every animated rule, so it wins on equal specificity. */
 @media (prefers-reduced-motion: reduce) {
   .pulse, .agent.working::after, .desk-window.state-running .desk-window-head::after, .streaming, .subagent.running .subagent-dot, .activity-item.running .icon, .spinning { animation: none; }

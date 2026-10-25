@@ -1,10 +1,11 @@
 import { rmSync } from "node:fs";
-import { parseArgs, USAGE } from "./cli.ts";
-import { install, uninstall } from "./install.ts";
-import { start } from "./start.ts";
-import { DEFAULT_PORT, installDeps, updateDeps } from "./system.ts";
-import { removeOldBinary, update } from "./update.ts";
-import { VERSION } from "./version.ts";
+import { parseArgs, USAGE } from "./cli/args.ts";
+import { envPort } from "./config/config.ts";
+import { install, uninstall } from "./cli/install.ts";
+import { start } from "./app/start.ts";
+import { installDeps, updateDeps } from "./app/deps.ts";
+import { removeOldBinary, update } from "./cli/selfUpdate.ts";
+import { VERSION } from "./config/version.ts";
 
 const env = process.env;
 
@@ -30,7 +31,7 @@ try {
       // The service must point at the real binary, not at the Bun runtime.
       if (args.command !== "uninstall" && !Bun.isStandaloneExecutable) throw new Error("run the compiled binary");
       const deps = installDeps(env);
-      if (args.command === "install") await install({ port: args.port ?? (Number(env.PORT) || DEFAULT_PORT), open: args.open }, deps);
+      if (args.command === "install") await install({ port: args.port ?? envPort(env), open: args.open }, deps);
       else if (args.command === "uninstall") await uninstall(deps);
       else await update({ check: args.check }, updateDeps(env));
     }

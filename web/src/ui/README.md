@@ -1,6 +1,6 @@
 # Composants de base
 
-Ce dossier contient les composants de base du dashboard. Les écrans de `web/src/components/` les utilisent. Importez-les depuis `ui/index.ts`.
+Ce dossier contient les composants de base du dashboard. Les écrans de `web/src/features/` les utilisent. Importez-les depuis `ui/index.ts`.
 
 ## Règles
 

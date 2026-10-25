@@ -1,22 +1,22 @@
 import { useEffect, useState } from "react";
-import { AgentsView } from "./components/AgentsView.tsx";
-import { BoardView } from "./components/BoardView.tsx";
-import { ConnectionBanner } from "./components/ConnectionBanner.tsx";
-import { DeskView } from "./components/DeskView.tsx";
-import { NewThreadDialog } from "./components/NewThreadDialog.tsx";
-import { SettingsDialog } from "./components/SettingsDialog.tsx";
-import { SetupScreen } from "./components/SetupScreen.tsx";
-import { UpdateDialog } from "./components/UpdateDialog.tsx";
-import { DESK_LIMIT, gridWindows, isFull } from "./desk.ts";
-import { useAutomations } from "./useAutomations.ts";
-import { useDashboard } from "./useDashboard.ts";
-import { useDesk } from "./useDesk.ts";
-import { useDeskBackground } from "./useDeskBackground.ts";
-import { useShortcuts } from "./useShortcuts.ts";
-import { useTheme } from "./useTheme.ts";
-import { useUpdate } from "./useUpdate.ts";
+import { AgentsView } from "./features/agents/AgentsView.tsx";
+import { BoardView } from "./features/board/BoardView.tsx";
+import { ConnectionBanner } from "./features/setup/ConnectionBanner.tsx";
+import { DeskView } from "./features/desk/DeskView.tsx";
+import { NewThreadDialog } from "./features/new-thread/NewThreadDialog.tsx";
+import { SettingsDialog } from "./features/settings/SettingsDialog.tsx";
+import { SetupScreen } from "./features/setup/SetupScreen.tsx";
+import { UpdateDialog } from "./features/update/UpdateDialog.tsx";
+import { DESK_LIMIT, gridWindows, isFull } from "./features/desk/desk.ts";
+import { useAutomations } from "./features/agents/useAutomations.ts";
+import { useDashboard } from "./api/events.ts";
+import { useDesk } from "./features/desk/useDesk.ts";
+import { useDeskBackground } from "./features/desk/useDeskBackground.ts";
+import { useShortcuts } from "./lib/useShortcuts.ts";
+import { useTheme } from "./features/settings/useTheme.ts";
+import { useUpdate } from "./features/update/useUpdate.ts";
 import { Button, Icon, IconButton, Kbd, Pressable } from "./ui/index.ts";
-import { updateLabel } from "./updateFlow.ts";
+import { updateLabel } from "./features/update/updateFlow.ts";
 
 type Tab = "agents" | "board" | "desk";
 
@@ -38,7 +38,7 @@ function focusComposer(threadId: string) {
 }
 
 export function App() {
-  const { state, sseDown, lastEvent } = useDashboard();
+  const { state, sseDown } = useDashboard();
   const [tab, setTab] = useState<Tab>("agents");
   const automations = useAutomations(tab === "agents" && state?.automationsAvailable === true);
   const [desk, dispatchDesk] = useDesk(state?.connection.t3 === "live" ? state.threads : null);
@@ -159,7 +159,6 @@ export function App() {
               dispatch={dispatchDesk}
               threads={state.threads}
               projects={state.projects}
-              lastEvent={lastEvent}
               background={deskBackground}
               t3EnvironmentId={state.t3EnvironmentId}
               providers={state.providers}
