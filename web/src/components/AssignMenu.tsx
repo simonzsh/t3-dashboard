@@ -3,7 +3,7 @@ import type { DashboardProject, LinearIssue } from "../../../shared/api.ts";
 import { api } from "../api.ts";
 import { browserStorage, loadAssignProject, saveAssignProject } from "../assignProject.ts";
 import { projectOptions } from "../dropdown.ts";
-import { Dropdown, Popover } from "../ui/index.ts";
+import { Button, Dropdown, Icon, IconButton, Popover, Pressable } from "../ui/index.ts";
 import { ProviderIcon } from "./ProviderIcon.tsx";
 import { useAction } from "./useAction.ts";
 
@@ -37,22 +37,20 @@ export function AssignMenu({ issue, projects, onAssigned, onShowDesk }: Props) {
     <div className="assign">
       {done ? (
         <span className="confirm">
-          <svg className="icon" viewBox="0 0 24 24" role="img" aria-label="Session created">
-            <title>Session created</title>
-            <path d="M5 12.5l4.5 4.5L19 7.5" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
-          </svg>
-          <button className="link" onClick={onShowDesk}>
+          <span role="img" aria-label="Session created" title="Session created">
+            <Icon name="check" strokeWidth={2.2} />
+          </span>
+          <Button variant="link" onClick={onShowDesk}>
             View on Desk
-          </button>
+          </Button>
         </span>
       ) : (
-        <button
+        <IconButton
           ref={button}
-          className="icon-button"
+          label="Assign to an agent"
+          size="sm"
           disabled={busy}
           aria-expanded={open}
-          aria-label="Assign to an agent"
-          title="Assign to an agent"
           onClick={() => {
             // The last project chosen for this team is preselected: the browser remembers it.
             if (!open) setProjectId(loadAssignProject(browserStorage(), issue.team.key, projects));
@@ -70,7 +68,7 @@ export function AssignMenu({ issue, projects, onAssigned, onShowDesk }: Props) {
               <path d="M20 3v6M17 6h6" />
             </g>
           </svg>
-        </button>
+        </IconButton>
       )}
       {open && (
         <Popover anchor={button} className="menu" role="menu" align="end" minWidth={200} onClose={(reason) => {
@@ -90,12 +88,12 @@ export function AssignMenu({ issue, projects, onAssigned, onShowDesk }: Props) {
               onPick={setProjectId}
             />
           </div>
-          <button role="menuitem" disabled={projectId === ""} onClick={() => assign("claude")}>
+          <Pressable role="menuitem" disabled={projectId === ""} onClick={() => assign("claude")}>
             <ProviderIcon provider="claudeAgent" /> Claude
-          </button>
-          <button role="menuitem" disabled={projectId === ""} onClick={() => assign("codex")}>
+          </Pressable>
+          <Pressable role="menuitem" disabled={projectId === ""} onClick={() => assign("codex")}>
             <ProviderIcon provider="codex" /> Codex
-          </button>
+          </Pressable>
         </Popover>
       )}
       {error && <span className="error">{error}</span>}

@@ -1,5 +1,6 @@
 import type { Automation, AutomationsResult, DashboardThread } from "../../../shared/api.ts";
 import { lastRunState, nextLabel, reminderDate, splitAutomations } from "../automations.ts";
+import { Pressable } from "../ui/index.ts";
 
 interface Props {
   result: AutomationsResult | null;
@@ -31,9 +32,9 @@ function Row({ a, thread, now, onOpen }: { a: Automation; thread: DashboardThrea
   return (
     <li>
       {threadId ? (
-        <button className="auto-row" onClick={(e) => onOpen(threadId, e.shiftKey)}>
+        <Pressable className="auto-row" onClick={(e) => onOpen(threadId, e.shiftKey)}>
           {body}
-        </button>
+        </Pressable>
       ) : (
         <div className="auto-row">{body}</div>
       )}

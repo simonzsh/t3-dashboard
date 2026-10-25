@@ -3,7 +3,7 @@ import type { BoardResult, DashboardProject } from "../../../shared/api.ts";
 import { api } from "../api.ts";
 import { boardColumns } from "../board.ts";
 import { boardNeedsKey, linearConnected } from "../linearSettings.ts";
-import { Icon } from "../ui/index.ts";
+import { Icon, IconButton } from "../ui/index.ts";
 import { AssignMenu } from "./AssignMenu.tsx";
 import { LinearSetupCard } from "./LinearSetupCard.tsx";
 
@@ -48,9 +48,9 @@ export function BoardView({ projects, version, onAssigned, onShowDesk }: Props) 
             <span className="conn-dot" aria-hidden="true" /> Connected to Linear
           </span>
         )}
-        <button className="icon-button refresh" aria-label="Refresh" title="Refresh" aria-busy={loading} disabled={loading} onClick={() => void load(true)}>
+        <IconButton label="Refresh" className="refresh" aria-busy={loading} disabled={loading} onClick={() => void load(true)}>
           <Icon name="refresh" className={`icon${loading ? " spinning" : ""}`} />
-        </button>
+        </IconButton>
       </div>
       {error && <p className="notice error-notice">{error}</p>}
       {broken.map((w) => (
