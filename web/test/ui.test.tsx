@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "bun:test";
 import { renderToStaticMarkup } from "react-dom/server";
+import { nextRadioIndex } from "../src/ui/radioKeys.ts";
 import { Badge, Button, Choice, Dialog, Segmented, FileInput, Icon, IconButton, Pressable, SecretInput, TextArea, TextInput } from "../src/ui/index.ts";
 
 const html = renderToStaticMarkup;
@@ -79,8 +80,8 @@ test("a FileInput is a hidden file field", () => {
 
 test("a Dialog has a title, a close button and the dialog role", () => {
   const out = html(<Dialog title="Settings" onClose={() => {}}><p>Body</p></Dialog>);
-  assert.match(out, /role="dialog" aria-modal="true" aria-label="Settings"/);
-  assert.match(out, /<h2>Settings<\/h2>/);
+  assert.match(out, /role="dialog" aria-modal="true" aria-labelledby="[^"]+"/);
+  assert.match(out, /<h2 id="[^"]+">Settings<\/h2>/);
   assert.match(out, /aria-label="Close" title="Close \(Esc\)"/);
   assert.match(out, /<p>Body<\/p>/);
   assert.doesNotMatch(out, /dialog-actions/);
@@ -109,6 +110,23 @@ test("a Badge shows a state colour", () => {
 test("a Segmented control is a radio group with the active option checked", () => {
   const out = html(<Segmented label="Theme" value="dark" options={[{ id: "light", label: "Light" }, { id: "dark", label: "Dark" }]} onChange={() => {}} />);
   assert.match(out, /^<div class="segmented" role="radiogroup" aria-label="Theme">/);
-  assert.match(out, /role="radio" aria-checked="false" class="">Light</);
-  assert.match(out, /role="radio" aria-checked="true" class="active">Dark</);
+  assert.match(out, /role="radio" aria-checked="false" tabindex="-1" class="">Light</);
+  assert.match(out, /role="radio" aria-checked="true" tabindex="0" class="active">Dark</);
+});
+
+test("a Dialog without label is named by its title and a Segmented has one tab stop", () => {
+  const d = html(<Dialog title="Settings" onClose={() => {}} />);
+  const id = d.match(/aria-labelledby="([^"]+)"/)?.[1];
+  assert.ok(id && d.includes(`<h2 id="${id}">`));
+  assert.match(html(<Dialog title="T" label="Named" onClose={() => {}} />), /aria-label="Named"/);
+  const seg = html(<Segmented label="L" value="b" options={[{ id: "a", label: "A" }, { id: "b", label: "B" }]} onChange={() => {}} />);
+  assert.equal(seg.match(/tabindex="0"/g)?.length, 1);
+  assert.equal(seg.match(/tabindex="-1"/g)?.length, 1);
+});
+
+test("arrow keys move the radio selection and wrap", () => {
+  assert.equal(nextRadioIndex("ArrowRight", 2, 3), 0);
+  assert.equal(nextRadioIndex("ArrowLeft", 0, 3), 2);
+  assert.equal(nextRadioIndex("ArrowDown", 0, 3), 1);
+  assert.equal(nextRadioIndex("a", 0, 3), null);
 });
