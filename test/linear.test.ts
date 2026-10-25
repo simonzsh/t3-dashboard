@@ -35,19 +35,12 @@ function setup(workspaces: LinearWorkspaceConfig[], respond: (key: string) => Re
   const board = new LinearBoard({
     fetch: fetchFn,
     readWorkspaces: () => workspaces,
-    resolveProject: (title) => (title === "Project A" ? "project-1" : null),
     now: () => new Date(clock),
   });
   return { board, calls, tick: (ms: number) => (clock += ms) };
 }
 
-const space = (name: string, apiKey: string, t3Project = "Project A", teams: Record<string, string | null> | null = null, unlisted: "show" | "hide" = teams ? "hide" : "show"): LinearWorkspaceConfig => ({
-  name,
-  apiKey,
-  t3Project,
-  teams,
-  unlisted,
-});
+const space = (name: string, apiKey: string): LinearWorkspaceConfig => ({ name, apiKey });
 
 test("fetches assigned issues with the raw key as Authorization and tags the workspace", async () => {
   const { board, calls } = setup([space("Space 1", "key-1")], () => reply([node(1)]));
@@ -57,27 +50,27 @@ test("fetches assigned issues with the raw key as Authorization and tags the wor
   assert.equal(calls[0]!.authorization, "key-1");
   assert.match(calls[0]!.query, /assignedIssues\(first: 100/);
   assert.match(calls[0]!.query, /nin: \["completed", "canceled"\]/);
-  assert.deepEqual(result.workspaces, [{ name: "Space 1", ok: true, error: null, t3ProjectId: "project-1" }]);
-  assert.deepEqual(result.issues, [{ ...node(1), workspace: "Space 1", t3ProjectId: "project-1" }]);
+  assert.deepEqual(result.workspaces, [{ name: "Space 1", ok: true, error: null }]);
+  assert.deepEqual(result.issues, [{ ...node(1), workspace: "Space 1" }]);
 });
 
 test("a missing key shows an error without calling Linear", async () => {
   const { board, calls } = setup([space("Space 1", "")], () => reply([]));
   const result = await board.get();
   assert.equal(calls.length, 0);
-  assert.deepEqual(result.workspaces, [{ name: "Space 1", ok: false, error: "Missing API key", t3ProjectId: "project-1" }]);
+  assert.deepEqual(result.workspaces, [{ name: "Space 1", ok: false, error: "Missing API key" }]);
   assert.equal(result.configured, false);
 });
 
 test("one failing workspace does not block the others, and the error holds no key", async () => {
-  const { board } = setup([space("Space 1", "key-bad"), space("Space 2", "key-2", "Unknown")], (key) =>
+  const { board } = setup([space("Space 1", "key-bad"), space("Space 2", "key-2")], (key) =>
     key === "key-bad" ? new Response(`denied ${key}`, { status: 401 }) : reply([node(2)]),
   );
   const result = await board.get();
   assert.equal(result.workspaces[0]!.ok, false);
   assert.match(result.workspaces[0]!.error!, /401/);
   assert.ok(!JSON.stringify(result).includes("key-bad"));
-  assert.deepEqual(result.workspaces[1], { name: "Space 2", ok: true, error: null, t3ProjectId: null });
+  assert.deepEqual(result.workspaces[1], { name: "Space 2", ok: true, error: null });
   assert.deepEqual(result.issues.map((issue) => issue.workspace), ["Space 2"]);
 });
 
@@ -91,7 +84,6 @@ test("GraphQL errors and network failures become a workspace error", async () =>
       throw new Error("connect failed for key-1");
     },
     readWorkspaces: () => [space("Space 1", "key-1")],
-    resolveProject: () => null,
     now: () => new Date(),
   });
   const second = await network.get();
@@ -117,48 +109,10 @@ test("fetchedAt is the time of the read", async () => {
   assert.equal((await board.get()).fetchedAt, new Date(1_000_000).toISOString());
 });
 
-test("with a team table, only listed teams show, each with its own T3 project", async () => {
+test("every team shows, whatever the teams are", async () => {
   const other = (n: number, key: string) => ({ ...node(n), team: { key, name: `Team ${key}` } });
-  const { board } = setup([space("Linear", "key-1", "", { ENG: "Project A", OPS: "Unknown" })], () => reply([other(1, "ENG"), other(2, "OPS"), other(3, "HR")]));
-  const result = await board.get();
-  assert.deepEqual(result.issues.map((issue) => [issue.id, issue.t3ProjectId]), [["issue-1", "project-1"], ["issue-2", null]]);
-  assert.deepEqual(result.workspaces, [{ name: "Linear", ok: true, error: null, t3ProjectId: null }]);
-});
-
-test("a table entry on a workspace with a t3Project keeps the workspace project in its status", async () => {
-  const { board } = setup([space("Space 1", "key-1", "Project A", { TEAM: "Unknown" })], () => reply([node(1)]));
-  const result = await board.get();
-  assert.equal(result.workspaces[0]!.t3ProjectId, "project-1");
-  assert.equal(result.issues[0]!.t3ProjectId, null);
-});
-
-test("without a table, every issue goes to the workspace project", async () => {
-  const { board } = setup([space("Space 1", "key-1")], () => reply([node(1)]));
-  assert.equal((await board.get()).issues[0]!.t3ProjectId, "project-1");
-});
-
-const other = (n: number, key: string) => ({ ...node(n), team: { key, name: `Team ${key}` } });
-const teamsReply = () => reply([other(1, "ENG"), other(2, "OPS"), other(3, "DES"), other(4, "HR")]);
-const seen = (result: Awaited<ReturnType<LinearBoard["get"]>>) => result.issues.map((issue) => [issue.team.key, issue.t3ProjectId]);
-
-test("a null team is hidden, an empty one is shown without a project, a title resolves to its project", async () => {
-  const { board } = setup([space("Linear", "k", "", { ENG: "Project A", OPS: null, DES: "" })], teamsReply);
-  assert.deepEqual(seen(await board.get()), [["ENG", "project-1"], ["DES", null]]);
-});
-
-test("unlisted show keeps the teams that are not in the table, with no project", async () => {
-  const { board } = setup([space("Linear", "k", "", { ENG: "Project A", OPS: null }, "show")], teamsReply);
-  assert.deepEqual(seen(await board.get()), [["ENG", "project-1"], ["DES", null], ["HR", null]]);
-});
-
-test("unlisted hide drops the teams that are not in the table", async () => {
-  const { board } = setup([space("Linear", "k", "", { ENG: "Project A" }, "hide")], teamsReply);
-  assert.deepEqual(seen(await board.get()), [["ENG", "project-1"]]);
-});
-
-test("a key with no table at all shows every team, in the workspace project when it has one", async () => {
-  const { board } = setup([space("Linear", "k", "Project A", null, "show")], teamsReply);
-  assert.deepEqual(seen(await board.get()).map(([, project]) => project), ["project-1", "project-1", "project-1", "project-1"]);
+  const { board } = setup([space("Linear", "k")], () => reply([other(1, "ENG"), other(2, "OPS"), other(3, "HR")]));
+  assert.deepEqual((await board.get()).issues.map((issue) => issue.team.key), ["ENG", "OPS", "HR"]);
 });
 
 test("the board is configured as soon as one workspace has a key", async () => {
@@ -195,13 +149,4 @@ test("verifyKey asks Linear for the viewer and tells ok, refused or unreachable"
   assert.equal(await board.verifyKey("bad"), "refused");
   assert.equal(await board.verifyKey("down"), "unreachable");
   assert.equal(await board.verifyKey("offline"), "unreachable");
-});
-
-test("listTeams returns key and name only, and maps failures", async () => {
-  const { board, calls } = setup([], (key) =>
-    key === "good" ? new Response(JSON.stringify({ data: { teams: { nodes: [{ key: "ENG", name: "Engineering", id: "x" }] } } })) : new Response("no", { status: 401 }),
-  );
-  assert.deepEqual(await board.listTeams("good"), { teams: [{ key: "ENG", name: "Engineering" }] });
-  assert.match(calls[0]!.query, /teams\(first: 250\)/);
-  assert.equal(await board.listTeams("bad"), "refused");
 });

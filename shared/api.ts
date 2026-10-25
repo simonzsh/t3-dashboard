@@ -171,7 +171,6 @@ export interface LinearIssue {
   project: { id: string; name: string } | null;
   team: { key: string; name: string };
   workspace: string;
-  t3ProjectId: string | null;
   updatedAt: string;
 }
 
@@ -179,7 +178,6 @@ export interface LinearWorkspaceStatus {
   name: string;
   ok: boolean;
   error: string | null;
-  t3ProjectId: string | null;
 }
 
 export interface BoardResult {
@@ -194,14 +192,10 @@ export interface AssignIssueBody {
   workspace: string;
   issueId: string;
   agent: "claude" | "codex";
-  /** Needed when the issue's team has no T3 project yet. */
-  projectId?: string;
+  projectId: string;
 }
 
 export type TokenSource = "env-file" | "stored" | "issued" | "pasted";
-
-/** Team key -> T3 project title; "" asks when assigning, null hides the team. */
-export type TeamTable = Record<string, string | null>;
 
 export interface LinearSettings {
   connected: boolean;
@@ -209,8 +203,6 @@ export interface LinearSettings {
   keyTail: string | null;
   /** The file uses the old workspaces list: the first save converts it and keeps the first workspace only. */
   legacy: boolean;
-  teams: TeamTable;
-  unlisted: "show" | "hide";
 }
 
 export interface SettingsResult {
@@ -219,22 +211,8 @@ export interface SettingsResult {
   configDir: string;
 }
 
-export interface LinearTeam {
-  key: string;
-  name: string;
-}
-
-export interface LinearTeamsResult {
-  teams: LinearTeam[];
-}
-
 export interface LinearKeyBody {
   apiKey: string;
-}
-
-export interface LinearTeamsBody {
-  teams: TeamTable;
-  unlisted: "show" | "hide";
 }
 
 export interface TokenBody {

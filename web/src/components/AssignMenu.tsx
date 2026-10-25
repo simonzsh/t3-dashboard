@@ -1,6 +1,7 @@
 import { useState } from "react";
 import type { DashboardProject, LinearIssue } from "../../../shared/api.ts";
 import { api } from "../api.ts";
+import { loadAssignProject, saveAssignProject } from "../assignProject.ts";
 import { ProviderIcon } from "./ProviderIcon.tsx";
 import { useAction } from "./useAction.ts";
 
@@ -15,17 +16,16 @@ export function AssignMenu({ issue, projects, onAssigned, onShowDesk }: Props) {
   const [open, setOpen] = useState(false);
   const [done, setDone] = useState(false);
   const [projectId, setProjectId] = useState("");
-  // The team has no T3 project yet: ask once, the server remembers the answer for the team.
-  const needsProject = issue.t3ProjectId === null;
   const { busy, error, run } = useAction();
 
   async function assign(agent: "claude" | "codex") {
     setOpen(false);
     let threadId = "";
     const ok = await run(async () => {
-      threadId = (await api.assignIssue({ workspace: issue.workspace, issueId: issue.id, agent, ...(needsProject && { projectId }) })).threadId;
+      threadId = (await api.assignIssue({ workspace: issue.workspace, issueId: issue.id, agent, projectId })).threadId;
     });
     if (!ok) return;
+    saveAssignProject(localStorage, issue.team.key, projectId);
     setDone(true);
     onAssigned(threadId);
   }
@@ -49,7 +49,11 @@ export function AssignMenu({ issue, projects, onAssigned, onShowDesk }: Props) {
           aria-expanded={open}
           aria-label="Assign to an agent"
           title="Assign to an agent"
-          onClick={() => setOpen(!open)}
+          onClick={() => {
+            // The last project chosen for this team is preselected: the browser remembers it.
+            if (!open) setProjectId(loadAssignProject(localStorage, issue.team.key, projects));
+            setOpen(!open);
+          }}
         >
           <svg className="icon" viewBox="0 0 24 24" aria-hidden="true">
             <g fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
@@ -62,25 +66,23 @@ export function AssignMenu({ issue, projects, onAssigned, onShowDesk }: Props) {
       )}
       {open && (
         <div className="menu" role="menu">
-          {needsProject && (
-            <label className="menu-project">
-              <small>T3 project for team {issue.team.key}</small>
-              <select value={projectId} onChange={(e) => setProjectId(e.target.value)}>
-                <option value="" disabled>
-                  {projects.length === 0 ? "No T3 project yet" : "Choose a project…"}
+          <label className="menu-project">
+            <small>T3 project</small>
+            <select value={projectId} onChange={(e) => setProjectId(e.target.value)}>
+              <option value="" disabled>
+                {projects.length === 0 ? "No T3 project yet" : "Choose a project…"}
+              </option>
+              {projects.map((p) => (
+                <option key={p.id} value={p.id}>
+                  {p.title}
                 </option>
-                {projects.map((p) => (
-                  <option key={p.id} value={p.id}>
-                    {p.title}
-                  </option>
-                ))}
-              </select>
-            </label>
-          )}
-          <button role="menuitem" disabled={needsProject && projectId === ""} onClick={() => assign("claude")}>
+              ))}
+            </select>
+          </label>
+          <button role="menuitem" disabled={projectId === ""} onClick={() => assign("claude")}>
             <ProviderIcon provider="claudeAgent" /> Claude
           </button>
-          <button role="menuitem" disabled={needsProject && projectId === ""} onClick={() => assign("codex")}>
+          <button role="menuitem" disabled={projectId === ""} onClick={() => assign("codex")}>
             <ProviderIcon provider="codex" /> Codex
           </button>
         </div>
