@@ -1,7 +1,7 @@
 import { readdirSync, readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
 import { parse as parseYaml } from "yaml";
-import { issues, type Schema } from "../contract.ts";
+import { matches, type Schema } from "../contract.ts";
 import { BrainProject, BrainWorkspace, Job, RoutineThread, RunAt } from "./schemas.ts";
 
 export interface Brain {
@@ -27,7 +27,6 @@ export const agentConfigDir = (env: Record<string, string | undefined>, homedir:
   env.T3_DASHBOARD_AGENT_CONFIG_DIR ?? join(homedir, ".config", "t3-agent");
 
 const text = (value: string): string | null => (value === "" ? null : value);
-const matches = <T>(schema: Schema<T>, value: unknown): value is T => issues(schema, value).length === 0;
 
 // These files also hold a token: only `workspace` and `projectId` leave this function,
 // and errors never quote the content.

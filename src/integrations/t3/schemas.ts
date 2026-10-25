@@ -182,6 +182,10 @@ export const RawConfig = s.object({
 });
 export type RawConfig = Infer<typeof RawConfig>;
 
+// userdata/server-runtime.json: each field is read on its own, so one bad field does not hide the other.
+export const RuntimeOrigin = s.object({ origin: s.string() });
+export const RuntimeVersion = s.object({ serverVersion: s.string() });
+
 export const WebSocketTicket = s.object({ ticket: s.string() });
 
 // What T3 stores: message.dispatch references it by id.

@@ -47,3 +47,9 @@ test("readServerVersion reads serverVersion, or null", () => {
   assert.equal(readServerVersion("/r", () => "{}"), null);
   assert.equal(readServerVersion("/r", () => { throw new Error("ENOENT"); }), null);
 });
+
+test("a wrongly typed field falls back on its own and leaves the other field readable", () => {
+  const read = () => JSON.stringify({ origin: 5, serverVersion: "0.3.0" });
+  assert.equal(resolveOrigin("/r", read), "http://127.0.0.1:3773");
+  assert.equal(readServerVersion("/r", read), "0.3.0");
+});

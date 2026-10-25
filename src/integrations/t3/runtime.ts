@@ -1,5 +1,7 @@
 import { join } from "node:path";
 import type { ReadFile } from "../../config.ts";
+import { matches, type Schema } from "../contract.ts";
+import { RuntimeOrigin, RuntimeVersion } from "./schemas.ts";
 
 type Env = Record<string, string | undefined>;
 
@@ -14,25 +16,20 @@ export const runtimeFile = (env: Env, homedir: string): string => env.T3_SERVER_
 /** Names this T3 install in t3code:// links. */
 export const environmentIdFile = (env: Env, homedir: string): string => join(t3Home(env, homedir), "userdata", "environment-id");
 
-export function resolveOrigin(runtimeFile: string, readFile: ReadFile): string {
+// A missing, broken or wrongly typed field gives null: T3 may not have written the file yet.
+function readField<K extends string>(file: string, readFile: ReadFile, schema: Schema<Record<K, string>>, key: K): string | null {
   try {
-    const origin = (JSON.parse(readFile(runtimeFile)) as { origin?: unknown }).origin;
-    if (typeof origin === "string" && origin !== "") return origin;
-  } catch {
-    // Fall through: T3 may not have written the file yet.
-  }
-  return DEFAULT_ORIGIN;
-}
-
-/** The version of the running T3 server, from its runtime file, or null. */
-export function readServerVersion(runtimeFile: string, readFile: ReadFile): string | null {
-  try {
-    const version = (JSON.parse(readFile(runtimeFile)) as { serverVersion?: unknown }).serverVersion;
-    return typeof version === "string" && version !== "" ? version : null;
+    const parsed: unknown = JSON.parse(readFile(file));
+    return matches(schema, parsed) && parsed[key] !== "" ? parsed[key] : null;
   } catch {
     return null;
   }
 }
+
+export const resolveOrigin = (runtimeFile: string, readFile: ReadFile): string => readField(runtimeFile, readFile, RuntimeOrigin, "origin") ?? DEFAULT_ORIGIN;
+
+/** The version of the running T3 server, from its runtime file, or null. */
+export const readServerVersion = (runtimeFile: string, readFile: ReadFile): string | null => readField(runtimeFile, readFile, RuntimeVersion, "serverVersion");
 
 const ENVIRONMENT_ID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 

@@ -126,6 +126,8 @@ export function issues(schema: Schema<unknown>, value: unknown): Issue[] {
   return out;
 }
 
+export const matches = <T>(schema: Schema<T>, value: unknown): value is T => issues(schema, value).length === 0;
+
 export const describe = ({ path, expected, actual }: Issue): string => `${path} should be ${expected}, got ${actual}`;
 
 /** Returns the value typed by its schema, or throws a protocol error that names the first wrong field. */
