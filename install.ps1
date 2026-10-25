@@ -48,6 +48,9 @@ function Install-T3Dashboard {
   $userPath = [string](Get-Item 'HKCU:\Environment').GetValue('Path', '', [Microsoft.Win32.RegistryValueOptions]::DoNotExpandEnvironmentNames)
   if (($userPath -split ';') -notcontains $dir) {
     Set-ItemProperty 'HKCU:\Environment' -Name Path -Value "$userPath;$dir".TrimStart(';') -Type ExpandString
+    # Setting a user variable broadcasts WM_SETTINGCHANGE: new consoles then read the new PATH.
+    [Environment]::SetEnvironmentVariable('T3DashboardPathRefresh', '1', 'User')
+    [Environment]::SetEnvironmentVariable('T3DashboardPathRefresh', $null, 'User')
     Write-Host 'Added the folder to your PATH. Open a new terminal to use t3-dashboard.'
   }
 
