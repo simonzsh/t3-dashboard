@@ -44,3 +44,13 @@ test("safeHref allows http, https and mailto only", () => {
   assert.equal(safeHref("mailto:me@a.example"), "mailto:me@a.example");
   for (const bad of ["javascript:alert(1)", "JavaScript:alert(1)", "data:text/html,x", "/relative", "vbscript:x"]) assert.equal(safeHref(bad), null, bad);
 });
+
+test("a tight list keeps nested lists inside the item", () => {
+  assert.equal(html("- a\n  - b\n  - c\n- d"), "<ul><li>a<ul><li>b</li><li>c</li></ul></li><li>d</li></ul>");
+});
+
+test("a fenced code block inside a list item renders as code", () => {
+  const out = html("- run:\n  ```sh\n  ls <dir>\n  ```\n- next");
+  assert.ok(out.includes('<pre><code class="language-sh">ls &lt;dir&gt;'), out);
+  assert.ok(!out.includes("```"), out);
+});

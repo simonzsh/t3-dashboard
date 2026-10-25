@@ -75,7 +75,7 @@ function block(token: Token, key: number): ReactNode {
       return <hr key={key} />;
     case "list": {
       const list = t as Tokens.List;
-      const items = list.items.map((item, i) => <li key={i}>{item.loose ? blocks(item.tokens) : inline(item.tokens)}</li>);
+      const items = list.items.map((item, i) => <li key={i}>{item.loose ? blocks(item.tokens) : tightItem(item.tokens)}</li>);
       return list.ordered ? (
         <ol key={key} start={list.start === "" || list.start === 1 ? undefined : list.start}>
           {items}
@@ -119,6 +119,16 @@ function block(token: Token, key: number): ReactNode {
     default:
       return <p key={key}>{t.text ?? t.raw}</p>;
   }
+}
+
+// A tight item mixes inline text with nested blocks (lists, code…): only text stays inline.
+function tightItem(tokens: Token[]): ReactNode[] {
+  return tokens.map((token, key) => {
+    const t = token as Tokens.Generic;
+    if (t.type === "text") return <Fragment key={key}>{inline(t.tokens ?? [t])}</Fragment>;
+    if (t.type === "checkbox") return inline([t])[0];
+    return block(token, key);
+  });
 }
 
 function blocks(tokens: Token[] | undefined): ReactNode[] {
