@@ -158,7 +158,6 @@ export interface HealthResult {
   t3: ConnectionStatus["t3"];
   /** Version of the running binary: lets install tell this dashboard from another program. */
   version: string;
-  pid: number;
 }
 
 export interface LinearIssue {

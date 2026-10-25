@@ -249,7 +249,7 @@ export function createDashboardServer(options: DashboardServerOptions): Dashboar
     const [, resource, id, action, requestId, requestAction] = segments;
     const method = req.method;
     if (method === "GET") {
-      if (segments.length === 2 && resource === "health") return json(200, { ok: true, t3: connection().t3, version: VERSION, pid: process.pid });
+      if (segments.length === 2 && resource === "health") return json(200, { ok: true, t3: connection().t3, version: VERSION });
       if (segments.length === 2 && resource === "state") return json(200, getState());
       if (segments.length === 2 && resource === "board") {
         const refresh = new URL(req.url).searchParams.get("refresh") === "1";

@@ -168,7 +168,7 @@ const model = { instanceId: "provider-a", model: "model-x" };
 test("GET /api/health and /api/state", async () => {
   const { server } = await start();
   const health = await call(server, "GET", "/api/health");
-  assert.deepEqual(health.json, { ok: true, t3: "live", version: VERSION, pid: process.pid });
+  assert.deepEqual(health.json, { ok: true, t3: "live", version: VERSION });
   assert.equal(health.headers["content-type"], "application/json; charset=utf-8");
   assert.equal(health.headers["access-control-allow-origin"], undefined);
   const state = (await call(server, "GET", "/api/state")).json as DashboardState;
