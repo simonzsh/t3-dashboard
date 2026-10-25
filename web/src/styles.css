@@ -246,7 +246,7 @@ main { flex: 1; min-height: 0; overflow: hidden; padding: 24px; display: flex; f
 .composer { padding: 6px 10px 10px; display: flex; flex-direction: column; gap: 6px; container-type: inline-size; }
 .composer-card { display: flex; flex-direction: column; gap: 4px; padding: 10px 10px 6px 14px; border-radius: 18px; border: 1px solid var(--line); background: var(--surface-1); box-shadow: var(--shadow); transition: border-color 0.12s, box-shadow 0.12s; }
 .composer-card:focus-within { border-color: color-mix(in srgb, var(--accent) 70%, var(--line)); box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 22%, transparent), var(--shadow); }
-.composer-card textarea { width: 100%; box-sizing: border-box; min-height: 44px; max-height: 40vh; padding: 2px 0; border: 0; border-radius: 0; background: none; resize: none; outline: none; line-height: 1.5; }
+.composer-card textarea { width: 100%; box-sizing: border-box; min-height: 44px; max-height: min(40vh, 260px); padding: 2px 0; border: 0; border-radius: 0; background: none; resize: none; outline: none; line-height: 1.5; }
 .composer-toolbar { display: flex; align-items: center; gap: 8px; min-width: 0; }
 .composer-pickers { display: flex; align-items: center; gap: 2px; min-width: 0; flex: 1; }
 .composer-sep { flex: none; width: 1px; height: 16px; background: var(--line); margin: 0 4px; }
