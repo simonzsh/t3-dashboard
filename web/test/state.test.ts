@@ -41,7 +41,7 @@ test("projects diff upserts and removes", () => {
 
 test("providers and connection are replaced", () => {
   const s = baseState();
-  const p = applyEvent(s, { type: "providers", data: [{ instanceId: "provider-a", displayName: "A", models: [] }] })!;
+  const p = applyEvent(s, { type: "providers", data: [{ instanceId: "provider-a", displayName: "A", models: [], runtimeModes: ["full-access"] }] })!;
   assert.equal(p.providers.length, 1);
   const c = applyEvent(s, { type: "connection", data: { ...s.connection, t3: "offline" } })!;
   assert.equal(c.connection.t3, "offline");

@@ -1,4 +1,5 @@
 import type { ChatMessage, DashboardThread, PendingRequestDetail, SubagentInfo, ThreadDetail } from "../shared/api.ts";
+import { isRuntimeMode } from "./t3/commands.ts";
 import type { RawProjection, RawRuntimeRequest, RawSubagent, RawTurnItem } from "./t3/types.ts";
 
 // Turn items arrive wrapped as `{item}` in some payloads and bare in others.
@@ -77,5 +78,14 @@ export function toThreadDetail(threadId: string, projection: RawProjection, thre
     .map((message) => ({ id: message.id, role: message.role, text: message.text ?? "", createdAt: message.createdAt ?? "", streaming: message.streaming ?? false }));
   const items = [...(projection.turnItems ?? []), ...(projection.visibleTurnItems ?? [])].map(unwrap);
   const pendingRequests = (projection.runtimeRequests ?? []).filter((request) => request.status === "pending").map((request) => pendingDetail(request, items));
-  return { threadId, thread: thread ?? null, messages, pendingRequests, subagents: subagentsOf(projection) };
+  const runtimeMode = projection.thread?.runtimeMode;
+  return {
+    threadId,
+    thread: thread ?? null,
+    messages,
+    pendingRequests,
+    subagents: subagentsOf(projection),
+    modelSelection: projection.thread?.modelSelection ?? null,
+    runtimeMode: isRuntimeMode(runtimeMode) ? runtimeMode : null,
+  };
 }

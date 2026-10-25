@@ -32,6 +32,16 @@ test("an empty projection gives empty lists", () => {
   assert.deepEqual([detail.messages, detail.pendingRequests, detail.subagents], [[], [], []]);
 });
 
+test("thread settings come from the projection thread; unknown runtime modes give null", () => {
+  const selection = { instanceId: "provider-a", model: "model-x", options: [{ id: "effort", value: "high" }] };
+  const detail = toThreadDetail("thread-1", { thread: { id: "thread-1", modelSelection: selection, runtimeMode: "approval-required" } }, undefined);
+  assert.deepEqual([detail.modelSelection, detail.runtimeMode], [selection, "approval-required"]);
+  const odd = toThreadDetail("thread-1", { thread: { id: "thread-1", runtimeMode: "yolo" } }, undefined);
+  assert.deepEqual([odd.modelSelection, odd.runtimeMode], [null, null]);
+  const none = toThreadDetail("thread-1", {}, undefined);
+  assert.deepEqual([none.modelSelection, none.runtimeMode], [null, null]);
+});
+
 const withRequests: RawProjection = {
   runtimeRequests: [
     { id: "req-approval", kind: "command", status: "pending", createdAt: "2026-03-01T11:00:00Z", responseCapability: { type: "live" } },

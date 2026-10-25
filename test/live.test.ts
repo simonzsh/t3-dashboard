@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { test } from "bun:test";
 import type { ConnectionStatus, DashboardProvider, SetupInfo } from "../shared/api.ts";
 import { INSTALL_URL, ISSUE_COMMAND } from "../src/auth.ts";
-import { LiveSync } from "../src/live.ts";
+import { LiveSync, toProviders } from "../src/live.ts";
 import { ShellStore } from "../src/shellStore.ts";
 import { T3HttpError } from "../src/t3/client.ts";
 import type { RawConfig, ShellItem, T3Port } from "../src/t3/types.ts";
@@ -19,6 +19,9 @@ class FakePort implements T3Port {
   async dispatch() {}
   getConfig() {
     return this.config();
+  }
+  async persistAttachments() {
+    return [];
   }
   subscribeShell(onItems: (items: ShellItem[]) => void, onEnd: (error?: Error) => void) {
     const subscription = { onItems, onEnd, cancelled: false };
@@ -133,10 +136,31 @@ test("providers are filtered to enabled and ready, with fallbacks", async () => 
   live.start();
   await until(() => providers.length === 1);
   assert.deepEqual(providers[0], [
-    { instanceId: "provider-a", displayName: "Provider A", models: [{ slug: "model-x", name: "Model X" }, { slug: "model-y", name: "model-y" }] },
-    { instanceId: "provider-b", displayName: "provider-b", models: [] },
+    { instanceId: "provider-a", displayName: "Provider A", models: [{ slug: "model-x", name: "Model X", effort: null }, { slug: "model-y", name: "model-y", effort: null }], runtimeModes: ["approval-required", "auto-accept-edits", "auto", "full-access"] },
+    { instanceId: "provider-b", displayName: "provider-b", models: [], runtimeModes: ["approval-required", "auto-accept-edits", "auto", "full-access"] },
   ]);
   live.stop();
+});
+
+test("toProviders keeps the effort levels a model accepts and the provider's runtime modes", () => {
+  const effort = {
+    id: "effort",
+    label: "Reasoning",
+    type: "select",
+    options: [{ id: "low", label: "Low" }, { id: "high", label: "High", isDefault: true }, { id: "ultrathink", label: "Ultrathink" }],
+    promptInjectedValues: ["ultrathink"],
+  };
+  const tier = { id: "serviceTier", label: "Tier", type: "select", options: [{ id: "default", label: "Standard" }] };
+  const reasoning = { id: "reasoningEffort", label: "Reasoning", type: "select", options: [{ id: "medium", label: "Medium" }], currentValue: "medium" };
+  const [a, b] = toProviders({
+    providers: [
+      { instanceId: "a", enabled: true, status: "ready", models: [{ slug: "m1", capabilities: { optionDescriptors: [{ id: "fastMode", label: "Fast", type: "boolean" }, effort] } }] },
+      { instanceId: "b", enabled: true, status: "ready", supportedRuntimeModes: ["approval-required", "bogus", "full-access"], models: [{ slug: "m2", capabilities: { optionDescriptors: [tier, reasoning] } }] },
+    ],
+  });
+  assert.deepEqual(a!.models[0]!.effort, { optionId: "effort", levels: [{ id: "low", label: "Low" }, { id: "high", label: "High" }], defaultLevel: "high" });
+  assert.deepEqual(b!.models[0]!.effort, { optionId: "reasoningEffort", levels: [{ id: "medium", label: "Medium" }], defaultLevel: "medium" });
+  assert.deepEqual(b!.runtimeModes, ["approval-required", "full-access"]);
 });
 
 test("a getConfig failure does not block the stream and is recorded", async () => {

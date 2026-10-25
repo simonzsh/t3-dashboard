@@ -12,7 +12,7 @@ import { UpdateManager } from "../src/updates.ts";
 import { ShellStore } from "../src/shellStore.ts";
 import { SseHub } from "../src/sse.ts";
 import { VERSION } from "../src/version.ts";
-import type { Command, RawConfig, RawProjection, ShellItem, T3Port } from "../src/t3/types.ts";
+import type { Command, ImageUpload, RawConfig, RawProjection, ShellItem, T3Port } from "../src/t3/types.ts";
 
 const now = new Date("2026-03-20T12:00:00.000Z");
 const connection: ConnectionStatus = { t3: "live", origin: "http://127.0.0.1:3773", serverVersion: "1.0.0", protocolMismatch: false, error: null, since: "x", setup: null };
@@ -34,6 +34,11 @@ class FakePort implements T3Port {
   config: RawConfig = {};
   async getConfig() {
     return this.config;
+  }
+  uploads: Array<{ threadId: string; messageId: string; images: ImageUpload[] }> = [];
+  async persistAttachments(threadId: string, messageId: string, images: ImageUpload[]) {
+    this.uploads.push({ threadId, messageId, images });
+    return images.map((image, index) => ({ type: "image", id: `stored-${index}`, name: image.name, mimeType: image.mimeType, sizeBytes: image.sizeBytes }));
   }
   subscribeShell() {
     return { cancel() {} };
@@ -251,6 +256,62 @@ test("messages: steer without an active run id gives 409; bad input gives 400", 
   assert.deepEqual(port.commands, []);
 });
 
+test("messages: steer falls back to the running run of the projection", async () => {
+  const { server, port } = await start();
+  port.projection = { runs: [{ id: "r1", status: "completed" }, { id: "r2", status: "running" }] };
+  assert.equal((await post(server, "/api/threads/run-2/messages", { text: "Hi", mode: "steer" })).status, 200);
+  assert.deepEqual(port.commands[0]!.dispatchMode, { type: "steer_active", targetRunId: "r2" });
+});
+
+// 4 bytes of PNG data in base64.
+const png = { name: "shot.png", mimeType: "image/png", dataUrl: "data:image/png;base64,iVBORw==" };
+
+test("messages: images are persisted first, then referenced under the same message id", async () => {
+  const { server, port } = await start();
+  assert.equal((await post(server, "/api/threads/idle-1/messages", { text: "Look", attachments: [png] })).status, 200);
+  assert.deepEqual(port.uploads, [{ threadId: "idle-1", messageId: "id-1", images: [{ type: "image", ...png, sizeBytes: 4 }] }]);
+  assert.equal(port.commands[0]!.messageId, "id-1");
+  assert.deepEqual(port.commands[0]!.attachments, [{ type: "image", id: "stored-0", name: "shot.png", mimeType: "image/png", sizeBytes: 4 }]);
+});
+
+test("messages: attachments must be a few PNG, JPEG, GIF or WebP data URLs", async () => {
+  const { server, port } = await start();
+  const bad = [
+    "x",
+    [{ ...png, mimeType: "application/pdf", dataUrl: "data:application/pdf;base64,AAAA" }],
+    [{ ...png, dataUrl: "data:image/jpeg;base64,AAAA" }],
+    [{ ...png, dataUrl: "data:image/png;base64,not base64!" }],
+    [{ ...png, name: "" }],
+    Array.from({ length: 11 }, () => png),
+  ];
+  for (const attachments of bad) assert.equal((await post(server, "/api/threads/idle-1/messages", { text: "x", attachments })).status, 400, JSON.stringify(attachments).slice(0, 80));
+  assert.deepEqual([port.uploads, port.commands], [[], []]);
+});
+
+test("messages: the body may exceed 1 MB for images, up to 25 MB", async () => {
+  const { server } = await start();
+  const big = { text: "x", attachments: [{ ...png, dataUrl: `data:image/png;base64,${"A".repeat(2_000_000)}` }] };
+  assert.equal((await post(server, "/api/threads/idle-1/messages", big)).status, 200);
+  assert.equal((await call(server, "POST", "/api/threads/idle-1/messages", { raw: "x".repeat(26 * 1024 * 1024), headers: { "content-type": "application/json" } })).status, 413);
+});
+
+test("settings: model selection and runtime mode become T3 commands", async () => {
+  const { server, port } = await start();
+  const selection = { ...model, options: [{ id: "effort", value: "high" }] };
+  assert.deepEqual((await post(server, "/api/threads/idle-1/settings", { modelSelection: selection, runtimeMode: "auto" })).json, { ok: true });
+  assert.deepEqual(port.commands, [
+    { type: "thread.model-selection.set", commandId: "id-1", threadId: "idle-1", modelSelection: selection },
+    { type: "thread.runtime-mode.set", commandId: "id-2", threadId: "idle-1", runtimeMode: "auto" },
+  ]);
+});
+
+test("settings: needs a valid model selection or runtime mode", async () => {
+  const { server, port } = await start();
+  const bad = [{}, { runtimeMode: "yolo" }, { modelSelection: { instanceId: "", model: "m" } }, { modelSelection: model, runtimeMode: 3 }];
+  for (const body of bad) assert.equal((await post(server, "/api/threads/idle-1/settings", body)).status, 400, JSON.stringify(body));
+  assert.deepEqual(port.commands, []);
+});
+
 test("interrupt uses the store active run id with holdQueue", async () => {
   const { server, port } = await start();
   assert.deepEqual((await post(server, "/api/threads/run-1/interrupt")).json, { ok: true });
@@ -346,7 +407,7 @@ test("guards: Host, Origin, content-type, JSON, size", async () => {
   assert.equal((await call(server, "POST", "/api/threads/idle-1/archive", { headers: { "content-type": "text/plain" }, raw: "{}" })).status, 400);
   assert.equal((await call(server, "POST", "/api/threads/idle-1/archive", { raw: "{}" })).status, 400);
   assert.equal((await call(server, "POST", "/api/threads/idle-1/archive", { raw: "{not json" })).status, 400);
-  assert.equal((await call(server, "POST", "/api/threads/idle-1/messages", { raw: "x".repeat(1_100_000), headers: { "content-type": "application/json" } })).status, 413);
+  assert.equal((await call(server, "POST", "/api/threads/idle-1/archive", { raw: "x".repeat(1_100_000), headers: { "content-type": "application/json" } })).status, 413);
   assert.deepEqual(port.commands, []);
 });
 

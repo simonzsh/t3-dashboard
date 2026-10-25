@@ -9,6 +9,8 @@ export interface ModelSelection {
   options?: Array<{ id: string; value: unknown }>;
 }
 
+export type RuntimeMode = "approval-required" | "auto-accept-edits" | "auto" | "full-access";
+
 export type PendingCategory = "approval" | "user-input" | "other";
 
 export interface DashboardThread {
@@ -38,10 +40,24 @@ export interface DashboardProject {
   defaultModelSelection: ModelSelection | null;
 }
 
+export interface ModelEffort {
+  /** Option id in ModelSelection.options: "effort" for Claude, "reasoningEffort" for Codex. */
+  optionId: string;
+  levels: Array<{ id: string; label: string }>;
+  defaultLevel: string | null;
+}
+
+export interface DashboardModel {
+  slug: string;
+  name: string;
+  effort: ModelEffort | null;
+}
+
 export interface DashboardProvider {
   instanceId: string;
   displayName: string;
-  models: Array<{ slug: string; name: string }>;
+  models: DashboardModel[];
+  runtimeModes: RuntimeMode[];
 }
 
 export type SetupReason = "t3-missing" | "t3-stopped" | "token-needed";
@@ -133,6 +149,9 @@ export interface ThreadDetail {
   messages: ChatMessage[];
   pendingRequests: PendingRequestDetail[];
   subagents: SubagentInfo[];
+  /** The thread's current model, effort and access, as the composer shows them. */
+  modelSelection: ModelSelection | null;
+  runtimeMode: RuntimeMode | null;
 }
 
 export type ApprovalDecision = "accept" | "acceptForSession" | "decline";
@@ -145,9 +164,22 @@ export interface CreateThreadBody {
   modelSelection: ModelSelection;
 }
 
+export interface ImageAttachment {
+  name: string;
+  mimeType: string;
+  /** `data:<mimeType>;base64,…` */
+  dataUrl: string;
+}
+
 export interface SendMessageBody {
   text: string;
   mode?: "queue" | "steer";
+  attachments?: ImageAttachment[];
+}
+
+export interface ThreadSettingsBody {
+  modelSelection?: ModelSelection;
+  runtimeMode?: RuntimeMode;
 }
 
 export type RespondBody = { decision: ApprovalDecision } | { answers: UserInputAnswers };

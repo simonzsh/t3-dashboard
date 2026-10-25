@@ -185,7 +185,7 @@ test("reclassify emits only threads whose bucket changed", () => {
 
 test("state carries connection and providers", () => {
   const { store } = live();
-  const state = store.state(connection, [{ instanceId: "provider-a", displayName: "Provider A", models: [] }], true);
+  const state = store.state(connection, [{ instanceId: "provider-a", displayName: "Provider A", models: [], runtimeModes: ["full-access"] }], true);
   assert.equal(state.connection, connection);
   assert.equal(state.providers.length, 1);
   assert.equal(typeof state.generatedAt, "string");
