@@ -11,7 +11,8 @@ export interface UpdateDeps {
   chmod(path: string, mode: number): void;
   rename(from: string, to: string): void;
   rm(path: string): void;
-  restart(): Promise<void>;
+  /** Restarts the service and waits until it runs the given version. */
+  restart(version: string): Promise<void>;
   serviceInstalled(): Promise<boolean>;
   log(message: string): void;
 }
@@ -84,7 +85,7 @@ export async function update({ check }: { check: boolean }, deps: UpdateDeps): P
     deps.rm(next);
     throw error;
   }
-  if (await deps.serviceInstalled()) await deps.restart();
+  if (await deps.serviceInstalled()) await deps.restart(latest);
   deps.log(`Updated to ${latest}.`);
 }
 

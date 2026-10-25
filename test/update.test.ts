@@ -53,7 +53,7 @@ function harness(options: { version?: string; sums?: string; platform?: string; 
     chmod: (path, mode) => void calls.push(`chmod ${path} ${mode.toString(8)}`),
     rename: (from, to) => void calls.push(`rename ${from} ${to}`),
     rm: (path) => void calls.push(`rm ${path}`),
-    restart: async () => void calls.push("restart"),
+    restart: async (version) => void calls.push(`restart ${version}`),
     serviceInstalled: async () => options.installed ?? true,
     log: (message) => void calls.push(`log ${message}`),
   };
@@ -72,7 +72,7 @@ test("update downloads, verifies, replaces the binary, then restarts the service
     "write /bin/t3-dashboard.new 10",
     "chmod /bin/t3-dashboard.new 755",
     "rename /bin/t3-dashboard.new /bin/t3-dashboard",
-    "restart",
+    "restart 2.0.0",
     "log Updated to 2.0.0.",
   ]);
 });
@@ -114,5 +114,5 @@ test("windows: the running exe moves aside before the new one takes its place", 
 test("no restart when the service is not installed", async () => {
   const { deps, calls } = harness({ installed: false });
   await update({ check: false }, deps);
-  assert.equal(calls.includes("restart"), false);
+  assert.equal(calls.includes("restart 2.0.0"), false);
 });

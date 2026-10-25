@@ -34,12 +34,13 @@ import {
 } from "./t3/commands.ts";
 import type { DispatchMode } from "./t3/commands.ts";
 import { toThreadDetail } from "./threadDetail.ts";
+import { VERSION } from "./version.ts";
 import type { Command, T3Port } from "./t3/types.ts";
 
 export interface SetupControl {
   /** Resolves the token again. */
   refresh(): Promise<void>;
-  paste(token: string): Promise<"ok" | "rejected" | "unreachable">;
+  paste(token: string): Promise<"ok" | "rejected" | "unreachable" | "locked">;
   /** Reconnects to T3 now, without waiting for the backoff. */
   wake(): void;
 }
@@ -248,7 +249,7 @@ export function createDashboardServer(options: DashboardServerOptions): Dashboar
     const [, resource, id, action, requestId, requestAction] = segments;
     const method = req.method;
     if (method === "GET") {
-      if (segments.length === 2 && resource === "health") return json(200, { ok: true, t3: connection().t3 });
+      if (segments.length === 2 && resource === "health") return json(200, { ok: true, t3: connection().t3, version: VERSION, pid: process.pid });
       if (segments.length === 2 && resource === "state") return json(200, getState());
       if (segments.length === 2 && resource === "board") {
         const refresh = new URL(req.url).searchParams.get("refresh") === "1";
@@ -277,6 +278,7 @@ export function createDashboardServer(options: DashboardServerOptions): Dashboar
       if (id === "token") {
         if (!isText(body.token)) throw new HttpError(400, "Paste a token first.");
         const result = await setup.paste(body.token);
+        if (result === "locked") throw new HttpError(409, "T3_DASHBOARD_TOKEN_FILE is set: put the token in that file.");
         if (result === "rejected") throw new HttpError(400, "T3 Code refused this token.");
         if (result === "unreachable") throw new HttpError(502, "T3 Code is unreachable.");
         setup.wake();

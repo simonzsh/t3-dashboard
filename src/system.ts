@@ -43,7 +43,17 @@ export function installDeps(env: Record<string, string | undefined>): InstallDep
     exists: existsSync,
     readFile: (path) => readFileSync(path, "utf8"),
     hasCommand: (name) => Bun.which(name) !== null,
-    probeHealth: (url) => fetch(url, { signal: AbortSignal.timeout(1_000) }).then((res) => res.ok, () => false),
+    version: VERSION,
+    probeHealth: async (url) => {
+      try {
+        const res = await fetch(url, { signal: AbortSignal.timeout(1_000) });
+        if (!res.ok) return null;
+        const version = ((await res.json().catch(() => null)) as { version?: unknown } | null)?.version;
+        return { version: typeof version === "string" ? version : null };
+      } catch {
+        return null;
+      }
+    },
     sleep: (ms) => sleep(ms),
     now: () => Date.now(),
     open,
@@ -51,7 +61,7 @@ export function installDeps(env: Record<string, string | undefined>): InstallDep
   };
 }
 
-export function updateDeps(env: Record<string, string | undefined>, restart: () => Promise<void>, serviceInstalled: () => Promise<boolean>): UpdateDeps {
+export function updateDeps(env: Record<string, string | undefined>, restart: (version: string) => Promise<void>, serviceInstalled: () => Promise<boolean>): UpdateDeps {
   return {
     fetch,
     repo: env.T3_DASHBOARD_REPO ?? DEFAULT_REPO,
