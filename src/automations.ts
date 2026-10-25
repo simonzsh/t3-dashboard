@@ -1,11 +1,9 @@
-import { readdirSync, readFileSync, statSync } from "node:fs";
-import { basename, dirname, join } from "node:path";
+import { basename, dirname } from "node:path";
 import { Cron } from "croner";
-import { parse } from "yaml";
 import type { Automation, AutomationsResult, BrainStatus } from "../shared/api.ts";
-import { loadBrains } from "./brains.ts";
-import type { Brain } from "./brains.ts";
 import { cronLabel } from "./cronLabel.ts";
+import { loadBrains, readWorkspace, type Brain, type Workspace } from "./integrations/t3-agent/files.ts";
+import type { Job } from "./integrations/t3-agent/schemas.ts";
 
 export interface AutomationsOptions {
   configDir: string;
@@ -17,29 +15,14 @@ const MAX_TITLE = 80;
 // t3-agent keeps a due reminder up to 24 h while its thread is busy (REMINDER_WAIT_LIMIT_HOURS).
 const PAST_REMINDER_MS = 24 * 3_600_000;
 
-type Raw = Record<string, unknown>;
-const isObject = (value: unknown): value is Raw => typeof value === "object" && value !== null && !Array.isArray(value);
-const text = (value: unknown): string | null => (typeof value === "string" && value.trim() !== "" ? value : null);
+const text = (value: string | undefined): string | null => (value !== undefined && value.trim() !== "" ? value : null);
 
-// Missing or broken state files only lose the extras: the jobs still show.
-function readState(workspace: string, file: string): Raw {
-  try {
-    const parsed: unknown = JSON.parse(readFileSync(join(workspace, "state", file), "utf8"));
-    return isObject(parsed) ? parsed : {};
-  } catch {
-    return {};
-  }
-}
-
-function toAutomation(id: string, job: Raw, brain: string, state: { threads: Raw; runs: Raw }, now: Date): Automation | null {
-  const schedule = isObject(job.schedule) ? job.schedule : {};
-  const target = isObject(job.target) ? job.target : {};
-  const engine = isObject(job.engine) ? job.engine : {};
-  const threadEntry = isObject(state.threads[id]) ? state.threads[id] : {};
-  const threadEngine = isObject(threadEntry.engine) ? threadEntry.engine : {};
+function toAutomation(id: string, job: Job, brain: string, state: Workspace, now: Date): Automation | null {
+  const { schedule = {}, target = {}, engine = {} } = job;
+  const threadEntry = state.threads[id] ?? {};
   const lastRunAt = text(state.runs[id]);
   const title = text(target.newThread) ?? text(job.prompt)?.trim().split("\n")[0]?.trim().slice(0, MAX_TITLE) ?? id;
-  const model = text(engine.model) ?? text(threadEngine.model);
+  const model = text(engine.model) ?? text(threadEntry.engine?.model);
   const common = { id, brain, title, model };
 
   const cron = text(schedule.cron);
@@ -68,24 +51,20 @@ function readBrain(brain: Brain, options: AutomationsOptions): { status: BrainSt
   const { workspace } = brain;
   const fallback = workspace ? basename(dirname(workspace)) : brain.name;
   const name = (brain.projectId && options.projectTitle(brain.projectId)) || fallback;
-  if (!workspace || !statSync(workspace, { throwIfNoEntry: false })?.isDirectory()) {
+  const files = workspace ? readWorkspace(workspace) : null;
+  if (!files) {
     return { status: { name, ok: false, error: brain.error ?? "Brain folder not found", problems: 0 }, automations: [] };
   }
   const now = options.now();
-  const state = { threads: readState(workspace, "routine-threads.json"), runs: readState(workspace, "runs.json") };
-  let files: string[] = [];
-  try {
-    files = readdirSync(join(workspace, "jobs")).filter((file) => file.endsWith(".yaml")).sort();
-  } catch {
-    // No jobs folder: the brain has no job yet.
-  }
   let problems = 0;
   const automations: Automation[] = [];
-  for (const file of files) {
+  for (const { id, job } of files.jobs) {
+    if (!job) {
+      problems++;
+      continue;
+    }
     try {
-      const job: unknown = parse(readFileSync(join(workspace, "jobs", file), "utf8"));
-      if (!isObject(job)) throw new Error("Invalid job");
-      const item = toAutomation(file.slice(0, -".yaml".length), job, name, state, now);
+      const item = toAutomation(id, job, name, files, now);
       if (item) automations.push(item);
     } catch {
       problems++;
