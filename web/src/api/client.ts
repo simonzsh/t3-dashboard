@@ -56,4 +56,10 @@ export function createApi(fetchImpl: Fetch) {
 
 export type Api = ReturnType<typeof createApi>;
 
+// Plain URLs: <img> and <iframe> load them, no fetch involved.
+const threadPath = (id: string) => `/api/threads/${encodeURIComponent(id)}`;
+export const attachmentUrl = (threadId: string, attachmentId: string, theme?: string) =>
+  `${threadPath(threadId)}/attachments/${encodeURIComponent(attachmentId)}${theme ? `?theme=${theme}` : ""}`;
+export const mediaUrl = (threadId: string, path: string) => `${threadPath(threadId)}/media?path=${encodeURIComponent(path)}`;
+
 export const api = createApi((input, init) => globalThis.fetch(input, init));

@@ -28,6 +28,7 @@ function harness({ board = { configured: true, ok: true, error: null, issues: [i
       commands.push(command);
     },
     getConfig: async () => ({}),
+    fetchAsset: async () => ({ response: new Response(""), fileName: "" }),
     persistAttachments: async () => [],
     subscribeShell: () => ({ cancel() {} }),
   };

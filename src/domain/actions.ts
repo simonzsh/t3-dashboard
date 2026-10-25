@@ -14,7 +14,7 @@ import {
   type OutgoingMessage,
   type UnsentCommand,
 } from "../integrations/t3/commands.ts";
-import type { ImageUpload, T3Port } from "../integrations/t3/schemas.ts";
+import type { AssetResource, ImageUpload, T3Port } from "../integrations/t3/schemas.ts";
 import { DomainError } from "./errors.ts";
 import type { LinearBoard } from "./linearBoard.ts";
 import { toProviders } from "./providers.ts";
@@ -44,7 +44,13 @@ export interface Actions {
   respond(threadId: string, requestId: string, answer: RespondBody): Promise<void>;
   dismiss(threadId: string, requestId: string): Promise<void>;
   assign(body: AssignIssueBody): Promise<string>;
+  /** An image or page of the thread, fetched from T3. */
+  asset(threadId: string, request: AssetRequest): Promise<{ response: Response; html: boolean }>;
 }
+
+export type AssetRequest = { attachmentId: string } | { path: string };
+
+const IMAGE_FILE = /\.(png|jpe?g|gif|webp|avif)$/i;
 
 export function createActions(options: ActionsOptions): Actions {
   const { port, store, board } = options;
@@ -101,6 +107,23 @@ export function createActions(options: ActionsOptions): Actions {
   return {
     async threadDetail(threadId) {
       return toThreadDetail(threadId, await t3(port.threadProjection(threadId)), store.thread(threadId), store.backgroundTasks(threadId));
+    },
+
+    // T3 signs any readable file: only serve images the thread itself shows.
+    async asset(threadId, request) {
+      let resource: AssetResource;
+      if ("attachmentId" in request) {
+        if (!request.attachmentId.startsWith(`${threadId}-`)) throw new DomainError("not-found", "No such attachment in this thread");
+        resource = { _tag: "attachment", attachmentId: request.attachmentId };
+      } else {
+        const { path } = request;
+        if (!path.startsWith("/") || !IMAGE_FILE.test(path) || path.includes("/../")) throw new DomainError("invalid", "Only images can be shown");
+        const projection = await t3(port.threadProjection(threadId));
+        if (!(projection.messages ?? []).some((message) => message.text?.includes(`(${path})`))) throw new DomainError("not-found", "This thread does not show that image");
+        resource = { _tag: "media-file", threadId, path };
+      }
+      const { response, fileName } = await t3(port.fetchAsset(resource));
+      return { response, html: resource._tag === "attachment" && fileName.endsWith(".html") };
     },
 
     async createThread(create, images) {

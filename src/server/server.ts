@@ -1,12 +1,13 @@
 import type { Server } from "bun";
 import type { AutomationsResult, ConnectionStatus, DashboardState } from "../../shared/api.ts";
 import { MAX_MESSAGE_BODY_BYTES } from "../../shared/limits.ts";
-import type { Actions } from "../domain/actions.ts";
+import type { Actions, AssetRequest } from "../domain/actions.ts";
 import type { LinearBoard } from "../domain/linearBoard.ts";
 import type { Settings } from "../domain/settings.ts";
 import type { UpdateManager } from "../domain/updates.ts";
 import { VERSION } from "../config/version.ts";
 import { HttpError, toHttp } from "./httpError.ts";
+import { isPageTheme, themedPage } from "./htmlRender.ts";
 import type { Site } from "./site.ts";
 import type { SseHub } from "./sse.ts";
 import { isObject, isText, validAssign, validCreate, validImages, validMessage, validRespond, validSettings } from "./validate.ts";
@@ -125,6 +126,20 @@ export function createDashboardServer(options: DashboardServerOptions): Dashboar
   const ok = (extra: Record<string, unknown> = {}) => json(200, { ok: true, ...extra });
   const done = async (work: Promise<unknown>) => (await work, ok());
 
+  // Images keep T3's type; a page is served sandboxed, so its scripts get an opaque origin and cannot call /api.
+  async function asset(req: Request, threadId: string, request: AssetRequest): Promise<Response> {
+    const { response, html } = await actions.asset(threadId, request);
+    const headers: Record<string, string> = { "cache-control": "private, max-age=3600" };
+    if (!html) {
+      headers["content-type"] = response.headers.get("content-type") ?? "application/octet-stream";
+      return new Response(response.body, { headers });
+    }
+    const theme = new URL(req.url).searchParams.get("theme");
+    headers["content-type"] = "text/html; charset=utf-8";
+    headers["content-security-policy"] = "sandbox allow-scripts allow-popups; frame-ancestors 'self'";
+    return new Response(themedPage(await response.text(), isPageTheme(theme) ? theme : "light"), { headers });
+  }
+
   const routes: Route[] = [
     { method: "GET", path: "/api/health", handle: () => json(200, { ok: true, t3: connection().t3, version: VERSION }) },
     { method: "GET", path: "/api/board", handle: async ({ req }) => json(200, await board.get(new URL(req.url).searchParams.get("refresh") === "1")) },
@@ -140,6 +155,16 @@ export function createDashboardServer(options: DashboardServerOptions): Dashboar
       },
     },
     { method: "GET", path: "/api/threads/:id", handle: async ({ params }) => json(200, await actions.threadDetail(params.id!)) },
+    { method: "GET", path: "/api/threads/:id/attachments/:attachmentId", handle: ({ req, params }) => asset(req, params.id!, { attachmentId: params.attachmentId! }) },
+    {
+      method: "GET",
+      path: "/api/threads/:id/media",
+      handle: ({ req, params }) => {
+        const path = new URL(req.url).searchParams.get("path");
+        if (!path) throw new HttpError(400, "Missing path");
+        return asset(req, params.id!, { path });
+      },
+    },
     { method: "POST", path: "/api/board/assign", handle: async ({ body }) => ok({ threadId: await actions.assign(validAssign(body)) }) },
     {
       method: "POST",
@@ -243,7 +268,13 @@ export function createDashboardServer(options: DashboardServerOptions): Dashboar
       }
       // Forbids framing: a hostile page could otherwise clickjack the approval buttons.
       const headers = new Headers(response.headers);
-      for (const [name, value] of Object.entries(SECURITY_HEADERS)) headers.set(name, value);
+      // A sandboxed page allows framing by the dashboard itself: its own CSP replaces the default.
+      const framable = headers.get("content-security-policy")?.includes("frame-ancestors 'self'");
+      for (const [name, value] of Object.entries(SECURITY_HEADERS)) {
+        if (framable && name !== "x-content-type-options") continue;
+        headers.set(name, value);
+      }
+      if (framable) headers.set("x-frame-options", "SAMEORIGIN");
       return new Response(response.body, { status: response.status, statusText: response.statusText, headers });
     },
   };

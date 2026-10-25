@@ -1,4 +1,4 @@
-import type { Command, ImageUpload, RawConfig, RawProjection, ShellItem, T3Port } from "../../src/integrations/t3/schemas.ts";
+import type { AssetResource, Command, ImageUpload, RawConfig, RawProjection, ShellItem, T3Port } from "../../src/integrations/t3/schemas.ts";
 
 /** In-memory T3: records commands, uploads and shell subscriptions; each answer can be swapped. */
 export class FakePort implements T3Port {
@@ -6,6 +6,8 @@ export class FakePort implements T3Port {
   uploads: Array<{ threadId: string; messageId: string; images: ImageUpload[] }> = [];
   subscriptions: Array<{ onItems(items: ShellItem[]): void; onEnd(error?: Error): void; cancelled: boolean }> = [];
   projection: RawProjection = {};
+  assets: AssetResource[] = [];
+  assetFileName = "image.png";
   dispatchError: Error | null = null;
   projectionError: Error | null = null;
   config: () => Promise<RawConfig> = async () => ({ providers: [], environment: { serverVersion: "1.0.0", orchestrationProtocolVersion: 2 } });
@@ -28,6 +30,11 @@ export class FakePort implements T3Port {
   async persistAttachments(threadId: string, messageId: string, images: ImageUpload[]) {
     this.uploads.push({ threadId, messageId, images });
     return images.map((image, index) => ({ type: "image", id: `stored-${index}`, name: image.name, mimeType: image.mimeType, sizeBytes: image.sizeBytes }));
+  }
+
+  async fetchAsset(resource: AssetResource) {
+    this.assets.push(resource);
+    return { response: new Response("bytes", { headers: { "content-type": "image/png" } }), fileName: this.assetFileName };
   }
 
   subscribeShell(onItems: (items: ShellItem[]) => void, onEnd: (error?: Error) => void) {

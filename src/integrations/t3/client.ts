@@ -1,8 +1,8 @@
 import { describe, issues, parse, type Schema } from "../contract.ts";
 import { IntegrationError } from "../errors.ts";
 import { RpcConnection } from "./rpc.ts";
-import { PersistedAttachments, ProjectionResponse, RawConfig, ShellItem, WebSocketTicket } from "./schemas.ts";
-import type { AttachmentRef, Command, ImageUpload, RawProjection, T3Port } from "./schemas.ts";
+import { AssetUrl, PersistedAttachments, ProjectionResponse, RawConfig, ShellItem, WebSocketTicket } from "./schemas.ts";
+import type { AssetResource, AttachmentRef, Command, ImageUpload, RawProjection, T3Port } from "./schemas.ts";
 
 export const ORCHESTRATION_PROTOCOL = "2";
 // Images go up as data URLs of up to 10 MB each: give T3 time to write them.
@@ -12,6 +12,7 @@ const UPLOAD_TIMEOUT_MS = 60_000;
 export const RPC = {
   getConfig: "server.getConfig",
   persistAttachments: "assets.persistChatAttachments",
+  createAssetUrl: "assets.createUrl",
   dispatch: "orchestration.dispatchCommand",
   subscribeShell: "orchestration.subscribeShell",
 } as const;
@@ -75,6 +76,14 @@ export class T3Client implements T3Port {
   async persistAttachments(threadId: string, messageId: string, images: ImageUpload[]): Promise<AttachmentRef[]> {
     const result = await this.oneShot(RPC.persistAttachments, { threadId, messageId, attachments: images }, UPLOAD_TIMEOUT_MS);
     return read(PersistedAttachments, result, "assets.persistChatAttachments").attachments ?? [];
+  }
+
+  async fetchAsset(resource: AssetResource): Promise<{ response: Response; fileName: string }> {
+    const { relativeUrl } = read(AssetUrl, await this.oneShot(RPC.createAssetUrl, { resource }), "assets.createUrl");
+    const response = await this.fetchImpl(`${(await this.baseUrl()).replace(/\/+$/, "")}${relativeUrl}`, { signal: AbortSignal.timeout(UPLOAD_TIMEOUT_MS) });
+    if (response.status === 404) throw new IntegrationError("Attachment not found", { system: "t3", kind: "refused" });
+    if (!response.ok) throw new IntegrationError(`T3 answered ${response.status} for an asset`, { system: "t3", kind: "unreachable" });
+    return { response, fileName: decodeURIComponent(relativeUrl.split("/").at(-1) ?? "") };
   }
 
   dispatch(command: Command): Promise<unknown> {

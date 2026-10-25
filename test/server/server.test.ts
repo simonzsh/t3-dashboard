@@ -756,3 +756,42 @@ test("update routes keep the origin check and the content type", async () => {
   assert.equal((await call(server, "GET", "/api/update", { headers: { host: "evil.example" } })).status, 403);
   assert.deepEqual(updateRuns, []);
 });
+
+test("attachments: an image of the thread passes through with its type and the default framing ban", async () => {
+  const { server, port } = await start();
+  const reply = await call(server, "GET", "/api/threads/t1/attachments/t1-img");
+  assert.equal(reply.status, 200);
+  assert.equal(reply.text, "bytes");
+  assert.equal(reply.headers["content-type"], "image/png");
+  assert.equal(reply.headers["x-frame-options"], "DENY");
+  assert.deepEqual(port.assets, [{ _tag: "attachment", attachmentId: "t1-img" }]);
+});
+
+test("attachments: an id of another thread is refused before any T3 call", async () => {
+  const { server, port } = await start();
+  assert.equal((await call(server, "GET", "/api/threads/t1/attachments/t2-img")).status, 404);
+  assert.deepEqual(port.assets, []);
+});
+
+test("attachments: a page is themed and sandboxed, and only the dashboard may frame it", async () => {
+  const { server, port } = await start();
+  port.assetFileName = "t1-page-html.html";
+  const reply = await call(server, "GET", "/api/threads/t1/attachments/t1-page-html?theme=dark");
+  assert.equal(reply.headers["content-type"], "text/html; charset=utf-8");
+  assert.equal(reply.headers["content-security-policy"], "sandbox allow-scripts allow-popups; frame-ancestors 'self'");
+  assert.equal(reply.headers["x-frame-options"], "SAMEORIGIN");
+  assert.match(reply.text, /color-scheme: dark/);
+  assert.match(reply.text, /bytes$/);
+});
+
+test("media: only an absolute image path that a message of the thread shows", async () => {
+  const { server, port } = await start();
+  port.projection = { messages: [{ id: "m", role: "assistant", text: "Done: ![shot](/tmp/out/shot.png)" }] };
+  const get = (path: string) => call(server, "GET", `/api/threads/t1/media?path=${encodeURIComponent(path)}`);
+  assert.equal((await get("/tmp/out/shot.png")).status, 200);
+  assert.equal((await get("/etc/passwd")).status, 400);
+  assert.equal((await get("/tmp/out/other.png")).status, 404);
+  assert.equal((await get("relative/shot.png")).status, 400);
+  assert.equal((await call(server, "GET", "/api/threads/t1/media")).status, 400);
+  assert.deepEqual(port.assets, [{ _tag: "media-file", threadId: "t1", path: "/tmp/out/shot.png" }]);
+});
