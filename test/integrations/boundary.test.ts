@@ -20,8 +20,8 @@ const RULES: Rule[] = [
     // A line that starts with `fetch(` defines the server's own handler: it is not a call.
     pattern: /^(?!\s*(?:async\s+)?fetch\().*(?:(?<![\w.])fetch\(|globalThis\.fetch\b)/m,
     allowed: {
-      "start.ts": "composition root: hands the real fetch to the Linear and GitHub clients",
-      "system.ts": "install probe of the dashboard's own /api/health",
+      "app/start.ts": "composition root: hands the real fetch to the Linear and GitHub clients",
+      "app/deps.ts": "install probe of the dashboard's own /api/health",
     },
   },
   { name: "WebSocket", pattern: /new WebSocket\b|globalThis\.WebSocket\b/, allowed: {} },
@@ -29,8 +29,8 @@ const RULES: Rule[] = [
     name: "process spawn",
     pattern: /\bBun\.spawn(?:Sync)?\(|\bspawn(?:Sync)?\(|node:child_process/,
     allowed: {
-      "start.ts": "restarts the dashboard itself after an update",
-      "system.ts": "OS tools for the service (systemctl, launchctl, schtasks, open), never t3",
+      "app/start.ts": "restarts the dashboard itself after an update",
+      "app/deps.ts": "OS tools for the service (systemctl, launchctl, schtasks, open), never t3",
     },
   },
   {

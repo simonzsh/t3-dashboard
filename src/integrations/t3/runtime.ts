@@ -1,5 +1,5 @@
 import { join } from "node:path";
-import type { ReadFile } from "../../config.ts";
+import type { ReadFile } from "../../config/config.ts";
 import { matches, type Schema } from "../contract.ts";
 import { RuntimeOrigin, RuntimeVersion } from "./schemas.ts";
 
