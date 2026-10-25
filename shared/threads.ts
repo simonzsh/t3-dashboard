@@ -30,10 +30,17 @@ export interface DashboardThread {
   lastActivityAt: string;
 }
 
+/** The project's icon in T3 Code: SVG shapes on a 24×24 grid, drawn with a stroke. */
+export interface ProjectIcon {
+  shapes: Array<{ tag: string; attrs: Record<string, string> }>;
+  color: string | null;
+}
+
 export interface DashboardProject {
   id: string;
   title: string;
   defaultModelSelection: ModelSelection | null;
+  icon: ProjectIcon | null;
 }
 
 export interface ModelEffort {

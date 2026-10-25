@@ -34,7 +34,7 @@ test("projects diff upserts and removes", () => {
   const s = baseState();
   const out = applyEvent(s, {
     type: "projects",
-    data: { upserted: [{ id: "project-b", title: "Project B", defaultModelSelection: null }], removed: ["project-a"] },
+    data: { upserted: [{ id: "project-b", title: "Project B", defaultModelSelection: null, icon: null }], removed: ["project-a"] },
   })!;
   assert.deepEqual(out.projects.map((p) => p.id), ["project-b"]);
 });

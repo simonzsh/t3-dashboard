@@ -1,7 +1,7 @@
 import { describe, issues, parse, type Schema } from "../contract.ts";
 import { IntegrationError } from "../errors.ts";
 import { RpcConnection } from "./rpc.ts";
-import { AssetUrl, PersistedAttachments, ProjectionResponse, RawConfig, ShellItem, WebSocketTicket } from "./schemas.ts";
+import { AssetUrl, PersistedAttachments, ScratchProject, ProjectionResponse, RawConfig, ShellItem, WebSocketTicket } from "./schemas.ts";
 import type { AssetResource, AttachmentRef, Command, ImageUpload, RawProjection, T3Port } from "./schemas.ts";
 
 export const ORCHESTRATION_PROTOCOL = "2";
@@ -13,6 +13,7 @@ export const RPC = {
   getConfig: "server.getConfig",
   persistAttachments: "assets.persistChatAttachments",
   createAssetUrl: "assets.createUrl",
+  ensureScratch: "projects.ensureScratch",
   dispatch: "orchestration.dispatchCommand",
   subscribeShell: "orchestration.subscribeShell",
 } as const;
@@ -76,6 +77,10 @@ export class T3Client implements T3Port {
   async persistAttachments(threadId: string, messageId: string, images: ImageUpload[]): Promise<AttachmentRef[]> {
     const result = await this.oneShot(RPC.persistAttachments, { threadId, messageId, attachments: images }, UPLOAD_TIMEOUT_MS);
     return read(PersistedAttachments, result, "assets.persistChatAttachments").attachments ?? [];
+  }
+
+  async ensureScratchProject(): Promise<string> {
+    return read(ScratchProject, await this.oneShot(RPC.ensureScratch, {}), "projects.ensureScratch").projectId;
   }
 
   async fetchAsset(resource: AssetResource): Promise<{ response: Response; fileName: string }> {

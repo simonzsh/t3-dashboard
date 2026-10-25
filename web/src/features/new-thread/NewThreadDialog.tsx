@@ -32,7 +32,6 @@ export function NewThreadDialog({ projects, providers, onClose, onCreated }: Pro
 
   async function send(text: string, attachments: ImageAttachment[]): Promise<void> {
     const title = titleFromMessage(text);
-    if (!projectId) throw new Error("Choose a project first.");
     if (!selection) throw new Error("No model is available.");
     if (title === "") throw new Error("Write a message: its first line becomes the title.");
     const { threadId } = await api.createThread({ projectId, title, text, modelSelection: selection, runtimeMode: mode, ...(attachments.length > 0 && { attachments }) });
@@ -53,6 +52,7 @@ export function NewThreadDialog({ projects, providers, onClose, onCreated }: Pro
           label="Project"
           projects={projects}
           value={projectId}
+          allowNone
           onPick={(id) => {
             setProjectId(id);
             setSelection(presetSelection(projects.find((p) => p.id === id), providers));

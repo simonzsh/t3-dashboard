@@ -3,7 +3,7 @@ import { test } from "bun:test";
 import { renderToStaticMarkup } from "react-dom/server";
 import { ProjectPicker } from "../../src/lib/ProjectPicker.tsx";
 
-const project = { id: "p1", title: "Project A", defaultModelSelection: null };
+const project = { id: "p1", title: "Project A", defaultModelSelection: null, icon: null };
 
 test("without projects the picker is disabled and says so", () => {
   const out = renderToStaticMarkup(<ProjectPicker label="Project" projects={[]} value="" onPick={() => {}} />);

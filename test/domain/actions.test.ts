@@ -29,12 +29,13 @@ function harness({ board = { configured: true, ok: true, error: null, issues: [i
     },
     getConfig: async () => ({}),
     fetchAsset: async () => ({ response: new Response(""), fileName: "" }),
+    ensureScratchProject: async () => "scratch-project",
     persistAttachments: async () => [],
     subscribeShell: () => ({ cancel() {} }),
   };
   const store = {
     thread: () => undefined,
-    project: (id: string) => (id === "project-1" ? { id, title: "Project", defaultModelSelection: null } : undefined),
+    project: (id: string) => (id === "project-1" ? { id, title: "Project", defaultModelSelection: null, icon: null } : undefined),
     backgroundTasks: () => [],
   };
   let counter = 0;

@@ -140,7 +140,8 @@ export function createActions(options: ActionsOptions): Actions {
 
     async createThread(create, images) {
       const threadId = newId();
-      await send(...createThreadCommands(threadId, create, await outgoing(threadId, images)));
+      const projectId = create.projectId || (await t3(port.ensureScratchProject()));
+      await send(...createThreadCommands(threadId, { ...create, projectId }, await outgoing(threadId, images)));
       return threadId;
     },
 

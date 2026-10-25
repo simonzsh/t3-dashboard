@@ -168,7 +168,7 @@ test("POST /api/threads sends thread.create then message.dispatch", async () => 
 test("POST /api/threads validates its body", async () => {
   const { server, port } = await start();
   const bad = [
-    { title: "t", text: "x", modelSelection: model },
+    { projectId: 3, title: "t", text: "x", modelSelection: model },
     { projectId: "p", title: "  ", text: "x", modelSelection: model },
     { projectId: "p", title: "t", text: "", modelSelection: model },
     { projectId: "p", title: "t", text: "x" },
@@ -177,6 +177,12 @@ test("POST /api/threads validates its body", async () => {
   ];
   for (const body of bad) assert.equal((await post(server, "/api/threads", body)).status, 400, JSON.stringify(body));
   assert.deepEqual(port.commands, []);
+});
+
+test("POST /api/threads without a project goes to T3's No project", async () => {
+  const { server, port } = await start();
+  assert.equal((await post(server, "/api/threads", { title: "t", text: "x", modelSelection: model })).status, 200);
+  assert.equal((port.commands[0] as { projectId?: string }).projectId, "scratch-project");
 });
 
 test("POST /api/threads takes a runtime mode and images in one call", async () => {
