@@ -59,7 +59,7 @@ button.link { border: 0; background: none; padding: 0; color: var(--accent); tex
 .conn.up .conn-dot { background: #2f9e6b; }
 .banner { padding: 8px 24px; background: var(--warn-bg); color: var(--warn-text); border-bottom: 1px solid var(--line); }
 .empty { color: var(--text-secondary); margin: 0; }
-main { max-width: 1280px; margin: 0 auto; padding: 24px; display: flex; flex-direction: column; gap: 28px; }
+main { padding: 24px; display: flex; flex-direction: column; gap: 28px; }
 .group h2 { display: flex; align-items: baseline; gap: 8px; font-size: 13px; margin: 0 0 12px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-secondary); }
 .count { font-size: 12px; padding: 0 7px; border-radius: 999px; background: var(--line); color: var(--text-primary); }
 .workspace { text-transform: none; letter-spacing: 0; font-size: 12px; font-weight: 400; }
@@ -98,7 +98,7 @@ main { max-width: 1280px; margin: 0 auto; padding: 24px; display: flex; flex-dir
 .notice { margin: 0; padding: 10px 14px; border-radius: 10px; background: var(--warn-bg); color: var(--warn-text); }
 .error-notice { background: var(--err-bg); color: var(--err-text); }
 .kanban { display: flex; gap: 14px; align-items: flex-start; overflow-x: auto; padding-bottom: 8px; }
-.column { flex: none; width: 300px; max-height: calc(100vh - 150px); display: flex; flex-direction: column; border-radius: 14px; background: var(--surface-0); border: 1px solid var(--line); }
+.column { flex: 1 1 0; min-width: 260px; max-height: calc(100vh - 150px); display: flex; flex-direction: column; border-radius: 14px; background: var(--surface-0); border: 1px solid var(--line); }
 .column-head { display: flex; align-items: center; gap: 8px; margin: 0; padding: 12px 14px; font-size: 13px; }
 .column-body { display: flex; flex-direction: column; gap: 16px; padding: 0 10px 10px; overflow-y: auto; }
 .subgroup { display: flex; flex-direction: column; gap: 8px; }
@@ -162,7 +162,7 @@ button.auto-row:hover { background: var(--surface-0); }
 .auto-state.done { color: var(--done-text); }
 @media (max-width: 700px) {
   .kanban { flex-direction: column; overflow-x: visible; }
-  .column { width: 100%; max-height: none; }
+  .column { width: 100%; min-width: 0; max-height: none; flex: none; }
 }
 @media (max-width: 900px) {
   .agents-layout { grid-template-columns: minmax(0, 1fr); }
