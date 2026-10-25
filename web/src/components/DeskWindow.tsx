@@ -35,7 +35,7 @@ export function DeskWindow({ id, thread, projectTitle, missing, focused, maximiz
   const title = thread?.title || "(untitled)";
   return (
     <section
-      className={`desk-window${focused ? " focused" : ""}${maximized ? " maximized" : ""}`}
+      className={`desk-window${state ? ` state-${state}` : ""}${focused ? " focused" : ""}${maximized ? " maximized" : ""}`}
       data-desk-window={id}
       aria-label={title}
       onMouseDownCapture={() => {
