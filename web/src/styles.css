@@ -133,7 +133,13 @@ main { flex: 1; min-height: 0; overflow: hidden; padding: 24px; display: flex; f
 .empty-state { display: flex; flex-direction: column; gap: 4px; align-items: center; padding: 64px 16px; text-align: center; color: var(--text-secondary); border: 1px dashed var(--line); border-radius: 14px; }
 .empty-state strong { color: var(--text-primary); font-size: 15px; }
 .board { flex: 1; min-height: 0; display: flex; flex-direction: column; gap: 12px; overflow-y: auto; }
-.toolbar { display: flex; justify-content: flex-end; }
+.toolbar { display: flex; align-items: center; justify-content: flex-end; gap: 12px; }
+.linear-source { display: inline-flex; align-items: center; gap: 6px; margin-right: auto; font-size: 12px; color: var(--text-secondary); }
+.linear-source .conn-dot { background: var(--ok); }
+.toolbar .refresh { display: grid; place-items: center; padding: 6px; border-radius: 8px; color: var(--text-secondary); }
+.toolbar .refresh .icon { width: 16px; height: 16px; }
+.spinning { animation: spin 0.9s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
 .notice { margin: 0; padding: 10px 14px; border-radius: 10px; background: var(--warn-bg); color: var(--warn-text); }
 .error-notice { background: var(--err-bg); color: var(--err-text); }
 .kanban { flex: 1; min-height: 0; display: flex; gap: 14px; align-items: flex-start; overflow-x: auto; padding-bottom: 8px; }
@@ -450,7 +456,7 @@ button.auto-row:hover { background: var(--surface-0); }
 .key-mask { font: 12px/1 ui-monospace, SFMono-Regular, Menlo, monospace; padding: 4px 7px; border-radius: 6px; border: 1px solid var(--line); color: var(--text-secondary); background: var(--surface-0); }
 /* After every animated rule, so it wins on equal specificity. */
 @media (prefers-reduced-motion: reduce) {
-  .pulse, .agent.working::after, .desk-window.state-running .desk-window-head::after, .streaming, .subagent.running .subagent-dot, .activity-item.running .icon { animation: none; }
+  .pulse, .agent.working::after, .desk-window.state-running .desk-window-head::after, .streaming, .subagent.running .subagent-dot, .activity-item.running .icon, .spinning { animation: none; }
   .agent { transition: none; }
 }
 .msg.pending { opacity: 0.6; }

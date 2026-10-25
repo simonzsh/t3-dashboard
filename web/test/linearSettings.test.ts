@@ -1,7 +1,7 @@
 import { test } from "bun:test";
 import assert from "node:assert/strict";
 import type { BoardResult } from "../../shared/api.ts";
-import { boardNeedsKey, maskedKey } from "../src/linearSettings.ts";
+import { boardNeedsKey, linearConnected, maskedKey } from "../src/linearSettings.ts";
 
 const board = (over: Partial<BoardResult>): BoardResult => ({ workspaces: [], issues: [], fetchedAt: "x", configured: true, ...over });
 const workspace = (ok: boolean, error: string | null) => ({ name: "Linear", ok, error });
@@ -15,4 +15,11 @@ test("the setup card shows without a key, or when Linear refuses it, and not for
 
 test("the key label shows the tail, or that nothing is connected", () => {
   assert.equal(maskedKey("abcd"), "lin_api_••••abcd");
+});
+
+test("the Board says it is connected to Linear once a workspace answers", () => {
+  assert.equal(linearConnected(board({ workspaces: [workspace(false, "Linear is unreachable"), workspace(true, null)] })), true);
+  assert.equal(linearConnected(board({ workspaces: [workspace(false, "Linear is unreachable")] })), false);
+  assert.equal(linearConnected(board({ configured: false, workspaces: [workspace(true, null)] })), false);
+  assert.equal(linearConnected(board({})), false);
 });

@@ -13,6 +13,7 @@ const ICONS = {
   arrowUp: ["M12 19V5", "m5 12 7-7 7 7"],
   x: ["M18 6 6 18", "m6 6 12 12"],
   check: ["M20 6 9 17l-5-5"],
+  refresh: ["M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8", "M21 3v5h-5", "M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16", "M8 16H3v5"],
 };
 
 export function Icon({ name, className = "icon" }: { name: keyof typeof ICONS; className?: string }) {
