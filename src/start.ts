@@ -10,7 +10,7 @@ import { loadConfig, readEnvironmentId, readServerVersion, resolveOrigin } from 
 import { LiveSync } from "./live.ts";
 import { LinearBoard } from "./linear.ts";
 import { readLinearWorkspaces } from "./linearConfig.ts";
-import { configDir, linearFile, pidFile } from "./paths.ts";
+import { linearFile, pidFile } from "./paths.ts";
 import { redirectConsole, writePidFile } from "./runFiles.ts";
 import { writeSecret } from "./secretFile.ts";
 import { createDashboardServer } from "./server.ts";
@@ -101,7 +101,7 @@ export async function start({ port, log, env }: StartOptions): Promise<void> {
 
   const automations = () => readAutomations({ configDir: brainsDir, now: () => new Date(), projectTitle: (id) => store.project(id)?.title || null });
 
-  const settings = createSettings({ file: linearPath, configDir: configDir(env, home), readFile: readText, writeSecret, board, tokenSource: () => auth.source() });
+  const settings = createSettings({ file: linearPath, readFile: readText, writeSecret, board });
   const setup = { refresh: () => auth.refresh(), paste: (token: string) => auth.paste(token), wake: () => live.retryNow() };
 
   const site = siteFromBundle(index);

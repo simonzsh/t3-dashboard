@@ -1,6 +1,6 @@
 import { existsSync } from "node:fs";
 import { join } from "node:path";
-import type { SetupInfo, SetupReason, TokenSource } from "../shared/api.ts";
+import type { SetupInfo, SetupReason } from "../shared/api.ts";
 import type { ReadFile } from "./config.ts";
 import { authFile, t3Home } from "./paths.ts";
 
@@ -114,7 +114,6 @@ export class TokenManager {
   private readonly options: TokenManagerOptions;
   private readonly file: string;
   private token: string | null = null;
-  private tokenSource: TokenSource | null = null;
   private setupInfo: SetupInfo | null = null;
   private inflight: Promise<void> | null = null;
 
@@ -125,10 +124,6 @@ export class TokenManager {
 
   current(): string | null {
     return this.token;
-  }
-
-  source(): TokenSource | null {
-    return this.tokenSource;
   }
 
   setup(): SetupInfo | null {
@@ -149,21 +144,19 @@ export class TokenManager {
     return verdict;
   }
 
-  private use(token: string, source: TokenSource): void {
+  private use(token: string): void {
     this.token = token;
-    this.tokenSource = source;
     this.setupInfo = null;
   }
 
   private fail(reason: SetupReason, detail: string | null): void {
     this.token = null;
-    this.tokenSource = null;
     this.setupInfo = { reason, detail, issueCommand: ISSUE_COMMAND, installUrl: INSTALL_URL };
   }
 
   // A failed write is not fatal: the token still works until the next restart.
   private adopt(token: string, source: "issued" | "pasted"): void {
-    this.use(token, source);
+    this.use(token);
     try {
       const now = this.options.now?.() ?? new Date();
       this.options.writeSecret(this.file, `${JSON.stringify({ token, source, createdAt: now.toISOString() }, null, 2)}\n`);
@@ -178,15 +171,12 @@ export class TokenManager {
     if (env.T3_DASHBOARD_TOKEN_FILE) {
       const raw = tryRead(readFile, env.T3_DASHBOARD_TOKEN_FILE);
       const token = raw === null ? null : field(raw, "token");
-      if (token !== null && (await validate(token)) !== "rejected") return this.use(token, "env-file");
+      if (token !== null && (await validate(token)) !== "rejected") return this.use(token);
       return this.fail("token-needed", token === null ? "The token file cannot be read" : "T3 Code refused the token in the token file");
     }
     const raw = tryRead(readFile, this.file);
     const stored = raw === null ? null : field(raw, "token");
-    if (raw !== null && stored !== null && (await validate(stored)) !== "rejected") {
-      const source = field(raw, "source");
-      return this.use(stored, source === "issued" || source === "pasted" ? source : "stored");
-    }
+    if (raw !== null && stored !== null && (await validate(stored)) !== "rejected") return this.use(stored);
     return this.issue();
   }
 

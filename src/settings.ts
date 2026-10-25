@@ -1,4 +1,4 @@
-import type { LinearKeyBody, SettingsResult, TokenSource } from "../shared/api.ts";
+import type { LinearKeyBody, SettingsResult } from "../shared/api.ts";
 import type { ReadFile } from "./config.ts";
 import { HttpError } from "./httpError.ts";
 import type { LinearBoard } from "./linear.ts";
@@ -7,11 +7,9 @@ import type { SimpleLinearConfig } from "./linearConfig.ts";
 
 export interface SettingsOptions {
   file: string;
-  configDir: string;
   readFile: ReadFile;
   writeSecret(file: string, text: string): void;
   board: Pick<LinearBoard, "invalidate" | "verifyKey">;
-  tokenSource: () => TokenSource | null;
 }
 
 export interface Settings {
@@ -21,7 +19,7 @@ export interface Settings {
 }
 
 export function createSettings(options: SettingsOptions): Settings {
-  const { file, configDir, readFile, writeSecret, board } = options;
+  const { file, readFile, writeSecret, board } = options;
   const read = () => {
     const { workspaces, legacy } = readLinearFile(file, readFile);
     return { config: toSimple(workspaces), legacy, keyed: workspaces.filter((workspace) => workspace.apiKey !== "").length };
@@ -41,8 +39,6 @@ export function createSettings(options: SettingsOptions): Settings {
     const { apiKey } = config;
     return {
       linear: { connected: apiKey !== "", keyTail: apiKey === "" ? null : apiKey.slice(-4), legacy },
-      t3: { tokenSource: options.tokenSource() },
-      configDir,
     };
   };
 

@@ -263,8 +263,6 @@ export interface AssignIssueBody {
   projectId: string;
 }
 
-export type TokenSource = "env-file" | "stored" | "issued" | "pasted";
-
 export interface LinearSettings {
   connected: boolean;
   /** Last 4 characters at most: the key itself never leaves the server. */
@@ -275,8 +273,6 @@ export interface LinearSettings {
 
 export interface SettingsResult {
   linear: LinearSettings;
-  t3: { tokenSource: TokenSource | null };
-  configDir: string;
 }
 
 export interface LinearKeyBody {

@@ -95,13 +95,11 @@ async function start(startOptions: StartOptions = {}) {
   });
   const settings = createSettings({
     file: LINEAR_FILE,
-    configDir: "/cfg",
     readFile,
     writeSecret: (path, text) => {
       files[path] = text;
     },
     board,
-    tokenSource: () => "issued",
   });
   const setupCalls: string[] = [];
   const setup = {
@@ -639,8 +637,6 @@ test("GET /api/settings reports the Linear state without the key", async () => {
   assert.equal(reply.status, 200);
   assert.deepEqual(reply.json, {
     linear: { connected: true, keyTail: "ABCD", legacy: false },
-    t3: { tokenSource: "issued" },
-    configDir: "/cfg",
   });
   assert.ok(!reply.text.includes(KEY));
 });

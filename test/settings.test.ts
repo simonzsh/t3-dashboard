@@ -11,7 +11,6 @@ function setup(initial?: unknown, verdict: KeyCheck = "ok") {
   const calls: string[] = [];
   const settings = createSettings({
     file: FILE,
-    configDir: "/cfg",
     readFile: (path) => {
       if (path in files) return files[path]!;
       throw new Error("ENOENT");
@@ -26,7 +25,6 @@ function setup(initial?: unknown, verdict: KeyCheck = "ok") {
         return verdict;
       },
     },
-    tokenSource: () => "issued",
   });
   return { settings, files, calls, saved: () => JSON.parse(files[FILE]!) };
 }
@@ -37,8 +35,6 @@ test("a new key is verified, then written alone", async () => {
   assert.deepEqual(calls, [`verify:${KEY}`, "invalidate"]);
   assert.deepEqual(saved(), { apiKey: KEY });
   assert.deepEqual(result.linear, { connected: true, keyTail: "WXYZ", legacy: false });
-  assert.equal(result.t3.tokenSource, "issued");
-  assert.equal(result.configDir, "/cfg");
   assert.ok(!JSON.stringify(result).includes(KEY));
 });
 

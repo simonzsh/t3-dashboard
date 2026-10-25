@@ -55,7 +55,6 @@ test("with a token file variable, that file is used and nothing is issued", asyn
   const { manager, runs } = setup({ env: { T3_DASHBOARD_TOKEN_FILE: ENV_FILE }, files: { [ENV_FILE]: '{"token":"from-env"}', [AUTH]: stored("from-store") } });
   await manager.refresh();
   assert.equal(manager.current(), "from-env");
-  assert.equal(manager.source(), "env-file");
   assert.equal(manager.setup(), null);
   assert.equal(runs.length, 0);
 });
@@ -75,7 +74,6 @@ test("a stored token is used when T3 accepts it or cannot be reached", async () 
     const { manager, runs } = setup({ files: { [AUTH]: stored("from-store", "pasted") }, validate: () => verdict });
     await manager.refresh();
     assert.equal(manager.current(), "from-store");
-    assert.equal(manager.source(), "pasted");
     assert.equal(runs.length, 0);
   }
 });
@@ -84,7 +82,6 @@ test("a rejected stored token is replaced by a new one and the file is overwritt
   const { manager, files, logs } = setup({ files: { [AUTH]: stored("old") }, validate: (token) => (token === "old" ? "rejected" : "ok") });
   await manager.refresh();
   assert.equal(manager.current(), SECRET);
-  assert.equal(manager.source(), "issued");
   assert.deepEqual(JSON.parse(files[AUTH]!), { token: SECRET, source: "issued", createdAt: "2026-03-20T12:00:00.000Z" });
   assert.deepEqual(logs, [`Created a T3 Code token for the dashboard (stored in ${AUTH})`]);
 });
@@ -168,7 +165,6 @@ test("paste stores a token T3 accepts and the setup disappears", async () => {
   assert.ok(manager.setup());
   assert.equal(await manager.paste("  pasted-one \n"), "ok");
   assert.equal(manager.current(), "pasted-one");
-  assert.equal(manager.source(), "pasted");
   assert.equal(manager.setup(), null);
   assert.equal(JSON.parse(files[AUTH]!).source, "pasted");
 });
