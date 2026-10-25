@@ -131,7 +131,7 @@ export function createActions(options: ActionsOptions): Actions {
         const { path } = request;
         if (!path.startsWith("/") || !IMAGE_FILE.test(path) || path.includes("/../") || /[\0-\x1f]/.test(path)) throw new DomainError("invalid", "Only images can be shown");
         const projection = await t3(port.threadProjection(threadId));
-        if (!(projection.messages ?? []).some((message) => citesImage(message.text, path))) throw new DomainError("not-found", "This thread does not show that image");
+        if (!(projection.messages ?? []).some((message) => message.role === "assistant" && citesImage(message.text, path))) throw new DomainError("not-found", "This thread does not show that image");
         resource = { _tag: "media-file", threadId, path };
       }
       const { response, fileName } = await t3(port.fetchAsset(resource));

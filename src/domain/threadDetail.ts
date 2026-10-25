@@ -136,12 +136,14 @@ function activityOf(projection: RawProjection, items: RawTurnItem[]): RunActivit
   return { runId: run.id, startedAt: run.startedAt ?? null, completedAt: run.completedAt ?? null, items: activity };
 }
 
+const MAX_RENDER_HEIGHT = 4000;
+
 // html_render returns {htmlRender: {attachmentId, title, height}} as its tool output.
 function renderOf(item: RawTurnItem): HtmlRender | null {
   const output = item.output as { htmlRender?: { attachmentId?: unknown; title?: unknown; height?: unknown } } | null | undefined;
   const render = output?.htmlRender;
   if (!item.id || typeof render?.attachmentId !== "string") return null;
-  const height = typeof render.height === "number" && render.height > 0 ? render.height : 400;
+  const height = typeof render.height === "number" && render.height > 0 ? Math.min(render.height, MAX_RENDER_HEIGHT) : 400;
   return { id: item.id, attachmentId: render.attachmentId, title: typeof render.title === "string" ? render.title : "", height, createdAt: item.completedAt ?? item.startedAt ?? "" };
 }
 
