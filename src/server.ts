@@ -140,7 +140,10 @@ const json = (status: number, body: unknown, headers: Record<string, string> = {
 function validSelection(selection: unknown): ModelSelection | null {
   if (!isObject(selection) || !isText(selection.instanceId) || !isText(selection.model)) return null;
   const { instanceId, model, options } = selection;
-  return { instanceId, model, ...(Array.isArray(options) && { options: options as Array<{ id: string; value: unknown }> }) };
+  const valid = Array.isArray(options)
+    ? options.filter((o): o is { id: string; value: string | number | boolean } => isObject(o) && typeof o.id === "string" && ["string", "number", "boolean"].includes(typeof o.value))
+    : undefined;
+  return { instanceId, model, ...(valid && { options: valid }) };
 }
 
 function validCreate(body: Record<string, unknown>): CreateThreadBody {
@@ -165,14 +168,15 @@ function validImages(value: unknown): ImageUpload[] {
   const error = new HttpError(400, `attachments must be up to ${MAX_IMAGES} PNG, JPEG, GIF or WebP images of 10 MB or less`);
   if (!Array.isArray(value) || value.length > MAX_IMAGES) throw error;
   return value.map((entry) => {
-    if (!isObject(entry) || !isText(entry.name) || entry.name.length > 255 || typeof entry.mimeType !== "string" || !IMAGE_TYPES.has(entry.mimeType)) throw error;
+    const name = isObject(entry) && typeof entry.name === "string" ? entry.name.trim() : "";
+    if (!isObject(entry) || name === "" || name.length > 255 || typeof entry.mimeType !== "string" || !IMAGE_TYPES.has(entry.mimeType)) throw error;
     const prefix = `data:${entry.mimeType};base64,`;
     if (typeof entry.dataUrl !== "string" || !entry.dataUrl.startsWith(prefix)) throw error;
     const data = entry.dataUrl.slice(prefix.length);
-    if (!BASE64.test(data)) throw error;
+    if (data.length % 4 !== 0 || !BASE64.test(data)) throw error;
     const sizeBytes = Math.floor((data.length * 3) / 4) - (data.endsWith("==") ? 2 : data.endsWith("=") ? 1 : 0);
     if (sizeBytes === 0 || sizeBytes > MAX_IMAGE_BYTES) throw error;
-    return { type: "image", name: entry.name, mimeType: entry.mimeType, sizeBytes, dataUrl: entry.dataUrl };
+    return { type: "image", name, mimeType: entry.mimeType, sizeBytes, dataUrl: entry.dataUrl };
   });
 }
 
@@ -227,20 +231,14 @@ export function createDashboardServer(options: DashboardServerOptions): Dashboar
   async function sendMessage(threadId: string, body: Omit<SendMessageBody, "attachments">, images: ImageUpload[]): Promise<void> {
     const thread = store.thread(threadId);
     const active = thread !== undefined && ACTIVE_STATUSES.has(thread.status);
-    let dispatchMode: DispatchMode = { type: "start_immediately" };
-    if (active && body.mode === "steer") {
-      const runId = await activeRunId(threadId);
-      if (!runId) throw new HttpError(409, "No active run to steer");
-      dispatchMode = { type: "steer_active", targetRunId: runId };
-    } else if (active) {
-      dispatchMode = { type: "queue_after_active" };
-    }
+    const steer = body.mode === "steer";
+    const dispatchMode: DispatchMode = active && !steer ? { type: "queue_after_active" } : { type: "start_immediately" };
     let upload;
     if (images.length) {
       const messageId = newId();
       upload = { messageId, attachments: await t3(port.persistAttachments(threadId, messageId, images)) };
     }
-    await send(messageCommand(threadId, body.text, dispatchMode, newId, upload));
+    await send(messageCommand(threadId, body.text, dispatchMode, newId, upload, steer ? "steer" : undefined));
   }
 
   async function interrupt(threadId: string): Promise<void> {
@@ -345,9 +343,10 @@ export function createDashboardServer(options: DashboardServerOptions): Dashboar
       }
       if (id && segments.length === 4) {
         if (action === "messages") {
-          if (!isText(body.text)) throw new HttpError(400, "text is required");
+          if (typeof body.text !== "string") throw new HttpError(400, "text is required");
           if (body.mode !== undefined && body.mode !== "queue" && body.mode !== "steer") throw new HttpError(400, "mode must be queue or steer");
           const images = validImages(body.attachments);
+          if (body.text.trim() === "" && images.length === 0) throw new HttpError(400, "text or an image is required");
           await sendMessage(id, { text: body.text, ...(body.mode && { mode: body.mode }) }, images);
           return json(200, { ok: true });
         }

@@ -119,6 +119,8 @@ test("field mapping with fallbacks", () => {
   assert.equal(bare.backgroundWork, false);
   assert.equal(toDashboardThread(thread({ status: "completed", pendingBackgroundTasks: [{ taskId: "t1" }] }), now).backgroundWork, true);
   assert.equal(toDashboardThread(thread({ blockedOnThreadWait: true }), now).backgroundWork, true);
+  assert.equal(toDashboardThread(thread({ blockedOnThreadWait: true }), now).pendingTasks, false);
+  assert.equal(toDashboardThread(thread({ pendingBackgroundTasks: [{ taskId: "t1" }] }), now).pendingTasks, true);
 
   const viaSelection = toDashboardThread(thread({ modelSelection: { instanceId: "provider-b", model: "model-x" } }), now);
   assert.equal(viaSelection.provider, "provider-b");

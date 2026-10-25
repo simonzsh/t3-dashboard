@@ -12,6 +12,7 @@ export function thread(id: string, over: Partial<DashboardThread> = {}): Dashboa
     pending: null,
     activeRunId: null,
     backgroundWork: false,
+    pendingTasks: false,
     lastError: null,
     hasActionableProposedPlan: false,
     preview: null,

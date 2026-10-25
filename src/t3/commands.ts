@@ -39,10 +39,11 @@ export interface MessageAttachments {
   attachments: unknown[];
 }
 
-export function messageCommand(threadId: string, text: string, dispatchMode: DispatchMode, newId: NewId = randomUUID, upload?: MessageAttachments): Command {
+// `steer` lets T3 pick the active run itself, so a run that starts or ends meanwhile cannot make it fail.
+export function messageCommand(threadId: string, text: string, dispatchMode: DispatchMode, newId: NewId = randomUUID, upload?: MessageAttachments, deliveryIntent?: "steer"): Command {
   const commandId = newId();
   const { messageId, attachments } = upload ?? { messageId: newId(), attachments: [] };
-  return { type: "message.dispatch", commandId, threadId, messageId, text, attachments, dispatchMode, ...PROVENANCE };
+  return { type: "message.dispatch", commandId, threadId, messageId, text, attachments, dispatchMode, ...(deliveryIntent && { deliveryIntent }), ...PROVENANCE };
 }
 
 // T3 resolves a provider switch itself when the instance changes (serverResolvedCommandContext).

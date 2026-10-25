@@ -25,6 +25,8 @@ export interface DashboardThread {
   activeRunId: string | null;
   /** Subagents or a thread wait still run after the turn ended. */
   backgroundWork: boolean;
+  /** The shell lists pending background tasks: subagents may run without a run. */
+  pendingTasks: boolean;
   lastError: string | null;
   hasActionableProposedPlan: boolean;
   preview: { role: string; text: string } | null;

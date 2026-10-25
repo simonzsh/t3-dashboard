@@ -221,7 +221,7 @@ test("keeps an older-run subagent that a pending background task still names", (
   }, undefined, [
     { taskId: "task-1", childThreadId: "child-1" },
     { taskId: "task-2" },
-    { taskId: "task-3", description: "Explore the API" },
+    { description: "Explore the API" },
   ]);
   assert.deepEqual(detail.subagents.map((s) => s.id).sort(), ["by-child", "by-native", "by-title", "new"]);
 });
@@ -239,4 +239,18 @@ test("a pending background task without a projection subagent shows as a running
       ["new", "new", "done"],
     ],
   );
+});
+
+test("orphan rows count only kept subagents; a title never overrides ids", () => {
+  const detail = toThreadDetail("t", {
+    ...twoRuns,
+    subagents: [
+      { ...sub("old-done", "r1", "completed", "2026-03-01T10:01:00Z"), childThreadId: "child-1" },
+      { ...sub("same-title", "r1", "running", "2026-03-01T10:02:00Z"), title: "Explore" },
+    ],
+  }, undefined, [
+    { taskId: "task-1", childThreadId: "child-1", description: "Other" },
+    { taskId: "task-2", description: "Explore" },
+  ]);
+  assert.deepEqual(detail.subagents.map((s) => s.id).sort(), ["task:task-1", "task:task-2"]);
 });

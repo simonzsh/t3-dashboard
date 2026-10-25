@@ -47,7 +47,10 @@ export function ConversationPanel({ threadId, thread, lastEvent, providers }: Pr
   const [text, setText] = useState(() => drafts.get(threadId) ?? "");
   const scroller = useRef<HTMLDivElement>(null);
   const stick = useRef(true);
-  const action = useAction();
+  // One action per control, so an error of one does not wipe another.
+  const sendAction = useAction();
+  const stopAction = useAction();
+  const settingsAction = useAction();
 
   // Bumped on every thread change and cleanup: a late response from an older effect is dropped.
   const epoch = useRef(0);
@@ -87,13 +90,23 @@ export function ConversationPanel({ threadId, thread, lastEvent, providers }: Pr
   const t = thread ?? detail?.thread ?? null;
   const running = t !== null && runActive(t);
 
-  // Poll while background tasks are pending, or a run has a running subagent: a stale one must not keep it going.
-  const subagentRunning = Boolean(t?.backgroundWork) || (running && (detail?.subagents.some((s) => s.status === "running") ?? false));
+  // Poll only while pending background tasks or a running subagent exist: a bare thread wait has nothing to show.
+  const polling = Boolean(t?.pendingTasks) || (detail?.subagents.some((s) => s.status === "running") ?? false);
   useEffect(() => {
-    if (!subagentRunning) return;
-    const id = setInterval(() => void load(), SUBAGENT_POLL_MS);
-    return () => clearInterval(id);
-  }, [subagentRunning, threadId]);
+    if (!polling) return;
+    let stopped = false;
+    let timer: ReturnType<typeof setTimeout>;
+    // The next poll starts after the load ends, so slow responses never pile up.
+    const tick = async () => {
+      await load();
+      if (!stopped) timer = setTimeout(() => void tick(), SUBAGENT_POLL_MS);
+    };
+    timer = setTimeout(() => void tick(), SUBAGENT_POLL_MS);
+    return () => {
+      stopped = true;
+      clearTimeout(timer);
+    };
+  }, [polling, threadId]);
 
   // Follow new messages unless the user scrolled up to read.
   useEffect(() => {
@@ -108,7 +121,7 @@ export function ConversationPanel({ threadId, thread, lastEvent, providers }: Pr
 
   // While a run is active the message steers it instead of waiting in the queue.
   async function send(body: string, attachments: ImageAttachment[]): Promise<boolean> {
-    const ok = await action.run(() => api.sendMessage(threadId, { text: body, ...(running && { mode: "steer" as const }), ...(attachments.length && { attachments }) }));
+    const ok = await sendAction.run(() => api.sendMessage(threadId, { text: body, ...(running && { mode: "steer" as const }), ...(attachments.length && { attachments }) }));
     if (ok) {
       stick.current = true;
       setDraft("");
@@ -117,7 +130,7 @@ export function ConversationPanel({ threadId, thread, lastEvent, providers }: Pr
   }
 
   async function updateSettings(change: ThreadSettingsBody): Promise<boolean> {
-    const ok = await action.run(() => api.updateSettings(threadId, change));
+    const ok = await settingsAction.run(() => api.updateSettings(threadId, change));
     if (ok) void load();
     return ok;
   }
@@ -155,9 +168,10 @@ export function ConversationPanel({ threadId, thread, lastEvent, providers }: Pr
         draft={text}
         onDraft={setDraft}
         onSend={send}
-        onStop={() => action.run(() => api.interrupt(threadId))}
+        onStop={() => stopAction.run(() => api.interrupt(threadId))}
         onSettings={updateSettings}
-        error={action.error}
+        onReload={() => void load()}
+        error={sendAction.error ?? stopAction.error ?? settingsAction.error}
       />
     </div>
   );

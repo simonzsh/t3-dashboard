@@ -134,11 +134,13 @@ interface Props {
   onSend: (text: string, attachments: ImageAttachment[]) => Promise<boolean>;
   onStop: () => Promise<boolean>;
   onSettings: (change: ThreadSettingsBody) => Promise<boolean>;
+  /** Reloads the thread: its values replace picks that could not be rolled back. */
+  onReload: () => void;
   /** Error of the last send, stop or settings change. */
   error: string | null;
 }
 
-export function Composer({ providers, selection, runtimeMode, running, draft, onDraft, onSend, onStop, onSettings, error: actionError }: Props) {
+export function Composer({ providers, selection, runtimeMode, running, draft, onDraft, onSend, onStop, onSettings, onReload, error: actionError }: Props) {
   // Picks show at once; the thread values come back on the next reload.
   const [localSelection, setLocalSelection] = useState(selection);
   const [localMode, setLocalMode] = useState(runtimeMode);
@@ -163,17 +165,24 @@ export function Composer({ providers, selection, runtimeMode, running, draft, on
   const found = findModel(providers, localSelection);
   const effort = found ? currentEffort(localSelection, found.model) : null;
   const modes = found?.provider.runtimeModes ?? (Object.keys(RUNTIME_MODE_LABELS) as RuntimeMode[]);
-  const canSend = draft.trim() !== "" && !sending;
+  const canSend = (draft.trim() !== "" || images.length > 0) && !sending;
+
+  // Counts picks: a failed pick rolls back only if no newer pick happened meanwhile.
+  const changes = useRef(0);
 
   async function change(next: { selection?: ModelSelection; mode?: RuntimeMode }) {
     const before = { selection: localSelection, mode: localMode };
+    const mine = ++changes.current;
     if (next.selection) setLocalSelection(next.selection);
     if (next.mode) setLocalMode(next.mode);
     setError(null);
     const ok = await onSettings({ ...(next.selection && { modelSelection: next.selection }), ...(next.mode && { runtimeMode: next.mode }) });
-    if (!ok) {
+    if (ok) return;
+    if (mine === changes.current) {
       setLocalSelection(before.selection);
       setLocalMode(before.mode);
+    } else {
+      onReload();
     }
   }
 
@@ -242,7 +251,7 @@ export function Composer({ providers, selection, runtimeMode, running, draft, on
             }
           }}
           onPaste={(e) => {
-            const files = [...e.clipboardData.files];
+            const files = [...e.clipboardData.files].filter((f) => f.type.startsWith("image/"));
             if (files.length === 0) return;
             e.preventDefault();
             void addFiles(files);

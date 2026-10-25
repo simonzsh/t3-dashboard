@@ -70,6 +70,7 @@ export function toDashboardThread(raw: RawThread, now: Date): DashboardThread {
     pending: pending ? { requestId: pending.id, kind: pending.kind, category: categoryOf(pending.kind) } : null,
     activeRunId: raw.activeRunId ?? null,
     backgroundWork: hasBackgroundWork(raw),
+    pendingTasks: (raw.pendingBackgroundTasks?.length ?? 0) > 0,
     lastError: raw.lastError ?? null,
     hasActionableProposedPlan: raw.hasActionableProposedPlan ?? false,
     preview: previewOf(raw.latestVisibleMessage),

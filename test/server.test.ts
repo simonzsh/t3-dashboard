@@ -235,32 +235,48 @@ test("messages: idle or unknown thread starts immediately", async () => {
   assert.equal(port.commands[0]!.threadId, "idle-1");
 });
 
-test("messages: active thread queues by default and steers on request", async () => {
+test("messages: active thread queues by default and steers through deliveryIntent", async () => {
   const { server, port } = await start();
   await post(server, "/api/threads/run-1/messages", { text: "Hi" });
   await post(server, "/api/threads/run-1/messages", { text: "Hi", mode: "queue" });
   await post(server, "/api/threads/run-1/messages", { text: "Hi", mode: "steer" });
   assert.deepEqual(
-    port.commands.map((command) => command.dispatchMode),
-    [{ type: "queue_after_active" }, { type: "queue_after_active" }, { type: "steer_active", targetRunId: "run-a" }],
+    port.commands.map((command) => [command.dispatchMode, command.deliveryIntent]),
+    [[{ type: "queue_after_active" }, undefined], [{ type: "queue_after_active" }, undefined], [{ type: "start_immediately" }, "steer"]],
   );
 });
 
-test("messages: steer without an active run id gives 409; bad input gives 400", async () => {
+test("messages: steer never fails for a missing run id; bad input gives 400", async () => {
   const { server, port } = await start();
   const steer = await post(server, "/api/threads/run-2/messages", { text: "Hi", mode: "steer" });
-  assert.equal(steer.status, 409);
-  assert.ok(steer.json.error);
+  assert.equal(steer.status, 200);
+  assert.equal(port.commands[0]!.deliveryIntent, "steer");
+  port.commands.length = 0;
   assert.equal((await post(server, "/api/threads/run-1/messages", { text: "  " })).status, 400);
   assert.equal((await post(server, "/api/threads/run-1/messages", { text: "x", mode: "restart" })).status, 400);
   assert.deepEqual(port.commands, []);
 });
 
-test("messages: steer falls back to the running run of the projection", async () => {
+test("messages: an image alone is enough, blank text without image is not", async () => {
   const { server, port } = await start();
-  port.projection = { runs: [{ id: "r1", status: "completed" }, { id: "r2", status: "running" }] };
-  assert.equal((await post(server, "/api/threads/run-2/messages", { text: "Hi", mode: "steer" })).status, 200);
-  assert.deepEqual(port.commands[0]!.dispatchMode, { type: "steer_active", targetRunId: "r2" });
+  assert.equal((await post(server, "/api/threads/idle-1/messages", { text: "", attachments: [{ name: " shot.png ", mimeType: "image/png", dataUrl: "data:image/png;base64,iVBORw==" }] })).status, 200);
+  assert.equal(port.commands[0]!.text, "");
+  assert.equal((await post(server, "/api/threads/idle-1/messages", { text: " " })).status, 400);
+});
+
+test("messages: base64 length must be a multiple of 4 and names must not be blank", async () => {
+  const { server } = await start();
+  const base = { name: "a.png", mimeType: "image/png", dataUrl: "data:image/png;base64,iVBORw==" };
+  for (const bad of [{ ...base, dataUrl: "data:image/png;base64,iVBORw=" }, { ...base, dataUrl: "data:image/png;base64,iVBOR" }, { ...base, name: "  " }]) {
+    assert.equal((await post(server, "/api/threads/idle-1/messages", { text: "x", attachments: [bad] })).status, 400, JSON.stringify(bad));
+  }
+});
+
+test("settings: model options keep only id with a scalar value", async () => {
+  const { server, port } = await start();
+  const options = [{ id: "effort", value: "high" }, { id: "x", value: { a: 1 } }, { value: "v" }, { id: "fast", value: true }, "junk"];
+  await post(server, "/api/threads/idle-1/settings", { modelSelection: { ...model, options } });
+  assert.deepEqual((port.commands[0]!.modelSelection as { options: unknown }).options, [{ id: "effort", value: "high" }, { id: "fast", value: true }]);
 });
 
 // 4 bytes of PNG data in base64.
