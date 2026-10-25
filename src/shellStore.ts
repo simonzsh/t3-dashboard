@@ -1,6 +1,6 @@
 import type { ConnectionStatus, DashboardProject, DashboardProvider, DashboardState, DashboardThread, Diff } from "../shared/api.ts";
 import { isHidden, toDashboardThread } from "./classify.ts";
-import type { RawBackgroundTask, RawProject, RawSnapshot, RawThread, ShellItem } from "./t3/types.ts";
+import type { RawBackgroundTask, RawProject, RawSnapshot, RawThread, ShellItem } from "./integrations/t3/schemas.ts";
 
 export interface ShellStoreOptions {
   now: () => Date;

@@ -1,4 +1,4 @@
-import type { ModelSelection } from "../../shared/api.ts";
+import type { ModelSelection } from "../../../shared/api.ts";
 
 // Raw T3 shapes. Fields are optional because the server changes them between versions.
 export interface RawThread {

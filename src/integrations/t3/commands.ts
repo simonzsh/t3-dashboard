@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto";
-import type { ApprovalDecision, CreateThreadBody, ModelSelection, RuntimeMode, UserInputAnswers } from "../../shared/api.ts";
-import type { Command } from "./types.ts";
+import type { ApprovalDecision, CreateThreadBody, ModelSelection, RuntimeMode, UserInputAnswers } from "../../../shared/api.ts";
+import type { Command } from "./schemas.ts";
 
 type NewId = () => string;
 

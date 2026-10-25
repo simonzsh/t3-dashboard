@@ -1,7 +1,7 @@
 import type { ActivityItem, ChatMessage, DashboardThread, RunActivity, PendingRequestDetail, SubagentInfo, ThreadDetail } from "../shared/api.ts";
 import { FAILED_STATUSES } from "../shared/status.ts";
-import { isRuntimeMode } from "./t3/commands.ts";
-import type { RawBackgroundTask, RawProjection, RawRuntimeRequest, RawSubagent, RawTurnItem } from "./t3/types.ts";
+import { isRuntimeMode } from "./integrations/t3/commands.ts";
+import type { RawBackgroundTask, RawProjection, RawRuntimeRequest, RawSubagent, RawTurnItem } from "./integrations/t3/schemas.ts";
 
 // Turn items arrive wrapped as `{item}` in some payloads and bare in others.
 const unwrap = (element: { item?: RawTurnItem } | RawTurnItem): RawTurnItem => ("item" in element && element.item ? element.item : (element as RawTurnItem));

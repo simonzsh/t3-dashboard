@@ -1,20 +1,8 @@
-import { existsSync } from "node:fs";
-import { join } from "node:path";
 import type { SetupInfo, SetupReason } from "../shared/api.ts";
 import type { ReadFile } from "./config.ts";
-import { authFile, t3Home } from "./paths.ts";
-
-export const INSTALL_URL = "https://t3.codes";
-const ISSUE_ARGS = ["auth", "session", "issue", "--ttl", "3650d", "--label", "T3 Dashboard", "--token-only"];
-export const ISSUE_COMMAND = `t3 ${ISSUE_ARGS.map((arg) => (arg.includes(" ") ? `"${arg}"` : arg)).join(" ")}`;
-const ISSUE_TIMEOUT_MS = 20_000;
-
-export type Validation = "ok" | "rejected" | "unreachable";
-/** `code` is null when the program did not start or did not finish in time. Only stdout is kept. */
-export interface RunResult {
-  code: number | null;
-  stdout: string;
-}
+import { INSTALL_URL, ISSUE_COMMAND, issueToken, type Run } from "./integrations/t3/cli.ts";
+import type { Validation } from "./integrations/t3/client.ts";
+import { authFile } from "./paths.ts";
 
 type Env = Record<string, string | undefined>;
 
@@ -23,7 +11,7 @@ export interface TokenManagerOptions {
   homedir: string;
   readFile: ReadFile;
   writeSecret(file: string, text: string): void;
-  run(command: string, args: string[], options: { timeoutMs: number }): Promise<RunResult>;
+  run: Run;
   findT3(): string | null;
   /** An empty token probes the server: 401 or 403 means it is up. */
   validate(token: string): Promise<Validation>;
@@ -47,67 +35,6 @@ const tryRead = (readFile: ReadFile, path: string): string | null => {
     return null;
   }
 };
-
-/** Looks for the t3 program: a service starts with a short PATH, so common folders are tried too. */
-export function locateT3(
-  env: Env,
-  homedir: string,
-  exists: (path: string) => boolean,
-  which: (name: string) => string | null,
-  serverVersion: string | null = null,
-): string | null {
-  if (env.T3_DASHBOARD_T3_BIN) return exists(env.T3_DASHBOARD_T3_BIN) ? env.T3_DASHBOARD_T3_BIN : null;
-  // The t3 on PATH can lag behind the running server, and an older CLI mints tokens the server refuses.
-  if (serverVersion && /^[\w.-]+$/.test(serverVersion)) {
-    const versionDir = join(t3Home(env, homedir), "runtime", "versions", serverVersion);
-    const match = [join(versionDir, "t3"), join(versionDir, "t3.exe")].find(exists);
-    if (match) return match;
-  }
-  const local = env.LOCALAPPDATA;
-  const candidates = [
-    join(homedir, ".local", "bin", "t3"),
-    "/opt/homebrew/bin/t3",
-    "/usr/local/bin/t3",
-    ...(local ? [join(local, "Programs", "t3", "t3.exe"), join(local, "Programs", "t3-code", "t3.exe")] : []),
-  ];
-  return which("t3") ?? candidates.find(exists) ?? null;
-}
-
-export const findT3 = (env: Env, homedir: string, serverVersion: string | null = null): string | null =>
-  locateT3(env, homedir, existsSync, (name) => Bun.which(name), serverVersion);
-
-export async function runCommand(command: string, args: string[], { timeoutMs }: { timeoutMs: number }): Promise<RunResult> {
-  try {
-    const child = Bun.spawn([command, ...args], { stdin: "ignore", stdout: "pipe", stderr: "ignore" });
-    let timedOut = false;
-    const timer = setTimeout(() => {
-      timedOut = true;
-      child.kill();
-    }, timeoutMs);
-    const [stdout, code] = await Promise.all([new Response(child.stdout).text(), child.exited]);
-    clearTimeout(timer);
-    return { code: timedOut ? null : code, stdout };
-  } catch {
-    return { code: null, stdout: "" };
-  }
-}
-
-/** Checks a token with T3: 2xx is ok, 401 or 403 is rejected, anything else is unreachable. */
-export function validateWith(origin: () => string, fetchImpl: typeof fetch = fetch) {
-  return async (token: string): Promise<Validation> => {
-    try {
-      const response = await fetchImpl(`${origin().replace(/\/+$/, "")}/api/auth/websocket-ticket`, {
-        method: "POST",
-        headers: { authorization: `Bearer ${token}` },
-        signal: AbortSignal.timeout(5_000),
-      });
-      if (response.ok) return "ok";
-      return response.status === 401 || response.status === 403 ? "rejected" : "unreachable";
-    } catch {
-      return "unreachable";
-    }
-  };
-}
 
 /** Owns the T3 token: where it comes from, how it is checked, and what to show when none works. */
 export class TokenManager {
@@ -185,17 +112,11 @@ export class TokenManager {
     const t3 = this.options.findT3();
     let detail = "t3 command not found";
     if (t3 !== null) {
-      const args = env.T3CODE_HOME ? [...ISSUE_ARGS, "--base-dir", env.T3CODE_HOME] : ISSUE_ARGS;
-      const { code, stdout } = await run(t3, args, { timeoutMs: ISSUE_TIMEOUT_MS });
-      const lines = stdout.split("\n").map((line) => line.trim()).filter((line) => line !== "");
-      detail = code === null ? "t3 auth session issue did not finish" : `t3 auth session issue failed (exit ${code})`;
-      if (code === 0) {
-        detail = "t3 auth session issue returned no token";
-        const [token] = lines;
-        if (lines.length === 1 && token !== undefined) {
-          if ((await validate(token)) !== "rejected") return this.adopt(token, "issued");
-          detail = "T3 Code refused the new token";
-        }
+      const { code, token } = await issueToken(run, t3, env);
+      detail = code === null ? "t3 auth session issue did not finish" : code === 0 ? "t3 auth session issue returned no token" : `t3 auth session issue failed (exit ${code})`;
+      if (token !== null) {
+        if ((await validate(token)) !== "rejected") return this.adopt(token, "issued");
+        detail = "T3 Code refused the new token";
       }
     }
     if ((await validate("")) !== "unreachable") return this.fail("token-needed", detail);

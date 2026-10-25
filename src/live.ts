@@ -1,11 +1,11 @@
 import { setTimeout as delay } from "node:timers/promises";
 import type { ConnectionStatus, DashboardProvider, ModelEffort, SetupInfo } from "../shared/api.ts";
-import { INSTALL_URL, ISSUE_COMMAND } from "./auth.ts";
 import type { TokenManager } from "./auth.ts";
+import { INSTALL_URL, ISSUE_COMMAND } from "./integrations/t3/cli.ts";
 import type { ShellStore } from "./shellStore.ts";
-import { MissingTokenError, T3HttpError } from "./t3/client.ts";
-import { RUNTIME_MODES } from "./t3/commands.ts";
-import type { RawConfig, RawOptionDescriptor, T3Port } from "./t3/types.ts";
+import { MissingTokenError, T3HttpError } from "./integrations/t3/client.ts";
+import { RUNTIME_MODES } from "./integrations/t3/commands.ts";
+import type { RawConfig, RawOptionDescriptor, T3Port } from "./integrations/t3/schemas.ts";
 
 const BACKOFF_MS = [1000, 2000, 4000, 8000, 16000, 30000];
 const EXPECTED_PROTOCOL = 2;

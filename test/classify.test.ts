@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "bun:test";
 import { isHidden, isSettled, toDashboardThread } from "../src/classify.ts";
-import type { RawThread } from "../src/t3/types.ts";
+import type { RawThread } from "../src/integrations/t3/schemas.ts";
 
 const now = new Date("2026-03-20T12:00:00.000Z");
 const DAY = 24 * 60 * 60 * 1000;

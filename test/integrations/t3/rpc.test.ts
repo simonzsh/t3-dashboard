@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { beforeEach, test } from "bun:test";
-import { RpcConnection, T3RpcError } from "../src/t3/rpc.ts";
-import { FakeSocket, tick } from "./helpers/fakeSocket.ts";
+import { RpcConnection, T3RpcError } from "../../../src/integrations/t3/rpc.ts";
+import { FakeSocket, tick } from "../../helpers/fakeSocket.ts";
 
 beforeEach(() => FakeSocket.reset());
 

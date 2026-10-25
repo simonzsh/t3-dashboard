@@ -4,9 +4,12 @@ import { setTimeout as sleep } from "node:timers/promises";
 import index from "../web/index.html";
 import type { DashboardProvider } from "../shared/api.ts";
 import { readAutomations } from "./automations.ts";
-import { TokenManager, findT3, runCommand, validateWith } from "./auth.ts";
+import { TokenManager } from "./auth.ts";
 import { agentConfigDir, loadBrains } from "./brains.ts";
-import { loadConfig, readEnvironmentId, readServerVersion, resolveOrigin } from "./config.ts";
+import { envAllowedHosts, envPort } from "./config.ts";
+import { findT3, runCommand } from "./integrations/t3/cli.ts";
+import { T3Client, validateWith } from "./integrations/t3/client.ts";
+import { environmentIdFile, readEnvironmentId, readServerVersion, resolveOrigin, runtimeFile } from "./integrations/t3/runtime.ts";
 import { LiveSync } from "./live.ts";
 import { LinearBoard } from "./linear.ts";
 import { readLinearWorkspaces } from "./linearConfig.ts";
@@ -18,7 +21,6 @@ import { createSettings } from "./settings.ts";
 import { ShellStore } from "./shellStore.ts";
 import { siteFromBundle } from "./site.ts";
 import { SseHub } from "./sse.ts";
-import { T3Client } from "./t3/client.ts";
 import { updateDeps } from "./system.ts";
 import { latestTag, update } from "./update.ts";
 import { UpdateManager } from "./updates.ts";
@@ -54,14 +56,15 @@ export interface StartOptions {
 export async function start({ port, log, env }: StartOptions): Promise<void> {
   if (log) redirectConsole(log);
   const home = homedir();
-  const config = loadConfig(env, home);
-  const origin = () => resolveOrigin(config.runtimeFile, readText);
+  const runtime = runtimeFile(env, home);
+  const environmentId = environmentIdFile(env, home);
+  const origin = () => resolveOrigin(runtime, readText);
   const auth = new TokenManager({
     env,
     homedir: home,
     readFile: readText,
     writeSecret,
-    findT3: () => findT3(env, home, readServerVersion(config.runtimeFile, readText)),
+    findT3: () => findT3(env, home, readServerVersion(runtime, readText)),
     run: runCommand,
     validate: validateWith(origin),
     log: (message) => console.log(message),
@@ -89,7 +92,7 @@ export async function start({ port, log, env }: StartOptions): Promise<void> {
     },
   });
   const brainsDir = agentConfigDir(env, home);
-  const getState = () => store.state(live.connection(), providers, loadBrains(brainsDir).length > 0, readEnvironmentId(config.environmentIdFile, readText));
+  const getState = () => store.state(live.connection(), providers, loadBrains(brainsDir).length > 0, readEnvironmentId(environmentId, readText));
 
   const linearPath = linearFile(env, home);
   const board = new LinearBoard({
@@ -122,7 +125,7 @@ export async function start({ port, log, env }: StartOptions): Promise<void> {
       return installed;
     },
   });
-  const handler = createDashboardServer({ port: client, store, hub, board, automations, getState, connection: () => live.connection(), site, settings, setup, updates, allowedHosts: config.allowedHosts });
+  const handler = createDashboardServer({ port: client, store, hub, board, automations, getState, connection: () => live.connection(), site, settings, setup, updates, allowedHosts: envAllowedHosts(env) });
 
   const reclassifier = setInterval(() => store.reclassify(new Date()), RECLASSIFY_MS);
   // A dev build has no version to compare, and its runs must not call GitHub.
@@ -131,7 +134,7 @@ export async function start({ port, log, env }: StartOptions): Promise<void> {
   live.start();
   const server = await listen({
     hostname: "127.0.0.1",
-    port: port ?? config.port,
+    port: port ?? envPort(env),
     fetch: handler.fetch,
     routes: site.devRoutes,
     development: site.devRoutes !== undefined,

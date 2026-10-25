@@ -3,8 +3,9 @@ import { mkdtempSync, readFileSync, statSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { test } from "bun:test";
-import { ISSUE_COMMAND, INSTALL_URL, TokenManager, locateT3, runCommand } from "../src/auth.ts";
-import type { RunResult, Validation } from "../src/auth.ts";
+import { TokenManager } from "../src/auth.ts";
+import { INSTALL_URL, ISSUE_COMMAND, type RunResult } from "../src/integrations/t3/cli.ts";
+import type { Validation } from "../src/integrations/t3/client.ts";
 import { writeSecret } from "../src/secretFile.ts";
 
 const SECRET = "secret-token-value";
@@ -98,10 +99,6 @@ test("T3CODE_HOME is passed as --base-dir", async () => {
   const { manager, runs } = setup({ env: { T3CODE_HOME: "/x/t3home" } });
   await manager.refresh();
   assert.deepEqual(runs[0]!.args.slice(-2), ["--base-dir", "/x/t3home"]);
-});
-
-test("the issue command shown to the user matches the one that runs", () => {
-  assert.equal(ISSUE_COMMAND, 't3 auth session issue --ttl 3650d --label "T3 Dashboard" --token-only');
 });
 
 test("t3 missing and T3 unreachable asks to install T3 Code", async () => {
@@ -220,31 +217,4 @@ test("the stored file is private (0600)", async () => {
   assert.equal(statSync(file).mode & 0o777, 0o600);
   assert.equal(statSync(join(dir, "nested")).mode & 0o777, 0o700);
   assert.equal(readFileSync(file, "utf8"), "{}");
-});
-
-test("locateT3 prefers the variable, then PATH, then the usual folders", () => {
-  const exists = (known: string[]) => (path: string) => known.includes(path);
-  const none = () => null;
-  assert.equal(locateT3({ T3_DASHBOARD_T3_BIN: "/opt/t3" }, "/h", exists(["/opt/t3", "/h/.local/bin/t3"]), () => "/p/t3"), "/opt/t3");
-  assert.equal(locateT3({}, "/h", exists([]), () => "/p/t3"), "/p/t3");
-  assert.equal(locateT3({}, "/h", exists(["/usr/local/bin/t3", "/opt/homebrew/bin/t3"]), none), "/opt/homebrew/bin/t3");
-  assert.equal(locateT3({}, "/h", exists(["/h/.local/bin/t3"]), none), "/h/.local/bin/t3");
-  assert.equal(locateT3({ T3_DASHBOARD_T3_BIN: "/nonexistent" }, "/h", exists([]), none), null);
-  assert.equal(locateT3({ LOCALAPPDATA: "C:\\L" }, "/h", exists([join("C:\\L", "Programs", "t3", "t3.exe")]), none), join("C:\\L", "Programs", "t3", "t3.exe"));
-});
-
-test("runCommand returns the exit code and stdout, and a null code on a timeout or a missing program", async () => {
-  assert.deepEqual(await runCommand(process.execPath, ["-e", "console.log('hi')"], { timeoutMs: 10_000 }), { code: 0, stdout: "hi\n" });
-  assert.equal((await runCommand(process.execPath, ["-e", "process.exit(4)"], { timeoutMs: 10_000 })).code, 4);
-  assert.equal((await runCommand(process.execPath, ["-e", "setTimeout(() => {}, 30000)"], { timeoutMs: 200 })).code, null);
-  assert.equal((await runCommand("/nonexistent/t3", [], { timeoutMs: 1000 })).code, null);
-});
-
-test("locateT3 prefers the CLI of the running server version over an older one on PATH", () => {
-  const exists = (paths: string[]) => (p: string) => paths.includes(p);
-  const runtime = "/h/.t3/runtime/versions/0.2.0/t3";
-  assert.equal(locateT3({}, "/h", exists([runtime]), () => "/h/.local/bin/t3", "0.2.0"), runtime);
-  assert.equal(locateT3({ T3CODE_HOME: "/data/t3" }, "/h", exists(["/data/t3/runtime/versions/0.2.0/t3"]), () => null, "0.2.0"), "/data/t3/runtime/versions/0.2.0/t3");
-  assert.equal(locateT3({}, "/h", exists([]), () => "/p/t3", "0.2.0"), "/p/t3");
-  assert.equal(locateT3({}, "/h", exists([runtime]), () => "/p/t3", "../evil"), "/p/t3");
 });

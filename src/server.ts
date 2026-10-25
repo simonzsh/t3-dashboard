@@ -32,11 +32,11 @@ import {
   modelSelectionCommand,
   runtimeModeCommand,
   userInputCommand,
-} from "./t3/commands.ts";
-import type { DispatchMode } from "./t3/commands.ts";
+} from "./integrations/t3/commands.ts";
+import type { DispatchMode } from "./integrations/t3/commands.ts";
 import { toThreadDetail } from "./threadDetail.ts";
 import { VERSION } from "./version.ts";
-import type { Command, ImageUpload, T3Port } from "./t3/types.ts";
+import type { Command, ImageUpload, T3Port } from "./integrations/t3/schemas.ts";
 
 export interface SetupControl {
   /** Resolves the token again. */

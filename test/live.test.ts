@@ -1,11 +1,11 @@
 import assert from "node:assert/strict";
 import { test } from "bun:test";
 import type { ConnectionStatus, DashboardProvider, SetupInfo } from "../shared/api.ts";
-import { INSTALL_URL, ISSUE_COMMAND } from "../src/auth.ts";
+import { INSTALL_URL, ISSUE_COMMAND } from "../src/integrations/t3/cli.ts";
 import { LiveSync, toProviders } from "../src/live.ts";
 import { ShellStore } from "../src/shellStore.ts";
-import { T3HttpError } from "../src/t3/client.ts";
-import type { RawConfig, ShellItem, T3Port } from "../src/t3/types.ts";
+import { T3HttpError } from "../src/integrations/t3/client.ts";
+import type { RawConfig, ShellItem, T3Port } from "../src/integrations/t3/schemas.ts";
 import { tick } from "./helpers/fakeSocket.ts";
 
 const now = () => new Date("2026-03-20T12:00:00.000Z");

@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "bun:test";
 import { toThreadDetail } from "../src/threadDetail.ts";
-import type { RawProjection } from "../src/t3/types.ts";
+import type { RawProjection } from "../src/integrations/t3/schemas.ts";
 
 const projection: RawProjection = {
   messages: [

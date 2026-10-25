@@ -9,7 +9,7 @@ import {
   modelSelectionCommand,
   runtimeModeCommand,
   userInputCommand,
-} from "../src/t3/commands.ts";
+} from "../../../src/integrations/t3/commands.ts";
 
 const counter = () => {
   let n = 0;

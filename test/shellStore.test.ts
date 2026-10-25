@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { test } from "bun:test";
 import { ShellStore } from "../src/shellStore.ts";
 import type { DashboardProject, DashboardState, DashboardThread, Diff } from "../shared/api.ts";
-import type { RawProject, RawThread, ShellItem } from "../src/t3/types.ts";
+import type { RawProject, RawThread, ShellItem } from "../src/integrations/t3/schemas.ts";
 
 const now = new Date("2026-03-20T12:00:00.000Z");
 const iso = (hoursAgo: number) => new Date(now.getTime() - hoursAgo * 3_600_000).toISOString();

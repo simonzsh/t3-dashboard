@@ -12,7 +12,7 @@ import { UpdateManager } from "../src/updates.ts";
 import { ShellStore } from "../src/shellStore.ts";
 import { SseHub } from "../src/sse.ts";
 import { VERSION } from "../src/version.ts";
-import type { Command, ImageUpload, RawConfig, RawProjection, ShellItem, T3Port } from "../src/t3/types.ts";
+import type { Command, ImageUpload, RawConfig, RawProjection, ShellItem, T3Port } from "../src/integrations/t3/schemas.ts";
 
 const now = new Date("2026-03-20T12:00:00.000Z");
 const connection: ConnectionStatus = { t3: "live", serverVersion: "1.0.0", protocolMismatch: false, error: null, setup: null };

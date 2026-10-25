@@ -1,5 +1,5 @@
 import type { DashboardThread, PendingCategory } from "../shared/api.ts";
-import type { RawThread } from "./t3/types.ts";
+import type { RawThread } from "./integrations/t3/schemas.ts";
 
 const PREVIEW_MAX = 280;
 const EPOCH = new Date(0).toISOString();

@@ -1,5 +1,5 @@
 import { RpcConnection } from "./rpc.ts";
-import type { AttachmentRef, Command, ImageUpload, RawConfig, RawProjection, ShellItem, T3Port } from "./types.ts";
+import type { AttachmentRef, Command, ImageUpload, RawConfig, RawProjection, ShellItem, T3Port } from "./schemas.ts";
 
 const ORCHESTRATION_PROTOCOL = "2";
 // Images go up as data URLs of up to 10 MB each: give T3 time to write them.
@@ -17,6 +17,25 @@ export class T3HttpError extends Error {
     super(message);
     this.status = status;
   }
+}
+
+export type Validation = "ok" | "rejected" | "unreachable";
+
+/** Checks a token with T3: 2xx is ok, 401 or 403 is rejected, anything else is unreachable. */
+export function validateWith(origin: () => string, fetchImpl: typeof fetch = fetch) {
+  return async (token: string): Promise<Validation> => {
+    try {
+      const response = await fetchImpl(`${origin().replace(/\/+$/, "")}/api/auth/websocket-ticket`, {
+        method: "POST",
+        headers: { authorization: `Bearer ${token}` },
+        signal: AbortSignal.timeout(5_000),
+      });
+      if (response.ok) return "ok";
+      return response.status === 401 || response.status === 403 ? "rejected" : "unreachable";
+    } catch {
+      return "unreachable";
+    }
+  };
 }
 
 export interface T3ClientOptions {

@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { beforeEach, test } from "bun:test";
-import { MissingTokenError, T3Client, T3HttpError } from "../src/t3/client.ts";
-import { FakeSocket, tick } from "./helpers/fakeSocket.ts";
+import { MissingTokenError, T3Client, T3HttpError } from "../../../src/integrations/t3/client.ts";
+import { FakeSocket, tick } from "../../helpers/fakeSocket.ts";
 
 beforeEach(() => FakeSocket.reset());
 
