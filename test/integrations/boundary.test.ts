@@ -17,8 +17,8 @@ interface Rule {
 const RULES: Rule[] = [
   {
     name: "fetch call",
-    // A line that starts with `fetch(` defines the server's own handler: it is not a call.
-    pattern: /^(?!\s*(?:async\s+)?fetch\().*(?:(?<![\w.])fetch\(|globalThis\.fetch\b)/m,
+    // Skips only a `fetch(...) {` or `fetch(...):` method definition (the server's own handler).
+    pattern: /^(?!\s*(?:async\s+)?fetch\([^)]*\)\s*[:{]).*(?:(?<![\w.])fetch\(|globalThis\.fetch\b)/m,
     allowed: {
       "app/start.ts": "composition root: hands the real fetch to the Linear and GitHub clients",
       "app/deps.ts": "install probe of the dashboard's own /api/health",
