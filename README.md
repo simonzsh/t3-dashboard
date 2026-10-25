@@ -184,7 +184,7 @@ Le test `test/architecture.test.ts` lit les imports et bloque une dépendance in
 
 - `shared/` n'importe rien.
 - `config/` importe seulement `shared/`.
-- Une intégration importe `config/`, `shared/`, `integrations/contract.ts` et `integrations/errors.ts`. Elle n'importe pas le domaine, le serveur ni une autre intégration.
+- Une intégration importe `config/`, `shared/`, `integrations/contract.ts`, `integrations/errors.ts` et `integrations/drift.ts` (rapport des contrats). Elle n'importe pas le domaine, le serveur ni une autre intégration.
 - `domain/` importe `shared/`, `config/` et `integrations/`. Il n'importe pas `server/`, `app/` ni `cli/`.
 - `server/` importe `shared/`, `domain/`, `config/` et `integrations/errors.ts`. Il passe par le domaine pour parler à T3 ou à Linear.
 - `cli/` importe `config/` et `integrations/github/`.

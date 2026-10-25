@@ -33,7 +33,7 @@ function layer(path: string): string | null {
   return null;
 }
 
-const INTEGRATION_CORE = ["integrations/contract", "integrations/errors"];
+const INTEGRATION_CORE = ["integrations/contract", "integrations/errors", "integrations/drift"];
 
 /** May `from` import `to`? Each rule lists the folders a folder may reach. */
 function allowed(from: string, to: string): boolean {
