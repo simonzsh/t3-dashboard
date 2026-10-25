@@ -102,11 +102,6 @@ export function App() {
           {TABS.map(({ id, label, key }) => (
             <button key={id} role="tab" aria-selected={tab === id} className={tab === id ? "active" : ""} title={`${label} (${key})`} onClick={() => setTab(id)}>
               {label}
-              {id === "desk" && desk.windows.length > 0 && (
-                <span className="count" aria-label={`${desk.windows.length} open`}>
-                  {desk.windows.length}
-                </span>
-              )}
               {id === "desk" && deskWaiting && <span className="tab-alert" role="img" aria-label="An agent is waiting for your reply" />}
               <kbd>{key}</kbd>
             </button>
