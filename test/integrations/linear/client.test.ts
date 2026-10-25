@@ -46,6 +46,18 @@ test("follows pageInfo until the last page and keeps every issue in order", asyn
   assert.match(calls[0]!.query, /pageInfo \{ hasNextPage endCursor \}/);
 });
 
+test("every page of one load shares a single timeout signal", async () => {
+  const signals: (AbortSignal | null | undefined)[] = [];
+  const client = new LinearClient(async (_url, init) => {
+    signals.push(init.signal);
+    return signals.length === 1 ? linearPage([linearNode(1)], { hasNextPage: true, endCursor: "c1" }) : linearPage([linearNode(2)]);
+  });
+  await client.assignedIssues("key-1");
+  assert.equal(signals.length, 2);
+  assert.ok(signals[0] instanceof AbortSignal);
+  assert.equal(signals[0], signals[1]);
+});
+
 test("endless pages fail loudly instead of truncating", async () => {
   const { client, calls } = setup(() => linearPage([linearNode(1)], { hasNextPage: true, endCursor: "next" }));
   const error = await failure(client.assignedIssues("key-1"));

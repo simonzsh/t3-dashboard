@@ -9,6 +9,8 @@ export const QUERY = `query($after: String) { viewer { assignedIssues(first: 100
 const MAX_PAGES = 20;
 // A stalled Linear would otherwise hold the board request for minutes.
 const FETCH_TIMEOUT_MS = 15_000;
+// One budget for every page of a load, so 20 slow pages cannot add up.
+const LOAD_TIMEOUT_MS = 30_000;
 // Linear answers 400, 401 or 403 to a key it does not know.
 const REFUSED_STATUSES = new Set([400, 401, 403]);
 
@@ -38,8 +40,9 @@ export class LinearClient {
   async assignedIssues(apiKey: string): Promise<LinearIssueNode[]> {
     const issues: LinearIssueNode[] = [];
     let after: string | undefined;
+    const signal = AbortSignal.timeout(LOAD_TIMEOUT_MS);
     for (let page = 0; page < MAX_PAGES; page++) {
-      const { pageInfo, nodes } = parse(AssignedIssuesPage, await this.query(apiKey, QUERY, { after }), { system: "linear", what: "Linear issues" }).viewer.assignedIssues;
+      const { pageInfo, nodes } = parse(AssignedIssuesPage, await this.query(apiKey, QUERY, { after }, signal), { system: "linear", what: "Linear issues" }).viewer.assignedIssues;
       issues.push(...nodes);
       if (!pageInfo.hasNextPage) return issues;
       if (pageInfo.endCursor === null) {
@@ -51,14 +54,14 @@ export class LinearClient {
   }
 
   // Error texts never include the response body or the key: both can echo it back.
-  async query(apiKey: string, text: string, variables?: Record<string, unknown>): Promise<unknown> {
+  async query(apiKey: string, text: string, variables?: Record<string, unknown>, signal: AbortSignal = AbortSignal.timeout(FETCH_TIMEOUT_MS)): Promise<unknown> {
     let response: Response;
     try {
       response = await this.fetchImpl(ENDPOINT, {
         method: "POST",
         headers: { "content-type": "application/json", authorization: apiKey },
         body: JSON.stringify({ query: text, variables }),
-        signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
+        signal,
       });
     } catch {
       throw fail("unreachable", "Linear is unreachable");
