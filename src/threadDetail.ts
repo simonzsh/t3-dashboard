@@ -1,4 +1,5 @@
 import type { ActivityItem, ChatMessage, DashboardThread, RunActivity, PendingRequestDetail, SubagentInfo, ThreadDetail } from "../shared/api.ts";
+import { FAILED_STATUSES } from "../shared/status.ts";
 import { isRuntimeMode } from "./t3/commands.ts";
 import type { RawBackgroundTask, RawProjection, RawRuntimeRequest, RawSubagent, RawTurnItem } from "./t3/types.ts";
 
@@ -27,14 +28,13 @@ function pendingDetail(request: RawRuntimeRequest, items: RawTurnItem[]): Pendin
 }
 
 const RESULT_CHARS = 200;
-const FAILED = new Set(["failed", "interrupted", "cancelled", "canceled", "error", "errored"]);
 
 const truncate = (text: string, max: number) => (text.length > max ? `${text.slice(0, max - 1)}…` : text);
 
 function subagentStatus(raw: RawSubagent): SubagentInfo["status"] {
   if (raw.status === "completed") return "done";
   if (raw.status === "running") return "running";
-  if (FAILED.has(raw.status ?? "")) return "failed";
+  if (FAILED_STATUSES.has(raw.status ?? "")) return "failed";
   return raw.completedAt ? "done" : "running";
 }
 
@@ -106,7 +106,7 @@ function toolSummary(input: unknown): string | null {
 }
 
 function activityStatus(item: RawTurnItem): ActivityItem["status"] {
-  if (FAILED.has(item.status ?? "") || item.outputIndicatesFailure || (item.exitCode ?? 0) !== 0) return "failed";
+  if (FAILED_STATUSES.has(item.status ?? "") || item.outputIndicatesFailure || (item.exitCode ?? 0) !== 0) return "failed";
   if (item.status === "completed" || item.completedAt) return "done";
   return "running";
 }

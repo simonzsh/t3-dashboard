@@ -1,8 +1,8 @@
 import type { Automation, DashboardThread } from "../../shared/api.ts";
+import { ACTIVE_STATUSES, hasFailed } from "../../shared/status.ts";
 
 export type LastRun = { kind: "waiting" } | { kind: "running" } | { kind: "failed" } | { kind: "done"; at: string };
 
-const ACTIVE = new Set(["preparing", "queued", "starting", "running", "waiting"]);
 const DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 const DAY_MS = 86_400_000;
@@ -31,8 +31,8 @@ export function lastRunState(t: DashboardThread | undefined): LastRun | null {
   if (!t) return null;
   // A routine blocked on the user must say so: its thread is hidden from the agents grid.
   if (t.pending) return { kind: "waiting" };
-  if (ACTIVE.has(t.status)) return { kind: "running" };
-  if (t.status === "failed" || t.lastError !== null) return { kind: "failed" };
+  if (ACTIVE_STATUSES.has(t.status)) return { kind: "running" };
+  if (hasFailed(t)) return { kind: "failed" };
   const at = new Date(t.lastActivityAt);
   return { kind: "done", at: `${two(at.getHours())}:${two(at.getMinutes())}` };
 }

@@ -1,5 +1,5 @@
 import type { DashboardEvent, DashboardProvider, DashboardThread } from "../../../shared/api.ts";
-import { threadState, type ThreadState } from "../agents.ts";
+import { threadState, type ThreadState } from "../../../shared/status.ts";
 import { Badge, Button, Icon, Pressable } from "../ui/index.ts";
 import { ConversationPanel } from "./ConversationPanel.tsx";
 import { OpenInT3 } from "./OpenInT3.tsx";

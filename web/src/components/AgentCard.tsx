@@ -1,5 +1,6 @@
 import type { AgentCard as Card } from "../agents.ts";
 import { pendingLabel } from "../agents.ts";
+import { hasFailed } from "../../../shared/status.ts";
 import { cut, relativeTime } from "../format.ts";
 import { Badge, Icon, IconButton, Pressable } from "../ui/index.ts";
 import { OpenInT3 } from "./OpenInT3.tsx";
@@ -17,7 +18,7 @@ interface Props {
 
 export function AgentCard({ card, now, onDesk, t3EnvironmentId, onOpen, onToggleDesk }: Props) {
   const { thread: t, status } = card;
-  const failed = t.status === "failed" || t.lastError !== null;
+  const failed = hasFailed(t);
   return (
     <div className="agent-wrap">
       <Pressable className={`agent ${status}${onDesk ? " on-desk" : ""}`} onClick={(e) => onOpen(t.id, e.shiftKey)}>

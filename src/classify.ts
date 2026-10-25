@@ -4,7 +4,6 @@ import type { RawThread } from "./t3/types.ts";
 const PREVIEW_MAX = 280;
 const EPOCH = new Date(0).toISOString();
 
-export const ACTIVE_STATUSES = new Set(["preparing", "queued", "starting", "running", "waiting"]);
 const APPROVAL_KINDS = new Set(["command", "file-read", "file-change", "permission", "mcp-elicitation"]);
 
 export function isHidden(raw: RawThread, location?: string): boolean {

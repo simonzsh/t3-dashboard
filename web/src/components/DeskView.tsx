@@ -1,7 +1,7 @@
 import { useEffect, useRef, type Dispatch, type MouseEvent, type ReactNode } from "react";
 import { Cell, Grid, Gridline, useGridRef, type GridLayout } from "react-resizable-panels";
 import type { DashboardEvent, DashboardProject, DashboardProvider, DashboardThread } from "../../../shared/api.ts";
-import { threadState } from "../agents.ts";
+import { threadState } from "../../../shared/status.ts";
 import type { DeskBackground } from "../deskBackground.ts";
 import { cellOf, deskLayout, equalSizes, gridWindows, sizesFor, type DeskAction, type DeskState, type DeskWindow as Win } from "../desk.ts";
 import { Kbd, Pressable } from "../ui/index.ts";

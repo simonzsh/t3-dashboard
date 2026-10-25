@@ -1,6 +1,7 @@
 import { test } from "bun:test";
 import assert from "node:assert/strict";
-import { agentStatus, groupAgents, pendingLabel, providerKind, runActive, threadState } from "../src/agents.ts";
+import { groupAgents, pendingLabel, providerKind } from "../src/agents.ts";
+import { agentStatus, runActive, threadState } from "../../shared/status.ts";
 import { thread } from "./fixtures.ts";
 
 const now = new Date("2026-03-01T12:00:00Z");

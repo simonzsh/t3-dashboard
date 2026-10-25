@@ -1,6 +1,5 @@
 import type { DashboardProject, DashboardThread, PendingCategory } from "../../shared/api.ts";
-
-export type AgentStatus = "waiting" | "working" | "finished" | "idle";
+import { agentStatus, type AgentStatus } from "../../shared/status.ts";
 
 export interface AgentCard {
   thread: DashboardThread;
@@ -14,27 +13,7 @@ export interface AgentGroup {
   settled: DashboardThread[];
 }
 
-const WORKING = new Set(["preparing", "queued", "starting", "running", "waiting"]);
-const FINISHED = new Set(["completed", "interrupted", "failed", "cancelled", "rolled_back"]);
 const RANK: Record<AgentStatus, number> = { waiting: 0, working: 1, finished: 2, idle: 3 };
-/** A run is in progress: it can be stopped or steered (background subagents alone cannot). */
-export const runActive = (t: DashboardThread) => WORKING.has(t.status) || t.activeRunId !== null;
-const isWorking = (t: DashboardThread) => runActive(t) || t.backgroundWork;
-
-export function agentStatus(t: DashboardThread): AgentStatus {
-  if (t.pending) return "waiting";
-  if (isWorking(t)) return "working";
-  return FINISHED.has(t.status) ? "finished" : "idle";
-}
-
-export type ThreadState = "waiting" | "running" | "done" | "error" | "idle";
-
-export function threadState(t: DashboardThread): ThreadState {
-  if (t.pending) return "waiting";
-  if (isWorking(t)) return "running";
-  if (t.status === "failed" || t.lastError !== null) return "error";
-  return FINISHED.has(t.status) ? "done" : "idle";
-}
 
 const recent = (a: DashboardThread, b: DashboardThread) => b.lastActivityAt.localeCompare(a.lastActivityAt);
 

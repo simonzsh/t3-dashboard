@@ -13,7 +13,7 @@ import type {
   ThreadSettingsBody,
   UserInputAnswers,
 } from "../shared/api.ts";
-import { ACTIVE_STATUSES } from "./classify.ts";
+import { ACTIVE_STATUSES, RUNNING_RUN_STATUSES } from "../shared/status.ts";
 import { HttpError } from "./httpError.ts";
 import { toProviders } from "./live.ts";
 import type { LinearBoard } from "./linear.ts";
@@ -71,7 +71,6 @@ const MAX_IMAGES = 10;
 const IMAGE_TYPES = new Set(["image/png", "image/jpeg", "image/gif", "image/webp"]);
 const BASE64 = /^[A-Za-z0-9+/]*={0,2}$/;
 const LOCAL_HOSTS = new Set(["127.0.0.1", "localhost"]);
-const RUNNING_STATUSES = new Set(["preparing", "starting", "running", "waiting"]);
 const CLAUDE_INSTANCE = "claudeAgent";
 const CLAUDE_FALLBACK_MODEL = "claude-opus-5-5";
 const CODEX_INSTANCE = "codex";
@@ -220,7 +219,7 @@ export function createDashboardServer(options: DashboardServerOptions): Dashboar
     const runId = store.thread(threadId)?.activeRunId;
     if (runId) return runId;
     const { runs = [] } = await t3(port.threadProjection(threadId));
-    return runs.findLast((run) => RUNNING_STATUSES.has(run.status ?? ""))?.id ?? null;
+    return runs.findLast((run) => RUNNING_RUN_STATUSES.has(run.status ?? ""))?.id ?? null;
   }
 
   async function sendMessage(threadId: string, body: Omit<SendMessageBody, "attachments">, images: ImageUpload[]): Promise<void> {

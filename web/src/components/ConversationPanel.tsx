@@ -1,6 +1,6 @@
 import { memo, useEffect, useRef, useState } from "react";
 import type { ChatMessage, DashboardEvent, DashboardProvider, DashboardThread, ImageAttachment, ThreadDetail, ThreadSettingsBody } from "../../../shared/api.ts";
-import { runActive } from "../agents.ts";
+import { runActive } from "../../../shared/status.ts";
 import { api } from "../api.ts";
 import { renderMarkdown } from "../markdown.tsx";
 import { type PendingMessage, countSame, isSettled, pendingLabel } from "../pending.ts";
