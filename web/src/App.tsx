@@ -164,7 +164,7 @@ export function App() {
               automationsError={automations.error}
             />
           ) : <Loader />)}
-        {tab === "board" && <BoardView projects={state?.projects ?? []} version={boardVersion} onAssigned={(id) => openOnDesk(id, false)} onShowDesk={() => setTab("desk")} />}
+        {tab === "board" && <BoardView projects={state?.projects ?? []} providers={state?.providers ?? []} version={boardVersion} onAssigned={(id) => openOnDesk(id, false)} onShowDesk={() => setTab("desk")} />}
         {tab === "desk" &&
           (state ? (
             <DeskView

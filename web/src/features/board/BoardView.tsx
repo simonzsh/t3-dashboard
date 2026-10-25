@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import type { BoardResult, DashboardProject } from "../../../../shared/api.ts";
+import type { BoardResult, DashboardProject, DashboardProvider } from "../../../../shared/api.ts";
 import { useApi } from "../../api/ApiContext.tsx";
 import { boardColumns } from "./board.ts";
 import { boardNeedsKey, linearConnected } from "../settings/linearSettings.ts";
@@ -10,13 +10,14 @@ import { useAction } from "../../lib/useAction.ts";
 
 interface Props {
   projects: DashboardProject[];
+  providers: DashboardProvider[];
   /** Changes when the Linear settings change: the board then loads again. */
   version: number;
   onAssigned: (threadId: string) => void;
   onShowDesk: () => void;
 }
 
-export function BoardView({ projects, version, onAssigned, onShowDesk }: Props) {
+export function BoardView({ projects, providers, version, onAssigned, onShowDesk }: Props) {
   const api = useApi();
   const [board, setBoard] = useState<BoardResult | null>(null);
   const { busy: loading, error, run } = useAction();
@@ -84,7 +85,7 @@ export function BoardView({ projects, version, onAssigned, onShowDesk }: Props) 
                           </span>
                           <span className="card-title">{i.title}</span>
                         </a>
-                        <AssignMenu issue={i} projects={projects} onAssigned={onAssigned} onShowDesk={onShowDesk} />
+                        <AssignMenu issue={i} projects={projects} providers={providers} onAssigned={onAssigned} onShowDesk={onShowDesk} />
                       </article>
                     ))}
                   </div>

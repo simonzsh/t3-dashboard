@@ -55,11 +55,15 @@ export function validImages(value: unknown): ImageUpload[] {
   });
 }
 
-export function validAssign(body: Record<string, unknown>): AssignIssueBody {
-  if (!isText(body.issueId) || !isText(body.projectId) || (body.agent !== "claude" && body.agent !== "codex")) {
-    throw new HttpError(400, "issueId, projectId and agent (claude or codex) are required");
+export function validAssign(body: Record<string, unknown>): Omit<AssignIssueBody, "attachments"> {
+  const modelSelection = validSelection(body.modelSelection);
+  const projectId = body.projectId ?? "";
+  const text = body.text ?? "";
+  if (!isText(body.issueId) || typeof projectId !== "string" || typeof text !== "string" || !modelSelection) {
+    throw new HttpError(400, "issueId and modelSelection (instanceId, model) are required; projectId and text are strings");
   }
-  return { issueId: body.issueId, agent: body.agent, projectId: body.projectId };
+  if (body.runtimeMode !== undefined && !isRuntimeMode(body.runtimeMode)) throw new HttpError(400, "runtimeMode is not a known mode");
+  return { issueId: body.issueId, projectId: projectId.trim(), text, modelSelection, ...(isRuntimeMode(body.runtimeMode) && { runtimeMode: body.runtimeMode }) };
 }
 
 export function validRespond(body: Record<string, unknown>): RespondBody {

@@ -491,13 +491,7 @@ test("a site page is served for GET and never for other methods", async () => {
   assert.equal((await post(server, "/")).status, 404);
 });
 
-const assignBody = { issueId: "issue-1", agent: "claude", projectId: "project-1" };
-const providers: RawConfig = {
-  providers: [
-    { instanceId: "provider-b", enabled: true, status: "ready", models: [{ slug: "model-y" }] },
-    { instanceId: "codex", enabled: true, status: "ready", models: [{ slug: "model-c1" }, { slug: "model-c2" }] },
-  ],
-};
+const assignBody = { issueId: "issue-1", projectId: "project-1", text: "", modelSelection: { instanceId: "claudeAgent", model: "claude-opus-5-5" } };
 
 test("GET /api/board returns the board and caches it until ?refresh=1", async () => {
   const { server, linearCalls } = await start({ linearKey: "key-1" });
@@ -513,9 +507,9 @@ test("GET /api/board returns the board and caches it until ?refresh=1", async ()
   assert.ok(!first.text.includes("key-1"));
 });
 
-test("POST /api/board/assign with claude creates a thread in the chosen project", async () => {
+test("POST /api/board/assign creates a thread on the issue with the chosen model", async () => {
   const { server, port } = await start({ linearKey: "key-1" });
-  const reply = await post(server, "/api/board/assign", assignBody);
+  const reply = await post(server, "/api/board/assign", { ...assignBody, runtimeMode: "auto" });
   assert.deepEqual(reply.json, { ok: true, threadId: "id-1" });
   assert.deepEqual(
     port.commands.map((command) => command.type),
@@ -523,38 +517,21 @@ test("POST /api/board/assign with claude creates a thread in the chosen project"
   );
   assert.equal(port.commands[0]!.projectId, "project-1");
   assert.equal(port.commands[0]!.title, "TEAM-1 Issue 1");
+  assert.equal(port.commands[0]!.runtimeMode, "auto");
   assert.equal(port.commands[1]!.text, "Traite le ticket Linear TEAM-1 : https://linear.example/TEAM-1");
   assert.deepEqual(port.commands[0]!.modelSelection, { instanceId: "claudeAgent", model: "claude-opus-5-5" });
 });
 
-test("assign with claude keeps the project default when it uses claudeAgent", async () => {
-  const { server, port, store } = await start({ linearKey: "key-1" });
-  store.apply([{ kind: "project.updated", project: { id: "project-1", title: "Project A", defaultModelSelection: { instanceId: "claudeAgent", model: "model-d" } } }]);
-  await post(server, "/api/board/assign", assignBody);
-  assert.deepEqual(port.commands[0]!.modelSelection, { instanceId: "claudeAgent", model: "model-d" });
-});
-
-test("assign with claude ignores a project default on another provider", async () => {
-  const { server, port, store } = await start({ linearKey: "key-1" });
-  store.apply([{ kind: "project.updated", project: { id: "project-1", title: "Project A", defaultModelSelection: { instanceId: "codex", model: "model-d" } } }]);
-  await post(server, "/api/board/assign", assignBody);
-  assert.deepEqual(port.commands[0]!.modelSelection, { instanceId: "claudeAgent", model: "claude-opus-5-5" });
-});
-
-test("assign with codex uses the first model of the codex provider", async () => {
+test("assign puts the user's instructions first, then the issue link", async () => {
   const { server, port } = await start({ linearKey: "key-1" });
-  port.config = async () => providers;
-  const reply = await post(server, "/api/board/assign", { ...assignBody, agent: "codex" });
-  assert.equal(reply.status, 200);
-  assert.deepEqual(port.commands[0]!.modelSelection, { instanceId: "codex", model: "model-c1" });
+  await post(server, "/api/board/assign", { ...assignBody, text: "  Start with the tests.  " });
+  assert.equal(port.commands[1]!.text, "Start with the tests.\n\nTicket Linear TEAM-1 : https://linear.example/TEAM-1");
 });
 
-test("assign with codex answers 409 when no codex model exists", async () => {
+test("assign without a project goes to T3's No project", async () => {
   const { server, port } = await start({ linearKey: "key-1" });
-  port.config = async () => ({ providers: [providers.providers![0]!] });
-  const reply = await post(server, "/api/board/assign", { ...assignBody, agent: "codex" });
-  assert.equal(reply.status, 409);
-  assert.deepEqual(port.commands, []);
+  assert.equal((await post(server, "/api/board/assign", { ...assignBody, projectId: "" })).status, 200);
+  assert.equal(port.commands[0]!.projectId, "scratch-project");
 });
 
 test("assign finds the project by title as well as by id", async () => {
@@ -563,13 +540,13 @@ test("assign finds the project by title as well as by id", async () => {
   assert.equal(port.commands[0]!.projectId, "project-2");
 });
 
-test("assign errors: 400 invalid body or no project, 404 unknown issue, 409 unknown T3 project", async () => {
+test("assign errors: 400 invalid body, 404 unknown issue, 409 unknown T3 project", async () => {
   const { server, port } = await start({ linearKey: "key-1" });
-  assert.equal((await post(server, "/api/board/assign", { ...assignBody, agent: "other" })).status, 400);
-  assert.equal((await post(server, "/api/board/assign", { agent: "claude" })).status, 400);
-  const { projectId: _projectId, ...withoutProject } = assignBody;
-  assert.equal((await post(server, "/api/board/assign", withoutProject)).status, 400);
-  assert.equal((await post(server, "/api/board/assign", { ...assignBody, projectId: " " })).status, 400);
+  const { modelSelection: _model, ...withoutModel } = assignBody;
+  assert.equal((await post(server, "/api/board/assign", withoutModel)).status, 400);
+  assert.equal((await post(server, "/api/board/assign", { ...assignBody, issueId: "" })).status, 400);
+  assert.equal((await post(server, "/api/board/assign", { ...assignBody, text: 3 })).status, 400);
+  assert.equal((await post(server, "/api/board/assign", { ...assignBody, runtimeMode: "yolo" })).status, 400);
   assert.equal((await post(server, "/api/board/assign", { ...assignBody, issueId: "nope" })).status, 404);
   assert.equal((await post(server, "/api/board/assign", { ...assignBody, projectId: "missing" })).status, 409);
   assert.deepEqual(port.commands, []);

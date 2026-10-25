@@ -40,9 +40,11 @@ interface Props {
   autoFocus?: boolean;
   /** A new value clears the error line: the parent fixed its cause outside the Composer. */
   errorResetKey?: unknown;
+  /** Send works with an empty message, e.g. when the parent adds its own text. */
+  allowEmpty?: boolean;
 }
 
-export function Composer({ providers, selection, runtimeMode, running, draft, onDraft, onSend, onStop, onSettings, placeholder, autoFocus = false, errorResetKey }: Props) {
+export function Composer({ providers, selection, runtimeMode, running, draft, onDraft, onSend, onStop, onSettings, placeholder, autoFocus = false, errorResetKey, allowEmpty = false }: Props) {
   // Picks show at once, until new values come in the props or the change fails.
   // Each field has its own override: a model reload never drops a pending mode pick, and the reverse.
   const [selectionOverride, setSelectionOverride] = useState<ModelSelection | null>(null);
@@ -82,7 +84,7 @@ export function Composer({ providers, selection, runtimeMode, running, draft, on
   const found = findModel(providers, localSelection);
   const effort = found ? currentEffort(localSelection, found.model) : null;
   const modes = found?.provider.runtimeModes ?? (Object.keys(RUNTIME_MODE_LABELS) as RuntimeMode[]);
-  const canSend = (draft.trim() !== "" || images.length > 0) && !sending;
+  const canSend = (allowEmpty || draft.trim() !== "" || images.length > 0) && !sending;
 
   async function changeSelection(next: ModelSelection) {
     setSelectionOverride(next);

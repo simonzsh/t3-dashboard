@@ -58,7 +58,7 @@ test("a T3 failure of any kind comes back as a T3 integration error with its mes
 
 test("assign names the thread after the issue and asks the agent to handle it", async () => {
   const { actions, commands } = harness();
-  const threadId = await actions.assign({ issueId: "issue-1", agent: "claude", projectId: "project-1" });
+  const threadId = await actions.assign({ issueId: "issue-1", projectId: "project-1", text: "", modelSelection: { instanceId: "i", model: "m" } }, []);
   const create = commands.find((command) => command.type === "thread.create");
   assert.equal(create?.threadId, threadId);
   assert.equal(create?.title, "TEAM-1 Fix it");
@@ -68,6 +68,6 @@ test("assign names the thread after the issue and asks the agent to handle it", 
 
 test("assign refuses an unknown issue and an unknown project", async () => {
   const { actions } = harness();
-  await assert.rejects(actions.assign({ issueId: "nope", agent: "claude", projectId: "project-1" }), rejectsWith("not-found"));
-  await assert.rejects(actions.assign({ issueId: "issue-1", agent: "claude", projectId: "nope" }), rejectsWith("conflict"));
+  await assert.rejects(actions.assign({ issueId: "nope", projectId: "project-1", text: "", modelSelection: { instanceId: "i", model: "m" } }, []), rejectsWith("not-found"));
+  await assert.rejects(actions.assign({ issueId: "issue-1", projectId: "nope", text: "", modelSelection: { instanceId: "i", model: "m" } }, []), rejectsWith("conflict"));
 });

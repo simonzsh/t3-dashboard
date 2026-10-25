@@ -520,11 +520,14 @@ button.auto-row:hover { background: var(--surface-0); }
 .linear-card small, .key-box small { color: var(--text-secondary); }
 .key-form { display: flex; flex-direction: column; gap: 6px; }
 .key-box { display: flex; flex-direction: column; gap: 8px; }
-.menu-project { display: flex; flex-direction: column; gap: 4px; padding: 6px 8px; }
-.menu-project small { color: var(--text-secondary); }
 .dialog.settings { max-height: 90vh; overflow-y: auto; }
 .dialog.new-agent { width: min(640px, 94vw); gap: 12px; }
 .dialog.new-agent .composer { padding: 0; }
+.issue-banner { display: flex; align-items: center; gap: 8px; min-width: 0; padding: 8px 12px; border-radius: var(--radius-md); border: 1px solid color-mix(in srgb, var(--accent) 35%, var(--line)); background: color-mix(in srgb, var(--accent) 10%, var(--surface-1)); color: var(--text-primary); text-decoration: none; font-size: 13px; }
+.issue-banner:hover { border-color: var(--accent); }
+.issue-banner-id { flex: none; font: 600 12px/1 var(--font-mono); color: var(--accent); }
+.issue-banner-title { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.issue-banner .icon { flex: none; width: 14px; height: 14px; color: var(--text-secondary); }
 .linear-status { display: inline-flex; align-items: center; gap: 10px; }
 .linear-status.muted { color: var(--text-secondary); }
 .linear-status, .version-line { min-width: 0; white-space: nowrap; }
