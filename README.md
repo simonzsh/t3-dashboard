@@ -38,6 +38,8 @@ Options du script : `T3_DASHBOARD_VERSION=1.2.3` fixe la version, `T3_DASHBOARD_
 | Windows | tâche planifiée « T3 Dashboard » à l'ouverture de session |
 
 - Le service redémarre seul après une panne.
+- `install` copie dans le service les variables définies au moment de l'installation : `T3_DASHBOARD_TOKEN_FILE`, `T3_DASHBOARD_CONFIG_DIR`, `T3_DASHBOARD_LINEAR_FILE`, `T3_DASHBOARD_AGENT_CONFIG_DIR`, `T3_DASHBOARD_T3_BIN`, `T3_SERVER_RUNTIME` et `T3CODE_HOME`. Pour changer une valeur, définissez la variable et relancez `install`.
+- `install` et `update` attendent que le nouveau binaire réponde sur le port. Si un autre programme ou un ancien dashboard tient le port, la commande s'arrête avec une erreur : « Port 4310 is used by another program or an older dashboard. » Arrêtez ce programme, ou installez avec `--port <n>`.
 - Sous Linux, exécutez `loginctl enable-linger $USER` pour démarrer le service au boot, sans ouvrir de session.
 - Sous Windows, la tâche n'a pas besoin de droits d'administrateur. Si Windows la refuse, l'installeur utilise la clé `Run` de l'utilisateur.
 - Sous Windows, les droits de fichier (mode 600) ne s'appliquent pas. Le dossier de config reste dans votre profil.
@@ -116,7 +118,7 @@ Format du fichier :
 |---|---|---|
 | `PORT` | `4310` | Port local. L'hôte est toujours `127.0.0.1`. `--port` l'emporte. |
 | `T3_DASHBOARD_CONFIG_DIR` | `~/.config/t3-dashboard` | Dossier de `auth.json` et de `linear.json`. |
-| `T3_DASHBOARD_TOKEN_FILE` | aucun | Fichier JSON avec le champ `token`. Sans lui, le dashboard garde son propre jeton. |
+| `T3_DASHBOARD_TOKEN_FILE` | aucun | Fichier JSON avec le champ `token`. Sans lui, le dashboard garde son propre jeton. Avec lui, l'écran de réglage refuse un jeton collé : mettez-le dans ce fichier. |
 | `T3_DASHBOARD_T3_BIN` | recherche auto | Chemin absolu de `t3`. |
 | `T3_DASHBOARD_LINEAR_FILE` | `<config>/linear.json` | Fichier de la config Linear. |
 | `T3_DASHBOARD_AGENT_CONFIG_DIR` | `~/.config/t3-agent` | Dossier des configs t3-agent, un `*.json` par cerveau. |
