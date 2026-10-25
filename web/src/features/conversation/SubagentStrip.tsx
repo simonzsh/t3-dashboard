@@ -49,13 +49,13 @@ export function SubagentStrip({ subagents, reveal = 0 }: { subagents: SubagentIn
             const detail = s.status === "running" ? s.progress : s.result;
             return (
               <li key={s.id} className={`subagent ${s.status}`}>
-                <span className="subagent-dot" role="img" aria-label={STEP_LABELS[s.status]} title={STEP_LABELS[s.status]} />
+                <span className="subagent-dot" role="img" aria-label={STEP_LABELS[s.status]} data-tooltip={STEP_LABELS[s.status]} />
                 <span className="subagent-text">
-                  <span className="subagent-title" title={s.title}>
+                  <span className="subagent-title" data-tooltip={s.title}>
                     {s.title}
                   </span>
                   {detail && (
-                    <span className="subagent-detail" title={detail}>
+                    <span className="subagent-detail" data-tooltip={detail}>
                       {detail}
                     </span>
                   )}

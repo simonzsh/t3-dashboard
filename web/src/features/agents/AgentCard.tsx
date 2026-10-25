@@ -23,7 +23,7 @@ export function AgentCard({ card, compact = false, now, onDesk, t3EnvironmentId,
   const failed = hasFailed(t);
   return (
     <div className="agent-wrap">
-      <Pressable className={`agent ${status}${compact ? " compact" : ""}${onDesk ? " on-desk" : ""}`} title={threadTitle(t)} onClick={(e) => onOpen(t.id, e.shiftKey)}>
+      <Pressable className={`agent ${status}${compact ? " compact" : ""}${onDesk ? " on-desk" : ""}`} tooltip={threadTitle(t)} onClick={(e) => onOpen(t.id, e.shiftKey)}>
         <span className="agent-head">
           <ProviderIcon provider={t.provider} />
           <span className="agent-title">{threadTitle(t)}</span>
@@ -48,7 +48,7 @@ export function AgentCard({ card, compact = false, now, onDesk, t3EnvironmentId,
         size="sm"
         className={`desk-toggle${onDesk ? " on" : ""}`}
         aria-pressed={onDesk}
-        title={onDesk ? "On Desk (click to remove)" : "Add to Desk"}
+        tooltip={onDesk ? "On Desk (click to remove)" : "Add to Desk"}
         onClick={() => onToggleDesk(t.id)}
       >
         <Icon name={onDesk ? "check" : "plus"} />

@@ -28,13 +28,18 @@ test("a loading Button is disabled and busy, and shows the loading text", () => 
 
 test("an IconButton names itself with its label", () => {
   const out = html(<IconButton label="Close"><Icon name="x" /></IconButton>);
-  assert.match(out, /^<button type="button" aria-label="Close" title="Close" class="icon-button md"><svg class="icon"/);
+  assert.match(out, /^<button type="button" aria-label="Close" data-tooltip="Close" class="icon-button md"><svg class="icon"/);
 });
 
-test("an IconButton keeps a longer title and shows a shortcut", () => {
-  const out = html(<IconButton label="Settings" title="Settings (,)" size="sm" kbd=",">S</IconButton>);
-  assert.match(out, /aria-label="Settings" title="Settings \(,\)" class="icon-button sm"/);
+test("an IconButton takes a tooltip and a shortcut apart from its label", () => {
+  const out = html(<IconButton label="Settings" tooltip="Open settings" shortcut="," size="sm" kbd=",">S</IconButton>);
+  assert.match(out, /aria-label="Settings" data-tooltip="Open settings" data-shortcut="," class="icon-button sm"/);
   assert.match(out, />S<kbd>,<\/kbd><\/button>$/);
+});
+
+test("Button and Pressable map tooltip and shortcut to data attributes, never to title", () => {
+  assert.equal(html(<Button tooltip="New Agent" shortcut="N">New</Button>), '<button type="button" data-tooltip="New Agent" data-shortcut="N" class="btn md">New</button>');
+  assert.equal(html(<Pressable tooltip="Tab" shortcut="1">T</Pressable>), '<button type="button" data-tooltip="Tab" data-shortcut="1">T</button>');
 });
 
 test("a Pressable is a plain button for cards, rows and tabs", () => {
@@ -82,7 +87,7 @@ test("a Dialog has a title, a close button and the dialog role", () => {
   const out = html(<Dialog title="Settings" onClose={() => {}}><p>Body</p></Dialog>);
   assert.match(out, /role="dialog" aria-modal="true" aria-labelledby="[^"]+"/);
   assert.match(out, /<h2 id="[^"]+">Settings<\/h2>/);
-  assert.match(out, /aria-label="Close" title="Close \(Esc\)"/);
+  assert.match(out, /aria-label="Close" data-tooltip="Close" data-shortcut="Esc"/);
   assert.match(out, /<p>Body<\/p>/);
   assert.doesNotMatch(out, /dialog-actions/);
 });

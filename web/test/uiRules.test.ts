@@ -85,3 +85,38 @@ test("no raw button, input or textarea outside web/src/ui, and no native select 
   assert.deepEqual(raw, []);
   for (const { file, text } of sources) assert.ok(!text.includes("<select"), file);
 });
+
+// Native `title` waits before it shows and cannot hold a shortcut frame: tooltips use `tooltip` / `data-tooltip`.
+// SVG <title> and iframe title are accessible names, so only lowercase HTML tags and the kit buttons are checked.
+function nativeTitles(text: string): string[] {
+  const found: string[] = [];
+  for (const m of text.matchAll(/<(Button|IconButton|Pressable|[a-z][\w-]*)\b/g)) {
+    const name = m[1]!;
+    if (name === "title" || name === "svg" || name === "iframe") continue;
+    let depth = 0;
+    let quote: string | null = null;
+    let i = m.index! + m[0].length;
+    for (; i < text.length; i++) {
+      const c = text[i]!;
+      if (quote) {
+        if (c === quote) quote = null;
+      } else if (c === '"' || c === "'" || c === "`") quote = c;
+      else if (c === "{") depth++;
+      else if (c === "}") depth--;
+      else if (c === ">" && depth === 0) break;
+    }
+    if (/\stitle=/.test(text.slice(m.index!, i))) found.push(name);
+  }
+  return found;
+}
+
+test("no HTML element or kit button sets a native title attribute", () => {
+  const bad = sources.flatMap(({ file, text }) => nativeTitles(text).map((name) => `${file}: <${name} title=`));
+  assert.deepEqual(bad, []);
+});
+
+test("the title guard sees HTML elements and kit buttons but not SVG titles or component props", () => {
+  assert.deepEqual(nativeTitles(`<span className="a" title={x}>t</span>`), ["span"]);
+  assert.deepEqual(nativeTitles(`<IconButton label="A" title="B (K)" onClick={() => go(a > b)}>x</IconButton>`), ["IconButton"]);
+  assert.deepEqual(nativeTitles(`<svg><title>Done</title></svg><Dialog title="Settings" onClose={f} />`), []);
+});

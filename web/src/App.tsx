@@ -19,7 +19,7 @@ import { TABS } from "./lib/tabs.ts";
 import { useTab } from "./lib/useTab.ts";
 import { useTheme } from "./features/settings/useTheme.ts";
 import { useUpdate } from "./features/update/useUpdate.ts";
-import { Button, Icon, IconButton, Kbd, Loader, Pressable } from "./ui/index.ts";
+import { Button, Icon, IconButton, Kbd, Loader, Pressable, TooltipLayer } from "./ui/index.ts";
 import { updateLabel } from "./features/update/updateFlow.ts";
 
 const NO_DEFAULTS: ModelDefaults = { selection: null, runtimeMode: null };
@@ -105,22 +105,30 @@ export function App() {
   const deskIds = new Set(desk.windows.map((w) => w.id));
   const deskWaiting = state?.threads.some((t) => t.pending && deskIds.has(t.id)) ?? false;
 
-  if (state?.connection.setup) return <SetupScreen setup={state.connection.setup} />;
+  if (state?.connection.setup) {
+    return (
+      <>
+        <SetupScreen setup={state.connection.setup} />
+        <TooltipLayer />
+      </>
+    );
+  }
 
   return (
     <div className={`app${tab === "desk" ? " desk-mode" : ""}`}>
+      <TooltipLayer />
       <header className="topbar">
         <div className="topbar-left">
           <h1>
             T3<span className="title-rest"> Dashboard</span>
           </h1>
-          <span className={`conn ${live ? "up" : "down"}`} title={live ? "Connected to T3 Code" : "Connection lost"}>
+          <span className={`conn ${live ? "up" : "down"}`} data-tooltip={live ? "Connected to T3 Code" : "Connection lost"}>
             <span className="conn-dot" /> <span className="conn-label">{live ? "Connected" : "Offline"}</span>
           </span>
         </div>
         <nav className="tabs" role="tablist">
           {TABS.map(({ id, label, key }) => (
-            <Pressable key={id} role="tab" aria-selected={tab === id} className={tab === id ? "active" : ""} title={`${label} (${key})`} onClick={() => setTab(id)}>
+            <Pressable key={id} role="tab" aria-selected={tab === id} className={tab === id ? "active" : ""} tooltip={label} shortcut={key} onClick={() => setTab(id)}>
               {label}
               {id === "desk" && deskWaiting && <span className="tab-alert" role="img" aria-label="An agent is waiting for your reply" />}
               <Kbd>{key}</Kbd>
@@ -134,21 +142,21 @@ export function App() {
                 <Icon name="arrowUp" strokeWidth={1.8} />
               </IconButton>
             ) : (
-              <Button className="update-pill" title="A new version is available" loading={(update.updating || update.status.updating) && "Updating…"} onClick={() => setConfirmingUpdate(true)}>
+              <Button className="update-pill" tooltip="A new version is available" loading={(update.updating || update.status.updating) && "Updating…"} onClick={() => setConfirmingUpdate(true)}>
                 {updateLabel(update.status)}
               </Button>
             ))}
           {state &&
             (compact ? (
-              <IconButton variant="primary" label="New Agent" title="New Agent (n)" onClick={() => setCreating(true)}>
+              <IconButton variant="primary" label="New Agent" shortcut="N" onClick={() => setCreating(true)}>
                 <Icon name="plus" />
               </IconButton>
             ) : (
-              <Button variant="primary" title="New Agent (n)" kbd="N" onClick={() => setCreating(true)}>
+              <Button variant="primary" tooltip="New Agent" shortcut="N" kbd="N" onClick={() => setCreating(true)}>
                 New Agent
               </Button>
             ))}
-          <IconButton label="Settings" title="Settings (,)" kbd="," onClick={() => setSettingsOpen(true)}>
+          <IconButton label="Settings" shortcut="," kbd="," onClick={() => setSettingsOpen(true)}>
             <Icon name="settings" strokeWidth={1.8} />
           </IconButton>
         </div>

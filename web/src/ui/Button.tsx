@@ -9,6 +9,9 @@ export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   size?: ControlSize;
   /** Keyboard shortcut shown after the label; hidden on touch and narrow screens. */
   kbd?: string;
+  /** Custom tooltip shown at once on hover and focus; `shortcut` goes in a frame after it. */
+  tooltip?: string;
+  shortcut?: string;
   /** Disables the button; a string also replaces the label while it is true. */
   loading?: boolean | string;
   ref?: Ref<HTMLButtonElement>;
@@ -18,11 +21,11 @@ export function buttonClass(base: string, size: ControlSize, variant: ButtonVari
   return [base, size, variant === "secondary" ? "" : variant, className].filter(Boolean).join(" ");
 }
 
-export function Button({ variant = "secondary", size = "md", kbd, loading = false, className, type = "button", disabled, children, ...rest }: ButtonProps) {
+export function Button({ variant = "secondary", size = "md", kbd, tooltip, shortcut, loading = false, className, type = "button", disabled, children, ...rest }: ButtonProps) {
   const busy = loading !== false;
   const label: ReactNode = typeof loading === "string" ? loading : children;
   return (
-    <button {...rest} type={type} className={buttonClass("btn", size, variant, className)} disabled={disabled || busy} aria-busy={busy || undefined}>
+    <button {...rest} type={type} data-tooltip={tooltip} data-shortcut={tooltip ? shortcut : undefined} className={buttonClass("btn", size, variant, className)} disabled={disabled || busy} aria-busy={busy || undefined}>
       {label}
       {kbd && <Kbd>{kbd}</Kbd>}
     </button>

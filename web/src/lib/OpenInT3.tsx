@@ -14,7 +14,7 @@ export function OpenInT3({ environmentId, threadId, className = "" }: Props) {
   const href = t3CodeLink(environmentId, threadId);
   if (!href) return null;
   return (
-    <a className={`icon-button open-t3 ${className}`} href={href} aria-label="Open in T3 Code" title="Open in T3 Code" onClick={(e) => e.stopPropagation()}>
+    <a className={`icon-button open-t3 ${className}`} href={href} aria-label="Open in T3 Code" data-tooltip="Open in T3 Code" onClick={(e) => e.stopPropagation()}>
       <svg className="icon" viewBox="7 29 111 74" aria-hidden="true">
         <path d={T3_PATH} fill="currentColor" />
       </svg>

@@ -23,7 +23,7 @@ function Row({ a, thread, now, onOpen }: { a: Automation; thread: DashboardThrea
         <span className="auto-next">{nextLabel(a.nextRunAt, now)}</span>
         {last?.kind === "waiting" && <span className="auto-state waiting">● waiting for your reply</span>}
         {last?.kind === "running" && <span className="auto-state running">● running</span>}
-        {last?.kind === "failed" && <span className="auto-state failed" title="The last run failed">⚠</span>}
+        {last?.kind === "failed" && <span className="auto-state failed" data-tooltip="The last run failed">⚠</span>}
         {last?.kind === "done" && <span className="auto-state done">✓ {last.at}</span>}
       </span>
     </>

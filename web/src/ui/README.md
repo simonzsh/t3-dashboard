@@ -8,6 +8,7 @@ Ce dossier contient les composants de base du dashboard. Les écrans de `web/src
 - Dans une rangée de boutons, mettez Annuler à gauche et l'action principale à droite. Le `Dialog` applique cet ordre.
 - La couleur d'accent marque l'action principale, le focus et la sélection. N'utilisez pas d'autre couleur pour ces rôles.
 - Le style des composants vient de `styles.css`. Les jetons sont en haut du fichier : `--focus-ring`, `--radius-*`, `--control-sm` (28 px) et `--control-md` (32 px).
+- N'utilisez pas l'attribut natif `title` pour une info-bulle : un test le bloque. Écrivez `tooltip` et `shortcut` (ou `data-tooltip`). Le nom accessible reste `aria-label`.
 - Chaque élément qui peut avoir le focus reçoit l'anneau d'accent. Ne remettez pas `outline: none` sans un autre signe visible du focus.
 
 ## Composants
@@ -15,7 +16,7 @@ Ce dossier contient les composants de base du dashboard. Les écrans de `web/src
 | Composant | Utilisation |
 | --- | --- |
 | `Button` | Bouton avec un texte. Variantes : `primary` (une seule par rangée), `secondary` (par défaut), `ghost`, `danger`, `link`. Tailles : `sm`, `md`. `kbd` montre un raccourci. `loading` désactive le bouton ; un texte remplace alors le libellé. |
-| `IconButton` | Bouton avec une icône seule. `label` est obligatoire : il donne le nom accessible et l'info-bulle. Mêmes variantes et tailles que `Button`. |
+| `IconButton` | Bouton avec une icône seule. `label` est obligatoire : il donne le nom accessible et l'info-bulle (`tooltip` la remplace). Mêmes variantes et tailles que `Button`. |
 | `Pressable` | Surface cliquable avec son propre style : carte, ligne, onglet, pastille. Pas de variante, pas de hauteur fixe. Utilisez `Button` ou `IconButton` pour un bouton normal. |
 | `TextInput`, `TextArea` | Champ de texte. Le remplissage automatique est désactivé. |
 | `SecretInput` | Champ masqué pour une clé ou un jeton. C'est un champ texte, pas un champ mot de passe : les gestionnaires de mots de passe ne s'ouvrent pas. |
@@ -27,5 +28,6 @@ Ce dossier contient les composants de base du dashboard. Les écrans de `web/src
 | `Popover` | Panneau fixé à côté d'un élément. Échap et clic dehors le ferment. |
 | `Segmented` | Choix unique entre quelques options visibles (par exemple le thème). |
 | `Kbd` | Raccourci clavier. |
+| `TooltipLayer` | Info-bulle du dashboard, montée une seule fois dans `App`. Elle s'affiche tout de suite au survol et au focus clavier d'un élément qui porte `data-tooltip` (et `data-shortcut` pour le raccourci, dans un cadre). Elle se ferme au départ du pointeur, au clic, au scroll et avec Échap. Elle n'existe pas sur écran tactile. `Button`, `IconButton` et `Pressable` posent ces attributs avec `tooltip` et `shortcut`. Sur un autre élément, écrivez `data-tooltip`. |
 | `Loader` | Chargement : le logo animé, centré dans la zone. Utilisez-le à la place d'un texte « Loading… ». |
 | `Icon` | Icône Lucide par son nom. |

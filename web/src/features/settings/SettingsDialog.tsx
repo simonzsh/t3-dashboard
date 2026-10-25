@@ -52,7 +52,7 @@ export function SettingsDialog({ theme, onThemeChange, background, onBackgroundC
                   aria-checked={presetId === p.id}
                   tabIndex={presetId === p.id || (presetId === null && p.id === BACKGROUND_PRESETS[0]?.id) ? 0 : -1}
                   aria-label={p.label}
-                  title={p.label}
+                  tooltip={p.label}
                   className={`swatch desk-bg-${p.id}${presetId === p.id ? " active" : ""}`}
                   onClick={() => setError(onBackgroundChange(p.id === "none" ? { kind: "none" } : { kind: "preset", id: p.id }))}
                 />
