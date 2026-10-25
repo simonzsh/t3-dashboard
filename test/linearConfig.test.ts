@@ -14,7 +14,27 @@ test("default path is under the user config directory, and the env variable over
 
 test("reads workspaces with name, key and T3 project", () => {
   const json = JSON.stringify({ workspaces: [{ name: "Space 1", apiKey: "key-1", t3Project: "Project A" }] });
-  assert.deepEqual(readLinearWorkspaces("/x/l.json", files({ "/x/l.json": json })), [{ name: "Space 1", apiKey: "key-1", t3Project: "Project A" }]);
+  assert.deepEqual(readLinearWorkspaces("/x/l.json", files({ "/x/l.json": json })), [{ name: "Space 1", apiKey: "key-1", t3Project: "Project A", teams: null }]);
+});
+
+test("a single key with a team table gives one workspace named Linear", () => {
+  const json = JSON.stringify({ apiKey: " key-1 ", teams: { ENG: "Project A", OPS: "Project B" } });
+  assert.deepEqual(readLinearWorkspaces("/x/l.json", files({ "/x/l.json": json })), [
+    { name: "Linear", apiKey: "key-1", t3Project: "", teams: { ENG: "Project A", OPS: "Project B" } },
+  ]);
+});
+
+test("a legacy entry can also carry a team table, and bad team values are dropped", () => {
+  const json = JSON.stringify({ workspaces: [{ name: "Space 1", apiKey: "k", t3Project: "Project A", teams: { ENG: "Project B", OPS: 3 } }, { name: "Space 2", apiKey: "k", teams: ["ENG"] }] });
+  assert.deepEqual(
+    readLinearWorkspaces("/x/l.json", files({ "/x/l.json": json })).map((w) => w.teams),
+    [{ ENG: "Project B" }, null],
+  );
+});
+
+test("the new format without a team table keeps all issues in no project", () => {
+  const json = JSON.stringify({ apiKey: "key-1" });
+  assert.deepEqual(readLinearWorkspaces("/x/l.json", files({ "/x/l.json": json })), [{ name: "Linear", apiKey: "key-1", t3Project: "", teams: null }]);
 });
 
 test("a missing file gives no workspace", () => {
