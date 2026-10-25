@@ -225,9 +225,10 @@ La colonne de droite de l'onglet Agents lit les cerveaux t3-agent, sans jamais �
 ```sh
 bun run check   # types et tests, serveur et interface
 bun run smoke   # construit le binaire et vérifie qu'il sert l'interface
+bun run contracts   # lit T3 Code, Linear, GitHub et t3-agent, sans rien écrire
 ```
 
-Aucun test ne contacte T3 Code.
+Aucun test ne contacte T3 Code. `bun run contracts` contacte les vrais systèmes en lecture seule : voir `docs/contracts.md`.
 
 ## Vérifications manuelles
 
