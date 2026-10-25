@@ -6,7 +6,7 @@ import type { AddressInfo } from "node:net";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, test } from "node:test";
-import type { ConnectionStatus, DashboardState } from "../shared/api.ts";
+import type { AutomationsResult, ConnectionStatus, DashboardState } from "../shared/api.ts";
 import { LinearBoard } from "../src/linear.ts";
 import type { LinearWorkspaceConfig } from "../src/linearConfig.ts";
 import { createDashboardServer } from "../src/server.ts";
@@ -62,10 +62,11 @@ interface StartOptions {
   staticDir?: string;
   workspaces?: LinearWorkspaceConfig[];
   linearFetch?: (url: string, init: RequestInit) => Promise<Response>;
+  automations?: () => AutomationsResult;
 }
 
 async function start(startOptions: StartOptions = {}) {
-  const { staticDir, workspaces = [], linearFetch } = startOptions;
+  const { staticDir, workspaces = [], linearFetch, automations = () => ({ automations: [], brains: [], fetchedAt: now.toISOString() }) } = startOptions;
   const linearCalls: string[] = [];
   const board = new LinearBoard({
     fetch: async (url, init) => {
@@ -106,6 +107,7 @@ async function start(startOptions: StartOptions = {}) {
     store,
     hub,
     board,
+    automations,
     getState,
     connection: () => connection,
     staticDir: staticDir ?? join(tmpdir(), "t3-dashboard-missing-dir"),
@@ -492,4 +494,15 @@ test("assign answers 502 when Linear fails and when T3 fails", async () => {
   const { server, port } = await start({ workspaces: [space("Space 1")] });
   port.dispatchError = new Error("T3 down");
   assert.equal((await post(server, "/api/board/assign", assignBody)).status, 502);
+});
+
+test("GET /api/automations returns the automations read at each call", async () => {
+  let calls = 0;
+  const result: AutomationsResult = { automations: [], brains: [{ name: "Brain A", ok: true, error: null, problems: 1 }], fetchedAt: now.toISOString() };
+  const { server } = await start({ automations: () => (calls++, result) });
+  const first = await call(server, "GET", "/api/automations");
+  assert.equal(first.status, 200);
+  assert.deepEqual(first.json, result);
+  await call(server, "GET", "/api/automations");
+  assert.equal(calls, 2);
 });

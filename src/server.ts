@@ -6,6 +6,7 @@ import { fileURLToPath } from "node:url";
 import type {
   ApprovalDecision,
   AssignIssueBody,
+  AutomationsResult,
   ConnectionStatus,
   CreateThreadBody,
   DashboardState,
@@ -39,6 +40,7 @@ export interface DashboardServerOptions {
   port: T3Port;
   store: Pick<ShellStore, "thread" | "project">;
   board: Pick<LinearBoard, "get" | "workspace">;
+  automations: () => AutomationsResult;
   hub: SseHub;
   getState: () => DashboardState;
   connection: () => ConnectionStatus;
@@ -166,7 +168,7 @@ function validRespond(body: Record<string, unknown>): RespondBody {
 }
 
 export function createDashboardServer(options: DashboardServerOptions): Server {
-  const { port, store, hub, board, getState, connection } = options;
+  const { port, store, hub, board, automations, getState, connection } = options;
   const newId = options.newId ?? (() => crypto.randomUUID());
   const staticRoot = resolve(typeof options.staticDir === "string" ? options.staticDir : fileURLToPath(options.staticDir));
 
@@ -250,6 +252,7 @@ export function createDashboardServer(options: DashboardServerOptions): Server {
         const refresh = new URL(req.url ?? "/", "http://localhost").searchParams.get("refresh") === "1";
         return sendJson(res, 200, await board.get(refresh));
       }
+      if (segments.length === 2 && resource === "automations") return sendJson(res, 200, automations());
       if (segments.length === 2 && resource === "events") return hub.add(res, getState());
       if (segments.length === 3 && resource === "threads" && id) {
         return sendJson(res, 200, toThreadDetail(id, await t3(port.threadProjection(id)), store.thread(id)));

@@ -1,5 +1,7 @@
 import { readFileSync } from "node:fs";
 import { homedir } from "node:os";
+import { readAutomations } from "./automations.ts";
+import { agentConfigDir } from "./brains.ts";
 import { loadConfig, resolveOrigin } from "./config.ts";
 import { LiveSync } from "./live.ts";
 import { LinearBoard } from "./linear.ts";
@@ -45,11 +47,15 @@ const board = new LinearBoard({
   now: () => new Date(),
 });
 
+const brainsDir = agentConfigDir(process.env, homedir());
+const automations = () => readAutomations({ configDir: brainsDir, now: () => new Date(), projectTitle: (id) => store.project(id)?.title || null });
+
 const server = createDashboardServer({
   port: client,
   store,
   hub,
   board,
+  automations,
   getState,
   connection: () => live.connection(),
   staticDir: new URL("../web/dist/", import.meta.url),
