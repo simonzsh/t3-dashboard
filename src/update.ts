@@ -1,4 +1,5 @@
 import { createHash } from "node:crypto";
+import { isNewer } from "./updates.ts";
 
 export interface UpdateDeps {
   fetch: typeof fetch;
@@ -55,7 +56,7 @@ async function download(fetchImpl: typeof fetch, url: string): Promise<Response>
 export async function update({ check }: { check: boolean }, deps: UpdateDeps): Promise<boolean> {
   const tag = await latestTag(deps.fetch, deps.repo);
   const latest = tag.replace(/^v/, "");
-  if (latest === deps.version) return deps.log(`t3-dashboard ${latest} is up to date.`), false;
+  if (!isNewer(latest, deps.version)) return deps.log(`t3-dashboard ${latest} is up to date.`), false;
   if (check) return deps.log(`Update available: ${deps.version} -> ${latest}.`), false;
 
   const asset = assetName(deps.platform, deps.arch);

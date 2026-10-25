@@ -97,6 +97,13 @@ test("up to date: nothing is downloaded", async () => {
   assert.equal(urls.length, 1);
 });
 
+test("a build newer than the latest release is never downgraded", async () => {
+  const { deps, calls, urls } = harness({ version: "2.1.0" });
+  assert.equal(await update({ check: false }, deps), false);
+  assert.deepEqual(calls, ["log t3-dashboard 2.0.0 is up to date."]);
+  assert.equal(urls.length, 1);
+});
+
 test("--check reports a new version without touching anything", async () => {
   const { deps, calls } = harness();
   assert.equal(await update({ check: true }, deps), false);
