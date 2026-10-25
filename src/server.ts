@@ -61,6 +61,8 @@ export interface DashboardServerOptions {
   settings: Settings;
   setup: SetupControl;
   updates: Pick<UpdateManager, "status" | "check" | "apply">;
+  /** Lowercase hostnames, without port, accepted besides 127.0.0.1 and localhost. */
+  allowedHosts?: string[];
   newId?: () => string;
 }
 
@@ -101,11 +103,11 @@ function hostnameOf(value: string): string | null {
   }
 }
 
-function checkOrigin(req: Request): void {
+function checkOrigin(req: Request, allowed: ReadonlySet<string>): void {
   const host = req.headers.get("host");
   const origin = req.headers.get("origin");
-  const hostOk = host !== null && LOCAL_HOSTS.has(hostnameOf(host) ?? "");
-  const originOk = origin === null || LOCAL_HOSTS.has(hostnameOf(origin) ?? "");
+  const hostOk = host !== null && allowed.has(hostnameOf(host) ?? "");
+  const originOk = origin === null || allowed.has(hostnameOf(origin) ?? "");
   if (!hostOk || !originOk) throw new HttpError(403, "Forbidden host or origin");
 }
 
@@ -208,6 +210,7 @@ export interface DashboardHandler {
 
 export function createDashboardServer(options: DashboardServerOptions): DashboardHandler {
   const { port, store, hub, board, automations, getState, connection, site, settings, setup, updates } = options;
+  const allowedHosts = new Set([...LOCAL_HOSTS, ...(options.allowedHosts ?? [])]);
   const newId = options.newId ?? (() => crypto.randomUUID());
 
   const t3 = async <T>(work: Promise<T>): Promise<T> => {
@@ -395,7 +398,7 @@ export function createDashboardServer(options: DashboardServerOptions): Dashboar
   }
 
   async function handle(req: Request, server: Server<undefined> | undefined): Promise<Response> {
-    checkOrigin(req);
+    checkOrigin(req, allowedHosts);
     let segments: string[];
     let pathname: string;
     try {

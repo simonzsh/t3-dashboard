@@ -124,7 +124,7 @@ export async function start({ port, log, env }: StartOptions): Promise<void> {
     },
     now: () => Date.now(),
   });
-  const handler = createDashboardServer({ port: client, store, hub, board, automations, getState, connection: () => live.connection(), site, settings, setup, updates });
+  const handler = createDashboardServer({ port: client, store, hub, board, automations, getState, connection: () => live.connection(), site, settings, setup, updates, allowedHosts: config.allowedHosts });
 
   const reclassifier = setInterval(() => store.reclassify(new Date()), RECLASSIFY_MS);
   // A dev build has no version to compare, and its runs must not call GitHub.
