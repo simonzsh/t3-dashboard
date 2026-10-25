@@ -29,21 +29,18 @@ interface Props {
   running: boolean;
   draft: string;
   onDraft: (text: string) => void;
-  onSend: (text: string, attachments: ImageAttachment[]) => Promise<boolean>;
-  onStop: () => Promise<boolean>;
-  onSettings: (change: ThreadSettingsBody) => Promise<boolean>;
-  /** Reloads the thread: its values replace picks that could not be rolled back. */
-  onReload: () => void;
-  /** Error of the last send, stop or settings change. */
-  error: string | null;
+  /** Each callback throws on failure: the Composer shows the error. */
+  onSend: (text: string, attachments: ImageAttachment[]) => Promise<void>;
+  /** Without it, no Stop button. */
+  onStop?: () => Promise<unknown>;
+  onSettings: (change: ThreadSettingsBody) => Promise<void> | void;
   placeholder?: string;
   autoFocus?: boolean;
 }
 
-export function Composer({ providers, selection, runtimeMode, running, draft, onDraft, onSend, onStop, onSettings, onReload, error: actionError, placeholder, autoFocus = false }: Props) {
-  // Picks show at once; the thread values come back on the next reload.
-  const [localSelection, setLocalSelection] = useState(selection);
-  const [localMode, setLocalMode] = useState(runtimeMode);
+export function Composer({ providers, selection, runtimeMode, running, draft, onDraft, onSend, onStop, onSettings, placeholder, autoFocus = false }: Props) {
+  // Picks show at once, until new values come in the props or the change fails.
+  const [override, setOverride] = useState<{ selection?: ModelSelection; mode?: RuntimeMode }>({});
   const [images, setImages] = useState<Pending[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [sending, setSending] = useState(false);
@@ -51,8 +48,25 @@ export function Composer({ providers, selection, runtimeMode, running, draft, on
   const fileInput = useRef<HTMLInputElement>(null);
   const textarea = useRef<HTMLTextAreaElement>(null);
 
-  useEffect(() => setLocalSelection(selection), [JSON.stringify(selection)]);
-  useEffect(() => setLocalMode(runtimeMode), [runtimeMode]);
+  // Each reload gives a new selection object: compare the values.
+  useEffect(() => setOverride({}), [JSON.stringify(selection), runtimeMode]);
+  const localSelection = override.selection ?? selection;
+  const localMode = override.mode ?? runtimeMode;
+
+  // One error line: each attempt replaces it, so an older error never hides a newer one.
+  async function attempt(work: () => unknown, setBusy?: (busy: boolean) => void): Promise<boolean> {
+    setError(null);
+    setBusy?.(true);
+    try {
+      await work();
+      return true;
+    } catch (e) {
+      setError(errorMessage(e));
+      return false;
+    } finally {
+      setBusy?.(false);
+    }
+  }
 
   // Grows with the text up to the CSS max height; measured again when the window resizes,
   // since a size taken while the window was narrow or hidden would stick.
@@ -75,23 +89,10 @@ export function Composer({ providers, selection, runtimeMode, running, draft, on
   const modes = found?.provider.runtimeModes ?? (Object.keys(RUNTIME_MODE_LABELS) as RuntimeMode[]);
   const canSend = (draft.trim() !== "" || images.length > 0) && !sending;
 
-  // Counts picks: a failed pick rolls back only if no newer pick happened meanwhile.
-  const changes = useRef(0);
-
   async function change(next: { selection?: ModelSelection; mode?: RuntimeMode }) {
-    const before = { selection: localSelection, mode: localMode };
-    const mine = ++changes.current;
-    if (next.selection) setLocalSelection(next.selection);
-    if (next.mode) setLocalMode(next.mode);
-    setError(null);
-    const ok = await onSettings({ ...(next.selection && { modelSelection: next.selection }), ...(next.mode && { runtimeMode: next.mode }) });
-    if (ok) return;
-    if (mine === changes.current) {
-      setLocalSelection(before.selection);
-      setLocalMode(before.mode);
-    } else {
-      onReload();
-    }
+    setOverride((current) => ({ ...current, ...next }));
+    const ok = await attempt(() => onSettings({ ...(next.selection && { modelSelection: next.selection }), ...(next.mode && { runtimeMode: next.mode }) }));
+    if (!ok) setOverride({});
   }
 
   async function addFiles(files: File[]) {
@@ -107,14 +108,8 @@ export function Composer({ providers, selection, runtimeMode, running, draft, on
 
   async function submit() {
     if (!canSend) return;
-    setSending(true);
-    setError(null);
-    const ok = await onSend(
-      draft.trim(),
-      images.map((p) => ({ name: p.file.name, mimeType: p.file.type, dataUrl: p.dataUrl })),
-    );
-    setSending(false);
-    if (ok) setImages([]);
+    const attachments = images.map((p) => ({ name: p.file.name, mimeType: p.file.type, dataUrl: p.dataUrl }));
+    if (await attempt(() => onSend(draft.trim(), attachments), setSending)) setImages([]);
   }
 
   const modelOptions: DropdownOption[] = providers.flatMap((p) =>
@@ -211,18 +206,8 @@ export function Composer({ providers, selection, runtimeMode, running, draft, on
             <IconButton label="Attach images" variant="ghost" className="composer-icon" onClick={() => fileInput.current?.click()}>
               <Icon name="paperclip" />
             </IconButton>
-            {running && (
-              <IconButton
-                label="Stop"
-                title="Stop the run"
-                className="composer-round stop"
-                disabled={stopping}
-                onClick={async () => {
-                  setStopping(true);
-                  await onStop();
-                  setStopping(false);
-                }}
-              >
+            {running && onStop && (
+              <IconButton label="Stop" title="Stop the run" className="composer-round stop" disabled={stopping} onClick={() => void attempt(onStop, setStopping)}>
                 <svg className="icon" viewBox="0 0 24 24" aria-hidden="true">
                   <rect x="7" y="7" width="10" height="10" rx="2" fill="currentColor" />
                 </svg>
@@ -234,7 +219,7 @@ export function Composer({ providers, selection, runtimeMode, running, draft, on
           </div>
         </div>
       </div>
-      {(error ?? actionError) && <span className="error">{error ?? actionError}</span>}
+      {error && <span className="error">{error}</span>}
     </form>
   );
 }

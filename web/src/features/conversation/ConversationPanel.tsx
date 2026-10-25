@@ -8,7 +8,6 @@ import { Composer } from "./Composer.tsx";
 import { PendingRequestView } from "./PendingRequestView.tsx";
 import { RunActivityView } from "./RunActivity.tsx";
 import { SubagentStrip } from "./SubagentStrip.tsx";
-import { useAction } from "../../lib/useAction.ts";
 import { usePoll } from "../../lib/usePoll.ts";
 import { errorMessage } from "../../lib/format.ts";
 import { LIVE_RELOAD_MS, pollDelay } from "./reload.ts";
@@ -63,10 +62,6 @@ export function ConversationPanel({ threadId, thread, providers }: Props) {
   const [revealSubagents, setRevealSubagents] = useState(0);
   const scroller = useRef<HTMLDivElement>(null);
   const stick = useRef(true);
-  // One action per control, so an error of one does not wipe another.
-  const sendAction = useAction();
-  const stopAction = useAction();
-  const settingsAction = useAction();
 
   // Bumped on every thread change and cleanup: a late response from an older effect is dropped.
   const epoch = useRef(0);
@@ -126,25 +121,28 @@ export function ConversationPanel({ threadId, thread, providers }: Props) {
   }
 
   // While a run is active the message steers it instead of waiting in the queue.
-  async function send(body: string, attachments: ImageAttachment[]): Promise<boolean> {
+  async function send(body: string, attachments: ImageAttachment[]): Promise<void> {
     const entry: PendingMessage = { id: crypto.randomUUID(), text: body, images: attachments.length, sentAt: Date.now(), baseline: countSame(detail?.messages ?? [], body) };
     setPending((list) => [...list, entry]);
     stick.current = true;
-    const ok = await sendAction.run(() => api.sendMessage(threadId, { text: body, ...(running && { mode: "steer" as const }), ...(attachments.length && { attachments }) }));
-    if (!ok) {
+    try {
+      await api.sendMessage(threadId, { text: body, ...(running && { mode: "steer" as const }), ...(attachments.length && { attachments }) });
+    } catch (e) {
       setPending((list) => list.filter((p) => p.id !== entry.id));
-      return false;
+      throw e;
     }
     setDraft("");
     setSentAt(Date.now());
     void load();
-    return true;
   }
 
-  async function updateSettings(change: ThreadSettingsBody): Promise<boolean> {
-    const ok = await settingsAction.run(() => api.updateSettings(threadId, change));
-    if (ok) void load();
-    return ok;
+  // Reloads after a failure too: the thread values then replace the picks that failed.
+  async function updateSettings(change: ThreadSettingsBody): Promise<void> {
+    try {
+      await api.updateSettings(threadId, change);
+    } finally {
+      void load();
+    }
   }
 
   return (
@@ -182,10 +180,8 @@ export function ConversationPanel({ threadId, thread, providers }: Props) {
         draft={text}
         onDraft={setDraft}
         onSend={send}
-        onStop={() => stopAction.run(() => api.interrupt(threadId))}
+        onStop={() => api.interrupt(threadId)}
         onSettings={updateSettings}
-        onReload={() => void load()}
-        error={sendAction.error ?? stopAction.error ?? settingsAction.error}
       />
     </div>
   );

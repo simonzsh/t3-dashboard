@@ -7,7 +7,6 @@ import { projectOptions } from "../../lib/dropdown.ts";
 import { loadNewAgentProject, presetSelection, saveNewAgentProject, titleFromMessage } from "./newAgent.ts";
 import { Composer } from "../conversation/Composer.tsx";
 import { Dialog, Dropdown } from "../../ui/index.ts";
-import { useAction } from "../../lib/useAction.ts";
 
 interface Props {
   projects: DashboardProject[];
@@ -25,32 +24,25 @@ export function NewThreadDialog({ projects, providers, onClose, onCreated }: Pro
   const [selection, setSelection] = useState<ModelSelection | null>(() => presetSelection(projects.find((p) => p.id === projectId), providers));
   const [mode, setMode] = useState<RuntimeMode>(DEFAULT_MODE);
   const [draft, setDraft] = useState("");
-  const [error, setError] = useState<string | null>(null);
-  const action = useAction();
 
   // Providers can arrive after the dialog opens: pick a preset once the choice is no longer valid.
   useEffect(() => {
     if (!findModel(providers, selection)) setSelection(presetSelection(projects.find((p) => p.id === projectId), providers));
   }, [providers]);
 
-  async function send(text: string, attachments: ImageAttachment[]): Promise<boolean> {
+  async function send(text: string, attachments: ImageAttachment[]): Promise<void> {
     const title = titleFromMessage(text);
-    setError(!projectId ? "Choose a project first." : !selection ? "No model is available." : title === "" ? "Write a message: its first line becomes the title." : null);
-    if (!projectId || !selection || title === "") return false;
-    let threadId = "";
-    const ok = await action.run(async () => {
-      threadId = (await api.createThread({ projectId, title, text, modelSelection: selection, runtimeMode: mode, ...(attachments.length > 0 && { attachments }) })).threadId;
-    });
-    if (!ok) return false;
+    if (!projectId) throw new Error("Choose a project first.");
+    if (!selection) throw new Error("No model is available.");
+    if (title === "") throw new Error("Write a message: its first line becomes the title.");
+    const { threadId } = await api.createThread({ projectId, title, text, modelSelection: selection, runtimeMode: mode, ...(attachments.length > 0 && { attachments }) });
     saveNewAgentProject(browserStorage(), projectId);
     onCreated(threadId);
-    return true;
   }
 
-  async function changeSettings(change: ThreadSettingsBody): Promise<boolean> {
+  function changeSettings(change: ThreadSettingsBody) {
     if (change.modelSelection) setSelection(change.modelSelection);
     if (change.runtimeMode) setMode(change.runtimeMode);
-    return true;
   }
 
   return (
@@ -68,7 +60,6 @@ export function NewThreadDialog({ projects, providers, onClose, onCreated }: Pro
           onPick={(id) => {
             setProjectId(id);
             setSelection(presetSelection(projects.find((p) => p.id === id), providers));
-            setError(null);
           }}
         />
       </div>
@@ -80,10 +71,7 @@ export function NewThreadDialog({ projects, providers, onClose, onCreated }: Pro
         draft={draft}
         onDraft={setDraft}
         onSend={send}
-        onStop={async () => true}
         onSettings={changeSettings}
-        onReload={() => {}}
-        error={error ?? action.error}
         placeholder="Describe the task: the first line becomes the title…"
         autoFocus
       />
