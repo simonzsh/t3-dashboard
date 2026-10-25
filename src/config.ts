@@ -1,7 +1,7 @@
 import { join } from "node:path";
 
 export const DEFAULT_ORIGIN = "http://127.0.0.1:3773";
-const DEFAULT_PORT = 4310;
+const DEFAULT_PORT = 4300;
 
 export type ReadFile = (path: string) => string;
 

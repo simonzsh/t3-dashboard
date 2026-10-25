@@ -9,7 +9,7 @@ const files = (map: Record<string, string>) => (path: string) => {
 
 test("defaults use the user data runtime file and no token file", () => {
   const config = loadConfig({}, "/home/ann");
-  assert.equal(config.port, 4310);
+  assert.equal(config.port, 4300);
   assert.equal(config.tokenFile, null);
   assert.equal(config.runtimeFile, "/home/ann/.t3/userdata/server-runtime.json");
 });

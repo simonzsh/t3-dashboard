@@ -56,9 +56,9 @@ test("install writes the service, starts it, waits for the health check, then op
 
 test("--no-open prints the address and opens nothing", async () => {
   const { deps, calls } = harness();
-  await install({ port: 4310, open: false }, deps);
+  await install({ port: 4300, open: false }, deps);
   assert.equal(calls.some((c) => c.startsWith("open")), false);
-  assert.ok(calls.includes("log Dashboard ready: http://127.0.0.1:4310"));
+  assert.ok(calls.includes("log Dashboard ready: http://127.0.0.1:4300"));
 });
 
 test("a failing browser launch does not fail the install", async () => {
@@ -66,23 +66,23 @@ test("a failing browser launch does not fail the install", async () => {
   deps.open = async () => {
     throw new Error("no browser");
   };
-  await install({ port: 4310, open: true }, deps);
-  assert.ok(calls.includes("log Dashboard ready: http://127.0.0.1:4310"));
+  await install({ port: 4300, open: true }, deps);
+  assert.ok(calls.includes("log Dashboard ready: http://127.0.0.1:4300"));
 });
 
 test("a service that never answers fails after 15 s and points to the logs", async () => {
   const { deps } = harness({ healthyAfter: Infinity });
-  await assert.rejects(install({ port: 4310, open: true }, deps), /did not answer.*journalctl --user -u t3-dashboard/s);
+  await assert.rejects(install({ port: 4300, open: true }, deps), /did not answer.*journalctl --user -u t3-dashboard/s);
 });
 
 test("on macOS the log hint is the log file", async () => {
   const { deps } = harness({ platform: "darwin", healthyAfter: Infinity });
-  await assert.rejects(install({ port: 4310, open: true }, deps), /Library\/Logs\/t3-dashboard\/dashboard\.log/);
+  await assert.rejects(install({ port: 4300, open: true }, deps), /Library\/Logs\/t3-dashboard\/dashboard\.log/);
 });
 
 test("linux without systemctl points to t3-dashboard start", async () => {
   const { deps, calls } = harness({ hasSystemctl: false });
-  await assert.rejects(install({ port: 4310, open: true }, deps), /systemctl.*t3-dashboard start/s);
+  await assert.rejects(install({ port: 4300, open: true }, deps), /systemctl.*t3-dashboard start/s);
   assert.equal(calls.some((c) => c.startsWith("write")), false);
 });
 
@@ -118,7 +118,7 @@ test("serviceInstalled looks for the unit file, or probes the task on Windows", 
 test("another version on the port fails with a port conflict message", async () => {
   for (const answerVersion of ["0.9.0", null]) {
     const { deps, calls } = harness({ answerVersion });
-    await assert.rejects(install({ port: 4310, open: true }, deps), /Port 4310 is used by another program or an older dashboard\. Stop it, or install with --port <n>\./);
+    await assert.rejects(install({ port: 4300, open: true }, deps), /Port 4300 is used by another program or an older dashboard\. Stop it, or install with --port <n>\./);
     assert.equal(calls.some((c) => c.startsWith("open") || c.startsWith("log Dashboard ready")), false);
   }
 });
@@ -127,24 +127,24 @@ test("an old dashboard that answers before the restart does not fail the install
   const { deps } = harness();
   let probes = 0;
   deps.probeHealth = async () => ({ version: ++probes < 3 ? "0.9.0" : "1.0.0" });
-  await install({ port: 4310, open: false }, deps);
+  await install({ port: 4300, open: false }, deps);
   assert.equal(probes, 3);
 });
 
 test("waitForService waits for the given version", async () => {
   const { deps } = harness({ answerVersion: "2.0.0" });
-  assert.equal(await waitForService(4310, deps, "2.0.0"), "http://127.0.0.1:4310");
-  await assert.rejects(waitForService(4310, deps), /another program or an older dashboard/);
+  assert.equal(await waitForService(4300, deps, "2.0.0"), "http://127.0.0.1:4300");
+  await assert.rejects(waitForService(4300, deps), /another program or an older dashboard/);
 });
 
 test("servicePort reads the port of the unit file, else the fallback", () => {
   const { deps } = harness();
   deps.readFile = () => 'ExecStart="/bin/t3-dashboard" start --port 4777\n';
-  assert.equal(servicePort(deps, 4310), 4777);
+  assert.equal(servicePort(deps, 4300), 4777);
   deps.readFile = () => {
     throw new Error("ENOENT");
   };
-  assert.equal(servicePort(deps, 4310), 4310);
+  assert.equal(servicePort(deps, 4300), 4300);
 });
 
 test("servicePort reads the port of the Windows launcher", async () => {
@@ -153,5 +153,5 @@ test("servicePort reads the port of the Windows launcher", async () => {
   deps.writeFile = (path, content) => void (written[path] = content);
   deps.readFile = (path) => written[path] ?? "";
   await install({ port: 5000, open: false }, deps);
-  assert.equal(servicePort(deps, 4310), 5000);
+  assert.equal(servicePort(deps, 4300), 5000);
 });

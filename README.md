@@ -23,7 +23,7 @@ Windows (PowerShell) :
 irm https://raw.githubusercontent.com/simonzsh/t3-dashboard/main/install.ps1 | iex
 ```
 
-Le script télécharge le binaire, vérifie sa somme SHA-256 et le place dans `~/.local/bin` (Windows : `%LOCALAPPDATA%\Programs\t3-dashboard`). Il lance ensuite `t3-dashboard install`. Cette commande enregistre le service, le démarre et ouvre `http://127.0.0.1:4310`.
+Le script télécharge le binaire, vérifie sa somme SHA-256 et le place dans `~/.local/bin` (Windows : `%LOCALAPPDATA%\Programs\t3-dashboard`). Il lance ensuite `t3-dashboard install`. Cette commande enregistre le service, le démarre et ouvre `http://127.0.0.1:4300`.
 
 Tant que le repo GitHub est privé, ces adresses répondent 404. L'installation en une commande marche après le passage du repo en public.
 
@@ -39,7 +39,7 @@ Options du script : `T3_DASHBOARD_VERSION=1.2.3` fixe la version, `T3_DASHBOARD_
 
 - Le service redémarre seul après une panne.
 - `install` copie dans le service les variables définies au moment de l'installation : `T3_DASHBOARD_TOKEN_FILE`, `T3_DASHBOARD_CONFIG_DIR`, `T3_DASHBOARD_LINEAR_FILE`, `T3_DASHBOARD_AGENT_CONFIG_DIR`, `T3_DASHBOARD_T3_BIN`, `T3_SERVER_RUNTIME` et `T3CODE_HOME`. Pour changer une valeur, définissez la variable et relancez `install`.
-- `install` et `update` attendent que le nouveau binaire réponde sur le port. Si un autre programme ou un ancien dashboard tient le port, la commande s'arrête avec une erreur : « Port 4310 is used by another program or an older dashboard. » Arrêtez ce programme, ou installez avec `--port <n>`.
+- `install` et `update` attendent que le nouveau binaire réponde sur le port. Si un autre programme ou un ancien dashboard tient le port, la commande s'arrête avec une erreur : « Port 4300 is used by another program or an older dashboard. » Arrêtez ce programme, ou installez avec `--port <n>`.
 - Sous Linux, exécutez `loginctl enable-linger $USER` pour démarrer le service au boot, sans ouvrir de session.
 - Sous Windows, la tâche n'a pas besoin de droits d'administrateur. Si Windows la refuse, l'installeur utilise la clé `Run` de l'utilisateur.
 - Sous Windows, les droits de fichier (mode 600) ne s'appliquent pas. Le dossier de config reste dans votre profil.
@@ -47,10 +47,10 @@ Options du script : `T3_DASHBOARD_VERSION=1.2.3` fixe la version, `T3_DASHBOARD_
 ### Commandes
 
 ```sh
-t3-dashboard install [--port 4310] [--no-open]   # enregistre et démarre le service
+t3-dashboard install [--port 4300] [--no-open]   # enregistre et démarre le service
 t3-dashboard uninstall                           # arrête et retire le service, garde la config
 t3-dashboard update [--check]                    # installe la dernière release
-t3-dashboard start [--port 4310] [--log <fichier>]   # lance au premier plan, sans service
+t3-dashboard start [--port 4300] [--log <fichier>]   # lance au premier plan, sans service
 t3-dashboard --version
 ```
 
@@ -116,7 +116,7 @@ Format du fichier :
 
 | Variable | Défaut | Rôle |
 |---|---|---|
-| `PORT` | `4310` | Port local. L'hôte est toujours `127.0.0.1`. `--port` l'emporte. |
+| `PORT` | `4300` | Port local. L'hôte est toujours `127.0.0.1`. `--port` l'emporte. |
 | `T3_DASHBOARD_CONFIG_DIR` | `~/.config/t3-dashboard` | Dossier de `auth.json` et de `linear.json`. |
 | `T3_DASHBOARD_TOKEN_FILE` | aucun | Fichier JSON avec le champ `token`. Sans lui, le dashboard garde son propre jeton. Avec lui, l'écran de réglage refuse un jeton collé : mettez-le dans ce fichier. |
 | `T3_DASHBOARD_T3_BIN` | recherche auto | Chemin absolu de `t3`. |
