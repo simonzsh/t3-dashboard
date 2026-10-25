@@ -83,6 +83,18 @@ test("getConfig uses the server.getConfig tag", async () => {
   await done;
 });
 
+test("persistAttachments sends the images and returns T3's references", async () => {
+  const { client } = setup();
+  const image = { type: "image" as const, name: "a.png", mimeType: "image/png", sizeBytes: 3, dataUrl: "data:image/png;base64,AAAA" };
+  const done = client.persistAttachments("thread-1", "msg-1", [image]);
+  const socket = await nextSocket();
+  assert.equal(socket.sent[0]!.tag, "assets.persistChatAttachments");
+  assert.deepEqual(socket.sent[0]!.payload, { threadId: "thread-1", messageId: "msg-1", attachments: [image] });
+  const ref = { type: "image", id: "img-1", name: "a.png", mimeType: "image/png", sizeBytes: 3 };
+  socket.receive({ _tag: "Exit", requestId: "1", exit: { _tag: "Success", value: { attachments: [ref] } } });
+  assert.deepEqual(await done, [ref]);
+});
+
 test("subscribeShell streams items on a long-lived socket and cancel interrupts it", async () => {
   const { client } = setup();
   const seen: unknown[][] = [];

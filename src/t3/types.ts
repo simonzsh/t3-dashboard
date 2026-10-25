@@ -7,6 +7,7 @@ export interface RawThread {
   title?: string | null;
   providerInstanceId?: string | null;
   modelSelection?: ModelSelection | null;
+  runtimeMode?: string | null;
   branch?: string | null;
   linkedPullRequest?: { url?: string } | null;
   pullRequests?: Array<{ url?: string }> | null;
@@ -14,6 +15,8 @@ export interface RawThread {
   creationSource?: string | null;
   status?: string | null;
   activeRunId?: string | null;
+  pendingBackgroundTasks?: RawBackgroundTask[] | null;
+  blockedOnThreadWait?: boolean | null;
   activityRunStartedAt?: string | null;
   latestRunStartedAt?: string | null;
   latestRunCompletedAt?: string | null;
@@ -87,12 +90,35 @@ export interface RawTurnItem {
   messageId?: string;
 }
 
+export interface RawBackgroundTask {
+  taskId?: string;
+  kind?: string;
+  description?: string | null;
+  childThreadId?: string | null;
+}
+
+export interface RawSubagent {
+  id: string;
+  runId?: string | null;
+  childThreadId?: string | null;
+  nativeTaskRef?: { nativeId?: string | null } | null;
+  title?: string | null;
+  prompt?: string | null;
+  status?: string | null;
+  progress?: string | null;
+  result?: string | null;
+  startedAt?: string | null;
+  completedAt?: string | null;
+}
+
 export interface RawProjection {
   messages?: RawMessage[];
-  runs?: Array<{ id: string; status?: string }>;
+  runs?: Array<{ id: string; status?: string; startedAt?: string | null; createdAt?: string | null }>;
   runtimeRequests?: RawRuntimeRequest[];
   turnItems?: Array<{ item?: RawTurnItem } | RawTurnItem>;
   visibleTurnItems?: Array<{ item?: RawTurnItem } | RawTurnItem>;
+  subagents?: RawSubagent[];
+  thread?: RawThread;
 }
 
 export interface RawProvider {
@@ -100,12 +126,39 @@ export interface RawProvider {
   displayName?: string | null;
   enabled?: boolean;
   status?: string;
-  models?: Array<{ slug: string; name?: string | null }>;
+  supportedRuntimeModes?: string[];
+  models?: Array<{ slug: string; name?: string | null; capabilities?: { optionDescriptors?: RawOptionDescriptor[] } | null }>;
+}
+
+export interface RawOptionDescriptor {
+  id: string;
+  label?: string;
+  type?: string;
+  options?: Array<{ id: string; label?: string; isDefault?: boolean }>;
+  currentValue?: unknown;
+  promptInjectedValues?: string[];
 }
 
 export interface RawConfig {
   providers?: RawProvider[];
   environment?: { serverVersion?: string | null; orchestrationProtocolVersion?: number | null };
+}
+
+export interface ImageUpload {
+  type: "image";
+  name: string;
+  mimeType: string;
+  sizeBytes: number;
+  dataUrl: string;
+}
+
+// What T3 stores: message.dispatch references it by id.
+export interface AttachmentRef {
+  type: string;
+  id: string;
+  name: string;
+  mimeType: string;
+  sizeBytes: number;
 }
 
 export type Command = Record<string, unknown>;
@@ -114,5 +167,6 @@ export interface T3Port {
   threadProjection(threadId: string): Promise<RawProjection>;
   dispatch(command: Command): Promise<unknown>;
   getConfig(): Promise<RawConfig>;
+  persistAttachments(threadId: string, messageId: string, images: ImageUpload[]): Promise<AttachmentRef[]>;
   subscribeShell(onItems: (items: ShellItem[]) => void, onEnd: (error?: Error) => void): { cancel(): void };
 }

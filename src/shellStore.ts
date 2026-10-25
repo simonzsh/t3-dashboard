@@ -1,6 +1,6 @@
 import type { ConnectionStatus, DashboardProject, DashboardProvider, DashboardState, DashboardThread, Diff } from "../shared/api.ts";
 import { isHidden, toDashboardThread } from "./classify.ts";
-import type { RawProject, RawSnapshot, RawThread, ShellItem } from "./t3/types.ts";
+import type { RawBackgroundTask, RawProject, RawSnapshot, RawThread, ShellItem } from "./t3/types.ts";
 
 export interface ShellStoreOptions {
   now: () => Date;
@@ -53,7 +53,7 @@ export class ShellStore {
     this.flush();
   }
 
-  state(connection: ConnectionStatus, providers: DashboardProvider[], automationsAvailable: boolean): DashboardState {
+  state(connection: ConnectionStatus, providers: DashboardProvider[], automationsAvailable: boolean, t3EnvironmentId: string | null = null): DashboardState {
     const threads = [...this.derived.values()].sort((a, b) => Date.parse(b.lastActivityAt) - Date.parse(a.lastActivityAt));
     return {
       connection,
@@ -62,7 +62,12 @@ export class ShellStore {
       threads,
       generatedAt: this.options.now().toISOString(),
       automationsAvailable,
+      t3EnvironmentId,
     };
+  }
+
+  backgroundTasks(id: string): RawBackgroundTask[] {
+    return this.live.threads.get(id)?.pendingBackgroundTasks ?? [];
   }
 
   thread(id: string): DashboardThread | undefined {

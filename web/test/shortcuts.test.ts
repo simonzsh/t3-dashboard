@@ -34,9 +34,11 @@ test("3 opens the Desk from any tab", () => {
 
 test("desk keys only work on the Desk", () => {
   assert.equal(matchShortcut(press("x"), false, true), "close-window");
-  assert.equal(matchShortcut(press("M"), false, true), "toggle-maximize");
+  assert.equal(matchShortcut(press("F"), false, true), "toggle-fullscreen");
+  assert.equal(matchShortcut(press("m"), false, true), "minimize-window");
   assert.equal(matchShortcut(press("Escape"), false, true), "unmaximize");
   assert.equal(matchShortcut(press("m"), false), null);
+  assert.equal(matchShortcut(press("f"), false), null);
   assert.equal(matchShortcut(press("Escape"), false), null);
 });
 

@@ -37,17 +37,13 @@ test("action routes hit the right URL with a JSON body", async () => {
   const { calls, api } = fake(200, { ok: true });
   await api.sendMessage("t 1", { text: "yo", mode: "steer" });
   await api.interrupt("t 1");
-  await api.archive("t 1");
-  await api.pin("t 1");
-  await api.unpin("t 1");
+  await api.updateSettings("t 1", { runtimeMode: "auto" });
   await api.respond("t 1", "r/1", { decision: "accept" });
   await api.dismiss("t 1", "r/1");
   assert.deepEqual(calls.map((c) => c.url), [
     "/api/threads/t%201/messages",
     "/api/threads/t%201/interrupt",
-    "/api/threads/t%201/archive",
-    "/api/threads/t%201/pin",
-    "/api/threads/t%201/unpin",
+    "/api/threads/t%201/settings",
     "/api/threads/t%201/requests/r%2F1/respond",
     "/api/threads/t%201/requests/r%2F1/dismiss",
   ]);
@@ -57,12 +53,13 @@ test("action routes hit the right URL with a JSON body", async () => {
   }
   assert.deepEqual(JSON.parse(String(calls[0]?.init?.body)), { text: "yo", mode: "steer" });
   assert.deepEqual(JSON.parse(String(calls[1]?.init?.body)), {});
-  assert.deepEqual(JSON.parse(String(calls[5]?.init?.body)), { decision: "accept" });
+  assert.deepEqual(JSON.parse(String(calls[2]?.init?.body)), { runtimeMode: "auto" });
+  assert.deepEqual(JSON.parse(String(calls[3]?.init?.body)), { decision: "accept" });
 });
 
 test("non-2xx throws with the server message", async () => {
   const { api } = fake(502, { error: "T3 refused" });
-  await assert.rejects(() => api.archive("t"), { message: "T3 refused" });
+  await assert.rejects(() => api.interrupt("t"), { message: "T3 refused" });
 });
 
 test("non-2xx without JSON error body still throws", async () => {

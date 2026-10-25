@@ -9,6 +9,13 @@ interface Props {
   onChange: () => void;
 }
 
+// Icon paths from Lucide (ISC): pencil and log-out.
+const Icon = ({ d }: { d: string }) => (
+  <svg className="icon" viewBox="0 0 24 24" aria-hidden="true">
+    <path d={d} fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+  </svg>
+);
+
 export function LinearSettings({ onChange }: Props) {
   const [settings, setSettings] = useState<SettingsResult | null>(null);
   const [changing, setChanging] = useState(false);
@@ -42,12 +49,15 @@ export function LinearSettings({ onChange }: Props) {
           <span className="linear-status muted">Not connected</span>
         )}
         {linear.connected && (
-          <div className="buttons">
-            <button type="button" onClick={() => setChanging(!changing)}>
-              Change key
+          <span className="row-icons">
+            <button type="button" className="icon-button" aria-label="Change key" title="Change key" aria-expanded={changing} onClick={() => setChanging(!changing)}>
+              <Icon d="M12 20h9M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z" />
             </button>
             <button
               type="button"
+              className="icon-button"
+              aria-label="Disconnect"
+              title="Disconnect"
               disabled={action.busy}
               onClick={() =>
                 void action.run(async () => {
@@ -55,9 +65,9 @@ export function LinearSettings({ onChange }: Props) {
                 })
               }
             >
-              Disconnect
+              <Icon d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9" />
             </button>
-          </div>
+          </span>
         )}
       </div>
       {(!linear.connected || changing) && (

@@ -28,10 +28,13 @@ function lastActivityOf(raw: RawThread): string {
   return candidates.reduce((latest, value) => (Date.parse(value) > Date.parse(latest) ? value : latest), EPOCH);
 }
 
+// The turn can end while subagents keep working: the agent is not finished yet.
+const hasBackgroundWork = (raw: RawThread): boolean => (raw.pendingBackgroundTasks?.length ?? 0) > 0 || raw.blockedOnThreadWait === true;
+
 export function bucketOf(raw: RawThread, now: Date): Bucket {
   const status = raw.status ?? "idle";
   if (raw.pendingRuntimeRequest) return "todo";
-  if (ACTIVE_STATUSES.has(status)) return "running";
+  if (ACTIVE_STATUSES.has(status) || hasBackgroundWork(raw)) return "running";
   if (raw.snoozedUntil && Date.parse(raw.snoozedUntil) > now.getTime()) return "inactive";
   if (raw.settledOverride === "settled" || (raw.settledAt != null && raw.settledOverride !== "active")) return "inactive";
   if (raw.hasActionableProposedPlan) return "todo";
@@ -66,6 +69,8 @@ export function toDashboardThread(raw: RawThread, now: Date): DashboardThread {
     bucket: bucketOf(raw, now),
     pending: pending ? { requestId: pending.id, kind: pending.kind, category: categoryOf(pending.kind) } : null,
     activeRunId: raw.activeRunId ?? null,
+    backgroundWork: hasBackgroundWork(raw),
+    pendingTasks: (raw.pendingBackgroundTasks?.length ?? 0) > 0,
     lastError: raw.lastError ?? null,
     hasActionableProposedPlan: raw.hasActionableProposedPlan ?? false,
     preview: previewOf(raw.latestVisibleMessage),

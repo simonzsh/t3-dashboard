@@ -1,5 +1,6 @@
-import type { ChatMessage, DashboardThread, PendingRequestDetail, ThreadDetail } from "../shared/api.ts";
-import type { RawProjection, RawRuntimeRequest, RawTurnItem } from "./t3/types.ts";
+import type { ChatMessage, DashboardThread, PendingRequestDetail, SubagentInfo, ThreadDetail } from "../shared/api.ts";
+import { isRuntimeMode } from "./t3/commands.ts";
+import type { RawBackgroundTask, RawProjection, RawRuntimeRequest, RawSubagent, RawTurnItem } from "./t3/types.ts";
 
 // Turn items arrive wrapped as `{item}` in some payloads and bare in others.
 const unwrap = (element: { item?: RawTurnItem } | RawTurnItem): RawTurnItem => ("item" in element && element.item ? element.item : (element as RawTurnItem));
@@ -25,12 +26,82 @@ function pendingDetail(request: RawRuntimeRequest, items: RawTurnItem[]): Pendin
   return { category: "other", ...base, requestKind: request.kind ?? "" };
 }
 
-export function toThreadDetail(threadId: string, projection: RawProjection, thread: DashboardThread | undefined): ThreadDetail {
+const RESULT_CHARS = 200;
+const FAILED = new Set(["failed", "interrupted", "cancelled", "canceled", "error", "errored"]);
+
+const truncate = (text: string, max: number) => (text.length > max ? `${text.slice(0, max - 1)}…` : text);
+
+function subagentStatus(raw: RawSubagent): SubagentInfo["status"] {
+  if (raw.status === "completed") return "done";
+  if (raw.status === "running") return "running";
+  if (FAILED.has(raw.status ?? "")) return "failed";
+  return raw.completedAt ? "done" : "running";
+}
+
+function toSubagent(raw: RawSubagent): SubagentInfo {
+  const status = subagentStatus(raw);
+  const title = raw.title?.trim() || truncate(raw.prompt?.trim() ?? "", 80) || "Subagent";
+  return {
+    id: raw.id,
+    title,
+    status,
+    progress: status === "running" ? (raw.progress ?? null) : null,
+    result: raw.result ? truncate(raw.result, RESULT_CHARS) : null,
+    startedAt: raw.startedAt ?? null,
+    completedAt: raw.completedAt ?? null,
+  };
+}
+
+// Latest run by start time (array order breaks ties); without runs, the run of the newest subagent.
+function latestRunId(projection: RawProjection): string | undefined {
+  const stamp = (run: { startedAt?: string | null; createdAt?: string | null }) => run.startedAt ?? run.createdAt ?? "";
+  const pick = <T extends { id?: string }>(items: T[], at: (item: T) => string, id: (item: T) => string | null | undefined) =>
+    items.reduce<{ id?: string | null; at: string } | undefined>((best, item) => (id(item) && (!best || at(item) >= best.at) ? { id: id(item), at: at(item) } : best), undefined)?.id ?? undefined;
+  const runs = projection.runs ?? [];
+  if (runs.length) return pick(runs, stamp, (run) => run.id);
+  return pick(projection.subagents ?? [], (raw) => raw.startedAt ?? "", (raw) => raw.runId);
+}
+
+// Ids identify a task; the title is a weak guess, used only when the task has no id.
+const matchesTask = (raw: RawSubagent, task: RawBackgroundTask): boolean => {
+  if (task.childThreadId || task.taskId) {
+    return Boolean((task.childThreadId && raw.childThreadId === task.childThreadId) || (task.taskId && raw.nativeTaskRef?.nativeId === task.taskId));
+  }
+  return Boolean(task.description && raw.title === task.description);
+};
+
+// A long thread holds dozens of subagents: keep the latest run's, plus older ones the shell still lists
+// as pending background tasks. A stale "running" subagent that no task names stays hidden.
+function subagentsOf(projection: RawProjection, tasks: RawBackgroundTask[]): SubagentInfo[] {
+  const latestRun = latestRunId(projection);
+  const all = projection.subagents ?? [];
+  const kept = all.filter(
+    (raw) => latestRun === undefined || raw.runId === latestRun || (subagentStatus(raw) === "running" && tasks.some((task) => matchesTask(raw, task))),
+  );
+  const orphans: SubagentInfo[] = tasks
+    .filter((task) => !kept.some((raw) => matchesTask(raw, task)))
+    .map((task) => ({ id: `task:${task.taskId ?? task.childThreadId ?? task.description}`, title: task.description?.trim() || "Subagent", status: "running", progress: null, result: null, startedAt: null, completedAt: null }));
+  return [...kept.map(toSubagent), ...orphans].sort(
+    (a, b) => Number(b.status === "running") - Number(a.status === "running") || (b.startedAt ?? "").localeCompare(a.startedAt ?? ""),
+  );
+}
+
+/** `tasks` are the shell thread's pending background tasks: they say which subagents still run. */
+export function toThreadDetail(threadId: string, projection: RawProjection, thread: DashboardThread | undefined, tasks: RawBackgroundTask[] = []): ThreadDetail {
   const visible = new Set((projection.visibleTurnItems ?? []).map((element) => unwrap(element).messageId));
   const messages: ChatMessage[] = (projection.messages ?? [])
     .filter((message) => visible.has(message.id))
     .map((message) => ({ id: message.id, role: message.role, text: message.text ?? "", createdAt: message.createdAt ?? "", streaming: message.streaming ?? false }));
   const items = [...(projection.turnItems ?? []), ...(projection.visibleTurnItems ?? [])].map(unwrap);
   const pendingRequests = (projection.runtimeRequests ?? []).filter((request) => request.status === "pending").map((request) => pendingDetail(request, items));
-  return { threadId, thread: thread ?? null, messages, pendingRequests };
+  const runtimeMode = projection.thread?.runtimeMode;
+  return {
+    threadId,
+    thread: thread ?? null,
+    messages,
+    pendingRequests,
+    subagents: subagentsOf(projection, tasks),
+    modelSelection: projection.thread?.modelSelection ?? null,
+    runtimeMode: isRuntimeMode(runtimeMode) ? runtimeMode : null,
+  };
 }

@@ -11,6 +11,8 @@ export function thread(id: string, over: Partial<DashboardThread> = {}): Dashboa
     bucket: "inactive" as Bucket,
     pending: null,
     activeRunId: null,
+    backgroundWork: false,
+    pendingTasks: false,
     lastError: null,
     hasActionableProposedPlan: false,
     preview: null,
@@ -32,5 +34,6 @@ export function baseState(threads: DashboardThread[] = []): DashboardState {
     threads,
     generatedAt: "2026-01-10T10:00:00.000Z",
     automationsAvailable: true,
+    t3EnvironmentId: null,
   };
 }

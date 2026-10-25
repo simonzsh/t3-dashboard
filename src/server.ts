@@ -10,6 +10,7 @@ import type {
   ModelSelection,
   RespondBody,
   SendMessageBody,
+  ThreadSettingsBody,
   UserInputAnswers,
 } from "../shared/api.ts";
 import { ACTIVE_STATUSES } from "./classify.ts";
@@ -27,15 +28,18 @@ import {
   createThreadCommands,
   dismissCommand,
   interruptCommand,
+  isRuntimeMode,
   messageCommand,
+  modelSelectionCommand,
   pinCommand,
+  runtimeModeCommand,
   unpinCommand,
   userInputCommand,
 } from "./t3/commands.ts";
 import type { DispatchMode } from "./t3/commands.ts";
 import { toThreadDetail } from "./threadDetail.ts";
 import { VERSION } from "./version.ts";
-import type { Command, T3Port } from "./t3/types.ts";
+import type { Command, ImageUpload, T3Port } from "./t3/types.ts";
 
 export interface SetupControl {
   /** Resolves the token again. */
@@ -47,7 +51,7 @@ export interface SetupControl {
 
 export interface DashboardServerOptions {
   port: T3Port;
-  store: Pick<ShellStore, "thread" | "project">;
+  store: Pick<ShellStore, "thread" | "project" | "backgroundTasks">;
   board: Pick<LinearBoard, "get">;
   automations: () => AutomationsResult;
   hub: SseHub;
@@ -61,6 +65,12 @@ export interface DashboardServerOptions {
 }
 
 const MAX_BODY_BYTES = 1024 * 1024;
+// Messages carry images as base64 data URLs: T3 takes up to 10 MB per image.
+const MAX_MESSAGE_BODY_BYTES = 25 * 1024 * 1024;
+const MAX_IMAGE_BYTES = 10 * 1024 * 1024;
+const MAX_IMAGES = 10;
+const IMAGE_TYPES = new Set(["image/png", "image/jpeg", "image/gif", "image/webp"]);
+const BASE64 = /^[A-Za-z0-9+/]*={0,2}$/;
 const LOCAL_HOSTS = new Set(["127.0.0.1", "localhost"]);
 const RUNNING_STATUSES = new Set(["preparing", "starting", "running", "waiting"]);
 const CLAUDE_INSTANCE = "claudeAgent";
@@ -99,7 +109,7 @@ function checkOrigin(req: Request): void {
   if (!hostOk || !originOk) throw new HttpError(403, "Forbidden host or origin");
 }
 
-async function readJson(req: Request): Promise<Record<string, unknown>> {
+async function readJson(req: Request, maxBytes = MAX_BODY_BYTES): Promise<Record<string, unknown>> {
   if (!(req.headers.get("content-type") ?? "").toLowerCase().startsWith("application/json")) {
     throw new HttpError(400, "content-type must be application/json");
   }
@@ -108,7 +118,7 @@ async function readJson(req: Request): Promise<Record<string, unknown>> {
   if (req.body) {
     for await (const chunk of req.body) {
       size += chunk.length;
-      if (size > MAX_BODY_BYTES) throw new HttpError(413, "Body over 1 MB");
+      if (size > maxBytes) throw new HttpError(413, `Body over ${maxBytes / (1024 * 1024)} MB`);
       chunks.push(chunk);
     }
   }
@@ -127,18 +137,47 @@ async function readJson(req: Request): Promise<Record<string, unknown>> {
 const json = (status: number, body: unknown, headers: Record<string, string> = {}) =>
   new Response(JSON.stringify(body), { status, headers: { "content-type": "application/json; charset=utf-8", ...headers } });
 
+function validSelection(selection: unknown): ModelSelection | null {
+  if (!isObject(selection) || !isText(selection.instanceId) || !isText(selection.model)) return null;
+  const { instanceId, model, options } = selection;
+  const valid = Array.isArray(options)
+    ? options.filter((o): o is { id: string; value: string | number | boolean } => isObject(o) && typeof o.id === "string" && ["string", "number", "boolean"].includes(typeof o.value))
+    : undefined;
+  return { instanceId, model, ...(valid && { options: valid }) };
+}
+
 function validCreate(body: Record<string, unknown>): CreateThreadBody {
-  const selection = body.modelSelection;
-  if (!isText(body.projectId) || !isText(body.title) || !isText(body.text) || !isObject(selection) || !isText(selection.instanceId) || !isText(selection.model)) {
+  const modelSelection = validSelection(body.modelSelection);
+  if (!isText(body.projectId) || !isText(body.title) || !isText(body.text) || !modelSelection) {
     throw new HttpError(400, "projectId, title, text and modelSelection (instanceId, model) are required");
   }
-  const { instanceId, model, options } = selection;
-  return {
-    projectId: body.projectId.trim(),
-    title: body.title.trim(),
-    text: body.text,
-    modelSelection: { instanceId, model, ...(Array.isArray(options) && { options: options as Array<{ id: string; value: unknown }> }) },
-  };
+  return { projectId: body.projectId.trim(), title: body.title.trim(), text: body.text, modelSelection };
+}
+
+function validSettings(body: Record<string, unknown>): ThreadSettingsBody {
+  const modelSelection = "modelSelection" in body ? validSelection(body.modelSelection) : undefined;
+  const runtimeMode = body.runtimeMode;
+  const bad = modelSelection === null || (runtimeMode !== undefined && !isRuntimeMode(runtimeMode)) || (modelSelection === undefined && runtimeMode === undefined);
+  if (bad) throw new HttpError(400, "Send modelSelection (instanceId, model) or a known runtimeMode");
+  return { ...(modelSelection && { modelSelection }), ...(isRuntimeMode(runtimeMode) && { runtimeMode }) };
+}
+
+// The size comes from the data itself: a client could lie about it.
+function validImages(value: unknown): ImageUpload[] {
+  if (value === undefined) return [];
+  const error = new HttpError(400, `attachments must be up to ${MAX_IMAGES} PNG, JPEG, GIF or WebP images of 10 MB or less`);
+  if (!Array.isArray(value) || value.length > MAX_IMAGES) throw error;
+  return value.map((entry) => {
+    const name = isObject(entry) && typeof entry.name === "string" ? entry.name.trim() : "";
+    if (!isObject(entry) || name === "" || name.length > 255 || typeof entry.mimeType !== "string" || !IMAGE_TYPES.has(entry.mimeType)) throw error;
+    const prefix = `data:${entry.mimeType};base64,`;
+    if (typeof entry.dataUrl !== "string" || !entry.dataUrl.startsWith(prefix)) throw error;
+    const data = entry.dataUrl.slice(prefix.length);
+    if (data.length % 4 !== 0 || !BASE64.test(data)) throw error;
+    const sizeBytes = Math.floor((data.length * 3) / 4) - (data.endsWith("==") ? 2 : data.endsWith("=") ? 1 : 0);
+    if (sizeBytes === 0 || sizeBytes > MAX_IMAGE_BYTES) throw error;
+    return { type: "image", name, mimeType: entry.mimeType, sizeBytes, dataUrl: entry.dataUrl };
+  });
 }
 
 function validAssign(body: Record<string, unknown>): AssignIssueBody {
@@ -181,25 +220,29 @@ export function createDashboardServer(options: DashboardServerOptions): Dashboar
     for (const command of commands) await t3(port.dispatch(command));
   };
 
-  async function sendMessage(threadId: string, body: SendMessageBody): Promise<void> {
+  // The shell can lag behind a run start: the projection then knows the run first.
+  async function activeRunId(threadId: string): Promise<string | null> {
+    const runId = store.thread(threadId)?.activeRunId;
+    if (runId) return runId;
+    const { runs = [] } = await t3(port.threadProjection(threadId));
+    return runs.findLast((run) => RUNNING_STATUSES.has(run.status ?? ""))?.id ?? null;
+  }
+
+  async function sendMessage(threadId: string, body: Omit<SendMessageBody, "attachments">, images: ImageUpload[]): Promise<void> {
     const thread = store.thread(threadId);
     const active = thread !== undefined && ACTIVE_STATUSES.has(thread.status);
-    let dispatchMode: DispatchMode = { type: "start_immediately" };
-    if (active && body.mode === "steer") {
-      if (!thread.activeRunId) throw new HttpError(409, "No active run to steer");
-      dispatchMode = { type: "steer_active", targetRunId: thread.activeRunId };
-    } else if (active) {
-      dispatchMode = { type: "queue_after_active" };
+    const steer = body.mode === "steer";
+    const dispatchMode: DispatchMode = active && !steer ? { type: "queue_after_active" } : { type: "start_immediately" };
+    let upload;
+    if (images.length) {
+      const messageId = newId();
+      upload = { messageId, attachments: await t3(port.persistAttachments(threadId, messageId, images)) };
     }
-    await send(messageCommand(threadId, body.text, dispatchMode, newId));
+    await send(messageCommand(threadId, body.text, dispatchMode, newId, upload, steer ? "steer" : undefined));
   }
 
   async function interrupt(threadId: string): Promise<void> {
-    let runId = store.thread(threadId)?.activeRunId ?? null;
-    if (!runId) {
-      const { runs = [] } = await t3(port.threadProjection(threadId));
-      runId = runs.findLast((run) => RUNNING_STATUSES.has(run.status ?? ""))?.id ?? null;
-    }
+    const runId = await activeRunId(threadId);
     if (!runId) throw new HttpError(409, "No active run to interrupt");
     await send(interruptCommand(threadId, runId, newId));
   }
@@ -258,7 +301,7 @@ export function createDashboardServer(options: DashboardServerOptions): Dashboar
         return hub.add(getState(), req.signal);
       }
       if (segments.length === 3 && resource === "threads" && id) {
-        return json(200, toThreadDetail(id, await t3(port.threadProjection(id)), store.thread(id)));
+        return json(200, toThreadDetail(id, await t3(port.threadProjection(id)), store.thread(id), store.backgroundTasks(id)));
       }
     } else if (method === "POST" && resource === "board" && id === "assign" && segments.length === 3) {
       const threadId = await assign(validAssign(await readJson(req)));
@@ -292,7 +335,7 @@ export function createDashboardServer(options: DashboardServerOptions): Dashboar
       if (segments.length === 4 && action === "key") return json(200, await settings.connectKey({ apiKey: String(body.apiKey ?? "") }));
       if (segments.length === 4 && action === "disconnect") return json(200, settings.disconnect());
     } else if (method === "POST" && resource === "threads") {
-      const body = await readJson(req);
+      const body = await readJson(req, segments.length === 4 && action === "messages" ? MAX_MESSAGE_BODY_BYTES : MAX_BODY_BYTES);
       if (segments.length === 2) {
         const { threadId, commands } = createThreadCommands(validCreate(body), newId);
         await send(...commands);
@@ -300,9 +343,17 @@ export function createDashboardServer(options: DashboardServerOptions): Dashboar
       }
       if (id && segments.length === 4) {
         if (action === "messages") {
-          if (!isText(body.text)) throw new HttpError(400, "text is required");
+          if (typeof body.text !== "string") throw new HttpError(400, "text is required");
           if (body.mode !== undefined && body.mode !== "queue" && body.mode !== "steer") throw new HttpError(400, "mode must be queue or steer");
-          await sendMessage(id, { text: body.text, ...(body.mode && { mode: body.mode }) });
+          const images = validImages(body.attachments);
+          if (body.text.trim() === "" && images.length === 0) throw new HttpError(400, "text or an image is required");
+          await sendMessage(id, { text: body.text, ...(body.mode && { mode: body.mode }) }, images);
+          return json(200, { ok: true });
+        }
+        if (action === "settings") {
+          const settings = validSettings(body);
+          if (settings.modelSelection) await send(modelSelectionCommand(id, settings.modelSelection, newId));
+          if (settings.runtimeMode) await send(runtimeModeCommand(id, settings.runtimeMode, newId));
           return json(200, { ok: true });
         }
         if (action === "interrupt") {

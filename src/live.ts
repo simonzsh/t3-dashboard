@@ -1,10 +1,11 @@
 import { setTimeout as delay } from "node:timers/promises";
-import type { ConnectionStatus, DashboardProvider, SetupInfo } from "../shared/api.ts";
+import type { ConnectionStatus, DashboardProvider, ModelEffort, SetupInfo } from "../shared/api.ts";
 import { INSTALL_URL, ISSUE_COMMAND } from "./auth.ts";
 import type { TokenManager } from "./auth.ts";
 import type { ShellStore } from "./shellStore.ts";
 import { MissingTokenError, T3HttpError } from "./t3/client.ts";
-import type { RawConfig, T3Port } from "./t3/types.ts";
+import { RUNTIME_MODES } from "./t3/commands.ts";
+import type { RawConfig, RawOptionDescriptor, T3Port } from "./t3/types.ts";
 
 const BACKOFF_MS = [1000, 2000, 4000, 8000, 16000, 30000];
 const EXPECTED_PROTOCOL = 2;
@@ -25,13 +26,27 @@ const FALLBACK_SETUP = { issueCommand: ISSUE_COMMAND, installUrl: INSTALL_URL };
 // Anything that is not an HTTP answer or a missing token: T3 did not answer at all.
 const isNetworkError = (error: Error | undefined): boolean => !(error instanceof T3HttpError) && !(error instanceof MissingTokenError);
 
+const EFFORT_OPTION_IDS = new Set(["effort", "reasoningEffort"]);
+
+// Prompt-injected values (such as "ultrathink") are words T3 adds to the prompt, not levels.
+function toEffort(descriptors: RawOptionDescriptor[] = []): ModelEffort | null {
+  const raw = descriptors.find((descriptor) => descriptor.type === "select" && EFFORT_OPTION_IDS.has(descriptor.id));
+  if (!raw) return null;
+  const injected = new Set(raw.promptInjectedValues ?? []);
+  const levels = (raw.options ?? []).filter((option) => !injected.has(option.id)).map((option) => ({ id: option.id, label: option.label ?? option.id }));
+  const fallback = typeof raw.currentValue === "string" ? raw.currentValue : null;
+  const defaultLevel = (raw.options ?? []).find((option) => option.isDefault && !injected.has(option.id))?.id ?? fallback;
+  return levels.length ? { optionId: raw.id, levels, defaultLevel } : null;
+}
+
 export const toProviders = (config: RawConfig): DashboardProvider[] =>
   (config.providers ?? [])
     .filter((provider) => provider.enabled && provider.status === "ready")
     .map((provider) => ({
       instanceId: provider.instanceId,
       displayName: provider.displayName ?? provider.instanceId,
-      models: (provider.models ?? []).map((model) => ({ slug: model.slug, name: model.name ?? model.slug })),
+      models: (provider.models ?? []).map((model) => ({ slug: model.slug, name: model.name ?? model.slug, effort: toEffort(model.capabilities?.optionDescriptors) })),
+      runtimeModes: provider.supportedRuntimeModes ? RUNTIME_MODES.filter((mode) => provider.supportedRuntimeModes!.includes(mode)) : RUNTIME_MODES,
     }));
 
 /** Keeps the store in sync with T3: subscribe, follow, and reconnect with backoff. */

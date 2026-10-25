@@ -7,7 +7,9 @@ import {
   dismissCommand,
   interruptCommand,
   messageCommand,
+  modelSelectionCommand,
   pinCommand,
+  runtimeModeCommand,
   unpinCommand,
   userInputCommand,
 } from "../src/t3/commands.ts";
@@ -101,6 +103,20 @@ test("userInputCommand sends the answers and no decision", () => {
     requestId: "req-1",
     answers: { q1: "a", q2: ["b", "c"] },
   });
+});
+
+test("messageCommand carries persisted attachments under the given message id", () => {
+  const image = { type: "image", id: "img-1", name: "a.png", mimeType: "image/png", sizeBytes: 3 };
+  const command = messageCommand("thread-1", "Look", { type: "queue_after_active" }, counter(), { messageId: "msg-9", attachments: [image] });
+  assert.equal(command.messageId, "msg-9");
+  assert.equal(command.commandId, "id-1");
+  assert.deepEqual(command.attachments, [image]);
+});
+
+test("modelSelectionCommand and runtimeModeCommand", () => {
+  const selection = { ...model, options: [{ id: "effort", value: "high" }] };
+  assert.deepEqual(modelSelectionCommand("thread-1", selection, counter()), { type: "thread.model-selection.set", commandId: "id-1", threadId: "thread-1", modelSelection: selection });
+  assert.deepEqual(runtimeModeCommand("thread-1", "approval-required", counter()), { type: "thread.runtime-mode.set", commandId: "id-1", threadId: "thread-1", runtimeMode: "approval-required" });
 });
 
 test("dismissCommand", () => {

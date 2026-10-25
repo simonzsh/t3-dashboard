@@ -9,6 +9,8 @@ export interface ModelSelection {
   options?: Array<{ id: string; value: unknown }>;
 }
 
+export type RuntimeMode = "approval-required" | "auto-accept-edits" | "auto" | "full-access";
+
 export type PendingCategory = "approval" | "user-input" | "other";
 
 export interface DashboardThread {
@@ -21,6 +23,10 @@ export interface DashboardThread {
   bucket: Bucket;
   pending: { requestId: string; kind: string; category: PendingCategory } | null;
   activeRunId: string | null;
+  /** Subagents or a thread wait still run after the turn ended. */
+  backgroundWork: boolean;
+  /** The shell lists pending background tasks: subagents may run without a run. */
+  pendingTasks: boolean;
   lastError: string | null;
   hasActionableProposedPlan: boolean;
   preview: { role: string; text: string } | null;
@@ -38,10 +44,24 @@ export interface DashboardProject {
   defaultModelSelection: ModelSelection | null;
 }
 
+export interface ModelEffort {
+  /** Option id in ModelSelection.options: "effort" for Claude, "reasoningEffort" for Codex. */
+  optionId: string;
+  levels: Array<{ id: string; label: string }>;
+  defaultLevel: string | null;
+}
+
+export interface DashboardModel {
+  slug: string;
+  name: string;
+  effort: ModelEffort | null;
+}
+
 export interface DashboardProvider {
   instanceId: string;
   displayName: string;
-  models: Array<{ slug: string; name: string }>;
+  models: DashboardModel[];
+  runtimeModes: RuntimeMode[];
 }
 
 export type SetupReason = "t3-missing" | "t3-stopped" | "token-needed";
@@ -73,6 +93,8 @@ export interface DashboardState {
   generatedAt: string;
   /** At least one t3-agent brain file exists. */
   automationsAvailable: boolean;
+  /** For t3code:// links; null hides the "Open in T3 Code" buttons. */
+  t3EnvironmentId: string | null;
 }
 
 export interface Diff<T> {
@@ -116,11 +138,26 @@ export type PendingRequestDetail =
   | { category: "user-input"; requestId: string; questions: UserInputQuestion[]; resumable: boolean; createdAt: string }
   | { category: "other"; requestId: string; requestKind: string; resumable: boolean; createdAt: string };
 
+export interface SubagentInfo {
+  id: string;
+  title: string;
+  status: "running" | "done" | "failed";
+  // Last step while running; null once finished.
+  progress: string | null;
+  result: string | null;
+  startedAt: string | null;
+  completedAt: string | null;
+}
+
 export interface ThreadDetail {
   threadId: string;
   thread: DashboardThread | null;
   messages: ChatMessage[];
   pendingRequests: PendingRequestDetail[];
+  subagents: SubagentInfo[];
+  /** The thread's current model, effort and access, as the composer shows them. */
+  modelSelection: ModelSelection | null;
+  runtimeMode: RuntimeMode | null;
 }
 
 export type ApprovalDecision = "accept" | "acceptForSession" | "decline";
@@ -133,9 +170,22 @@ export interface CreateThreadBody {
   modelSelection: ModelSelection;
 }
 
+export interface ImageAttachment {
+  name: string;
+  mimeType: string;
+  /** `data:<mimeType>;base64,…` */
+  dataUrl: string;
+}
+
 export interface SendMessageBody {
   text: string;
   mode?: "queue" | "steer";
+  attachments?: ImageAttachment[];
+}
+
+export interface ThreadSettingsBody {
+  modelSelection?: ModelSelection;
+  runtimeMode?: RuntimeMode;
 }
 
 export type RespondBody = { decision: ApprovalDecision } | { answers: UserInputAnswers };

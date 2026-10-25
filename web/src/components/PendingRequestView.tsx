@@ -2,6 +2,7 @@ import { useState } from "react";
 import type { ApprovalDecision, PendingRequestDetail } from "../../../shared/api.ts";
 import { api } from "../api.ts";
 import { buildAnswers, canSubmit, type Drafts } from "../answers.ts";
+import { NO_AUTOFILL } from "../noAutofill.ts";
 import { useAction } from "./useAction.ts";
 
 const DECISIONS: Array<[ApprovalDecision, string]> = [
@@ -68,7 +69,7 @@ export function PendingRequestView({ threadId, request }: { threadId: string; re
                     </span>
                   </label>
                 ))}
-                {q.allowCustomAnswer && <input type="text" placeholder="Other answer…" aria-label={`Custom answer: ${q.question}`} value={d?.custom ?? ""} onChange={(e) => setDraft(q.id, { custom: e.target.value })} />}
+                {q.allowCustomAnswer && <input {...NO_AUTOFILL} type="text" placeholder="Other answer…" aria-label={`Custom answer: ${q.question}`} value={d?.custom ?? ""} onChange={(e) => setDraft(q.id, { custom: e.target.value })} />}
               </fieldset>
             );
           })}

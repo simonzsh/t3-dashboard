@@ -1,6 +1,6 @@
 import { test } from "bun:test";
 import assert from "node:assert/strict";
-import { agentStatus, groupAgents, pendingLabel, providerKind, threadState } from "../src/agents.ts";
+import { agentStatus, groupAgents, pendingLabel, providerKind, runActive, threadState } from "../src/agents.ts";
 import { thread } from "./fixtures.ts";
 
 const now = new Date("2026-03-01T12:00:00Z");
@@ -90,6 +90,19 @@ test("pendingLabel names the kind of request", () => {
   assert.equal(pendingLabel("approval"), "Approval");
   assert.equal(pendingLabel("user-input"), "Question");
   assert.equal(pendingLabel("other"), "Action required");
+});
+
+test("a finished turn with subagents still running stays working", () => {
+  const busy = thread("1", { status: "completed", backgroundWork: true, lastActivityAt: hoursAgo(1) });
+  assert.equal(agentStatus(busy, now), "working");
+  assert.equal(threadState(busy), "running");
+  assert.equal(threadState(thread("1", { pending, status: "completed", backgroundWork: true })), "waiting");
+});
+
+test("runActive: an active status or run id, but not background work alone", () => {
+  assert.equal(runActive(thread("1", { status: "running" })), true);
+  assert.equal(runActive(thread("1", { status: "idle", activeRunId: "run-1" })), true);
+  assert.equal(runActive(thread("1", { status: "completed", backgroundWork: true })), false);
 });
 
 test("threadState gives the desk window colour", () => {

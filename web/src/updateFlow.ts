@@ -29,9 +29,9 @@ export async function waitForRestart(from: string, probe: RestartProbe): Promise
 export const updateLabel = (status: UpdateStatus): string => `Update v${status.latest}`;
 export const updateQuestion = (status: UpdateStatus): string => `Update to v${status.latest}?`;
 
-/** What Settings says about the installed version. */
+/** What Settings says after a manual check. */
 export function versionNote(status: UpdateStatus): string {
   if (status.current === "dev") return "Development build. Updates come from releases.";
   if (status.available) return `Version ${status.latest} is available.`;
-  return status.latest ? "You are up to date." : "No release found yet.";
+  return status.latest ? "Up to date" : "No release found yet.";
 }

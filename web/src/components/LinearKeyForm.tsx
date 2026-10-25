@@ -1,6 +1,7 @@
 import { useState } from "react";
 import type { SettingsResult } from "../../../shared/api.ts";
 import { api } from "../api.ts";
+import { SECRET_FIELD } from "../noAutofill.ts";
 import { useAction } from "./useAction.ts";
 
 interface Props {
@@ -15,6 +16,7 @@ export function LinearKeyForm({ button, onSaved }: Props) {
   return (
     <form
       className="key-form"
+      autoComplete="off"
       onSubmit={(e) => {
         e.preventDefault();
         void run(async () => {
@@ -25,7 +27,7 @@ export function LinearKeyForm({ button, onSaved }: Props) {
       }}
     >
       <div className="key-row">
-        <input type="password" autoComplete="off" spellCheck={false} aria-label="Linear API key" placeholder="lin_api_…" value={key} onChange={(e) => setKey(e.target.value)} />
+        <input {...SECRET_FIELD} id="linear-api-key-field" aria-label="Linear API key" placeholder="lin_api_…" value={key} onChange={(e) => setKey(e.target.value)} />
         <button className="primary" type="submit" disabled={busy || key.trim() === ""}>
           {busy ? "Checking…" : button}
         </button>

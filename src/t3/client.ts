@@ -1,7 +1,9 @@
 import { RpcConnection } from "./rpc.ts";
-import type { Command, RawConfig, RawProjection, ShellItem, T3Port } from "./types.ts";
+import type { AttachmentRef, Command, ImageUpload, RawConfig, RawProjection, ShellItem, T3Port } from "./types.ts";
 
 const ORCHESTRATION_PROTOCOL = "2";
+// Images go up as data URLs of up to 10 MB each: give T3 time to write them.
+const UPLOAD_TIMEOUT_MS = 60_000;
 
 export class MissingTokenError extends Error {
   constructor() {
@@ -47,6 +49,11 @@ export class T3Client implements T3Port {
     return this.oneShot("server.getConfig", {}) as Promise<RawConfig>;
   }
 
+  async persistAttachments(threadId: string, messageId: string, images: ImageUpload[]): Promise<AttachmentRef[]> {
+    const result = (await this.oneShot("assets.persistChatAttachments", { threadId, messageId, attachments: images }, UPLOAD_TIMEOUT_MS)) as { attachments?: AttachmentRef[] };
+    return result.attachments ?? [];
+  }
+
   dispatch(command: Command): Promise<unknown> {
     return this.oneShot("orchestration.dispatchCommand", command);
   }
@@ -86,10 +93,10 @@ export class T3Client implements T3Port {
     return new RpcConnection(url, this.Socket);
   }
 
-  private async oneShot(tag: string, payload: unknown): Promise<unknown> {
+  private async oneShot(tag: string, payload: unknown, timeoutMs?: number): Promise<unknown> {
     const connection = await this.openSocket();
     try {
-      return await connection.request(tag, payload);
+      return await connection.request(tag, payload, timeoutMs);
     } finally {
       connection.close();
     }

@@ -12,6 +12,7 @@ import type {
   SendMessageBody,
   SettingsResult,
   ThreadDetail,
+  ThreadSettingsBody,
   UpdateStatus,
 } from "../../shared/api.ts";
 
@@ -48,9 +49,7 @@ export function createApi(fetchImpl: Fetch) {
     createThread: (b: CreateThreadBody) => call<CreateThreadResult>("/api/threads", b),
     sendMessage: (id: string, b: SendMessageBody) => call<OkResult>(`${t(id)}/messages`, b),
     interrupt: (id: string) => call<OkResult>(`${t(id)}/interrupt`, {}),
-    archive: (id: string) => call<OkResult>(`${t(id)}/archive`, {}),
-    pin: (id: string) => call<OkResult>(`${t(id)}/pin`, {}),
-    unpin: (id: string) => call<OkResult>(`${t(id)}/unpin`, {}),
+    updateSettings: (id: string, b: ThreadSettingsBody) => call<OkResult>(`${t(id)}/settings`, b),
     respond: (id: string, requestId: string, b: RespondBody) =>
       call<OkResult>(`${t(id)}/requests/${encodeURIComponent(requestId)}/respond`, b),
     dismiss: (id: string, requestId: string) => call<OkResult>(`${t(id)}/requests/${encodeURIComponent(requestId)}/dismiss`, {}),

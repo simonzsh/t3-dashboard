@@ -51,6 +51,6 @@ test("labels name the target version", () => {
 test("versionNote tells apart dev, available, current and unknown", () => {
   assert.match(versionNote(status({ current: "dev", available: false, canUpdate: false })), /^Development build/);
   assert.equal(versionNote(status()), "Version 1.1.0 is available.");
-  assert.equal(versionNote(status({ available: false, latest: "1.0.0" })), "You are up to date.");
+  assert.equal(versionNote(status({ available: false, latest: "1.0.0" })), "Up to date");
   assert.equal(versionNote(status({ available: false, latest: null })), "No release found yet.");
 });

@@ -2,6 +2,7 @@ import { useState } from "react";
 import type { SetupInfo } from "../../../shared/api.ts";
 import { api } from "../api.ts";
 import { setupCopy } from "../setup.ts";
+import { SECRET_FIELD } from "../noAutofill.ts";
 import { useAction } from "./useAction.ts";
 
 // The screen goes away by itself: the next `connection` event carries `setup: null`.
@@ -45,6 +46,7 @@ export function SetupScreen({ setup }: { setup: SetupInfo }) {
         {copy.showPaste && (
           <form
             className="setup-paste"
+            autoComplete="off"
             onSubmit={(e) => {
               e.preventDefault();
               void paste.run(async () => {
@@ -53,7 +55,7 @@ export function SetupScreen({ setup }: { setup: SetupInfo }) {
               });
             }}
           >
-            <input type="password" autoComplete="off" spellCheck={false} aria-label="T3 Code token" placeholder="Paste the token" value={token} onChange={(e) => setToken(e.target.value)} />
+            <input {...SECRET_FIELD} id="t3-access-key-field" aria-label="T3 Code access key" placeholder="Paste it here" value={token} onChange={(e) => setToken(e.target.value)} />
             <button className="primary" type="submit" disabled={paste.busy || token.trim() === ""}>
               {paste.busy ? "Checking…" : "Save token"}
             </button>

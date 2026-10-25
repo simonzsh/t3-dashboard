@@ -185,7 +185,7 @@ test("reclassify emits only threads whose bucket changed", () => {
 
 test("state carries connection and providers", () => {
   const { store } = live();
-  const state = store.state(connection, [{ instanceId: "provider-a", displayName: "Provider A", models: [] }], true);
+  const state = store.state(connection, [{ instanceId: "provider-a", displayName: "Provider A", models: [], runtimeModes: ["full-access"] }], true);
   assert.equal(state.connection, connection);
   assert.equal(state.providers.length, 1);
   assert.equal(typeof state.generatedAt, "string");
@@ -206,4 +206,6 @@ test("state carries whether automations are available", () => {
   const { store } = setup();
   assert.equal(store.state(connection, [], true).automationsAvailable, true);
   assert.equal(store.state(connection, [], false).automationsAvailable, false);
+  assert.equal(store.state(connection, [], true).t3EnvironmentId, null);
+  assert.equal(store.state(connection, [], true, "env-1").t3EnvironmentId, "env-1");
 });

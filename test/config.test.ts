@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "bun:test";
-import { loadConfig, readServerVersion, resolveOrigin } from "../src/config.ts";
+import { loadConfig, readEnvironmentId, readServerVersion, resolveOrigin } from "../src/config.ts";
 
 const files = (map: Record<string, string>) => (path: string) => {
   if (path in map) return map[path]!;
@@ -12,6 +12,19 @@ test("defaults use the user data runtime file and no token file", () => {
   assert.equal(config.port, 4300);
   assert.equal(config.tokenFile, null);
   assert.equal(config.runtimeFile, "/home/ann/.t3/userdata/server-runtime.json");
+  assert.equal(config.environmentIdFile, "/home/ann/.t3/userdata/environment-id");
+});
+
+test("T3CODE_HOME moves the environment id file", () => {
+  assert.equal(loadConfig({ T3CODE_HOME: "/srv/t3" }, "/home/ann").environmentIdFile, "/srv/t3/userdata/environment-id");
+});
+
+test("readEnvironmentId trims a UUID-like id and refuses anything else", () => {
+  const id = "0f3c2a1b-9d8e-4c7b-a6f5-1e2d3c4b5a69";
+  assert.equal(readEnvironmentId("/e", files({ "/e": ` ${id}\n` })), id);
+  assert.equal(readEnvironmentId("/e", files({ "/e": "not-an-id" })), null);
+  assert.equal(readEnvironmentId("/e", files({ "/e": `${id}/../x` })), null);
+  assert.equal(readEnvironmentId("/e", files({})), null);
 });
 
 test("environment variables override the defaults", () => {
