@@ -1,6 +1,6 @@
 import type { UpdateStatus } from "../../../shared/api.ts";
 import { updateQuestion } from "../updateFlow.ts";
-import { useEscape } from "./useEscape.ts";
+import { useEscape } from "../ui/index.ts";
 
 interface Props {
   status: UpdateStatus;

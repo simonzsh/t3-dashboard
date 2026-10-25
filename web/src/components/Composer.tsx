@@ -2,9 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import type { DashboardProvider, ImageAttachment, ModelSelection, RuntimeMode, ThreadSettingsBody } from "../../../shared/api.ts";
 import { IMAGE_TYPES, RUNTIME_MODE_LABELS, acceptImages, currentEffort, findModel, modelLabel, selectEffort, selectModel } from "../composer.ts";
 import type { DropdownOption } from "../dropdown.ts";
-import { NO_AUTOFILL } from "../noAutofill.ts";
-import { Dropdown } from "./Dropdown.tsx";
-import { Icon } from "./Icon.tsx";
+import { Dropdown, Icon, NO_AUTOFILL } from "../ui/index.ts";
 import { ProviderIcon } from "./ProviderIcon.tsx";
 
 interface Pending {

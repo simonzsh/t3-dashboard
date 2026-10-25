@@ -1,7 +1,7 @@
 import { useState } from "react";
 import type { SettingsResult } from "../../../shared/api.ts";
 import { api } from "../api.ts";
-import { SECRET_FIELD } from "../noAutofill.ts";
+import { SECRET_FIELD } from "../ui/index.ts";
 import { useAction } from "./useAction.ts";
 
 interface Props {

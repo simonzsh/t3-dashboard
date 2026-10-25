@@ -6,9 +6,9 @@ import { findModel } from "../composer.ts";
 import { projectOptions } from "../dropdown.ts";
 import { loadNewAgentProject, presetSelection, saveNewAgentProject, titleFromMessage } from "../newAgent.ts";
 import { Composer } from "./Composer.tsx";
-import { Dropdown } from "./Dropdown.tsx";
+import { Dropdown } from "../ui/index.ts";
 import { useAction } from "./useAction.ts";
-import { useEscape } from "./useEscape.ts";
+import { useEscape } from "../ui/index.ts";
 
 interface Props {
   projects: DashboardProject[];

@@ -3,7 +3,7 @@ import type { BoardResult, DashboardProject } from "../../../shared/api.ts";
 import { api } from "../api.ts";
 import { boardColumns } from "../board.ts";
 import { boardNeedsKey, linearConnected } from "../linearSettings.ts";
-import { Icon } from "./Icon.tsx";
+import { Icon } from "../ui/index.ts";
 import { AssignMenu } from "./AssignMenu.tsx";
 import { LinearSetupCard } from "./LinearSetupCard.tsx";
 

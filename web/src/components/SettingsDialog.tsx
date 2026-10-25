@@ -5,7 +5,7 @@ import { THEME_SETTINGS, type ThemeSetting } from "../theme.ts";
 import type { UpdateControl } from "../useUpdate.ts";
 import { AboutSettings } from "./AboutSettings.tsx";
 import { LinearSettings } from "./LinearSettings.tsx";
-import { useEscape } from "./useEscape.ts";
+import { useEscape } from "../ui/index.ts";
 
 interface Props {
   theme: ThemeSetting;

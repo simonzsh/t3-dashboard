@@ -2,7 +2,7 @@ import { useState } from "react";
 import type { SetupInfo } from "../../../shared/api.ts";
 import { api } from "../api.ts";
 import { setupCopy } from "../setup.ts";
-import { SECRET_FIELD } from "../noAutofill.ts";
+import { SECRET_FIELD } from "../ui/index.ts";
 import { useAction } from "./useAction.ts";
 
 // The screen goes away by itself: the next `connection` event carries `setup: null`.

@@ -13,14 +13,26 @@ const ICONS = {
   arrowUp: ["M12 19V5", "m5 12 7-7 7 7"],
   x: ["M18 6 6 18", "m6 6 12 12"],
   check: ["M20 6 9 17l-5-5"],
+  plus: ["M12 5v14", "M5 12h14"],
+  minus: ["M6 12h12"],
+  maximize: ["M7 13V7h6", "M17 11v6h-6"],
+  restore: ["M10 6v4H6", "M14 18v-4h4"],
+  pencil: ["M12 20h9", "M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"],
+  logOut: ["M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4", "m16 17 5-5-5-5", "M21 12H9"],
+  settings: [
+    "M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z",
+    "M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3h0a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5h0a1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8v0a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z",
+  ],
   refresh: ["M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8", "M21 3v5h-5", "M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16", "M8 16H3v5"],
 };
 
-export function Icon({ name, className = "icon" }: { name: keyof typeof ICONS; className?: string }) {
+export type IconName = keyof typeof ICONS;
+
+export function Icon({ name, className = "icon", strokeWidth = 2 }: { name: IconName; className?: string; strokeWidth?: number }) {
   return (
     <svg className={className} viewBox="0 0 24 24" aria-hidden="true">
       {ICONS[name].map((d) => (
-        <path key={d} d={d} fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+        <path key={d} d={d} fill="none" stroke="currentColor" strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" />
       ))}
     </svg>
   );

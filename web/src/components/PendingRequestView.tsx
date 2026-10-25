@@ -2,7 +2,7 @@ import { useState } from "react";
 import type { ApprovalDecision, PendingRequestDetail } from "../../../shared/api.ts";
 import { api } from "../api.ts";
 import { buildAnswers, canSubmit, type Drafts } from "../answers.ts";
-import { NO_AUTOFILL } from "../noAutofill.ts";
+import { NO_AUTOFILL } from "../ui/index.ts";
 import { useAction } from "./useAction.ts";
 
 const DECISIONS: Array<[ApprovalDecision, string]> = [

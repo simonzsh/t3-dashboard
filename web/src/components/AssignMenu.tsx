@@ -3,8 +3,7 @@ import type { DashboardProject, LinearIssue } from "../../../shared/api.ts";
 import { api } from "../api.ts";
 import { browserStorage, loadAssignProject, saveAssignProject } from "../assignProject.ts";
 import { projectOptions } from "../dropdown.ts";
-import { Dropdown } from "./Dropdown.tsx";
-import { Popover } from "./Popover.tsx";
+import { Dropdown, Popover } from "../ui/index.ts";
 import { ProviderIcon } from "./ProviderIcon.tsx";
 import { useAction } from "./useAction.ts";
 
