@@ -43,7 +43,8 @@ test("install writes the service, starts it, waits for the health check, then op
     "mkdir /home/ann/.local/state/t3-dashboard",
     "write /home/ann/.config/systemd/user/t3-dashboard.service",
     "systemctl --user daemon-reload",
-    "systemctl --user enable --now t3-dashboard.service",
+    "systemctl --user enable t3-dashboard.service",
+    "systemctl --user restart t3-dashboard.service",
     "health http://127.0.0.1:4500/api/health",
     "health http://127.0.0.1:4500/api/health",
     "health http://127.0.0.1:4500/api/health",
@@ -96,7 +97,7 @@ test("uninstall removes the unit and keeps the config", async () => {
 test("windows uninstall also kills the process of the pid file", async () => {
   const { deps, calls } = harness({ platform: "win32", pid: "4242\n" });
   await uninstall(deps);
-  assert.ok(calls.includes("taskkill /PID 4242 /F"));
+  assert.ok(calls.some((c) => c.startsWith("taskkill /FI PID eq 4242 /FI IMAGENAME eq ")));
 });
 
 test("windows uninstall without a pid file still succeeds", async () => {

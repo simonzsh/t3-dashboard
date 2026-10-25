@@ -14,7 +14,7 @@ test("linux: a systemd user unit with a quoted ExecStart and the PATH", () => {
   assert.match(unit, /^Restart=on-failure$/m);
   assert.match(unit, /^RestartSec=3$/m);
   assert.match(unit, /^WantedBy=default\.target$/m);
-  assert.deepEqual(plan.install.map((c) => c.args.join(" ")), ["--user daemon-reload", "--user enable --now t3-dashboard.service"]);
+  assert.deepEqual(plan.install.map((c) => c.args.join(" ")), ["--user daemon-reload", "--user enable t3-dashboard.service", "--user restart t3-dashboard.service"]);
   assert.deepEqual(plan.restart.map((c) => c.args.join(" ")), ["--user restart t3-dashboard.service"]);
 });
 
@@ -64,8 +64,9 @@ test("windows: a logon task that runs PowerShell, with a Run-key fallback", () =
   const tr =
     `powershell.exe -NoProfile -WindowStyle Hidden -Command "& 'C:\\Users\\O''Neil\\AppData\\Local\\Programs\\t3-dashboard\\t3-dashboard.exe' ` +
     `start --port 4310 --log 'C:\\Users\\O''Neil\\AppData\\Local\\t3-dashboard\\dashboard.log'"`;
-  const [create, run] = plan.install;
+  const [create, end, run] = plan.install;
   assert.deepEqual(create!.args, ["/Create", "/F", "/SC", "ONLOGON", "/RL", "LIMITED", "/TN", "T3 Dashboard", "/TR", tr]);
+  assert.deepEqual(end!.args, ["/End", "/TN", "T3 Dashboard"]);
   assert.deepEqual(run!.args, ["/Run", "/TN", "T3 Dashboard"]);
   const [reg, start] = create!.onFail!;
   assert.deepEqual(reg!.args, ["add", "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Run", "/v", "T3 Dashboard", "/t", "REG_SZ", "/d", tr, "/f"]);
@@ -97,7 +98,8 @@ test("applyPlan writes the files, then runs the commands in order", async () => 
   assert.deepEqual(calls, [
     "write /home/ann/.config/systemd/user/t3-dashboard.service",
     "systemctl --user daemon-reload",
-    "systemctl --user enable --now t3-dashboard.service",
+    "systemctl --user enable t3-dashboard.service",
+    "systemctl --user restart t3-dashboard.service",
   ]);
 });
 
@@ -116,7 +118,7 @@ test("applyPlan falls back to the Run key when the task cannot be created", asyn
   const key = `${created.command} ${created.args.join(" ")}`;
   const { calls, deps } = run({ [key]: 1 });
   await applyPlan(plan, "install", deps);
-  assert.equal(calls.length, 4);
+  assert.equal(calls.length, 5);
   assert.match(calls[1]!, /^reg\.exe add /);
   assert.match(calls[2]!, /^powershell\.exe /);
 });

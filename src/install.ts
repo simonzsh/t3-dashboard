@@ -56,7 +56,9 @@ export async function uninstall(deps: InstallDeps): Promise<void> {
     // The Run-key fallback has no task to end: stop the process by its pid.
     try {
       const pid = Number.parseInt(deps.readFile(pidFile(deps.env, deps.home, deps.platform)), 10);
-      if (Number.isInteger(pid)) await deps.run("taskkill", ["/PID", String(pid), "/F"]);
+      // The image filter keeps a reused pid of another program safe.
+      const image = deps.exe.split(/[\\/]/).pop() ?? "t3-dashboard.exe";
+      if (Number.isInteger(pid)) await deps.run("taskkill", ["/FI", `PID eq ${pid}`, "/FI", `IMAGENAME eq ${image}`, "/F"]);
     } catch {
       // No pid file: nothing is running.
     }

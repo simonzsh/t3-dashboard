@@ -61,7 +61,8 @@ WantedBy=default.target
   const name = `${LABEL}.service`;
   return {
     files: [{ path: unit, content }],
-    install: [ctl("daemon-reload"), ctl("enable", "--now", name)],
+    // restart, not enable --now: a reinstall must load the new binary.
+    install: [ctl("daemon-reload"), ctl("enable", name), ctl("restart", name)],
     uninstall: [{ ...ctl("disable", "--now", name), ignoreError: true }, { remove: unit }, { ...ctl("daemon-reload"), ignoreError: true }],
     restart: [ctl("restart", name)],
   };
@@ -124,6 +125,8 @@ function windows({ exe, port, home, env }: PlanInput): Plan {
     install: [
       { ...cmd("schtasks", ["/Create", "/F", "/SC", "ONLOGON", "/RL", "LIMITED", ...tn, "/TR", tr]), onFail: fallback },
       // Ignored: after the fallback this task does not exist, and the process already runs.
+      // /End first, so a reinstall restarts on the new binary.
+      cmd("schtasks", ["/End", ...tn], true),
       cmd("schtasks", ["/Run", ...tn], true),
     ],
     uninstall: [cmd("schtasks", ["/End", ...tn], true), cmd("schtasks", ["/Delete", "/F", ...tn], true), cmd("reg.exe", ["delete", RUN_KEY, "/v", WIN_TASK, "/f"], true)],

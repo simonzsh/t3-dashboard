@@ -31,7 +31,10 @@ function Install-T3Dashboard {
     if ($actual -ne ($line -split '\s+')[0].ToUpper()) { throw "Checksum mismatch for $asset." }
 
     New-Item -ItemType Directory -Path $dir -Force | Out-Null
-    # A running exe cannot be overwritten, but it can be renamed.
+    # Stop the running dashboard first: a running exe cannot be replaced.
+    schtasks /End /TN 'T3 Dashboard' 2>$null | Out-Null
+    Get-Process t3-dashboard -ErrorAction SilentlyContinue | Where-Object { $_.Path -eq $exe } | Stop-Process -Force
+    Remove-Item "$exe.old" -Force -ErrorAction SilentlyContinue
     if (Test-Path $exe) { Move-Item $exe "$exe.old" -Force }
     Move-Item (Join-Path $tmp $asset) $exe -Force
   } finally {
