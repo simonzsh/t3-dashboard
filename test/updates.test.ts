@@ -124,3 +124,13 @@ test("an update that installs nothing is an error", async () => {
   await settle();
   assert.equal(manager.status().error, "No newer release found.");
 });
+
+test("a successful check clears the last update error", async () => {
+  const { manager } = harness({ tags: ["v1.0.1"], run: async () => false });
+  manager.apply();
+  await new Promise((resolve) => setTimeout(resolve, 0));
+  assert.equal(manager.status().error, "No newer release found.");
+  const status = await manager.check(true);
+  assert.equal(status.error, null);
+  assert.equal(status.available, true);
+});
