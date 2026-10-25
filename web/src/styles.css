@@ -365,9 +365,11 @@ button.auto-row:hover { background: var(--surface-0); }
 .desk-gutter:focus-visible { outline: none; }
 .desk-window { flex: 1; min-width: 0; min-height: 0; display: flex; flex-direction: column; overflow: hidden; border-radius: 12px; border: 1px solid var(--line); background: var(--surface-0); box-shadow: var(--shadow); }
 /* Focus shows on the header: the other windows' headers fade, the focused one stays as is. */
-.desk-window:not(.focused) .desk-window-head { background: color-mix(in srgb, var(--surface-1) 55%, var(--surface-0)); }
-.desk-window:not(.focused) .desk-window-head > * { opacity: 0.55; transition: opacity 0.12s; }
-.desk-window:not(.focused):hover .desk-window-head > * { opacity: 0.8; }
+.desk-window.focused .desk-window-head { background: color-mix(in srgb, var(--accent) 9%, var(--surface-1)); }
+.desk-window.focused .dw-title { color: var(--text-primary); font-weight: 600; }
+.desk-window:not(.focused) .desk-window-head { background: color-mix(in srgb, var(--line) 45%, var(--surface-0)); }
+.desk-window:not(.focused) .desk-window-head > * { opacity: 0.4; filter: grayscale(1); transition: opacity 0.12s, filter 0.12s; }
+.desk-window:not(.focused):hover .desk-window-head > * { opacity: 0.7; filter: none; }
 .desk-window.maximized { position: absolute; inset: 10px; z-index: 3; }
 .desk-window-head { display: flex; align-items: center; gap: 8px; min-width: 0; padding: 6px 6px 6px 12px; border-bottom: 1px solid var(--line); background: var(--surface-1); }
 /* Same colours as the agent cards, on the line under the header: amber waits, blue runs, red failed. */
