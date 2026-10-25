@@ -7,6 +7,8 @@ export interface Command {
   ignoreError?: boolean;
   /** Commands to run instead when this one fails. */
   onFail?: Command[];
+  /** Runs the command again after a failure, `times` attempts in all. */
+  retry?: { times: number; delayMs: number };
 }
 export type Step = Command | { remove: string };
 export interface Plan {
@@ -26,6 +28,20 @@ export interface PlanInput {
   home: string;
   env: Record<string, string | undefined>;
 }
+
+/** Overrides copied from the install-time env into the service: it starts with a bare one. */
+export const SERVICE_ENV_KEYS = [
+  "T3_DASHBOARD_TOKEN_FILE",
+  "T3_DASHBOARD_CONFIG_DIR",
+  "T3_DASHBOARD_LINEAR_FILE",
+  "T3_DASHBOARD_AGENT_CONFIG_DIR",
+  "T3_DASHBOARD_T3_BIN",
+  "T3_SERVER_RUNTIME",
+  "T3CODE_HOME",
+] as const;
+
+const serviceEnv = (env: PlanInput["env"]): [string, string][] =>
+  SERVICE_ENV_KEYS.flatMap((key): [string, string][] => (env[key] ? [[key, env[key]!]] : []));
 
 const LABEL = "t3-dashboard";
 const WIN_TASK = "T3 Dashboard";
@@ -50,7 +66,7 @@ After=network.target
 
 [Service]
 ExecStart=${quote(exe)} start --port ${port}
-Environment=${quote(`PATH=${withLocalBin(path, home, ":")}`)}
+${[["PATH", withLocalBin(path, home, ":")] as [string, string], ...serviceEnv(env)].map(([key, value]) => `Environment=${quote(`${key}=${value}`)}`).join("\n")}
 Restart=on-failure
 RestartSec=3
 
@@ -88,8 +104,7 @@ ${[exe, "start", "--port", String(port)].map(item).join("\n")}
   <true/>
   <key>EnvironmentVariables</key>
   <dict>
-    <key>PATH</key>
-${item(withLocalBin(path, home, ":"))}
+${[["PATH", withLocalBin(path, home, ":")] as [string, string], ...serviceEnv(env)].map(([key, value]) => `    <key>${key}</key>\n${item(value)}`).join("\n")}
   </dict>
   <key>StandardOutPath</key>
   <string>${log}</string>
@@ -102,7 +117,8 @@ ${item(withLocalBin(path, home, ":"))}
   const bootout = cmd("launchctl", ["bootout", target], true);
   return {
     files: [{ path: plist, content }],
-    install: [bootout, cmd("launchctl", ["bootstrap", `gui/${uid}`, plist])],
+    // bootout returns before the job is gone: bootstrap fails until then.
+    install: [bootout, { ...cmd("launchctl", ["bootstrap", `gui/${uid}`, plist]), retry: { times: 5, delayMs: 1000 } }],
     uninstall: [bootout, { remove: plist }],
     restart: [cmd("launchctl", ["kickstart", "-k", target])],
   };
@@ -110,13 +126,14 @@ ${item(withLocalBin(path, home, ":"))}
 
 function windows({ exe, port, home, env }: PlanInput): Plan {
   const log = logFile(env, home, "win32");
-  const tr = `powershell.exe -NoProfile -WindowStyle Hidden -Command "& '${ps(exe)}' start --port ${port} --log '${ps(log)}'"`;
+  const setVars = (quote: (text: string) => string) => serviceEnv(env).map(([key, value]) => `$env:${key}=${quote(value)}; `).join("");
+  const tr = `powershell.exe -NoProfile -WindowStyle Hidden -Command "${setVars((v) => `'${ps(v)}'`)}& '${ps(exe)}' start --port ${port} --log '${ps(log)}'"`;
   // Used when the task cannot be created (no rights, or a /TR over 261 characters).
   const fallback = [
     cmd("reg.exe", ["add", RUN_KEY, "/v", WIN_TASK, "/t", "REG_SZ", "/d", tr, "/f"]),
     cmd("powershell.exe", [
       "-NoProfile", "-WindowStyle", "Hidden", "-Command",
-      `Start-Process -WindowStyle Hidden -FilePath 'powershell.exe' -ArgumentList '-NoProfile -WindowStyle Hidden -Command "& ''${ps(ps(exe))}'' start --port ${port} --log ''${ps(ps(log))}''"'`,
+      `Start-Process -WindowStyle Hidden -FilePath 'powershell.exe' -ArgumentList '-NoProfile -WindowStyle Hidden -Command "${setVars((v) => `''${ps(ps(v))}''`)}& ''${ps(ps(exe))}'' start --port ${port} --log ''${ps(ps(log))}''"'`,
     ]),
   ];
   const tn = ["/TN", WIN_TASK];
@@ -144,12 +161,17 @@ export function servicePlan(platform: Platform, input: PlanInput): Plan {
 export interface ApplyDeps {
   /** Resolves with the exit code, or a non-zero value when the program did not start. */
   run(command: string, args: string[]): Promise<number>;
+  sleep(ms: number): Promise<void>;
   writeFile(path: string, content: string): void;
   rm(path: string): void;
 }
 
 const runCommand = async (step: Command, deps: ApplyDeps): Promise<void> => {
-  const code = await deps.run(step.command, step.args);
+  let code = await deps.run(step.command, step.args);
+  for (let attempt = 1; code !== 0 && attempt < (step.retry?.times ?? 1); attempt++) {
+    await deps.sleep(step.retry!.delayMs);
+    code = await deps.run(step.command, step.args);
+  }
   if (code === 0 || step.ignoreError) return;
   if (!step.onFail) throw new Error(`${step.command} failed (exit ${code})`);
   for (const next of step.onFail) await runCommand(next, deps);

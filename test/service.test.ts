@@ -86,6 +86,7 @@ const run = (codes: Record<string, number> = {}) => {
         calls.push(line);
         return codes[line] ?? 0;
       },
+      sleep: async (ms: number) => void calls.push(`sleep ${ms}`),
       writeFile: (path: string) => void calls.push(`write ${path}`),
       rm: (path: string) => void calls.push(`rm ${path}`),
     },
@@ -110,6 +111,7 @@ test("applyPlan ignores a failing command marked ignoreError, but stops on other
   assert.equal(ok.calls.length, 3);
   const bad = run({ "launchctl bootstrap gui/501 /Users/ann/Library/LaunchAgents/t3-dashboard.plist": 5 });
   await assert.rejects(applyPlan(plan, "install", bad.deps), /launchctl.*exit 5/);
+  assert.equal(bad.calls.filter((c) => c.startsWith("sleep")).length, 4);
 });
 
 test("applyPlan falls back to the Run key when the task cannot be created", async () => {
@@ -127,4 +129,62 @@ test("applyPlan uninstall never fails on a missing service", async () => {
   const { calls, deps } = run({ "systemctl --user disable --now t3-dashboard.service": 1, "systemctl --user daemon-reload": 1 });
   await applyPlan(servicePlan("linux", base), "uninstall", deps);
   assert.equal(calls.length, 3);
+});
+
+const overrides = {
+  T3_DASHBOARD_TOKEN_FILE: "/secret dir/token.json",
+  T3_DASHBOARD_CONFIG_DIR: "/cfg",
+  T3_DASHBOARD_LINEAR_FILE: "/cfg/l.json",
+  T3_DASHBOARD_AGENT_CONFIG_DIR: "/agents",
+  T3_DASHBOARD_T3_BIN: "/bin/t3",
+  T3_SERVER_RUNTIME: "/rt.json",
+  T3CODE_HOME: "/t3home",
+  PORT: "9999",
+  OTHER: "x",
+};
+
+test("linux: the set override variables go into the unit, quoted, and nothing else", () => {
+  const unit = servicePlan("linux", { ...base, env: { ...overrides, T3_DASHBOARD_T3_BIN: "/b%in/t3", T3CODE_HOME: "" } }).files[0]!.content;
+  assert.match(unit, /^Environment="T3_DASHBOARD_TOKEN_FILE=\/secret dir\/token\.json"$/m);
+  assert.match(unit, /^Environment="T3_DASHBOARD_CONFIG_DIR=\/cfg"$/m);
+  assert.match(unit, /^Environment="T3_DASHBOARD_T3_BIN=\/b%%in\/t3"$/m);
+  assert.match(unit, /^Environment="T3_SERVER_RUNTIME=\/rt\.json"$/m);
+  assert.doesNotMatch(unit, /T3CODE_HOME|PORT=|OTHER/);
+  assert.equal(servicePlan("linux", base).files[0]!.content.match(/^Environment=/gm)!.length, 1);
+});
+
+test("macos: the set override variables go into EnvironmentVariables, escaped", () => {
+  const content = servicePlan("darwin", { ...base, home: "/Users/ann", env: { T3_DASHBOARD_CONFIG_DIR: "/a&b", T3CODE_HOME: "/t3" } }).files[0]!.content;
+  assert.match(content, /<key>T3_DASHBOARD_CONFIG_DIR<\/key>\s*<string>\/a&amp;b<\/string>/);
+  assert.match(content, /<key>T3CODE_HOME<\/key>\s*<string>\/t3<\/string>/);
+  assert.doesNotMatch(content, /T3_SERVER_RUNTIME/);
+});
+
+test("macos: bootstrap is retried after bootout", async () => {
+  const plan = servicePlan("darwin", { ...base, home: "/Users/ann" });
+  const bootstrap = "launchctl bootstrap gui/501 /Users/ann/Library/LaunchAgents/t3-dashboard.plist";
+  let failures = 2;
+  const calls: string[] = [];
+  await applyPlan(plan, "install", {
+    run: async (command, args) => {
+      const line = `${command} ${args.join(" ")}`;
+      calls.push(line);
+      return line === bootstrap && failures-- > 0 ? 5 : 0;
+    },
+    sleep: async (ms) => void calls.push(`sleep ${ms}`),
+    writeFile() {},
+    rm() {},
+  });
+  assert.deepEqual(calls.slice(1), [bootstrap, "sleep 1000", bootstrap, "sleep 1000", bootstrap]);
+});
+
+test("windows: the set override variables are set in the PowerShell command, quoted", () => {
+  const env = { LOCALAPPDATA: "C:\\u\\l", T3_DASHBOARD_CONFIG_DIR: "C:\\O'Neil\\cfg", T3CODE_HOME: "D:\\t3" };
+  const plan = servicePlan("win32", { ...base, exe: "C:\\p\\t3-dashboard.exe", home: "C:\\u", env });
+  const tr = plan.install[0]!.args.at(-1)!;
+  const head = `powershell.exe -NoProfile -WindowStyle Hidden -Command "$env:T3_DASHBOARD_CONFIG_DIR='C:\\O''Neil\\cfg'; $env:T3CODE_HOME='D:\\t3'; & 'C:\\p\\t3-dashboard.exe' start `;
+  assert.ok(tr.startsWith(head), tr);
+  const fallback = plan.install[0]!.onFail![1]!.args[4]!;
+  assert.ok(fallback.includes(`-Command "$env:T3_DASHBOARD_CONFIG_DIR=''C:\\O''''Neil\\cfg''; $env:T3CODE_HOME=''D:\\t3''; & ''C:\\p\\t3-dashboard.exe'' start `), fallback);
+  assert.equal(servicePlan("win32", { ...base, home: "C:\\u", env: { LOCALAPPDATA: "C:\\u\\l" } }).install[0]!.args.at(-1)!.includes("$env:"), false);
 });
