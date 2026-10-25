@@ -74,6 +74,7 @@ Codes de sortie :
 | `0` | Aucun changement. Un système sauté ne change pas le code. |
 | `1` | Au moins un changement `breaking`. |
 | `2` | Aucun changement `breaking`, mais au moins une vérification n'a pas pu s'exécuter. |
+| `64` | Option inconnue. Le script n'exécute aucune vérification. Seule option : `--update-snapshot`. |
 
 ## Après une mise à jour de T3
 
