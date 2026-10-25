@@ -1,18 +1,20 @@
 import type { AgentCard as Card } from "../agents.ts";
 import { pendingLabel } from "../agents.ts";
 import { cut, relativeTime } from "../format.ts";
+import { OpenInT3 } from "./OpenInT3.tsx";
 import { ProviderIcon } from "./ProviderIcon.tsx";
 
 interface Props {
   card: Card;
   now: Date;
   onDesk: boolean;
+  t3EnvironmentId: string | null;
   // addOnly: put the agent on the Desk without leaving the current tab.
   onOpen: (id: string, addOnly: boolean) => void;
   onToggleDesk: (id: string) => void;
 }
 
-export function AgentCard({ card, now, onDesk, onOpen, onToggleDesk }: Props) {
+export function AgentCard({ card, now, onDesk, t3EnvironmentId, onOpen, onToggleDesk }: Props) {
   const { thread: t, status } = card;
   const failed = t.status === "failed" || t.lastError !== null;
   return (
@@ -38,6 +40,7 @@ export function AgentCard({ card, now, onDesk, onOpen, onToggleDesk }: Props) {
         </span>
         {t.preview && <span className="agent-preview">{cut(t.preview.text, 160)}</span>}
       </button>
+      <OpenInT3 environmentId={t3EnvironmentId} threadId={t.id} className="card-open-t3" />
       <button
         className={`icon-button desk-toggle${onDesk ? " on" : ""}`}
         aria-label="Add to Desk"

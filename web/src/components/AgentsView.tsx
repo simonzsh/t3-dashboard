@@ -35,7 +35,7 @@ export function AgentsView({ state, now, deskIds, onOpen, onToggleDesk, automati
             </h2>
             <div className="grid">
               {g.cards.map((c) => (
-                <AgentCard key={c.thread.id} card={c} now={now} onDesk={deskIds.has(c.thread.id)} onOpen={onOpen} onToggleDesk={onToggleDesk} />
+                <AgentCard key={c.thread.id} card={c} now={now} onDesk={deskIds.has(c.thread.id)} t3EnvironmentId={state.t3EnvironmentId} onOpen={onOpen} onToggleDesk={onToggleDesk} />
               ))}
             </div>
           </section>

@@ -33,5 +33,6 @@ export function baseState(threads: DashboardThread[] = []): DashboardState {
     threads,
     generatedAt: "2026-01-10T10:00:00.000Z",
     automationsAvailable: true,
+    t3EnvironmentId: null,
   };
 }

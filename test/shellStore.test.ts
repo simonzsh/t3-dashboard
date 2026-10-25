@@ -206,4 +206,6 @@ test("state carries whether automations are available", () => {
   const { store } = setup();
   assert.equal(store.state(connection, [], true).automationsAvailable, true);
   assert.equal(store.state(connection, [], false).automationsAvailable, false);
+  assert.equal(store.state(connection, [], true).t3EnvironmentId, null);
+  assert.equal(store.state(connection, [], true, "env-1").t3EnvironmentId, "env-1");
 });

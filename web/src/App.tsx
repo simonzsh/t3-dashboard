@@ -166,6 +166,7 @@ export function App() {
               projects={state.projects}
               lastEvent={lastEvent}
               background={deskBackground}
+              t3EnvironmentId={state.t3EnvironmentId}
             />
           ) : <p className="empty">Loading…</p>)}
       </main>

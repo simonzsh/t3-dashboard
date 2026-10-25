@@ -97,9 +97,13 @@ main { padding: 24px; display: flex; flex-direction: column; gap: 28px; }
 .agent.on-desk { border-color: color-mix(in srgb, var(--accent) 55%, var(--line)); }
 .agent-wrap { position: relative; }
 .agent-wrap .agent { padding-right: 44px; }
+.agent-wrap:has(.card-open-t3) .agent { padding-right: 76px; }
 .desk-toggle { position: absolute; top: 10px; right: 10px; display: grid; place-items: center; padding: 4px; border-radius: 7px; color: var(--text-secondary); background: var(--surface-1); }
 .desk-toggle:hover { color: var(--text-primary); }
 .desk-toggle.on { color: var(--accent); background: color-mix(in srgb, var(--accent) 14%, var(--surface-1)); border-color: color-mix(in srgb, var(--accent) 50%, var(--line)); }
+.card-open-t3 { position: absolute; top: 10px; right: 42px; display: grid; place-items: center; padding: 4px; border-radius: 7px; border: 1px solid var(--line); color: var(--text-secondary); background: var(--surface-1); }
+.card-open-t3:hover { color: var(--text-primary); border-color: var(--accent); }
+.open-t3 .icon { width: 16px; height: 16px; }
 .agent-head { display: flex; gap: 10px; align-items: flex-start; }
 .provider-icon { flex: none; width: 20px; height: 20px; margin-top: 1px; }
 .agent-title { font-weight: 600; word-break: break-word; }

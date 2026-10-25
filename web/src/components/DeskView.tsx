@@ -15,6 +15,7 @@ interface Props {
   projects: DashboardProject[];
   lastEvent: DashboardEvent | null;
   background: DeskBackground;
+  t3EnvironmentId: string | null;
 }
 
 const MIN_COLUMN_PX = 220;
@@ -65,7 +66,7 @@ function DeskGrid({ windows, desk, dispatch, render }: { windows: Win[]; desk: D
   );
 }
 
-export function DeskView({ desk, dispatch, threads, projects, lastEvent, background }: Props) {
+export function DeskView({ desk, dispatch, threads, projects, lastEvent, background, t3EnvironmentId }: Props) {
   const narrow = useMediaQuery("(max-width: 899px)");
   const byId = new Map(threads.map((t) => [t.id, t]));
   const projectTitles = new Map(projects.map((p) => [p.id, p.title]));
@@ -101,6 +102,7 @@ export function DeskView({ desk, dispatch, threads, projects, lastEvent, backgro
         maximized={!compact && desk.maximizedId === w.id}
         compact={compact}
         lastEvent={lastEvent}
+        t3EnvironmentId={t3EnvironmentId}
         onFocus={() => dispatch({ type: "focus", id: w.id })}
         onClose={() => dispatch({ type: "close", id: w.id })}
         onMinimize={() => dispatch({ type: "minimize", id: w.id })}

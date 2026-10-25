@@ -1,6 +1,7 @@
 import type { DashboardEvent, DashboardThread } from "../../../shared/api.ts";
 import { threadState, type ThreadState } from "../agents.ts";
 import { ConversationPanel } from "./ConversationPanel.tsx";
+import { OpenInT3 } from "./OpenInT3.tsx";
 import { ProviderIcon } from "./ProviderIcon.tsx";
 
 const STATE_LABELS: Record<ThreadState, string> = { waiting: "Waiting", running: "Running", done: "Done", error: "Error", idle: "Idle" };
@@ -15,6 +16,7 @@ interface Props {
   maximized: boolean;
   compact: boolean;
   lastEvent: DashboardEvent | null;
+  t3EnvironmentId: string | null;
   onFocus: () => void;
   onClose: () => void;
   onMinimize: () => void;
@@ -27,7 +29,7 @@ const Icon = ({ d }: { d: string }) => (
   </svg>
 );
 
-export function DeskWindow({ id, thread, projectTitle, missing, focused, maximized, compact, lastEvent, onFocus, onClose, onMinimize, onToggleMaximize }: Props) {
+export function DeskWindow({ id, thread, projectTitle, missing, focused, maximized, compact, lastEvent, t3EnvironmentId, onFocus, onClose, onMinimize, onToggleMaximize }: Props) {
   const state = thread ? threadState(thread) : null;
   const title = thread?.title || "(untitled)";
   return (
@@ -50,6 +52,7 @@ export function DeskWindow({ id, thread, projectTitle, missing, focused, maximiz
         {projectTitle && <span className="dw-project">{projectTitle}</span>}
         {state && <span className={`dw-state ${state}`}>{STATE_LABELS[state]}</span>}
         <span className="dw-buttons">
+          <OpenInT3 environmentId={t3EnvironmentId} threadId={id} />
           {!compact && (
             <>
               <button className="icon-button" aria-label={maximized ? "Exit fullscreen" : "Fullscreen"} title={maximized ? "Exit fullscreen (F, Esc)" : "Fullscreen (F)"} onClick={onToggleMaximize}>

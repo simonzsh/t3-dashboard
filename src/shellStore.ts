@@ -53,7 +53,7 @@ export class ShellStore {
     this.flush();
   }
 
-  state(connection: ConnectionStatus, providers: DashboardProvider[], automationsAvailable: boolean): DashboardState {
+  state(connection: ConnectionStatus, providers: DashboardProvider[], automationsAvailable: boolean, t3EnvironmentId: string | null = null): DashboardState {
     const threads = [...this.derived.values()].sort((a, b) => Date.parse(b.lastActivityAt) - Date.parse(a.lastActivityAt));
     return {
       connection,
@@ -62,6 +62,7 @@ export class ShellStore {
       threads,
       generatedAt: this.options.now().toISOString(),
       automationsAvailable,
+      t3EnvironmentId,
     };
   }
 

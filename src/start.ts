@@ -6,7 +6,7 @@ import type { DashboardProvider } from "../shared/api.ts";
 import { readAutomations } from "./automations.ts";
 import { TokenManager, findT3, runCommand, validateWith } from "./auth.ts";
 import { agentConfigDir, loadBrains } from "./brains.ts";
-import { loadConfig, readServerVersion, resolveOrigin } from "./config.ts";
+import { loadConfig, readEnvironmentId, readServerVersion, resolveOrigin } from "./config.ts";
 import { LiveSync } from "./live.ts";
 import { LinearBoard } from "./linear.ts";
 import { readLinearWorkspaces } from "./linearConfig.ts";
@@ -90,7 +90,7 @@ export async function start({ port, log, env }: StartOptions): Promise<void> {
     },
   });
   const brainsDir = agentConfigDir(env, home);
-  const getState = () => store.state(live.connection(), providers, loadBrains(brainsDir).length > 0);
+  const getState = () => store.state(live.connection(), providers, loadBrains(brainsDir).length > 0, readEnvironmentId(config.environmentIdFile, readText));
 
   const linearPath = linearFile(env, home);
   const board = new LinearBoard({
