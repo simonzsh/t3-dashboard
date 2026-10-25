@@ -18,14 +18,30 @@ export function AssignMenu({ issue, onShowAgents }: { issue: LinearIssue; onShow
     <div className="assign">
       {done ? (
         <span className="confirm">
-          Session créée.{" "}
+          <svg className="icon" viewBox="0 0 24 24" role="img" aria-label="Session créée">
+            <title>Session créée</title>
+            <path d="M5 12.5l4.5 4.5L19 7.5" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
           <button className="link" onClick={onShowAgents}>
             Voir les agents
           </button>
         </span>
       ) : (
-        <button disabled={busy} aria-expanded={open} onClick={() => setOpen(!open)}>
-          {busy ? "Création…" : "Assigner à un agent"}
+        <button
+          className="icon-button"
+          disabled={busy}
+          aria-expanded={open}
+          aria-label="Assigner à un agent"
+          title="Assigner à un agent"
+          onClick={() => setOpen(!open)}
+        >
+          <svg className="icon" viewBox="0 0 24 24" aria-hidden="true">
+            <g fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="10" cy="8" r="3.5" />
+              <path d="M3.5 19.5c.6-3.4 3.2-5.5 6.5-5.5s5.9 2.1 6.5 5.5" />
+              <path d="M19 6v6M16 9h6" />
+            </g>
+          </svg>
         </button>
       )}
       {open && (

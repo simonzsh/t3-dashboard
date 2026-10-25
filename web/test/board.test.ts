@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import type { LinearIssue } from "../../shared/api.ts";
-import { groupBoard } from "../src/board.ts";
+import { boardColumns, groupBoard } from "../src/board.ts";
 
 function issue(id: string, over: Partial<LinearIssue> = {}): LinearIssue {
   return {
@@ -50,4 +50,49 @@ test("groupBoard sorts issues by priority (urgent first, none last) then recency
 
 test("groupBoard of nothing is empty", () => {
   assert.deepEqual(groupBoard([]), []);
+});
+
+const state = (name: string, type: string, color = "#999999") => ({ name, type, color });
+
+test("boardColumns makes one column per state name, ordered by state type then name", () => {
+  const cols = boardColumns([
+    issue("1", { state: state("In Progress", "started") }),
+    issue("2", { state: state("Triage", "triage") }),
+    issue("3", { state: state("Todo", "unstarted") }),
+    issue("4", { state: state("Backlog", "backlog") }),
+    issue("5", { state: state("Weird", "custom") }),
+    issue("6", { state: state("Ready", "unstarted") }),
+    issue("7", { state: state("In Review", "started") }),
+  ]);
+  assert.deepEqual(cols.map((c) => c.name), ["Triage", "Backlog", "Ready", "Todo", "In Progress", "In Review", "Weird"]);
+});
+
+test("boardColumns merges teams that share a state name and counts the issues", () => {
+  const cols = boardColumns([
+    issue("1", { team: { key: "ENG", name: "Eng" }, state: state("Todo", "unstarted", "#111111") }),
+    issue("2", { team: { key: "OPS", name: "Ops" }, state: state("Todo", "unstarted", "#111111") }),
+    issue("3", { state: state("Backlog", "backlog") }),
+  ]);
+  assert.equal(cols.length, 2);
+  const todo = cols.find((c) => c.name === "Todo");
+  assert.equal(todo?.count, 2);
+  assert.equal(todo?.color, "#111111");
+  assert.deepEqual(todo?.groups.map((g) => [g.title, g.team]), [["Sans projet", "Eng"], ["Sans projet", "Ops"]]);
+});
+
+test("boardColumns groups each column by project and sorts cards by priority", () => {
+  const cols = boardColumns([
+    issue("a", { project: { id: "pa", name: "Alpha" }, priority: 4 }),
+    issue("b", { project: { id: "pa", name: "Alpha" }, priority: 1 }),
+    issue("c", { project: { id: "pa", name: "Alpha" }, state: state("Doing", "started") }),
+    issue("d"),
+  ]);
+  const todo = cols.find((c) => c.name === "Todo");
+  assert.deepEqual(todo?.groups.map((g) => g.title), ["Alpha", "Sans projet"]);
+  assert.deepEqual(todo?.groups[0]?.issues.map((i) => i.id), ["b", "a"]);
+  assert.equal(cols.find((c) => c.name === "Doing")?.count, 1);
+});
+
+test("boardColumns of nothing is empty", () => {
+  assert.deepEqual(boardColumns([]), []);
 });

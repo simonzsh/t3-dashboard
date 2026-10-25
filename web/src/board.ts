@@ -30,3 +30,29 @@ export function groupBoard(issues: LinearIssue[]): BoardGroup[] {
     (a, b) => Number(a.title === NO_PROJECT) - Number(b.title === NO_PROJECT) || a.title.localeCompare(b.title) || a.team.localeCompare(b.team),
   );
 }
+
+export interface BoardColumn {
+  name: string;
+  color: string;
+  count: number;
+  groups: BoardGroup[];
+}
+
+const TYPE_ORDER = ["triage", "backlog", "unstarted", "started"];
+const typeRank = (type: string) => {
+  const i = TYPE_ORDER.indexOf(type);
+  return i === -1 ? TYPE_ORDER.length : i;
+};
+
+// One column per state name, so teams with the same state name share it.
+export function boardColumns(issues: LinearIssue[]): BoardColumn[] {
+  const map = new Map<string, { type: string; color: string; issues: LinearIssue[] }>();
+  for (const issue of issues) {
+    const col = map.get(issue.state.name) ?? { type: issue.state.type, color: issue.state.color, issues: [] };
+    col.issues.push(issue);
+    map.set(issue.state.name, col);
+  }
+  return [...map.entries()]
+    .sort(([an, a], [bn, b]) => typeRank(a.type) - typeRank(b.type) || an.localeCompare(bn))
+    .map(([name, c]) => ({ name, color: c.color, count: c.issues.length, groups: groupBoard(c.issues) }));
+}

@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import type { BoardResult } from "../../../shared/api.ts";
 import { api } from "../api.ts";
-import { groupBoard } from "../board.ts";
+import { boardColumns } from "../board.ts";
 import { AssignMenu } from "./AssignMenu.tsx";
 
 export function BoardView({ onShowAgents }: { onShowAgents: () => void }) {
@@ -25,7 +25,7 @@ export function BoardView({ onShowAgents }: { onShowAgents: () => void }) {
     void load(false);
   }, [load]);
 
-  const groups = useMemo(() => groupBoard(board?.issues ?? []), [board]);
+  const columns = useMemo(() => boardColumns(board?.issues ?? []), [board]);
   const broken = board?.workspaces.filter((w) => !w.ok) ?? [];
 
   return (
@@ -42,33 +42,45 @@ export function BoardView({ onShowAgents }: { onShowAgents: () => void }) {
         </p>
       ))}
       {!board && !error && <p className="empty">Chargement…</p>}
-      {board && groups.length === 0 && broken.length === 0 && (
+      {board && columns.length === 0 && broken.length === 0 && (
         <div className="empty-state">
           <strong>Aucun ticket assigné</strong>
           <span>Les tickets ouverts qui vous sont assignés apparaissent ici.</span>
         </div>
       )}
-      {groups.map((g) => (
-        <section className="group" key={g.key}>
-          <h2>
-            {g.title} <span className="workspace">{g.team}</span> <span className="count">{g.issues.length}</span>
-          </h2>
-          <ul className="issues">
-            {g.issues.map((i) => (
-              <li className="issue" key={i.id}>
-                <a href={i.url} target="_blank" rel="noreferrer" className="issue-link">
-                  <span className="dot" style={{ background: i.state.color }} title={i.state.name} />
-                  <span className="ident">{i.identifier}</span>
-                  <span className="issue-title">{i.title}</span>
-                  <span className="issue-state">{i.state.name}</span>
-                  {i.priority > 0 && <span className={`prio p${i.priority}`}>{i.priorityLabel}</span>}
-                </a>
-                <AssignMenu issue={i} onShowAgents={onShowAgents} />
-              </li>
-            ))}
-          </ul>
-        </section>
-      ))}
+      {columns.length > 0 && (
+        <div className="kanban">
+          {columns.map((col) => (
+            <section className="column" key={col.name}>
+              <h2 className="column-head">
+                <span className="dot" style={{ background: col.color }} />
+                {col.name} <span className="count">{col.count}</span>
+              </h2>
+              <div className="column-body">
+                {col.groups.map((g) => (
+                  <div className="subgroup" key={g.key}>
+                    <h3>
+                      {g.title} <span className="workspace">{g.team}</span> <span className="count">{g.issues.length}</span>
+                    </h3>
+                    {g.issues.map((i) => (
+                      <article className="card" key={i.id}>
+                        <a href={i.url} target="_blank" rel="noreferrer" className="card-link">
+                          <span className="card-top">
+                            <span className="ident">{i.identifier}</span>
+                            {i.priority > 0 && <span className={`prio p${i.priority}`}>{i.priorityLabel}</span>}
+                          </span>
+                          <span className="card-title">{i.title}</span>
+                        </a>
+                        <AssignMenu issue={i} onShowAgents={onShowAgents} />
+                      </article>
+                    ))}
+                  </div>
+                ))}
+              </div>
+            </section>
+          ))}
+        </div>
+      )}
     </>
   );
 }
