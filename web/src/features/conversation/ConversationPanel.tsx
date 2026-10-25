@@ -2,7 +2,7 @@ import { memo, useEffect, useRef, useState } from "react";
 import type { ChatMessage, DashboardProvider, DashboardThread, ImageAttachment, ThreadDetail, ThreadSettingsBody } from "../../../../shared/api.ts";
 import { runActive } from "../../../../shared/status.ts";
 import { useApi } from "../../api/ApiContext.tsx";
-import { Icon, IconButton } from "../../ui/index.ts";
+import { Icon, IconButton, Loader } from "../../ui/index.ts";
 import { renderMarkdown } from "../../lib/markdown.tsx";
 import { type PendingMessage, countSame, isSettled, pendingLabel } from "./pending.ts";
 import { Composer } from "./Composer.tsx";
@@ -168,7 +168,7 @@ export function ConversationPanel({ threadId, thread, providers }: Props) {
         >
           {loadError && <p className="error">{loadError}</p>}
           {detail && detail.messages.length === 0 && <p className="empty">No messages</p>}
-          {!detail && !loadError && <p className="empty">Loading…</p>}
+          {!detail && !loadError && <Loader />}
           {detail?.messages.map((m) => (
             <Message key={m.id} message={m} />
           ))}

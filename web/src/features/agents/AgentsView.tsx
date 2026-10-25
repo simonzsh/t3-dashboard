@@ -5,7 +5,7 @@ import { groupAgents } from "../../lib/threads.ts";
 import { excludeRoutineThreads } from "./automations.ts";
 import { AgentCard } from "./AgentCard.tsx";
 import { AutomationsColumn } from "./AutomationsColumn.tsx";
-import { Pressable } from "../../ui/index.ts";
+import { Loader, Pressable } from "../../ui/index.ts";
 
 interface Props {
   state: DashboardState;
@@ -37,7 +37,7 @@ export function AgentsView({ state, now, deskIds, onOpen, onToggleDesk, automati
   const available = state.automationsAvailable;
   const loading = available && automations === null && automationsError === null;
   const agents = loading ? (
-    <div className="empty-state">Loading…</div>
+    <Loader />
   ) : groups.length === 0 ? (
       <div className="empty-state">
         <strong>No active agents</strong>

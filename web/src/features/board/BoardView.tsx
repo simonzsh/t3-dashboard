@@ -3,7 +3,7 @@ import type { BoardResult, DashboardProject } from "../../../../shared/api.ts";
 import { useApi } from "../../api/ApiContext.tsx";
 import { boardColumns } from "./board.ts";
 import { boardNeedsKey, linearConnected } from "../settings/linearSettings.ts";
-import { Badge, Icon, IconButton } from "../../ui/index.ts";
+import { Badge, Icon, IconButton, Loader } from "../../ui/index.ts";
 import { AssignMenu } from "./AssignMenu.tsx";
 import { LinearSetupCard } from "./LinearSetupCard.tsx";
 import { useAction } from "../../lib/useAction.ts";
@@ -49,7 +49,7 @@ export function BoardView({ projects, version, onAssigned, onShowDesk }: Props) 
           <strong>Linear</strong> : {linearError}
         </p>
       )}
-      {!board && !error && <p className="empty">Loading…</p>}
+      {!board && !error && <Loader />}
       {board && needsKey && <LinearSetupCard refused={board.configured} onConnected={() => void load(true)} />}
       {board && !needsKey && columns.length === 0 && !linearError && (
         <div className="empty-state">

@@ -18,7 +18,7 @@ import { TABS } from "./lib/tabs.ts";
 import { useTab } from "./lib/useTab.ts";
 import { useTheme } from "./features/settings/useTheme.ts";
 import { useUpdate } from "./features/update/useUpdate.ts";
-import { Button, Icon, IconButton, Kbd, Pressable } from "./ui/index.ts";
+import { Button, Icon, IconButton, Kbd, Loader, Pressable } from "./ui/index.ts";
 import { updateLabel } from "./features/update/updateFlow.ts";
 
 const TOAST_MS = 8000;
@@ -163,7 +163,7 @@ export function App() {
               automations={automations.result}
               automationsError={automations.error}
             />
-          ) : <p className="empty">Loading…</p>)}
+          ) : <Loader />)}
         {tab === "board" && <BoardView projects={state?.projects ?? []} version={boardVersion} onAssigned={(id) => openOnDesk(id, false)} onShowDesk={() => setTab("desk")} />}
         {tab === "desk" &&
           (state ? (
@@ -176,7 +176,7 @@ export function App() {
               t3EnvironmentId={state.t3EnvironmentId}
               providers={state.providers}
             />
-          ) : <p className="empty">Loading…</p>)}
+          ) : <Loader />)}
       </main>
       {toast && (
         <div className="toast" role="status">
