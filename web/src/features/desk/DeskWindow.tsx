@@ -42,7 +42,7 @@ export function DeskWindow({ id, thread, projectTitle, missing, focused, maximiz
     >
       <header className="desk-window-head">
         {thread && <ProviderIcon provider={thread.provider} />}
-        <span className="dw-title" title={title}>
+        <span className="dw-title" data-tooltip={title}>
           {title}
         </span>
         {projectTitle && <span className="dw-project">{projectTitle}</span>}
@@ -55,15 +55,15 @@ export function DeskWindow({ id, thread, projectTitle, missing, focused, maximiz
           <OpenInT3 environmentId={t3EnvironmentId} threadId={id} />
           {!compact && (
             <>
-              <IconButton variant="ghost" size="sm" label={maximized ? "Exit fullscreen" : "Fullscreen"} title={maximized ? "Exit fullscreen (F, Esc)" : "Fullscreen (F)"} onClick={onToggleMaximize}>
+              <IconButton variant="ghost" size="sm" label={maximized ? "Exit fullscreen" : "Fullscreen"} shortcut={maximized ? "F / Esc" : "F"} onClick={onToggleMaximize}>
                 <Icon name={maximized ? "exitFullscreen" : "fullscreen"} />
               </IconButton>
-              <IconButton variant="ghost" size="sm" label="Minimize" title="Minimize (M)" onClick={onMinimize}>
+              <IconButton variant="ghost" size="sm" label="Minimize" shortcut="M" onClick={onMinimize}>
                 <Icon name="minimize" />
               </IconButton>
             </>
           )}
-          <IconButton variant="ghost" size="sm" label="Close" title="Close (X)" onClick={onClose}>
+          <IconButton variant="ghost" size="sm" label="Close" shortcut="X" onClick={onClose}>
             <Icon name="x" />
           </IconButton>
         </span>

@@ -13,11 +13,11 @@ function Row({ item, onShowSubagents }: { item: ActivityItem; onShowSubagents: (
     <li className={`activity-item ${item.kind} ${item.status}`}>
       <Icon name={ICONS[item.kind]} strokeWidth={1.8} label={STEP_LABELS[item.status]} />
       {item.kind === "subagent" ? (
-        <Button variant="link" className="activity-text" title="Show in Subagents" onClick={onShowSubagents}>
+        <Button variant="link" className="activity-text" tooltip="Show in Subagents" onClick={onShowSubagents}>
           {item.text}
         </Button>
       ) : (
-        <span className="activity-text" title={item.text}>
+        <span className="activity-text" data-tooltip={item.text}>
           {item.text}
           {item.detail && <span className="activity-detail"> {item.detail}</span>}
         </span>

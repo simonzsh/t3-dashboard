@@ -120,7 +120,7 @@ export function DeskView({ desk, dispatch, threads, projects, background, t3Envi
   const chip = (w: Win, active: boolean, closable = false) => {
     const thread = byId.get(w.id);
     const button = (
-      <Pressable key={w.id} className={`desk-chip${active ? " active" : ""}`} title={threadTitle(thread)} onClick={() => dispatch({ type: "restore", id: w.id })}>
+      <Pressable key={w.id} className={`desk-chip${active ? " active" : ""}`} tooltip={threadTitle(thread)} onClick={() => dispatch({ type: "restore", id: w.id })}>
         <span className={`state-dot ${thread ? threadState(thread) : "idle"}`} aria-hidden="true" />
         {thread && <ProviderIcon provider={thread.provider} />}
         <span className="desk-chip-title">{threadTitle(thread)}</span>
@@ -131,7 +131,7 @@ export function DeskView({ desk, dispatch, threads, projects, background, t3Envi
     return (
       <span key={w.id} className="desk-chip-wrap">
         {button}
-        <IconButton size="sm" variant="ghost" className="desk-chip-close" label="Close" title="Close" onClick={() => dispatch({ type: "close", id: w.id })}>
+        <IconButton size="sm" variant="ghost" className="desk-chip-close" label="Close" onClick={() => dispatch({ type: "close", id: w.id })}>
           <Icon name="x" />
         </IconButton>
       </span>

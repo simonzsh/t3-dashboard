@@ -11,5 +11,6 @@ export { Loader } from "./Loader.tsx";
 export { NO_AUTOFILL, SECRET_FIELD } from "./noAutofill.ts";
 export { Popover } from "./Popover.tsx";
 export { Pressable } from "./Pressable.tsx";
+export { TooltipLayer } from "./Tooltip.tsx";
 export { Segmented } from "./Segmented.tsx";
 export { SecretInput, TextArea, TextInput } from "./TextInput.tsx";

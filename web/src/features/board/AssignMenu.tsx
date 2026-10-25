@@ -22,7 +22,7 @@ export function AssignMenu({ issue, projects, providers, modelDefaults, onAssign
     <div className="assign">
       {done ? (
         <span className="confirm">
-          <span role="img" aria-label="Session created" title="Session created">
+          <span role="img" aria-label="Session created" data-tooltip="Session created">
             <Icon name="check" strokeWidth={2.2} />
           </span>
           <Button variant="link" onClick={onShowDesk}>

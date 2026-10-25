@@ -143,8 +143,8 @@ export function Composer({ providers, selection, runtimeMode, running, draft, on
             {images.map((p) => (
               <li key={p.key} className="file-chip">
                 <img src={p.dataUrl} alt="" />
-                <span title={p.file.name}>{p.file.name}</span>
-                <Pressable aria-label={`Remove ${p.file.name}`} title="Remove" onClick={() => setImages((current) => current.filter((x) => x.key !== p.key))}>
+                <span data-tooltip={p.file.name}>{p.file.name}</span>
+                <Pressable aria-label={`Remove ${p.file.name}`} tooltip="Remove" onClick={() => setImages((current) => current.filter((x) => x.key !== p.key))}>
                   <Icon name="x" />
                 </Pressable>
               </li>
@@ -219,11 +219,11 @@ export function Composer({ providers, selection, runtimeMode, running, draft, on
               <Icon name="paperclip" />
             </IconButton>
             {running && onStop && (
-              <IconButton label="Stop" title="Stop the run" className="composer-round stop" disabled={stopping} onClick={() => void attempt(onStop, setStopping)}>
+              <IconButton label="Stop" tooltip="Stop the run" className="composer-round stop" disabled={stopping} onClick={() => void attempt(onStop, setStopping)}>
                 <Icon name="stop" />
               </IconButton>
             )}
-            <IconButton type="submit" label={running ? "Steer" : "Send"} title={running ? "Send now (steers the run)" : "Send (Enter)"} variant="primary" className="composer-round send" disabled={!canSend}>
+            <IconButton type="submit" label={running ? "Steer" : "Send"} tooltip={running ? "Send now (steers the run)" : "Send"} shortcut={running ? undefined : "Enter"} variant="primary" className="composer-round send" disabled={!canSend}>
               <Icon name="arrowUp" />
             </IconButton>
           </div>
