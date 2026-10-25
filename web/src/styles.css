@@ -486,7 +486,8 @@ button.auto-row:hover { background: var(--surface-0); }
   .column { width: 100%; min-width: 0; max-height: none; flex: none; }
 }
 @media (max-width: 700px) {
-  .grid, .grid.compact { grid-template-columns: 1fr; }
+  /* minmax(0, …): a one-line title must not widen the column past the screen. */
+  .grid, .grid.compact { grid-template-columns: minmax(0, 1fr); }
 }
 @media (max-width: 380px) {
   .topbar { gap: 6px; padding-inline: max(8px, env(safe-area-inset-left)) max(8px, env(safe-area-inset-right)); }
