@@ -87,3 +87,11 @@ test("assignIssue posts the body to the assign route", async () => {
   assert.equal(calls[0]?.init?.method, "POST");
   assert.deepEqual(JSON.parse(String(calls[0]?.init?.body)), body);
 });
+
+test("getAutomations reads /api/automations with GET", async () => {
+  const result = { automations: [], brains: [], fetchedAt: "2026-01-10T10:00:00.000Z" };
+  const { calls, api } = fake(200, result);
+  assert.deepEqual(await api.getAutomations(), result);
+  assert.equal(calls[0]?.url, "/api/automations");
+  assert.equal(calls[0]?.init?.method ?? "GET", "GET");
+});

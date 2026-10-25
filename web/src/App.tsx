@@ -4,6 +4,7 @@ import { BoardView } from "./components/BoardView.tsx";
 import { ConnectionBanner } from "./components/ConnectionBanner.tsx";
 import { ConversationPanel } from "./components/ConversationPanel.tsx";
 import { NewThreadDialog } from "./components/NewThreadDialog.tsx";
+import { useAutomations } from "./useAutomations.ts";
 import { useDashboard } from "./useDashboard.ts";
 
 type Tab = "agents" | "board";
@@ -11,6 +12,7 @@ type Tab = "agents" | "board";
 export function App() {
   const { state, sseDown, lastEvent } = useDashboard();
   const [tab, setTab] = useState<Tab>("agents");
+  const automations = useAutomations(tab === "agents");
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [creating, setCreating] = useState(false);
   const [now, setNow] = useState(() => new Date());
@@ -47,7 +49,16 @@ export function App() {
       <ConnectionBanner connection={state?.connection ?? null} sseDown={sseDown} />
       <main>
         {tab === "agents" &&
-          (state ? <AgentsView state={state} now={now} selectedId={selectedId} onOpen={setSelectedId} /> : <p className="empty">Chargement…</p>)}
+          (state ? (
+            <AgentsView
+              state={state}
+              now={now}
+              selectedId={selectedId}
+              onOpen={setSelectedId}
+              automations={automations.result}
+              automationsError={automations.error}
+            />
+          ) : <p className="empty">Chargement…</p>)}
         {tab === "board" && <BoardView onShowAgents={() => setTab("agents")} />}
       </main>
       {state && selectedId && (
