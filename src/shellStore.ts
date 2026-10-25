@@ -85,7 +85,7 @@ export class ShellStore {
     for (const [id, raw] of this.live.threads) {
       const next = toDashboardThread(raw, now);
       const previous = this.derived.get(id);
-      if (next.bucket === previous?.bucket && next.settled === previous.settled) continue;
+      if (next.settled === previous?.settled) continue;
       this.derived.set(id, next);
       this.upserted.add(id);
     }

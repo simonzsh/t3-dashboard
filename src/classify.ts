@@ -1,13 +1,10 @@
-import type { Bucket, DashboardThread, PendingCategory } from "../shared/api.ts";
+import type { DashboardThread, PendingCategory } from "../shared/api.ts";
 import type { RawThread } from "./t3/types.ts";
 
-export const DONE_WINDOW_DAYS = 7;
 const PREVIEW_MAX = 280;
-const DAY_MS = 24 * 60 * 60 * 1000;
 const EPOCH = new Date(0).toISOString();
 
 export const ACTIVE_STATUSES = new Set(["preparing", "queued", "starting", "running", "waiting"]);
-const FINISHED_STATUSES = new Set(["completed", "interrupted", "rolled_back"]);
 const APPROVAL_KINDS = new Set(["command", "file-read", "file-change", "permission", "mcp-elicitation"]);
 
 export function isHidden(raw: RawThread, location?: string): boolean {
@@ -30,21 +27,6 @@ function lastActivityOf(raw: RawThread): string {
 
 // The turn can end while subagents keep working: the agent is not finished yet.
 const hasBackgroundWork = (raw: RawThread): boolean => (raw.pendingBackgroundTasks?.length ?? 0) > 0 || raw.blockedOnThreadWait === true;
-
-export function bucketOf(raw: RawThread, now: Date): Bucket {
-  const status = raw.status ?? "idle";
-  if (raw.pendingRuntimeRequest) return "todo";
-  if (ACTIVE_STATUSES.has(status) || hasBackgroundWork(raw)) return "running";
-  if (raw.snoozedUntil && Date.parse(raw.snoozedUntil) > now.getTime()) return "inactive";
-  if (raw.settledOverride === "settled" || (raw.settledAt != null && raw.settledOverride !== "active")) return "inactive";
-  if (raw.hasActionableProposedPlan) return "todo";
-  if (status === "failed" || (status === "interrupted" && raw.lastError)) return "todo";
-  if (FINISHED_STATUSES.has(status)) {
-    const age = now.getTime() - Date.parse(lastActivityOf(raw));
-    return age <= DONE_WINDOW_DAYS * DAY_MS ? "done" : "inactive";
-  }
-  return "inactive";
-}
 
 // Same sections as the T3 Code sidebar: a snooze shows first, then the settled override.
 // A pending request wakes a snoozed thread.
@@ -73,18 +55,14 @@ export function toDashboardThread(raw: RawThread, now: Date): DashboardThread {
     provider: raw.providerInstanceId ?? raw.modelSelection?.instanceId ?? "",
     model: raw.modelSelection?.model ?? null,
     status: raw.status ?? "idle",
-    bucket: bucketOf(raw, now),
     settled: isSettled(raw, now),
     pending: pending ? { requestId: pending.id, kind: pending.kind, category: categoryOf(pending.kind) } : null,
     activeRunId: raw.activeRunId ?? null,
     backgroundWork: hasBackgroundWork(raw),
     pendingTasks: (raw.pendingBackgroundTasks?.length ?? 0) > 0,
     lastError: raw.lastError ?? null,
-    hasActionableProposedPlan: raw.hasActionableProposedPlan ?? false,
     preview: previewOf(raw.latestVisibleMessage),
     pinned: raw.pinnedAt != null,
-    branch: raw.branch ?? null,
-    pullRequestUrl: raw.linkedPullRequest?.url ?? raw.pullRequests?.[0]?.url ?? null,
     createdAt: raw.createdAt ?? EPOCH,
     updatedAt: raw.updatedAt ?? raw.createdAt ?? EPOCH,
     lastActivityAt: lastActivityOf(raw),

@@ -1,8 +1,6 @@
 // Contract between the dashboard server (src/) and the web UI (web/).
 // Types only: both sides import this file with `import type`.
 
-export type Bucket = "todo" | "running" | "done" | "inactive";
-
 export interface ModelSelection {
   instanceId: string;
   model: string;
@@ -20,7 +18,6 @@ export interface DashboardThread {
   provider: string;
   model: string | null;
   status: string;
-  bucket: Bucket;
   /** In the T3 Code sidebar's Settled section. */
   settled: boolean;
   pending: { requestId: string; kind: string; category: PendingCategory } | null;
@@ -30,11 +27,8 @@ export interface DashboardThread {
   /** The shell lists pending background tasks: subagents may run without a run. */
   pendingTasks: boolean;
   lastError: string | null;
-  hasActionableProposedPlan: boolean;
   preview: { role: string; text: string } | null;
   pinned: boolean;
-  branch: string | null;
-  pullRequestUrl: string | null;
   createdAt: string;
   updatedAt: string;
   lastActivityAt: string;

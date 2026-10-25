@@ -8,9 +8,6 @@ export interface RawThread {
   providerInstanceId?: string | null;
   modelSelection?: ModelSelection | null;
   runtimeMode?: string | null;
-  branch?: string | null;
-  linkedPullRequest?: { url?: string } | null;
-  pullRequests?: Array<{ url?: string }> | null;
   lineage?: { relationshipToParent?: string | null } | null;
   creationSource?: string | null;
   status?: string | null;
@@ -24,7 +21,6 @@ export interface RawThread {
   lastError?: string | null;
   pendingRuntimeRequest?: { id: string; kind: string } | null;
   latestVisibleMessage?: { role?: string; text?: string; updatedAt?: string | null } | null;
-  hasActionableProposedPlan?: boolean;
   createdAt?: string | null;
   updatedAt?: string | null;
   archivedAt?: string | null;

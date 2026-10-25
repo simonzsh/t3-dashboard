@@ -164,33 +164,16 @@ test("unknown kinds are ignored", () => {
   assert.equal(states.length, 1);
 });
 
-test("reclassify emits only threads whose bucket changed", () => {
-  const ctx = setup();
-  ctx.store.beginSync();
-  ctx.store.apply([
-    snapshot([
-      raw("fresh", { status: "completed", latestRunCompletedAt: iso(24 * 6) }),
-      raw("steady", { status: "completed", latestRunCompletedAt: iso(1) }),
-      raw("idle"),
-    ]),
-    { kind: "synchronized" },
-  ]);
-  assert.equal(ctx.store.thread("fresh")!.bucket, "done");
-  ctx.store.reclassify(new Date(now.getTime() + 25 * 3_600_000));
-  assert.equal(ctx.threads.length, 1);
-  assert.deepEqual(ctx.threads[0]!.upserted.map((thread) => [thread.id, thread.bucket]), [["fresh", "inactive"]]);
-  ctx.store.reclassify(new Date(now.getTime() + 25 * 3_600_000));
-  assert.equal(ctx.threads.length, 1);
-});
-
 test("reclassify re-emits a settled thread when its snooze ends", () => {
   const ctx = setup();
   const snoozed = raw("snoozed", { settledOverride: "settled", snoozedUntil: iso(-1) });
   ctx.store.beginSync();
-  ctx.store.apply([snapshot([snoozed]), { kind: "synchronized" }]);
+  ctx.store.apply([snapshot([snoozed, raw("steady", { status: "completed", latestRunCompletedAt: iso(1) })]), { kind: "synchronized" }]);
   assert.equal(ctx.store.thread("snoozed")!.settled, false);
   ctx.store.reclassify(new Date(now.getTime() + 2 * 3_600_000));
   assert.deepEqual(ctx.threads.map((diff) => diff.upserted.map((thread) => [thread.id, thread.settled])), [[["snoozed", true]]]);
+  ctx.store.reclassify(new Date(now.getTime() + 2 * 3_600_000));
+  assert.equal(ctx.threads.length, 1);
 });
 
 test("state carries connection and providers", () => {

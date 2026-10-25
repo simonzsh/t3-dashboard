@@ -1,4 +1,4 @@
-import type { Bucket, DashboardState, DashboardThread } from "../../shared/api.ts";
+import type { DashboardState, DashboardThread } from "../../shared/api.ts";
 
 export function thread(id: string, over: Partial<DashboardThread> = {}): DashboardThread {
   return {
@@ -8,18 +8,14 @@ export function thread(id: string, over: Partial<DashboardThread> = {}): Dashboa
     provider: "provider-a",
     model: "model-x",
     status: "idle",
-    bucket: "inactive" as Bucket,
     settled: false,
     pending: null,
     activeRunId: null,
     backgroundWork: false,
     pendingTasks: false,
     lastError: null,
-    hasActionableProposedPlan: false,
     preview: null,
     pinned: false,
-    branch: null,
-    pullRequestUrl: null,
     createdAt: "2026-01-10T10:00:00.000Z",
     updatedAt: "2026-01-10T10:00:00.000Z",
     lastActivityAt: "2026-01-10T10:00:00.000Z",
