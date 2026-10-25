@@ -7,13 +7,14 @@ import { AutomationsColumn } from "./AutomationsColumn.tsx";
 interface Props {
   state: DashboardState;
   now: Date;
-  selectedId: string | null;
-  onOpen: (id: string) => void;
+  deskIds: ReadonlySet<string>;
+  onOpen: (id: string, addOnly: boolean) => void;
+  onToggleDesk: (id: string) => void;
   automations: AutomationsResult | null;
   automationsError: string | null;
 }
 
-export function AgentsView({ state, now, selectedId, onOpen, automations, automationsError }: Props) {
+export function AgentsView({ state, now, deskIds, onOpen, onToggleDesk, automations, automationsError }: Props) {
   const groups = groupAgents(excludeRoutineThreads(state.threads, automations?.automations ?? []), state.projects, now);
   // Before the first automations answer, routine threads would flash in the grid.
   const loading = automations === null && automationsError === null;
@@ -33,7 +34,7 @@ export function AgentsView({ state, now, selectedId, onOpen, automations, automa
             </h2>
             <div className="grid">
               {g.cards.map((c) => (
-                <AgentCard key={c.thread.id} card={c} now={now} selected={c.thread.id === selectedId} onOpen={onOpen} />
+                <AgentCard key={c.thread.id} card={c} now={now} onDesk={deskIds.has(c.thread.id)} onOpen={onOpen} onToggleDesk={onToggleDesk} />
               ))}
             </div>
           </section>

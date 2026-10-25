@@ -2,26 +2,41 @@ import { useEffect, useState } from "react";
 import { AgentsView } from "./components/AgentsView.tsx";
 import { BoardView } from "./components/BoardView.tsx";
 import { ConnectionBanner } from "./components/ConnectionBanner.tsx";
-import { ConversationPanel } from "./components/ConversationPanel.tsx";
+import { DeskView } from "./components/DeskView.tsx";
 import { NewThreadDialog } from "./components/NewThreadDialog.tsx";
 import { SettingsDialog } from "./components/SettingsDialog.tsx";
+import { DESK_LIMIT, gridWindows, isFull } from "./desk.ts";
 import { useAutomations } from "./useAutomations.ts";
 import { useDashboard } from "./useDashboard.ts";
+import { useDesk } from "./useDesk.ts";
 import { useShortcuts } from "./useShortcuts.ts";
 import { useTheme } from "./useTheme.ts";
 
-type Tab = "agents" | "board";
+type Tab = "agents" | "board" | "desk";
 
 const TABS: Array<{ id: Tab; label: string; key: string }> = [
   { id: "agents", label: "Agents", key: "1" },
   { id: "board", label: "Board", key: "2" },
+  { id: "desk", label: "Desk", key: "3" },
 ];
+const TOAST_MS = 8000;
+
+// A full Desk keeps the request so "Replace oldest" can finish it.
+interface FullToast {
+  id: string;
+  showDesk: boolean;
+}
+
+function focusComposer(threadId: string) {
+  requestAnimationFrame(() => document.querySelector<HTMLTextAreaElement>(`[data-desk-window="${CSS.escape(threadId)}"] textarea`)?.focus());
+}
 
 export function App() {
   const { state, sseDown, lastEvent } = useDashboard();
   const [tab, setTab] = useState<Tab>("agents");
   const automations = useAutomations(tab === "agents");
-  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [desk, dispatchDesk] = useDesk(state?.connection.t3 === "live" ? state.threads : null);
+  const [toast, setToast] = useState<FullToast | null>(null);
   const [creating, setCreating] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [theme, setTheme] = useTheme();
@@ -33,22 +48,65 @@ export function App() {
     return () => clearInterval(id);
   }, []);
 
-  useShortcuts((action) => {
-    if (action === "agents" || action === "board") setTab(action);
-    else if (action === "settings") setSettingsOpen(true);
-    else if (state) setCreating(true);
-  }, creating || settingsOpen);
+  useEffect(() => {
+    if (!toast) return;
+    const id = setTimeout(() => setToast(null), TOAST_MS);
+    return () => clearTimeout(id);
+  }, [toast]);
+
+  function openOnDesk(id: string, showDesk: boolean) {
+    if (isFull(desk, id)) {
+      setToast({ id, showDesk });
+      return;
+    }
+    dispatchDesk({ type: "open", id });
+    if (showDesk) setTab("desk");
+  }
+
+  function toggleOnDesk(id: string) {
+    if (desk.windows.some((w) => w.id === id)) dispatchDesk({ type: "close", id });
+    else openOnDesk(id, false);
+  }
+
+  useShortcuts(
+    (action) => {
+      if (action === "agents" || action === "board" || action === "desk") setTab(action);
+      else if (action === "settings") setSettingsOpen(true);
+      else if (action === "new-agent") {
+        if (state) setCreating(true);
+      } else if (action === "unmaximize") dispatchDesk({ type: "unmaximize" });
+      else if (action === "close-window" || action === "toggle-maximize") {
+        if (desk.focusedId) dispatchDesk({ type: action === "close-window" ? "close" : "maximize", id: desk.focusedId });
+      } else {
+        const target = gridWindows(desk)[Number(action.slice("window-".length)) - 1];
+        if (!target) return;
+        dispatchDesk({ type: "focus", id: target.id });
+        focusComposer(target.id);
+      }
+    },
+    creating || settingsOpen,
+    tab === "desk",
+  );
 
   const live = !sseDown && state?.connection.t3 === "live";
+  const deskIds = new Set(desk.windows.map((w) => w.id));
+  const deskWaiting = state?.threads.some((t) => t.pending && deskIds.has(t.id)) ?? false;
 
   return (
-    <div className="app">
+    <div className={`app${tab === "desk" ? " desk-mode" : ""}`}>
       <header className="topbar">
         <h1>T3 Dashboard</h1>
         <nav className="tabs" role="tablist">
           {TABS.map(({ id, label, key }) => (
             <button key={id} role="tab" aria-selected={tab === id} className={tab === id ? "active" : ""} title={`${label} (${key})`} onClick={() => setTab(id)}>
-              {label} <kbd>{key}</kbd>
+              {label}
+              {id === "desk" && desk.windows.length > 0 && (
+                <span className="count" aria-label={`${desk.windows.length} open`}>
+                  {desk.windows.length}
+                </span>
+              )}
+              {id === "desk" && deskWaiting && <span className="tab-alert" role="img" aria-label="An agent is waiting for your reply" />}
+              <kbd>{key}</kbd>
             </button>
           ))}
         </nav>
@@ -78,22 +136,35 @@ export function App() {
             <AgentsView
               state={state}
               now={now}
-              selectedId={selectedId}
-              onOpen={setSelectedId}
+              deskIds={deskIds}
+              onOpen={(id, addOnly) => openOnDesk(id, !addOnly)}
+              onToggleDesk={toggleOnDesk}
               automations={automations.result}
               automationsError={automations.error}
             />
           ) : <p className="empty">Loading…</p>)}
-        {tab === "board" && <BoardView onShowAgents={() => setTab("agents")} />}
+        {tab === "board" && <BoardView onAssigned={(id) => openOnDesk(id, false)} onShowDesk={() => setTab("desk")} />}
+        {tab === "desk" &&
+          (state ? (
+            <DeskView desk={desk} dispatch={dispatchDesk} threads={state.threads} projects={state.projects} lastEvent={lastEvent} />
+          ) : <p className="empty">Loading…</p>)}
       </main>
-      {state && selectedId && (
-        <ConversationPanel
-          key={selectedId}
-          threadId={selectedId}
-          thread={state.threads.find((t) => t.id === selectedId) ?? null}
-          lastEvent={lastEvent}
-          onClose={() => setSelectedId(null)}
-        />
+      {toast && (
+        <div className="toast" role="status">
+          <span>Desk is full ({DESK_LIMIT}). Close a window first.</span>
+          <button
+            onClick={() => {
+              dispatchDesk({ type: "replaceOldest", id: toast.id });
+              if (toast.showDesk) setTab("desk");
+              setToast(null);
+            }}
+          >
+            Replace oldest
+          </button>
+          <button className="icon-button" aria-label="Dismiss" title="Dismiss" onClick={() => setToast(null)}>
+            ✕
+          </button>
+        </div>
       )}
       {state && creating && (
         <NewThreadDialog
@@ -103,8 +174,7 @@ export function App() {
           onClose={() => setCreating(false)}
           onCreated={(id) => {
             setCreating(false);
-            setTab("agents");
-            setSelectedId(id);
+            openOnDesk(id, true);
           }}
         />
       )}

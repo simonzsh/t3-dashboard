@@ -4,14 +4,26 @@ import { api } from "../api.ts";
 import { ProviderIcon } from "./ProviderIcon.tsx";
 import { useAction } from "./useAction.ts";
 
-export function AssignMenu({ issue, onShowAgents }: { issue: LinearIssue; onShowAgents: () => void }) {
+interface Props {
+  issue: LinearIssue;
+  onAssigned: (threadId: string) => void;
+  onShowDesk: () => void;
+}
+
+export function AssignMenu({ issue, onAssigned, onShowDesk }: Props) {
   const [open, setOpen] = useState(false);
   const [done, setDone] = useState(false);
   const { busy, error, run } = useAction();
 
   async function assign(agent: "claude" | "codex") {
     setOpen(false);
-    if (await run(() => api.assignIssue({ workspace: issue.workspace, issueId: issue.id, agent }))) setDone(true);
+    let threadId = "";
+    const ok = await run(async () => {
+      threadId = (await api.assignIssue({ workspace: issue.workspace, issueId: issue.id, agent })).threadId;
+    });
+    if (!ok) return;
+    setDone(true);
+    onAssigned(threadId);
   }
 
   return (
@@ -22,8 +34,8 @@ export function AssignMenu({ issue, onShowAgents }: { issue: LinearIssue; onShow
             <title>Session created</title>
             <path d="M5 12.5l4.5 4.5L19 7.5" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
           </svg>
-          <button className="link" onClick={onShowAgents}>
-            View agents
+          <button className="link" onClick={onShowDesk}>
+            View on Desk
           </button>
         </span>
       ) : (

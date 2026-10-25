@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { agentStatus, groupAgents, pendingLabel, providerKind } from "../src/agents.ts";
+import { agentStatus, groupAgents, pendingLabel, providerKind, threadState } from "../src/agents.ts";
 import { thread } from "./fixtures.ts";
 
 const now = new Date("2026-03-01T12:00:00Z");
@@ -90,4 +90,13 @@ test("pendingLabel names the kind of request", () => {
   assert.equal(pendingLabel("approval"), "Approval");
   assert.equal(pendingLabel("user-input"), "Question");
   assert.equal(pendingLabel("other"), "Action required");
+});
+
+test("threadState gives the desk window colour", () => {
+  assert.equal(threadState(thread("1", { pending, status: "running" })), "waiting");
+  assert.equal(threadState(thread("1", { status: "running" })), "running");
+  assert.equal(threadState(thread("1", { status: "completed" })), "done");
+  assert.equal(threadState(thread("1", { status: "failed" })), "error");
+  assert.equal(threadState(thread("1", { status: "completed", lastError: "boom" })), "error");
+  assert.equal(threadState(thread("1", { status: "idle" })), "idle");
 });

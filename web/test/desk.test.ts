@@ -13,6 +13,7 @@ import {
   loadDesk,
   parseDesk,
   saveDesk,
+  sizesFor,
   type DeskState,
 } from "../src/desk.ts";
 
@@ -173,4 +174,13 @@ test("loadDesk and saveDesk use storage and survive errors", () => {
   const broken = { getItem: () => { throw new Error("denied"); }, setItem: () => { throw new Error("denied"); } };
   assert.deepEqual(loadDesk(broken), EMPTY_DESK);
   assert.doesNotThrow(() => saveDesk(broken, s));
+});
+
+test("sizesFor uses saved sizes only when they match the layout", () => {
+  const saved = { columns: { c0: 30, c1: 70 }, rows: { r0: 100 } };
+  const s = deskReducer(EMPTY_DESK, { type: "setSizes", count: 2, sizes: saved });
+  assert.deepEqual(sizesFor(s, 2), saved);
+  assert.deepEqual(sizesFor(s, 4), { columns: { c0: 50, c1: 50 }, rows: { r0: 50, r1: 50 } });
+  const stale = deskReducer(EMPTY_DESK, { type: "setSizes", count: 2, sizes: { columns: { c0: 100 }, rows: { r0: 100 } } });
+  assert.deepEqual(sizesFor(stale, 2).columns, { c0: 50, c1: 50 });
 });

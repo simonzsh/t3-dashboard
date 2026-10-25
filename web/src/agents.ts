@@ -25,6 +25,15 @@ export function agentStatus(t: DashboardThread, now: Date): AgentStatus | null {
   return null;
 }
 
+export type ThreadState = "waiting" | "running" | "done" | "error" | "idle";
+
+export function threadState(t: DashboardThread): ThreadState {
+  if (t.pending) return "waiting";
+  if (WORKING.has(t.status)) return "running";
+  if (t.status === "failed" || t.lastError !== null) return "error";
+  return FINISHED.has(t.status) ? "done" : "idle";
+}
+
 const recent = (a: DashboardThread, b: DashboardThread) => b.lastActivityAt.localeCompare(a.lastActivityAt);
 
 export function groupAgents(threads: DashboardThread[], projects: DashboardProject[], now: Date): AgentGroup[] {

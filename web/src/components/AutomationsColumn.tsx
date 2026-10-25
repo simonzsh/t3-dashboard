@@ -6,10 +6,10 @@ interface Props {
   error: string | null;
   threads: DashboardThread[];
   now: Date;
-  onOpen: (id: string) => void;
+  onOpen: (id: string, addOnly: boolean) => void;
 }
 
-function Row({ a, thread, now, onOpen }: { a: Automation; thread: DashboardThread | undefined; now: Date; onOpen: (id: string) => void }) {
+function Row({ a, thread, now, onOpen }: { a: Automation; thread: DashboardThread | undefined; now: Date; onOpen: (id: string, addOnly: boolean) => void }) {
   const last = lastRunState(thread);
   const sub = a.schedule.kind === "cron" ? `${a.brain} · ${a.schedule.label}` : `${a.brain} · ${reminderDate(a.schedule.at)}`;
   const body = (
@@ -31,7 +31,7 @@ function Row({ a, thread, now, onOpen }: { a: Automation; thread: DashboardThrea
   return (
     <li>
       {threadId ? (
-        <button className="auto-row" onClick={() => onOpen(threadId)}>
+        <button className="auto-row" onClick={(e) => onOpen(threadId, e.shiftKey)}>
           {body}
         </button>
       ) : (

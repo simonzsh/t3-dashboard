@@ -4,7 +4,7 @@ import { api } from "../api.ts";
 import { boardColumns } from "../board.ts";
 import { AssignMenu } from "./AssignMenu.tsx";
 
-export function BoardView({ onShowAgents }: { onShowAgents: () => void }) {
+export function BoardView({ onAssigned, onShowDesk }: { onAssigned: (threadId: string) => void; onShowDesk: () => void }) {
   const [board, setBoard] = useState<BoardResult | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -71,7 +71,7 @@ export function BoardView({ onShowAgents }: { onShowAgents: () => void }) {
                           </span>
                           <span className="card-title">{i.title}</span>
                         </a>
-                        <AssignMenu issue={i} onShowAgents={onShowAgents} />
+                        <AssignMenu issue={i} onAssigned={onAssigned} onShowDesk={onShowDesk} />
                       </article>
                     ))}
                   </div>

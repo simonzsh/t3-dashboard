@@ -5,6 +5,10 @@ import { PendingRequestView } from "./PendingRequestView.tsx";
 import { useAction } from "./useAction.ts";
 
 const ROLE_LABELS: Record<string, string> = { user: "You", assistant: "Agent", system: "System" };
+// Windows remount when they move between grid, minimized bar and mobile view: keep what they showed.
+const detailCache = new Map<string, ThreadDetail>();
+const drafts = new Map<string, string>();
+const NEAR_BOTTOM_PX = 40;
 
 interface Props {
   threadId: string;
@@ -14,17 +18,20 @@ interface Props {
 }
 
 export function ConversationPanel({ threadId, thread, lastEvent, onClose }: Props) {
-  const [detail, setDetail] = useState<ThreadDetail | null>(null);
+  const [detail, setDetail] = useState<ThreadDetail | null>(() => detailCache.get(threadId) ?? null);
   const [loadError, setLoadError] = useState<string | null>(null);
-  const [text, setText] = useState("");
+  const [text, setText] = useState(() => drafts.get(threadId) ?? "");
   const [mode, setMode] = useState<"queue" | "steer">("queue");
-  const bottom = useRef<HTMLDivElement>(null);
+  const scroller = useRef<HTMLDivElement>(null);
+  const stick = useRef(true);
   const send = useAction();
   const control = useAction();
 
   async function load() {
     try {
-      setDetail(await api.getThread(threadId));
+      const next = await api.getThread(threadId);
+      detailCache.set(threadId, next);
+      setDetail(next);
       setLoadError(null);
     } catch (e) {
       setLoadError(e instanceof Error ? e.message : String(e));
@@ -34,7 +41,6 @@ export function ConversationPanel({ threadId, thread, lastEvent, onClose }: Prop
   const reload = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
 
   useEffect(() => {
-    setDetail(null);
     void load();
     return () => clearTimeout(reload.current);
   }, [threadId]);
@@ -47,46 +53,40 @@ export function ConversationPanel({ threadId, thread, lastEvent, onClose }: Prop
     reload.current = setTimeout(() => void load(), 500);
   }, [lastEvent]);
 
+  // Follow new messages unless the user scrolled up to read.
   useEffect(() => {
-    bottom.current?.scrollIntoView({ block: "end" });
-  }, [detail?.messages.length, detail?.messages.at(-1)?.text]);
+    const el = scroller.current;
+    if (el && stick.current) el.scrollTop = el.scrollHeight;
+  }, [detail?.messages.length, detail?.messages.at(-1)?.text, detail?.pendingRequests.length]);
 
   const t = thread ?? detail?.thread ?? null;
   const running = t?.bucket === "running" || Boolean(t?.activeRunId);
+
+  function setDraft(value: string) {
+    setText(value);
+    drafts.set(threadId, value);
+  }
 
   async function submit() {
     const body = text.trim();
     if (!body) return;
     const ok = await send.run(() => api.sendMessage(threadId, running ? { text: body, mode } : { text: body }));
-    if (ok) setText("");
+    if (ok) {
+      stick.current = true;
+      setDraft("");
+    }
   }
 
   return (
-    <aside className="panel" aria-label="Conversation">
-      <div className="panel-head">
-        <h2>{t?.title || "(untitled)"}</h2>
-        <button disabled={control.busy} onClick={() => void control.run(() => (t?.pinned ? api.unpin(threadId) : api.pin(threadId)))}>
-          {t?.pinned ? "Unpin" : "Pin"}
-        </button>
-        {running && (
-          <button className="danger" disabled={control.busy} onClick={() => void control.run(() => api.interrupt(threadId))}>
-            Interrupt
-          </button>
-        )}
-        <button
-          disabled={control.busy}
-          onClick={async () => {
-            if (await control.run(() => api.archive(threadId))) onClose();
-          }}
-        >
-          Archive
-        </button>
-        <button onClick={onClose} aria-label="Close">
-          ✕
-        </button>
-        {control.error && <span className="error">{control.error}</span>}
-      </div>
-      <div className="messages">
+    <div className="conversation">
+      <div
+        className="messages"
+        ref={scroller}
+        onScroll={(e) => {
+          const el = e.currentTarget;
+          stick.current = el.scrollHeight - el.scrollTop - el.clientHeight < NEAR_BOTTOM_PX;
+        }}
+      >
         {loadError && <p className="error">{loadError}</p>}
         {detail && detail.messages.length === 0 && <p className="empty">No messages</p>}
         {!detail && !loadError && <p className="empty">Loading…</p>}
@@ -99,15 +99,14 @@ export function ConversationPanel({ threadId, thread, lastEvent, onClose }: Prop
             {m.text}
           </div>
         ))}
-        <div ref={bottom} />
+        {detail && detail.pendingRequests.length > 0 && (
+          <div className="requests">
+            {detail.pendingRequests.map((r) => (
+              <PendingRequestView key={r.requestId} threadId={threadId} request={r} />
+            ))}
+          </div>
+        )}
       </div>
-      {detail && detail.pendingRequests.length > 0 && (
-        <div className="requests">
-          {detail.pendingRequests.map((r) => (
-            <PendingRequestView key={r.requestId} threadId={threadId} request={r} />
-          ))}
-        </div>
-      )}
       <form
         className="composer"
         onSubmit={(e) => {
@@ -115,7 +114,12 @@ export function ConversationPanel({ threadId, thread, lastEvent, onClose }: Prop
           void submit();
         }}
       >
-        <textarea value={text} onChange={(e) => setText(e.target.value)} placeholder="Send a message to the agent…" aria-label="Message" />
+        <textarea
+          value={text}
+          onChange={(e) => setDraft(e.target.value)}
+          placeholder="Send a message to the agent…"
+          aria-label="Message"
+        />
         <div className="row">
           {running && (
             <select aria-label="Send mode" value={mode} onChange={(e) => setMode(e.target.value as "queue" | "steer")}>
@@ -127,8 +131,28 @@ export function ConversationPanel({ threadId, thread, lastEvent, onClose }: Prop
             Send
           </button>
           {send.error && <span className="error">{send.error}</span>}
+          <span className="composer-actions">
+            {running && (
+              <button type="button" className="danger" disabled={control.busy} onClick={() => void control.run(() => api.interrupt(threadId))}>
+                Interrupt
+              </button>
+            )}
+            <button type="button" disabled={control.busy} onClick={() => void control.run(() => (t?.pinned ? api.unpin(threadId) : api.pin(threadId)))}>
+              {t?.pinned ? "Unpin" : "Pin"}
+            </button>
+            <button
+              type="button"
+              disabled={control.busy}
+              onClick={async () => {
+                if (await control.run(() => api.archive(threadId))) onClose();
+              }}
+            >
+              Archive
+            </button>
+          </span>
         </div>
+        {control.error && <span className="error">{control.error}</span>}
       </form>
-    </aside>
+    </div>
   );
 }

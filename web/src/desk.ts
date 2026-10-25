@@ -51,6 +51,21 @@ export function equalSizes(prefix: string, count: number): TrackSizes {
   return Object.fromEntries(Array.from({ length: count }, (_, i) => [`${prefix}${i}`, 100 / count]));
 }
 
+function matches(sizes: TrackSizes | undefined, prefix: string, count: number): sizes is TrackSizes {
+  const keys = Object.keys(sizes ?? {});
+  return keys.length === count && keys.every((k) => k.startsWith(prefix) && Number(k.slice(prefix.length)) < count);
+}
+
+// Saved sizes for this window count, or equal tracks when none fit the current grid.
+export function sizesFor(state: DeskState, count: number): DeskSizes {
+  const { columns, rows } = deskLayout(count);
+  const saved = state.sizes[String(count)];
+  return {
+    columns: matches(saved?.columns, "c", columns) ? saved.columns : equalSizes("c", columns),
+    rows: matches(saved?.rows, "r", rows) ? saved.rows : equalSizes("r", rows),
+  };
+}
+
 export function gridWindows(state: DeskState): DeskWindow[] {
   return state.windows.filter((w) => !w.minimized);
 }
