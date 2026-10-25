@@ -136,16 +136,16 @@ const withSubagents: RawProjection = {
   ],
 };
 
-test("subagents: the latest run plus any still running, running first then newest first", () => {
+test("subagents: only the latest run, running first then newest first", () => {
   const { subagents } = toThreadDetail("thread-1", withSubagents, undefined);
   assert.deepEqual(
     subagents.map((s) => s.id),
-    ["live", "old-running", "failed", "done"],
+    ["live", "failed", "done"],
   );
 });
 
 test("subagents: normalised status, progress only while running, result truncated", () => {
-  const [live, , failed, done] = toThreadDetail("thread-1", withSubagents, undefined).subagents;
+  const [live, failed, done] = toThreadDetail("thread-1", withSubagents, undefined).subagents;
   assert.deepEqual(live, { id: "live", title: "Implement", status: "running", progress: "Running bun test", result: null, startedAt: "2026-03-01T10:04:00Z", completedAt: null });
   assert.equal(failed!.status, "failed");
   assert.equal(failed!.title, "Review the diff for bugs");
@@ -169,4 +169,29 @@ test("subagents: an unknown status counts as running only while not completed", 
       ["b", "done", "Subagent"],
     ],
   );
+});
+
+const sub = (id: string, runId: string, status: string, startedAt: string) => ({ id, runId, status, title: id, startedAt });
+
+test("drops a subagent stuck in running from an older run", () => {
+  const detail = toThreadDetail("t", {
+    runs: [{ id: "r1", startedAt: "2026-03-01T10:00:00Z" }, { id: "r2", startedAt: "2026-03-01T11:00:00Z" }],
+    subagents: [sub("old", "r1", "running", "2026-03-01T10:01:00Z"), sub("new", "r2", "completed", "2026-03-01T11:01:00Z")],
+  }, undefined);
+  assert.deepEqual(detail.subagents.map((s) => s.id), ["new"]);
+});
+
+test("picks the latest run by start time when runs are out of order", () => {
+  const detail = toThreadDetail("t", {
+    runs: [{ id: "r2", startedAt: "2026-03-01T11:00:00Z" }, { id: "r1", startedAt: "2026-03-01T10:00:00Z" }],
+    subagents: [sub("old", "r1", "running", "2026-03-01T10:01:00Z"), sub("new", "r2", "running", "2026-03-01T11:01:00Z")],
+  }, undefined);
+  assert.deepEqual(detail.subagents.map((s) => s.id), ["new"]);
+});
+
+test("without runs, keeps the run of the most recently started subagent", () => {
+  const detail = toThreadDetail("t", {
+    subagents: [sub("old", "r1", "running", "2026-03-01T10:01:00Z"), sub("new", "r2", "completed", "2026-03-01T11:01:00Z")],
+  }, undefined);
+  assert.deepEqual(detail.subagents.map((s) => s.id), ["new"]);
 });

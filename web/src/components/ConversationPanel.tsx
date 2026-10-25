@@ -49,13 +49,19 @@ export function ConversationPanel({ threadId, thread, lastEvent, onClose }: Prop
   const send = useAction();
   const control = useAction();
 
+  // Bumped on every thread change and cleanup: a late response from an older effect is dropped.
+  const epoch = useRef(0);
+
   async function load() {
+    const mine = epoch.current;
     try {
       const next = await api.getThread(threadId);
+      if (mine !== epoch.current) return;
       detailCache.set(threadId, next);
       setDetail(next);
       setLoadError(null);
     } catch (e) {
+      if (mine !== epoch.current) return;
       setLoadError(e instanceof Error ? e.message : String(e));
     }
   }
@@ -64,7 +70,10 @@ export function ConversationPanel({ threadId, thread, lastEvent, onClose }: Prop
 
   useEffect(() => {
     void load();
-    return () => clearTimeout(reload.current);
+    return () => {
+      epoch.current++;
+      clearTimeout(reload.current);
+    };
   }, [threadId]);
 
   // A live update of this thread means new messages: reload, debounced.
@@ -75,7 +84,11 @@ export function ConversationPanel({ threadId, thread, lastEvent, onClose }: Prop
     reload.current = setTimeout(() => void load(), 500);
   }, [lastEvent]);
 
-  const subagentRunning = detail?.subagents.some((s) => s.status === "running") ?? false;
+  const t = thread ?? detail?.thread ?? null;
+  const running = t?.bucket === "running" || Boolean(t?.activeRunId);
+
+  // Poll only while the thread itself is active: a stale subagent must not keep it going.
+  const subagentRunning = running && (detail?.subagents.some((s) => s.status === "running") ?? false);
   useEffect(() => {
     if (!subagentRunning) return;
     const id = setInterval(() => void load(), SUBAGENT_POLL_MS);
@@ -87,9 +100,6 @@ export function ConversationPanel({ threadId, thread, lastEvent, onClose }: Prop
     const el = scroller.current;
     if (el && stick.current) el.scrollTop = el.scrollHeight;
   }, [detail?.messages.length, detail?.messages.at(-1)?.text, detail?.pendingRequests.length]);
-
-  const t = thread ?? detail?.thread ?? null;
-  const running = t?.bucket === "running" || Boolean(t?.activeRunId);
 
   function setDraft(value: string) {
     setText(value);

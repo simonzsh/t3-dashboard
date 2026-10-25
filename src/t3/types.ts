@@ -101,7 +101,7 @@ export interface RawSubagent {
 
 export interface RawProjection {
   messages?: RawMessage[];
-  runs?: Array<{ id: string; status?: string }>;
+  runs?: Array<{ id: string; status?: string; startedAt?: string | null; createdAt?: string | null }>;
   runtimeRequests?: RawRuntimeRequest[];
   turnItems?: Array<{ item?: RawTurnItem } | RawTurnItem>;
   visibleTurnItems?: Array<{ item?: RawTurnItem } | RawTurnItem>;

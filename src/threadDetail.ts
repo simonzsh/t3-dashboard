@@ -51,13 +51,22 @@ function toSubagent(raw: RawSubagent): SubagentInfo {
   };
 }
 
-// A long thread holds dozens of subagents: keep the latest run's and those still running.
+// Latest run by start time (array order breaks ties); without runs, the run of the newest subagent.
+function latestRunId(projection: RawProjection): string | undefined {
+  const stamp = (run: { startedAt?: string | null; createdAt?: string | null }) => run.startedAt ?? run.createdAt ?? "";
+  const pick = <T extends { id?: string }>(items: T[], at: (item: T) => string, id: (item: T) => string | null | undefined) =>
+    items.reduce<{ id?: string | null; at: string } | undefined>((best, item) => (id(item) && (!best || at(item) >= best.at) ? { id: id(item), at: at(item) } : best), undefined)?.id ?? undefined;
+  const runs = projection.runs ?? [];
+  if (runs.length) return pick(runs, stamp, (run) => run.id);
+  return pick(projection.subagents ?? [], (raw) => raw.startedAt ?? "", (raw) => raw.runId);
+}
+
+// A long thread holds dozens of subagents: keep only the latest run's (a stale "running" one must not stay).
 function subagentsOf(projection: RawProjection): SubagentInfo[] {
-  const latestRun = projection.runs?.at(-1)?.id;
+  const latestRun = latestRunId(projection);
   return (projection.subagents ?? [])
-    .map((raw) => ({ raw, info: toSubagent(raw) }))
-    .filter(({ raw, info }) => latestRun === undefined || raw.runId === latestRun || info.status === "running")
-    .map(({ info }) => info)
+    .filter((raw) => latestRun === undefined || raw.runId === latestRun)
+    .map(toSubagent)
     .sort((a, b) => Number(b.status === "running") - Number(a.status === "running") || (b.startedAt ?? "").localeCompare(a.startedAt ?? ""));
 }
 
