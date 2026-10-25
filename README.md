@@ -2,10 +2,10 @@
 
 Dashboard web local pour gérer les threads et les agents de T3 Code. Il remplace la vue en fil par deux onglets.
 
-- **Agents** : une carte par session T3 Code, regroupées par projet. Les agents qui attendent l'utilisateur passent en haut. Un clic ouvre la conversation : envoi de message, interruption, réponse aux approbations et aux questions, épinglage, archivage.
+- **Agents** : une carte par session T3 Code, regroupées par projet. Une colonne « Automatisations » (lecture seule) liste les routines et les rappels des cerveaux t3-agent. Les agents qui attendent l'utilisateur passent en haut. Un clic ouvre la conversation : envoi de message, interruption, réponse aux approbations et aux questions, épinglage, archivage.
 - **Board** : les tickets Linear assignés à vous, groupés par projet Linear. Un clic ouvre le ticket dans Linear. Le bouton « assigner à un agent » crée une session T3 Code (Claude ou Codex) qui traite le ticket. Elle apparaît seule dans l'onglet Agents.
 
-Le serveur Node (TypeScript, sans dépendance d'exécution) parle à T3 Code et expose une API locale. L'interface React se trouve dans `web/`.
+Le serveur Node (TypeScript, deux dépendances d'exécution : `yaml` et `croner`) parle à T3 Code et expose une API locale. L'interface React se trouve dans `web/`.
 
 ## Installation
 
@@ -40,6 +40,7 @@ npm run dev:web   # Vite sur http://127.0.0.1:5173, proxy /api vers le serveur
 | `PORT` | `4310` | Port local. L'hôte est toujours `127.0.0.1`. |
 | `T3_DASHBOARD_TOKEN_FILE` | `~/.config/t3-agent/perso.json` | Fichier JSON avec le champ `token`. |
 | `T3_DASHBOARD_LINEAR_FILE` | `~/.config/t3-dashboard/linear.json` | Fichier JSON des workspaces Linear (voir ci-dessous). |
+| `T3_DASHBOARD_AGENT_CONFIG_DIR` | `~/.config/t3-agent` | Dossier des configs t3-agent, un `*.json` par cerveau. |
 | `T3_SERVER_RUNTIME` | `~/.t3/userdata/server-runtime.json` | Fichier JSON avec le champ `origin`, relu à chaque connexion à T3. Repli : `http://127.0.0.1:3773`. |
 
 ## Configuration de Linear
@@ -57,6 +58,15 @@ Le dashboard lit un fichier hors git, avec le mode 600 :
 Pour créer une clé : dans Linear, ouvrez Settings, Account, Security & access, puis « Personal API keys » et « New API key ». Un fichier absent ou une clé vide ne bloque pas le serveur. Avec un fichier absent, l'onglet Board reste vide ; avec une clé vide, il affiche « Clé API manquante ». Le serveur ne logge et ne renvoie jamais une clé.
 
 Chaque workspace est lu séparément. Le serveur garde le résultat 60 s ; `GET /api/board?refresh=1` force la relecture.
+
+## Automatisations
+
+La colonne de droite de l'onglet Agents lit les cerveaux t3-agent, sans jamais écrire. Pour chaque `*.json` du dossier `T3_DASHBOARD_AGENT_CONFIG_DIR`, le serveur lit seulement `workspace` et `projectId`. Il ne lit, ne renvoie et ne logge jamais le `token`.
+
+- Routines : un job avec `schedule.cron`. La liste montre le libellé, la prochaine exécution et l'état du fil de la routine. Ce fil n'apparaît pas dans la grille des agents.
+- Rappels : un job avec `schedule.at`. Un rappel passé disparaît.
+- Un fichier de job illisible est ignoré et compté dans `problems`.
+- `GET /api/automations` relit les fichiers à chaque appel.
 
 ## Sécurité
 
