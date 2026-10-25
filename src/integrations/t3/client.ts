@@ -1,6 +1,8 @@
+import { describe, issues, parse, type Schema } from "../contract.ts";
 import { IntegrationError } from "../errors.ts";
 import { RpcConnection } from "./rpc.ts";
-import type { AttachmentRef, Command, ImageUpload, RawConfig, RawProjection, ShellItem, T3Port } from "./schemas.ts";
+import { PersistedAttachments, ProjectionResponse, RawConfig, ShellItem, WebSocketTicket } from "./schemas.ts";
+import type { AttachmentRef, Command, ImageUpload, RawProjection, T3Port } from "./schemas.ts";
 
 const ORCHESTRATION_PROTOCOL = "2";
 // Images go up as data URLs of up to 10 MB each: give T3 time to write them.
@@ -31,33 +33,40 @@ export interface T3ClientOptions {
   token: () => string | null;
   fetch?: typeof fetch;
   WebSocket?: typeof WebSocket;
+  /** Reports a shell item that does not match its schema. */
+  warn?: (message: string) => void;
 }
+
+const read = <T>(schema: Schema<T>, value: unknown, what: string): T => parse(schema, value, { system: "t3", what: `T3 ${what}` });
 
 export class T3Client implements T3Port {
   private readonly origin: () => Promise<string>;
   private readonly token: () => string | null;
   private readonly fetchImpl: typeof fetch;
   private readonly Socket: typeof WebSocket;
+  private readonly warn: (message: string) => void;
+  private readonly warned = new Set<string>();
 
-  constructor({ origin, token, fetch = globalThis.fetch, WebSocket = globalThis.WebSocket }: T3ClientOptions) {
+  constructor({ origin, token, fetch = globalThis.fetch, WebSocket = globalThis.WebSocket, warn = console.warn }: T3ClientOptions) {
     this.origin = origin;
     this.token = token;
     this.fetchImpl = fetch;
     this.Socket = WebSocket;
+    this.warn = warn;
   }
 
   async threadProjection(threadId: string): Promise<RawProjection> {
-    const { projection } = (await this.http("GET", `/api/orchestration/threads/${encodeURIComponent(threadId)}`)) as { projection?: RawProjection };
-    return projection ?? {};
+    const answer = await this.http("GET", `/api/orchestration/threads/${encodeURIComponent(threadId)}`);
+    return read(ProjectionResponse, answer, "thread projection").projection ?? {};
   }
 
   async getConfig(): Promise<RawConfig> {
-    return this.oneShot("server.getConfig", {}) as Promise<RawConfig>;
+    return read(RawConfig, await this.oneShot("server.getConfig", {}), "server.getConfig");
   }
 
   async persistAttachments(threadId: string, messageId: string, images: ImageUpload[]): Promise<AttachmentRef[]> {
-    const result = (await this.oneShot("assets.persistChatAttachments", { threadId, messageId, attachments: images }, UPLOAD_TIMEOUT_MS)) as { attachments?: AttachmentRef[] };
-    return result.attachments ?? [];
+    const result = await this.oneShot("assets.persistChatAttachments", { threadId, messageId, attachments: images }, UPLOAD_TIMEOUT_MS);
+    return read(PersistedAttachments, result, "assets.persistChatAttachments").attachments ?? [];
   }
 
   dispatch(command: Command): Promise<unknown> {
@@ -78,7 +87,7 @@ export class T3Client implements T3Port {
         if (cancelled) return opened.close();
         // Without the marker T3 never sends `synchronized`, and the store would never commit.
         const payload = { requestCompletionMarker: true };
-        cancelStream = opened.stream("orchestration.subscribeShell", payload, (values) => onItems(values as ShellItem[]), finish).cancel;
+        cancelStream = opened.stream("orchestration.subscribeShell", payload, (values) => onItems(this.checkShell(values)), finish).cancel;
       },
       (error: Error) => finish(error),
     );
@@ -93,10 +102,21 @@ export class T3Client implements T3Port {
 
   // One ticket per socket: T3 refuses to reuse it.
   async openSocket(): Promise<RpcConnection> {
-    const { ticket } = (await this.http("POST", "/api/auth/websocket-ticket")) as { ticket: string };
+    const { ticket } = read(WebSocketTicket, await this.http("POST", "/api/auth/websocket-ticket"), "websocket ticket");
     const query = new URLSearchParams({ wsTicket: ticket, orchestrationProtocol: ORCHESTRATION_PROTOCOL });
     const url = `${(await this.baseUrl()).replace(/^http/, "ws")}/ws?${query}`;
     return new RpcConnection(url, this.Socket);
+  }
+
+  // The stream never fails on a wrong item: a broken snapshot would empty the dashboard. It warns once per field.
+  private checkShell(values: unknown[]): ShellItem[] {
+    for (const issue of values.flatMap((value) => issues(ShellItem, value))) {
+      const message = `T3 contract: orchestration.subscribeShell item ${describe(issue)}`;
+      if (this.warned.has(message)) continue;
+      this.warned.add(message);
+      this.warn(message);
+    }
+    return values as ShellItem[];
   }
 
   private async oneShot(tag: string, payload: unknown, timeoutMs?: number): Promise<unknown> {

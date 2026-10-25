@@ -1,157 +1,194 @@
-import type { ModelSelection } from "../../../shared/api.ts";
+import { s, type Infer } from "../contract.ts";
 
-// Raw T3 shapes. Fields are optional because the server changes them between versions.
-export interface RawThread {
-  id: string;
-  projectId?: string;
-  title?: string | null;
-  providerInstanceId?: string | null;
-  modelSelection?: ModelSelection | null;
-  runtimeMode?: string | null;
-  lineage?: { relationshipToParent?: string | null } | null;
-  creationSource?: string | null;
-  status?: string | null;
-  activeRunId?: string | null;
-  pendingBackgroundTasks?: RawBackgroundTask[] | null;
-  blockedOnThreadWait?: boolean | null;
-  activityRunStartedAt?: string | null;
-  latestRunStartedAt?: string | null;
-  latestRunCompletedAt?: string | null;
-  latestUserMessageAt?: string | null;
-  lastError?: string | null;
-  pendingRuntimeRequest?: { id: string; kind: string } | null;
-  latestVisibleMessage?: { role?: string; text?: string; updatedAt?: string | null } | null;
-  createdAt?: string | null;
-  updatedAt?: string | null;
-  archivedAt?: string | null;
-  deletedAt?: string | null;
-  settledOverride?: string | null;
-  settledAt?: string | null;
-  unsettledAt?: string | null;
-  snoozedUntil?: string | null;
-  pinnedAt?: string | null;
-}
+// Raw T3 shapes, limited to the fields the dashboard reads.
+// Fields are optional because the server changes them between versions.
+const text = () => s.optional(s.nullable(s.string()));
 
-export interface RawProject {
-  id: string;
-  title?: string | null;
-  defaultModelSelection?: ModelSelection | null;
-}
+export const ModelSelection = s.object({
+  instanceId: s.string(),
+  model: s.string(),
+  options: s.optional(s.array(s.object({ id: s.string(), value: s.unknown() }))),
+});
 
-export interface RawSnapshot {
-  threads?: RawThread[];
-  archivedThreads?: RawThread[];
-  projects?: RawProject[];
-}
+export const RawBackgroundTask = s.object({
+  taskId: s.optional(s.string()),
+  kind: s.optional(s.string()),
+  description: text(),
+  childThreadId: text(),
+});
+export type RawBackgroundTask = Infer<typeof RawBackgroundTask>;
+
+export const RawThread = s.object({
+  id: s.string(),
+  projectId: s.optional(s.string()),
+  title: text(),
+  providerInstanceId: text(),
+  modelSelection: s.optional(s.nullable(ModelSelection)),
+  runtimeMode: text(),
+  lineage: s.optional(s.nullable(s.object({ relationshipToParent: text() }))),
+  creationSource: text(),
+  status: text(),
+  activeRunId: text(),
+  pendingBackgroundTasks: s.optional(s.nullable(s.array(RawBackgroundTask))),
+  blockedOnThreadWait: s.optional(s.nullable(s.boolean())),
+  activityRunStartedAt: text(),
+  latestRunStartedAt: text(),
+  latestRunCompletedAt: text(),
+  latestUserMessageAt: text(),
+  lastError: text(),
+  pendingRuntimeRequest: s.optional(s.nullable(s.object({ id: s.string(), kind: s.string() }))),
+  latestVisibleMessage: s.optional(s.nullable(s.object({ role: s.optional(s.string()), text: s.optional(s.string()), updatedAt: text() }))),
+  createdAt: text(),
+  updatedAt: text(),
+  archivedAt: text(),
+  deletedAt: text(),
+  settledOverride: text(),
+  settledAt: text(),
+  unsettledAt: text(),
+  snoozedUntil: text(),
+  pinnedAt: text(),
+});
+export type RawThread = Infer<typeof RawThread>;
+
+export const RawProject = s.object({
+  id: s.string(),
+  title: text(),
+  defaultModelSelection: s.optional(s.nullable(ModelSelection)),
+});
+export type RawProject = Infer<typeof RawProject>;
+
+export const RawSnapshot = s.object({
+  threads: s.optional(s.array(RawThread)),
+  projects: s.optional(s.array(RawProject)),
+});
+export type RawSnapshot = Infer<typeof RawSnapshot>;
 
 // Unknown kinds can still arrive at runtime; consumers ignore them.
-export type ShellItem =
-  | { kind: "snapshot"; snapshot?: RawSnapshot }
-  | { kind: "synchronized" }
-  | { kind: "thread.updated"; thread: RawThread; location?: string }
-  | { kind: "thread.removed"; threadId: string }
-  | { kind: "project.updated"; project: RawProject }
-  | { kind: "project.removed"; projectId: string };
+export const ShellItem = s.variant("kind", {
+  snapshot: s.object({ snapshot: s.optional(RawSnapshot) }),
+  synchronized: s.object({}),
+  "thread.updated": s.object({ thread: RawThread, location: s.optional(s.string()) }),
+  "thread.removed": s.object({ threadId: s.string() }),
+  "project.updated": s.object({ project: RawProject }),
+  "project.removed": s.object({ projectId: s.string() }),
+});
+export type ShellItem = Infer<typeof ShellItem>;
 
-export interface RawMessage {
-  id: string;
-  role: "user" | "assistant" | "system";
-  text?: string;
-  streaming?: boolean;
-  createdAt?: string;
-}
+export const RawMessage = s.object({
+  id: s.string(),
+  role: s.union(s.literal("user"), s.union(s.literal("assistant"), s.literal("system"))),
+  text: s.optional(s.string()),
+  streaming: s.optional(s.boolean()),
+  createdAt: s.optional(s.string()),
+});
 
-export interface RawRuntimeRequest {
-  id: string;
-  kind?: string;
-  status?: string;
-  createdAt?: string;
-  responseCapability?: { type?: string } | null;
-}
+export const RawRuntimeRequest = s.object({
+  id: s.string(),
+  kind: s.optional(s.string()),
+  status: s.optional(s.string()),
+  createdAt: s.optional(s.string()),
+  responseCapability: s.optional(s.nullable(s.object({ type: s.optional(s.string()) }))),
+});
+export type RawRuntimeRequest = Infer<typeof RawRuntimeRequest>;
 
-export interface RawTurnItem {
-  type?: string;
-  requestId?: string;
-  requestKind?: string;
-  prompt?: string | null;
-  reason?: string | null;
-  questions?: Array<{
-    id: string;
-    header?: string | null;
-    question?: string;
-    options?: Array<{ label: string; description?: string | null; value?: string | null }>;
-    multiSelect?: boolean;
-    allowCustomAnswer?: boolean;
-    required?: boolean;
-  }>;
-  messageId?: string;
-  id?: string;
-  runId?: string | null;
-  ordinal?: number;
-  status?: string | null;
-  title?: string | null;
-  completedAt?: string | null;
-  text?: string | null;
-  input?: unknown;
-  toolName?: string | null;
-  fileName?: string | null;
-  exitCode?: number | null;
-  outputIndicatesFailure?: boolean | null;
-}
+const RawQuestion = s.object({
+  id: s.string(),
+  header: text(),
+  question: s.optional(s.string()),
+  options: s.optional(s.array(s.object({ label: s.string(), description: text(), value: text() }))),
+  multiSelect: s.optional(s.boolean()),
+  allowCustomAnswer: s.optional(s.boolean()),
+  required: s.optional(s.boolean()),
+});
 
-export interface RawBackgroundTask {
-  taskId?: string;
-  kind?: string;
-  description?: string | null;
-  childThreadId?: string | null;
-}
+export const RawTurnItem = s.object({
+  type: s.optional(s.string()),
+  requestId: s.optional(s.string()),
+  requestKind: s.optional(s.string()),
+  prompt: text(),
+  reason: text(),
+  questions: s.optional(s.array(RawQuestion)),
+  messageId: s.optional(s.string()),
+  id: s.optional(s.string()),
+  runId: text(),
+  ordinal: s.optional(s.number()),
+  status: text(),
+  title: text(),
+  completedAt: text(),
+  text: text(),
+  input: s.optional(s.unknown()),
+  toolName: text(),
+  fileName: text(),
+  exitCode: s.optional(s.nullable(s.number())),
+  outputIndicatesFailure: s.optional(s.nullable(s.boolean())),
+});
+export type RawTurnItem = Infer<typeof RawTurnItem>;
 
-export interface RawSubagent {
-  id: string;
-  runId?: string | null;
-  childThreadId?: string | null;
-  nativeTaskRef?: { nativeId?: string | null } | null;
-  title?: string | null;
-  prompt?: string | null;
-  status?: string | null;
-  progress?: string | null;
-  result?: string | null;
-  startedAt?: string | null;
-  completedAt?: string | null;
-}
+export const RawSubagent = s.object({
+  id: s.string(),
+  runId: text(),
+  childThreadId: text(),
+  nativeTaskRef: s.optional(s.nullable(s.object({ nativeId: text() }))),
+  title: text(),
+  prompt: text(),
+  status: text(),
+  progress: text(),
+  result: text(),
+  startedAt: text(),
+  completedAt: text(),
+});
+export type RawSubagent = Infer<typeof RawSubagent>;
 
-export interface RawProjection {
-  messages?: RawMessage[];
-  runs?: Array<{ id: string; status?: string; startedAt?: string | null; createdAt?: string | null; completedAt?: string | null }>;
-  runtimeRequests?: RawRuntimeRequest[];
-  turnItems?: Array<{ item?: RawTurnItem } | RawTurnItem>;
-  visibleTurnItems?: Array<{ item?: RawTurnItem } | RawTurnItem>;
-  subagents?: RawSubagent[];
-  thread?: RawThread;
-}
+// T3 sends a turn item bare or wrapped as `{item}`, depending on the list.
+const TurnItemEntry = s.union(s.object({ item: RawTurnItem }), RawTurnItem);
 
-export interface RawProvider {
-  instanceId: string;
-  displayName?: string | null;
-  enabled?: boolean;
-  status?: string;
-  supportedRuntimeModes?: string[];
-  models?: Array<{ slug: string; name?: string | null; capabilities?: { optionDescriptors?: RawOptionDescriptor[] } | null }>;
-}
+export const RawProjection = s.object({
+  messages: s.optional(s.array(RawMessage)),
+  runs: s.optional(s.array(s.object({ id: s.string(), status: s.optional(s.string()), startedAt: text(), createdAt: text(), completedAt: text() }))),
+  runtimeRequests: s.optional(s.array(RawRuntimeRequest)),
+  turnItems: s.optional(s.array(TurnItemEntry)),
+  visibleTurnItems: s.optional(s.array(TurnItemEntry)),
+  subagents: s.optional(s.array(RawSubagent)),
+  thread: s.optional(RawThread),
+});
+export type RawProjection = Infer<typeof RawProjection>;
 
-export interface RawOptionDescriptor {
-  id: string;
-  label?: string;
-  type?: string;
-  options?: Array<{ id: string; label?: string; isDefault?: boolean }>;
-  currentValue?: unknown;
-  promptInjectedValues?: string[];
-}
+export const ProjectionResponse = s.object({ projection: s.optional(RawProjection) });
 
-export interface RawConfig {
-  providers?: RawProvider[];
-  environment?: { serverVersion?: string | null; orchestrationProtocolVersion?: number | null };
-}
+export const RawOptionDescriptor = s.object({
+  id: s.string(),
+  label: s.optional(s.string()),
+  type: s.optional(s.string()),
+  options: s.optional(s.array(s.object({ id: s.string(), label: s.optional(s.string()), isDefault: s.optional(s.boolean()) }))),
+  currentValue: s.optional(s.unknown()),
+  promptInjectedValues: s.optional(s.array(s.string())),
+});
+export type RawOptionDescriptor = Infer<typeof RawOptionDescriptor>;
+
+export const RawProvider = s.object({
+  instanceId: s.string(),
+  displayName: text(),
+  enabled: s.optional(s.boolean()),
+  status: s.optional(s.string()),
+  supportedRuntimeModes: s.optional(s.array(s.string())),
+  models: s.optional(
+    s.array(s.object({ slug: s.string(), name: text(), capabilities: s.optional(s.nullable(s.object({ optionDescriptors: s.optional(s.array(RawOptionDescriptor)) }))) })),
+  ),
+});
+
+export const RawConfig = s.object({
+  providers: s.optional(s.array(RawProvider)),
+  environment: s.optional(s.object({ serverVersion: text(), orchestrationProtocolVersion: s.optional(s.nullable(s.number())) })),
+});
+export type RawConfig = Infer<typeof RawConfig>;
+
+export const WebSocketTicket = s.object({ ticket: s.string() });
+
+// What T3 stores: message.dispatch references it by id.
+export const AttachmentRef = s.object({ type: s.string(), id: s.string(), name: s.string(), mimeType: s.string(), sizeBytes: s.number() });
+export type AttachmentRef = Infer<typeof AttachmentRef>;
+
+export const PersistedAttachments = s.object({ attachments: s.optional(s.array(AttachmentRef)) });
 
 export interface ImageUpload {
   type: "image";
@@ -159,15 +196,6 @@ export interface ImageUpload {
   mimeType: string;
   sizeBytes: number;
   dataUrl: string;
-}
-
-// What T3 stores: message.dispatch references it by id.
-export interface AttachmentRef {
-  type: string;
-  id: string;
-  name: string;
-  mimeType: string;
-  sizeBytes: number;
 }
 
 export type Command = Record<string, unknown>;

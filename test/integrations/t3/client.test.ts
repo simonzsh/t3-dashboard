@@ -12,20 +12,22 @@ interface Call {
   headers: Record<string, string>;
 }
 
-function setup(origin = "http://127.0.0.1:3773/") {
+function setup(origin = "http://127.0.0.1:3773/", projection: unknown = { messages: [] }) {
   const calls: Call[] = [];
+  const warnings: string[] = [];
   const fakeFetch = (async (url: string, init: RequestInit) => {
     calls.push({ url, method: init.method ?? "GET", headers: init.headers as Record<string, string> });
     if (url.endsWith("/api/auth/websocket-ticket")) return Response.json({ ticket: "ticket-1" });
-    return Response.json({ projection: { messages: [] } });
+    return Response.json({ projection });
   }) as unknown as typeof fetch;
   const client = new T3Client({
     origin: async () => origin,
     token: () => "test-token",
     fetch: fakeFetch,
     WebSocket: FakeSocket as unknown as typeof WebSocket,
+    warn: (message) => warnings.push(message),
   });
-  return { client, calls };
+  return { client, calls, warnings };
 }
 
 async function nextSocket(): Promise<FakeSocket> {
@@ -160,4 +162,49 @@ test("without a token no request leaves, and the token is read on every request"
   token = "later";
   await client.threadProjection("t");
   assert.deepEqual(calls, ["Bearer later"]);
+});
+
+const protocolError = async (promise: Promise<unknown>): Promise<IntegrationError> => {
+  const error = await promise.then(() => undefined, (caught: unknown) => caught);
+  assert.ok(error instanceof IntegrationError);
+  assert.deepEqual([error.system, error.kind], ["t3", "protocol"]);
+  return error;
+};
+
+test("a projection of the wrong shape is a protocol error that names the field, not the value", async () => {
+  const { client } = setup(undefined, { messages: [{ id: "m1", role: "user", text: 42 }], thread: { id: "t", title: "secret title" } });
+  const error = await protocolError(client.threadProjection("t"));
+  assert.equal(error.message, "Unexpected T3 thread projection: projection.messages[0].text should be string, got number");
+});
+
+test("a ticket answer without a ticket is a protocol error", async () => {
+  const fakeFetch = (async () => Response.json({ token: "x" })) as unknown as typeof fetch;
+  const client = new T3Client({ origin: async () => "http://t3", token: () => "test-token", fetch: fakeFetch, WebSocket: FakeSocket as unknown as typeof WebSocket });
+  const error = await protocolError(client.getConfig());
+  assert.match(error.message, /ticket should be string, got undefined/);
+});
+
+test("getConfig and persistAttachments check T3's answer", async () => {
+  const { client } = setup();
+  const config = client.getConfig();
+  const socket = await nextSocket();
+  socket.receive({ _tag: "Exit", requestId: "1", exit: { _tag: "Success", value: { providers: [{ instanceId: 7 }] } } });
+  assert.match((await protocolError(config)).message, /^Unexpected T3 server\.getConfig: providers\[0\]\.instanceId should be string, got number$/);
+  FakeSocket.reset();
+  const upload = client.persistAttachments("t", "m", []);
+  const second = await nextSocket();
+  second.receive({ _tag: "Exit", requestId: "1", exit: { _tag: "Success", value: { attachments: [{ id: "a" }] } } });
+  assert.match((await protocolError(upload)).message, /attachments\[0\]\.type should be string/);
+});
+
+test("subscribeShell passes every item on and warns once per wrong field, without values", async () => {
+  const { client, warnings } = setup();
+  const seen: unknown[][] = [];
+  client.subscribeShell((items) => seen.push(items), () => {});
+  const socket = await nextSocket();
+  const bad = { kind: "thread.updated", thread: { id: "t1", title: 99, status: "secret-status" } };
+  socket.receive({ _tag: "Chunk", requestId: "1", values: [bad, { kind: "thread.renamed", whatever: 1 }] });
+  socket.receive({ _tag: "Chunk", requestId: "1", values: [bad] });
+  assert.deepEqual(seen, [[bad, { kind: "thread.renamed", whatever: 1 }], [bad]]);
+  assert.deepEqual(warnings, ["T3 contract: orchestration.subscribeShell item thread.title should be string or null, got number"]);
 });
