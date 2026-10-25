@@ -495,8 +495,6 @@ button.auto-row:hover { background: var(--surface-0); }
 .row-icons { align-items: center; }
 .row-icons .spinning .icon { animation: spin 0.9s linear infinite; }
 @keyframes spin { to { transform: rotate(360deg); } }
-.settings-note { align-self: flex-end; font-size: 12px; color: var(--text-secondary); }
-.settings-note.error { color: var(--danger); }
 .key-mask { font: 12px/1 ui-monospace, SFMono-Regular, Menlo, monospace; padding: 4px 7px; border-radius: 6px; border: 1px solid var(--line); color: var(--text-secondary); background: var(--surface-0); }
 /* After every animated rule, so it wins on equal specificity. */
 @media (prefers-reduced-motion: reduce) {

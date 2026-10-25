@@ -130,7 +130,7 @@ export function Dropdown({ label, value, options, onPick, icon, placeholder, dis
           >
             {shown.length === 0 && <div className="dropdown-empty">No match</div>}
             {shown.map((o, i) => (
-              <div key={o.id} className="dropdown-entry">
+              <div key={o.id}>
                 {o.group && o.group !== shown[i - 1]?.group && <div className="dropdown-group">{o.group}</div>}
                 <div
                   id={`${id}-${i}`}
