@@ -43,9 +43,7 @@ export function AgentsView({ state, now, deskIds, onOpen, onToggleDesk, automati
             )}
             {g.settled.length > 0 && (
               <div className="settled">
-                <h3 className="settled-head">
-                  Settled <span className="count">{g.settled.length}</span>
-                </h3>
+                <h3 className="settled-head">Recent ({g.settled.length})</h3>
                 <div className="grid compact">
                   {g.settled.map((t) => (
                     <AgentCard key={t.id} card={{ thread: t, status: agentStatus(t) }} compact now={now} onDesk={deskIds.has(t.id)} t3EnvironmentId={state.t3EnvironmentId} onOpen={onOpen} onToggleDesk={onToggleDesk} />
