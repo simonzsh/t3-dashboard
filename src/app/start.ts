@@ -22,6 +22,7 @@ import { writeSecret } from "../config/secretFile.ts";
 import { createDashboardServer } from "../server/server.ts";
 import { createSettings } from "../domain/settings.ts";
 import { ShellStore } from "../domain/shellStore.ts";
+import { NO_MODEL_DEFAULTS } from "../domain/providers.ts";
 import { siteFromBundle } from "../server/site.ts";
 import { SseHub } from "../server/sse.ts";
 import { updateDeps } from "./deps.ts";
@@ -78,6 +79,7 @@ export async function start({ port, log, env }: StartOptions): Promise<void> {
 
   const hub = new SseHub();
   let providers: DashboardProvider[] = [];
+  let modelDefaults = NO_MODEL_DEFAULTS;
   const store: ShellStore = new ShellStore({
     now: () => new Date(),
     onState: () => hub.broadcast({ type: "state", data: getState() }),
@@ -93,9 +95,13 @@ export async function start({ port, log, env }: StartOptions): Promise<void> {
       providers = list;
       hub.broadcast({ type: "providers", data: list });
     },
+    onModelDefaults: (defaults) => {
+      modelDefaults = defaults;
+      hub.broadcast({ type: "modelDefaults", data: defaults });
+    },
   });
   const brainsDir = agentConfigDir(env, home);
-  const getState = () => store.state(live.connection(), providers, loadBrains(brainsDir).length > 0, readEnvironmentId(environmentId, readText));
+  const getState = () => store.state(live.connection(), providers, loadBrains(brainsDir).length > 0, readEnvironmentId(environmentId, readText), modelDefaults);
 
   const linearPath = linearFile(env, home);
   const board = new LinearBoard({

@@ -54,6 +54,14 @@ export interface DashboardModel {
   slug: string;
   name: string;
   effort: ModelEffort | null;
+  /** Rank in T3's favorites, or null when not a favorite. */
+  favorite: number | null;
+}
+
+/** T3 Code's own settings for a new agent. */
+export interface ModelDefaults {
+  selection: ModelSelection | null;
+  runtimeMode: RuntimeMode | null;
 }
 
 export interface DashboardProvider {

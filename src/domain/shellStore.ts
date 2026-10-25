@@ -1,4 +1,5 @@
-import type { ConnectionStatus, DashboardProject, DashboardProvider, DashboardState, DashboardThread, Diff } from "../../shared/api.ts";
+import type { ConnectionStatus, DashboardProject, DashboardProvider, DashboardState, DashboardThread, Diff, ModelDefaults } from "../../shared/api.ts";
+import { NO_MODEL_DEFAULTS } from "./providers.ts";
 import { isHidden, toDashboardThread } from "./classify.ts";
 import { DiffBatch } from "./diffBatch.ts";
 import { toProjectIcon } from "./projectIcon.ts";
@@ -53,12 +54,13 @@ export class ShellStore {
     this.flush();
   }
 
-  state(connection: ConnectionStatus, providers: DashboardProvider[], automationsAvailable: boolean, t3EnvironmentId: string | null = null): DashboardState {
+  state(connection: ConnectionStatus, providers: DashboardProvider[], automationsAvailable: boolean, t3EnvironmentId: string | null = null, modelDefaults: ModelDefaults = NO_MODEL_DEFAULTS): DashboardState {
     const threads = [...this.derived.values()].sort((a, b) => Date.parse(b.lastActivityAt) - Date.parse(a.lastActivityAt));
     return {
       connection,
       projects: [...this.live.projects.values()].map(toProject),
       providers,
+      modelDefaults,
       threads,
       automationsAvailable,
       t3EnvironmentId,

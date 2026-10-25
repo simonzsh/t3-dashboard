@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import type { DashboardProvider, ImageAttachment, ModelSelection, RuntimeMode, ThreadSettingsBody } from "../../../../shared/api.ts";
+import type { DashboardModel, DashboardProvider, ImageAttachment, ModelSelection, RuntimeMode, ThreadSettingsBody } from "../../../../shared/api.ts";
 import { IMAGE_TYPES } from "../../../../shared/limits.ts";
 import { RUNTIME_MODE_LABELS, acceptImages, currentEffort, findModel, selectEffort, selectModel } from "./composer.ts";
 import type { DropdownOption } from "../../lib/dropdown.ts";
@@ -113,9 +113,18 @@ export function Composer({ providers, selection, runtimeMode, running, draft, on
     if (await attempt(() => onSend(draft.trim(), attachments), setSending)) setImages([]);
   }
 
-  const modelOptions: DropdownOption[] = providers.flatMap((p) =>
-    p.models.map((m) => ({ id: `${p.instanceId}\u0000${m.slug}`, label: m.name, group: p.displayName, icon: <ProviderIcon provider={p.instanceId} /> })),
-  );
+  const option = (p: DashboardProvider, m: DashboardModel, group: string, suffix = ""): DropdownOption => ({
+    id: `${p.instanceId}\u0000${m.slug}${suffix}`,
+    label: m.name,
+    group,
+    icon: <ProviderIcon provider={p.instanceId} />,
+  });
+  // T3's favorites come first; their ids get a suffix so each option stays unique.
+  const favorites = providers
+    .flatMap((p) => p.models.filter((m) => m.favorite !== null).map((m) => ({ p, m })))
+    .sort((a, b) => a.m.favorite! - b.m.favorite!)
+    .map(({ p, m }) => option(p, m, "Favorites", "\u0000favorite"));
+  const modelOptions: DropdownOption[] = [...favorites, ...providers.flatMap((p) => p.models.map((m) => option(p, m, p.displayName)))];
   const selectedModelId = localSelection ? `${localSelection.instanceId}\u0000${localSelection.model}` : null;
   if (localSelection && !found) modelOptions.unshift({ id: selectedModelId!, label: localSelection.model });
 

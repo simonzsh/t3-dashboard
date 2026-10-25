@@ -20,6 +20,8 @@ export function applyEvent(state: DashboardState | null, event: DashboardEvent):
       return { ...state, projects: applyDiff(state.projects, event.data) };
     case "providers":
       return { ...state, providers: event.data };
+    case "modelDefaults":
+      return { ...state, modelDefaults: event.data };
     case "connection":
       return { ...state, connection: event.data };
   }

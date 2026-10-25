@@ -109,7 +109,7 @@ test("providers are filtered to enabled and ready, with fallbacks", async () => 
   live.start();
   await until(() => providers.length === 1);
   assert.deepEqual(providers[0], [
-    { instanceId: "provider-a", displayName: "Provider A", models: [{ slug: "model-x", name: "Model X", effort: null }, { slug: "model-y", name: "model-y", effort: null }], runtimeModes: ["approval-required", "auto-accept-edits", "auto", "full-access"] },
+    { instanceId: "provider-a", displayName: "Provider A", models: [{ slug: "model-x", name: "Model X", effort: null, favorite: null }, { slug: "model-y", name: "model-y", effort: null, favorite: null }], runtimeModes: ["approval-required", "auto-accept-edits", "auto", "full-access"] },
     { instanceId: "provider-b", displayName: "provider-b", models: [], runtimeModes: ["approval-required", "auto-accept-edits", "auto", "full-access"] },
   ]);
   live.stop();

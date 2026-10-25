@@ -15,9 +15,11 @@ export const loadNewAgentProject = (storage: Store | null, projects: DashboardPr
 
 export const saveNewAgentProject = (storage: Store | null, projectId: string): void => saveProjectChoice(storage, KEY, projectId);
 
-export function presetSelection(project: DashboardProject | undefined, providers: DashboardProvider[]): ModelSelection | null {
-  const sel = project?.defaultModelSelection;
-  if (sel && providers.some((p) => p.instanceId === sel.instanceId && p.models.some((m) => m.slug === sel.model))) return sel;
+/** The project's default, else T3's default, else the first model; a default no longer offered is skipped. */
+export function presetSelection(project: DashboardProject | undefined, providers: DashboardProvider[], fallback: ModelSelection | null = null): ModelSelection | null {
+  const offered = (sel: ModelSelection | null | undefined): sel is ModelSelection => !!sel && providers.some((p) => p.instanceId === sel.instanceId && p.models.some((m) => m.slug === sel.model));
+  const sel = [project?.defaultModelSelection, fallback].find(offered);
+  if (sel) return sel;
   const first = providers.find((p) => p.models.length > 0);
   return first ? { instanceId: first.instanceId, model: first.models[0]!.slug } : null;
 }

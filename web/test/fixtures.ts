@@ -27,6 +27,7 @@ export function baseState(threads: DashboardThread[] = []): DashboardState {
     connection: { t3: "live", serverVersion: null, protocolMismatch: false, error: null, setup: null },
     projects: [{ id: "project-a", title: "Project A", defaultModelSelection: null, icon: null }],
     providers: [],
+    modelDefaults: { selection: null, runtimeMode: null },
     threads,
     automationsAvailable: true,
     t3EnvironmentId: null,

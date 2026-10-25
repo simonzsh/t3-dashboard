@@ -180,8 +180,17 @@ export const RawProvider = s.object({
   ),
 });
 
+// Only the model settings; providerModelPreferences is a map by instance, read in the domain.
+const RawSettings = s.object({
+  defaultModelSelection: s.optional(s.nullable(ModelSelection)),
+  defaultRuntimeMode: text(),
+  favorites: s.optional(s.nullable(s.array(s.object({ provider: s.string(), model: s.string() })))),
+  providerModelPreferences: s.optional(s.unknown()),
+});
+
 export const RawConfig = s.object({
   providers: s.optional(s.array(RawProvider)),
+  settings: s.optional(s.nullable(RawSettings)),
   environment: s.optional(s.object({ serverVersion: text(), orchestrationProtocolVersion: s.optional(s.nullable(s.number())) })),
 });
 export type RawConfig = Infer<typeof RawConfig>;

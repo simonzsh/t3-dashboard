@@ -1,11 +1,11 @@
 import { setTimeout as delay } from "node:timers/promises";
-import type { ConnectionStatus, DashboardProvider, SetupInfo } from "../../shared/api.ts";
+import type { ConnectionStatus, DashboardProvider, ModelDefaults, SetupInfo } from "../../shared/api.ts";
 import type { TokenManager } from "./tokenManager.ts";
 import { IntegrationError } from "../integrations/errors.ts";
 import { INSTALL_URL, ISSUE_COMMAND } from "../integrations/t3/cli.ts";
 import type { ShellStore } from "./shellStore.ts";
 import type { T3Port } from "../integrations/t3/schemas.ts";
-import { toProviders } from "./providers.ts";
+import { toModelDefaults, toProviders } from "./providers.ts";
 
 const BACKOFF_MS = [1000, 2000, 4000, 8000, 16000, 30000];
 const EXPECTED_PROTOCOL = 2;
@@ -16,6 +16,7 @@ export interface LiveSyncOptions {
   auth: Pick<TokenManager, "current" | "setup" | "refresh">;
   onConnection(status: ConnectionStatus): void;
   onProviders(providers: DashboardProvider[]): void;
+  onModelDefaults?(defaults: ModelDefaults): void;
   sleep?: (ms: number) => Promise<void>;
 }
 
@@ -123,6 +124,7 @@ export class LiveSync {
     try {
       const config = await this.options.port.getConfig();
       this.options.onProviders(toProviders(config));
+      this.options.onModelDefaults?.(toModelDefaults(config));
       const protocol = config.environment?.orchestrationProtocolVersion;
       this.setStatus({
         serverVersion: config.environment?.serverVersion ?? null,
