@@ -54,12 +54,20 @@ export function Composer({ providers, selection, runtimeMode, running, draft, on
   useEffect(() => setLocalSelection(selection), [JSON.stringify(selection)]);
   useEffect(() => setLocalMode(runtimeMode), [runtimeMode]);
 
-  // Grows with the text up to the CSS max height.
+  // Grows with the text up to the CSS max height; measured again when the window resizes,
+  // since a size taken while the window was narrow or hidden would stick.
   useEffect(() => {
     const el = textarea.current;
     if (!el) return;
-    el.style.height = "auto";
-    el.style.height = `${el.scrollHeight}px`;
+    const fit = () => {
+      el.style.height = "";
+      if (el.value === "" || el.clientWidth === 0) return;
+      el.style.height = `${el.scrollHeight}px`;
+    };
+    fit();
+    const observer = new ResizeObserver(fit);
+    observer.observe(el.parentElement ?? el);
+    return () => observer.disconnect();
   }, [draft]);
 
   const found = findModel(providers, localSelection);
