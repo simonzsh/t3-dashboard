@@ -146,3 +146,12 @@ test("servicePort reads the port of the unit file, else the fallback", () => {
   };
   assert.equal(servicePort(deps, 4310), 4310);
 });
+
+test("servicePort reads the port of the Windows launcher", async () => {
+  const { deps } = harness({ platform: "win32" });
+  const written: Record<string, string> = {};
+  deps.writeFile = (path, content) => void (written[path] = content);
+  deps.readFile = (path) => written[path] ?? "";
+  await install({ port: 5000, open: false }, deps);
+  assert.equal(servicePort(deps, 4310), 5000);
+});

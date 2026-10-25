@@ -84,13 +84,13 @@ export async function uninstall(deps: InstallDeps): Promise<void> {
 /** True when the service is registered: its file exists, or on Windows its task answers. */
 export async function serviceInstalled(deps: InstallDeps): Promise<boolean> {
   const plan = planFor(deps, 0);
-  if (plan.files[0]) return deps.exists(plan.files[0].path);
-  return plan.probe ? (await deps.run(plan.probe.command, plan.probe.args)) === 0 : false;
+  if (plan.probe) return (await deps.run(plan.probe.command, plan.probe.args)) === 0;
+  return plan.files[0] ? deps.exists(plan.files[0].path) : false;
 }
 
 export const restartService = (deps: InstallDeps): Promise<void> => applyPlan(planFor(deps, 0), "restart", deps);
 
-/** The port written in the service file, or the default when there is none (Windows). */
+/** The port written in the service file (the launcher on Windows), or the fallback. */
 export function servicePort(deps: InstallDeps, fallback: number): number {
   try {
     const file = planFor(deps, 0).files[0];

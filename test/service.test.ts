@@ -57,13 +57,17 @@ test("macos: XML characters in paths are escaped", () => {
   assert.match(plan.files[0]!.content, /<string>\/a&amp;b\/&lt;t3&gt;<\/string>/);
 });
 
-test("windows: a logon task that runs PowerShell, with a Run-key fallback", () => {
+test("windows: a logon task that runs a PowerShell launcher, with a Run-key fallback", () => {
   const exe = "C:\\Users\\O'Neil\\AppData\\Local\\Programs\\t3-dashboard\\t3-dashboard.exe";
   const plan = servicePlan("win32", { ...base, exe, home: "C:\\Users\\O'Neil", env: { LOCALAPPDATA: "C:\\Users\\O'Neil\\AppData\\Local" } });
-  assert.deepEqual(plan.files, []);
-  const tr =
-    `powershell.exe -NoProfile -WindowStyle Hidden -Command "& 'C:\\Users\\O''Neil\\AppData\\Local\\Programs\\t3-dashboard\\t3-dashboard.exe' ` +
-    `start --port 4310 --log 'C:\\Users\\O''Neil\\AppData\\Local\\t3-dashboard\\dashboard.log'"`;
+  const launcher = "C:\\Users\\O'Neil\\AppData\\Local\\t3-dashboard\\start.ps1";
+  assert.equal(plan.files.length, 1);
+  assert.equal(plan.files[0]!.path, launcher);
+  assert.equal(
+    plan.files[0]!.content,
+    `\uFEFF& 'C:\\Users\\O''Neil\\AppData\\Local\\Programs\\t3-dashboard\\t3-dashboard.exe' start --port 4310 --log 'C:\\Users\\O''Neil\\AppData\\Local\\t3-dashboard\\dashboard.log'\r\n`,
+  );
+  const tr = `powershell.exe -NoProfile -WindowStyle Hidden -ExecutionPolicy Bypass -File "${launcher}"`;
   const [create, end, run] = plan.install;
   assert.deepEqual(create!.args, ["/Create", "/F", "/SC", "ONLOGON", "/RL", "LIMITED", "/TN", "T3 Dashboard", "/TR", tr]);
   assert.deepEqual(end!.args, ["/End", "/TN", "T3 Dashboard"]);
@@ -72,8 +76,12 @@ test("windows: a logon task that runs PowerShell, with a Run-key fallback", () =
   assert.deepEqual(reg!.args, ["add", "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Run", "/v", "T3 Dashboard", "/t", "REG_SZ", "/d", tr, "/f"]);
   assert.equal(start!.command, "powershell.exe");
   assert.deepEqual(start!.args.slice(0, 4), ["-NoProfile", "-WindowStyle", "Hidden", "-Command"]);
-  assert.match(start!.args[4]!, /^Start-Process -WindowStyle Hidden -FilePath 'powershell\.exe' -ArgumentList /);
+  assert.equal(
+    start!.args[4],
+    `Start-Process -WindowStyle Hidden -FilePath 'powershell.exe' -ArgumentList '-NoProfile -WindowStyle Hidden -ExecutionPolicy Bypass -File "C:\\Users\\O''Neil\\AppData\\Local\\t3-dashboard\\start.ps1"'`,
+  );
   assert.deepEqual(plan.restart.map((c) => c.args.join(" ")), ["/End /TN T3 Dashboard", "/Run /TN T3 Dashboard"]);
+  assert.deepEqual(plan.uninstall.at(-1), { remove: launcher });
 });
 
 const run = (codes: Record<string, number> = {}) => {
@@ -120,9 +128,10 @@ test("applyPlan falls back to the Run key when the task cannot be created", asyn
   const key = `${created.command} ${created.args.join(" ")}`;
   const { calls, deps } = run({ [key]: 1 });
   await applyPlan(plan, "install", deps);
-  assert.equal(calls.length, 5);
-  assert.match(calls[1]!, /^reg\.exe add /);
-  assert.match(calls[2]!, /^powershell\.exe /);
+  assert.equal(calls.length, 6);
+  assert.match(calls[0]!, /^write .*start\.ps1$/);
+  assert.match(calls[2]!, /^reg\.exe add /);
+  assert.match(calls[3]!, /^powershell\.exe /);
 });
 
 test("applyPlan uninstall never fails on a missing service", async () => {
@@ -178,13 +187,20 @@ test("macos: bootstrap is retried after bootout", async () => {
   assert.deepEqual(calls.slice(1), [bootstrap, "sleep 1000", bootstrap, "sleep 1000", bootstrap]);
 });
 
-test("windows: the set override variables are set in the PowerShell command, quoted", () => {
+test("windows: the overrides go into the launcher, quoted, and /TR stays short", () => {
   const env = { LOCALAPPDATA: "C:\\u\\l", T3_DASHBOARD_CONFIG_DIR: "C:\\O'Neil\\cfg", T3CODE_HOME: "D:\\t3" };
   const plan = servicePlan("win32", { ...base, exe: "C:\\p\\t3-dashboard.exe", home: "C:\\u", env });
+  const content = plan.files[0]!.content;
+  assert.ok(content.startsWith("\uFEFF$env:T3_DASHBOARD_CONFIG_DIR = 'C:\\O''Neil\\cfg'\r\n$env:T3CODE_HOME = 'D:\\t3'\r\n& 'C:\\p\\t3-dashboard.exe' start "), content);
+  assert.equal(plan.install[0]!.args.at(-1)!.includes("$env:"), false);
+});
+
+test("windows: /TR stays under 261 characters with every override and a long user name", () => {
+  const user = "C:\\Users\\" + "a".repeat(40);
+  const env = { LOCALAPPDATA: `${user}\\AppData\\Local`, ...Object.fromEntries(Object.keys(overrides).map((key) => [key, "D:\\" + "x".repeat(80)])) };
+  const plan = servicePlan("win32", { ...base, exe: `${user}\\AppData\\Local\\Programs\\t3-dashboard\\t3-dashboard.exe`, home: user, env });
   const tr = plan.install[0]!.args.at(-1)!;
-  const head = `powershell.exe -NoProfile -WindowStyle Hidden -Command "$env:T3_DASHBOARD_CONFIG_DIR='C:\\O''Neil\\cfg'; $env:T3CODE_HOME='D:\\t3'; & 'C:\\p\\t3-dashboard.exe' start `;
-  assert.ok(tr.startsWith(head), tr);
-  const fallback = plan.install[0]!.onFail![1]!.args[4]!;
-  assert.ok(fallback.includes(`-Command "$env:T3_DASHBOARD_CONFIG_DIR=''C:\\O''''Neil\\cfg''; $env:T3CODE_HOME=''D:\\t3''; & ''C:\\p\\t3-dashboard.exe'' start `), fallback);
-  assert.equal(servicePlan("win32", { ...base, home: "C:\\u", env: { LOCALAPPDATA: "C:\\u\\l" } }).install[0]!.args.at(-1)!.includes("$env:"), false);
+  assert.ok(tr.length < 261, String(tr.length));
+  assert.equal(plan.install[0]!.onFail![0]!.args.includes(tr), true);
+  assert.match(plan.files[0]!.content, /T3_DASHBOARD_TOKEN_FILE = 'D:\\x{80}'/);
 });

@@ -1,5 +1,5 @@
-import { join } from "node:path";
-import { logFile, type Platform } from "./paths.ts";
+import { join, win32 } from "node:path";
+import { logFile, stateDir, type Platform } from "./paths.ts";
 
 export interface Command {
   command: string;
@@ -126,19 +126,23 @@ ${[["PATH", withLocalBin(path, home, ":")] as [string, string], ...serviceEnv(en
 
 function windows({ exe, port, home, env }: PlanInput): Plan {
   const log = logFile(env, home, "win32");
-  const setVars = (quote: (text: string) => string) => serviceEnv(env).map(([key, value]) => `$env:${key}=${quote(value)}; `).join("");
-  const tr = `powershell.exe -NoProfile -WindowStyle Hidden -Command "${setVars((v) => `'${ps(v)}'`)}& '${ps(exe)}' start --port ${port} --log '${ps(log)}'"`;
-  // Used when the task cannot be created (no rights, or a /TR over 261 characters).
+  // A launcher file keeps /TR short: schtasks refuses over 261 characters, the Run key over 260.
+  const launcher = win32.join(stateDir(env, home, "win32"), "start.ps1");
+  // The BOM lets PowerShell 5.1 read a non-ASCII user name as UTF-8.
+  const content = `\uFEFF${serviceEnv(env).map(([key, value]) => `$env:${key} = '${ps(value)}'\r\n`).join("")}& '${ps(exe)}' start --port ${port} --log '${ps(log)}'\r\n`;
+  const flags = "-NoProfile -WindowStyle Hidden -ExecutionPolicy Bypass";
+  const tr = `powershell.exe ${flags} -File "${launcher}"`;
+  // Used when the task cannot be created (no rights).
   const fallback = [
     cmd("reg.exe", ["add", RUN_KEY, "/v", WIN_TASK, "/t", "REG_SZ", "/d", tr, "/f"]),
     cmd("powershell.exe", [
       "-NoProfile", "-WindowStyle", "Hidden", "-Command",
-      `Start-Process -WindowStyle Hidden -FilePath 'powershell.exe' -ArgumentList '-NoProfile -WindowStyle Hidden -Command "${setVars((v) => `''${ps(ps(v))}''`)}& ''${ps(ps(exe))}'' start --port ${port} --log ''${ps(ps(log))}''"'`,
+      `Start-Process -WindowStyle Hidden -FilePath 'powershell.exe' -ArgumentList '${flags} -File "${ps(launcher)}"'`,
     ]),
   ];
   const tn = ["/TN", WIN_TASK];
   return {
-    files: [],
+    files: [{ path: launcher, content }],
     install: [
       { ...cmd("schtasks", ["/Create", "/F", "/SC", "ONLOGON", "/RL", "LIMITED", ...tn, "/TR", tr]), onFail: fallback },
       // Ignored: after the fallback this task does not exist, and the process already runs.
@@ -146,7 +150,7 @@ function windows({ exe, port, home, env }: PlanInput): Plan {
       cmd("schtasks", ["/End", ...tn], true),
       cmd("schtasks", ["/Run", ...tn], true),
     ],
-    uninstall: [cmd("schtasks", ["/End", ...tn], true), cmd("schtasks", ["/Delete", "/F", ...tn], true), cmd("reg.exe", ["delete", RUN_KEY, "/v", WIN_TASK, "/f"], true)],
+    uninstall: [cmd("schtasks", ["/End", ...tn], true), cmd("schtasks", ["/Delete", "/F", ...tn], true), cmd("reg.exe", ["delete", RUN_KEY, "/v", WIN_TASK, "/f"], true), { remove: launcher }],
     restart: [cmd("schtasks", ["/End", ...tn], true), cmd("schtasks", ["/Run", ...tn])],
     probe: cmd("schtasks", ["/Query", ...tn]),
   };
