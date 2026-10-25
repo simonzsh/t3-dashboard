@@ -1,7 +1,7 @@
 import { test } from "bun:test";
 import assert from "node:assert/strict";
-import type { DashboardThread } from "../shared/api.ts";
-import { ACTIVE_STATUSES, FAILED_STATUSES, FINISHED_STATUSES, RUNNING_RUN_STATUSES, agentStatus, hasFailed, runActive, threadState } from "../shared/status.ts";
+import type { DashboardThread } from "../../shared/api.ts";
+import { ACTIVE_STATUSES, FAILED_STATUSES, FINISHED_STATUSES, RUNNING_RUN_STATUSES, agentStatus, hasFailed, runActive, threadState } from "../../shared/status.ts";
 
 const base: Pick<DashboardThread, "status" | "pending" | "activeRunId" | "backgroundWork" | "lastError"> = {
   status: "idle",

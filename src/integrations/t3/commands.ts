@@ -8,9 +8,6 @@ export type DispatchMode = { type: "start_immediately" } | { type: "queue_after_
 
 const PROVENANCE = { createdBy: "user", creationSource: "server" };
 
-export const RUNTIME_MODES: RuntimeMode[] = ["approval-required", "auto-accept-edits", "auto", "full-access"];
-export const isRuntimeMode = (value: unknown): value is RuntimeMode => RUNTIME_MODES.includes(value as RuntimeMode);
-
 // Images are persisted before the thread exists, so their caller picks the thread id.
 export function createThreadCommands(
   body: Omit<CreateThreadBody, "attachments">,

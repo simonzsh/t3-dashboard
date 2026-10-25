@@ -1,11 +1,8 @@
 import type { DashboardModel, DashboardProvider, ModelSelection, RuntimeMode } from "../../shared/api.ts";
+import { IMAGE_TYPES, MAX_IMAGE_BYTES, MAX_IMAGES } from "../../shared/limits.ts";
 
-// Same limits as the server: T3 takes images of up to 10 MB, and the request body stays under 25 MB.
-export const MAX_IMAGES = 10;
-export const MAX_IMAGE_BYTES = 10 * 1024 * 1024;
 // Base64 grows data by a third: 18 MB of images stays under the 25 MB body limit.
 export const MAX_TOTAL_BYTES = 18 * 1024 * 1024;
-export const IMAGE_TYPES = ["image/png", "image/jpeg", "image/gif", "image/webp"];
 
 export const RUNTIME_MODE_LABELS: Record<RuntimeMode, { label: string; description: string }> = {
   "approval-required": { label: "Supervised", description: "Ask before commands and file changes." },

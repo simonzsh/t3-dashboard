@@ -1,8 +1,7 @@
 import { useEffect, useReducer, useState } from "react";
 import type { DashboardEvent, DashboardState } from "../../shared/api.ts";
+import { DASHBOARD_EVENT_TYPES } from "../../shared/events.ts";
 import { applyEvent } from "./state.ts";
-
-const TYPES = ["state", "threads", "projects", "providers", "connection"] as const;
 
 export function useDashboard(): { state: DashboardState | null; sseDown: boolean; lastEvent: DashboardEvent | null } {
   const [state, dispatch] = useReducer(applyEvent, null);
@@ -11,7 +10,7 @@ export function useDashboard(): { state: DashboardState | null; sseDown: boolean
 
   useEffect(() => {
     const es = new EventSource("/api/events");
-    for (const type of TYPES) {
+    for (const type of DASHBOARD_EVENT_TYPES) {
       es.addEventListener(type, (e) => {
         const event = { type, data: JSON.parse((e as MessageEvent<string>).data) } as DashboardEvent;
         dispatch(event);

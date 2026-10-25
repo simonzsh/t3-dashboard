@@ -1,4 +1,4 @@
-import type { DashboardThread } from "./api.ts";
+import type { DashboardThread } from "./threads.ts";
 
 // T3 Code thread statuses: one model for the server and the web.
 export const ACTIVE_STATUSES: ReadonlySet<string> = new Set(["preparing", "queued", "starting", "running", "waiting"]);

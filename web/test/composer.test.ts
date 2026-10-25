@@ -1,7 +1,8 @@
 import assert from "node:assert/strict";
 import { test } from "bun:test";
 import type { DashboardProvider } from "../../shared/api.ts";
-import { MAX_IMAGE_BYTES, MAX_IMAGES, MAX_TOTAL_BYTES, acceptImages, currentEffort, findModel, selectEffort, selectModel } from "../src/composer.ts";
+import { MAX_IMAGE_BYTES, MAX_IMAGES } from "../../shared/limits.ts";
+import { MAX_TOTAL_BYTES, acceptImages, currentEffort, findModel, selectEffort, selectModel } from "../src/composer.ts";
 
 const effort = (optionId: string, ids: string[], defaultLevel: string | null) => ({ optionId, levels: ids.map((id) => ({ id, label: id.toUpperCase() })), defaultLevel });
 const providers: DashboardProvider[] = [

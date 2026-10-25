@@ -4,7 +4,7 @@ import type { TokenManager } from "./auth.ts";
 import { IntegrationError } from "./integrations/errors.ts";
 import { INSTALL_URL, ISSUE_COMMAND } from "./integrations/t3/cli.ts";
 import type { ShellStore } from "./shellStore.ts";
-import { RUNTIME_MODES } from "./integrations/t3/commands.ts";
+import { RUNTIME_MODES } from "../shared/limits.ts";
 import type { RawConfig, RawOptionDescriptor, T3Port } from "./integrations/t3/schemas.ts";
 
 const BACKOFF_MS = [1000, 2000, 4000, 8000, 16000, 30000];
