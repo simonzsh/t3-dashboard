@@ -32,7 +32,9 @@ function Install-T3Dashboard {
 
     New-Item -ItemType Directory -Path $dir -Force | Out-Null
     # Stop the running dashboard first: a running exe cannot be replaced.
-    schtasks /End /TN 'T3 Dashboard' 2>$null | Out-Null
+    # cmd hides stderr from PowerShell 5.1, which turns it into an error under 'Stop'.
+    cmd /c 'schtasks /End /TN "T3 Dashboard" >nul 2>&1'
+    $global:LASTEXITCODE = 0
     Get-Process t3-dashboard -ErrorAction SilentlyContinue | Where-Object { $_.Path -eq $exe } | Stop-Process -Force
     Remove-Item "$exe.old" -Force -ErrorAction SilentlyContinue
     if (Test-Path $exe) { Move-Item $exe "$exe.old" -Force }
@@ -42,13 +44,17 @@ function Install-T3Dashboard {
   }
   Write-Host "Installed $exe"
 
-  $userPath = [Environment]::GetEnvironmentVariable('Path', 'User')
+  # Read the raw value: expanding it would turn %VARS% entries into fixed text.
+  $userPath = [string](Get-Item 'HKCU:\Environment').GetValue('Path', '', [Microsoft.Win32.RegistryValueOptions]::DoNotExpandEnvironmentNames)
   if (($userPath -split ';') -notcontains $dir) {
-    [Environment]::SetEnvironmentVariable('Path', "$userPath;$dir".TrimStart(';'), 'User')
+    Set-ItemProperty 'HKCU:\Environment' -Name Path -Value "$userPath;$dir".TrimStart(';') -Type ExpandString
     Write-Host 'Added the folder to your PATH. Open a new terminal to use t3-dashboard.'
   }
 
-  if ($env:T3_DASHBOARD_NO_SERVICE -ne '1') { & $exe install }
+  if ($env:T3_DASHBOARD_NO_SERVICE -ne '1') {
+    & $exe install
+    if ($LASTEXITCODE -ne 0) { throw "t3-dashboard install failed (exit $LASTEXITCODE)." }
+  }
 }
 
 Install-T3Dashboard
