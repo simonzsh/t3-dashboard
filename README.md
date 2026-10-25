@@ -149,6 +149,60 @@ bun run build   # binaire unique dans dist/t3-dashboard
 
 Pour publier : poussez un tag `v*`. Le workflow `release.yml` construit les 5 binaires (macOS arm64 et x64, Linux x64 et arm64, Windows x64), écrit `SHA256SUMS` et crée la release.
 
+## Architecture
+
+Le code a trois parties : le serveur (`src/`), l'interface (`web/src/`) et le contrat entre les deux (`shared/`). Les tests ont la même structure dans `test/` et `web/test/`.
+
+### Serveur (`src/`)
+
+| Dossier | Contenu |
+| --- | --- |
+| `main.ts` | Point d'entrée. Il lit les arguments et lance la bonne commande. |
+| `app/` | Racine de composition. `start.ts` crée les vrais clients et les relie. `deps.ts` donne les vrais accès au disque et aux processus. |
+| `cli/` | Commandes qui s'exécutent une fois : arguments, installation, service, mise à jour du binaire. |
+| `config/` | Variables d'environnement, chemins, version et fichiers du dashboard (clé Linear, jeton, PID). |
+| `server/` | HTTP, SSE et site statique. Le routeur lit et vérifie les requêtes (`validate.ts`), puis appelle le domaine. |
+| `domain/` | Règles et état : synchronisation avec T3, classement des fils, détail d'un fil, actions, jeton, board Linear, réglages, mises à jour, automatisations. |
+| `integrations/` | Tous les appels vers un autre système : T3 Code, Linear, GitHub et les fichiers t3-agent. Chaque réponse passe par un schéma. |
+
+### Interface (`web/src/`)
+
+| Dossier | Contenu |
+| --- | --- |
+| `api/` | Client de l'API locale, flux d'évènements (`useDashboard`) et `ApiContext`. `useApi()` donne la vraie API, sauf si un `ApiProvider` en donne une autre. |
+| `lib/` | Fonctions et composants partagés par plusieurs écrans. |
+| `features/` | Un dossier par écran : `agents`, `desk`, `conversation`, `board`, `settings`, `setup`, `update`, `new-thread`. |
+| `ui/` | Composants de base. Voir `web/src/ui/README.md`. |
+
+### Contrat (`shared/`)
+
+`shared/api.ts` réexporte les types de chaque thème : `threads`, `connection`, `events`, `requests`, `linear`, `settings`, `automations`. `limits.ts` contient les limites communes (images, modes d'exécution). `status.ts` contient le modèle de statut des fils. `events.ts` donne la liste des types d'évènements : l'interface s'abonne à cette liste.
+
+### Règles d'import
+
+Le test `test/architecture.test.ts` lit les imports et bloque une dépendance interdite.
+
+- `shared/` n'importe rien.
+- `config/` importe seulement `shared/`.
+- Une intégration importe `config/`, `shared/`, `integrations/contract.ts` et `integrations/errors.ts`. Elle n'importe pas le domaine, le serveur ni une autre intégration.
+- `domain/` importe `shared/`, `config/` et `integrations/`. Il n'importe pas `server/`, `app/` ni `cli/`.
+- `server/` importe `shared/`, `domain/`, `config/` et `integrations/errors.ts`. Il passe par le domaine pour parler à T3 ou à Linear.
+- `cli/` importe `config/` et `integrations/github/`.
+- `app/` importe tout.
+- `ui/` n'importe que `ui/`. Seule exception : la logique de menu de `lib/dropdown.ts`.
+- `lib/` et `api/` n'importent pas `features/`.
+- Un écran importe `lib/`, `api/`, `ui/` et `shared/`. Il n'importe un autre écran que par un lien de la liste du test (par exemple `desk` vers `conversation`).
+- L'interface n'importe jamais `src/`.
+
+Un deuxième test (`test/integrations/boundary.test.ts`) bloque `fetch`, `WebSocket` et le lancement de processus hors de `integrations/`. Seuls `app/start.ts` et `app/deps.ts` ont une exception.
+
+### Erreurs
+
+- Une intégration lance une `IntegrationError` : système, type (`unreachable`, `refused`, `protocol`, `not-authenticated`) et message.
+- Le domaine lance une `DomainError` : `invalid`, `not-found` ou `conflict`.
+- `toHttp(error)` dans `server/httpError.ts` donne le code HTTP : 400, 404 ou 409 pour le domaine, 400 pour une clé Linear refusée, 502 pour les autres erreurs d'intégration. Une autre erreur donne 500 et va dans le log.
+- Un message d'erreur ne contient jamais une clé, un jeton ni le corps d'une réponse.
+
 ## Automatisations
 
 La colonne de droite de l'onglet Agents lit les cerveaux t3-agent, sans jamais écrire. Pour chaque `*.json` du dossier `T3_DASHBOARD_AGENT_CONFIG_DIR`, le serveur lit seulement `workspace` et `projectId`. Il ne lit, ne renvoie et ne logge jamais le `token`.
