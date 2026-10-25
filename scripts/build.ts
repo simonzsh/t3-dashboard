@@ -9,7 +9,7 @@ const args = [
   "build", "--compile", "--minify",
   "--no-compile-autoload-dotenv", "--no-compile-autoload-bunfig",
   "--define", `BUILD_VERSION=${JSON.stringify(values.version)}`,
-  "--define", `process.env.NODE_ENV=${JSON.stringify("production")}`,
+  "--production",
   ...(values.target ? ["--target", values.target] : []),
   "src/main.ts", "--outfile", values.outfile!,
 ];
