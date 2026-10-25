@@ -128,7 +128,8 @@ main { flex: 1; min-height: 0; overflow: hidden; padding: 24px; display: flex; f
 .group h2 { display: flex; align-items: baseline; gap: 8px; font-size: 13px; margin: 0 0 12px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-secondary); }
 .count { font-size: 12px; padding: 0 7px; border-radius: 999px; background: var(--line); color: var(--text-primary); }
 .workspace { text-transform: none; letter-spacing: 0; font-size: 12px; font-weight: 400; }
-.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(280px, 100%), 1fr)); gap: 14px; }
+/* Capped width: a card never stretches across a half-empty row. */
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(280px, 100%), 360px)); gap: 14px; }
 .agent { position: relative; display: flex; flex-direction: column; gap: 8px; align-items: flex-start; text-align: left; width: 100%; padding: 14px 16px; border-radius: 14px; box-shadow: var(--shadow); transition: transform 0.12s, box-shadow 0.12s, border-color 0.12s; }
 .agent:hover:not(:disabled) { transform: translateY(-1px); }
 .agent.on-desk { border-color: color-mix(in srgb, var(--accent) 55%, var(--line)); }
@@ -355,7 +356,7 @@ main { flex: 1; min-height: 0; overflow: hidden; padding: 24px; display: flex; f
 .settled-head { display: inline-flex; align-items: center; gap: 8px; padding: 4px 6px; border: 0; background: none; color: var(--text-secondary); font-size: 12px; font-weight: 500; }
 .settled-head:hover:not(:disabled) { color: var(--text-primary); }
 .settled-head + .grid { margin-top: 8px; }
-.grid.compact { grid-template-columns: repeat(auto-fill, minmax(min(220px, 100%), 1fr)); gap: 10px; }
+.grid.compact { grid-template-columns: repeat(auto-fill, minmax(min(220px, 100%), 360px)); gap: 10px; }
 .agent.compact { gap: 6px; padding: 10px 12px; border-radius: 12px; font-size: 13px; }
 .automations { max-height: 100%; overflow-y: auto; box-sizing: border-box; display: flex; flex-direction: column; gap: 20px; padding: 16px; border-radius: 14px; background: var(--surface-1); border: 1px solid var(--line); box-shadow: var(--shadow); }
 .auto-heading { margin: 0; font-size: 15px; }
@@ -461,6 +462,9 @@ button.auto-row:hover { background: var(--surface-0); }
   .topbar-right button.update-pill { padding: 0; }
   .kanban { flex: none; flex-direction: column; overflow-x: visible; }
   .column { width: 100%; min-width: 0; max-height: none; flex: none; }
+}
+@media (max-width: 700px) {
+  .grid, .grid.compact { grid-template-columns: 1fr; }
 }
 @media (max-width: 380px) {
   .topbar { gap: 6px; padding-inline: max(8px, env(safe-area-inset-left)) max(8px, env(safe-area-inset-right)); }
