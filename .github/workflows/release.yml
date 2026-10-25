@@ -1,0 +1,57 @@
+name: Release
+
+on:
+  push:
+    tags: ['v*']
+  # A manual run builds the 5 assets without publishing a release.
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    strategy:
+      fail-fast: true
+      matrix:
+        include:
+          - { runner: ubuntu-latest, target: linux-x64, asset: t3-dashboard-linux-x64 }
+          - { runner: ubuntu-latest, target: linux-arm64, asset: t3-dashboard-linux-arm64 }
+          - { runner: ubuntu-latest, target: windows-x64, asset: t3-dashboard-windows-x64.exe }
+          # macOS runners build native binaries and sign them ad hoc.
+          - { runner: macos-latest, target: darwin-arm64, asset: t3-dashboard-darwin-arm64 }
+          - { runner: macos-latest, target: darwin-x64, asset: t3-dashboard-darwin-x64 }
+    runs-on: ${{ matrix.runner }}
+    steps:
+      - uses: actions/checkout@v5
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.4.2
+      - run: bun install --frozen-lockfile
+      - name: Build
+        shell: bash
+        run: |
+          version="${GITHUB_REF_NAME#v}"
+          [ "$GITHUB_REF_TYPE" = tag ] || version=dev
+          bun run scripts/build.ts --target "bun-${{ matrix.target }}" --version "$version" --outfile "dist/${{ matrix.asset }}"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.asset }}
+          path: dist/${{ matrix.asset }}
+          if-no-files-found: error
+
+  publish:
+    needs: build
+    if: github.ref_type == 'tag'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: dist
+          merge-multiple: true
+      - name: Checksums
+        run: cd dist && sha256sum t3-dashboard-* > SHA256SUMS
+      - name: Publish
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release create "$GITHUB_REF_NAME" dist/* --repo "$GITHUB_REPOSITORY" --generate-notes
