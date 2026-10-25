@@ -10,7 +10,8 @@ import { loadConfig, resolveOrigin } from "./config.ts";
 import { LiveSync } from "./live.ts";
 import { LinearBoard } from "./linear.ts";
 import { readLinearWorkspaces } from "./linearConfig.ts";
-import { configDir, linearFile } from "./paths.ts";
+import { configDir, linearFile, pidFile } from "./paths.ts";
+import { redirectConsole, writePidFile } from "./runFiles.ts";
 import { writeSecret } from "./secretFile.ts";
 import { createDashboardServer } from "./server.ts";
 import { createSettings } from "./settings.ts";
@@ -39,10 +40,13 @@ async function listen(options: Parameters<typeof Bun.serve>[0] & { port: number 
 export interface StartOptions {
   /** Beats the PORT variable. */
   port?: number;
+  /** Appends the console output to this file. */
+  log?: string;
   env: Record<string, string | undefined>;
 }
 
-export async function start({ port, env }: StartOptions): Promise<void> {
+export async function start({ port, log, env }: StartOptions): Promise<void> {
+  if (log) redirectConsole(log);
   const home = homedir();
   const config = loadConfig(env, home);
   const origin = () => resolveOrigin(config.runtimeFile, readText);
@@ -108,6 +112,8 @@ export async function start({ port, env }: StartOptions): Promise<void> {
     development: site.devRoutes !== undefined,
   });
   console.log(`http://127.0.0.1:${server.port}`);
+  const removePidFile = writePidFile(pidFile(env, home, process.platform), process.pid);
+  process.on("exit", removePidFile);
 
   const shutdown = () => {
     clearInterval(reclassifier);

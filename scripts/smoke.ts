@@ -1,4 +1,4 @@
-import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
@@ -12,6 +12,10 @@ writeFileSync(runtimeFile, JSON.stringify({ origin: "http://127.0.0.1:1" }));
 
 const build = Bun.spawnSync([process.execPath, "run", join(import.meta.dir, "build.ts"), "--outfile", exe], { stdout: "inherit", stderr: "inherit" });
 if (build.exitCode !== 0) process.exit(1);
+
+const cli = (...args: string[]) => Bun.spawnSync([exe, ...args], { cwd: dir, env: { PATH: process.env.PATH, HOME: dir, USERPROFILE: dir } });
+const version = cli("--version");
+const unknown = cli("frobnicate");
 
 const probe = Bun.serve({ port: 0, fetch: () => new Response("") });
 const port = probe.port!;
@@ -59,6 +63,10 @@ try {
     const type = res.headers.get("content-type") ?? "";
     expect(res.status === 200 && /javascript|css/.test(type), `${url} answered ${res.status} ${type}`);
   }
+  expect(version.stdout.toString().startsWith("t3-dashboard "), "--version prints no version");
+  expect(unknown.exitCode === 2, "an unknown command does not exit with 2");
+  const pidPath = join(dir, ".local", "state", "t3-dashboard", "dashboard.pid");
+  expect(existsSync(pidPath) && readFileSync(pidPath, "utf8").trim() === String(child.pid), "the pid file is missing or wrong");
   expect((await fetch(`${base}/api/health`)).status === 200, "/api/health is not 200");
   expect((await fetch(`${base}/api/health`, { headers: { host: "evil.example" } })).status === 403, "a foreign Host is not refused");
 } finally {
