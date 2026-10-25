@@ -1,7 +1,7 @@
 import type { DashboardProvider, DashboardThread } from "../../../../shared/api.ts";
 import { threadState, type ThreadState } from "../../../../shared/status.ts";
 import { threadTitle } from "../../lib/threads.ts";
-import { Badge, Button, Icon, Pressable } from "../../ui/index.ts";
+import { Badge, Button, Icon, IconButton } from "../../ui/index.ts";
 import { ConversationPanel } from "../conversation/ConversationPanel.tsx";
 import { OpenInT3 } from "../../lib/OpenInT3.tsx";
 import { ProviderIcon } from "../../lib/ProviderIcon.tsx";
@@ -53,21 +53,19 @@ export function DeskWindow({ id, thread, projectTitle, missing, focused, maximiz
         )}
         <span className="dw-buttons">
           <OpenInT3 environmentId={t3EnvironmentId} threadId={id} />
-          <span className="traffic">
-            <Pressable className="light close" aria-label="Close" title="Close (X)" onClick={onClose}>
-              <Icon name="x" strokeWidth={1.8} />
-            </Pressable>
-            {!compact && (
-              <>
-                <Pressable className="light minimize" aria-label="Minimize" title="Minimize (M)" onClick={onMinimize}>
-                  <Icon name="minus" strokeWidth={1.8} />
-                </Pressable>
-                <Pressable className="light fullscreen" aria-label={maximized ? "Exit fullscreen" : "Fullscreen"} title={maximized ? "Exit fullscreen (F, Esc)" : "Fullscreen (F)"} onClick={onToggleMaximize}>
-                  <Icon name={maximized ? "restore" : "maximize"} strokeWidth={1.8} />
-                </Pressable>
-              </>
-            )}
-          </span>
+          {!compact && (
+            <>
+              <IconButton variant="ghost" size="sm" label={maximized ? "Exit fullscreen" : "Fullscreen"} title={maximized ? "Exit fullscreen (F, Esc)" : "Fullscreen (F)"} onClick={onToggleMaximize}>
+                <Icon name={maximized ? "exitFullscreen" : "fullscreen"} />
+              </IconButton>
+              <IconButton variant="ghost" size="sm" label="Minimize" title="Minimize (M)" onClick={onMinimize}>
+                <Icon name="minimize" />
+              </IconButton>
+            </>
+          )}
+          <IconButton variant="ghost" size="sm" label="Close" title="Close (X)" onClick={onClose}>
+            <Icon name="x" />
+          </IconButton>
         </span>
       </header>
       {missing ? (
