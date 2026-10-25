@@ -54,19 +54,21 @@ export function DeskWindow({ id, thread, projectTitle, missing, focused, maximiz
         {state && <span className={`dw-state ${state}`}>{STATE_LABELS[state]}</span>}
         <span className="dw-buttons">
           <OpenInT3 environmentId={t3EnvironmentId} threadId={id} />
-          {!compact && (
-            <>
-              <button className="icon-button" aria-label={maximized ? "Exit fullscreen" : "Fullscreen"} title={maximized ? "Exit fullscreen (F, Esc)" : "Fullscreen (F)"} onClick={onToggleMaximize}>
-                <Icon d={maximized ? "M9 4v5H4M15 4v5h5M9 20v-5H4M15 20v-5h5" : "M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"} />
-              </button>
-              <button className="icon-button" aria-label="Minimize" title="Minimize (M)" onClick={onMinimize}>
-                <Icon d="M6 18h12" />
-              </button>
-            </>
-          )}
-          <button className="icon-button" aria-label="Close" title="Close (X)" onClick={onClose}>
-            <Icon d="M6 6l12 12M18 6L6 18" />
-          </button>
+          <span className="traffic">
+            <button className="light close" aria-label="Close" title="Close (X)" onClick={onClose}>
+              <Icon d="M7 7l10 10M17 7L7 17" />
+            </button>
+            {!compact && (
+              <>
+                <button className="light minimize" aria-label="Minimize" title="Minimize (M)" onClick={onMinimize}>
+                  <Icon d="M6 12h12" />
+                </button>
+                <button className="light fullscreen" aria-label={maximized ? "Exit fullscreen" : "Fullscreen"} title={maximized ? "Exit fullscreen (F, Esc)" : "Fullscreen (F)"} onClick={onToggleMaximize}>
+                  <Icon d={maximized ? "M10 6v4H6M14 18v-4h4" : "M7 13V7h6M17 11v6h-6"} />
+                </button>
+              </>
+            )}
+          </span>
         </span>
       </header>
       {missing ? (
