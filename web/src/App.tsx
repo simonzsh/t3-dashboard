@@ -84,8 +84,9 @@ export function App() {
       else if (action === "new-agent") {
         if (state) setCreating(true);
       } else if (action === "unmaximize") dispatchDesk({ type: "unmaximize" });
-      else if (action === "close-window" || action === "toggle-maximize") {
-        if (desk.focusedId) dispatchDesk({ type: action === "close-window" ? "close" : "maximize", id: desk.focusedId });
+      else if (action === "close-window" || action === "toggle-fullscreen" || action === "minimize-window") {
+        const type = action === "close-window" ? "close" : action === "minimize-window" ? "minimize" : "maximize";
+        if (desk.focusedId) dispatchDesk({ type, id: desk.focusedId });
       } else {
         const target = gridWindows(desk)[Number(action.slice("window-".length)) - 1];
         if (!target) return;

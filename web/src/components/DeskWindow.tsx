@@ -52,15 +52,15 @@ export function DeskWindow({ id, thread, projectTitle, missing, focused, maximiz
         <span className="dw-buttons">
           {!compact && (
             <>
-              <button className="icon-button" aria-label={maximized ? "Restore" : "Maximize"} title={maximized ? "Restore (m, Esc)" : "Maximize (m)"} onClick={onToggleMaximize}>
+              <button className="icon-button" aria-label={maximized ? "Exit fullscreen" : "Fullscreen"} title={maximized ? "Exit fullscreen (F, Esc)" : "Fullscreen (F)"} onClick={onToggleMaximize}>
                 <Icon d={maximized ? "M9 4v5H4M15 4v5h5M9 20v-5H4M15 20v-5h5" : "M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"} />
               </button>
-              <button className="icon-button" aria-label="Minimize" title="Minimize" onClick={onMinimize}>
+              <button className="icon-button" aria-label="Minimize" title="Minimize (M)" onClick={onMinimize}>
                 <Icon d="M6 18h12" />
               </button>
             </>
           )}
-          <button className="icon-button" aria-label="Close" title="Close (x)" onClick={onClose}>
+          <button className="icon-button" aria-label="Close" title="Close (X)" onClick={onClose}>
             <Icon d="M6 6l12 12M18 6L6 18" />
           </button>
         </span>
