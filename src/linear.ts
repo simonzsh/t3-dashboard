@@ -67,7 +67,7 @@ export class LinearBoard {
       // Teams outside the table are dropped so a shared key never mixes companies.
       const { teams } = workspace;
       const issues = nodes.flatMap((node) => {
-        const title = teams ? teams[node.team.key] : workspace.t3Project;
+        const title = teams ? (Object.hasOwn(teams, node.team.key) ? teams[node.team.key] : undefined) : workspace.t3Project;
         return title === undefined ? [] : [{ ...node, workspace: workspace.name, t3ProjectId: resolve(title) }];
       });
       return { status, issues };
