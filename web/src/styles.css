@@ -149,6 +149,7 @@ button.auto-row:hover { background: var(--surface-0); }
 .auto-side { flex: none; align-items: flex-end; font-size: 12px; }
 .auto-title { font-weight: 500; overflow-wrap: anywhere; }
 .auto-sub, .auto-next, .auto-empty { color: var(--text-secondary); font-size: 12px; }
+.auto-state.waiting { color: var(--warn); font-weight: 600; }
 .auto-state.running { color: var(--work-text); }
 .auto-state.failed { color: var(--err-text); }
 .auto-state.done { color: var(--done-text); }

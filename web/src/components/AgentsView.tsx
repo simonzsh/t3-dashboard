@@ -15,8 +15,11 @@ interface Props {
 
 export function AgentsView({ state, now, selectedId, onOpen, automations, automationsError }: Props) {
   const groups = groupAgents(excludeRoutineThreads(state.threads, automations?.automations ?? []), state.projects, now);
-  const agents =
-    groups.length === 0 ? (
+  // Before the first automations answer, routine threads would flash in the grid.
+  const loading = automations === null && automationsError === null;
+  const agents = loading ? (
+    <div className="empty-state">Chargement…</div>
+  ) : groups.length === 0 ? (
       <div className="empty-state">
         <strong>Aucun agent actif</strong>
         <span>Les agents en attente, au travail ou terminés depuis moins de 24 h apparaissent ici.</span>

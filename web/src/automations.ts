@@ -1,6 +1,6 @@
 import type { Automation, DashboardThread } from "../../shared/api.ts";
 
-export type LastRun = { kind: "running" } | { kind: "failed" } | { kind: "done"; at: string };
+export type LastRun = { kind: "waiting" } | { kind: "running" } | { kind: "failed" } | { kind: "done"; at: string };
 
 const ACTIVE = new Set(["preparing", "queued", "starting", "running", "waiting"]);
 const DAYS = ["dim.", "lun.", "mar.", "mer.", "jeu.", "ven.", "sam."];
@@ -29,6 +29,8 @@ const hm = (d: Date) => `${d.getHours()}:${two(d.getMinutes())}`;
 // t3-agent keeps no run result: the routine thread's status is the only signal.
 export function lastRunState(t: DashboardThread | undefined): LastRun | null {
   if (!t) return null;
+  // A routine blocked on the user must say so: its thread is hidden from the agents grid.
+  if (t.pending) return { kind: "waiting" };
   if (ACTIVE.has(t.status)) return { kind: "running" };
   if (t.status === "failed" || t.lastError !== null) return { kind: "failed" };
   const at = new Date(t.lastActivityAt);

@@ -54,6 +54,8 @@ test("splitAutomations sorts routines by next run (none last) and reminders by d
 test("lastRunState maps thread status to running, failed or done", () => {
   const done = local(10, 25, 9, 40).toISOString();
   assert.deepEqual(lastRunState(thread("t", { status: "running" })), { kind: "running" });
+  const pending = { requestId: "r", kind: "command", category: "approval" as const };
+  assert.deepEqual(lastRunState(thread("t", { status: "waiting", pending })), { kind: "waiting" });
   assert.deepEqual(lastRunState(thread("t", { status: "failed" })), { kind: "failed" });
   assert.deepEqual(lastRunState(thread("t", { status: "completed", lastError: "boom" })), { kind: "failed" });
   assert.deepEqual(lastRunState(thread("t", { status: "completed", lastActivityAt: done })), { kind: "done", at: "09:40" });
