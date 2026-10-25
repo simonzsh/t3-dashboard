@@ -24,16 +24,13 @@ import type { ShellStore } from "./shellStore.ts";
 import type { SseHub } from "./sse.ts";
 import {
   approvalCommand,
-  archiveCommand,
   createThreadCommands,
   dismissCommand,
   interruptCommand,
   isRuntimeMode,
   messageCommand,
   modelSelectionCommand,
-  pinCommand,
   runtimeModeCommand,
-  unpinCommand,
   userInputCommand,
 } from "./t3/commands.ts";
 import type { DispatchMode } from "./t3/commands.ts";
@@ -79,12 +76,6 @@ const CLAUDE_INSTANCE = "claudeAgent";
 const CLAUDE_FALLBACK_MODEL = "claude-opus-5-5";
 const CODEX_INSTANCE = "codex";
 const DECISIONS = new Set<string>(["accept", "acceptForSession", "decline"]);
-
-const SIMPLE_ACTIONS = new Map([
-  ["archive", archiveCommand],
-  ["pin", pinCommand],
-  ["unpin", unpinCommand],
-]);
 
 const SECURITY_HEADERS = {
   "x-frame-options": "DENY",
@@ -374,11 +365,6 @@ export function createDashboardServer(options: DashboardServerOptions): Dashboar
         }
         if (action === "interrupt") {
           await interrupt(id);
-          return json(200, { ok: true });
-        }
-        const simple = SIMPLE_ACTIONS.get(action ?? "");
-        if (simple) {
-          await send(simple(id, newId));
           return json(200, { ok: true });
         }
       }

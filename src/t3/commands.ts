@@ -66,9 +66,6 @@ export const runtimeModeCommand = (threadId: string, runtimeMode: RuntimeMode, n
   runtimeMode,
 });
 
-export const archiveCommand = (threadId: string, newId: NewId = randomUUID): Command => ({ type: "thread.archive", commandId: newId(), threadId });
-export const pinCommand = (threadId: string, newId: NewId = randomUUID): Command => ({ type: "thread.pin", commandId: newId(), threadId });
-export const unpinCommand = (threadId: string, newId: NewId = randomUUID): Command => ({ type: "thread.unpin", commandId: newId(), threadId });
 
 // holdQueue keeps queued messages from starting a new run right after the stop.
 export const interruptCommand = (threadId: string, runId: string, newId: NewId = randomUUID): Command => ({

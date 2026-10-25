@@ -2,15 +2,12 @@ import assert from "node:assert/strict";
 import { test } from "bun:test";
 import {
   approvalCommand,
-  archiveCommand,
   createThreadCommands,
   dismissCommand,
   interruptCommand,
   messageCommand,
   modelSelectionCommand,
-  pinCommand,
   runtimeModeCommand,
-  unpinCommand,
   userInputCommand,
 } from "../src/t3/commands.ts";
 
@@ -65,12 +62,6 @@ test("messageCommand carries the dispatch mode", () => {
     createdBy: "user",
     creationSource: "server",
   });
-});
-
-test("archive, pin and unpin commands", () => {
-  assert.deepEqual(archiveCommand("thread-1", counter()), { type: "thread.archive", commandId: "id-1", threadId: "thread-1" });
-  assert.deepEqual(pinCommand("thread-1", counter()), { type: "thread.pin", commandId: "id-1", threadId: "thread-1" });
-  assert.deepEqual(unpinCommand("thread-1", counter()), { type: "thread.unpin", commandId: "id-1", threadId: "thread-1" });
 });
 
 test("run.interrupt holds the queue", () => {
@@ -131,7 +122,6 @@ test("dismissCommand", () => {
 test("no builder produces acceptAlways", () => {
   const all = [
     ...createThreadCommands({ projectId: "p", title: "t", text: "x", modelSelection: model }, counter()).commands,
-    archiveCommand("t", counter()),
     approvalCommand("t", "r", "accept", counter()),
     userInputCommand("t", "r", {}, counter()),
     dismissCommand("t", "r", counter()),

@@ -377,15 +377,6 @@ test("interrupt falls back to the last active run of the projection, else 409", 
   assert.equal(port.commands.length, 1);
 });
 
-test("archive, pin and unpin", async () => {
-  const { server, port } = await start();
-  for (const action of ["archive", "pin", "unpin"]) assert.deepEqual((await post(server, `/api/threads/idle-1/${action}`)).json, { ok: true });
-  assert.deepEqual(
-    port.commands.map((command) => [command.type, command.threadId]),
-    [["thread.archive", "idle-1"], ["thread.pin", "idle-1"], ["thread.unpin", "idle-1"]],
-  );
-});
-
 test("every response forbids framing and sniffing", async () => {
   const { server } = await start({ site: { serve: async () => new Response("<html></html>", { headers: { "content-type": "text/html" } }) } });
   for (const reply of [await call(server, "GET", "/api/state"), await call(server, "GET", "/"), await post(server, "/api/threads/x/nope")]) {
@@ -443,8 +434,8 @@ test("GET /api/threads/:id shows the shell's pending background tasks as running
 
 test("a T3 failure gives 502 with its message", async () => {
   const { server, port } = await start();
-  port.dispatchError = new Error("thread.archive: no such thread");
-  const reply = await post(server, "/api/threads/idle-1/archive");
+  port.dispatchError = new Error("run.interrupt: no such thread");
+  const reply = await post(server, "/api/threads/run-1/interrupt");
   assert.equal(reply.status, 502);
   assert.match(reply.json.error, /no such thread/);
   port.projectionError = new Error("T3 answered 500");
@@ -459,11 +450,11 @@ test("guards: Host, Origin, content-type, JSON, size", async () => {
   assert.equal((await call(server, "GET", "/api/health", { headers: { origin: "null" } })).status, 403);
   assert.equal((await call(server, "GET", "/api/health", { headers: { origin: "http://localhost:5173" } })).status, 200);
   assert.equal((await call(server, "GET", "/api/health", { headers: { origin: "http://127.0.0.1:5173" } })).status, 200);
-  assert.equal((await post(server, "/api/threads/idle-1/archive", {}, { origin: "http://evil.example" })).status, 403);
-  assert.equal((await call(server, "POST", "/api/threads/idle-1/archive", { headers: { "content-type": "text/plain" }, raw: "{}" })).status, 400);
-  assert.equal((await call(server, "POST", "/api/threads/idle-1/archive", { raw: "{}" })).status, 400);
-  assert.equal((await call(server, "POST", "/api/threads/idle-1/archive", { raw: "{not json" })).status, 400);
-  assert.equal((await call(server, "POST", "/api/threads/idle-1/archive", { raw: "x".repeat(1_100_000), headers: { "content-type": "application/json" } })).status, 413);
+  assert.equal((await post(server, "/api/threads/run-1/interrupt", {}, { origin: "http://evil.example" })).status, 403);
+  assert.equal((await call(server, "POST", "/api/threads/run-1/interrupt", { headers: { "content-type": "text/plain" }, raw: "{}" })).status, 400);
+  assert.equal((await call(server, "POST", "/api/threads/run-1/interrupt", { raw: "{}" })).status, 400);
+  assert.equal((await call(server, "POST", "/api/threads/run-1/interrupt", { raw: "{not json" })).status, 400);
+  assert.equal((await call(server, "POST", "/api/threads/run-1/interrupt", { raw: "x".repeat(1_100_000), headers: { "content-type": "application/json" } })).status, 413);
   assert.deepEqual(port.commands, []);
 });
 
@@ -483,7 +474,7 @@ test("unknown API routes give 404 and never CORS headers", async () => {
   assert.equal(reply.status, 404);
   assert.ok(reply.json.error);
   assert.equal((await post(server, "/api/nope")).status, 404);
-  assert.equal((await call(server, "GET", "/api/threads/idle-1/archive")).status, 404);
+  assert.equal((await call(server, "GET", "/api/threads/run-1/interrupt")).status, 404);
   assert.equal(reply.headers["access-control-allow-origin"], undefined);
 });
 

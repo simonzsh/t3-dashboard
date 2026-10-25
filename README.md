@@ -2,7 +2,7 @@
 
 Dashboard web local pour gérer les threads et les agents de T3 Code. Il tourne en arrière-plan et s'ouvre dans le navigateur.
 
-- **Agents** : une carte par session T3 Code, regroupées par projet. Une colonne « Automatisations » (lecture seule) liste les routines et les rappels des cerveaux t3-agent. Elle n'apparaît que si un cerveau existe. Les agents qui attendent l'utilisateur passent en haut. Un clic ouvre la conversation : envoi de message, interruption, réponse aux approbations et aux questions, épinglage, archivage.
+- **Agents** : une carte par session T3 Code, regroupées par projet. Une colonne « Automatisations » (lecture seule) liste les routines et les rappels des cerveaux t3-agent. Elle n'apparaît que si un cerveau existe. Les agents qui attendent l'utilisateur passent en haut. Un clic ouvre la conversation : envoi de message, interruption, réponse aux approbations et aux questions.
 - **Board** : les tickets Linear qui vous sont assignés, groupés par projet Linear. Un clic ouvre le ticket dans Linear. Le bouton « assigner à un agent » crée une session T3 Code (Claude ou Codex) qui traite le ticket.
 
 Le serveur Bun (TypeScript) parle à T3 Code et expose une API locale. Il sert aussi l'interface React, qui se trouve dans `web/`.
@@ -184,5 +184,4 @@ Ces actions écrivent dans le vrai T3 Code. Faites-les une fois après une mise 
 3. Interrompre un run.
 4. Répondre à une approbation avec chacun des 3 boutons.
 5. Répondre à une question, puis cliquer sur « Ignorer ».
-6. Épingler, désépingler, archiver.
-7. Vérifier qu'un agent qui démarre ou finit change de carte dans l'onglet Agents sans recharger la page.
+6. Vérifier qu'un agent qui démarre ou finit change de carte dans l'onglet Agents sans recharger la page.
