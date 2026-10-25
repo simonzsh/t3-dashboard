@@ -475,6 +475,10 @@ button.auto-row:hover { background: var(--surface-0); }
 @media (max-width: 899px), (pointer: coarse) {
   button kbd { display: none; }
 }
+@media (pointer: coarse) {
+  /* iOS zooms into any field under 16px on focus. */
+  input, textarea { font-size: 16px; }
+}
 .setup { min-height: 100dvh; display: grid; place-items: center; padding: 24px; }
 .setup-card, .linear-card { width: min(520px, 100%); display: flex; flex-direction: column; gap: 12px; padding: 24px; background: var(--surface-1); border: 1px solid var(--line); border-radius: 14px; box-shadow: var(--shadow); }
 .setup-card h1 { margin: 0; font-size: 13px; color: var(--text-secondary); font-weight: 600; letter-spacing: 0.02em; }
