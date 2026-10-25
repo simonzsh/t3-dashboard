@@ -10,7 +10,7 @@ import { RunActivityView } from "./RunActivity.tsx";
 import { SubagentStrip } from "./SubagentStrip.tsx";
 import { usePoll } from "../../lib/usePoll.ts";
 import { errorMessage } from "../../lib/format.ts";
-import { LIVE_RELOAD_MS, pollDelay } from "./reload.ts";
+import { LIVE_RELOAD_MS, SEND_POLL_WINDOW_MS, pollDelay } from "./reload.ts";
 
 const ROLE_LABELS: Record<string, string> = { user: "You", assistant: "Agent", system: "System" };
 // Windows remount when they move between grid, minimized bar and mobile view: keep what they showed.
@@ -106,8 +106,14 @@ export function ConversationPanel({ threadId, thread, providers }: Props) {
   const t = thread ?? detail?.thread ?? null;
   const running = t !== null && runActive(t);
   const background = Boolean(t?.pendingTasks) || (detail?.subagents.some((s) => s.status === "running") ?? false);
-  // Each load renders again, so the send window closes by itself on the next poll.
   usePoll(load, pollDelay({ running, sentAt, background, now: Date.now() }));
+
+  // A timer closes the send window: a failing load may not render again to close it.
+  useEffect(() => {
+    if (sentAt === 0) return;
+    const timer = setTimeout(() => setSentAt(0), Math.max(0, sentAt + SEND_POLL_WINDOW_MS - Date.now()));
+    return () => clearTimeout(timer);
+  }, [sentAt]);
 
   // Follow new messages unless the user scrolled up to read.
   useEffect(() => {
