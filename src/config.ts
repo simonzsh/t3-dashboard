@@ -7,30 +7,16 @@ export type ReadFile = (path: string) => string;
 
 export interface Config {
   port: number;
-  tokenFile: string;
+  /** Set only by T3_DASHBOARD_TOKEN_FILE: the dashboard keeps its own token otherwise. */
+  tokenFile: string | null;
   runtimeFile: string;
-  readToken(): string;
 }
 
-export function loadConfig(env: Record<string, string | undefined>, readFile: ReadFile, homedir: string): Config {
-  const tokenFile = env.T3_DASHBOARD_TOKEN_FILE ?? join(homedir, ".config", "t3-agent", "perso.json");
-  const runtimeFile = env.T3_SERVER_RUNTIME ?? join(homedir, ".t3", "userdata", "server-runtime.json");
+export function loadConfig(env: Record<string, string | undefined>, homedir: string): Config {
   return {
     port: Number(env.PORT ?? DEFAULT_PORT),
-    tokenFile,
-    runtimeFile,
-    readToken() {
-      // Error messages name the file only: parse errors can quote the content.
-      let parsed: unknown;
-      try {
-        parsed = JSON.parse(readFile(tokenFile));
-      } catch {
-        throw new Error(`Cannot read the T3 token file ${tokenFile}. Check that it exists and holds valid JSON.`);
-      }
-      const token = (parsed as { token?: unknown } | null)?.token;
-      if (typeof token !== "string" || token === "") throw new Error(`The T3 token file ${tokenFile} has no "token" field.`);
-      return token;
-    },
+    tokenFile: env.T3_DASHBOARD_TOKEN_FILE || null,
+    runtimeFile: env.T3_SERVER_RUNTIME ?? join(homedir, ".t3", "userdata", "server-runtime.json"),
   };
 }
 
@@ -42,4 +28,14 @@ export function resolveOrigin(runtimeFile: string, readFile: ReadFile): string {
     // Fall through: T3 may not have written the file yet.
   }
   return DEFAULT_ORIGIN;
+}
+
+/** The version of the running T3 server, from its runtime file, or null. */
+export function readServerVersion(runtimeFile: string, readFile: ReadFile): string | null {
+  try {
+    const version = (JSON.parse(readFile(runtimeFile)) as { serverVersion?: unknown }).serverVersion;
+    return typeof version === "string" && version !== "" ? version : null;
+  } catch {
+    return null;
+  }
 }

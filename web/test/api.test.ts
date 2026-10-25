@@ -1,4 +1,4 @@
-import test from "node:test";
+import { test } from "bun:test";
 import assert from "node:assert/strict";
 import { createApi } from "../src/api.ts";
 
@@ -66,7 +66,7 @@ test("non-2xx throws with the server message", async () => {
 });
 
 test("non-2xx without JSON error body still throws", async () => {
-  const fetch = (async () => new Response("boom", { status: 500 })) as typeof globalThis.fetch;
+  const fetch = (async () => new Response("boom", { status: 500 })) as unknown as typeof globalThis.fetch;
   await assert.rejects(() => createApi(fetch).getState(), /500/);
 });
 
@@ -94,4 +94,32 @@ test("getAutomations reads /api/automations with GET", async () => {
   assert.deepEqual(await api.getAutomations(), result);
   assert.equal(calls[0]?.url, "/api/automations");
   assert.equal(calls[0]?.init?.method ?? "GET", "GET");
+});
+
+test("settings and setup calls use the right routes and verbs", async () => {
+  const { calls, api } = fake(200, {});
+  await api.getSettings();
+  await api.getLinearTeams();
+  await api.retrySetup();
+  await api.pasteToken("tok");
+  await api.connectLinear("key");
+  await api.disconnectLinear();
+  await api.saveLinearTeams({ teams: { ENG: null }, unlisted: "hide" });
+  assert.deepEqual(
+    calls.map((call) => [call.url, call.init?.method ?? "GET", call.init?.body ?? null]),
+    [
+      ["/api/settings", "GET", null],
+      ["/api/settings/linear/teams", "GET", null],
+      ["/api/setup/retry", "POST", "{}"],
+      ["/api/setup/token", "POST", '{"token":"tok"}'],
+      ["/api/settings/linear/key", "POST", '{"apiKey":"key"}'],
+      ["/api/settings/linear/disconnect", "POST", "{}"],
+      ["/api/settings/linear/teams", "POST", '{"teams":{"ENG":null},"unlisted":"hide"}'],
+    ],
+  );
+});
+
+test("a server error message reaches the caller", async () => {
+  const { api } = fake(400, { error: "Linear refused this key." });
+  await assert.rejects(api.connectLinear("bad"), /Linear refused this key\./);
 });

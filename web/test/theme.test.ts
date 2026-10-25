@@ -1,4 +1,4 @@
-import test from "node:test";
+import { test } from "bun:test";
 import assert from "node:assert/strict";
 import { THEME_KEY, loadTheme, parseTheme, resolveTheme, saveTheme } from "../src/theme.ts";
 

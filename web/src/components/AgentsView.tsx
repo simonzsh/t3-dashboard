@@ -17,7 +17,8 @@ interface Props {
 export function AgentsView({ state, now, deskIds, onOpen, onToggleDesk, automations, automationsError }: Props) {
   const groups = groupAgents(excludeRoutineThreads(state.threads, automations?.automations ?? []), state.projects, now);
   // Before the first automations answer, routine threads would flash in the grid.
-  const loading = automations === null && automationsError === null;
+  const available = state.automationsAvailable;
+  const loading = available && automations === null && automationsError === null;
   const agents = loading ? (
     <div className="empty-state">Loading…</div>
   ) : groups.length === 0 ? (
@@ -42,9 +43,9 @@ export function AgentsView({ state, now, deskIds, onOpen, onToggleDesk, automati
       </div>
     );
   return (
-    <div className="agents-layout">
+    <div className={`agents-layout${available ? "" : " wide"}`}>
       {agents}
-      <AutomationsColumn result={automations} error={automationsError} threads={state.threads} now={now} onOpen={onOpen} />
+      {available && <AutomationsColumn result={automations} error={automationsError} threads={state.threads} now={now} onOpen={onOpen} />}
     </div>
   );
 }

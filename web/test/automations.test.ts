@@ -1,4 +1,4 @@
-import test from "node:test";
+import { test } from "bun:test";
 import assert from "node:assert/strict";
 import type { Automation } from "../../shared/api.ts";
 import { excludeRoutineThreads, lastRunState, nextLabel, reminderDate, splitAutomations } from "../src/automations.ts";

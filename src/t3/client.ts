@@ -3,16 +3,31 @@ import type { Command, RawConfig, RawProjection, ShellItem, T3Port } from "./typ
 
 const ORCHESTRATION_PROTOCOL = "2";
 
+export class MissingTokenError extends Error {
+  constructor() {
+    super("No T3 token yet");
+  }
+}
+
+export class T3HttpError extends Error {
+  readonly status: number;
+  constructor(status: number, message: string) {
+    super(message);
+    this.status = status;
+  }
+}
+
 export interface T3ClientOptions {
   origin: () => Promise<string>;
-  token: string;
+  /** Read on every request: the token can change while the dashboard runs. */
+  token: () => string | null;
   fetch?: typeof fetch;
   WebSocket?: typeof WebSocket;
 }
 
 export class T3Client implements T3Port {
   private readonly origin: () => Promise<string>;
-  private readonly token: string;
+  private readonly token: () => string | null;
   private readonly fetchImpl: typeof fetch;
   private readonly Socket: typeof WebSocket;
 
@@ -81,12 +96,14 @@ export class T3Client implements T3Port {
   }
 
   private async http(method: "GET" | "POST", path: string): Promise<unknown> {
+    const token = this.token();
+    if (token === null) throw new MissingTokenError();
     const response = await this.fetchImpl((await this.baseUrl()) + path, {
       method,
-      headers: { authorization: `Bearer ${this.token}`, "x-t3-orchestration-protocol": ORCHESTRATION_PROTOCOL },
+      headers: { authorization: `Bearer ${token}`, "x-t3-orchestration-protocol": ORCHESTRATION_PROTOCOL },
     });
     const text = await response.text();
-    if (!response.ok) throw new Error(`T3 answered ${response.status} on ${method} ${path}`);
+    if (!response.ok) throw new T3HttpError(response.status, `T3 answered ${response.status} on ${method} ${path}`);
     return text ? JSON.parse(text) : undefined;
   }
 

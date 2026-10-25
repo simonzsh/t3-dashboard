@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { test } from "node:test";
+import { test } from "bun:test";
 import { LinearBoard } from "../src/linear.ts";
 import type { LinearWorkspaceConfig } from "../src/linearConfig.ts";
 
@@ -41,7 +41,13 @@ function setup(workspaces: LinearWorkspaceConfig[], respond: (key: string) => Re
   return { board, calls, tick: (ms: number) => (clock += ms) };
 }
 
-const space = (name: string, apiKey: string, t3Project = "Project A", teams: Record<string, string> | null = null): LinearWorkspaceConfig => ({ name, apiKey, t3Project, teams });
+const space = (name: string, apiKey: string, t3Project = "Project A", teams: Record<string, string | null> | null = null, unlisted: "show" | "hide" = teams ? "hide" : "show"): LinearWorkspaceConfig => ({
+  name,
+  apiKey,
+  t3Project,
+  teams,
+  unlisted,
+});
 
 test("fetches assigned issues with the raw key as Authorization and tags the workspace", async () => {
   const { board, calls } = setup([space("Space 1", "key-1")], () => reply([node(1)]));
@@ -60,6 +66,7 @@ test("a missing key shows an error without calling Linear", async () => {
   const result = await board.get();
   assert.equal(calls.length, 0);
   assert.deepEqual(result.workspaces, [{ name: "Space 1", ok: false, error: "Missing API key", t3ProjectId: "project-1" }]);
+  assert.equal(result.configured, false);
 });
 
 test("one failing workspace does not block the others, and the error holds no key", async () => {
@@ -128,4 +135,73 @@ test("a table entry on a workspace with a t3Project keeps the workspace project 
 test("without a table, every issue goes to the workspace project", async () => {
   const { board } = setup([space("Space 1", "key-1")], () => reply([node(1)]));
   assert.equal((await board.get()).issues[0]!.t3ProjectId, "project-1");
+});
+
+const other = (n: number, key: string) => ({ ...node(n), team: { key, name: `Team ${key}` } });
+const teamsReply = () => reply([other(1, "ENG"), other(2, "OPS"), other(3, "DES"), other(4, "HR")]);
+const seen = (result: Awaited<ReturnType<LinearBoard["get"]>>) => result.issues.map((issue) => [issue.team.key, issue.t3ProjectId]);
+
+test("a null team is hidden, an empty one is shown without a project, a title resolves to its project", async () => {
+  const { board } = setup([space("Linear", "k", "", { ENG: "Project A", OPS: null, DES: "" })], teamsReply);
+  assert.deepEqual(seen(await board.get()), [["ENG", "project-1"], ["DES", null]]);
+});
+
+test("unlisted show keeps the teams that are not in the table, with no project", async () => {
+  const { board } = setup([space("Linear", "k", "", { ENG: "Project A", OPS: null }, "show")], teamsReply);
+  assert.deepEqual(seen(await board.get()), [["ENG", "project-1"], ["DES", null], ["HR", null]]);
+});
+
+test("unlisted hide drops the teams that are not in the table", async () => {
+  const { board } = setup([space("Linear", "k", "", { ENG: "Project A" }, "hide")], teamsReply);
+  assert.deepEqual(seen(await board.get()), [["ENG", "project-1"]]);
+});
+
+test("a key with no table at all shows every team, in the workspace project when it has one", async () => {
+  const { board } = setup([space("Linear", "k", "Project A", null, "show")], teamsReply);
+  assert.deepEqual(seen(await board.get()).map(([, project]) => project), ["project-1", "project-1", "project-1", "project-1"]);
+});
+
+test("the board is configured as soon as one workspace has a key", async () => {
+  const { board } = setup([space("A", ""), space("B", "key-b")], () => reply([]));
+  assert.equal((await board.get()).configured, true);
+  assert.equal((await setup([], () => reply([])).board.get()).configured, false);
+});
+
+test("a refused key shows a clear error without the key", async () => {
+  const { board } = setup([space("A", "key-bad")], () => new Response("denied key-bad", { status: 400 }));
+  const result = await board.get();
+  assert.match(result.workspaces[0]!.error!, /^Linear refused this key/);
+  assert.ok(!JSON.stringify(result).includes("key-bad"));
+});
+
+test("invalidate drops the cache", async () => {
+  const { board, calls } = setup([space("A", "k")], () => reply([]));
+  await board.get();
+  board.invalidate();
+  await board.get();
+  assert.equal(calls.length, 2);
+});
+
+test("verifyKey asks Linear for the viewer and tells ok, refused or unreachable", async () => {
+  const { board, calls } = setup([], (key) => {
+    if (key === "good") return new Response(JSON.stringify({ data: { viewer: { id: "u1" } } }));
+    if (key === "bad") return new Response("no", { status: 401 });
+    if (key === "down") return new Response("oops", { status: 503 });
+    throw new Error(`network ${key}`);
+  });
+  assert.equal(await board.verifyKey("good"), "ok");
+  assert.equal(calls[0]!.query, "{ viewer { id } }");
+  assert.equal(calls[0]!.authorization, "good");
+  assert.equal(await board.verifyKey("bad"), "refused");
+  assert.equal(await board.verifyKey("down"), "unreachable");
+  assert.equal(await board.verifyKey("offline"), "unreachable");
+});
+
+test("listTeams returns key and name only, and maps failures", async () => {
+  const { board, calls } = setup([], (key) =>
+    key === "good" ? new Response(JSON.stringify({ data: { teams: { nodes: [{ key: "ENG", name: "Engineering", id: "x" }] } } })) : new Response("no", { status: 401 }),
+  );
+  assert.deepEqual(await board.listTeams("good"), { teams: [{ key: "ENG", name: "Engineering" }] });
+  assert.match(calls[0]!.query, /teams\(first: 250\)/);
+  assert.equal(await board.listTeams("bad"), "refused");
 });

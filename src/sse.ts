@@ -1,4 +1,3 @@
-import type { ServerResponse } from "node:http";
 import type { DashboardEvent, DashboardProject, DashboardState, DashboardThread, Diff } from "../shared/api.ts";
 
 export interface SseHubOptions {
@@ -35,12 +34,13 @@ class Pending<T extends { id: string }> {
 }
 
 interface Client {
-  res: ServerResponse;
+  controller: ReadableStreamDefaultController<Uint8Array>;
   threads: Pending<DashboardThread>;
   projects: Pending<DashboardProject>;
   timer: NodeJS.Timeout | null;
 }
 
+const encoder = new TextEncoder();
 const frame = (type: string, data: unknown) => `event: ${type}\ndata: ${JSON.stringify(data)}\n\n`;
 
 /** Fans events out to the browsers; thread and project diffs are batched per client. */
@@ -52,23 +52,25 @@ export class SseHub {
   constructor({ batchMs = 150, pingMs = 25_000 }: SseHubOptions = {}) {
     this.batchMs = batchMs;
     this.pinger = setInterval(() => {
-      for (const client of this.clients) client.res.write(": ping\n\n");
+      for (const client of this.clients) this.write(client, ": ping\n\n");
     }, pingMs);
     this.pinger.unref();
   }
 
-  add(res: ServerResponse, initialState: DashboardState): void {
-    res.writeHead(200, {
-      "content-type": "text/event-stream",
-      "cache-control": "no-cache",
-      connection: "keep-alive",
-      "x-accel-buffering": "no",
+  add(initialState: DashboardState, signal: AbortSignal): Response {
+    let client: Client;
+    const body = new ReadableStream<Uint8Array>({
+      start: (controller) => {
+        client = { controller, threads: new Pending(), projects: new Pending(), timer: null };
+        this.clients.add(client);
+        this.write(client, frame("state", initialState));
+      },
+      cancel: () => this.drop(client),
     });
-    res.flushHeaders();
-    res.write(frame("state", initialState));
-    const client: Client = { res, threads: new Pending(), projects: new Pending(), timer: null };
-    this.clients.add(client);
-    res.on("close", () => this.drop(client));
+    signal.addEventListener("abort", () => this.drop(client), { once: true });
+    return new Response(body, {
+      headers: { "content-type": "text/event-stream", "cache-control": "no-cache", "x-accel-buffering": "no" },
+    });
   }
 
   broadcast(event: DashboardEvent): void {
@@ -80,7 +82,7 @@ export class SseHub {
       }
       // A full state already holds every pending change.
       if (event.type === "state") this.cancelBatch(client);
-      client.res.write(frame(event.type, event.data));
+      this.write(client, frame(event.type, event.data));
     }
   }
 
@@ -88,7 +90,7 @@ export class SseHub {
     clearInterval(this.pinger);
     for (const client of this.clients) {
       this.cancelBatch(client);
-      client.res.end();
+      client.controller.close();
     }
     this.clients.clear();
   }
@@ -96,9 +98,17 @@ export class SseHub {
   private flush(client: Client): void {
     client.timer = null;
     const threads = client.threads.take();
-    if (threads) client.res.write(frame("threads", threads));
+    if (threads) this.write(client, frame("threads", threads));
     const projects = client.projects.take();
-    if (projects) client.res.write(frame("projects", projects));
+    if (projects) this.write(client, frame("projects", projects));
+  }
+
+  private write(client: Client, text: string): void {
+    try {
+      client.controller.enqueue(encoder.encode(text));
+    } catch {
+      this.drop(client);
+    }
   }
 
   private cancelBatch(client: Client): void {

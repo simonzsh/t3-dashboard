@@ -1,4 +1,4 @@
-import test from "node:test";
+import { test } from "bun:test";
 import assert from "node:assert/strict";
 import { agentStatus, groupAgents, pendingLabel, providerKind, threadState } from "../src/agents.ts";
 import { thread } from "./fixtures.ts";

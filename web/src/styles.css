@@ -189,6 +189,7 @@ main { padding: 24px; display: flex; flex-direction: column; gap: 28px; }
 .segmented button { border: 0; background: none; padding: 4px 14px; border-radius: 7px; color: var(--text-secondary); font-weight: 500; }
 .segmented button.active { background: var(--accent); color: var(--on-accent); }
 .agents-layout { display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 28px; align-items: start; }
+.agents-layout.wide { grid-template-columns: minmax(0, 1fr); }
 .agents-groups { display: flex; flex-direction: column; gap: 28px; }
 .automations { position: sticky; top: 76px; display: flex; flex-direction: column; gap: 20px; padding: 16px; border-radius: 14px; background: var(--surface-1); border: 1px solid var(--line); box-shadow: var(--shadow); }
 .auto-heading { margin: 0; font-size: 15px; }
@@ -277,3 +278,23 @@ button.auto-row:hover { background: var(--surface-0); }
 @media (max-width: 899px), (pointer: coarse) {
   button kbd { display: none; }
 }
+.setup { min-height: 100dvh; display: grid; place-items: center; padding: 24px; }
+.setup-card, .linear-card { width: min(520px, 100%); display: flex; flex-direction: column; gap: 12px; padding: 24px; background: var(--surface-1); border: 1px solid var(--line); border-radius: 14px; box-shadow: var(--shadow); }
+.setup-card h1 { margin: 0; font-size: 13px; color: var(--text-secondary); font-weight: 600; letter-spacing: 0.02em; }
+.setup-card h2, .linear-card h2 { margin: 0; font-size: 18px; letter-spacing: -0.01em; }
+.setup-detail { margin: 0; color: var(--text-secondary); font-size: 13px; }
+.setup-steps { margin: 0; padding-left: 20px; display: flex; flex-direction: column; gap: 4px; }
+.setup-command { display: flex; gap: 8px; align-items: flex-start; padding: 8px 10px; border-radius: 8px; background: var(--surface-0); border: 1px solid var(--line); }
+.setup-command code { flex: 1; min-width: 0; overflow-wrap: anywhere; font: 12px/1.5 ui-monospace, SFMono-Regular, Menlo, monospace; }
+.setup-link, .linear-card a, .key-box a { color: var(--accent); }
+.setup-paste, .key-row { display: flex; gap: 8px; }
+.setup-paste input, .key-row input { flex: 1; min-width: 0; }
+.setup-card .buttons { display: flex; gap: 8px; align-items: center; }
+.linear-card { margin: 32px auto 0; }
+.linear-card p { margin: 0; }
+.linear-card small, .key-box small { color: var(--text-secondary); }
+.key-form { display: flex; flex-direction: column; gap: 6px; }
+.key-box { display: flex; flex-direction: column; gap: 8px; }
+.menu-project { display: flex; flex-direction: column; gap: 4px; padding: 6px 8px; }
+.menu-project small { color: var(--text-secondary); }
+.dialog.settings { max-height: 90vh; overflow-y: auto; }

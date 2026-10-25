@@ -1,76 +1,49 @@
-import { readFileSync } from "node:fs";
-import { homedir } from "node:os";
-import { readAutomations } from "./automations.ts";
-import { agentConfigDir } from "./brains.ts";
-import { loadConfig, resolveOrigin } from "./config.ts";
-import { LiveSync } from "./live.ts";
-import { LinearBoard } from "./linear.ts";
-import { linearFile, readLinearWorkspaces } from "./linearConfig.ts";
-import { createDashboardServer } from "./server.ts";
-import { ShellStore } from "./shellStore.ts";
-import { SseHub } from "./sse.ts";
-import { T3Client } from "./t3/client.ts";
-import type { DashboardProvider } from "../shared/api.ts";
+import { rmSync } from "node:fs";
+import { parseArgs, USAGE } from "./cli.ts";
+import { install, restartService, serviceInstalled, servicePort, uninstall, waitForService } from "./install.ts";
+import { start } from "./start.ts";
+import { installDeps, updateDeps } from "./system.ts";
+import { removeOldBinary, update } from "./update.ts";
+import { VERSION } from "./version.ts";
 
-const RECLASSIFY_MS = 60_000;
-const readText = (path: string) => readFileSync(path, "utf8");
+const DEFAULT_PORT = 4310;
+const env = process.env;
 
-const config = loadConfig(process.env, readText, homedir());
-const origin = () => resolveOrigin(config.runtimeFile, readText);
-const client = new T3Client({ origin: async () => origin(), token: config.readToken() });
-
-const hub = new SseHub();
-let providers: DashboardProvider[] = [];
-const store: ShellStore = new ShellStore({
-  now: () => new Date(),
-  onState: () => hub.broadcast({ type: "state", data: getState() }),
-  onThreads: (diff) => hub.broadcast({ type: "threads", data: diff }),
-  onProjects: (diff) => hub.broadcast({ type: "projects", data: diff }),
-});
-const live = new LiveSync({
-  port: client,
-  store,
-  origin,
-  onConnection: (status) => hub.broadcast({ type: "connection", data: status }),
-  onProviders: (list) => {
-    providers = list;
-    hub.broadcast({ type: "providers", data: list });
-  },
-});
-const getState = () => store.state(live.connection(), providers);
-
-const linearPath = linearFile(process.env, homedir());
-const board = new LinearBoard({
-  fetch: (url, init) => fetch(url, init),
-  readWorkspaces: () => readLinearWorkspaces(linearPath, readText),
-  resolveProject: (t3Project) => store.project(t3Project)?.id ?? null,
-  now: () => new Date(),
-});
-
-const brainsDir = agentConfigDir(process.env, homedir());
-const automations = () => readAutomations({ configDir: brainsDir, now: () => new Date(), projectTitle: (id) => store.project(id)?.title || null });
-
-const server = createDashboardServer({
-  port: client,
-  store,
-  hub,
-  board,
-  automations,
-  getState,
-  connection: () => live.connection(),
-  staticDir: new URL("../web/dist/", import.meta.url),
-});
-
-const reclassifier = setInterval(() => store.reclassify(new Date()), RECLASSIFY_MS);
-live.start();
-server.listen(config.port, "127.0.0.1", () => console.log(`http://127.0.0.1:${config.port}`));
-
-function shutdown(): void {
-  clearInterval(reclassifier);
-  live.stop();
-  hub.close();
-  server.close(() => process.exit(0));
-  server.closeAllConnections();
+const args = parseArgs(Bun.argv.slice(2));
+if ("error" in args) {
+  console.error(`${args.error}\n\n${USAGE}`);
+  process.exit(2);
 }
-process.on("SIGINT", shutdown);
-process.on("SIGTERM", shutdown);
+
+try {
+  switch (args.command) {
+    case "help":
+      console.log(USAGE);
+      break;
+    case "version":
+      console.log(`t3-dashboard ${VERSION}`);
+      break;
+    case "start":
+      if (process.platform === "win32") removeOldBinary(process.execPath, (path) => rmSync(path, { force: true }));
+      await start({ port: args.port, log: args.log, env });
+      break;
+    default: {
+      // The service must point at the real binary, not at the Bun runtime.
+      if (args.command !== "uninstall" && !Bun.isStandaloneExecutable) throw new Error("run the compiled binary");
+      const deps = installDeps(env);
+      if (args.command === "install") await install({ port: args.port ?? (Number(env.PORT) || DEFAULT_PORT), open: args.open }, deps);
+      else if (args.command === "uninstall") await uninstall(deps);
+      else await update({ check: args.check }, updateDeps(
+            env,
+            async (version) => {
+              await restartService(deps);
+              await waitForService(servicePort(deps, Number(env.PORT) || DEFAULT_PORT), deps, version);
+            },
+            () => serviceInstalled(deps),
+          ));
+    }
+  }
+} catch (error) {
+  console.error(`t3-dashboard: ${(error as Error).message}`);
+  process.exit(1);
+}

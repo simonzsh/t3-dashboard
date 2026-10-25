@@ -1,4 +1,4 @@
-import test from "node:test";
+import { test } from "bun:test";
 import assert from "node:assert/strict";
 import { buildAnswers, canSubmit } from "../src/answers.ts";
 import type { UserInputQuestion } from "../../shared/api.ts";

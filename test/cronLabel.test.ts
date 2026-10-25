@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { test } from "node:test";
+import { test } from "bun:test";
 import { cronLabel } from "../src/cronLabel.ts";
 
 const cases: Array<[string, string]> = [
