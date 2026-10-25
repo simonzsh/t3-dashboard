@@ -39,7 +39,7 @@ export function BoardView({ projects, version, onAssigned, onShowDesk }: Props) 
 
   const columns = useMemo(() => boardColumns(board?.issues ?? []), [board]);
   const needsKey = board !== null && boardNeedsKey(board);
-  const broken = needsKey ? [] : (board?.workspaces.filter((w) => !w.ok) ?? []);
+  const linearError = board && !needsKey && !board.ok ? board.error : null;
 
   return (
     <div className="board">
@@ -54,14 +54,14 @@ export function BoardView({ projects, version, onAssigned, onShowDesk }: Props) 
         </IconButton>
       </div>
       {error && <p className="notice error-notice">{error}</p>}
-      {broken.map((w) => (
-        <p className="notice" key={w.name}>
-          <strong>{w.name}</strong> : {w.error ?? "Missing API key"}
+      {linearError && (
+        <p className="notice">
+          <strong>Linear</strong> : {linearError}
         </p>
-      ))}
+      )}
       {!board && !error && <p className="empty">Loading…</p>}
       {board && needsKey && <LinearSetupCard refused={board.configured} onConnected={() => void load(true)} />}
-      {board && !needsKey && columns.length === 0 && broken.length === 0 && (
+      {board && !needsKey && columns.length === 0 && !linearError && (
         <div className="empty-state">
           <strong>No assigned issues</strong>
           <span>Open issues assigned to you appear here.</span>

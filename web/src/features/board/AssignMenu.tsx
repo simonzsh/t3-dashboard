@@ -27,7 +27,7 @@ export function AssignMenu({ issue, projects, onAssigned, onShowDesk }: Props) {
     setOpen(false);
     let threadId = "";
     const ok = await run(async () => {
-      threadId = (await api.assignIssue({ workspace: issue.workspace, issueId: issue.id, agent, projectId })).threadId;
+      threadId = (await api.assignIssue({ issueId: issue.id, agent, projectId })).threadId;
     });
     if (!ok) return;
     saveAssignProject(browserStorage(), issue.team.key, projectId);

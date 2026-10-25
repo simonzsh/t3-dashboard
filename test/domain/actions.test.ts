@@ -16,11 +16,10 @@ const issue = {
   priorityLabel: "High",
   project: null,
   team: { key: "TEAM", name: "Team" },
-  workspace: "Main",
   updatedAt: "2026-03-20T10:00:00.000Z",
 };
 
-function harness({ board = { workspaces: [{ name: "Main", ok: true, error: null }], issues: [issue], configured: true } as BoardResult, dispatchError = null as Error | null } = {}) {
+function harness({ board = { configured: true, ok: true, error: null, issues: [issue] } as BoardResult, dispatchError = null as Error | null } = {}) {
   const commands: Command[] = [];
   const port: T3Port = {
     threadProjection: async () => ({}),
@@ -57,7 +56,7 @@ test("a T3 failure of any kind comes back as a T3 integration error with its mes
 
 test("assign names the thread after the issue and asks the agent to handle it", async () => {
   const { actions, commands } = harness();
-  const threadId = await actions.assign({ workspace: "Main", issueId: "issue-1", agent: "claude", projectId: "project-1" });
+  const threadId = await actions.assign({ issueId: "issue-1", agent: "claude", projectId: "project-1" });
   const create = commands.find((command) => command.type === "thread.create");
   assert.equal(create?.threadId, threadId);
   assert.equal(create?.title, "TEAM-1 Fix it");
@@ -65,9 +64,8 @@ test("assign names the thread after the issue and asks the agent to handle it", 
   assert.equal(message?.text, "Traite le ticket Linear TEAM-1 : https://linear.example/TEAM-1");
 });
 
-test("assign refuses an unknown workspace, an unknown issue and an unknown project", async () => {
+test("assign refuses an unknown issue and an unknown project", async () => {
   const { actions } = harness();
-  await assert.rejects(actions.assign({ workspace: "Other", issueId: "issue-1", agent: "claude", projectId: "project-1" }), rejectsWith("not-found"));
-  await assert.rejects(actions.assign({ workspace: "Main", issueId: "nope", agent: "claude", projectId: "project-1" }), rejectsWith("not-found"));
-  await assert.rejects(actions.assign({ workspace: "Main", issueId: "issue-1", agent: "claude", projectId: "nope" }), rejectsWith("conflict"));
+  await assert.rejects(actions.assign({ issueId: "nope", agent: "claude", projectId: "project-1" }), rejectsWith("not-found"));
+  await assert.rejects(actions.assign({ issueId: "issue-1", agent: "claude", projectId: "nope" }), rejectsWith("conflict"));
 });

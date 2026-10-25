@@ -55,10 +55,10 @@ export function validImages(value: unknown): ImageUpload[] {
 }
 
 export function validAssign(body: Record<string, unknown>): AssignIssueBody {
-  if (!isText(body.workspace) || !isText(body.issueId) || !isText(body.projectId) || (body.agent !== "claude" && body.agent !== "codex")) {
-    throw new HttpError(400, "workspace, issueId, projectId and agent (claude or codex) are required");
+  if (!isText(body.issueId) || !isText(body.projectId) || (body.agent !== "claude" && body.agent !== "codex")) {
+    throw new HttpError(400, "issueId, projectId and agent (claude or codex) are required");
   }
-  return { workspace: body.workspace, issueId: body.issueId, agent: body.agent, projectId: body.projectId };
+  return { issueId: body.issueId, agent: body.agent, projectId: body.projectId };
 }
 
 export function validRespond(body: Record<string, unknown>): RespondBody {

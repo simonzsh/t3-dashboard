@@ -76,18 +76,15 @@ export function createActions(options: ActionsOptions): Actions {
     return runs.findLast((run) => RUNNING_RUN_STATUSES.has(run.status ?? ""))?.id ?? null;
   }
 
-  async function findIssue(body: AssignIssueBody): Promise<LinearIssue> {
-    const lookup = async (refresh: boolean) => {
-      const result = await board.get(refresh);
-      const status = result.workspaces.find((workspace) => workspace.name === body.workspace);
-      if (!status) throw new DomainError("not-found", "Unknown workspace");
-      const issue = result.issues.find((entry) => entry.workspace === body.workspace && entry.id === body.issueId);
-      return { status, issue };
-    };
-    let { status, issue } = await lookup(false);
-    if (!issue) ({ status, issue } = await lookup(true));
+  async function findIssue(issueId: string): Promise<LinearIssue> {
+    let result = await board.get(false);
+    let issue = result.issues.find((entry) => entry.id === issueId);
+    if (!issue) {
+      result = await board.get(true);
+      issue = result.issues.find((entry) => entry.id === issueId);
+    }
     if (issue) return issue;
-    if (!status.ok) throw new IntegrationError(status.error ?? "Linear error", { system: "linear", kind: "unreachable" });
+    if (!result.ok) throw new IntegrationError(result.error ?? "Linear error", { system: "linear", kind: "unreachable" });
     throw new DomainError("not-found", "Unknown issue");
   }
 
@@ -140,7 +137,7 @@ export function createActions(options: ActionsOptions): Actions {
     },
 
     async assign(body) {
-      const issue = await findIssue(body);
+      const issue = await findIssue(body.issueId);
       const project = store.project(body.projectId);
       if (!project) throw new DomainError("conflict", "T3 project not found");
       const modelSelection = await modelFor(body.agent, project.defaultModelSelection);

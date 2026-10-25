@@ -14,7 +14,6 @@ function issue(id: string, over: Partial<LinearIssue> = {}): LinearIssue {
     priorityLabel: "No priority",
     project: null,
     team: { key: "ABC", name: "Team" },
-    workspace: "ws-1",
     updatedAt: "2026-03-01T10:00:00.000Z",
     ...over,
   };

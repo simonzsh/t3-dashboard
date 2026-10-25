@@ -3,8 +3,7 @@ import type { ReadFile } from "../config/config.ts";
 import { IntegrationError } from "../integrations/errors.ts";
 import { DomainError } from "./errors.ts";
 import type { LinearBoard } from "./linearBoard.ts";
-import { readLinearFile, toSimple, writeLinearConfig } from "../config/linearFile.ts";
-import type { SimpleLinearConfig } from "../config/linearFile.ts";
+import { readLinearKey, writeLinearKey } from "../config/linearFile.ts";
 
 export interface SettingsOptions {
   file: string;
@@ -21,26 +20,13 @@ export interface Settings {
 
 export function createSettings(options: SettingsOptions): Settings {
   const { file, readFile, writeSecret, board } = options;
-  const read = () => {
-    const { workspaces, legacy } = readLinearFile(file, readFile);
-    return { config: toSimple(workspaces), legacy, keyed: workspaces.filter((workspace) => workspace.apiKey !== "").length };
-  };
-  // Converting a legacy file with several keys would drop all but one of them.
-  const guard = () => {
-    const current = read();
-    if (current.legacy && current.keyed > 1) throw new DomainError("conflict", "linear.json holds several keys: edit it by hand.");
-    return current;
-  };
-  const save = (next: SimpleLinearConfig) => {
-    writeLinearConfig(file, next, writeSecret);
+  const save = (apiKey: string) => {
+    writeLinearKey(file, apiKey, writeSecret);
     board.invalidate();
   };
   const result = (): SettingsResult => {
-    const { config, legacy } = read();
-    const { apiKey } = config;
-    return {
-      linear: { connected: apiKey !== "", keyTail: apiKey === "" ? null : apiKey.slice(-4), legacy },
-    };
+    const apiKey = readLinearKey(file, readFile);
+    return { linear: { connected: apiKey !== "", keyTail: apiKey === "" ? null : apiKey.slice(-4) } };
   };
 
   return {
@@ -48,16 +34,14 @@ export function createSettings(options: SettingsOptions): Settings {
     async connectKey({ apiKey }) {
       const key = typeof apiKey === "string" ? apiKey.trim() : "";
       if (key === "") throw new DomainError("invalid", "Enter a Linear API key.");
-      guard();
       const check = await board.verifyKey(key);
       if (check === "refused") throw new DomainError("invalid", "Linear refused this key.");
       if (check === "unreachable") throw new IntegrationError("Linear is unreachable.", { system: "linear", kind: "unreachable" });
-      save({ apiKey: key });
+      save(key);
       return result();
     },
     disconnect() {
-      guard();
-      save({ apiKey: "" });
+      save("");
       return result();
     },
   };

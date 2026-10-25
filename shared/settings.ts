@@ -4,8 +4,6 @@ export interface LinearSettings {
   connected: boolean;
   /** Last 4 characters at most: the key itself never leaves the server. */
   keyTail: string | null;
-  /** The file uses the old workspaces list: the first save converts it and keeps the first workspace only. */
-  legacy: boolean;
 }
 
 export interface SettingsResult {

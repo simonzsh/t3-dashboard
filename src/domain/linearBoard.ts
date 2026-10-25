@@ -1,16 +1,15 @@
-import type { BoardResult, LinearIssue, LinearWorkspaceStatus } from "../../shared/api.ts";
+import type { BoardResult } from "../../shared/api.ts";
 import type { KeyCheck, LinearClient } from "../integrations/linear/client.ts";
-import type { LinearWorkspaceConfig } from "../config/linearFile.ts";
 
 const CACHE_MS = 60_000;
 
 export interface LinearBoardOptions {
   client: Pick<LinearClient, "assignedIssues" | "verifyKey">;
-  readWorkspaces: () => LinearWorkspaceConfig[];
+  readKey: () => string;
   now: () => Date;
 }
 
-/** Assigned Linear issues per workspace, cached for a minute. Each workspace is read on its own. */
+/** Issues assigned to the owner of the Linear key, cached for a minute. */
 export class LinearBoard {
   private readonly options: LinearBoardOptions;
   private cached: { at: number; board: BoardResult } | null = null;
@@ -31,25 +30,17 @@ export class LinearBoard {
   async get(refresh = false): Promise<BoardResult> {
     const now = this.options.now();
     if (!refresh && this.cached && now.getTime() - this.cached.at < CACHE_MS) return this.cached.board;
-    const workspaces = this.options.readWorkspaces();
-    const results = await Promise.all(workspaces.map((workspace) => this.read(workspace)));
-    const board: BoardResult = {
-      workspaces: results.map((r) => r.status),
-      issues: results.flatMap((r) => r.issues),
-      configured: workspaces.some((workspace) => workspace.apiKey !== ""),
-    };
+    const board = await this.read(this.options.readKey());
     this.cached = { at: now.getTime(), board };
     return board;
   }
 
-  private async read(workspace: LinearWorkspaceConfig): Promise<{ status: LinearWorkspaceStatus; issues: LinearIssue[] }> {
-    const status: LinearWorkspaceStatus = { name: workspace.name, ok: true, error: null };
-    if (workspace.apiKey === "") return { status: { ...status, ok: false, error: "Missing API key" }, issues: [] };
+  private async read(apiKey: string): Promise<BoardResult> {
+    if (apiKey === "") return { configured: false, ok: false, error: "Missing API key", issues: [] };
     try {
-      const nodes = await this.options.client.assignedIssues(workspace.apiKey);
-      return { status, issues: nodes.map((node) => ({ ...node, workspace: workspace.name })) };
+      return { configured: true, ok: true, error: null, issues: await this.options.client.assignedIssues(apiKey) };
     } catch (error) {
-      return { status: { ...status, ok: false, error: (error as Error).message }, issues: [] };
+      return { configured: true, ok: false, error: (error as Error).message, issues: [] };
     }
   }
 }

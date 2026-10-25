@@ -10,25 +10,19 @@ export interface LinearIssue {
   priorityLabel: string;
   project: { id: string; name: string } | null;
   team: { key: string; name: string };
-  workspace: string;
   updatedAt: string;
 }
 
-export interface LinearWorkspaceStatus {
-  name: string;
+export interface BoardResult {
+  /** False when no Linear key is set: the UI shows the setup card. */
+  configured: boolean;
+  /** False when the issues could not be read; `error` then says why. */
   ok: boolean;
   error: string | null;
-}
-
-export interface BoardResult {
-  workspaces: LinearWorkspaceStatus[];
   issues: LinearIssue[];
-  /** False when no Linear key is set at all: the UI shows the setup card. */
-  configured: boolean;
 }
 
 export interface AssignIssueBody {
-  workspace: string;
   issueId: string;
   agent: "claude" | "codex";
   projectId: string;

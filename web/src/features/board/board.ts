@@ -15,7 +15,7 @@ const priorityRank = (p: number) => (p === 0 ? 5 : p);
 export function groupBoard(issues: LinearIssue[]): BoardGroup[] {
   const map = new Map<string, BoardGroup>();
   for (const issue of issues) {
-    const key = issue.project ? issue.project.id : `none:${issue.workspace}:${issue.team.key}`;
+    const key = issue.project ? issue.project.id : `none:${issue.team.key}`;
     let group = map.get(key);
     if (!group) {
       group = { key, title: issue.project?.name ?? NO_PROJECT, team: issue.team.name, issues: [] };

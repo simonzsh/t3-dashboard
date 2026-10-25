@@ -15,7 +15,7 @@ import { T3Client, validateWith } from "../integrations/t3/client.ts";
 import { environmentIdFile, readEnvironmentId, readServerVersion, resolveOrigin, runtimeFile } from "../integrations/t3/runtime.ts";
 import { LiveSync } from "../domain/liveSync.ts";
 import { LinearBoard } from "../domain/linearBoard.ts";
-import { readLinearWorkspaces } from "../config/linearFile.ts";
+import { readLinearKey } from "../config/linearFile.ts";
 import { linearFile, pidFile } from "../config/paths.ts";
 import { redirectConsole, writePidFile } from "../config/runFiles.ts";
 import { writeSecret } from "../config/secretFile.ts";
@@ -100,7 +100,7 @@ export async function start({ port, log, env }: StartOptions): Promise<void> {
   const linearPath = linearFile(env, home);
   const board = new LinearBoard({
     client: new LinearClient((url, init) => fetch(url, init)),
-    readWorkspaces: () => readLinearWorkspaces(linearPath, readText),
+    readKey: () => readLinearKey(linearPath, readText),
     now: () => new Date(),
   });
 

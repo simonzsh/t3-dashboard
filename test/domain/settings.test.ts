@@ -35,7 +35,7 @@ test("a new key is verified, then written alone", async () => {
   const result = await settings.connectKey({ apiKey: `  ${KEY} ` });
   assert.deepEqual(calls, [`verify:${KEY}`, "invalidate"]);
   assert.deepEqual(saved(), { apiKey: KEY });
-  assert.deepEqual(result.linear, { connected: true, keyTail: "WXYZ", legacy: false });
+  assert.deepEqual(result.linear, { connected: true, keyTail: "WXYZ" });
   assert.ok(!JSON.stringify(result).includes(KEY));
 });
 
@@ -56,7 +56,7 @@ test("an empty key is a bad request and is not sent to Linear", async () => {
 
 test("changing the key drops the teams and unlisted fields of an old file", async () => {
   const { settings, saved } = setup({ apiKey: "old-key-0000", teams: { ENG: "Project A", OPS: null }, unlisted: "hide" });
-  assert.deepEqual(settings.get().linear, { connected: true, keyTail: "0000", legacy: false });
+  assert.deepEqual(settings.get().linear, { connected: true, keyTail: "0000" });
   await settings.connectKey({ apiKey: KEY });
   assert.deepEqual(saved(), { apiKey: KEY });
 });
@@ -65,12 +65,12 @@ test("disconnect empties the key and nothing else stays", () => {
   const { settings, saved } = setup({ apiKey: KEY, teams: { ENG: "Project A" }, unlisted: "hide" });
   const result = settings.disconnect();
   assert.deepEqual(saved(), { apiKey: "" });
-  assert.deepEqual(result.linear, { connected: false, keyTail: null, legacy: false });
+  assert.deepEqual(result.linear, { connected: false, keyTail: null });
 });
 
 test("with no file the settings say not connected", () => {
   const { settings } = setup();
-  assert.deepEqual(settings.get().linear, { connected: false, keyTail: null, legacy: false });
+  assert.deepEqual(settings.get().linear, { connected: false, keyTail: null });
 });
 
 test("the key tail is four characters at most", () => {
@@ -78,19 +78,10 @@ test("the key tail is four characters at most", () => {
   assert.equal(settings.get().linear.keyTail, "ab");
 });
 
-test("a legacy file reads as legacy, takes the first non-empty key and converts on the first save", async () => {
-  const legacy = { workspaces: [{ name: "A", apiKey: "", teams: { ENG: "Project A" } }, { name: "B", apiKey: "key-b-2222" }] };
-  const { settings, saved } = setup(legacy);
-  assert.deepEqual(settings.get().linear, { connected: true, keyTail: "2222", legacy: true });
+test("an old workspaces file takes its first non-empty key, even with several keys, and the next save writes one key", async () => {
+  const old = { workspaces: [{ name: "A", apiKey: "", teams: { ENG: "Project A" } }, { name: "B", apiKey: "key-b-2222" }, { name: "C", apiKey: "key-c-3333" }] };
+  const { settings, saved } = setup(old);
+  assert.deepEqual(settings.get().linear, { connected: true, keyTail: "2222" });
   await settings.connectKey({ apiKey: KEY });
   assert.deepEqual(saved(), { apiKey: KEY });
-  assert.equal(settings.get().linear.legacy, false);
-});
-
-test("a legacy file with several keys is never rewritten from the UI", async () => {
-  const legacy = { workspaces: [{ name: "A", apiKey: "key-a-1111" }, { name: "B", apiKey: "key-b-2222" }] };
-  const { settings, saved } = setup(legacy);
-  assert.throws(() => settings.disconnect(), (error: Error) => toHttp(error)?.status === 409 && /several keys/.test(error.message));
-  await assert.rejects(settings.connectKey({ apiKey: "key-new-3333" }), /several keys/);
-  assert.deepEqual(saved(), legacy);
 });

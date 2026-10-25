@@ -118,7 +118,7 @@ Format du fichier :
 ```
 
 - Un ancien fichier peut contenir `teams` et `unlisted`. Le serveur les ignore et les supprime à la prochaine écriture.
-- L'ancien format `{ "workspaces": [...] }` se lit encore : le serveur prend la première clé non vide. Le premier enregistrement depuis Settings le convertit. Settings prévient avant.
+- L'ancien format `{ "workspaces": [...] }` se lit encore : le serveur prend la première clé non vide et ignore les autres. Le Board ne montre que les tickets de cette clé. Le premier enregistrement depuis Settings écrit le format simple.
 
 ## Variables d'environnement
 

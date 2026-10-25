@@ -66,7 +66,7 @@ test("non-2xx without JSON error body still throws", async () => {
 });
 
 test("getBoard reads the cache by default and forces a refresh on demand", async () => {
-  const { calls, api } = fake(200, { workspaces: [], issues: [] });
+  const { calls, api } = fake(200, { configured: true, ok: true, error: null, issues: [] });
   await api.getBoard();
   await api.getBoard(true);
   assert.deepEqual(calls.map((c) => c.url), ["/api/board", "/api/board?refresh=1"]);
@@ -75,7 +75,7 @@ test("getBoard reads the cache by default and forces a refresh on demand", async
 
 test("assignIssue posts the body to the assign route", async () => {
   const { calls, api } = fake(200, { ok: true, threadId: "thread-7" });
-  const body = { workspace: "ws-1", issueId: "i1", agent: "codex" as const, projectId: "p1" };
+  const body = { issueId: "i1", agent: "codex" as const, projectId: "p1" };
   const res = await api.assignIssue(body);
   assert.equal(res.threadId, "thread-7");
   assert.equal(calls[0]?.url, "/api/board/assign");

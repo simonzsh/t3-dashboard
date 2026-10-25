@@ -74,7 +74,6 @@ export function LinearSettings({ onChange }: Props) {
           <LinearKeyForm button={linear.connected ? "Save key" : "Connect"} onSaved={saved} />
         </div>
       )}
-      {linear.legacy && <p className="notice">Your Linear file uses the old workspaces list. The next save keeps only the first workspace that has a key.</p>}
       {action.error && <span className="error">{action.error}</span>}
     </>
   );
