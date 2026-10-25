@@ -3,7 +3,7 @@ import type { BoardResult, DashboardProject } from "../../../../shared/api.ts";
 import { useApi } from "../../api/ApiContext.tsx";
 import { boardColumns } from "./board.ts";
 import { boardNeedsKey, linearConnected } from "../settings/linearSettings.ts";
-import { Icon, IconButton } from "../../ui/index.ts";
+import { Badge, Icon, IconButton } from "../../ui/index.ts";
 import { AssignMenu } from "./AssignMenu.tsx";
 import { LinearSetupCard } from "./LinearSetupCard.tsx";
 import { useAction } from "../../lib/useAction.ts";
@@ -76,7 +76,11 @@ export function BoardView({ projects, version, onAssigned, onShowDesk }: Props) 
                         <a href={i.url} target="_blank" rel="noreferrer" className="card-link">
                           <span className="card-top">
                             <span className="ident">{i.identifier}</span>
-                            {i.priority > 0 && <span className={`prio p${i.priority}`}>{i.priorityLabel}</span>}
+                            {i.priority > 0 && (
+                              <Badge variant={i.priority === 1 ? "error" : i.priority === 2 ? "waiting" : "neutral"} className="prio">
+                                {i.priorityLabel}
+                              </Badge>
+                            )}
                           </span>
                           <span className="card-title">{i.title}</span>
                         </a>
