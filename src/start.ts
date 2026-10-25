@@ -121,14 +121,13 @@ export async function start({ port, log, env }: StartOptions): Promise<void> {
       }
       return installed;
     },
-    now: () => Date.now(),
   });
   const handler = createDashboardServer({ port: client, store, hub, board, automations, getState, connection: () => live.connection(), site, settings, setup, updates, allowedHosts: config.allowedHosts });
 
   const reclassifier = setInterval(() => store.reclassify(new Date()), RECLASSIFY_MS);
   // A dev build has no version to compare, and its runs must not call GitHub.
-  const checker = VERSION === "dev" ? undefined : setInterval(() => void updates.check(true), UPDATE_CHECK_MS);
-  if (checker) void updates.check(true);
+  const checker = VERSION === "dev" ? undefined : setInterval(() => void updates.check(), UPDATE_CHECK_MS);
+  if (checker) void updates.check();
   live.start();
   const server = await listen({
     hostname: "127.0.0.1",

@@ -16,7 +16,6 @@ test("a version that is not semver is never behind", () => {
 });
 
 function harness(options: Partial<UpdateManagerOptions> & { tags?: Array<string | Error> } = {}) {
-  const clock = { now: 1_000_000 };
   const tags = options.tags ?? ["v1.1.0"];
   let asked = 0;
   const manager = new UpdateManager({
@@ -28,10 +27,9 @@ function harness(options: Partial<UpdateManagerOptions> & { tags?: Array<string 
       if (tag instanceof Error) throw tag;
       return tag;
     },
-    now: () => clock.now,
     ...options,
   });
-  return { manager, clock, asked: () => asked };
+  return { manager };
 }
 
 test("status is empty before the first check", () => {
@@ -42,7 +40,7 @@ test("status is empty before the first check", () => {
 });
 
 test("a check reports a newer release without the v prefix", async () => {
-  const { manager, clock } = harness();
+  const { manager } = harness();
   const status = await manager.check();
   assert.equal(status.latest, "1.1.0");
   assert.equal(status.available, true);
@@ -51,19 +49,6 @@ test("a check reports a newer release without the v prefix", async () => {
 test("the same version is not available", async () => {
   const { manager } = harness({ tags: ["v1.0.0"] });
   assert.equal((await manager.check()).available, false);
-});
-
-test("a check under a day old reuses the answer, force and age do not", async () => {
-  const { manager, clock, asked } = harness();
-  await manager.check();
-  clock.now += 23 * 3600_000;
-  await manager.check();
-  assert.equal(asked(), 1);
-  await manager.check(true);
-  assert.equal(asked(), 2);
-  clock.now += 25 * 3600_000;
-  await manager.check();
-  assert.equal(asked(), 3);
 });
 
 test("a network error or a 404 shows nothing and keeps the last answer", async () => {
@@ -75,7 +60,7 @@ test("a network error or a 404 shows nothing and keeps the last answer", async (
 
   const later = harness({ tags: ["v1.1.0", new Error("offline")] });
   await later.manager.check();
-  const kept = await later.manager.check(true);
+  const kept = await later.manager.check();
   assert.equal(kept.latest, "1.1.0");
   assert.equal(kept.error, null);
 });
@@ -129,7 +114,7 @@ test("a successful check clears the last update error", async () => {
   manager.apply();
   await new Promise((resolve) => setTimeout(resolve, 0));
   assert.equal(manager.status().error, "No newer release found.");
-  const status = await manager.check(true);
+  const status = await manager.check();
   assert.equal(status.error, null);
   assert.equal(status.available, true);
 });

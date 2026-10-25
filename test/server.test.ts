@@ -117,7 +117,6 @@ async function start(startOptions: StartOptions = {}) {
     latestTag: async () => startOptions.update?.tag ?? "v1.1.0",
     // Never ends: a second apply must see the update still running.
     run: () => (updateRuns.push("run"), new Promise<boolean>(() => {})),
-    now: () => now.getTime(),
   });
   const port = new FakePort();
   const hub = new SseHub({ batchMs: 10, pingMs: 60_000 });

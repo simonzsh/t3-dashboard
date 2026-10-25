@@ -1,7 +1,5 @@
 import type { UpdateStatus } from "../shared/api.ts";
 
-const DAY_MS = 24 * 60 * 60 * 1000;
-
 export interface UpdateManagerOptions {
   version: string;
   /** Latest release tag, e.g. `v1.2.3`. Throws when there is none or GitHub fails. */
@@ -10,7 +8,6 @@ export interface UpdateManagerOptions {
   unavailable: string | null;
   /** Installs the latest release. Returns false when nothing was installed. */
   run(): Promise<boolean>;
-  now(): number;
 }
 
 const parts = (version: string): number[] | null => {
@@ -29,7 +26,6 @@ export function isNewer(latest: string, current: string): boolean {
 
 export class UpdateManager {
   private latest: string | null = null;
-  private checkedAt: number | null = null;
   private updating = false;
   private error: string | null = null;
 
@@ -52,13 +48,10 @@ export class UpdateManager {
     };
   }
 
-  /** Asks GitHub unless a check is under a day old. A failure keeps the last answer: it is never shown. */
-  async check(force = false): Promise<UpdateStatus> {
-    const now = this.options.now();
-    if (!force && this.checkedAt !== null && now - this.checkedAt < DAY_MS) return this.status();
+  /** Asks GitHub. A failure keeps the last answer: it is never shown. */
+  async check(): Promise<UpdateStatus> {
     try {
       this.latest = (await this.options.latestTag()).replace(/^v/, "");
-      this.checkedAt = now;
       // A fresh answer replaces the last failure, which would otherwise stay on screen.
       this.error = null;
     } catch {

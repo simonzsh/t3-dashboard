@@ -330,7 +330,7 @@ export function createDashboardServer(options: DashboardServerOptions): Dashboar
       }
     } else if (method === "POST" && resource === "update" && segments.length === 3) {
       await readJson(req);
-      if (id === "check") return json(200, await updates.check(true));
+      if (id === "check") return json(200, await updates.check());
       if (id === "apply") {
         const result = updates.apply();
         if (!result.started) throw new HttpError(409, result.reason);
