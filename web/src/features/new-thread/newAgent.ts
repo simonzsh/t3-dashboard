@@ -1,4 +1,5 @@
 import type { DashboardProject, DashboardProvider, ModelSelection } from "../../../../shared/api.ts";
+import { loadProjectChoice, saveProjectChoice } from "../../lib/projectChoice.ts";
 import type { Store } from "../../lib/storage.ts";
 
 const TITLE_MAX = 60;
@@ -10,23 +11,9 @@ export function titleFromMessage(text: string): string {
 }
 
 /** The project of the last New Agent, or "" when none is saved or it no longer exists. */
-export function loadNewAgentProject(storage: Store | null, projects: DashboardProject[]): string {
-  try {
-    const id = storage?.getItem(KEY) ?? null;
-    return id !== null && projects.some((p) => p.id === id) ? id : "";
-  } catch {
-    return "";
-  }
-}
+export const loadNewAgentProject = (storage: Store | null, projects: DashboardProject[]): string => loadProjectChoice(storage, KEY, projects);
 
-// Storage can throw (private mode): the preselection is then lost, nothing else.
-export function saveNewAgentProject(storage: Store | null, projectId: string): void {
-  try {
-    storage?.setItem(KEY, projectId);
-  } catch {
-    // Ignored on purpose.
-  }
-}
+export const saveNewAgentProject = (storage: Store | null, projectId: string): void => saveProjectChoice(storage, KEY, projectId);
 
 export function presetSelection(project: DashboardProject | undefined, providers: DashboardProvider[]): ModelSelection | null {
   const sel = project?.defaultModelSelection;
