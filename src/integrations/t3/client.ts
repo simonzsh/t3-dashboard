@@ -1,23 +1,10 @@
+import { IntegrationError } from "../errors.ts";
 import { RpcConnection } from "./rpc.ts";
 import type { AttachmentRef, Command, ImageUpload, RawConfig, RawProjection, ShellItem, T3Port } from "./schemas.ts";
 
 const ORCHESTRATION_PROTOCOL = "2";
 // Images go up as data URLs of up to 10 MB each: give T3 time to write them.
 const UPLOAD_TIMEOUT_MS = 60_000;
-
-export class MissingTokenError extends Error {
-  constructor() {
-    super("No T3 token yet");
-  }
-}
-
-export class T3HttpError extends Error {
-  readonly status: number;
-  constructor(status: number, message: string) {
-    super(message);
-    this.status = status;
-  }
-}
 
 export type Validation = "ok" | "rejected" | "unreachable";
 
@@ -123,14 +110,25 @@ export class T3Client implements T3Port {
 
   private async http(method: "GET" | "POST", path: string): Promise<unknown> {
     const token = this.token();
-    if (token === null) throw new MissingTokenError();
-    const response = await this.fetchImpl((await this.baseUrl()) + path, {
-      method,
-      headers: { authorization: `Bearer ${token}`, "x-t3-orchestration-protocol": ORCHESTRATION_PROTOCOL },
-    });
-    const text = await response.text();
-    if (!response.ok) throw new T3HttpError(response.status, `T3 answered ${response.status} on ${method} ${path}`);
-    return text ? JSON.parse(text) : undefined;
+    if (token === null) throw new IntegrationError("No T3 token yet", { system: "t3", kind: "not-authenticated" });
+    let response: Response;
+    let text: string;
+    try {
+      response = await this.fetchImpl((await this.baseUrl()) + path, {
+        method,
+        headers: { authorization: `Bearer ${token}`, "x-t3-orchestration-protocol": ORCHESTRATION_PROTOCOL },
+      });
+      text = await response.text();
+    } catch (error) {
+      throw new IntegrationError((error as Error).message, { system: "t3", kind: "unreachable" });
+    }
+    const { status } = response;
+    if (!response.ok) throw new IntegrationError(`T3 answered ${status} on ${method} ${path}`, { system: "t3", kind: status === 401 || status === 403 ? "not-authenticated" : "refused", status });
+    try {
+      return text ? JSON.parse(text) : undefined;
+    } catch {
+      throw new IntegrationError(`Unreadable T3 response on ${method} ${path}`, { system: "t3", kind: "protocol" });
+    }
   }
 
   private async baseUrl(): Promise<string> {

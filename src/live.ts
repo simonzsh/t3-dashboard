@@ -1,9 +1,9 @@
 import { setTimeout as delay } from "node:timers/promises";
 import type { ConnectionStatus, DashboardProvider, ModelEffort, SetupInfo } from "../shared/api.ts";
 import type { TokenManager } from "./auth.ts";
+import { IntegrationError } from "./integrations/errors.ts";
 import { INSTALL_URL, ISSUE_COMMAND } from "./integrations/t3/cli.ts";
 import type { ShellStore } from "./shellStore.ts";
-import { MissingTokenError, T3HttpError } from "./integrations/t3/client.ts";
 import { RUNTIME_MODES } from "./integrations/t3/commands.ts";
 import type { RawConfig, RawOptionDescriptor, T3Port } from "./integrations/t3/schemas.ts";
 
@@ -21,8 +21,8 @@ export interface LiveSyncOptions {
 
 const FALLBACK_SETUP = { issueCommand: ISSUE_COMMAND, installUrl: INSTALL_URL };
 
-// Anything that is not an HTTP answer or a missing token: T3 did not answer at all.
-const isNetworkError = (error: Error | undefined): boolean => !(error instanceof T3HttpError) && !(error instanceof MissingTokenError);
+// Anything but an answer from T3 or a missing token: T3 did not answer at all.
+const isNetworkError = (error: Error | undefined): boolean => !(error instanceof IntegrationError) || error.kind === "unreachable";
 
 const EFFORT_OPTION_IDS = new Set(["effort", "reasoningEffort"]);
 
@@ -130,7 +130,7 @@ export class LiveSync {
 
   // T3 refuses a token it no longer knows: ask the manager for a new one, once per cycle.
   private async recover(error: Error | undefined): Promise<void> {
-    if (!(error instanceof T3HttpError) || (error.status !== 401 && error.status !== 403) || this.refreshed) return;
+    if (!(error instanceof IntegrationError) || error.kind !== "not-authenticated" || error.status === undefined || this.refreshed) return;
     this.refreshed = true;
     await this.options.auth.refresh();
   }

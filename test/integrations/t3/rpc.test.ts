@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { beforeEach, test } from "bun:test";
-import { RpcConnection, T3RpcError } from "../../../src/integrations/t3/rpc.ts";
+import { IntegrationError } from "../../../src/integrations/errors.ts";
+import { RpcConnection } from "../../../src/integrations/t3/rpc.ts";
 import { FakeSocket, tick } from "../../helpers/fakeSocket.ts";
 
 beforeEach(() => FakeSocket.reset());
@@ -39,7 +40,7 @@ test("a failed Exit rejects with the cause message", async () => {
   socket.open();
   const result = rpc.request("x", {});
   socket.receive({ _tag: "Exit", requestId: "1", exit: { _tag: "Failure", cause: { message: "nope", commandType: "thread.pin" } } });
-  await assert.rejects(result, (error: Error) => error instanceof T3RpcError && error.message.includes("nope"));
+  await assert.rejects(result, (error: Error) => error instanceof IntegrationError && error.kind === "refused" && error.message === "T3 refused the request: thread.pin: nope");
   rpc.close();
 });
 
@@ -155,7 +156,8 @@ test("socket close and error end streams with an error", async () => {
   socket.close();
   await tick();
   assert.equal(ends.length, 1);
-  assert.ok(ends[0] instanceof Error);
+  assert.ok(ends[0] instanceof IntegrationError);
+  assert.deepEqual([ends[0].kind, ends[0].message], ["unreachable", "T3 WebSocket closed"]);
 });
 
 test("Pong frames are ignored and bad frames do not throw", () => {

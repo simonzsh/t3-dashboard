@@ -1,4 +1,6 @@
-export class T3RpcError extends Error {}
+import { IntegrationError } from "../errors.ts";
+
+const unreachable = (message: string) => new IntegrationError(message, { system: "t3", kind: "unreachable" });
 
 type SocketCtor = typeof WebSocket;
 
@@ -47,19 +49,19 @@ export class RpcConnection {
       for (const frame of this.outbox.splice(0)) this.socket.send(frame);
     };
     this.socket.onmessage = (event) => this.onFrame(String(event.data));
-    this.socket.onerror = () => this.fail(new Error("T3 WebSocket error"));
-    this.socket.onclose = () => this.fail(new Error("T3 WebSocket closed"));
+    this.socket.onerror = () => this.fail(unreachable("T3 WebSocket error"));
+    this.socket.onclose = () => this.fail(unreachable("T3 WebSocket closed"));
     this.pinger = setInterval(() => this.send({ _tag: "Ping" }), PING_MS);
     this.pinger.unref();
   }
 
   request(tag: string, payload: unknown, timeoutMs = 10_000): Promise<unknown> {
-    if (this.done) return Promise.reject(new Error("T3 WebSocket closed"));
+    if (this.done) return Promise.reject(unreachable("T3 WebSocket closed"));
     const id = this.newId();
     return new Promise((resolve, reject) => {
       const timer = setTimeout(() => {
         this.pending.delete(id);
-        reject(new Error(`T3 did not answer ${tag} within ${timeoutMs} ms`));
+        reject(unreachable(`T3 did not answer ${tag} within ${timeoutMs} ms`));
       }, timeoutMs);
       this.pending.set(id, { resolve, reject, timer });
       this.send({ _tag: "Request", id, tag, payload, headers: [] });
@@ -68,7 +70,7 @@ export class RpcConnection {
 
   stream(tag: string, payload: unknown, onItems: (values: unknown[]) => void, onEnd: (error?: Error) => void): { cancel(): void } {
     if (this.done) {
-      queueMicrotask(() => onEnd(new Error("T3 WebSocket closed")));
+      queueMicrotask(() => onEnd(unreachable("T3 WebSocket closed")));
       return { cancel() {} };
     }
     const id = this.newId();
@@ -83,7 +85,7 @@ export class RpcConnection {
   }
 
   close(): void {
-    this.fail(new Error("T3 WebSocket closed"));
+    this.fail(unreachable("T3 WebSocket closed"));
     this.socket.close();
   }
 
@@ -117,7 +119,7 @@ export class RpcConnection {
   }
 
   private onExit(id: string, exit: Exit | undefined): void {
-    const failure = exit?._tag === "Success" ? undefined : new T3RpcError(`T3 refused the request: ${describeCause(exit?.cause)}`);
+    const failure = exit?._tag === "Success" ? undefined : new IntegrationError(`T3 refused the request: ${describeCause(exit?.cause)}`, { system: "t3", kind: "refused" });
     const request = this.pending.get(id);
     if (request) {
       this.pending.delete(id);

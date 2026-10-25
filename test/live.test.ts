@@ -4,7 +4,7 @@ import type { ConnectionStatus, DashboardProvider, SetupInfo } from "../shared/a
 import { INSTALL_URL, ISSUE_COMMAND } from "../src/integrations/t3/cli.ts";
 import { LiveSync, toProviders } from "../src/live.ts";
 import { ShellStore } from "../src/shellStore.ts";
-import { T3HttpError } from "../src/integrations/t3/client.ts";
+import { IntegrationError } from "../src/integrations/errors.ts";
 import type { RawConfig, ShellItem, T3Port } from "../src/integrations/t3/schemas.ts";
 import { tick } from "./helpers/fakeSocket.ts";
 
@@ -265,18 +265,20 @@ test("retryNow without a token reports the current setup at once", async () => {
   live.stop();
 });
 
+const t3Refused = (status: number) => new IntegrationError(`T3 answered ${status}`, { system: "t3", kind: status === 401 || status === 403 ? "not-authenticated" : "refused", status });
+
 test("a 401 refreshes the token exactly once per cycle", async () => {
   const port = new FakePort();
   let first = true;
   port.config = async () => {
     if (!first) return {};
     first = false;
-    throw new T3HttpError(401, "T3 answered 401");
+    throw t3Refused(401);
   };
   const { live, auth } = setup(port);
   live.start();
   await until(() => port.subscriptions.length === 1);
-  port.subscriptions[0]!.onEnd(new T3HttpError(401, "T3 answered 401"));
+  port.subscriptions[0]!.onEnd(t3Refused(401));
   await until(() => port.subscriptions.length === 2);
   assert.equal(auth.refreshes, 1);
   live.stop();
@@ -291,7 +293,7 @@ test("a refresh that finds no token ends in needs-token", async () => {
   };
   live.start();
   await until(() => port.subscriptions.length === 1);
-  port.subscriptions[0]!.onEnd(new T3HttpError(403, "T3 answered 403"));
+  port.subscriptions[0]!.onEnd(t3Refused(403));
   await until(() => statuses.at(-1)?.t3 === "needs-token");
   assert.deepEqual(statuses.at(-1)!.setup, tokenSetup);
   live.stop();
@@ -301,7 +303,7 @@ test("a failure that is not an auth error never refreshes the token", async () =
   const { port, live, auth } = setup();
   live.start();
   await until(() => port.subscriptions.length === 1);
-  port.subscriptions[0]!.onEnd(new T3HttpError(500, "T3 answered 500"));
+  port.subscriptions[0]!.onEnd(t3Refused(500));
   await until(() => port.subscriptions.length === 2);
   assert.equal(auth.refreshes, 0);
   live.stop();

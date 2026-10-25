@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { beforeEach, test } from "bun:test";
-import { MissingTokenError, T3Client, T3HttpError } from "../../../src/integrations/t3/client.ts";
+import { IntegrationError } from "../../../src/integrations/errors.ts";
+import { T3Client } from "../../../src/integrations/t3/client.ts";
 import { FakeSocket, tick } from "../../helpers/fakeSocket.ts";
 
 beforeEach(() => FakeSocket.reset());
@@ -126,12 +127,24 @@ test("subscribeShell cancelled before the socket opens never opens one", async (
   assert.equal(FakeSocket.instances.every((socket) => socket.closed), true);
 });
 
-test("a refused ticket request throws a T3HttpError with the status", async () => {
-  const failing = (async () => new Response("no", { status: 403 })) as unknown as typeof fetch;
-  const client = new T3Client({ origin: async () => "http://t3", token: () => "test-token", fetch: failing, WebSocket: FakeSocket as unknown as typeof WebSocket });
+test("a refused token is not-authenticated, another refusal is refused, both with the status", async () => {
+  for (const [status, kind] of [[403, "not-authenticated"], [401, "not-authenticated"], [500, "refused"]] as const) {
+    const failing = (async () => new Response("no", { status })) as unknown as typeof fetch;
+    const client = new T3Client({ origin: async () => "http://t3", token: () => "test-token", fetch: failing, WebSocket: FakeSocket as unknown as typeof WebSocket });
+    const error = await client.threadProjection("t").catch((e: unknown) => e);
+    assert.ok(error instanceof IntegrationError);
+    assert.deepEqual([error.system, error.kind, error.status, error.message], ["t3", kind, status, `T3 answered ${status} on GET /api/orchestration/threads/t`]);
+  }
+});
+
+test("a network failure is unreachable and keeps its message", async () => {
+  const offline = (async () => {
+    throw new Error("Unable to connect");
+  }) as unknown as typeof fetch;
+  const client = new T3Client({ origin: async () => "http://t3", token: () => "test-token", fetch: offline, WebSocket: FakeSocket as unknown as typeof WebSocket });
   const error = await client.threadProjection("t").catch((e: unknown) => e);
-  assert.ok(error instanceof T3HttpError);
-  assert.equal(error.status, 403);
+  assert.ok(error instanceof IntegrationError);
+  assert.deepEqual([error.kind, error.message], ["unreachable", "Unable to connect"]);
 });
 
 test("without a token no request leaves, and the token is read on every request", async () => {
@@ -142,7 +155,7 @@ test("without a token no request leaves, and the token is read on every request"
     return Response.json({ projection: {} });
   }) as unknown as typeof fetch;
   const client = new T3Client({ origin: async () => "http://t3", token: () => token, fetch: fakeFetch, WebSocket: FakeSocket as unknown as typeof WebSocket });
-  await assert.rejects(client.threadProjection("t"), MissingTokenError);
+  await assert.rejects(client.threadProjection("t"), (error: Error) => error instanceof IntegrationError && error.kind === "not-authenticated" && error.status === undefined);
   assert.equal(calls.length, 0);
   token = "later";
   await client.threadProjection("t");
