@@ -5,16 +5,16 @@ import { PENDING_MAX_MS, isSettled, pendingLabel } from "../src/pending.ts";
 
 const SENT = Date.parse("2026-01-01T10:00:00.000Z");
 const msg = (role: ChatMessage["role"], text: string, createdAt: string): ChatMessage => ({ id: `${role}-${createdAt}`, role, text, createdAt, streaming: false });
-const pending = { id: "p1", text: "hello", images: 0, sentAt: SENT };
+const pending = { id: "p1", text: "hello", images: 0, sentAt: SENT, baseline: 0 };
 
-test("a pending message is settled once a newer user message has the same text", () => {
-  const messages = [msg("user", "hello", "2026-01-01T10:00:01.000Z")];
+test("a pending message is settled once a new user message has the same text, whatever its clock", () => {
+  const messages = [msg("user", "hello", "2026-01-01T09:59:00.000Z")];
   assert.equal(isSettled(pending, messages, SENT + 2000), true);
 });
 
-test("an older message with the same text does not settle it", () => {
+test("a message with the same text that was already there does not settle it", () => {
   const messages = [msg("user", "hello", "2026-01-01T09:00:00.000Z")];
-  assert.equal(isSettled(pending, messages, SENT + 2000), false);
+  assert.equal(isSettled({ ...pending, baseline: 1 }, messages, SENT + 2000), false);
 });
 
 test("other text or another role does not settle it", () => {

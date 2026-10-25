@@ -3,7 +3,7 @@ import type { ChatMessage, DashboardEvent, DashboardProvider, DashboardThread, I
 import { runActive } from "../agents.ts";
 import { api } from "../api.ts";
 import { renderMarkdown } from "../markdown.tsx";
-import { type PendingMessage, isSettled, pendingLabel } from "../pending.ts";
+import { type PendingMessage, countSame, isSettled, pendingLabel } from "../pending.ts";
 import { Composer } from "./Composer.tsx";
 import { PendingRequestView } from "./PendingRequestView.tsx";
 import { RunActivityView } from "./RunActivity.tsx";
@@ -151,7 +151,7 @@ export function ConversationPanel({ threadId, thread, lastEvent, providers }: Pr
 
   // While a run is active the message steers it instead of waiting in the queue.
   async function send(body: string, attachments: ImageAttachment[]): Promise<boolean> {
-    const entry: PendingMessage = { id: crypto.randomUUID(), text: body, images: attachments.length, sentAt: Date.now() };
+    const entry: PendingMessage = { id: crypto.randomUUID(), text: body, images: attachments.length, sentAt: Date.now(), baseline: countSame(detail?.messages ?? [], body) };
     setPending((list) => [...list, entry]);
     stick.current = true;
     const ok = await sendAction.run(() => api.sendMessage(threadId, { text: body, ...(running && { mode: "steer" as const }), ...(attachments.length && { attachments }) }));
