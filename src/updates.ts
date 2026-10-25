@@ -60,6 +60,8 @@ export class UpdateManager {
     try {
       this.latest = (await this.options.latestTag()).replace(/^v/, "");
       this.checkedAt = now;
+      // A fresh answer replaces the last failure, which would otherwise stay on screen.
+      this.error = null;
     } catch {
       // No release yet or no network: stay quiet.
     }

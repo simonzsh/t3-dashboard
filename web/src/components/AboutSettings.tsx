@@ -20,6 +20,11 @@ export function AboutSettings({ update, onUpdate }: Props) {
           Version <code className="key-mask">{status.current}</code>
         </span>
         <span className="row-icons">
+          {update.error ? (
+            <span className="error about-note">{update.error}</span>
+          ) : (
+            checked && !canUpdate && <small className="about-note">{status.reason && status.current !== "dev" ? status.reason : versionNote(status)}</small>
+          )}
           <button
             type="button"
             className={`icon-button${update.checking ? " spinning" : ""}`}
@@ -43,11 +48,6 @@ export function AboutSettings({ update, onUpdate }: Props) {
           )}
         </span>
       </div>
-      {update.error ? (
-        <span className="error settings-note">{update.error}</span>
-      ) : (
-        checked && !canUpdate && <small className="settings-note">{status.reason && status.current !== "dev" ? status.reason : versionNote(status)}</small>
-      )}
     </>
   );
 }
