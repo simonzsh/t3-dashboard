@@ -1,9 +1,9 @@
+import type { Store } from "./storage.ts";
+
 export type ThemeSetting = "system" | "light" | "dark";
 
 export const THEME_KEY = "t3-dashboard-theme";
 export const THEME_SETTINGS: ThemeSetting[] = ["system", "light", "dark"];
-
-type ThemeStorage = Pick<Storage, "getItem" | "setItem">;
 
 export function parseTheme(raw: string | null): ThemeSetting {
   return raw === "light" || raw === "dark" ? raw : "system";
@@ -15,17 +15,17 @@ export function resolveTheme(setting: ThemeSetting, prefersDark: boolean): "ligh
 }
 
 // Storage can throw (private mode, blocked cookies): the theme then just resets on reload.
-export function loadTheme(storage: ThemeStorage): ThemeSetting {
+export function loadTheme(storage: Store | null): ThemeSetting {
   try {
-    return parseTheme(storage.getItem(THEME_KEY));
+    return parseTheme(storage?.getItem(THEME_KEY) ?? null);
   } catch {
     return "system";
   }
 }
 
-export function saveTheme(storage: ThemeStorage, setting: ThemeSetting): void {
+export function saveTheme(storage: Store | null, setting: ThemeSetting): void {
   try {
-    storage.setItem(THEME_KEY, setting);
+    storage?.setItem(THEME_KEY, setting);
   } catch {
     // Ignored on purpose: see loadTheme.
   }

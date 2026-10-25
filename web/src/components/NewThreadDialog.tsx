@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import type { DashboardProject, DashboardProvider, ImageAttachment, ModelSelection, RuntimeMode, ThreadSettingsBody } from "../../../shared/api.ts";
 import { api } from "../api.ts";
-import { browserStorage } from "../assignProject.ts";
+import { browserStorage } from "../storage.ts";
 import { findModel } from "../composer.ts";
 import { projectOptions } from "../dropdown.ts";
 import { loadNewAgentProject, presetSelection, saveNewAgentProject, titleFromMessage } from "../newAgent.ts";

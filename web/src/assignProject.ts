@@ -1,15 +1,5 @@
 import type { DashboardProject } from "../../shared/api.ts";
-
-export type Store = Pick<Storage, "getItem" | "setItem">;
-
-// Reading the localStorage global itself throws when storage is blocked.
-export function browserStorage(): Store | null {
-  try {
-    return localStorage;
-  } catch {
-    return null;
-  }
-}
+import type { Store } from "./storage.ts";
 
 const key = (teamKey: string) => `t3-dashboard-assign-project:${teamKey}`;
 

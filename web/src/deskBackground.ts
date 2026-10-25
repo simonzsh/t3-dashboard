@@ -1,3 +1,5 @@
+import type { Store } from "./storage.ts";
+
 export const BACKGROUND_KEY = "t3-dashboard-desk-background";
 // Leaves room for the rest of localStorage (about 5 MB per origin in most browsers).
 export const MAX_IMAGE_CHARS = 3_000_000;
@@ -38,20 +40,20 @@ export function fitWithin(width: number, height: number, max: number): { width: 
   return { width: Math.round(width * scale), height: Math.round(height * scale) };
 }
 
-type BackgroundStorage = Pick<Storage, "getItem" | "setItem">;
 
-export function loadBackground(storage: BackgroundStorage): DeskBackground {
+export function loadBackground(storage: Store | null): DeskBackground {
   try {
-    return parseBackground(storage.getItem(BACKGROUND_KEY));
+    return parseBackground(storage?.getItem(BACKGROUND_KEY) ?? null);
   } catch {
     return NONE;
   }
 }
 
 // Returns an error message, or null when the background was stored.
-export function saveBackground(storage: BackgroundStorage, background: DeskBackground): string | null {
+export function saveBackground(storage: Store | null, background: DeskBackground): string | null {
   if (background.kind === "image" && background.dataUrl.length > MAX_IMAGE_CHARS) return TOO_LARGE;
   try {
+    if (!storage) throw new Error("storage is blocked");
     storage.setItem(BACKGROUND_KEY, JSON.stringify(background));
     return null;
   } catch {

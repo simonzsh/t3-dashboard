@@ -1,10 +1,11 @@
 import { useEffect, useState } from "react";
+import { browserStorage } from "./storage.ts";
 import { loadTheme, resolveTheme, saveTheme, type ThemeSetting } from "./theme.ts";
 
 const DARK_QUERY = "(prefers-color-scheme: dark)";
 
 export function useTheme(): [ThemeSetting, (setting: ThemeSetting) => void] {
-  const [setting, setSetting] = useState<ThemeSetting>(() => loadTheme(localStorage));
+  const [setting, setSetting] = useState<ThemeSetting>(() => loadTheme(browserStorage()));
 
   // data-theme always holds the resolved value; "system" is re-resolved when the OS changes.
   useEffect(() => {
@@ -18,7 +19,7 @@ export function useTheme(): [ThemeSetting, (setting: ThemeSetting) => void] {
   return [
     setting,
     (next) => {
-      saveTheme(localStorage, next);
+      saveTheme(browserStorage(), next);
       setSetting(next);
     },
   ];

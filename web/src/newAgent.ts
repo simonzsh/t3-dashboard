@@ -1,5 +1,5 @@
 import type { DashboardProject, DashboardProvider, ModelSelection } from "../../shared/api.ts";
-import type { Store } from "./assignProject.ts";
+import type { Store } from "./storage.ts";
 
 const TITLE_MAX = 60;
 const KEY = "t3-dashboard-new-agent-project";

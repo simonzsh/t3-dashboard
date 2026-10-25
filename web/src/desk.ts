@@ -1,3 +1,5 @@
+import type { Store } from "./storage.ts";
+
 export const DESK_LIMIT = 6;
 export const DESK_KEY = "t3-dashboard-desk";
 
@@ -162,19 +164,18 @@ export function parseDesk(raw: string | null): DeskState {
   return settle({ windows, focusedId: idOrNull(data.focusedId), maximizedId: idOrNull(data.maximizedId), sizes: parseSizes(data.sizes) });
 }
 
-type DeskStorage = Pick<Storage, "getItem" | "setItem">;
 
-export function loadDesk(storage: DeskStorage): DeskState {
+export function loadDesk(storage: Store | null): DeskState {
   try {
-    return parseDesk(storage.getItem(DESK_KEY));
+    return parseDesk(storage?.getItem(DESK_KEY) ?? null);
   } catch {
     return EMPTY_DESK;
   }
 }
 
-export function saveDesk(storage: DeskStorage, state: DeskState): void {
+export function saveDesk(storage: Store | null, state: DeskState): void {
   try {
-    storage.setItem(DESK_KEY, JSON.stringify(state));
+    storage?.setItem(DESK_KEY, JSON.stringify(state));
   } catch {
     // Ignored on purpose: the desk then starts empty on the next load.
   }

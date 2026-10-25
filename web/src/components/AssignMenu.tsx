@@ -1,7 +1,8 @@
 import { useRef, useState } from "react";
 import type { DashboardProject, LinearIssue } from "../../../shared/api.ts";
 import { api } from "../api.ts";
-import { browserStorage, loadAssignProject, saveAssignProject } from "../assignProject.ts";
+import { loadAssignProject, saveAssignProject } from "../assignProject.ts";
+import { browserStorage } from "../storage.ts";
 import { projectOptions } from "../dropdown.ts";
 import { Button, Dropdown, Icon, IconButton, Popover, Pressable } from "../ui/index.ts";
 import { ProviderIcon } from "./ProviderIcon.tsx";
