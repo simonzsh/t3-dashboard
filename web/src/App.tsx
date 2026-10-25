@@ -6,6 +6,7 @@ import { DeskView } from "./components/DeskView.tsx";
 import { NewThreadDialog } from "./components/NewThreadDialog.tsx";
 import { SettingsDialog } from "./components/SettingsDialog.tsx";
 import { SetupScreen } from "./components/SetupScreen.tsx";
+import { UpdateDialog } from "./components/UpdateDialog.tsx";
 import { DESK_LIMIT, gridWindows, isFull } from "./desk.ts";
 import { useAutomations } from "./useAutomations.ts";
 import { useDashboard } from "./useDashboard.ts";
@@ -13,6 +14,8 @@ import { useDesk } from "./useDesk.ts";
 import { useDeskBackground } from "./useDeskBackground.ts";
 import { useShortcuts } from "./useShortcuts.ts";
 import { useTheme } from "./useTheme.ts";
+import { useUpdate } from "./useUpdate.ts";
+import { updateLabel } from "./updateFlow.ts";
 
 type Tab = "agents" | "board" | "desk";
 
@@ -41,6 +44,8 @@ export function App() {
   const [toast, setToast] = useState<FullToast | null>(null);
   const [creating, setCreating] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [confirmingUpdate, setConfirmingUpdate] = useState(false);
+  const update = useUpdate();
   const [boardVersion, setBoardVersion] = useState(0);
   const [theme, setTheme] = useTheme();
   const [deskBackground, setDeskBackground] = useDeskBackground();
@@ -88,7 +93,7 @@ export function App() {
         focusComposer(target.id);
       }
     },
-    creating || settingsOpen,
+    creating || settingsOpen || confirmingUpdate,
     tab === "desk",
   );
 
@@ -112,6 +117,11 @@ export function App() {
           ))}
         </nav>
         <div className="topbar-right">
+          {update.status?.available && update.status.canUpdate && (
+            <button className="update-pill" title="A new version is available" disabled={update.updating || update.status.updating} onClick={() => setConfirmingUpdate(true)}>
+              {update.updating || update.status.updating ? "Updating…" : updateLabel(update.status)}
+            </button>
+          )}
           <span className={`conn ${live ? "up" : "down"}`} title={live ? "Connected to T3 Code" : "Connection lost"}>
             <span className="conn-dot" /> {live ? "Connected" : "Offline"}
           </span>
@@ -187,6 +197,16 @@ export function App() {
           }}
         />
       )}
+      {confirmingUpdate && update.status && (
+        <UpdateDialog
+          status={update.status}
+          onClose={() => setConfirmingUpdate(false)}
+          onConfirm={() => {
+            setConfirmingUpdate(false);
+            void update.apply();
+          }}
+        />
+      )}
       {settingsOpen && (
         <SettingsDialog
           theme={theme}
@@ -194,6 +214,11 @@ export function App() {
           background={deskBackground}
           onBackgroundChange={setDeskBackground}
           onLinearChange={() => setBoardVersion((version) => version + 1)}
+          update={update}
+          onUpdate={() => {
+            setSettingsOpen(false);
+            setConfirmingUpdate(true);
+          }}
           onClose={() => setSettingsOpen(false)}
         />
       )}

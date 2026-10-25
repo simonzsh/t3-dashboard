@@ -219,6 +219,19 @@ export interface TokenBody {
   token: string;
 }
 
+export interface UpdateStatus {
+  current: string;
+  latest: string | null;
+  available: boolean;
+  checkedAt: string | null;
+  canUpdate: boolean;
+  /** One sentence that says why `canUpdate` is false. */
+  reason: string | null;
+  updating: boolean;
+  /** Why the last update failed: the page shows it. */
+  error: string | null;
+}
+
 export type AutomationSchedule = { kind: "cron"; cron: string; timeZone: string; label: string } | { kind: "once"; at: string };
 
 export interface Automation {

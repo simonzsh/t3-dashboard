@@ -62,6 +62,18 @@ t3-dashboard update
 
 La commande télécharge la dernière release GitHub, vérifie la somme SHA-256, remplace le binaire et redémarre le service. Avec `--check`, elle indique seulement si une version plus récente existe.
 
+#### Depuis le dashboard
+
+Le dashboard cherche une nouvelle release au démarrage, puis une fois par jour. Une erreur réseau ou l'absence de release n'affiche rien.
+
+Quand une version plus récente existe, le bouton « Update vX.Y.Z » apparaît dans l'en-tête. Cliquez dessus, puis confirmez. Le dashboard fait la même mise à jour que `t3-dashboard update`, puis redémarre. La page attend le nouveau dashboard et se recharge seule. Si la mise à jour échoue, la page affiche l'erreur.
+
+Les réglages ont une section « About » : version installée, dernière version connue, bouton « Check for updates ».
+
+- Un dashboard lancé avec `start` se relance seul avec les mêmes arguments.
+- Une version `dev` ou un dashboard lancé hors du binaire compilé ne se met pas à jour : la page l'explique.
+- Aucune mise à jour ne se fait sans clic.
+
 ### Désinstallation
 
 1. `t3-dashboard uninstall`

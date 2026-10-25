@@ -62,7 +62,7 @@ function harness(options: { version?: string; sums?: string; platform?: string; 
 
 test("update downloads, verifies, replaces the binary, then restarts the service", async () => {
   const { deps, calls, urls } = harness();
-  await update({ check: false }, deps);
+  assert.equal(await update({ check: false }, deps), true);
   assert.deepEqual(urls, [
     "https://api.github.com/repos/o/r/releases/latest",
     "https://github.com/o/r/releases/download/v2.0.0/SHA256SUMS",
@@ -92,14 +92,14 @@ test("an asset missing from SHA256SUMS aborts", async () => {
 
 test("up to date: nothing is downloaded", async () => {
   const { deps, calls, urls } = harness({ version: "2.0.0" });
-  await update({ check: false }, deps);
+  assert.equal(await update({ check: false }, deps), false);
   assert.deepEqual(calls, ["log t3-dashboard 2.0.0 is up to date."]);
   assert.equal(urls.length, 1);
 });
 
 test("--check reports a new version without touching anything", async () => {
   const { deps, calls } = harness();
-  await update({ check: true }, deps);
+  assert.equal(await update({ check: true }, deps), false);
   assert.deepEqual(calls, ["log Update available: 1.0.0 -> 2.0.0."]);
 });
 

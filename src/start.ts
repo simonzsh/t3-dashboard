@@ -19,9 +19,15 @@ import { ShellStore } from "./shellStore.ts";
 import { siteFromBundle } from "./site.ts";
 import { SseHub } from "./sse.ts";
 import { T3Client } from "./t3/client.ts";
+import { updateDeps } from "./system.ts";
+import { latestTag, update } from "./update.ts";
+import { UpdateManager } from "./updates.ts";
+import { VERSION } from "./version.ts";
 
 const RECLASSIFY_MS = 60_000;
 const LISTEN_RETRY_MS = 5_000;
+const UPDATE_CHECK_MS = 24 * 60 * 60 * 1000;
+const UPDATE_CHECK_TIMEOUT_MS = 5_000;
 const readText = (path: string) => readFileSync(path, "utf8");
 
 // A restart can race the old process for the port: retry for a few seconds.
@@ -99,9 +105,31 @@ export async function start({ port, log, env }: StartOptions): Promise<void> {
   const setup = { refresh: () => auth.refresh(), paste: (token: string) => auth.paste(token), wake: () => live.retryNow() };
 
   const site = siteFromBundle(index);
-  const handler = createDashboardServer({ port: client, store, hub, board, automations, getState, connection: () => live.connection(), site, settings, setup });
+  const repo = updateDeps(env).repo;
+  const timedFetch = ((url, init) => fetch(url, { ...init, signal: AbortSignal.timeout(UPDATE_CHECK_TIMEOUT_MS) })) as typeof fetch;
+  const updates = new UpdateManager({
+    version: VERSION,
+    unavailable: VERSION === "dev" ? "Development build: updates come from releases." : !Bun.isStandaloneExecutable ? "Not running the compiled binary." : null,
+    latestTag: () => latestTag(timedFetch, repo),
+    run: async () => {
+      const deps = updateDeps(env);
+      const service = await deps.serviceInstalled();
+      const installed = await update({ check: false }, deps);
+      // Started by hand: no service restarts the new binary, so this process does it.
+      if (installed && !service) {
+        Bun.spawn([deps.exe, ...Bun.argv.slice(2)], { detached: true, stdio: ["ignore", "ignore", "ignore"] }).unref();
+        shutdown();
+      }
+      return installed;
+    },
+    now: () => Date.now(),
+  });
+  const handler = createDashboardServer({ port: client, store, hub, board, automations, getState, connection: () => live.connection(), site, settings, setup, updates });
 
   const reclassifier = setInterval(() => store.reclassify(new Date()), RECLASSIFY_MS);
+  // A dev build has no version to compare, and its runs must not call GitHub.
+  const checker = VERSION === "dev" ? undefined : setInterval(() => void updates.check(true), UPDATE_CHECK_MS);
+  if (checker) void updates.check(true);
   live.start();
   const server = await listen({
     hostname: "127.0.0.1",
@@ -116,6 +144,7 @@ export async function start({ port, log, env }: StartOptions): Promise<void> {
 
   const shutdown = () => {
     clearInterval(reclassifier);
+    clearInterval(checker);
     live.stop();
     hub.close();
     void server.stop(true).then(() => process.exit(0));

@@ -119,3 +119,11 @@ test("a server error message reaches the caller", async () => {
   const { api } = fake(400, { error: "Linear refused this key." });
   await assert.rejects(api.connectLinear("bad"), /Linear refused this key\./);
 });
+
+test("update calls use GET for the status and POST for check and apply", async () => {
+  const { calls, api } = fake(200, {});
+  await api.getUpdate();
+  await api.checkUpdate();
+  await api.applyUpdate();
+  assert.deepEqual(calls.map((c) => [c.url, c.init?.method ?? "GET"]), [["/api/update", "GET"], ["/api/update/check", "POST"], ["/api/update/apply", "POST"]]);
+});

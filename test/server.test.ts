@@ -8,6 +8,7 @@ import { createSettings } from "../src/settings.ts";
 import { createDashboardServer } from "../src/server.ts";
 import type { DashboardHandler } from "../src/server.ts";
 import type { Site } from "../src/site.ts";
+import { UpdateManager } from "../src/updates.ts";
 import { ShellStore } from "../src/shellStore.ts";
 import { SseHub } from "../src/sse.ts";
 import { VERSION } from "../src/version.ts";
@@ -65,6 +66,7 @@ interface StartOptions {
   // Content of the Linear file. Without it, `workspaces` feeds the board directly.
   linear?: unknown;
   pasteResult?: "ok" | "rejected" | "unreachable" | "locked";
+  update?: { unavailable?: string | null; tag?: string };
 }
 
 const LINEAR_FILE = "/cfg/linear.json";
@@ -104,6 +106,15 @@ async function start(startOptions: StartOptions = {}) {
     },
     wake: () => void setupCalls.push("wake"),
   };
+  const updateRuns: string[] = [];
+  const updates = new UpdateManager({
+    version: "1.0.0",
+    unavailable: startOptions.update?.unavailable ?? null,
+    latestTag: async () => startOptions.update?.tag ?? "v1.1.0",
+    // Never ends: a second apply must see the update still running.
+    run: () => (updateRuns.push("run"), new Promise<boolean>(() => {})),
+    now: () => now.getTime(),
+  });
   const port = new FakePort();
   const hub = new SseHub({ batchMs: 10, pingMs: 60_000 });
   let counter = 0;
@@ -140,10 +151,11 @@ async function start(startOptions: StartOptions = {}) {
     site,
     settings,
     setup,
+    updates,
     newId: () => `id-${++counter}`,
   });
   running.push(async () => hub.close());
-  return { port, store, hub, server, linearCalls, files, setupCalls };
+  return { port, store, hub, server, linearCalls, files, setupCalls, updateRuns };
 }
 
 interface Reply {
@@ -615,4 +627,43 @@ test("a pasted token is refused with 409 when the token file variable is set", a
   const reply = await post(server, "/api/setup/token", { token: "pasted-token-value" });
   assert.deepEqual([reply.status, reply.json], [409, { error: "T3_DASHBOARD_TOKEN_FILE is set: put the token in that file." }]);
   assert.ok(!setupCalls.includes("wake"));
+});
+
+test("GET /api/update reports the state, POST /api/update/check asks for the latest release", async () => {
+  const { server } = await start();
+  const before = (await call(server, "GET", "/api/update")).json;
+  assert.equal(before.current, "1.0.0");
+  assert.equal(before.latest, null);
+  const checked = await post(server, "/api/update/check");
+  assert.equal(checked.status, 200);
+  assert.equal(checked.json.latest, "1.1.0");
+  assert.equal(checked.json.available, true);
+  assert.equal(checked.json.checkedAt, now.toISOString());
+  assert.deepEqual((await call(server, "GET", "/api/update")).json, checked.json);
+});
+
+test("POST /api/update/apply answers 202 at once and starts the update", async () => {
+  const { server, updateRuns } = await start();
+  const reply = await post(server, "/api/update/apply");
+  assert.equal(reply.status, 202);
+  assert.equal(reply.json.updating, true);
+  assert.deepEqual(updateRuns, ["run"]);
+  const again = await post(server, "/api/update/apply");
+  assert.equal(again.status, 409);
+});
+
+test("POST /api/update/apply answers 409 when this build cannot update", async () => {
+  const { server, updateRuns } = await start({ update: { unavailable: "Development build." } });
+  const reply = await post(server, "/api/update/apply");
+  assert.equal(reply.status, 409);
+  assert.deepEqual(reply.json, { error: "Development build." });
+  assert.deepEqual(updateRuns, []);
+});
+
+test("update routes keep the origin check and the content type", async () => {
+  const { server, updateRuns } = await start();
+  assert.equal((await post(server, "/api/update/apply", {}, { origin: "https://evil.example" })).status, 403);
+  assert.equal((await call(server, "POST", "/api/update/apply", { raw: "{}", headers: { "content-type": "text/plain" } })).status, 400);
+  assert.equal((await call(server, "GET", "/api/update", { headers: { host: "evil.example" } })).status, 403);
+  assert.deepEqual(updateRuns, []);
 });

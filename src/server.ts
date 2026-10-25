@@ -18,6 +18,7 @@ import { toProviders } from "./live.ts";
 import type { LinearBoard } from "./linear.ts";
 import type { Settings } from "./settings.ts";
 import type { Site } from "./site.ts";
+import type { UpdateManager } from "./updates.ts";
 import type { ShellStore } from "./shellStore.ts";
 import type { SseHub } from "./sse.ts";
 import {
@@ -55,6 +56,7 @@ export interface DashboardServerOptions {
   site: Site;
   settings: Settings;
   setup: SetupControl;
+  updates: Pick<UpdateManager, "status" | "check" | "apply">;
   newId?: () => string;
 }
 
@@ -165,7 +167,7 @@ export interface DashboardHandler {
 }
 
 export function createDashboardServer(options: DashboardServerOptions): DashboardHandler {
-  const { port, store, hub, board, automations, getState, connection, site, settings, setup } = options;
+  const { port, store, hub, board, automations, getState, connection, site, settings, setup, updates } = options;
   const newId = options.newId ?? (() => crypto.randomUUID());
 
   const t3 = async <T>(work: Promise<T>): Promise<T> => {
@@ -250,6 +252,7 @@ export function createDashboardServer(options: DashboardServerOptions): Dashboar
       }
       if (segments.length === 2 && resource === "automations") return json(200, automations());
       if (resource === "settings" && segments.length === 2) return json(200, settings.get());
+      if (resource === "update" && segments.length === 2) return json(200, updates.status());
       if (segments.length === 2 && resource === "events") {
         server?.timeout(req, 0);
         return hub.add(getState(), req.signal);
@@ -275,6 +278,14 @@ export function createDashboardServer(options: DashboardServerOptions): Dashboar
         if (result === "unreachable") throw new HttpError(502, "T3 Code is unreachable.");
         setup.wake();
         return json(200, connection());
+      }
+    } else if (method === "POST" && resource === "update" && segments.length === 3) {
+      await readJson(req);
+      if (id === "check") return json(200, await updates.check(true));
+      if (id === "apply") {
+        const result = updates.apply();
+        if (!result.started) throw new HttpError(409, result.reason);
+        return json(202, updates.status());
       }
     } else if (method === "POST" && resource === "settings" && id === "linear") {
       const body = await readJson(req);

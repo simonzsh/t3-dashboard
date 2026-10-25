@@ -51,11 +51,12 @@ async function download(fetchImpl: typeof fetch, url: string): Promise<Response>
   return response;
 }
 
-export async function update({ check }: { check: boolean }, deps: UpdateDeps): Promise<void> {
+/** Resolves true when a new binary replaced the old one. */
+export async function update({ check }: { check: boolean }, deps: UpdateDeps): Promise<boolean> {
   const tag = await latestTag(deps.fetch, deps.repo);
   const latest = tag.replace(/^v/, "");
-  if (latest === deps.version) return deps.log(`t3-dashboard ${latest} is up to date.`);
-  if (check) return deps.log(`Update available: ${deps.version} -> ${latest}.`);
+  if (latest === deps.version) return deps.log(`t3-dashboard ${latest} is up to date.`), false;
+  if (check) return deps.log(`Update available: ${deps.version} -> ${latest}.`), false;
 
   const asset = assetName(deps.platform, deps.arch);
   const base = `https://github.com/${deps.repo}/releases/download/${tag}`;
@@ -87,6 +88,7 @@ export async function update({ check }: { check: boolean }, deps: UpdateDeps): P
   }
   if (await deps.serviceInstalled()) await deps.restart(latest);
   deps.log(`Updated to ${latest}.`);
+  return true;
 }
 
 /** The previous exe stays until the next start: a running exe cannot be deleted on Windows. */
