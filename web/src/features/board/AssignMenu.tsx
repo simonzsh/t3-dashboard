@@ -3,8 +3,8 @@ import type { DashboardProject, LinearIssue } from "../../../../shared/api.ts";
 import { useApi } from "../../api/ApiContext.tsx";
 import { loadAssignProject, saveAssignProject } from "../../lib/assignProject.ts";
 import { browserStorage } from "../../lib/storage.ts";
-import { projectOptions } from "../../lib/dropdown.ts";
-import { Button, Dropdown, Icon, IconButton, Popover, Pressable } from "../../ui/index.ts";
+import { ProjectPicker } from "../../lib/ProjectPicker.tsx";
+import { Button, Icon, IconButton, Popover, Pressable } from "../../ui/index.ts";
 import { ProviderIcon } from "../../lib/ProviderIcon.tsx";
 import { useAction } from "../../lib/useAction.ts";
 
@@ -69,16 +69,7 @@ export function AssignMenu({ issue, projects, onAssigned, onShowDesk }: Props) {
         }}>
           <div className="menu-project">
             <small>T3 project</small>
-            <Dropdown
-              className="field"
-              label="T3 project"
-              placeholder={projects.length === 0 ? "No T3 project yet" : "Choose a project…"}
-              value={projectId || null}
-              options={projectOptions(projects)}
-              filterable
-              disabled={projects.length === 0}
-              onPick={setProjectId}
-            />
+            <ProjectPicker label="T3 project" projects={projects} value={projectId} onPick={setProjectId} />
           </div>
           <Pressable role="menuitem" disabled={projectId === ""} onClick={() => assign("claude")}>
             <ProviderIcon provider="claudeAgent" /> Claude

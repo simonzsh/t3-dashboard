@@ -3,10 +3,10 @@ import type { DashboardProject, DashboardProvider, ImageAttachment, ModelSelecti
 import { useApi } from "../../api/ApiContext.tsx";
 import { browserStorage } from "../../lib/storage.ts";
 import { findModel } from "../conversation/composer.ts";
-import { projectOptions } from "../../lib/dropdown.ts";
+import { ProjectPicker } from "../../lib/ProjectPicker.tsx";
 import { loadNewAgentProject, presetSelection, saveNewAgentProject, titleFromMessage } from "./newAgent.ts";
 import { Composer } from "../conversation/Composer.tsx";
-import { Dialog, Dropdown } from "../../ui/index.ts";
+import { Dialog } from "../../ui/index.ts";
 
 interface Props {
   projects: DashboardProject[];
@@ -49,14 +49,10 @@ export function NewThreadDialog({ projects, providers, onClose, onCreated }: Pro
     <Dialog title="New Agent" className="new-agent" onClose={onClose}>
       <div className="dialog-field">
         <span>Project</span>
-        <Dropdown
-          className="field"
+        <ProjectPicker
           label="Project"
-          placeholder={projects.length === 0 ? "No T3 project yet" : "Choose a project…"}
-          value={projectId || null}
-          options={projectOptions(projects)}
-          filterable
-          disabled={projects.length === 0}
+          projects={projects}
+          value={projectId}
           onPick={(id) => {
             setProjectId(id);
             setSelection(presetSelection(projects.find((p) => p.id === id), providers));
