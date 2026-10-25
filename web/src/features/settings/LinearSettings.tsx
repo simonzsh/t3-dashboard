@@ -5,6 +5,7 @@ import { KEY_URL, maskedKey } from "./linearSettings.ts";
 import { Icon, IconButton } from "../../ui/index.ts";
 import { LinearKeyForm } from "./LinearKeyForm.tsx";
 import { useAction } from "../../lib/useAction.ts";
+import { errorMessage } from "../../lib/format.ts";
 
 interface Props {
   onChange: () => void;
@@ -18,7 +19,7 @@ export function LinearSettings({ onChange }: Props) {
   const action = useAction();
 
   useEffect(() => {
-    api.getSettings().then(setSettings, (e: unknown) => setLoadError(e instanceof Error ? e.message : String(e)));
+    api.getSettings().then(setSettings, (e: unknown) => setLoadError(errorMessage(e)));
   }, []);
 
   function saved(next: SettingsResult) {

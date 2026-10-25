@@ -1,6 +1,6 @@
 import { test } from "bun:test";
 import assert from "node:assert/strict";
-import { cut, duration, relativeTime } from "../../src/lib/format.ts";
+import { cut, duration, errorMessage, relativeTime } from "../../src/lib/format.ts";
 
 const now = new Date("2026-03-01T12:00:00Z");
 
@@ -22,4 +22,10 @@ test("duration gives seconds, then minutes, then hours", () => {
   assert.equal(duration(12_400), "12s");
   assert.equal(duration(185_000), "3m 05s");
   assert.equal(duration(3_720_000), "1h 02m");
+});
+
+test("errorMessage gives the message of an Error, or the value as text", () => {
+  assert.equal(errorMessage(new Error("boom")), "boom");
+  assert.equal(errorMessage("plain"), "plain");
+  assert.equal(errorMessage(404), "404");
 });

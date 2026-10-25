@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
 import type { AutomationsResult } from "../../../../shared/api.ts";
 import { useApi } from "../../api/ApiContext.tsx";
+import { errorMessage } from "../../lib/format.ts";
+import { usePoll } from "../../lib/usePoll.ts";
 
 const POLL_MS = 60_000;
 
@@ -10,27 +12,18 @@ export function useAutomations(active: boolean): { result: AutomationsResult | n
   const [result, setResult] = useState<AutomationsResult | null>(null);
   const [error, setError] = useState<string | null>(null);
 
+  const load = () =>
+    api.getAutomations().then(
+      (r) => {
+        setResult(r);
+        setError(null);
+      },
+      (e: unknown) => setError(errorMessage(e)),
+    );
   useEffect(() => {
-    if (!active) return;
-    let stopped = false;
-    const load = () =>
-      api.getAutomations().then(
-        (r) => {
-          if (stopped) return;
-          setResult(r);
-          setError(null);
-        },
-        (e: unknown) => {
-          if (!stopped) setError(e instanceof Error ? e.message : String(e));
-        },
-      );
-    void load();
-    const id = setInterval(load, POLL_MS);
-    return () => {
-      stopped = true;
-      clearInterval(id);
-    };
+    if (active) void load();
   }, [active]);
+  usePoll(load, active ? POLL_MS : null);
 
   return { result, error };
 }

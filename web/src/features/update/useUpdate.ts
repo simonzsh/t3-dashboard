@@ -2,6 +2,8 @@ import { useCallback, useEffect, useState } from "react";
 import type { UpdateStatus } from "../../../../shared/api.ts";
 import { useApi } from "../../api/ApiContext.tsx";
 import { waitForRestart } from "./updateFlow.ts";
+import { errorMessage } from "../../lib/format.ts";
+import { usePoll } from "../../lib/usePoll.ts";
 
 const POLL_MS = 60 * 60 * 1000;
 
@@ -14,8 +16,6 @@ export interface UpdateControl {
   apply(): Promise<void>;
 }
 
-const messageOf = (e: unknown) => (e instanceof Error ? e.message : String(e));
-
 export function useUpdate(): UpdateControl {
   const api = useApi();
   const [status, setStatus] = useState<UpdateStatus | null>(null);
@@ -24,12 +24,9 @@ export function useUpdate(): UpdateControl {
   const [error, setError] = useState<string | null>(null);
 
   // The server checks once a day: the page only reads the answer.
-  useEffect(() => {
-    const load = () => api.getUpdate().then(setStatus, () => {});
-    void load();
-    const id = setInterval(load, POLL_MS);
-    return () => clearInterval(id);
-  }, []);
+  const load = () => api.getUpdate().then(setStatus, () => {});
+  useEffect(() => void load(), []);
+  usePoll(load, POLL_MS);
 
   const check = useCallback(async () => {
     setChecking(true);
@@ -37,7 +34,7 @@ export function useUpdate(): UpdateControl {
     try {
       setStatus(await api.checkUpdate());
     } catch (e) {
-      setError(messageOf(e));
+      setError(errorMessage(e));
     } finally {
       setChecking(false);
     }
@@ -58,7 +55,7 @@ export function useUpdate(): UpdateControl {
       if (outcome.kind === "restarted") return location.reload();
       setError(outcome.message);
     } catch (e) {
-      setError(messageOf(e));
+      setError(errorMessage(e));
     }
     setUpdating(false);
   }, [status]);

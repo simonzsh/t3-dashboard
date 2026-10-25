@@ -7,6 +7,7 @@ import { AboutSettings } from "./AboutSettings.tsx";
 import { LinearSettings } from "./LinearSettings.tsx";
 import { onRadioKeyDown } from "../../ui/radioKeys.ts";
 import { Button, Dialog, FileInput, Pressable, Segmented } from "../../ui/index.ts";
+import { errorMessage } from "../../lib/format.ts";
 
 interface Props {
   theme: ThemeSetting;
@@ -32,7 +33,7 @@ export function SettingsDialog({ theme, onThemeChange, background, onBackgroundC
     try {
       setError(onBackgroundChange({ kind: "image", dataUrl: await imageFileToDataUrl(file) }));
     } catch (e) {
-      setError(e instanceof Error ? e.message : String(e));
+      setError(errorMessage(e));
     } finally {
       setBusy(false);
     }

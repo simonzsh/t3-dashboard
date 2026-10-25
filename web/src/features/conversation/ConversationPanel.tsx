@@ -10,6 +10,7 @@ import { RunActivityView } from "./RunActivity.tsx";
 import { SubagentStrip } from "./SubagentStrip.tsx";
 import { useAction } from "../../lib/useAction.ts";
 import { usePoll } from "../../lib/usePoll.ts";
+import { errorMessage } from "../../lib/format.ts";
 import { LIVE_RELOAD_MS, pollDelay } from "./reload.ts";
 
 const ROLE_LABELS: Record<string, string> = { user: "You", assistant: "Agent", system: "System" };
@@ -85,7 +86,7 @@ export function ConversationPanel({ threadId, thread, providers }: Props) {
       setLoadError(null);
     } catch (e) {
       if (mine !== epoch.current) return;
-      setLoadError(e instanceof Error ? e.message : String(e));
+      setLoadError(errorMessage(e));
     }
   }
 

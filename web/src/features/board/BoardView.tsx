@@ -6,6 +6,7 @@ import { boardNeedsKey, linearConnected } from "../settings/linearSettings.ts";
 import { Icon, IconButton } from "../../ui/index.ts";
 import { AssignMenu } from "./AssignMenu.tsx";
 import { LinearSetupCard } from "./LinearSetupCard.tsx";
+import { useAction } from "../../lib/useAction.ts";
 
 interface Props {
   projects: DashboardProject[];
@@ -18,20 +19,9 @@ interface Props {
 export function BoardView({ projects, version, onAssigned, onShowDesk }: Props) {
   const api = useApi();
   const [board, setBoard] = useState<BoardResult | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
+  const { busy: loading, error, run } = useAction();
 
-  const load = useCallback(async (refresh: boolean) => {
-    setLoading(true);
-    setError(null);
-    try {
-      setBoard(await api.getBoard(refresh));
-    } catch (e) {
-      setError(e instanceof Error ? e.message : String(e));
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+  const load = useCallback((refresh: boolean) => run(async () => setBoard(await api.getBoard(refresh))), []);
 
   useEffect(() => {
     void load(version > 0);

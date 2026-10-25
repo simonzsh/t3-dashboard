@@ -5,6 +5,7 @@ import { RUNTIME_MODE_LABELS, acceptImages, currentEffort, findModel, selectEffo
 import type { DropdownOption } from "../../lib/dropdown.ts";
 import { Dropdown, FileInput, Icon, IconButton, Pressable, TextArea } from "../../ui/index.ts";
 import { ProviderIcon } from "../../lib/ProviderIcon.tsx";
+import { errorMessage } from "../../lib/format.ts";
 
 interface Pending {
   key: string;
@@ -100,7 +101,7 @@ export function Composer({ providers, selection, runtimeMode, running, draft, on
       const read = await Promise.all(accepted.map(async (file) => ({ key: crypto.randomUUID(), file, dataUrl: await readDataUrl(file) })));
       setImages((current) => [...current, ...read]);
     } catch (e) {
-      setError(e instanceof Error ? e.message : String(e));
+      setError(errorMessage(e));
     }
   }
 

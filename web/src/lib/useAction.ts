@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { errorMessage } from "./format.ts";
 
 // Runs an async action and keeps its error next to the button that started it.
 export function useAction() {
@@ -11,7 +12,7 @@ export function useAction() {
       await fn();
       return true;
     } catch (e) {
-      setError(e instanceof Error ? e.message : String(e));
+      setError(errorMessage(e));
       return false;
     } finally {
       setBusy(false);
