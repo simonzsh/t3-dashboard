@@ -1,14 +1,36 @@
-import { useEffect, useRef, useState } from "react";
-import type { DashboardEvent, DashboardThread, ThreadDetail } from "../../../shared/api.ts";
+import { memo, useEffect, useRef, useState } from "react";
+import type { ChatMessage, DashboardEvent, DashboardThread, ThreadDetail } from "../../../shared/api.ts";
 import { api } from "../api.ts";
+import { renderMarkdown } from "../markdown.tsx";
 import { PendingRequestView } from "./PendingRequestView.tsx";
+import { SubagentStrip } from "./SubagentStrip.tsx";
 import { useAction } from "./useAction.ts";
 
 const ROLE_LABELS: Record<string, string> = { user: "You", assistant: "Agent", system: "System" };
+// Subagent progress does not always reach the shell stream: poll while one runs.
+const SUBAGENT_POLL_MS = 4000;
 // Windows remount when they move between grid, minimized bar and mobile view: keep what they showed.
 const detailCache = new Map<string, ThreadDetail>();
 const drafts = new Map<string, string>();
 const NEAR_BOTTOM_PX = 40;
+
+// Streaming re-renders the whole list: parse a message again only when its text changes.
+const MarkdownText = memo(function MarkdownText({ text }: { text: string }) {
+  return renderMarkdown(text);
+});
+
+function Message({ message: m }: { message: ChatMessage }) {
+  const time = new Date(m.createdAt).toLocaleString("en-US", { dateStyle: "medium", timeStyle: "short" });
+  return (
+    <div className={`msg ${m.role}`}>
+      {m.role === "user" ? <div className="bubble">{m.text}</div> : <div className="md">{m.role === "assistant" ? <MarkdownText text={m.text} /> : m.text}</div>}
+      <small>
+        {ROLE_LABELS[m.role] ?? m.role} · {time}
+        {m.streaming && <span className="streaming" role="img" aria-label="Running" />}
+      </small>
+    </div>
+  );
+}
 
 interface Props {
   threadId: string;
@@ -53,6 +75,13 @@ export function ConversationPanel({ threadId, thread, lastEvent, onClose }: Prop
     reload.current = setTimeout(() => void load(), 500);
   }, [lastEvent]);
 
+  const subagentRunning = detail?.subagents.some((s) => s.status === "running") ?? false;
+  useEffect(() => {
+    if (!subagentRunning) return;
+    const id = setInterval(() => void load(), SUBAGENT_POLL_MS);
+    return () => clearInterval(id);
+  }, [subagentRunning, threadId]);
+
   // Follow new messages unless the user scrolled up to read.
   useEffect(() => {
     const el = scroller.current;
@@ -91,13 +120,7 @@ export function ConversationPanel({ threadId, thread, lastEvent, onClose }: Prop
         {detail && detail.messages.length === 0 && <p className="empty">No messages</p>}
         {!detail && !loadError && <p className="empty">Loading…</p>}
         {detail?.messages.map((m) => (
-          <div key={m.id} className={`msg ${m.role}`}>
-            <small>
-              {ROLE_LABELS[m.role] ?? m.role} · {new Date(m.createdAt).toLocaleString("en-US")}
-              {m.streaming ? " · running…" : ""}
-            </small>
-            {m.text}
-          </div>
+          <Message key={m.id} message={m} />
         ))}
         {detail && detail.pendingRequests.length > 0 && (
           <div className="requests">
@@ -107,6 +130,7 @@ export function ConversationPanel({ threadId, thread, lastEvent, onClose }: Prop
           </div>
         )}
       </div>
+      {detail && <SubagentStrip key={threadId} subagents={detail.subagents} />}
       <form
         className="composer"
         onSubmit={(e) => {
