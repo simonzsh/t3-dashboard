@@ -6,9 +6,8 @@ import { findModel } from "../composer.ts";
 import { projectOptions } from "../dropdown.ts";
 import { loadNewAgentProject, presetSelection, saveNewAgentProject, titleFromMessage } from "../newAgent.ts";
 import { Composer } from "./Composer.tsx";
-import { Dropdown } from "../ui/index.ts";
+import { Dialog, Dropdown } from "../ui/index.ts";
 import { useAction } from "./useAction.ts";
-import { useEscape } from "../ui/index.ts";
 
 interface Props {
   projects: DashboardProject[];
@@ -27,7 +26,6 @@ export function NewThreadDialog({ projects, providers, onClose, onCreated }: Pro
   const [draft, setDraft] = useState("");
   const [error, setError] = useState<string | null>(null);
   const action = useAction();
-  useEscape(onClose);
 
   // Providers can arrive after the dialog opens: pick a preset once the choice is no longer valid.
   useEffect(() => {
@@ -55,49 +53,39 @@ export function NewThreadDialog({ projects, providers, onClose, onCreated }: Pro
   }
 
   return (
-    <div className="dialog-backdrop" onClick={onClose}>
-      <div className="dialog new-agent" role="dialog" aria-modal="true" aria-label="New Agent" onClick={(e) => e.stopPropagation()}>
-        <div className="dialog-head">
-          <h2>New Agent</h2>
-          <button type="button" className="icon-button dialog-close" aria-label="Close" title="Close (Esc)" onClick={onClose}>
-            <svg className="icon" viewBox="0 0 24 24" aria-hidden="true">
-              <path d="M18 6 6 18M6 6l12 12" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-            </svg>
-          </button>
-        </div>
-        <div className="dialog-field">
-          <span>Project</span>
-          <Dropdown
-            className="field"
-            label="Project"
-            placeholder={projects.length === 0 ? "No T3 project yet" : "Choose a project…"}
-            value={projectId || null}
-            options={projectOptions(projects)}
-            filterable
-            disabled={projects.length === 0}
-            onPick={(id) => {
-              setProjectId(id);
-              setSelection(presetSelection(projects.find((p) => p.id === id), providers));
-              setError(null);
-            }}
-          />
-        </div>
-        <Composer
-          providers={providers}
-          selection={selection}
-          runtimeMode={mode}
-          running={false}
-          draft={draft}
-          onDraft={setDraft}
-          onSend={send}
-          onStop={async () => true}
-          onSettings={changeSettings}
-          onReload={() => {}}
-          error={error ?? action.error}
-          placeholder="Describe the task: the first line becomes the title…"
-          autoFocus
+    <Dialog title="New Agent" className="new-agent" onClose={onClose}>
+      <div className="dialog-field">
+        <span>Project</span>
+        <Dropdown
+          className="field"
+          label="Project"
+          placeholder={projects.length === 0 ? "No T3 project yet" : "Choose a project…"}
+          value={projectId || null}
+          options={projectOptions(projects)}
+          filterable
+          disabled={projects.length === 0}
+          onPick={(id) => {
+            setProjectId(id);
+            setSelection(presetSelection(projects.find((p) => p.id === id), providers));
+            setError(null);
+          }}
         />
       </div>
-    </div>
+      <Composer
+        providers={providers}
+        selection={selection}
+        runtimeMode={mode}
+        running={false}
+        draft={draft}
+        onDraft={setDraft}
+        onSend={send}
+        onStop={async () => true}
+        onSettings={changeSettings}
+        onReload={() => {}}
+        error={error ?? action.error}
+        placeholder="Describe the task: the first line becomes the title…"
+        autoFocus
+      />
+    </Dialog>
   );
 }

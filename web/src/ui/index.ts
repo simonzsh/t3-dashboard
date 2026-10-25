@@ -12,4 +12,3 @@ export { Popover } from "./Popover.tsx";
 export { Pressable } from "./Pressable.tsx";
 export { Segmented } from "./Segmented.tsx";
 export { SecretInput, TextArea, TextInput } from "./TextInput.tsx";
-export { useEscape } from "./useEscape.ts";

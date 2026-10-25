@@ -5,7 +5,7 @@ import { THEME_SETTINGS, type ThemeSetting } from "../theme.ts";
 import type { UpdateControl } from "../useUpdate.ts";
 import { AboutSettings } from "./AboutSettings.tsx";
 import { LinearSettings } from "./LinearSettings.tsx";
-import { Button, FileInput, Pressable, Segmented, useEscape } from "../ui/index.ts";
+import { Button, Dialog, FileInput, Pressable, Segmented } from "../ui/index.ts";
 
 interface Props {
   theme: ThemeSetting;
@@ -21,7 +21,6 @@ interface Props {
 const LABELS: Record<ThemeSetting, string> = { system: "System", light: "Light", dark: "Dark" };
 
 export function SettingsDialog({ theme, onThemeChange, background, onBackgroundChange, onLinearChange, update, onUpdate, onClose }: Props) {
-  useEscape(onClose);
   const fileInput = useRef<HTMLInputElement>(null);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -39,70 +38,60 @@ export function SettingsDialog({ theme, onThemeChange, background, onBackgroundC
   }
 
   return (
-    <div className="dialog-backdrop" onClick={onClose}>
-      <div className="dialog settings" role="dialog" aria-modal="true" aria-label="Settings" onClick={(e) => e.stopPropagation()}>
-        <div className="dialog-head">
-          <h2>Settings</h2>
-          <button type="button" className="icon-button dialog-close" aria-label="Close" title="Close" onClick={onClose}>
-            <svg className="icon" viewBox="0 0 24 24" aria-hidden="true">
-              <path d="M18 6 6 18M6 6l12 12" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-            </svg>
-          </button>
+    <Dialog title="Settings" className="settings" onClose={onClose}>
+      <section className="settings-section" aria-labelledby="settings-appearance">
+        <h3 id="settings-appearance">Appearance</h3>
+        <div className="settings-row">
+          <span>Theme</span>
+          <Segmented label="Theme" value={theme} options={THEME_SETTINGS.map((id) => ({ id, label: LABELS[id] }))} onChange={onThemeChange} />
         </div>
-        <section className="settings-section" aria-labelledby="settings-appearance">
-          <h3 id="settings-appearance">Appearance</h3>
-          <div className="settings-row">
-            <span>Theme</span>
-            <Segmented label="Theme" value={theme} options={THEME_SETTINGS.map((id) => ({ id, label: LABELS[id] }))} onChange={onThemeChange} />
-          </div>
-        </section>
-        <section className="settings-section" aria-labelledby="settings-desk">
-          <h3 id="settings-desk">Desk</h3>
-          <div className="settings-row settings-row-top">
-            <span>Background</span>
-            <div className="bg-choices">
-              <div className="swatches" role="radiogroup" aria-label="Background">
-                {BACKGROUND_PRESETS.map((p) => (
-                  <Pressable
-                    key={p.id}
-                    role="radio"
-                    aria-checked={presetId === p.id}
-                    aria-label={p.label}
-                    title={p.label}
-                    className={`swatch desk-bg-${p.id}${presetId === p.id ? " active" : ""}`}
-                    onClick={() => setError(onBackgroundChange(p.id === "none" ? { kind: "none" } : { kind: "preset", id: p.id }))}
-                  />
-                ))}
-                {background.kind === "image" && (
-                  <span className="swatch active" role="img" aria-label="Uploaded image" style={{ backgroundImage: `url("${background.dataUrl}")` }} />
-                )}
-              </div>
-              <div className="buttons">
-                <Button loading={busy && "Loading…"} onClick={() => fileInput.current?.click()}>
-                  Upload image…
-                </Button>
-                {background.kind === "image" && <Button onClick={() => setError(onBackgroundChange({ kind: "none" }))}>Remove image</Button>}
-                <FileInput
-                  ref={fileInput}
-                  accept="image/*"
-                  onFiles={([file]) => {
-                    if (file) void upload(file);
-                  }}
+      </section>
+      <section className="settings-section" aria-labelledby="settings-desk">
+        <h3 id="settings-desk">Desk</h3>
+        <div className="settings-row settings-row-top">
+          <span>Background</span>
+          <div className="bg-choices">
+            <div className="swatches" role="radiogroup" aria-label="Background">
+              {BACKGROUND_PRESETS.map((p) => (
+                <Pressable
+                  key={p.id}
+                  role="radio"
+                  aria-checked={presetId === p.id}
+                  aria-label={p.label}
+                  title={p.label}
+                  className={`swatch desk-bg-${p.id}${presetId === p.id ? " active" : ""}`}
+                  onClick={() => setError(onBackgroundChange(p.id === "none" ? { kind: "none" } : { kind: "preset", id: p.id }))}
                 />
-              </div>
-              {error && <span className="error">{error}</span>}
+              ))}
+              {background.kind === "image" && (
+                <span className="swatch active" role="img" aria-label="Uploaded image" style={{ backgroundImage: `url("${background.dataUrl}")` }} />
+              )}
             </div>
+            <div className="buttons">
+              <Button loading={busy && "Loading…"} onClick={() => fileInput.current?.click()}>
+                Upload image…
+              </Button>
+              {background.kind === "image" && <Button onClick={() => setError(onBackgroundChange({ kind: "none" }))}>Remove image</Button>}
+              <FileInput
+                ref={fileInput}
+                accept="image/*"
+                onFiles={([file]) => {
+                  if (file) void upload(file);
+                }}
+              />
+            </div>
+            {error && <span className="error">{error}</span>}
           </div>
-        </section>
-        <section className="settings-section" aria-labelledby="settings-linear">
-          <h3 id="settings-linear">Linear</h3>
-          <LinearSettings onChange={onLinearChange} />
-        </section>
-        <section className="settings-section" aria-labelledby="settings-about">
-          <h3 id="settings-about">About</h3>
-          <AboutSettings update={update} onUpdate={onUpdate} />
-        </section>
-      </div>
-    </div>
+        </div>
+      </section>
+      <section className="settings-section" aria-labelledby="settings-linear">
+        <h3 id="settings-linear">Linear</h3>
+        <LinearSettings onChange={onLinearChange} />
+      </section>
+      <section className="settings-section" aria-labelledby="settings-about">
+        <h3 id="settings-about">About</h3>
+        <AboutSettings update={update} onUpdate={onUpdate} />
+      </section>
+    </Dialog>
   );
 }
