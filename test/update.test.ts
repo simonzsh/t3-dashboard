@@ -1,33 +1,7 @@
 import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
 import { test } from "bun:test";
-import { assetName, latestTag, parseSums, update, type UpdateDeps } from "../src/update.ts";
-
-test("asset names for the 5 release targets", () => {
-  assert.equal(assetName("darwin", "arm64"), "t3-dashboard-darwin-arm64");
-  assert.equal(assetName("darwin", "x64"), "t3-dashboard-darwin-x64");
-  assert.equal(assetName("linux", "x64"), "t3-dashboard-linux-x64");
-  assert.equal(assetName("linux", "arm64"), "t3-dashboard-linux-arm64");
-  assert.equal(assetName("win32", "x64"), "t3-dashboard-windows-x64.exe");
-  assert.equal(assetName("win32", "arm64"), "t3-dashboard-windows-x64.exe");
-  assert.throws(() => assetName("freebsd", "x64"), /not supported/);
-  assert.throws(() => assetName("linux", "ia32"), /not supported/);
-});
-
-test("parseSums reads `<hex>  <asset>` lines", () => {
-  const sums = parseSums("abc123  t3-dashboard-linux-x64\n\nDEF456 *t3-dashboard-windows-x64.exe\n");
-  assert.equal(sums.get("t3-dashboard-linux-x64"), "abc123");
-  assert.equal(sums.get("t3-dashboard-windows-x64.exe"), "def456");
-});
-
-test("latestTag reads tag_name from the GitHub API", async () => {
-  const urls: string[] = [];
-  const fetchImpl = (async (url: string) => (urls.push(url), Response.json({ tag_name: "v1.2.3" }))) as unknown as typeof fetch;
-  assert.equal(await latestTag(fetchImpl, "o/r"), "v1.2.3");
-  assert.deepEqual(urls, ["https://api.github.com/repos/o/r/releases/latest"]);
-  const bad = (async () => new Response("no", { status: 404 })) as unknown as typeof fetch;
-  await assert.rejects(latestTag(bad, "o/r"), /404/);
-});
+import { update, type UpdateDeps } from "../src/update.ts";
 
 const BINARY = new TextEncoder().encode("new binary");
 const sha = (bytes: Uint8Array) => createHash("sha256").update(bytes).digest("hex");

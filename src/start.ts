@@ -8,6 +8,7 @@ import { TokenManager } from "./auth.ts";
 import { agentConfigDir, loadBrains } from "./brains.ts";
 import { envAllowedHosts, envPort } from "./config.ts";
 import { findT3, runCommand } from "./integrations/t3/cli.ts";
+import { latestTag } from "./integrations/github/releases.ts";
 import { LinearClient } from "./integrations/linear/client.ts";
 import { T3Client, validateWith } from "./integrations/t3/client.ts";
 import { environmentIdFile, readEnvironmentId, readServerVersion, resolveOrigin, runtimeFile } from "./integrations/t3/runtime.ts";
@@ -23,7 +24,7 @@ import { ShellStore } from "./shellStore.ts";
 import { siteFromBundle } from "./site.ts";
 import { SseHub } from "./sse.ts";
 import { updateDeps } from "./system.ts";
-import { latestTag, update } from "./update.ts";
+import { update } from "./update.ts";
 import { UpdateManager } from "./updates.ts";
 import { VERSION } from "./version.ts";
 

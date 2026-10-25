@@ -3,11 +3,10 @@ import { homedir } from "node:os";
 import { dirname } from "node:path";
 import { setTimeout as sleep } from "node:timers/promises";
 import { envPort } from "./config.ts";
+import { DEFAULT_REPO } from "./integrations/github/releases.ts";
 import { restartService, serviceInstalled, servicePort, waitForService, type InstallDeps } from "./install.ts";
 import type { UpdateDeps } from "./update.ts";
 import { VERSION } from "./version.ts";
-
-const DEFAULT_REPO = "simonzsh/t3-dashboard";
 
 /** Exit code of a program, or 127 when it did not start. Its output is dropped. */
 async function run(command: string, args: string[]): Promise<number> {
