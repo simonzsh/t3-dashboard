@@ -2,6 +2,8 @@ import { useState } from "react";
 import type { DashboardProject, LinearIssue } from "../../../shared/api.ts";
 import { api } from "../api.ts";
 import { browserStorage, loadAssignProject, saveAssignProject } from "../assignProject.ts";
+import { projectOptions } from "../dropdown.ts";
+import { Dropdown } from "./Dropdown.tsx";
 import { ProviderIcon } from "./ProviderIcon.tsx";
 import { useAction } from "./useAction.ts";
 
@@ -66,19 +68,19 @@ export function AssignMenu({ issue, projects, onAssigned, onShowDesk }: Props) {
       )}
       {open && (
         <div className="menu" role="menu">
-          <label className="menu-project">
+          <div className="menu-project">
             <small>T3 project</small>
-            <select value={projectId} onChange={(e) => setProjectId(e.target.value)}>
-              <option value="" disabled>
-                {projects.length === 0 ? "No T3 project yet" : "Choose a project…"}
-              </option>
-              {projects.map((p) => (
-                <option key={p.id} value={p.id}>
-                  {p.title}
-                </option>
-              ))}
-            </select>
-          </label>
+            <Dropdown
+              className="field"
+              label="T3 project"
+              placeholder={projects.length === 0 ? "No T3 project yet" : "Choose a project…"}
+              value={projectId || null}
+              options={projectOptions(projects)}
+              filterable
+              disabled={projects.length === 0}
+              onPick={setProjectId}
+            />
+          </div>
           <button role="menuitem" disabled={projectId === ""} onClick={() => assign("claude")}>
             <ProviderIcon provider="claudeAgent" /> Claude
           </button>

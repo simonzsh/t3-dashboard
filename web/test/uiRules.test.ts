@@ -76,3 +76,8 @@ test("the guard sees a Cancel after a primary button", () => {
   assert.equal(groups.length, 1);
   assert.deepEqual(groups[0]!.map((b) => [isPrimary(b), isCancel(b)]), [[true, false], [false, true]]);
 });
+
+// A native <select> opens the system menu: the dashboard uses its own Dropdown.
+test("no native select anywhere", () => {
+  for (const { file, text } of sources) assert.ok(!text.includes("<select"), file);
+});

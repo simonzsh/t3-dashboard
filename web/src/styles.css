@@ -61,7 +61,7 @@
 }
 * { box-sizing: border-box; }
 body { margin: 0; font: 14px/1.45 system-ui, -apple-system, "Segoe UI", sans-serif; background: var(--surface-0); color: var(--text-primary); -webkit-font-smoothing: antialiased; }
-button, select, input, textarea { font: inherit; color: inherit; background: var(--surface-1); border: 1px solid var(--line); border-radius: 8px; padding: 6px 12px; }
+button, input, textarea { font: inherit; color: inherit; background: var(--surface-1); border: 1px solid var(--line); border-radius: 8px; padding: 6px 12px; }
 button { cursor: pointer; }
 button:hover:not(:disabled) { border-color: var(--accent); }
 button:disabled { opacity: 0.5; cursor: not-allowed; }
@@ -241,25 +241,35 @@ main { padding: 24px; display: flex; flex-direction: column; gap: 28px; }
 .composer-toolbar { display: flex; align-items: center; gap: 8px; min-width: 0; }
 .composer-pickers { display: flex; align-items: center; gap: 2px; min-width: 0; flex: 1; }
 .composer-sep { flex: none; width: 1px; height: 16px; background: var(--line); margin: 0 4px; }
-.picker { position: relative; min-width: 0; }
-.picker.secondary { flex: none; }
+/* Dropdown: the one menu control of the dashboard (no native select). */
+.dropdown { position: relative; min-width: 0; }
+.dropdown.secondary { flex: none; }
 @container (max-width: 480px) {
-  .picker.secondary .picker-value, .picker.secondary .chevron-down { display: none; }
+  .dropdown.secondary .dropdown-value, .dropdown.secondary .chevron-down { display: none; }
 }
-.picker-trigger { display: inline-flex; align-items: center; gap: 6px; max-width: 100%; padding: 4px 6px; border: 0; border-radius: 8px; background: none; color: var(--text-secondary); font-size: 13px; }
-.picker-trigger:hover:not(:disabled) { color: var(--text-primary); background: var(--surface-0); }
-.picker-trigger .provider-icon { width: 15px; height: 15px; margin: 0; flex: none; }
-.picker-value { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.picker-trigger .chevron-down { width: 13px; height: 13px; opacity: 0.8; }
-.picker.secondary:last-child .picker-menu { left: auto; right: 0; }
-.picker-menu { position: absolute; bottom: calc(100% + 8px); left: 0; z-index: 6; min-width: 210px; max-height: 320px; overflow: auto; padding: 4px; border-radius: 12px; border: 1px solid var(--line); background: var(--surface-1); box-shadow: var(--shadow); }
-.picker-group { padding: 6px 8px 2px; font-size: 11px; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; color: var(--text-secondary); }
-.picker-entry button { display: flex; align-items: center; gap: 8px; width: 100%; padding: 6px 8px; border: 0; border-radius: 8px; background: none; text-align: left; font-size: 13px; }
-.picker-entry button:hover, .picker-entry button:focus-visible { background: var(--surface-0); outline: none; }
-.picker-entry .provider-icon { width: 15px; height: 15px; margin: 0; flex: none; }
-.picker-text { display: flex; flex-direction: column; flex: 1; min-width: 0; }
-.picker-text small { color: var(--text-secondary); font-size: 11px; }
-.picker-check { width: 14px; height: 14px; color: var(--accent); }
+.dropdown-trigger { display: inline-flex; align-items: center; gap: 6px; max-width: 100%; padding: 4px 6px; border: 0; border-radius: 8px; background: none; color: var(--text-secondary); font-size: 13px; }
+.dropdown-trigger:hover:not(:disabled) { color: var(--text-primary); background: var(--surface-0); }
+.dropdown-trigger .provider-icon { width: 15px; height: 15px; margin: 0; flex: none; }
+.dropdown-value { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.dropdown-trigger .chevron-down { width: 13px; height: 13px; opacity: 0.8; flex: none; }
+.dropdown.field .dropdown-trigger { display: flex; width: 100%; padding: 6px 10px; border: 1px solid var(--line); background: var(--surface-1); color: var(--text-primary); font-size: inherit; }
+.dropdown.field .dropdown-trigger:hover:not(:disabled) { border-color: var(--accent); background: var(--surface-1); }
+.dropdown.field .dropdown-value { flex: 1; text-align: left; }
+.dropdown-value.placeholder { color: var(--text-secondary); }
+.dropdown-menu { position: absolute; top: calc(100% + 4px); left: 0; z-index: 6; min-width: 210px; display: flex; flex-direction: column; gap: 4px; padding: 4px; border-radius: 12px; border: 1px solid var(--line); background: var(--surface-1); box-shadow: var(--shadow); }
+.dropdown.field .dropdown-menu { right: 0; }
+.composer .dropdown-menu { top: auto; bottom: calc(100% + 8px); }
+.composer .dropdown.secondary:last-child .dropdown-menu { left: auto; right: 0; }
+.dropdown-filter { padding: 5px 8px; font-size: 13px; }
+.dropdown-list { max-height: 300px; overflow: auto; outline: none; }
+.dropdown-group { padding: 6px 8px 2px; font-size: 11px; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; color: var(--text-secondary); }
+.dropdown-option { display: flex; align-items: center; gap: 8px; padding: 6px 8px; border-radius: 8px; font-size: 13px; cursor: pointer; }
+.dropdown-option.active { background: var(--surface-0); }
+.dropdown-option .provider-icon { width: 15px; height: 15px; margin: 0; flex: none; }
+.dropdown-text { display: flex; flex-direction: column; flex: 1; min-width: 0; }
+.dropdown-text small { color: var(--text-secondary); font-size: 11px; }
+.dropdown-check { width: 14px; height: 14px; color: var(--accent); flex: none; }
+.dropdown-empty { padding: 6px 8px; font-size: 13px; color: var(--text-secondary); }
 .composer-actions { display: flex; align-items: center; gap: 6px; flex: none; margin-left: auto; }
 .composer-icon { display: grid; place-items: center; padding: 6px; border: 0; border-radius: 50%; background: none; color: var(--text-secondary); }
 .composer-icon:hover:not(:disabled) { color: var(--text-primary); background: var(--surface-0); }
@@ -285,7 +295,7 @@ main { padding: 24px; display: flex; flex-direction: column; gap: 28px; }
 .dialog-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
 .dialog-close { display: grid; place-items: center; padding: 4px; margin: -4px -6px -4px 0; border: 0; background: none; border-radius: 6px; color: var(--text-secondary); }
 .dialog-close:hover:not(:disabled) { color: var(--text-primary); background: var(--surface-0); }
-.dialog label { display: flex; flex-direction: column; gap: 4px; }
+.dialog label, .dialog-field { display: flex; flex-direction: column; gap: 4px; }
 .dialog textarea { min-height: 90px; }
 .dialog .buttons { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
 .settings { gap: 16px; }

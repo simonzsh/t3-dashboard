@@ -1,7 +1,9 @@
 import { useEffect, useState } from "react";
 import type { DashboardProject, DashboardProvider } from "../../../shared/api.ts";
 import { api } from "../api.ts";
+import { projectOptions } from "../dropdown.ts";
 import { NO_AUTOFILL } from "../noAutofill.ts";
+import { Dropdown } from "./Dropdown.tsx";
 import { useAction } from "./useAction.ts";
 import { useEscape } from "./useEscape.ts";
 
@@ -64,47 +66,35 @@ export function NewThreadDialog({ projects, providers, defaultProjectId, onClose
         }}
       >
         <h2>New Agent</h2>
-        <label>
-          Project
-          <select
-            required
-            value={projectId}
-            onChange={(e) => {
-              setProjectId(e.target.value);
-              setChoice(presetFor(projects.find((p) => p.id === e.target.value), providers));
+        <div className="dialog-field">
+          <span>Project</span>
+          <Dropdown
+            className="field"
+            label="Project"
+            placeholder="Select a project"
+            value={projectId || null}
+            options={projectOptions(projects)}
+            filterable
+            onPick={(id) => {
+              setProjectId(id);
+              setChoice(presetFor(projects.find((p) => p.id === id), providers));
             }}
-          >
-            <option value="">Select a project</option>
-            {[...projects].sort((a, b) => a.title.localeCompare(b.title)).map((p) => (
-              <option key={p.id} value={p.id}>
-                {p.title}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label>
-          Provider
-          <select
-            value={provider}
-            onChange={(e) => setChoice({ provider: e.target.value, model: providers.find((p) => p.instanceId === e.target.value)?.models[0]?.slug ?? "" })}
-          >
-            {providers.map((p) => (
-              <option key={p.instanceId} value={p.instanceId}>
-                {p.displayName}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label>
-          Model
-          <select value={model} onChange={(e) => setChoice({ provider, model: e.target.value })}>
-            {models.map((m) => (
-              <option key={m.slug} value={m.slug}>
-                {m.name}
-              </option>
-            ))}
-          </select>
-        </label>
+          />
+        </div>
+        <div className="dialog-field">
+          <span>Provider</span>
+          <Dropdown
+            className="field"
+            label="Provider"
+            value={provider || null}
+            options={providers.map((p) => ({ id: p.instanceId, label: p.displayName }))}
+            onPick={(id) => setChoice({ provider: id, model: providers.find((p) => p.instanceId === id)?.models[0]?.slug ?? "" })}
+          />
+        </div>
+        <div className="dialog-field">
+          <span>Model</span>
+          <Dropdown className="field" label="Model" value={model || null} options={models.map((m) => ({ id: m.slug, label: m.name }))} onPick={(id) => setChoice({ provider, model: id })} />
+        </div>
         <label>
           Title
           <input {...NO_AUTOFILL} type="text" required value={title} onChange={(e) => setTitle(e.target.value)} />
