@@ -23,7 +23,7 @@ export function AgentCard({ card, compact = false, now, onDesk, t3EnvironmentId,
   const failed = hasFailed(t);
   return (
     <div className="agent-wrap">
-      <Pressable className={`agent ${status}${compact ? " compact" : ""}${onDesk ? " on-desk" : ""}`} onClick={(e) => onOpen(t.id, e.shiftKey)}>
+      <Pressable className={`agent ${status}${compact ? " compact" : ""}${onDesk ? " on-desk" : ""}`} title={threadTitle(t)} onClick={(e) => onOpen(t.id, e.shiftKey)}>
         <span className="agent-head">
           <ProviderIcon provider={t.provider} />
           <span className="agent-title">{threadTitle(t)}</span>

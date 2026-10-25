@@ -140,9 +140,10 @@ main { flex: 1; min-height: 0; overflow: hidden; padding: 24px; display: flex; f
 .card-open-t3 { position: absolute; top: 10px; right: 44px; border-radius: var(--radius-md); border: 1px solid var(--line); background: var(--surface-1); }
 .card-open-t3:hover { color: var(--text-primary); border-color: var(--accent); }
 .open-t3 .icon { width: 16px; height: 16px; }
-.agent-head { display: flex; gap: 10px; align-items: flex-start; }
+.agent-head { display: flex; gap: 10px; align-items: center; min-width: 0; max-width: 100%; }
 .provider-icon { flex: none; width: 20px; height: 20px; margin-top: 1px; }
-.agent-title { font-weight: 600; word-break: break-word; }
+/* One line: a long title must not make the card taller. */
+.agent-title { font-weight: 600; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .agent-meta { color: var(--text-secondary); font-size: 12px; }
 .agent-foot { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
 .agent-preview { color: var(--text-secondary); font-size: 13px; word-break: break-word; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
@@ -356,7 +357,6 @@ main { flex: 1; min-height: 0; overflow: hidden; padding: 24px; display: flex; f
 .settled-head + .grid { margin-top: 8px; }
 .grid.compact { grid-template-columns: repeat(auto-fill, minmax(min(220px, 100%), 1fr)); gap: 10px; }
 .agent.compact { gap: 6px; padding: 10px 12px; border-radius: 12px; font-size: 13px; }
-.agent.compact .agent-title { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
 .automations { max-height: 100%; overflow-y: auto; box-sizing: border-box; display: flex; flex-direction: column; gap: 20px; padding: 16px; border-radius: 14px; background: var(--surface-1); border: 1px solid var(--line); box-shadow: var(--shadow); }
 .auto-heading { margin: 0; font-size: 15px; }
 .auto-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
