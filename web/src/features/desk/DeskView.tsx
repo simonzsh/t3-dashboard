@@ -5,7 +5,7 @@ import { threadState } from "../../../../shared/status.ts";
 import { threadTitle } from "../../lib/threads.ts";
 import type { DeskBackground } from "./deskBackground.ts";
 import { cellOf, deskLayout, equalSizes, gridWindows, sizesFor, type DeskAction, type DeskState, type DeskWindow as Win } from "./desk.ts";
-import { Kbd, Pressable } from "../../ui/index.ts";
+import { Icon, IconButton, Kbd, Pressable } from "../../ui/index.ts";
 import { useMediaQuery } from "../../lib/useMediaQuery.ts";
 import { DeskWindow } from "./DeskWindow.tsx";
 import { ProviderIcon } from "../../lib/ProviderIcon.tsx";
@@ -117,14 +117,24 @@ export function DeskView({ desk, dispatch, threads, projects, background, t3Envi
     );
   };
 
-  const chip = (w: Win, active: boolean) => {
+  const chip = (w: Win, active: boolean, closable = false) => {
     const thread = byId.get(w.id);
-    return (
+    const button = (
       <Pressable key={w.id} className={`desk-chip${active ? " active" : ""}`} title={threadTitle(thread)} onClick={() => dispatch({ type: "restore", id: w.id })}>
         <span className={`state-dot ${thread ? threadState(thread) : "idle"}`} aria-hidden="true" />
         {thread && <ProviderIcon provider={thread.provider} />}
         <span className="desk-chip-title">{threadTitle(thread)}</span>
       </Pressable>
+    );
+    if (!closable) return button;
+    // A sibling, not a child: a button cannot hold another button.
+    return (
+      <span key={w.id} className="desk-chip-wrap">
+        {button}
+        <IconButton size="sm" variant="ghost" className="desk-chip-close" label="Close" title="Close" onClick={() => dispatch({ type: "close", id: w.id })}>
+          <Icon name="x" />
+        </IconButton>
+      </span>
     );
   };
 
@@ -156,7 +166,7 @@ export function DeskView({ desk, dispatch, threads, projects, background, t3Envi
       </div>
       {minimized.length > 0 && (
         <nav className="desk-dock" aria-label="Minimized windows">
-          {minimized.map((w) => chip(w, false))}
+          {minimized.map((w) => chip(w, false, true))}
         </nav>
       )}
     </div>
