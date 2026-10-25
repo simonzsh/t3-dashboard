@@ -170,7 +170,12 @@ export function createDashboardServer(options: DashboardServerOptions): Dashboar
         return asset(req, params.id!, { path });
       },
     },
-    { method: "POST", path: "/api/board/assign", handle: async ({ body }) => ok({ threadId: await actions.assign(validAssign(body)) }) },
+    {
+      method: "POST",
+      path: "/api/board/assign",
+      maxBytes: MAX_MESSAGE_BODY_BYTES,
+      handle: async ({ body }) => ok({ threadId: await actions.assign(validAssign(body), validImages(body.attachments)) }),
+    },
     {
       method: "POST",
       path: "/api/setup/retry",

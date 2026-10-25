@@ -18,15 +18,11 @@ import {
 import type { AssetResource, ImageUpload, T3Port } from "../integrations/t3/schemas.ts";
 import { DomainError } from "./errors.ts";
 import type { LinearBoard } from "./linearBoard.ts";
-import { toProviders } from "./providers.ts";
 import type { ShellStore } from "./shellStore.ts";
 import { toThreadDetail } from "./threadDetail.ts";
 
 export type { ImageUpload };
 
-const CLAUDE_INSTANCE = "claudeAgent";
-const CLAUDE_FALLBACK_MODEL = "claude-opus-5-5";
-const CODEX_INSTANCE = "codex";
 
 export interface ActionsOptions {
   port: T3Port;
@@ -44,7 +40,7 @@ export interface Actions {
   interrupt(threadId: string): Promise<void>;
   respond(threadId: string, requestId: string, answer: RespondBody): Promise<void>;
   dismiss(threadId: string, requestId: string): Promise<void>;
-  assign(body: AssignIssueBody): Promise<string>;
+  assign(body: Omit<AssignIssueBody, "attachments">, images: ImageUpload[]): Promise<string>;
   /** An image or page of the thread, fetched from T3. */
   asset(threadId: string, request: AssetRequest): Promise<{ response: Response; html: boolean }>;
 }
@@ -106,16 +102,6 @@ export function createActions(options: ActionsOptions): Actions {
     throw new DomainError("not-found", "Unknown issue");
   }
 
-  async function modelFor(agent: AssignIssueBody["agent"], defaultSelection: ModelSelection | null): Promise<ModelSelection> {
-    if (agent === "claude") {
-      return defaultSelection?.instanceId === CLAUDE_INSTANCE ? defaultSelection : { instanceId: CLAUDE_INSTANCE, model: CLAUDE_FALLBACK_MODEL };
-    }
-    const provider = toProviders(await t3(port.getConfig())).find((entry) => entry.instanceId === CODEX_INSTANCE);
-    const first = provider?.models[0];
-    if (!first) throw new DomainError("conflict", "No Codex model available");
-    return { instanceId: CODEX_INSTANCE, model: first.slug };
-  }
-
   return {
     async threadDetail(threadId) {
       return toThreadDetail(threadId, await t3(port.threadProjection(threadId)), store.thread(threadId), store.backgroundTasks(threadId));
@@ -172,14 +158,21 @@ export function createActions(options: ActionsOptions): Actions {
       await send(dismissCommand(threadId, requestId));
     },
 
-    async assign(body) {
+    async assign(body, images) {
       const issue = await findIssue(body.issueId);
-      const project = store.project(body.projectId);
-      if (!project) throw new DomainError("conflict", "T3 project not found");
-      const modelSelection = await modelFor(body.agent, project.defaultModelSelection);
-      const create = { projectId: project.id, title: `${issue.identifier} ${issue.title}`, text: `Traite le ticket Linear ${issue.identifier} : ${issue.url}`, modelSelection };
+      let projectId: string;
+      if (body.projectId) {
+        const project = store.project(body.projectId);
+        if (!project) throw new DomainError("conflict", "T3 project not found");
+        projectId = project.id;
+      } else projectId = await t3(port.ensureScratchProject());
+      // The agent always gets the issue link, after the user's own instructions if any.
+      const reference = `Ticket Linear ${issue.identifier} : ${issue.url}`;
+      const instructions = body.text.trim();
+      const text = instructions ? `${instructions}\n\n${reference}` : `Traite le ticket Linear ${issue.identifier} : ${issue.url}`;
+      const create = { projectId, title: `${issue.identifier} ${issue.title}`, text, modelSelection: body.modelSelection, ...(body.runtimeMode && { runtimeMode: body.runtimeMode }) };
       const threadId = newId();
-      await send(...createThreadCommands(threadId, create, await outgoing(threadId, [])));
+      await send(...createThreadCommands(threadId, create, await outgoing(threadId, images)));
       return threadId;
     },
   };

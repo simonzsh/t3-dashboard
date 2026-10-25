@@ -75,7 +75,7 @@ test("getBoard reads the cache by default and forces a refresh on demand", async
 
 test("assignIssue posts the body to the assign route", async () => {
   const { calls, api } = fake(200, { ok: true, threadId: "thread-7" });
-  const body = { issueId: "i1", agent: "codex" as const, projectId: "p1" };
+  const body = { issueId: "i1", projectId: "p1", text: "", modelSelection: { instanceId: "codex", model: "m" } };
   const res = await api.assignIssue(body);
   assert.equal(res.threadId, "thread-7");
   assert.equal(calls[0]?.url, "/api/board/assign");

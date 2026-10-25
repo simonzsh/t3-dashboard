@@ -469,7 +469,8 @@ button.auto-row:hover { background: var(--surface-0); }
 .state-dot.error { background: var(--danger); }
 .desk.compact .desk-area { padding: 0; }
 .desk.compact .desk-window { border-radius: 0; border: 0; box-shadow: none; }
-.toast { position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%); z-index: 30; display: flex; align-items: center; gap: 10px; padding: 10px 10px 10px 16px; border-radius: 12px; background: var(--surface-1); border: 1px solid var(--line); box-shadow: var(--shadow), 0 8px 24px var(--backdrop); }
+/* Without max-content the box stops at half the screen: left: 50% halves the room it can take. */
+.toast { position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%); width: max-content; max-width: calc(100vw - 24px); box-sizing: border-box; z-index: 30; display: flex; align-items: center; gap: 10px; padding: 10px 10px 10px 16px; border-radius: 12px; background: var(--surface-1); border: 1px solid var(--line); box-shadow: var(--shadow), 0 8px 24px var(--backdrop); }
 @media (max-width: 700px) {
   /* One line: short title, small tabs, icon actions. The insets keep it clear of the iPhone notch in landscape. */
   .topbar { gap: 8px; padding: max(8px, env(safe-area-inset-top)) max(12px, env(safe-area-inset-right)) 8px max(12px, env(safe-area-inset-left)); }
@@ -520,11 +521,14 @@ button.auto-row:hover { background: var(--surface-0); }
 .linear-card small, .key-box small { color: var(--text-secondary); }
 .key-form { display: flex; flex-direction: column; gap: 6px; }
 .key-box { display: flex; flex-direction: column; gap: 8px; }
-.menu-project { display: flex; flex-direction: column; gap: 4px; padding: 6px 8px; }
-.menu-project small { color: var(--text-secondary); }
 .dialog.settings { max-height: 90vh; overflow-y: auto; }
 .dialog.new-agent { width: min(640px, 94vw); gap: 12px; }
 .dialog.new-agent .composer { padding: 0; }
+.issue-banner { display: flex; align-items: center; gap: 8px; min-width: 0; padding: 8px 12px; border-radius: var(--radius-md); border: 1px solid color-mix(in srgb, var(--accent) 35%, var(--line)); background: color-mix(in srgb, var(--accent) 10%, var(--surface-1)); color: var(--text-primary); text-decoration: none; font-size: 13px; }
+.issue-banner:hover { border-color: var(--accent); }
+.issue-banner-id { flex: none; font: 600 12px/1 var(--font-mono); color: var(--accent); }
+.issue-banner-title { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.issue-banner .icon { flex: none; width: 14px; height: 14px; color: var(--text-secondary); }
 .linear-status { display: inline-flex; align-items: center; gap: 10px; }
 .linear-status.muted { color: var(--text-secondary); }
 .linear-status, .version-line { min-width: 0; white-space: nowrap; }
