@@ -1,7 +1,8 @@
 import { join } from "node:path";
+import { t3Home } from "./paths.ts";
 
 export const DEFAULT_ORIGIN = "http://127.0.0.1:3773";
-const DEFAULT_PORT = 4300;
+export const DEFAULT_PORT = 4300;
 
 export type ReadFile = (path: string) => string;
 
@@ -16,13 +17,19 @@ export interface Config {
   environmentIdFile: string;
 }
 
+/** The PORT variable; an empty or invalid value means the default port. */
+export function envPort(env: Record<string, string | undefined>): number {
+  const port = Number(env.PORT);
+  return Number.isInteger(port) && port >= 1 && port <= 65535 ? port : DEFAULT_PORT;
+}
+
 export function loadConfig(env: Record<string, string | undefined>, homedir: string): Config {
   return {
-    port: Number(env.PORT ?? DEFAULT_PORT),
+    port: envPort(env),
     tokenFile: env.T3_DASHBOARD_TOKEN_FILE || null,
     allowedHosts: (env.T3_DASHBOARD_ALLOWED_HOSTS ?? "").split(",").map((host) => host.trim().toLowerCase()).filter(Boolean),
-    runtimeFile: env.T3_SERVER_RUNTIME ?? join(homedir, ".t3", "userdata", "server-runtime.json"),
-    environmentIdFile: join(env.T3CODE_HOME || join(homedir, ".t3"), "userdata", "environment-id"),
+    runtimeFile: env.T3_SERVER_RUNTIME ?? join(t3Home(env, homedir), "userdata", "server-runtime.json"),
+    environmentIdFile: join(t3Home(env, homedir), "userdata", "environment-id"),
   };
 }
 

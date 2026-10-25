@@ -20,6 +20,18 @@ test("T3_DASHBOARD_ALLOWED_HOSTS is a trimmed, lowercase list without empty item
   assert.deepEqual(loadConfig({ T3_DASHBOARD_ALLOWED_HOSTS: " Box.ts.net , ,b.example" }, "/h").allowedHosts, ["box.ts.net", "b.example"]);
 });
 
+test("T3CODE_HOME moves the runtime file too", () => {
+  assert.equal(loadConfig({ T3CODE_HOME: "/srv/t3" }, "/home/ann").runtimeFile, "/srv/t3/userdata/server-runtime.json");
+});
+
+test("T3_SERVER_RUNTIME beats T3CODE_HOME", () => {
+  assert.equal(loadConfig({ T3CODE_HOME: "/srv/t3", T3_SERVER_RUNTIME: "/x/r.json" }, "/home/ann").runtimeFile, "/x/r.json");
+});
+
+test("an empty or invalid PORT means the default port", () => {
+  for (const PORT of ["", "abc", "0", "70000", "12.5"]) assert.equal(loadConfig({ PORT }, "/h").port, 4300, PORT);
+});
+
 test("T3CODE_HOME moves the environment id file", () => {
   assert.equal(loadConfig({ T3CODE_HOME: "/srv/t3" }, "/home/ann").environmentIdFile, "/srv/t3/userdata/environment-id");
 });

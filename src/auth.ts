@@ -2,7 +2,7 @@ import { existsSync } from "node:fs";
 import { join } from "node:path";
 import type { SetupInfo, SetupReason, TokenSource } from "../shared/api.ts";
 import type { ReadFile } from "./config.ts";
-import { authFile } from "./paths.ts";
+import { authFile, t3Home } from "./paths.ts";
 
 export const INSTALL_URL = "https://t3.codes";
 const ISSUE_ARGS = ["auth", "session", "issue", "--ttl", "3650d", "--label", "T3 Dashboard", "--token-only"];
@@ -59,7 +59,7 @@ export function locateT3(
   if (env.T3_DASHBOARD_T3_BIN) return exists(env.T3_DASHBOARD_T3_BIN) ? env.T3_DASHBOARD_T3_BIN : null;
   // The t3 on PATH can lag behind the running server, and an older CLI mints tokens the server refuses.
   if (serverVersion && /^[\w.-]+$/.test(serverVersion)) {
-    const versionDir = join(env.T3CODE_HOME || join(homedir, ".t3"), "runtime", "versions", serverVersion);
+    const versionDir = join(t3Home(env, homedir), "runtime", "versions", serverVersion);
     const match = [join(versionDir, "t3"), join(versionDir, "t3.exe")].find(exists);
     if (match) return match;
   }
