@@ -1,5 +1,5 @@
 import { memo, useEffect, useRef, useState } from "react";
-import type { ChatMessage, DashboardEvent, DashboardProvider, DashboardThread, ImageAttachment, ThreadDetail, ThreadSettingsBody } from "../../../../shared/api.ts";
+import type { ChatMessage, DashboardProvider, DashboardThread, ImageAttachment, ThreadDetail, ThreadSettingsBody } from "../../../../shared/api.ts";
 import { runActive } from "../../../../shared/status.ts";
 import { useApi } from "../../api/ApiContext.tsx";
 import { renderMarkdown } from "../../lib/markdown.tsx";
@@ -9,20 +9,14 @@ import { PendingRequestView } from "./PendingRequestView.tsx";
 import { RunActivityView } from "./RunActivity.tsx";
 import { SubagentStrip } from "./SubagentStrip.tsx";
 import { useAction } from "../../lib/useAction.ts";
+import { usePoll } from "../../lib/usePoll.ts";
+import { LIVE_RELOAD_MS, pollDelay } from "./reload.ts";
 
 const ROLE_LABELS: Record<string, string> = { user: "You", assistant: "Agent", system: "System" };
-// Subagent progress does not always reach the shell stream: poll while one runs.
-const SUBAGENT_POLL_MS = 4000;
-// Run activity (commands, thinking) has no shell event per step: poll faster while a run is active.
-const RUN_POLL_MS = 2500;
 // Windows remount when they move between grid, minimized bar and mobile view: keep what they showed.
 const detailCache = new Map<string, ThreadDetail>();
 const drafts = new Map<string, string>();
 const NEAR_BOTTOM_PX = 40;
-// After a send the thread may not be marked running yet: poll for a short window anyway.
-const SEND_POLL_WINDOW_MS = 15_000;
-// The server persists a message a moment after the send: reload a second time.
-const SEND_RELOAD_MS = 1500;
 
 // Streaming re-renders the whole list: parse a message again only when its text changes.
 const MarkdownText = memo(function MarkdownText({ text }: { text: string }) {
@@ -53,19 +47,18 @@ function PendingBubble({ message: p }: { message: PendingMessage }) {
 
 interface Props {
   threadId: string;
+  /** Live state of the thread: a new object each time the server sends it again. */
   thread: DashboardThread | null;
-  lastEvent: DashboardEvent | null;
   providers: DashboardProvider[];
 }
 
-export function ConversationPanel({ threadId, thread, lastEvent, providers }: Props) {
+export function ConversationPanel({ threadId, thread, providers }: Props) {
   const api = useApi();
   const [detail, setDetail] = useState<ThreadDetail | null>(() => detailCache.get(threadId) ?? null);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [text, setText] = useState(() => drafts.get(threadId) ?? "");
   const [pending, setPending] = useState<PendingMessage[]>([]);
-  const [sendWindow, setSendWindow] = useState(false);
-  const sendWindowTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  const [sentAt, setSentAt] = useState(0);
   const [revealSubagents, setRevealSubagents] = useState(0);
   const scroller = useRef<HTMLDivElement>(null);
   const stick = useRef(true);
@@ -96,48 +89,29 @@ export function ConversationPanel({ threadId, thread, lastEvent, providers }: Pr
     }
   }
 
-  const reload = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
-
   useEffect(() => {
     void load();
     return () => {
       epoch.current++;
-      clearTimeout(reload.current);
-      clearTimeout(sendWindowTimer.current);
       setPending([]);
-      setSendWindow(false);
+      setSentAt(0);
     };
   }, [threadId]);
 
-  // A live update of this thread means new messages: reload, debounced.
-  // The timer lives in a ref so that unrelated events do not cancel it.
+  // The live state gives this thread a new object on each server update: reload, debounced.
+  const seenThread = useRef(thread);
   useEffect(() => {
-    if (lastEvent?.type !== "threads" || !lastEvent.data.upserted.some((t) => t.id === threadId)) return;
-    clearTimeout(reload.current);
-    reload.current = setTimeout(() => void load(), 500);
-  }, [lastEvent]);
+    if (seenThread.current === thread) return;
+    seenThread.current = thread;
+    const timer = setTimeout(() => void load(), LIVE_RELOAD_MS);
+    return () => clearTimeout(timer);
+  }, [thread]);
 
   const t = thread ?? detail?.thread ?? null;
   const running = t !== null && runActive(t);
-
-  // Poll only while a run, pending background tasks or a running subagent exist: a bare thread wait has nothing to show.
-  const polling = running || sendWindow || Boolean(t?.pendingTasks) || (detail?.subagents.some((s) => s.status === "running") ?? false);
-  const pollMs = running || sendWindow ? RUN_POLL_MS : SUBAGENT_POLL_MS;
-  useEffect(() => {
-    if (!polling) return;
-    let stopped = false;
-    let timer: ReturnType<typeof setTimeout>;
-    // The next poll starts after the load ends, so slow responses never pile up.
-    const tick = async () => {
-      await load();
-      if (!stopped) timer = setTimeout(() => void tick(), pollMs);
-    };
-    timer = setTimeout(() => void tick(), pollMs);
-    return () => {
-      stopped = true;
-      clearTimeout(timer);
-    };
-  }, [polling, pollMs, threadId]);
+  const background = Boolean(t?.pendingTasks) || (detail?.subagents.some((s) => s.status === "running") ?? false);
+  // Each load renders again, so the send window closes by itself on the next poll.
+  usePoll(load, pollDelay({ running, sentAt, background, now: Date.now() }));
 
   // Follow new messages unless the user scrolled up to read.
   useEffect(() => {
@@ -161,12 +135,8 @@ export function ConversationPanel({ threadId, thread, lastEvent, providers }: Pr
       return false;
     }
     setDraft("");
-    setSendWindow(true);
-    clearTimeout(sendWindowTimer.current);
-    sendWindowTimer.current = setTimeout(() => setSendWindow(false), SEND_POLL_WINDOW_MS);
+    setSentAt(Date.now());
     void load();
-    clearTimeout(reload.current);
-    reload.current = setTimeout(() => void load(), SEND_RELOAD_MS);
     return true;
   }
 

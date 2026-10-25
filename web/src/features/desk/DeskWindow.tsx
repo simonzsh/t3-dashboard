@@ -1,4 +1,4 @@
-import type { DashboardEvent, DashboardProvider, DashboardThread } from "../../../../shared/api.ts";
+import type { DashboardProvider, DashboardThread } from "../../../../shared/api.ts";
 import { threadState, type ThreadState } from "../../../../shared/status.ts";
 import { Badge, Button, Icon, Pressable } from "../../ui/index.ts";
 import { ConversationPanel } from "../conversation/ConversationPanel.tsx";
@@ -16,7 +16,6 @@ interface Props {
   focused: boolean;
   maximized: boolean;
   compact: boolean;
-  lastEvent: DashboardEvent | null;
   t3EnvironmentId: string | null;
   providers: DashboardProvider[];
   onFocus: () => void;
@@ -25,7 +24,7 @@ interface Props {
   onToggleMaximize: () => void;
 }
 
-export function DeskWindow({ id, thread, projectTitle, missing, focused, maximized, compact, lastEvent, t3EnvironmentId, providers, onFocus, onClose, onMinimize, onToggleMaximize }: Props) {
+export function DeskWindow({ id, thread, projectTitle, missing, focused, maximized, compact, t3EnvironmentId, providers, onFocus, onClose, onMinimize, onToggleMaximize }: Props) {
   const state = thread ? threadState(thread) : null;
   const title = thread?.title || "(untitled)";
   return (
@@ -76,7 +75,7 @@ export function DeskWindow({ id, thread, projectTitle, missing, focused, maximiz
           <Button onClick={onClose}>Close</Button>
         </div>
       ) : (
-        <ConversationPanel threadId={id} thread={thread} lastEvent={lastEvent} providers={providers} />
+        <ConversationPanel threadId={id} thread={thread} providers={providers} />
       )}
     </section>
   );

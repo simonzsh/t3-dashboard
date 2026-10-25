@@ -25,10 +25,9 @@ export function applyEvent(state: DashboardState | null, event: DashboardEvent):
   }
 }
 
-export function useDashboard(): { state: DashboardState | null; sseDown: boolean; lastEvent: DashboardEvent | null } {
+export function useDashboard(): { state: DashboardState | null; sseDown: boolean } {
   const [state, dispatch] = useReducer(applyEvent, null);
   const [sseDown, setSseDown] = useState(false);
-  const [lastEvent, setLastEvent] = useState<DashboardEvent | null>(null);
 
   useEffect(() => {
     const es = new EventSource("/api/events");
@@ -36,7 +35,6 @@ export function useDashboard(): { state: DashboardState | null; sseDown: boolean
       es.addEventListener(type, (e) => {
         const event = { type, data: JSON.parse((e as MessageEvent<string>).data) } as DashboardEvent;
         dispatch(event);
-        setLastEvent(event);
         setSseDown(false);
       });
     }
@@ -45,5 +43,5 @@ export function useDashboard(): { state: DashboardState | null; sseDown: boolean
     return () => es.close();
   }, []);
 
-  return { state, sseDown, lastEvent };
+  return { state, sseDown };
 }

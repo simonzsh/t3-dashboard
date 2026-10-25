@@ -38,7 +38,7 @@ function focusComposer(threadId: string) {
 }
 
 export function App() {
-  const { state, sseDown, lastEvent } = useDashboard();
+  const { state, sseDown } = useDashboard();
   const [tab, setTab] = useState<Tab>("agents");
   const automations = useAutomations(tab === "agents" && state?.automationsAvailable === true);
   const [desk, dispatchDesk] = useDesk(state?.connection.t3 === "live" ? state.threads : null);
@@ -159,7 +159,6 @@ export function App() {
               dispatch={dispatchDesk}
               threads={state.threads}
               projects={state.projects}
-              lastEvent={lastEvent}
               background={deskBackground}
               t3EnvironmentId={state.t3EnvironmentId}
               providers={state.providers}
