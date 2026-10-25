@@ -27,4 +27,5 @@ Ce dossier contient les composants de base du dashboard. Les écrans de `web/src
 | `Popover` | Panneau fixé à côté d'un élément. Échap et clic dehors le ferment. |
 | `Segmented` | Choix unique entre quelques options visibles (par exemple le thème). |
 | `Kbd` | Raccourci clavier. |
+| `Loader` | Chargement : le logo animé, centré dans la zone. Utilisez-le à la place d'un texte « Loading… ». |
 | `Icon` | Icône Lucide par son nom. |

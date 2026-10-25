@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import type { SettingsResult } from "../../../../shared/api.ts";
 import { useApi } from "../../api/ApiContext.tsx";
 import { KEY_PATH, KEY_URL, maskedKey } from "./linearSettings.ts";
-import { Icon, IconButton } from "../../ui/index.ts";
+import { Icon, IconButton, Loader } from "../../ui/index.ts";
 import { LinearKeyForm } from "./LinearKeyForm.tsx";
 import { useAction } from "../../lib/useAction.ts";
 import { errorMessage } from "../../lib/format.ts";
@@ -28,7 +28,7 @@ export function LinearSettings({ onChange }: Props) {
     onChange();
   }
 
-  if (!settings) return <p className="empty">{loadError ?? "Loading…"}</p>;
+  if (!settings) return loadError ? <p className="empty">{loadError}</p> : <Loader />;
   const { linear } = settings;
 
   return (

@@ -1,12 +1,11 @@
-import { useState } from "react";
-import type { AutomationsResult, DashboardState, DashboardThread } from "../../../../shared/api.ts";
-import { groupAgents, threadTitle } from "../../lib/threads.ts";
+import { useState, type ReactNode } from "react";
+import type { AutomationsResult, DashboardState } from "../../../../shared/api.ts";
+import { agentStatus } from "../../../../shared/status.ts";
+import { groupAgents } from "../../lib/threads.ts";
 import { excludeRoutineThreads } from "./automations.ts";
-import { relativeTime } from "../../lib/format.ts";
-import { Pressable } from "../../ui/index.ts";
 import { AgentCard } from "./AgentCard.tsx";
 import { AutomationsColumn } from "./AutomationsColumn.tsx";
-import { ProviderIcon } from "../../lib/ProviderIcon.tsx";
+import { Loader, Pressable } from "../../ui/index.ts";
 
 interface Props {
   state: DashboardState;
@@ -18,39 +17,27 @@ interface Props {
   automationsError: string | null;
 }
 
-// Collapsed by default, as in the T3 Code sidebar: one line per thread.
-function SettledList({ threads, now, onOpen }: { threads: DashboardThread[]; now: Date; onOpen: (id: string, addOnly: boolean) => void }) {
+// Collapsed by default: settled threads need no attention.
+function RecentlySettled({ count, children }: { count: number; children: ReactNode }) {
   const [open, setOpen] = useState(false);
   return (
     <div className="settled">
       <Pressable className="settled-head" aria-expanded={open} onClick={() => setOpen(!open)}>
         <span className={`chevron${open ? " open" : ""}`} aria-hidden="true" />
-        Settled <span className="count">{threads.length}</span>
+        Recently settled ({count})
       </Pressable>
-      {open && (
-        <ul className="settled-list">
-          {threads.map((t) => (
-            <li key={t.id}>
-              <Pressable className="settled-row" title={threadTitle(t)} onClick={(e) => onOpen(t.id, e.shiftKey)}>
-                <ProviderIcon provider={t.provider} />
-                <span className="settled-title">{threadTitle(t)}</span>
-                <span className="settled-time">{relativeTime(t.lastActivityAt, now)}</span>
-              </Pressable>
-            </li>
-          ))}
-        </ul>
-      )}
+      {open && <div className="grid compact">{children}</div>}
     </div>
   );
 }
 
 export function AgentsView({ state, now, deskIds, onOpen, onToggleDesk, automations, automationsError }: Props) {
-  const groups = groupAgents(excludeRoutineThreads(state.threads, automations?.automations ?? []), state.projects);
+  const groups = groupAgents(excludeRoutineThreads(state.threads, automations?.automations ?? []), state.projects, now);
   // Before the first automations answer, routine threads would flash in the grid.
   const available = state.automationsAvailable;
   const loading = available && automations === null && automationsError === null;
   const agents = loading ? (
-    <div className="empty-state">Loading…</div>
+    <Loader />
   ) : groups.length === 0 ? (
       <div className="empty-state">
         <strong>No active agents</strong>
@@ -70,7 +57,13 @@ export function AgentsView({ state, now, deskIds, onOpen, onToggleDesk, automati
                 ))}
               </div>
             )}
-            {g.settled.length > 0 && <SettledList threads={g.settled} now={now} onOpen={onOpen} />}
+            {g.settled.length > 0 && (
+              <RecentlySettled count={g.settled.length}>
+                {g.settled.map((t) => (
+                  <AgentCard key={t.id} card={{ thread: t, status: agentStatus(t) }} compact now={now} onDesk={deskIds.has(t.id)} t3EnvironmentId={state.t3EnvironmentId} onOpen={onOpen} onToggleDesk={onToggleDesk} />
+                ))}
+              </RecentlySettled>
+            )}
           </section>
         ))}
       </div>

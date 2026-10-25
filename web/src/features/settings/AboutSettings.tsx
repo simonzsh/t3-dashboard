@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { versionNote } from "../update/updateFlow.ts";
-import { Button, Icon, IconButton } from "../../ui/index.ts";
+import { Button, Icon, IconButton, Loader } from "../../ui/index.ts";
 import type { UpdateControl } from "../update/useUpdate.ts";
 
 interface Props {
@@ -12,7 +12,7 @@ export function AboutSettings({ update, onUpdate }: Props) {
   const { status } = update;
   // The automatic checks stay silent: a note shows only after a click.
   const [checked, setChecked] = useState(false);
-  if (!status) return <p className="empty">Loading…</p>;
+  if (!status) return <Loader />;
   const canUpdate = status.available && status.canUpdate;
   return (
     <>

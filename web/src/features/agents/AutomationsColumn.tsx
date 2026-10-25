@@ -1,6 +1,6 @@
 import type { Automation, AutomationsResult, DashboardThread } from "../../../../shared/api.ts";
 import { lastRunState, nextLabel, reminderDate, splitAutomations } from "./automations.ts";
-import { Pressable } from "../../ui/index.ts";
+import { Loader, Pressable } from "../../ui/index.ts";
 
 interface Props {
   result: AutomationsResult | null;
@@ -72,7 +72,7 @@ export function AutomationsColumn({ result, error, threads, now, onOpen }: Props
         </p>
       ))}
       {!result && !error ? (
-        <p className="empty">Loading…</p>
+        <Loader />
       ) : (
         <>
           {section("Routines", routines, "No routines")}

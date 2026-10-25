@@ -7,6 +7,7 @@ export { FileInput } from "./FileInput.tsx";
 export { Icon, type IconName } from "./Icon.tsx";
 export { IconButton, type IconButtonProps } from "./IconButton.tsx";
 export { Kbd } from "./Kbd.tsx";
+export { Loader } from "./Loader.tsx";
 export { NO_AUTOFILL, SECRET_FIELD } from "./noAutofill.ts";
 export { Popover } from "./Popover.tsx";
 export { Pressable } from "./Pressable.tsx";
