@@ -12,6 +12,7 @@ import { useAutomations } from "./features/agents/useAutomations.ts";
 import { useDashboard } from "./api/events.ts";
 import { useDesk } from "./features/desk/useDesk.ts";
 import { useDeskBackground } from "./features/desk/useDeskBackground.ts";
+import { useMediaQuery } from "./lib/useMediaQuery.ts";
 import { useShortcuts } from "./lib/useShortcuts.ts";
 import { TABS } from "./lib/tabs.ts";
 import { useTab } from "./lib/useTab.ts";
@@ -21,6 +22,8 @@ import { Button, Icon, IconButton, Kbd, Pressable } from "./ui/index.ts";
 import { updateLabel } from "./features/update/updateFlow.ts";
 
 const TOAST_MS = 8000;
+// Same breakpoint as the one-line header in styles.css.
+const COMPACT_HEADER = "(max-width: 700px)";
 
 // A full Desk keeps the request so "Replace oldest" can finish it.
 interface FullToast {
@@ -46,6 +49,7 @@ export function App() {
   const [theme, setTheme] = useTheme();
   const [deskBackground, setDeskBackground] = useDeskBackground();
   const [now, setNow] = useState(() => new Date());
+  const compact = useMediaQuery(COMPACT_HEADER);
 
   // Relative times and the 24 h window need a clock that moves.
   useEffect(() => {
@@ -103,7 +107,9 @@ export function App() {
   return (
     <div className={`app${tab === "desk" ? " desk-mode" : ""}`}>
       <header className="topbar">
-        <h1>T3 Dashboard</h1>
+        <h1>
+          T3<span className="title-rest"> Dashboard</span>
+        </h1>
         <nav className="tabs" role="tablist">
           {TABS.map(({ id, label, key }) => (
             <Pressable key={id} role="tab" aria-selected={tab === id} className={tab === id ? "active" : ""} title={`${label} (${key})`} onClick={() => setTab(id)}>
@@ -114,19 +120,29 @@ export function App() {
           ))}
         </nav>
         <div className="topbar-right">
-          {update.status?.available && update.status.canUpdate && (
-            <Button className="update-pill" title="A new version is available" loading={(update.updating || update.status.updating) && "Updating…"} onClick={() => setConfirmingUpdate(true)}>
-              {updateLabel(update.status)}
-            </Button>
-          )}
+          {update.status?.available && update.status.canUpdate &&
+            (compact ? (
+              <IconButton className="update-pill" label={updateLabel(update.status)} disabled={update.updating || update.status.updating} onClick={() => setConfirmingUpdate(true)}>
+                <Icon name="arrowUp" strokeWidth={1.8} />
+              </IconButton>
+            ) : (
+              <Button className="update-pill" title="A new version is available" loading={(update.updating || update.status.updating) && "Updating…"} onClick={() => setConfirmingUpdate(true)}>
+                {updateLabel(update.status)}
+              </Button>
+            ))}
           <span className={`conn ${live ? "up" : "down"}`} title={live ? "Connected to T3 Code" : "Connection lost"}>
-            <span className="conn-dot" /> {live ? "Connected" : "Offline"}
+            <span className="conn-dot" /> <span className="conn-label">{live ? "Connected" : "Offline"}</span>
           </span>
-          {state && (
-            <Button variant="primary" title="New Agent (n)" kbd="N" onClick={() => setCreating(true)}>
-              New Agent
-            </Button>
-          )}
+          {state &&
+            (compact ? (
+              <IconButton variant="primary" label="New Agent" title="New Agent (n)" onClick={() => setCreating(true)}>
+                <Icon name="plus" />
+              </IconButton>
+            ) : (
+              <Button variant="primary" title="New Agent (n)" kbd="N" onClick={() => setCreating(true)}>
+                New Agent
+              </Button>
+            ))}
           <IconButton label="Settings" title="Settings (,)" kbd="," onClick={() => setSettingsOpen(true)}>
             <Icon name="settings" strokeWidth={1.8} />
           </IconButton>

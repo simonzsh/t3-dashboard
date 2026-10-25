@@ -450,10 +450,21 @@ button.auto-row:hover { background: var(--surface-0); }
 .desk.compact .desk-window { border-radius: 0; border: 0; box-shadow: none; }
 .toast { position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%); z-index: 30; display: flex; align-items: center; gap: 10px; padding: 10px 10px 10px 16px; border-radius: 12px; background: var(--surface-1); border: 1px solid var(--line); box-shadow: var(--shadow), 0 8px 24px var(--backdrop); }
 @media (max-width: 700px) {
-  .topbar { grid-template-columns: 1fr auto; }
-  .tabs { grid-row: 2; grid-column: 1 / -1; justify-self: center; }
+  /* One line: short title, small tabs, icon actions. The insets keep it clear of the iPhone notch in landscape. */
+  .topbar { gap: 8px; padding: max(8px, env(safe-area-inset-top)) max(12px, env(safe-area-inset-right)) 8px max(12px, env(safe-area-inset-left)); }
+  .topbar-right { gap: 8px; }
+  .tabs { gap: 2px; }
+  .tabs button { padding: 4px 10px; font-size: 13px; }
+  .topbar h1 .title-rest, .conn-label { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+  .topbar-right > button.primary { padding: 0; }
+  .topbar-right button.update-pill { padding: 0; }
   .kanban { flex: none; flex-direction: column; overflow-x: visible; }
   .column { width: 100%; min-width: 0; max-height: none; flex: none; }
+}
+@media (max-width: 380px) {
+  .topbar { gap: 6px; padding-inline: max(8px, env(safe-area-inset-left)) max(8px, env(safe-area-inset-right)); }
+  .topbar-right { gap: 6px; }
+  .tabs button { padding: 4px 7px; font-size: 12px; }
 }
 @media (max-width: 900px) {
   /* The layout scrolls here, so it takes the shadow padding: a negative margin inside a scroller makes it scroll sideways. */
