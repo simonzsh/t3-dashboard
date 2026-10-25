@@ -164,7 +164,8 @@ main { flex: 1; min-height: 0; overflow: hidden; padding: 24px; display: flex; f
 .assign > .icon-button { display: grid; place-items: center; padding: 4px; border-radius: 6px; color: var(--text-secondary); }
 .icon { flex: none; width: 16px; height: 16px; }
 .confirm { display: inline-flex; gap: 6px; align-items: center; color: var(--done-text); }
-.menu { position: absolute; top: 100%; right: 0; z-index: 4; margin-top: 4px; display: flex; flex-direction: column; gap: 2px; padding: 4px; border-radius: 10px; background: var(--surface-1); border: 1px solid var(--line); box-shadow: var(--shadow); }
+.popover { position: fixed; z-index: 50; overflow: auto; }
+.menu { font-size: 12px; display: flex; flex-direction: column; gap: 2px; padding: 4px; border-radius: 10px; background: var(--surface-1); border: 1px solid var(--line); box-shadow: var(--shadow); }
 .menu button { display: flex; gap: 8px; align-items: center; border: 0; text-align: left; }
 .menu .provider-icon { margin: 0; }
 .conversation { flex: 1; min-height: 0; display: flex; flex-direction: column; }
@@ -264,10 +265,7 @@ main { flex: 1; min-height: 0; overflow: hidden; padding: 24px; display: flex; f
 .dropdown.field .dropdown-trigger:hover:not(:disabled) { border-color: var(--accent); background: var(--surface-1); }
 .dropdown.field .dropdown-value { flex: 1; text-align: left; }
 .dropdown-value.placeholder { color: var(--text-secondary); }
-.dropdown-menu { position: absolute; top: calc(100% + 4px); left: 0; z-index: 6; min-width: 210px; display: flex; flex-direction: column; gap: 4px; padding: 4px; border-radius: 12px; border: 1px solid var(--line); background: var(--surface-1); box-shadow: var(--shadow); }
-.dropdown.field .dropdown-menu { right: 0; min-width: 0; }
-.composer .dropdown-menu { top: auto; bottom: calc(100% + 8px); }
-.composer .dropdown.secondary:last-child .dropdown-menu { left: auto; right: 0; }
+.dropdown-menu { display: flex; flex-direction: column; gap: 4px; padding: 4px; border-radius: 12px; border: 1px solid var(--line); background: var(--surface-1); box-shadow: var(--shadow); }
 .dropdown-filter { padding: 5px 8px; font-size: 13px; }
 .dropdown-list { max-height: 300px; overflow: auto; outline: none; }
 .dropdown-group { padding: 6px 8px 2px; font-size: 11px; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; color: var(--text-secondary); }

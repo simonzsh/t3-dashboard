@@ -1,9 +1,10 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import type { DashboardProject, LinearIssue } from "../../../shared/api.ts";
 import { api } from "../api.ts";
 import { browserStorage, loadAssignProject, saveAssignProject } from "../assignProject.ts";
 import { projectOptions } from "../dropdown.ts";
 import { Dropdown } from "./Dropdown.tsx";
+import { Popover } from "./Popover.tsx";
 import { ProviderIcon } from "./ProviderIcon.tsx";
 import { useAction } from "./useAction.ts";
 
@@ -18,6 +19,7 @@ export function AssignMenu({ issue, projects, onAssigned, onShowDesk }: Props) {
   const [open, setOpen] = useState(false);
   const [done, setDone] = useState(false);
   const [projectId, setProjectId] = useState("");
+  const button = useRef<HTMLButtonElement>(null);
   const { busy, error, run } = useAction();
 
   async function assign(agent: "claude" | "codex") {
@@ -46,6 +48,7 @@ export function AssignMenu({ issue, projects, onAssigned, onShowDesk }: Props) {
         </span>
       ) : (
         <button
+          ref={button}
           className="icon-button"
           disabled={busy}
           aria-expanded={open}
@@ -71,7 +74,10 @@ export function AssignMenu({ issue, projects, onAssigned, onShowDesk }: Props) {
         </button>
       )}
       {open && (
-        <div className="menu" role="menu">
+        <Popover anchor={button} className="menu" role="menu" align="end" minWidth={200} onClose={(reason) => {
+          setOpen(false);
+          if (reason === "escape") button.current?.focus();
+        }}>
           <div className="menu-project">
             <small>T3 project</small>
             <Dropdown
@@ -91,7 +97,7 @@ export function AssignMenu({ issue, projects, onAssigned, onShowDesk }: Props) {
           <button role="menuitem" disabled={projectId === ""} onClick={() => assign("codex")}>
             <ProviderIcon provider="codex" /> Codex
           </button>
-        </div>
+        </Popover>
       )}
       {error && <span className="error">{error}</span>}
     </div>

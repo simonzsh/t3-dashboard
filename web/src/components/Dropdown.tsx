@@ -2,6 +2,7 @@ import { useEffect, useId, useRef, useState, type KeyboardEvent, type ReactNode 
 import { filterOptions, moveActive, showsFilter, type DropdownOption } from "../dropdown.ts";
 import { NO_AUTOFILL } from "../noAutofill.ts";
 import { Icon } from "./Icon.tsx";
+import { Popover } from "./Popover.tsx";
 
 interface Props {
   label: string;
@@ -21,7 +22,6 @@ export function Dropdown({ label, value, options, onPick, icon, placeholder, dis
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
   const [active, setActive] = useState(-1);
-  const root = useRef<HTMLDivElement>(null);
   const trigger = useRef<HTMLButtonElement>(null);
   const list = useRef<HTMLDivElement>(null);
   const filter = useRef<HTMLInputElement>(null);
@@ -31,13 +31,7 @@ export function Dropdown({ label, value, options, onPick, icon, placeholder, dis
   const shown = filterOptions(options, query);
 
   useEffect(() => {
-    if (!open) return;
-    const close = (e: MouseEvent) => {
-      if (!root.current?.contains(e.target as Node)) setOpen(false);
-    };
-    document.addEventListener("mousedown", close);
-    (withFilter ? filter.current : list.current)?.focus();
-    return () => document.removeEventListener("mousedown", close);
+    if (open) (withFilter ? filter.current : list.current)?.focus({ preventScroll: true });
   }, [open]);
 
   useEffect(() => {
@@ -60,7 +54,7 @@ export function Dropdown({ label, value, options, onPick, icon, placeholder, dis
     if (option.id !== value) onPick(option.id);
   }
 
-  // Escape closes the menu only: without stopPropagation a dialog or the Desk would react too.
+  // Escape is handled by the Popover, which stops it from reaching a dialog or the Desk.
   function onKeyDown(e: KeyboardEvent) {
     if (!open) {
       if (e.key === "ArrowDown" || e.key === "ArrowUp") {
@@ -69,10 +63,7 @@ export function Dropdown({ label, value, options, onPick, icon, placeholder, dis
       }
       return;
     }
-    if (e.key === "Escape") {
-      e.stopPropagation();
-      close(true);
-    } else if (e.key === "ArrowDown" || e.key === "ArrowUp") {
+    if (e.key === "ArrowDown" || e.key === "ArrowUp") {
       e.preventDefault();
       setActive(moveActive(shown.length, active, e.key === "ArrowDown" ? 1 : -1));
     } else if (e.key === "Home" || e.key === "End") {
@@ -88,7 +79,7 @@ export function Dropdown({ label, value, options, onPick, icon, placeholder, dis
   }
 
   return (
-    <div className={`dropdown ${className}`.trim()} ref={root} onKeyDown={onKeyDown}>
+    <div className={`dropdown ${className}`.trim()} onKeyDown={onKeyDown}>
       <button
         ref={trigger}
         type="button"
@@ -97,6 +88,7 @@ export function Dropdown({ label, value, options, onPick, icon, placeholder, dis
         title={label}
         aria-haspopup="listbox"
         aria-expanded={open}
+        aria-controls={open ? `${id}-list` : undefined}
         disabled={disabled}
         onClick={() => (open ? close(false) : show())}
       >
@@ -105,7 +97,13 @@ export function Dropdown({ label, value, options, onPick, icon, placeholder, dis
         <Icon name="chevron" className="icon chevron-down" />
       </button>
       {open && (
-        <div className="dropdown-menu">
+        <Popover
+          anchor={trigger}
+          className="dropdown-menu"
+          minWidth={className.includes("field") ? 0 : 210}
+          matchWidth
+          onClose={(reason) => close(reason === "escape")}
+        >
           {withFilter && (
             <input
               {...NO_AUTOFILL}
@@ -155,7 +153,7 @@ export function Dropdown({ label, value, options, onPick, icon, placeholder, dis
               </div>
             ))}
           </div>
-        </div>
+        </Popover>
       )}
     </div>
   );
