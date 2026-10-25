@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import type { SettingsResult } from "../../../../shared/api.ts";
 import { useApi } from "../../api/ApiContext.tsx";
-import { KEY_URL, maskedKey } from "./linearSettings.ts";
+import { KEY_PATH, KEY_URL, maskedKey } from "./linearSettings.ts";
 import { Icon, IconButton } from "../../ui/index.ts";
 import { LinearKeyForm } from "./LinearKeyForm.tsx";
 import { useAction } from "../../lib/useAction.ts";
@@ -67,7 +67,7 @@ export function LinearSettings({ onChange }: Props) {
       {(!linear.connected || changing) && (
         <div className="key-box">
           <small>
-            Create a key in Linear under Settings → Account → Security &amp; access.{" "}
+            Create a key in Linear under {KEY_PATH.slice(0, 3).join(" → ")}.{" "}
             <a href={KEY_URL} target="_blank" rel="noreferrer">
               Open the page
             </a>

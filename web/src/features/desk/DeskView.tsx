@@ -2,6 +2,7 @@ import { useEffect, useRef, type Dispatch, type MouseEvent, type ReactNode } fro
 import { Cell, Grid, Gridline, useGridRef, type GridLayout } from "react-resizable-panels";
 import type { DashboardProject, DashboardProvider, DashboardThread } from "../../../../shared/api.ts";
 import { threadState } from "../../../../shared/status.ts";
+import { threadTitle } from "../../lib/threads.ts";
 import type { DeskBackground } from "./deskBackground.ts";
 import { cellOf, deskLayout, equalSizes, gridWindows, sizesFor, type DeskAction, type DeskState, type DeskWindow as Win } from "./desk.ts";
 import { Kbd, Pressable } from "../../ui/index.ts";
@@ -117,10 +118,10 @@ export function DeskView({ desk, dispatch, threads, projects, background, t3Envi
   const chip = (w: Win, active: boolean) => {
     const thread = byId.get(w.id);
     return (
-      <Pressable key={w.id} className={`desk-chip${active ? " active" : ""}`} title={thread?.title || "(untitled)"} onClick={() => dispatch({ type: "restore", id: w.id })}>
+      <Pressable key={w.id} className={`desk-chip${active ? " active" : ""}`} title={threadTitle(thread)} onClick={() => dispatch({ type: "restore", id: w.id })}>
         <span className={`state-dot ${thread ? threadState(thread) : "idle"}`} aria-hidden="true" />
         {thread && <ProviderIcon provider={thread.provider} />}
-        <span className="desk-chip-title">{thread?.title || "(untitled)"}</span>
+        <span className="desk-chip-title">{threadTitle(thread)}</span>
       </Pressable>
     );
   };

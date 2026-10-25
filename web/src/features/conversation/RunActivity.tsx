@@ -1,18 +1,17 @@
 import { useEffect, useRef, useState } from "react";
 import type { ActivityItem, RunActivity } from "../../../../shared/api.ts";
-import { duration } from "../../lib/format.ts";
+import { STEP_LABELS, duration } from "../../lib/format.ts";
 import { Button, Icon, Pressable, type IconName } from "../../ui/index.ts";
 
 // Collapsed, a live run shows only its latest steps.
 const PREVIEW_ITEMS = 4;
-const STATUS_LABELS: Record<ActivityItem["status"], string> = { running: "Running", done: "Done", failed: "Failed" };
 
 const ICONS: Record<ActivityItem["kind"], IconName> = { thinking: "thinking", command: "terminal", tool: "wrench", file: "edit", subagent: "bot" };
 
 function Row({ item, onShowSubagents }: { item: ActivityItem; onShowSubagents: () => void }) {
   return (
     <li className={`activity-item ${item.kind} ${item.status}`}>
-      <Icon name={ICONS[item.kind]} strokeWidth={1.8} label={STATUS_LABELS[item.status]} />
+      <Icon name={ICONS[item.kind]} strokeWidth={1.8} label={STEP_LABELS[item.status]} />
       {item.kind === "subagent" ? (
         <Button variant="link" className="activity-text" title="Show in Subagents" onClick={onShowSubagents}>
           {item.text}

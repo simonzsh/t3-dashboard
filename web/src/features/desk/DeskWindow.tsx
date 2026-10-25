@@ -1,5 +1,6 @@
 import type { DashboardProvider, DashboardThread } from "../../../../shared/api.ts";
 import { threadState, type ThreadState } from "../../../../shared/status.ts";
+import { threadTitle } from "../../lib/threads.ts";
 import { Badge, Button, Icon, Pressable } from "../../ui/index.ts";
 import { ConversationPanel } from "../conversation/ConversationPanel.tsx";
 import { OpenInT3 } from "../../lib/OpenInT3.tsx";
@@ -26,7 +27,7 @@ interface Props {
 
 export function DeskWindow({ id, thread, projectTitle, missing, focused, maximized, compact, t3EnvironmentId, providers, onFocus, onClose, onMinimize, onToggleMaximize }: Props) {
   const state = thread ? threadState(thread) : null;
-  const title = thread?.title || "(untitled)";
+  const title = threadTitle(thread);
   return (
     <section
       className={`desk-window${state ? ` state-${state}` : ""}${focused ? " focused" : ""}${maximized ? " maximized" : ""}`}

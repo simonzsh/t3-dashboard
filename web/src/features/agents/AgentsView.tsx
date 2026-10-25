@@ -1,6 +1,6 @@
 import { useState } from "react";
 import type { AutomationsResult, DashboardState, DashboardThread } from "../../../../shared/api.ts";
-import { groupAgents } from "../../lib/threads.ts";
+import { groupAgents, threadTitle } from "../../lib/threads.ts";
 import { excludeRoutineThreads } from "./automations.ts";
 import { relativeTime } from "../../lib/format.ts";
 import { Pressable } from "../../ui/index.ts";
@@ -31,9 +31,9 @@ function SettledList({ threads, now, onOpen }: { threads: DashboardThread[]; now
         <ul className="settled-list">
           {threads.map((t) => (
             <li key={t.id}>
-              <Pressable className="settled-row" title={t.title || "(untitled)"} onClick={(e) => onOpen(t.id, e.shiftKey)}>
+              <Pressable className="settled-row" title={threadTitle(t)} onClick={(e) => onOpen(t.id, e.shiftKey)}>
                 <ProviderIcon provider={t.provider} />
-                <span className="settled-title">{t.title || "(untitled)"}</span>
+                <span className="settled-title">{threadTitle(t)}</span>
                 <span className="settled-time">{relativeTime(t.lastActivityAt, now)}</span>
               </Pressable>
             </li>

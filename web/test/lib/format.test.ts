@@ -1,6 +1,6 @@
 import { test } from "bun:test";
 import assert from "node:assert/strict";
-import { cut, duration, errorMessage, relativeTime } from "../../src/lib/format.ts";
+import { STEP_LABELS, cut, duration, errorMessage, relativeTime } from "../../src/lib/format.ts";
 
 const now = new Date("2026-03-01T12:00:00Z");
 
@@ -28,4 +28,8 @@ test("errorMessage gives the message of an Error, or the value as text", () => {
   assert.equal(errorMessage(new Error("boom")), "boom");
   assert.equal(errorMessage("plain"), "plain");
   assert.equal(errorMessage(404), "404");
+});
+
+test("STEP_LABELS names each step status", () => {
+  assert.deepEqual(STEP_LABELS, { running: "Running", done: "Done", failed: "Failed" });
 });

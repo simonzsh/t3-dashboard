@@ -1,9 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 import type { SubagentInfo } from "../../../../shared/api.ts";
-import { duration } from "../../lib/format.ts";
+import { STEP_LABELS, duration } from "../../lib/format.ts";
 import { Pressable } from "../../ui/index.ts";
 
-const STATUS_LABELS: Record<SubagentInfo["status"], string> = { running: "Running", done: "Done", failed: "Failed" };
 
 function elapsed(s: SubagentInfo, now: number): string | null {
   if (!s.startedAt) return null;
@@ -50,7 +49,7 @@ export function SubagentStrip({ subagents, reveal = 0 }: { subagents: SubagentIn
             const detail = s.status === "running" ? s.progress : s.result;
             return (
               <li key={s.id} className={`subagent ${s.status}`}>
-                <span className="subagent-dot" role="img" aria-label={STATUS_LABELS[s.status]} title={STATUS_LABELS[s.status]} />
+                <span className="subagent-dot" role="img" aria-label={STEP_LABELS[s.status]} title={STEP_LABELS[s.status]} />
                 <span className="subagent-text">
                   <span className="subagent-title" title={s.title}>
                     {s.title}

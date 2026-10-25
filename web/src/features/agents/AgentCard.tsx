@@ -1,5 +1,5 @@
 import type { AgentCard as Card } from "../../lib/threads.ts";
-import { pendingLabel } from "../../lib/threads.ts";
+import { pendingLabel, threadTitle } from "../../lib/threads.ts";
 import { hasFailed } from "../../../../shared/status.ts";
 import { cut, relativeTime } from "../../lib/format.ts";
 import { Badge, Icon, IconButton, Pressable } from "../../ui/index.ts";
@@ -24,7 +24,7 @@ export function AgentCard({ card, now, onDesk, t3EnvironmentId, onOpen, onToggle
       <Pressable className={`agent ${status}${onDesk ? " on-desk" : ""}`} onClick={(e) => onOpen(t.id, e.shiftKey)}>
         <span className="agent-head">
           <ProviderIcon provider={t.provider} />
-          <span className="agent-title">{t.title || "(untitled)"}</span>
+          <span className="agent-title">{threadTitle(t)}</span>
         </span>
         {t.preview && <span className="agent-preview">{cut(t.preview.text, 160)}</span>}
         <span className="agent-foot">

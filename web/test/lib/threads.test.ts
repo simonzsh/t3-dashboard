@@ -1,6 +1,6 @@
 import { test } from "bun:test";
 import assert from "node:assert/strict";
-import { groupAgents, pendingLabel, providerKind } from "../../src/lib/threads.ts";
+import { groupAgents, pendingLabel, providerKind, threadTitle } from "../../src/lib/threads.ts";
 import { agentStatus, runActive, threadState } from "../../../shared/status.ts";
 import { thread } from "../fixtures.ts";
 
@@ -143,4 +143,10 @@ test("threadState gives the desk window colour", () => {
   assert.equal(threadState(thread("1", { status: "failed" })), "error");
   assert.equal(threadState(thread("1", { status: "completed", lastError: "boom" })), "error");
   assert.equal(threadState(thread("1", { status: "idle" })), "idle");
+});
+
+test("threadTitle falls back to (untitled) for an empty title or no thread", () => {
+  assert.equal(threadTitle(thread("a", { title: "Fix it" })), "Fix it");
+  assert.equal(threadTitle(thread("a", { title: "" })), "(untitled)");
+  assert.equal(threadTitle(null), "(untitled)");
 });

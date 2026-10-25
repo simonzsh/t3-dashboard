@@ -19,3 +19,6 @@ export function duration(ms: number): string {
 }
 
 export const errorMessage = (error: unknown): string => (error instanceof Error ? error.message : String(error));
+
+/** Status of a run step or a subagent. */
+export const STEP_LABELS: Record<"running" | "done" | "failed", string> = { running: "Running", done: "Done", failed: "Failed" };
