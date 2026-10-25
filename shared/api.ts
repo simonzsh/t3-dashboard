@@ -155,6 +155,7 @@ export interface LinearIssue {
   project: { id: string; name: string } | null;
   team: { key: string; name: string };
   workspace: string;
+  t3ProjectId: string | null;
   updatedAt: string;
 }
 

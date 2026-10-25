@@ -41,7 +41,7 @@ function setup(workspaces: LinearWorkspaceConfig[], respond: (key: string) => Re
   return { board, calls, tick: (ms: number) => (clock += ms) };
 }
 
-const space = (name: string, apiKey: string, t3Project = "Project A"): LinearWorkspaceConfig => ({ name, apiKey, t3Project });
+const space = (name: string, apiKey: string, t3Project = "Project A", teams: Record<string, string> | null = null): LinearWorkspaceConfig => ({ name, apiKey, t3Project, teams });
 
 test("fetches assigned issues with the raw key as Authorization and tags the workspace", async () => {
   const { board, calls } = setup([space("Space 1", "key-1")], () => reply([node(1)]));
@@ -52,7 +52,7 @@ test("fetches assigned issues with the raw key as Authorization and tags the wor
   assert.match(calls[0]!.query, /assignedIssues\(first: 100/);
   assert.match(calls[0]!.query, /nin: \["completed", "canceled"\]/);
   assert.deepEqual(result.workspaces, [{ name: "Space 1", ok: true, error: null, t3ProjectId: "project-1" }]);
-  assert.deepEqual(result.issues, [{ ...node(1), workspace: "Space 1" }]);
+  assert.deepEqual(result.issues, [{ ...node(1), workspace: "Space 1", t3ProjectId: "project-1" }]);
 });
 
 test("a missing key shows an error without calling Linear", async () => {
@@ -110,9 +110,22 @@ test("fetchedAt is the time of the read", async () => {
   assert.equal((await board.get()).fetchedAt, new Date(1_000_000).toISOString());
 });
 
-test("workspace() returns the config of the last read, keys included, for the assign route", async () => {
-  const { board } = setup([space("Space 1", "key-1")], () => reply([]));
-  await board.get();
-  assert.equal(board.workspace("Space 1")?.t3Project, "Project A");
-  assert.equal(board.workspace("Nope"), undefined);
+test("with a team table, only listed teams show, each with its own T3 project", async () => {
+  const other = (n: number, key: string) => ({ ...node(n), team: { key, name: `Team ${key}` } });
+  const { board } = setup([space("Linear", "key-1", "", { ENG: "Project A", OPS: "Unknown" })], () => reply([other(1, "ENG"), other(2, "OPS"), other(3, "HR")]));
+  const result = await board.get();
+  assert.deepEqual(result.issues.map((issue) => [issue.id, issue.t3ProjectId]), [["issue-1", "project-1"], ["issue-2", null]]);
+  assert.deepEqual(result.workspaces, [{ name: "Linear", ok: true, error: null, t3ProjectId: null }]);
+});
+
+test("a table entry on a workspace with a t3Project keeps the workspace project in its status", async () => {
+  const { board } = setup([space("Space 1", "key-1", "Project A", { TEAM: "Unknown" })], () => reply([node(1)]));
+  const result = await board.get();
+  assert.equal(result.workspaces[0]!.t3ProjectId, "project-1");
+  assert.equal(result.issues[0]!.t3ProjectId, null);
+});
+
+test("without a table, every issue goes to the workspace project", async () => {
+  const { board } = setup([space("Space 1", "key-1")], () => reply([node(1)]));
+  assert.equal((await board.get()).issues[0]!.t3ProjectId, "project-1");
 });

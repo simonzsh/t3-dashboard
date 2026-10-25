@@ -97,7 +97,7 @@ async function start(startOptions: StartOptions = {}) {
           { id: "run-1", projectId: "project-1", title: "Thread 2", status: "running", activeRunId: "run-a", createdAt: "2026-03-02T00:00:00Z" },
           { id: "run-2", projectId: "project-1", title: "Thread 3", status: "running", activeRunId: null, createdAt: "2026-03-03T00:00:00Z" },
         ],
-        projects: [{ id: "project-1", title: "Project A" }],
+        projects: [{ id: "project-1", title: "Project A" }, { id: "project-2", title: "Project B" }],
       },
     },
     { kind: "synchronized" },
@@ -155,7 +155,10 @@ test("GET /api/health and /api/state", async () => {
   assert.equal(health.headers["access-control-allow-origin"], undefined);
   const state = (await call(server, "GET", "/api/state")).json as DashboardState;
   assert.equal(state.connection.t3, "live");
-  assert.deepEqual(state.projects, [{ id: "project-1", title: "Project A", defaultModelSelection: null }]);
+  assert.deepEqual(state.projects, [
+    { id: "project-1", title: "Project A", defaultModelSelection: null },
+    { id: "project-2", title: "Project B", defaultModelSelection: null },
+  ]);
   assert.equal(state.threads.length, 3);
 });
 
@@ -391,7 +394,7 @@ test("static: traversal is blocked", async () => {
   }
 });
 
-const space = (name: string, t3Project = "Project A"): LinearWorkspaceConfig => ({ name, apiKey: "key-1", t3Project });
+const space = (name: string, t3Project = "Project A", teams: Record<string, string> | null = null): LinearWorkspaceConfig => ({ name, apiKey: "key-1", t3Project, teams });
 const assignBody = { workspace: "Space 1", issueId: "issue-1", agent: "claude" };
 const providers: RawConfig = {
   providers: [
@@ -470,6 +473,28 @@ test("assign errors: 400 invalid body, 404 unknown workspace or issue, 409 unkno
   assert.equal((await post(server, "/api/board/assign", { ...assignBody, workspace: "Nope" })).status, 404);
   assert.equal((await post(server, "/api/board/assign", { ...assignBody, issueId: "nope" })).status, 404);
   assert.equal((await post(server, "/api/board/assign", { ...assignBody, workspace: "Space 2" })).status, 409);
+  assert.deepEqual(port.commands, []);
+});
+
+test("a team table routes each ticket to its own project and hides other teams", async () => {
+  const teamNode = (n: number, key: string) => ({ ...linearNode(n), team: { key, name: `Team ${key}` } });
+  const nodes = [teamNode(1, "ENG"), teamNode(2, "OPS"), teamNode(3, "HR")];
+  const { server, port } = await start({
+    workspaces: [{ name: "Linear", apiKey: "key-1", t3Project: "", teams: { ENG: "Project A", OPS: "Project B" } }],
+    linearFetch: async () => new Response(JSON.stringify({ data: { viewer: { assignedIssues: { nodes } } } })),
+  });
+  const board = await call(server, "GET", "/api/board");
+  assert.deepEqual(board.json.issues.map((issue: { id: string; t3ProjectId: string }) => [issue.id, issue.t3ProjectId]), [["issue-1", "project-1"], ["issue-2", "project-2"]]);
+  const body = { workspace: "Linear", agent: "claude" };
+  assert.equal((await post(server, "/api/board/assign", { ...body, issueId: "issue-2" })).status, 200);
+  assert.equal(port.commands[0]!.projectId, "project-2");
+  assert.equal((await post(server, "/api/board/assign", { ...body, issueId: "issue-3" })).status, 404);
+  assert.equal(port.commands.length, 2);
+});
+
+test("assign answers 409 when the issue team maps to a missing T3 project", async () => {
+  const { server, port } = await start({ workspaces: [{ name: "Linear", apiKey: "key-1", t3Project: "", teams: { TEAM: "Missing" } }] });
+  assert.equal((await post(server, "/api/board/assign", { workspace: "Linear", issueId: "issue-1", agent: "claude" })).status, 409);
   assert.deepEqual(port.commands, []);
 });
 

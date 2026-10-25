@@ -14,7 +14,7 @@ export interface LinearBoardOptions {
   now: () => Date;
 }
 
-type Nodes = Array<Omit<LinearIssue, "workspace">>;
+type Nodes = Array<Omit<LinearIssue, "workspace" | "t3ProjectId">>;
 
 // A stalled Linear would otherwise hold the board request for minutes.
 const FETCH_TIMEOUT_MS = 15_000;
@@ -43,21 +43,15 @@ async function fetchIssues(options: LinearBoardOptions, apiKey: string): Promise
 export class LinearBoard {
   private readonly options: LinearBoardOptions;
   private cached: { at: number; board: BoardResult } | null = null;
-  private configs = new Map<string, LinearWorkspaceConfig>();
 
   constructor(options: LinearBoardOptions) {
     this.options = options;
-  }
-
-  workspace(name: string): LinearWorkspaceConfig | undefined {
-    return this.configs.get(name);
   }
 
   async get(refresh = false): Promise<BoardResult> {
     const now = this.options.now();
     if (!refresh && this.cached && now.getTime() - this.cached.at < CACHE_MS) return this.cached.board;
     const workspaces = this.options.readWorkspaces();
-    this.configs = new Map(workspaces.map((workspace) => [workspace.name, workspace]));
     const results = await Promise.all(workspaces.map((workspace) => this.read(workspace)));
     const board: BoardResult = { workspaces: results.map((r) => r.status), issues: results.flatMap((r) => r.issues), fetchedAt: now.toISOString() };
     this.cached = { at: now.getTime(), board };
@@ -65,11 +59,18 @@ export class LinearBoard {
   }
 
   private async read(workspace: LinearWorkspaceConfig): Promise<{ status: LinearWorkspaceStatus; issues: LinearIssue[] }> {
-    const status: LinearWorkspaceStatus = { name: workspace.name, ok: true, error: null, t3ProjectId: this.options.resolveProject(workspace.t3Project) };
+    const resolve = (title: string) => (title === "" ? null : this.options.resolveProject(title));
+    const status: LinearWorkspaceStatus = { name: workspace.name, ok: true, error: null, t3ProjectId: resolve(workspace.t3Project) };
     if (workspace.apiKey === "") return { status: { ...status, ok: false, error: "Clé API manquante" }, issues: [] };
     try {
       const nodes = await fetchIssues(this.options, workspace.apiKey);
-      return { status, issues: nodes.map((node) => ({ ...node, workspace: workspace.name })) };
+      // Teams outside the table are dropped so a shared key never mixes companies.
+      const { teams } = workspace;
+      const issues = nodes.flatMap((node) => {
+        const title = teams ? teams[node.team.key] : workspace.t3Project;
+        return title === undefined ? [] : [{ ...node, workspace: workspace.name, t3ProjectId: resolve(title) }];
+      });
+      return { status, issues };
     } catch (error) {
       return { status: { ...status, ok: false, error: (error as Error).message }, issues: [] };
     }

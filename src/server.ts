@@ -39,7 +39,7 @@ import type { Command, T3Port } from "./t3/types.ts";
 export interface DashboardServerOptions {
   port: T3Port;
   store: Pick<ShellStore, "thread" | "project">;
-  board: Pick<LinearBoard, "get" | "workspace">;
+  board: Pick<LinearBoard, "get">;
   automations: () => AutomationsResult;
   hub: SseHub;
   getState: () => DashboardState;
@@ -233,7 +233,7 @@ export function createDashboardServer(options: DashboardServerOptions): Server {
 
   async function assign(body: AssignIssueBody): Promise<string> {
     const issue = await findIssue(body);
-    const project = store.project(board.workspace(body.workspace)?.t3Project ?? "");
+    const project = issue.t3ProjectId === null ? undefined : store.project(issue.t3ProjectId);
     if (!project) throw new HttpError(409, "T3 project not found");
     const modelSelection = await modelFor(body.agent, project.defaultModelSelection);
     const create = { projectId: project.id, title: `${issue.identifier} ${issue.title}`, text: `Traite le ticket Linear ${issue.identifier} : ${issue.url}`, modelSelection };
