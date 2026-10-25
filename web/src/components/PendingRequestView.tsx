@@ -74,15 +74,15 @@ export function PendingRequestView({ threadId, request }: { threadId: string; re
             );
           })}
           <div className="buttons">
+            <button disabled={locked || action.busy} onClick={() => void action.run(() => api.dismiss(threadId, request.requestId))}>
+              Dismiss
+            </button>
             <button
               className="primary"
               disabled={locked || action.busy || !canSubmit(request.questions, drafts)}
               onClick={() => void action.run(() => api.respond(threadId, request.requestId, { answers: buildAnswers(request.questions, drafts) }))}
             >
               Reply
-            </button>
-            <button disabled={locked || action.busy} onClick={() => void action.run(() => api.dismiss(threadId, request.requestId))}>
-              Dismiss
             </button>
           </div>
         </>

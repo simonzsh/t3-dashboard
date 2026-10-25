@@ -114,11 +114,11 @@ export function NewThreadDialog({ projects, providers, defaultProjectId, onClose
           <textarea {...NO_AUTOFILL} required value={text} onChange={(e) => setText(e.target.value)} />
         </label>
         <div className="buttons">
-          <button className="primary" type="submit" disabled={!valid || action.busy}>
-            Create
-          </button>
           <button type="button" onClick={onClose}>
             Cancel
+          </button>
+          <button className="primary" type="submit" disabled={!valid || action.busy}>
+            Create
           </button>
           {action.error && <span className="error">{action.error}</span>}
         </div>
