@@ -25,7 +25,7 @@ test("every text field and form turns autofill off", () => {
 
 test("no field label hints at a login", () => {
   for (const { file, text } of sources) {
-    for (const field of [...tags(text, "input"), ...tags(text, "textarea")]) {
+    for (const field of ["input", "textarea", "TextInput", "TextArea", "SecretInput"].flatMap((tag) => tags(text, tag))) {
       assert.ok(!/(placeholder|aria-label|name|id)="[^"]*(password|email|user|login|token)/i.test(field), `${file}: ${field.slice(0, 80)}`);
     }
   }
