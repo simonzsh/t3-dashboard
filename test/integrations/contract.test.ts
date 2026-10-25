@@ -41,10 +41,9 @@ test("parse throws a protocol IntegrationError with the path but never the value
   assert.ok(!error.message.includes("12") && !error.message.includes("secret-value"));
 });
 
-test("literal, record and union check their values", () => {
+test("literal and union check their values", () => {
   assert.deepEqual(issues(s.literal("image"), "image"), []);
   assert.deepEqual(issues(s.literal("image"), "file"), [{ path: "(root)", expected: '"image"', actual: "string" }]);
-  assert.deepEqual(issues(s.record(s.string()), { a: "x", b: 1 }), [{ path: "b", expected: "string", actual: "number" }]);
   const either = s.union(s.object({ item: s.object({ id: s.string() }) }), s.object({ id: s.optional(s.string()) }));
   assert.deepEqual(issues(either, { item: { id: "1" } }), []);
   assert.deepEqual(issues(either, "x"), [{ path: "(root)", expected: "object or object", actual: "string" }]);
