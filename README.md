@@ -39,25 +39,35 @@ npm run dev:web   # Vite sur http://127.0.0.1:5173, proxy /api vers le serveur
 |---|---|---|
 | `PORT` | `4310` | Port local. L'hôte est toujours `127.0.0.1`. |
 | `T3_DASHBOARD_TOKEN_FILE` | `~/.config/t3-agent/perso.json` | Fichier JSON avec le champ `token`. |
-| `T3_DASHBOARD_LINEAR_FILE` | `~/.config/t3-dashboard/linear.json` | Fichier JSON des workspaces Linear (voir ci-dessous). |
+| `T3_DASHBOARD_LINEAR_FILE` | `~/.config/t3-dashboard/linear.json` | Fichier JSON de la config Linear (voir ci-dessous). |
 | `T3_DASHBOARD_AGENT_CONFIG_DIR` | `~/.config/t3-agent` | Dossier des configs t3-agent, un `*.json` par cerveau. |
 | `T3_SERVER_RUNTIME` | `~/.t3/userdata/server-runtime.json` | Fichier JSON avec le champ `origin`, relu à chaque connexion à T3. Repli : `http://127.0.0.1:3773`. |
 
 ## Configuration de Linear
 
-Le dashboard lit un fichier hors git, avec le mode 600 :
+Le dashboard lit un fichier hors git, avec le mode 600. Format recommandé : une seule clé, une table équipe vers projet T3.
+
+```json
+{ "apiKey": "lin_api_...", "teams": { "ENG": "Project A", "OPS": "Project B" } }
+```
+
+- `apiKey` : une clé API personnelle. Elle donne un seul workspace interne, nommé « Linear ».
+- `teams` : la clé de chaque équipe Linear, avec le titre ou l'id du projet T3 Code qui reçoit les sessions de cette équipe.
+- Le serveur cache les tickets des équipes absentes de `teams`. Ils ne s'affichent pas et on ne peut pas les assigner.
+
+Format compatible : une clé par workspace.
 
 ```json
 { "workspaces": [ { "name": "Workspace 1", "apiKey": "lin_api_...", "t3Project": "Project A" } ] }
 ```
 
 - `name` : le nom affiché.
-- `apiKey` : une clé API personnelle.
-- `t3Project` : le titre ou l'id du projet T3 Code qui reçoit les sessions créées depuis ce workspace.
+- `t3Project` : le titre ou l'id du projet T3 Code qui reçoit les sessions de ce workspace.
+- `teams` (facultatif) : même table que ci-dessus. Sans `teams`, tous les tickets du workspace vont dans `t3Project`.
 
 Pour créer une clé : dans Linear, ouvrez Settings, Account, Security & access, puis « Personal API keys » et « New API key ». Un fichier absent ou une clé vide ne bloque pas le serveur. Avec un fichier absent, l'onglet Board reste vide ; avec une clé vide, il affiche « Clé API manquante ». Le serveur ne logge et ne renvoie jamais une clé.
 
-Chaque workspace est lu séparément. Le serveur garde le résultat 60 s ; `GET /api/board?refresh=1` force la relecture.
+Chaque workspace est lu séparément. Le projet T3 d'un ticket vient de son équipe (table `teams`) ou de `t3Project`. Sans projet T3 trouvé, l'assignation répond 409. Le serveur garde le résultat 60 s ; `GET /api/board?refresh=1` force la relecture.
 
 ## Automatisations
 
