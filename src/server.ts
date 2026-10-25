@@ -16,7 +16,6 @@ import { ACTIVE_STATUSES } from "./classify.ts";
 import { HttpError } from "./httpError.ts";
 import { toProviders } from "./live.ts";
 import type { LinearBoard } from "./linear.ts";
-import { parseTeamsBody } from "./settings.ts";
 import type { Settings } from "./settings.ts";
 import type { Site } from "./site.ts";
 import type { ShellStore } from "./shellStore.ts";
@@ -141,11 +140,10 @@ function validCreate(body: Record<string, unknown>): CreateThreadBody {
 }
 
 function validAssign(body: Record<string, unknown>): AssignIssueBody {
-  if (!isText(body.workspace) || !isText(body.issueId) || (body.agent !== "claude" && body.agent !== "codex")) {
-    throw new HttpError(400, "workspace, issueId and agent (claude or codex) are required");
+  if (!isText(body.workspace) || !isText(body.issueId) || !isText(body.projectId) || (body.agent !== "claude" && body.agent !== "codex")) {
+    throw new HttpError(400, "workspace, issueId, projectId and agent (claude or codex) are required");
   }
-  if (body.projectId !== undefined && !isText(body.projectId)) throw new HttpError(400, "projectId must be a non-empty string");
-  return { workspace: body.workspace, issueId: body.issueId, agent: body.agent, ...(body.projectId !== undefined && { projectId: body.projectId }) };
+  return { workspace: body.workspace, issueId: body.issueId, agent: body.agent, projectId: body.projectId };
 }
 
 function validRespond(body: Record<string, unknown>): RespondBody {
@@ -231,17 +229,12 @@ export function createDashboardServer(options: DashboardServerOptions): Dashboar
 
   async function assign(body: AssignIssueBody): Promise<string> {
     const issue = await findIssue(body);
-    // An issue whose team has no T3 project yet needs one from the caller.
-    const chosen = issue.t3ProjectId === null ? body.projectId : undefined;
-    const projectId = issue.t3ProjectId ?? chosen;
-    if (projectId === undefined) throw new HttpError(409, "Choose a T3 project");
-    const project = store.project(projectId);
+    const project = store.project(body.projectId);
     if (!project) throw new HttpError(409, "T3 project not found");
     const modelSelection = await modelFor(body.agent, project.defaultModelSelection);
     const create = { projectId: project.id, title: `${issue.identifier} ${issue.title}`, text: `Traite le ticket Linear ${issue.identifier} : ${issue.url}`, modelSelection };
     const { threadId, commands } = createThreadCommands(create, newId);
     await send(...commands);
-    if (chosen !== undefined) settings.rememberTeam(issue.team.key, project.title);
     return threadId;
   }
 
@@ -257,7 +250,6 @@ export function createDashboardServer(options: DashboardServerOptions): Dashboar
       }
       if (segments.length === 2 && resource === "automations") return json(200, automations());
       if (resource === "settings" && segments.length === 2) return json(200, settings.get());
-      if (resource === "settings" && segments.length === 4 && id === "linear" && action === "teams") return json(200, await settings.teams());
       if (segments.length === 2 && resource === "events") {
         server?.timeout(req, 0);
         return hub.add(getState(), req.signal);
@@ -288,7 +280,6 @@ export function createDashboardServer(options: DashboardServerOptions): Dashboar
       const body = await readJson(req);
       if (segments.length === 4 && action === "key") return json(200, await settings.connectKey({ apiKey: String(body.apiKey ?? "") }));
       if (segments.length === 4 && action === "disconnect") return json(200, settings.disconnect());
-      if (segments.length === 4 && action === "teams") return json(200, settings.saveTeams(parseTeamsBody(body)));
     } else if (method === "POST" && resource === "threads") {
       const body = await readJson(req);
       if (segments.length === 2) {

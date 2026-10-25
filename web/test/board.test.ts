@@ -15,7 +15,6 @@ function issue(id: string, over: Partial<LinearIssue> = {}): LinearIssue {
     project: null,
     team: { key: "ABC", name: "Team" },
     workspace: "ws-1",
-    t3ProjectId: null,
     updatedAt: "2026-03-01T10:00:00.000Z",
     ...over,
   };

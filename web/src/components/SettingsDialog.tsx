@@ -1,5 +1,4 @@
 import { useRef, useState } from "react";
-import type { DashboardProject } from "../../../shared/api.ts";
 import { BACKGROUND_PRESETS, type DeskBackground } from "../deskBackground.ts";
 import { imageFileToDataUrl } from "../deskImage.ts";
 import { THEME_SETTINGS, type ThemeSetting } from "../theme.ts";
@@ -11,14 +10,13 @@ interface Props {
   onThemeChange: (theme: ThemeSetting) => void;
   background: DeskBackground;
   onBackgroundChange: (background: DeskBackground) => string | null;
-  projects: DashboardProject[];
   onLinearChange: () => void;
   onClose: () => void;
 }
 
 const LABELS: Record<ThemeSetting, string> = { system: "System", light: "Light", dark: "Dark" };
 
-export function SettingsDialog({ theme, onThemeChange, background, onBackgroundChange, projects, onLinearChange, onClose }: Props) {
+export function SettingsDialog({ theme, onThemeChange, background, onBackgroundChange, onLinearChange, onClose }: Props) {
   useEscape(onClose);
   const fileInput = useRef<HTMLInputElement>(null);
   const [error, setError] = useState<string | null>(null);
@@ -102,7 +100,7 @@ export function SettingsDialog({ theme, onThemeChange, background, onBackgroundC
         </section>
         <section className="settings-section" aria-labelledby="settings-linear">
           <h3 id="settings-linear">Linear</h3>
-          <LinearSettings projects={projects} onChange={onLinearChange} />
+          <LinearSettings onChange={onLinearChange} />
         </section>
         <div className="buttons">
           <button type="button" onClick={onClose}>

@@ -1,10 +1,9 @@
-import type { BoardResult, LinearIssue, LinearTeam, LinearWorkspaceStatus } from "../shared/api.ts";
+import type { BoardResult, LinearIssue, LinearWorkspaceStatus } from "../shared/api.ts";
 import type { LinearWorkspaceConfig } from "./linearConfig.ts";
 
 const ENDPOINT = "https://api.linear.app/graphql";
 const CACHE_MS = 60_000;
 const VIEWER_QUERY = "{ viewer { id } }";
-const TEAMS_QUERY = "{ teams(first: 250) { nodes { key name } } }";
 const QUERY = `{ viewer { assignedIssues(first: 100, filter: { state: { type: { nin: ["completed", "canceled"] } } }) { nodes { id identifier title url priority priorityLabel updatedAt state { name type color } project { id name } team { key name } } } } }`;
 
 export type FetchLike = (url: string, init: RequestInit) => Promise<Response>;
@@ -12,11 +11,10 @@ export type FetchLike = (url: string, init: RequestInit) => Promise<Response>;
 export interface LinearBoardOptions {
   fetch: FetchLike;
   readWorkspaces: () => LinearWorkspaceConfig[];
-  resolveProject: (t3Project: string) => string | null;
   now: () => Date;
 }
 
-type Nodes = Array<Omit<LinearIssue, "workspace" | "t3ProjectId">>;
+type Nodes = Array<Omit<LinearIssue, "workspace">>;
 
 // A stalled Linear would otherwise hold the board request for minutes.
 const FETCH_TIMEOUT_MS = 15_000;
@@ -69,7 +67,7 @@ export class LinearBoard {
     this.options = options;
   }
 
-  /** Forgets the cached board: call it after the key or the team table changed. */
+  /** Forgets the cached board: call it after the key changed. */
   invalidate(): void {
     this.cached = null;
   }
@@ -80,16 +78,6 @@ export class LinearBoard {
       return "ok";
     } catch (error) {
       return error instanceof LinearError ? error.check : "unreachable";
-    }
-  }
-
-  async listTeams(apiKey: string): Promise<{ teams: LinearTeam[] } | KeyCheck> {
-    try {
-      const nodes = (await query(this.options, apiKey, TEAMS_QUERY)).teams?.nodes;
-      if (!Array.isArray(nodes)) return "unreachable";
-      return { teams: nodes.map((node: LinearTeam) => ({ key: node.key, name: node.name })) };
-    } catch (error) {
-      return error instanceof LinearError && error.check === "refused" ? "refused" : "unreachable";
     }
   }
 
@@ -109,19 +97,11 @@ export class LinearBoard {
   }
 
   private async read(workspace: LinearWorkspaceConfig): Promise<{ status: LinearWorkspaceStatus; issues: LinearIssue[] }> {
-    const resolve = (title: string) => (title === "" ? null : this.options.resolveProject(title));
-    const status: LinearWorkspaceStatus = { name: workspace.name, ok: true, error: null, t3ProjectId: resolve(workspace.t3Project) };
+    const status: LinearWorkspaceStatus = { name: workspace.name, ok: true, error: null };
     if (workspace.apiKey === "") return { status: { ...status, ok: false, error: "Missing API key" }, issues: [] };
     try {
       const nodes = await fetchIssues(this.options, workspace.apiKey);
-      const { teams } = workspace;
-      const issues = nodes.flatMap((node) => {
-        // null hides the team. Teams outside the table follow `unlisted`.
-        const listed = teams !== null && Object.hasOwn(teams, node.team.key);
-        const title = listed ? teams[node.team.key] : workspace.unlisted === "show" ? (teams ? "" : workspace.t3Project) : null;
-        return title === null || title === undefined ? [] : [{ ...node, workspace: workspace.name, t3ProjectId: resolve(title) }];
-      });
-      return { status, issues };
+      return { status, issues: nodes.map((node) => ({ ...node, workspace: workspace.name })) };
     } catch (error) {
       return { status: { ...status, ok: false, error: (error as Error).message }, issues: [] };
     }

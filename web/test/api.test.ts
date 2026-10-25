@@ -80,7 +80,7 @@ test("getBoard reads the cache by default and forces a refresh on demand", async
 
 test("assignIssue posts the body to the assign route", async () => {
   const { calls, api } = fake(200, { ok: true, threadId: "thread-7" });
-  const body = { workspace: "ws-1", issueId: "i1", agent: "codex" as const };
+  const body = { workspace: "ws-1", issueId: "i1", agent: "codex" as const, projectId: "p1" };
   const res = await api.assignIssue(body);
   assert.equal(res.threadId, "thread-7");
   assert.equal(calls[0]?.url, "/api/board/assign");
@@ -99,22 +99,18 @@ test("getAutomations reads /api/automations with GET", async () => {
 test("settings and setup calls use the right routes and verbs", async () => {
   const { calls, api } = fake(200, {});
   await api.getSettings();
-  await api.getLinearTeams();
   await api.retrySetup();
   await api.pasteToken("tok");
   await api.connectLinear("key");
   await api.disconnectLinear();
-  await api.saveLinearTeams({ teams: { ENG: null }, unlisted: "hide" });
   assert.deepEqual(
     calls.map((call) => [call.url, call.init?.method ?? "GET", call.init?.body ?? null]),
     [
       ["/api/settings", "GET", null],
-      ["/api/settings/linear/teams", "GET", null],
       ["/api/setup/retry", "POST", "{}"],
       ["/api/setup/token", "POST", '{"token":"tok"}'],
       ["/api/settings/linear/key", "POST", '{"apiKey":"key"}'],
       ["/api/settings/linear/disconnect", "POST", "{}"],
-      ["/api/settings/linear/teams", "POST", '{"teams":{"ENG":null},"unlisted":"hide"}'],
     ],
   );
 });

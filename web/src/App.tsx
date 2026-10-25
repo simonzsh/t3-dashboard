@@ -193,7 +193,6 @@ export function App() {
           onThemeChange={setTheme}
           background={deskBackground}
           onBackgroundChange={setDeskBackground}
-          projects={state?.projects ?? []}
           onLinearChange={() => setBoardVersion((version) => version + 1)}
           onClose={() => setSettingsOpen(false)}
         />

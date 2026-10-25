@@ -90,7 +90,6 @@ export async function start({ port, log, env }: StartOptions): Promise<void> {
   const board = new LinearBoard({
     fetch: (url, init) => fetch(url, init),
     readWorkspaces: () => readLinearWorkspaces(linearPath, readText),
-    resolveProject: (t3Project) => store.project(t3Project)?.id ?? null,
     now: () => new Date(),
   });
 
