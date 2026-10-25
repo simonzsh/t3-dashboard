@@ -127,7 +127,9 @@ export class TokenManager {
     return this.inflight;
   }
 
-  async paste(token: string): Promise<"ok" | "rejected" | "unreachable"> {
+  async paste(token: string): Promise<"ok" | "rejected" | "unreachable" | "locked"> {
+    // The token file wins on every refresh: a pasted token would be stored and ignored.
+    if (this.options.env.T3_DASHBOARD_TOKEN_FILE) return "locked";
     const trimmed = token.trim();
     const verdict = await this.options.validate(trimmed);
     if (verdict === "ok") this.adopt(trimmed, "pasted");

@@ -173,6 +173,15 @@ test("paste stores a token T3 accepts and the setup disappears", async () => {
   assert.equal(JSON.parse(files[AUTH]!).source, "pasted");
 });
 
+test("paste is refused while the token file variable is set, and nothing is stored", async () => {
+  const { manager, files, validated } = setup({ env: { T3_DASHBOARD_TOKEN_FILE: ENV_FILE }, files: { [ENV_FILE]: '{"token":"from-env"}' } });
+  await manager.refresh();
+  assert.equal(await manager.paste("pasted-one"), "locked");
+  assert.equal(manager.current(), "from-env");
+  assert.equal(AUTH in files, false);
+  assert.deepEqual(validated, ["from-env"]);
+});
+
 test("paste reports a refused or unreachable T3 and stores nothing", async () => {
   for (const verdict of ["rejected", "unreachable"] as const) {
     const { manager, files } = setup({ validate: () => verdict, run: () => ({ code: 1, stdout: "" }) });
