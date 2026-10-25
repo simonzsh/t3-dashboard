@@ -29,7 +29,7 @@ class Reader {
   }
 }
 
-const state = { connection: { t3: "live" }, projects: [], providers: [], threads: [], generatedAt: "t" } as unknown as DashboardState;
+const state = { connection: { t3: "live" }, projects: [], providers: [], threads: [] } as unknown as DashboardState;
 const thread = (id: string, title = id) => ({ id, title }) as DashboardThread;
 const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 const hubWith = () => new SseHub({ batchMs: 10, pingMs: 30 });

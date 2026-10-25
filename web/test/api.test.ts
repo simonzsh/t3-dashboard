@@ -66,7 +66,7 @@ test("non-2xx without JSON error body still throws", async () => {
 });
 
 test("getBoard reads the cache by default and forces a refresh on demand", async () => {
-  const { calls, api } = fake(200, { workspaces: [], issues: [], fetchedAt: "" });
+  const { calls, api } = fake(200, { workspaces: [], issues: [] });
   await api.getBoard();
   await api.getBoard(true);
   assert.deepEqual(calls.map((c) => c.url), ["/api/board", "/api/board?refresh=1"]);
@@ -84,7 +84,7 @@ test("assignIssue posts the body to the assign route", async () => {
 });
 
 test("getAutomations reads /api/automations with GET", async () => {
-  const result = { automations: [], brains: [], fetchedAt: "2026-01-10T10:00:00.000Z" };
+  const result = { automations: [], brains: [] };
   const { calls, api } = fake(200, result);
   assert.deepEqual(await api.getAutomations(), result);
   assert.equal(calls[0]?.url, "/api/automations");

@@ -78,7 +78,7 @@ interface StartOptions {
 const LINEAR_FILE = "/cfg/linear.json";
 
 async function start(startOptions: StartOptions = {}) {
-  const { site = { serve: async () => null }, workspaces = [], linearFetch, automations = () => ({ automations: [], brains: [], fetchedAt: now.toISOString() }) } = startOptions;
+  const { site = { serve: async () => null }, workspaces = [], linearFetch, automations = () => ({ automations: [], brains: [] }) } = startOptions;
   const linearCalls: string[] = [];
   const files: Record<string, string> = startOptions.linear === undefined ? {} : { [LINEAR_FILE]: JSON.stringify(startOptions.linear) };
   const readFile = (path: string) => {
