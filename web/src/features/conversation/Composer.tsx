@@ -36,9 +36,11 @@ interface Props {
   onSettings: (change: ThreadSettingsBody) => Promise<void> | void;
   placeholder?: string;
   autoFocus?: boolean;
+  /** A new value clears the error line: the parent fixed its cause outside the Composer. */
+  errorResetKey?: unknown;
 }
 
-export function Composer({ providers, selection, runtimeMode, running, draft, onDraft, onSend, onStop, onSettings, placeholder, autoFocus = false }: Props) {
+export function Composer({ providers, selection, runtimeMode, running, draft, onDraft, onSend, onStop, onSettings, placeholder, autoFocus = false, errorResetKey }: Props) {
   // Picks show at once, until new values come in the props or the change fails.
   const [override, setOverride] = useState<{ selection?: ModelSelection; mode?: RuntimeMode }>({});
   const [images, setImages] = useState<Pending[]>([]);
@@ -52,6 +54,7 @@ export function Composer({ providers, selection, runtimeMode, running, draft, on
   useEffect(() => setOverride({}), [JSON.stringify(selection), runtimeMode]);
   const localSelection = override.selection ?? selection;
   const localMode = override.mode ?? runtimeMode;
+  useEffect(() => setError(null), [errorResetKey]);
 
   // One error line: each attempt replaces it, so an older error never hides a newer one.
   async function attempt(work: () => unknown, setBusy?: (busy: boolean) => void): Promise<boolean> {

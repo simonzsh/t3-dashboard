@@ -68,6 +68,7 @@ export function NewThreadDialog({ projects, providers, onClose, onCreated }: Pro
         onDraft={setDraft}
         onSend={send}
         onSettings={changeSettings}
+        errorResetKey={projectId}
         placeholder="Describe the task: the first line becomes the title…"
         autoFocus
       />
