@@ -183,6 +183,16 @@ test("reclassify emits only threads whose bucket changed", () => {
   assert.equal(ctx.threads.length, 1);
 });
 
+test("reclassify re-emits a settled thread when its snooze ends", () => {
+  const ctx = setup();
+  const snoozed = raw("snoozed", { settledOverride: "settled", snoozedUntil: iso(-1) });
+  ctx.store.beginSync();
+  ctx.store.apply([snapshot([snoozed]), { kind: "synchronized" }]);
+  assert.equal(ctx.store.thread("snoozed")!.settled, false);
+  ctx.store.reclassify(new Date(now.getTime() + 2 * 3_600_000));
+  assert.deepEqual(ctx.threads.map((diff) => diff.upserted.map((thread) => [thread.id, thread.settled])), [[["snoozed", true]]]);
+});
+
 test("state carries connection and providers", () => {
   const { store } = live();
   const state = store.state(connection, [{ instanceId: "provider-a", displayName: "Provider A", models: [], runtimeModes: ["full-access"] }], true);

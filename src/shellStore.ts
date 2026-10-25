@@ -84,7 +84,8 @@ export class ShellStore {
   reclassify(now: Date): void {
     for (const [id, raw] of this.live.threads) {
       const next = toDashboardThread(raw, now);
-      if (next.bucket === this.derived.get(id)?.bucket) continue;
+      const previous = this.derived.get(id);
+      if (next.bucket === previous?.bucket && next.settled === previous.settled) continue;
       this.derived.set(id, next);
       this.upserted.add(id);
     }
