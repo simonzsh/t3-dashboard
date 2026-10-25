@@ -226,6 +226,37 @@ test("POST /api/threads validates its body", async () => {
   assert.deepEqual(port.commands, []);
 });
 
+test("POST /api/threads takes a runtime mode and images in one call", async () => {
+  const { server, port } = await start();
+  const selection = { ...model, options: [{ id: "effort", value: "high" }] };
+  const image = { name: "shot.png", mimeType: "image/png", dataUrl: "data:image/png;base64,iVBORw==" };
+  const reply = await post(server, "/api/threads", { projectId: "project-1", title: "Look", text: "Look at this", modelSelection: selection, runtimeMode: "auto", attachments: [image] });
+  assert.deepEqual(reply.json, { ok: true, threadId: "id-1" });
+  assert.deepEqual(port.uploads, [{ threadId: "id-1", messageId: "id-2", images: [{ type: "image", ...image, sizeBytes: 4 }] }]);
+  assert.deepEqual(
+    port.commands.map((command) => [command.type, command.threadId]),
+    [["thread.create", "id-1"], ["message.dispatch", "id-1"]],
+  );
+  assert.equal(port.commands[0]!.runtimeMode, "auto");
+  assert.deepEqual(port.commands[0]!.modelSelection, selection);
+  assert.equal(port.commands[1]!.messageId, "id-2");
+  assert.deepEqual(port.commands[1]!.attachments, [{ type: "image", id: "stored-0", name: "shot.png", mimeType: "image/png", sizeBytes: 4 }]);
+});
+
+test("POST /api/threads refuses a bad runtime mode or bad images before any T3 call", async () => {
+  const { server, port } = await start();
+  const base = { projectId: "p", title: "t", text: "x", modelSelection: model };
+  const bad = [{ ...base, runtimeMode: "yolo" }, { ...base, attachments: [{ name: "a.pdf", mimeType: "application/pdf", dataUrl: "data:application/pdf;base64,AAAA" }] }];
+  for (const body of bad) assert.equal((await post(server, "/api/threads", body)).status, 400, JSON.stringify(body));
+  assert.deepEqual([port.uploads, port.commands], [[], []]);
+});
+
+test("POST /api/threads may exceed 1 MB for images", async () => {
+  const { server } = await start();
+  const big = { projectId: "p", title: "t", text: "x", modelSelection: model, attachments: [{ name: "a.png", mimeType: "image/png", dataUrl: `data:image/png;base64,${"A".repeat(2_000_000)}` }] };
+  assert.equal((await post(server, "/api/threads", big)).status, 200);
+});
+
 test("messages: idle or unknown thread starts immediately", async () => {
   const { server, port } = await start();
   assert.deepEqual((await post(server, "/api/threads/idle-1/messages", { text: "Hi", mode: "steer" })).json, { ok: true });

@@ -16,11 +16,11 @@ export function UpdateDialog({ status, onConfirm, onClose }: Props) {
         <h2>{updateQuestion(status)}</h2>
         <p>The dashboard restarts for a few seconds.</p>
         <div className="buttons">
-          <button type="button" className="primary" onClick={onConfirm}>
-            Update
-          </button>
           <button type="button" onClick={onClose}>
             Cancel
+          </button>
+          <button type="button" className="primary" onClick={onConfirm}>
+            Update
           </button>
         </div>
       </div>

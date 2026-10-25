@@ -151,7 +151,8 @@ function validCreate(body: Record<string, unknown>): CreateThreadBody {
   if (!isText(body.projectId) || !isText(body.title) || !isText(body.text) || !modelSelection) {
     throw new HttpError(400, "projectId, title, text and modelSelection (instanceId, model) are required");
   }
-  return { projectId: body.projectId.trim(), title: body.title.trim(), text: body.text, modelSelection };
+  if (body.runtimeMode !== undefined && !isRuntimeMode(body.runtimeMode)) throw new HttpError(400, "runtimeMode is not a known mode");
+  return { projectId: body.projectId.trim(), title: body.title.trim(), text: body.text, modelSelection, ...(isRuntimeMode(body.runtimeMode) && { runtimeMode: body.runtimeMode }) };
 }
 
 function validSettings(body: Record<string, unknown>): ThreadSettingsBody {
@@ -239,6 +240,18 @@ export function createDashboardServer(options: DashboardServerOptions): Dashboar
       upload = { messageId, attachments: await t3(port.persistAttachments(threadId, messageId, images)) };
     }
     await send(messageCommand(threadId, body.text, dispatchMode, newId, upload, steer ? "steer" : undefined));
+  }
+
+  async function createThread(create: CreateThreadBody, images: ImageUpload[]): Promise<string> {
+    let start;
+    if (images.length) {
+      const threadId = newId();
+      const messageId = newId();
+      start = { threadId, upload: { messageId, attachments: await t3(port.persistAttachments(threadId, messageId, images)) } };
+    }
+    const { threadId, commands } = createThreadCommands(create, newId, start);
+    await send(...commands);
+    return threadId;
   }
 
   async function interrupt(threadId: string): Promise<void> {
@@ -335,10 +348,10 @@ export function createDashboardServer(options: DashboardServerOptions): Dashboar
       if (segments.length === 4 && action === "key") return json(200, await settings.connectKey({ apiKey: String(body.apiKey ?? "") }));
       if (segments.length === 4 && action === "disconnect") return json(200, settings.disconnect());
     } else if (method === "POST" && resource === "threads") {
-      const body = await readJson(req, segments.length === 4 && action === "messages" ? MAX_MESSAGE_BODY_BYTES : MAX_BODY_BYTES);
+      const withImages = segments.length === 2 || (segments.length === 4 && action === "messages");
+      const body = await readJson(req, withImages ? MAX_MESSAGE_BODY_BYTES : MAX_BODY_BYTES);
       if (segments.length === 2) {
-        const { threadId, commands } = createThreadCommands(validCreate(body), newId);
-        await send(...commands);
+        const threadId = await createThread(validCreate(body), validImages(body.attachments));
         return json(200, { ok: true, threadId });
       }
       if (id && segments.length === 4) {

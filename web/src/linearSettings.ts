@@ -12,3 +12,5 @@ export function boardNeedsKey(board: BoardResult): boolean {
 }
 
 export const maskedKey = (keyTail: string): string => `lin_api_••••${keyTail}`;
+
+export const linearConnected = (board: BoardResult): boolean => board.configured && board.workspaces.some((workspace) => workspace.ok);

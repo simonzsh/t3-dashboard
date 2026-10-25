@@ -2,7 +2,8 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import type { BoardResult, DashboardProject } from "../../../shared/api.ts";
 import { api } from "../api.ts";
 import { boardColumns } from "../board.ts";
-import { boardNeedsKey } from "../linearSettings.ts";
+import { boardNeedsKey, linearConnected } from "../linearSettings.ts";
+import { Icon } from "./Icon.tsx";
 import { AssignMenu } from "./AssignMenu.tsx";
 import { LinearSetupCard } from "./LinearSetupCard.tsx";
 
@@ -40,10 +41,15 @@ export function BoardView({ projects, version, onAssigned, onShowDesk }: Props) 
   const broken = needsKey ? [] : (board?.workspaces.filter((w) => !w.ok) ?? []);
 
   return (
-    <>
+    <div className="board">
       <div className="toolbar">
-        <button disabled={loading} onClick={() => void load(true)}>
-          {loading ? "Loading…" : "Refresh"}
+        {board && linearConnected(board) && (
+          <span className="linear-source">
+            <span className="conn-dot" aria-hidden="true" /> Connected to Linear
+          </span>
+        )}
+        <button className="icon-button refresh" aria-label="Refresh" title="Refresh" aria-busy={loading} disabled={loading} onClick={() => void load(true)}>
+          <Icon name="refresh" className={`icon${loading ? " spinning" : ""}`} />
         </button>
       </div>
       {error && <p className="notice error-notice">{error}</p>}
@@ -93,6 +99,6 @@ export function BoardView({ projects, version, onAssigned, onShowDesk }: Props) 
           ))}
         </div>
       )}
-    </>
+    </div>
   );
 }

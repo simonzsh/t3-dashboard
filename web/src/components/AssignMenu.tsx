@@ -1,7 +1,10 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import type { DashboardProject, LinearIssue } from "../../../shared/api.ts";
 import { api } from "../api.ts";
 import { browserStorage, loadAssignProject, saveAssignProject } from "../assignProject.ts";
+import { projectOptions } from "../dropdown.ts";
+import { Dropdown } from "./Dropdown.tsx";
+import { Popover } from "./Popover.tsx";
 import { ProviderIcon } from "./ProviderIcon.tsx";
 import { useAction } from "./useAction.ts";
 
@@ -16,6 +19,7 @@ export function AssignMenu({ issue, projects, onAssigned, onShowDesk }: Props) {
   const [open, setOpen] = useState(false);
   const [done, setDone] = useState(false);
   const [projectId, setProjectId] = useState("");
+  const button = useRef<HTMLButtonElement>(null);
   const { busy, error, run } = useAction();
 
   async function assign(agent: "claude" | "codex") {
@@ -44,6 +48,7 @@ export function AssignMenu({ issue, projects, onAssigned, onShowDesk }: Props) {
         </span>
       ) : (
         <button
+          ref={button}
           className="icon-button"
           disabled={busy}
           aria-expanded={open}
@@ -57,35 +62,42 @@ export function AssignMenu({ issue, projects, onAssigned, onShowDesk }: Props) {
         >
           <svg className="icon" viewBox="0 0 24 24" aria-hidden="true">
             <g fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-              <circle cx="10" cy="8" r="3.5" />
-              <path d="M3.5 19.5c.6-3.4 3.2-5.5 6.5-5.5s5.9 2.1 6.5 5.5" />
-              <path d="M19 6v6M16 9h6" />
+              <rect x="2.5" y="9" width="13" height="10" rx="2.5" />
+              <path d="M9 9V6M1 13.5v2M17 13.5v2" />
+              <circle cx="9" cy="4.8" r="1.2" />
+              <circle cx="6.3" cy="13.5" r="0.6" fill="currentColor" />
+              <circle cx="11.7" cy="13.5" r="0.6" fill="currentColor" />
+              <path d="M7 16.4h4" />
+              <path d="M20 3v6M17 6h6" />
             </g>
           </svg>
         </button>
       )}
       {open && (
-        <div className="menu" role="menu">
-          <label className="menu-project">
+        <Popover anchor={button} className="menu" role="menu" align="end" minWidth={200} onClose={(reason) => {
+          setOpen(false);
+          if (reason === "escape") button.current?.focus();
+        }}>
+          <div className="menu-project">
             <small>T3 project</small>
-            <select value={projectId} onChange={(e) => setProjectId(e.target.value)}>
-              <option value="" disabled>
-                {projects.length === 0 ? "No T3 project yet" : "Choose a project…"}
-              </option>
-              {projects.map((p) => (
-                <option key={p.id} value={p.id}>
-                  {p.title}
-                </option>
-              ))}
-            </select>
-          </label>
+            <Dropdown
+              className="field"
+              label="T3 project"
+              placeholder={projects.length === 0 ? "No T3 project yet" : "Choose a project…"}
+              value={projectId || null}
+              options={projectOptions(projects)}
+              filterable
+              disabled={projects.length === 0}
+              onPick={setProjectId}
+            />
+          </div>
           <button role="menuitem" disabled={projectId === ""} onClick={() => assign("claude")}>
             <ProviderIcon provider="claudeAgent" /> Claude
           </button>
           <button role="menuitem" disabled={projectId === ""} onClick={() => assign("codex")}>
             <ProviderIcon provider="codex" /> Codex
           </button>
-        </div>
+        </Popover>
       )}
       {error && <span className="error">{error}</span>}
     </div>

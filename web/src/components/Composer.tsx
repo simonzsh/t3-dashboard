@@ -1,113 +1,11 @@
-import { useEffect, useRef, useState, type KeyboardEvent, type ReactNode } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { DashboardProvider, ImageAttachment, ModelSelection, RuntimeMode, ThreadSettingsBody } from "../../../shared/api.ts";
 import { IMAGE_TYPES, RUNTIME_MODE_LABELS, acceptImages, currentEffort, findModel, modelLabel, selectEffort, selectModel } from "../composer.ts";
+import type { DropdownOption } from "../dropdown.ts";
 import { NO_AUTOFILL } from "../noAutofill.ts";
+import { Dropdown } from "./Dropdown.tsx";
+import { Icon } from "./Icon.tsx";
 import { ProviderIcon } from "./ProviderIcon.tsx";
-
-// Icon paths from Lucide (ISC).
-const ICONS = {
-  chevron: ["m6 9 6 6 6-6"],
-  brain: [
-    "M12 5a3 3 0 1 0-5.997.125 4 4 0 0 0-2.526 5.77 4 4 0 0 0 .556 6.588A4 4 0 1 0 12 18Z",
-    "M12 5a3 3 0 1 1 5.997.125 4 4 0 0 1 2.526 5.77 4 4 0 0 1-.556 6.588A4 4 0 1 1 12 18Z",
-    "M15 13a4.5 4.5 0 0 1-3-4 4.5 4.5 0 0 1-3 4",
-    "M17.599 6.5a3 3 0 0 0 .399-1.375M6.003 5.125A3 3 0 0 0 6.401 6.5M3.477 10.896a4 4 0 0 1 .585-.396M19.938 10.5a4 4 0 0 1 .585.396M6 18a4 4 0 0 1-1.967-.516M19.967 17.484A4 4 0 0 1 18 18",
-  ],
-  lock: ["M5 11h14a2 2 0 0 1 2 2v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2Z", "M7 11V7a5 5 0 0 1 10 0v4"],
-  unlock: ["M5 11h14a2 2 0 0 1 2 2v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2Z", "M7 11V7a5 5 0 0 1 9.9-1"],
-  paperclip: ["m21.44 11.05-9.19 9.19a6 6 0 0 1-8.49-8.49l8.57-8.57A4 4 0 1 1 18 8.84l-8.59 8.57a2 2 0 0 1-2.83-2.83l8.49-8.48"],
-  arrowUp: ["M12 19V5", "m5 12 7-7 7 7"],
-  x: ["M18 6 6 18", "m6 6 12 12"],
-  check: ["M20 6 9 17l-5-5"],
-};
-
-function Icon({ name, className = "icon" }: { name: keyof typeof ICONS; className?: string }) {
-  return (
-    <svg className={className} viewBox="0 0 24 24" aria-hidden="true">
-      {ICONS[name].map((d) => (
-        <path key={d} d={d} fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-      ))}
-    </svg>
-  );
-}
-
-interface Option {
-  id: string;
-  label: string;
-  description?: string;
-  icon?: ReactNode;
-  group?: string;
-}
-
-interface PickerProps {
-  label: string;
-  icon: ReactNode;
-  value: string | null;
-  options: Option[];
-  disabled: boolean;
-  /** Narrow composers show only the icon of a secondary picker. */
-  secondary?: boolean;
-  onPick: (id: string) => void;
-}
-
-function Picker({ label, icon, value, options, disabled, secondary = false, onPick }: PickerProps) {
-  const [open, setOpen] = useState(false);
-  const root = useRef<HTMLDivElement>(null);
-  const current = options.find((o) => o.id === value);
-
-  useEffect(() => {
-    if (!open) return;
-    const close = (e: MouseEvent) => {
-      if (!root.current?.contains(e.target as Node)) setOpen(false);
-    };
-    document.addEventListener("mousedown", close);
-    return () => document.removeEventListener("mousedown", close);
-  }, [open]);
-
-  // Escape closes the menu only: without stopPropagation the Desk would also leave fullscreen.
-  function onKeyDown(e: KeyboardEvent) {
-    if (e.key === "Escape" && open) {
-      e.stopPropagation();
-      setOpen(false);
-    }
-  }
-
-  return (
-    <div className={`picker${secondary ? " secondary" : ""}`} ref={root} onKeyDown={onKeyDown}>
-      <button type="button" className="picker-trigger" aria-label={label} title={label} aria-haspopup="listbox" aria-expanded={open} disabled={disabled} onClick={() => setOpen(!open)}>
-        {icon}
-        <span className="picker-value">{current?.label ?? value ?? label}</span>
-        <Icon name="chevron" className="icon chevron-down" />
-      </button>
-      {open && (
-        <div className="picker-menu" role="listbox" aria-label={label}>
-          {options.map((o, i) => (
-            <div key={o.id} className="picker-entry">
-              {o.group && o.group !== options[i - 1]?.group && <div className="picker-group">{o.group}</div>}
-              <button
-                type="button"
-                role="option"
-                aria-selected={o.id === value}
-                autoFocus={o.id === value}
-                onClick={() => {
-                  setOpen(false);
-                  if (o.id !== value) onPick(o.id);
-                }}
-              >
-                {o.icon}
-                <span className="picker-text">
-                  <span>{o.label}</span>
-                  {o.description && <small>{o.description}</small>}
-                </span>
-                {o.id === value && <Icon name="check" className="icon picker-check" />}
-              </button>
-            </div>
-          ))}
-        </div>
-      )}
-    </div>
-  );
-}
 
 interface Pending {
   key: string;
@@ -138,9 +36,11 @@ interface Props {
   onReload: () => void;
   /** Error of the last send, stop or settings change. */
   error: string | null;
+  placeholder?: string;
+  autoFocus?: boolean;
 }
 
-export function Composer({ providers, selection, runtimeMode, running, draft, onDraft, onSend, onStop, onSettings, onReload, error: actionError }: Props) {
+export function Composer({ providers, selection, runtimeMode, running, draft, onDraft, onSend, onStop, onSettings, onReload, error: actionError, placeholder, autoFocus = false }: Props) {
   // Picks show at once; the thread values come back on the next reload.
   const [localSelection, setLocalSelection] = useState(selection);
   const [localMode, setLocalMode] = useState(runtimeMode);
@@ -209,7 +109,7 @@ export function Composer({ providers, selection, runtimeMode, running, draft, on
     if (ok) setImages([]);
   }
 
-  const modelOptions: Option[] = providers.flatMap((p) =>
+  const modelOptions: DropdownOption[] = providers.flatMap((p) =>
     p.models.map((m) => ({ id: `${p.instanceId}\u0000${m.slug}`, label: m.name, group: p.displayName, icon: <ProviderIcon provider={p.instanceId} /> })),
   );
   const selectedModelId = localSelection ? `${localSelection.instanceId}\u0000${localSelection.model}` : null;
@@ -256,12 +156,13 @@ export function Composer({ providers, selection, runtimeMode, running, draft, on
             e.preventDefault();
             void addFiles(files);
           }}
-          placeholder={running ? "Steer the agent…" : "Send a message to the agent…"}
+          autoFocus={autoFocus}
+          placeholder={placeholder ?? (running ? "Steer the agent…" : "Send a message to the agent…")}
           aria-label="Message"
         />
         <div className="composer-toolbar">
           <div className="composer-pickers">
-            <Picker
+            <Dropdown
               label="Model"
               icon={localSelection ? <ProviderIcon provider={localSelection.instanceId} /> : null}
               value={selectedModelId}
@@ -277,25 +178,24 @@ export function Composer({ providers, selection, runtimeMode, running, draft, on
             {found?.model.effort && localSelection && (
               <>
                 <span className="composer-sep" aria-hidden="true" />
-                <Picker
+                <Dropdown
                   label="Reasoning effort"
                   icon={<Icon name="brain" />}
                   value={effort}
                   options={found.model.effort.levels}
-                  disabled={false}
-                  secondary
+                  className="secondary"
                   onPick={(level) => void change({ selection: selectEffort(localSelection, found.model, level) })}
                 />
               </>
             )}
             <span className="composer-sep" aria-hidden="true" />
-            <Picker
+            <Dropdown
               label="Access"
               icon={<Icon name={localMode === "full-access" ? "unlock" : "lock"} />}
               value={localMode}
               options={modes.map((mode) => ({ id: mode, ...RUNTIME_MODE_LABELS[mode] }))}
               disabled={!localMode}
-              secondary
+              className="secondary"
               onPick={(mode) => void change({ mode: mode as RuntimeMode })}
             />
           </div>

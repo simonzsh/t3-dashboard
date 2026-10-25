@@ -192,7 +192,6 @@ export function App() {
         <NewThreadDialog
           projects={state.projects}
           providers={state.providers}
-          defaultProjectId={null}
           onClose={() => setCreating(false)}
           onCreated={(id) => {
             setCreating(false);
