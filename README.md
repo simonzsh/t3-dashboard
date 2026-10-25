@@ -91,26 +91,22 @@ Tout se règle depuis le dashboard.
 
 1. Dans Linear, ouvrez Settings, Account, Security & access, puis « Personal API keys » et « New API key ». Lien direct : <https://linear.app/settings/account/security>.
 2. Dans l'onglet Board, collez la clé et cliquez sur « Connect ». Le serveur vérifie la clé auprès de Linear avant de l'enregistrer.
-3. Dans Settings, la section Linear permet de changer ou de retirer la clé. Elle liste aussi les équipes : pour chacune, choisissez un projet T3, « Ask when assigning » ou « Hidden ».
+3. Dans Settings, la section Linear montre l'état de la clé. Elle permet de la changer ou de la retirer.
 
-Règles des équipes :
+La clé est le seul réglage. Le Board affiche les tickets assignés de toutes les équipes de l'espace Linear. Si la clé couvre plusieurs entreprises, leurs tickets s'affichent ensemble.
 
-- « Hidden » : les tickets de l'équipe ne s'affichent pas et on ne peut pas les assigner.
-- « Ask when assigning » : le menu d'assignation demande le projet T3.
-- Une équipe absente de la liste suit le réglage « Teams not listed » (affichées ou cachées).
-- Quand vous choisissez un projet T3 à l'assignation, le dashboard retient ce choix pour l'équipe.
+À l'assignation, le menu demande le projet T3, puis l'agent (Claude ou Codex). Le navigateur retient le dernier projet choisi pour chaque équipe et le présélectionne. Ce souvenir reste dans le `localStorage` du navigateur, pas sur le serveur.
 
 Le serveur garde la clé dans `~/.config/t3-dashboard/linear.json` (mode 600). Il ne la renvoie jamais au navigateur, seulement les 4 derniers caractères au plus. Il garde les tickets 60 s ; `GET /api/board?refresh=1` force la relecture.
 
 Format du fichier :
 
 ```json
-{ "apiKey": "lin_api_...", "teams": { "ENG": "Project A", "OPS": null, "DES": "" }, "unlisted": "show" }
+{ "apiKey": "lin_api_..." }
 ```
 
-- `teams` : la clé de l'équipe Linear avec le titre du projet T3, `""` (demander) ou `null` (cachée).
-- `unlisted` : `"show"` ou `"hide"`. Sans ce champ, la valeur est `"hide"` quand `teams` existe, sinon `"show"`.
-- L'ancien format `{ "workspaces": [...] }` marche toujours. Le premier enregistrement depuis Settings le convertit en un seul workspace. Settings prévient avant.
+- Un ancien fichier peut contenir `teams` et `unlisted`. Le serveur les ignore et les supprime à la prochaine écriture.
+- L'ancien format `{ "workspaces": [...] }` se lit encore : le serveur prend la première clé non vide. Le premier enregistrement depuis Settings le convertit. Settings prévient avant.
 
 ## Variables d'environnement
 
