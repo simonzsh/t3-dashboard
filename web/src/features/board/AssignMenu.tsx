@@ -1,6 +1,6 @@
 import { useRef, useState } from "react";
 import type { DashboardProject, LinearIssue } from "../../../../shared/api.ts";
-import { api } from "../../api/client.ts";
+import { useApi } from "../../api/ApiContext.tsx";
 import { loadAssignProject, saveAssignProject } from "../../lib/assignProject.ts";
 import { browserStorage } from "../../lib/storage.ts";
 import { projectOptions } from "../../lib/dropdown.ts";
@@ -16,6 +16,7 @@ interface Props {
 }
 
 export function AssignMenu({ issue, projects, onAssigned, onShowDesk }: Props) {
+  const api = useApi();
   const [open, setOpen] = useState(false);
   const [done, setDone] = useState(false);
   const [projectId, setProjectId] = useState("");

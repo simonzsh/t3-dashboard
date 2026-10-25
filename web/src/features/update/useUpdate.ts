@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import type { UpdateStatus } from "../../../../shared/api.ts";
-import { api } from "../../api/client.ts";
+import { useApi } from "../../api/ApiContext.tsx";
 import { waitForRestart } from "./updateFlow.ts";
 
 const POLL_MS = 60 * 60 * 1000;
@@ -17,6 +17,7 @@ export interface UpdateControl {
 const messageOf = (e: unknown) => (e instanceof Error ? e.message : String(e));
 
 export function useUpdate(): UpdateControl {
+  const api = useApi();
   const [status, setStatus] = useState<UpdateStatus | null>(null);
   const [updating, setUpdating] = useState(false);
   const [checking, setChecking] = useState(false);

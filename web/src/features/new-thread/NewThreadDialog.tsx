@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import type { DashboardProject, DashboardProvider, ImageAttachment, ModelSelection, RuntimeMode, ThreadSettingsBody } from "../../../../shared/api.ts";
-import { api } from "../../api/client.ts";
+import { useApi } from "../../api/ApiContext.tsx";
 import { browserStorage } from "../../lib/storage.ts";
 import { findModel } from "../conversation/composer.ts";
 import { projectOptions } from "../../lib/dropdown.ts";
@@ -20,6 +20,7 @@ interface Props {
 const DEFAULT_MODE: RuntimeMode = "full-access";
 
 export function NewThreadDialog({ projects, providers, onClose, onCreated }: Props) {
+  const api = useApi();
   const [projectId, setProjectId] = useState(() => loadNewAgentProject(browserStorage(), projects));
   const [selection, setSelection] = useState<ModelSelection | null>(() => presetSelection(projects.find((p) => p.id === projectId), providers));
   const [mode, setMode] = useState<RuntimeMode>(DEFAULT_MODE);

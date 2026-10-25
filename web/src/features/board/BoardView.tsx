@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import type { BoardResult, DashboardProject } from "../../../../shared/api.ts";
-import { api } from "../../api/client.ts";
+import { useApi } from "../../api/ApiContext.tsx";
 import { boardColumns } from "./board.ts";
 import { boardNeedsKey, linearConnected } from "../settings/linearSettings.ts";
 import { Icon, IconButton } from "../../ui/index.ts";
@@ -16,6 +16,7 @@ interface Props {
 }
 
 export function BoardView({ projects, version, onAssigned, onShowDesk }: Props) {
+  const api = useApi();
   const [board, setBoard] = useState<BoardResult | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);

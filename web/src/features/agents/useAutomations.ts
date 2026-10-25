@@ -1,11 +1,12 @@
 import { useEffect, useState } from "react";
 import type { AutomationsResult } from "../../../../shared/api.ts";
-import { api } from "../../api/client.ts";
+import { useApi } from "../../api/ApiContext.tsx";
 
 const POLL_MS = 60_000;
 
 // Polls only while the Agents tab is open; it reloads at once on each opening.
 export function useAutomations(active: boolean): { result: AutomationsResult | null; error: string | null } {
+  const api = useApi();
   const [result, setResult] = useState<AutomationsResult | null>(null);
   const [error, setError] = useState<string | null>(null);
 

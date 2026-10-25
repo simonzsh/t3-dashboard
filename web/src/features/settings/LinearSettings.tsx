@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import type { SettingsResult } from "../../../../shared/api.ts";
-import { api } from "../../api/client.ts";
+import { useApi } from "../../api/ApiContext.tsx";
 import { KEY_URL, maskedKey } from "./linearSettings.ts";
 import { Icon, IconButton } from "../../ui/index.ts";
 import { LinearKeyForm } from "./LinearKeyForm.tsx";
@@ -11,6 +11,7 @@ interface Props {
 }
 
 export function LinearSettings({ onChange }: Props) {
+  const api = useApi();
   const [settings, setSettings] = useState<SettingsResult | null>(null);
   const [changing, setChanging] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);

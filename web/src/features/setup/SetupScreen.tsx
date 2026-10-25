@@ -1,12 +1,13 @@
 import { useState } from "react";
 import type { SetupInfo } from "../../../../shared/api.ts";
-import { api } from "../../api/client.ts";
+import { useApi } from "../../api/ApiContext.tsx";
 import { setupCopy } from "./setup.ts";
 import { Button, SecretInput } from "../../ui/index.ts";
 import { useAction } from "../../lib/useAction.ts";
 
 // The screen goes away by itself: the next `connection` event carries `setup: null`.
 export function SetupScreen({ setup }: { setup: SetupInfo }) {
+  const api = useApi();
   const copy = setupCopy(setup);
   const [token, setToken] = useState("");
   const [copied, setCopied] = useState(false);

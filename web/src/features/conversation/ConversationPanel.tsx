@@ -1,7 +1,7 @@
 import { memo, useEffect, useRef, useState } from "react";
 import type { ChatMessage, DashboardEvent, DashboardProvider, DashboardThread, ImageAttachment, ThreadDetail, ThreadSettingsBody } from "../../../../shared/api.ts";
 import { runActive } from "../../../../shared/status.ts";
-import { api } from "../../api/client.ts";
+import { useApi } from "../../api/ApiContext.tsx";
 import { renderMarkdown } from "../../lib/markdown.tsx";
 import { type PendingMessage, countSame, isSettled, pendingLabel } from "./pending.ts";
 import { Composer } from "./Composer.tsx";
@@ -59,6 +59,7 @@ interface Props {
 }
 
 export function ConversationPanel({ threadId, thread, lastEvent, providers }: Props) {
+  const api = useApi();
   const [detail, setDetail] = useState<ThreadDetail | null>(() => detailCache.get(threadId) ?? null);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [text, setText] = useState(() => drafts.get(threadId) ?? "");

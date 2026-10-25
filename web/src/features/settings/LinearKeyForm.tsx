@@ -1,6 +1,6 @@
 import { useState } from "react";
 import type { SettingsResult } from "../../../../shared/api.ts";
-import { api } from "../../api/client.ts";
+import { useApi } from "../../api/ApiContext.tsx";
 import { Button, SecretInput } from "../../ui/index.ts";
 import { useAction } from "../../lib/useAction.ts";
 
@@ -11,6 +11,7 @@ interface Props {
 
 // The server checks the key with Linear before it saves it; the error says what went wrong.
 export function LinearKeyForm({ button, onSaved }: Props) {
+  const api = useApi();
   const [key, setKey] = useState("");
   const { busy, error, run } = useAction();
   return (

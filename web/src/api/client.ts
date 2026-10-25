@@ -54,4 +54,6 @@ export function createApi(fetchImpl: Fetch) {
   };
 }
 
+export type Api = ReturnType<typeof createApi>;
+
 export const api = createApi((input, init) => globalThis.fetch(input, init));

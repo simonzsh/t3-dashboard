@@ -1,6 +1,6 @@
 import { useState } from "react";
 import type { ApprovalDecision, PendingRequestDetail } from "../../../../shared/api.ts";
-import { api } from "../../api/client.ts";
+import { useApi } from "../../api/ApiContext.tsx";
 import { buildAnswers, canSubmit, type Drafts } from "./answers.ts";
 import { Button, Choice, TextInput } from "../../ui/index.ts";
 import { useAction } from "../../lib/useAction.ts";
@@ -12,6 +12,7 @@ const DECISIONS: Array<[ApprovalDecision, string]> = [
 ];
 
 export function PendingRequestView({ threadId, request }: { threadId: string; request: PendingRequestDetail }) {
+  const api = useApi();
   const action = useAction();
   const [drafts, setDrafts] = useState<Drafts>({});
   const locked = !request.resumable;
