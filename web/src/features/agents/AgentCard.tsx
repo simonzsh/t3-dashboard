@@ -8,8 +8,6 @@ import { ProviderIcon } from "../../lib/ProviderIcon.tsx";
 
 interface Props {
   card: Card;
-  /** Smaller card without the preview, for settled threads. */
-  compact?: boolean;
   now: Date;
   onDesk: boolean;
   t3EnvironmentId: string | null;
@@ -18,17 +16,17 @@ interface Props {
   onToggleDesk: (id: string) => void;
 }
 
-export function AgentCard({ card, compact = false, now, onDesk, t3EnvironmentId, onOpen, onToggleDesk }: Props) {
+export function AgentCard({ card, now, onDesk, t3EnvironmentId, onOpen, onToggleDesk }: Props) {
   const { thread: t, status } = card;
   const failed = hasFailed(t);
   return (
     <div className="agent-wrap">
-      <Pressable className={`agent ${status}${compact ? " compact" : ""}${onDesk ? " on-desk" : ""}`} tooltip={threadTitle(t)} onClick={(e) => onOpen(t.id, e.shiftKey)}>
+      <Pressable className={`agent ${status}${onDesk ? " on-desk" : ""}`} tooltip={threadTitle(t)} onClick={(e) => onOpen(t.id, e.shiftKey)}>
         <span className="agent-head">
           <ProviderIcon provider={t.provider} />
           <span className="agent-title">{threadTitle(t)}</span>
         </span>
-        {t.preview && !compact && <span className="agent-preview">{cut(t.preview.text, 160)}</span>}
+        {t.preview && <span className="agent-preview">{cut(t.preview.text, 160)}</span>}
         <span className="agent-foot">
           {status === "waiting" && <Badge variant="waiting">Waiting for your reply{t.pending ? ` · ${pendingLabel(t.pending.category).toLowerCase()}` : ""}</Badge>}
           {status === "working" && (

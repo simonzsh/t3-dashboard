@@ -368,8 +368,6 @@ main { flex: 1; min-height: 0; overflow: hidden; padding: 24px; display: flex; f
 .settled-head { display: inline-flex; align-items: center; gap: 8px; padding: 4px 6px; border: 0; background: none; color: var(--text-secondary); font-size: 12px; font-weight: 500; }
 .settled-head:hover:not(:disabled) { color: var(--text-primary); }
 .settled-head + .grid { margin-top: 8px; }
-.grid.compact { grid-template-columns: repeat(auto-fill, minmax(min(220px, 100%), 360px)); gap: 10px; }
-.agent.compact { gap: 6px; padding: 10px 12px; border-radius: 12px; font-size: 13px; }
 .automations { max-height: 100%; overflow-y: auto; box-sizing: border-box; display: flex; flex-direction: column; gap: 20px; padding: 16px; border-radius: 14px; background: var(--surface-1); border: 1px solid var(--line); box-shadow: var(--shadow); }
 .auto-heading { margin: 0; font-size: 15px; }
 .auto-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
@@ -486,7 +484,8 @@ button.auto-row:hover { background: var(--surface-0); }
   .column { width: 100%; min-width: 0; max-height: none; flex: none; }
 }
 @media (max-width: 700px) {
-  .grid, .grid.compact { grid-template-columns: 1fr; }
+  /* minmax(0, …): a one-line title must not widen the column past the screen. */
+  .grid { grid-template-columns: minmax(0, 1fr); }
 }
 @media (max-width: 380px) {
   .topbar { gap: 6px; padding-inline: max(8px, env(safe-area-inset-left)) max(8px, env(safe-area-inset-right)); }
