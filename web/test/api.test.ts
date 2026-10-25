@@ -13,13 +13,11 @@ function fake(status: number, body: unknown) {
   return { calls, api: createApi(fetch) };
 }
 
-test("getState and getThread use GET and encode ids", async () => {
+test("getThread uses GET and encodes ids", async () => {
   const { calls, api } = fake(200, {});
-  await api.getState();
   await api.getThread("a/b c");
-  assert.equal(calls[0]?.url, "/api/state");
+  assert.equal(calls[0]?.url, "/api/threads/a%2Fb%20c");
   assert.equal(calls[0]?.init?.method ?? "GET", "GET");
-  assert.equal(calls[1]?.url, "/api/threads/a%2Fb%20c");
 });
 
 test("createThread posts JSON with content-type", async () => {
@@ -64,7 +62,7 @@ test("non-2xx throws with the server message", async () => {
 
 test("non-2xx without JSON error body still throws", async () => {
   const fetch = (async () => new Response("boom", { status: 500 })) as unknown as typeof globalThis.fetch;
-  await assert.rejects(() => createApi(fetch).getState(), /500/);
+  await assert.rejects(() => createApi(fetch).getHealth(), /500/);
 });
 
 test("getBoard reads the cache by default and forces a refresh on demand", async () => {

@@ -5,7 +5,6 @@ import type {
   ConnectionStatus,
   CreateThreadBody,
   CreateThreadResult,
-  DashboardState,
   HealthResult,
   OkResult,
   RespondBody,
@@ -32,7 +31,6 @@ export function createApi(fetchImpl: Fetch) {
   }
   const t = (id: string) => `/api/threads/${encodeURIComponent(id)}`;
   return {
-    getState: () => call<DashboardState>("/api/state"),
     getAutomations: () => call<AutomationsResult>("/api/automations"),
     getBoard: (refresh = false) => call<BoardResult>(refresh ? "/api/board?refresh=1" : "/api/board"),
     assignIssue: (b: AssignIssueBody) => call<CreateThreadResult>("/api/board/assign", b),

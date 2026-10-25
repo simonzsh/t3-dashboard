@@ -183,19 +183,12 @@ async function call(server: DashboardHandler, method: string, path: string, opti
 const post = (server: DashboardHandler, path: string, body: unknown = {}, headers?: Record<string, string>) => call(server, "POST", path, { body, ...(headers && { headers }) });
 const model = { instanceId: "provider-a", model: "model-x" };
 
-test("GET /api/health and /api/state", async () => {
+test("GET /api/health", async () => {
   const { server } = await start();
   const health = await call(server, "GET", "/api/health");
   assert.deepEqual(health.json, { ok: true, t3: "live", version: VERSION });
   assert.equal(health.headers["content-type"], "application/json; charset=utf-8");
   assert.equal(health.headers["access-control-allow-origin"], undefined);
-  const state = (await call(server, "GET", "/api/state")).json as DashboardState;
-  assert.equal(state.connection.t3, "live");
-  assert.deepEqual(state.projects, [
-    { id: "project-1", title: "Project A", defaultModelSelection: null },
-    { id: "project-2", title: "Project B", defaultModelSelection: null },
-  ]);
-  assert.equal(state.threads.length, 3);
 });
 
 test("POST /api/threads sends thread.create then message.dispatch", async () => {
@@ -379,7 +372,7 @@ test("interrupt falls back to the last active run of the projection, else 409", 
 
 test("every response forbids framing and sniffing", async () => {
   const { server } = await start({ site: { serve: async () => new Response("<html></html>", { headers: { "content-type": "text/html" } }) } });
-  for (const reply of [await call(server, "GET", "/api/state"), await call(server, "GET", "/"), await post(server, "/api/threads/x/nope")]) {
+  for (const reply of [await call(server, "GET", "/api/health"), await call(server, "GET", "/"), await post(server, "/api/threads/x/nope")]) {
     assert.equal(reply.headers["x-frame-options"], "DENY");
     assert.equal(reply.headers["content-security-policy"], "frame-ancestors 'none'");
     assert.equal(reply.headers["x-content-type-options"], "nosniff");
