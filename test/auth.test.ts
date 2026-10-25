@@ -243,3 +243,12 @@ test("runCommand returns the exit code and stdout, and a null code on a timeout 
   assert.equal((await runCommand(process.execPath, ["-e", "setTimeout(() => {}, 30000)"], { timeoutMs: 200 })).code, null);
   assert.equal((await runCommand("/nonexistent/t3", [], { timeoutMs: 1000 })).code, null);
 });
+
+test("locateT3 prefers the CLI of the running server version over an older one on PATH", () => {
+  const exists = (paths: string[]) => (p: string) => paths.includes(p);
+  const runtime = "/h/.t3/runtime/versions/0.2.0/t3";
+  assert.equal(locateT3({}, "/h", exists([runtime]), () => "/h/.local/bin/t3", "0.2.0"), runtime);
+  assert.equal(locateT3({ T3CODE_HOME: "/data/t3" }, "/h", exists(["/data/t3/runtime/versions/0.2.0/t3"]), () => null, "0.2.0"), "/data/t3/runtime/versions/0.2.0/t3");
+  assert.equal(locateT3({}, "/h", exists([]), () => "/p/t3", "0.2.0"), "/p/t3");
+  assert.equal(locateT3({}, "/h", exists([runtime]), () => "/p/t3", "../evil"), "/p/t3");
+});

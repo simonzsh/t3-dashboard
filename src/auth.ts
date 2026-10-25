@@ -49,8 +49,20 @@ const tryRead = (readFile: ReadFile, path: string): string | null => {
 };
 
 /** Looks for the t3 program: a service starts with a short PATH, so common folders are tried too. */
-export function locateT3(env: Env, homedir: string, exists: (path: string) => boolean, which: (name: string) => string | null): string | null {
+export function locateT3(
+  env: Env,
+  homedir: string,
+  exists: (path: string) => boolean,
+  which: (name: string) => string | null,
+  serverVersion: string | null = null,
+): string | null {
   if (env.T3_DASHBOARD_T3_BIN) return exists(env.T3_DASHBOARD_T3_BIN) ? env.T3_DASHBOARD_T3_BIN : null;
+  // The t3 on PATH can lag behind the running server, and an older CLI mints tokens the server refuses.
+  if (serverVersion && /^[\w.-]+$/.test(serverVersion)) {
+    const versionDir = join(env.T3CODE_HOME || join(homedir, ".t3"), "runtime", "versions", serverVersion);
+    const match = [join(versionDir, "t3"), join(versionDir, "t3.exe")].find(exists);
+    if (match) return match;
+  }
   const local = env.LOCALAPPDATA;
   const candidates = [
     join(homedir, ".local", "bin", "t3"),
@@ -61,7 +73,8 @@ export function locateT3(env: Env, homedir: string, exists: (path: string) => bo
   return which("t3") ?? candidates.find(exists) ?? null;
 }
 
-export const findT3 = (env: Env, homedir: string): string | null => locateT3(env, homedir, existsSync, (name) => Bun.which(name));
+export const findT3 = (env: Env, homedir: string, serverVersion: string | null = null): string | null =>
+  locateT3(env, homedir, existsSync, (name) => Bun.which(name), serverVersion);
 
 export async function runCommand(command: string, args: string[], { timeoutMs }: { timeoutMs: number }): Promise<RunResult> {
   try {

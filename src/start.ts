@@ -6,7 +6,7 @@ import type { DashboardProvider } from "../shared/api.ts";
 import { readAutomations } from "./automations.ts";
 import { TokenManager, findT3, runCommand, validateWith } from "./auth.ts";
 import { agentConfigDir, loadBrains } from "./brains.ts";
-import { loadConfig, resolveOrigin } from "./config.ts";
+import { loadConfig, readServerVersion, resolveOrigin } from "./config.ts";
 import { LiveSync } from "./live.ts";
 import { LinearBoard } from "./linear.ts";
 import { readLinearWorkspaces } from "./linearConfig.ts";
@@ -55,7 +55,7 @@ export async function start({ port, log, env }: StartOptions): Promise<void> {
     homedir: home,
     readFile: readText,
     writeSecret,
-    findT3: () => findT3(env, home),
+    findT3: () => findT3(env, home, readServerVersion(config.runtimeFile, readText)),
     run: runCommand,
     validate: validateWith(origin),
     log: (message) => console.log(message),

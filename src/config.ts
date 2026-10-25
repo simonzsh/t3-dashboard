@@ -29,3 +29,13 @@ export function resolveOrigin(runtimeFile: string, readFile: ReadFile): string {
   }
   return DEFAULT_ORIGIN;
 }
+
+/** The version of the running T3 server, from its runtime file, or null. */
+export function readServerVersion(runtimeFile: string, readFile: ReadFile): string | null {
+  try {
+    const version = (JSON.parse(readFile(runtimeFile)) as { serverVersion?: unknown }).serverVersion;
+    return typeof version === "string" && version !== "" ? version : null;
+  } catch {
+    return null;
+  }
+}

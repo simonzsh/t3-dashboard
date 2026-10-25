@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "bun:test";
-import { loadConfig, resolveOrigin } from "../src/config.ts";
+import { loadConfig, readServerVersion, resolveOrigin } from "../src/config.ts";
 
 const files = (map: Record<string, string>) => (path: string) => {
   if (path in map) return map[path]!;
@@ -31,4 +31,10 @@ test("resolveOrigin falls back when the file or field is missing", () => {
   assert.equal(resolveOrigin("/r.json", files({})), "http://127.0.0.1:3773");
   assert.equal(resolveOrigin("/r.json", files({ "/r.json": "{}" })), "http://127.0.0.1:3773");
   assert.equal(resolveOrigin("/r.json", files({ "/r.json": "garbage" })), "http://127.0.0.1:3773");
+});
+
+test("readServerVersion reads serverVersion, or null", () => {
+  assert.equal(readServerVersion("/r", () => JSON.stringify({ serverVersion: "0.2.0" })), "0.2.0");
+  assert.equal(readServerVersion("/r", () => "{}"), null);
+  assert.equal(readServerVersion("/r", () => { throw new Error("ENOENT"); }), null);
 });
