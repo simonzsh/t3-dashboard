@@ -5,6 +5,7 @@ import { ConnectionBanner } from "./components/ConnectionBanner.tsx";
 import { DeskView } from "./components/DeskView.tsx";
 import { NewThreadDialog } from "./components/NewThreadDialog.tsx";
 import { SettingsDialog } from "./components/SettingsDialog.tsx";
+import { SetupScreen } from "./components/SetupScreen.tsx";
 import { DESK_LIMIT, gridWindows, isFull } from "./desk.ts";
 import { useAutomations } from "./useAutomations.ts";
 import { useDashboard } from "./useDashboard.ts";
@@ -35,11 +36,12 @@ function focusComposer(threadId: string) {
 export function App() {
   const { state, sseDown, lastEvent } = useDashboard();
   const [tab, setTab] = useState<Tab>("agents");
-  const automations = useAutomations(tab === "agents");
+  const automations = useAutomations(tab === "agents" && state?.automationsAvailable === true);
   const [desk, dispatchDesk] = useDesk(state?.connection.t3 === "live" ? state.threads : null);
   const [toast, setToast] = useState<FullToast | null>(null);
   const [creating, setCreating] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [boardVersion, setBoardVersion] = useState(0);
   const [theme, setTheme] = useTheme();
   const [deskBackground, setDeskBackground] = useDeskBackground();
   const [now, setNow] = useState(() => new Date());
@@ -94,6 +96,8 @@ export function App() {
   const deskIds = new Set(desk.windows.map((w) => w.id));
   const deskWaiting = state?.threads.some((t) => t.pending && deskIds.has(t.id)) ?? false;
 
+  if (state?.connection.setup) return <SetupScreen setup={state.connection.setup} />;
+
   return (
     <div className={`app${tab === "desk" ? " desk-mode" : ""}`}>
       <header className="topbar">
@@ -141,7 +145,7 @@ export function App() {
               automationsError={automations.error}
             />
           ) : <p className="empty">Loading…</p>)}
-        {tab === "board" && <BoardView onAssigned={(id) => openOnDesk(id, false)} onShowDesk={() => setTab("desk")} />}
+        {tab === "board" && <BoardView projects={state?.projects ?? []} version={boardVersion} onAssigned={(id) => openOnDesk(id, false)} onShowDesk={() => setTab("desk")} />}
         {tab === "desk" &&
           (state ? (
             <DeskView
@@ -189,6 +193,8 @@ export function App() {
           onThemeChange={setTheme}
           background={deskBackground}
           onBackgroundChange={setDeskBackground}
+          projects={state?.projects ?? []}
+          onLinearChange={() => setBoardVersion((version) => version + 1)}
           onClose={() => setSettingsOpen(false)}
         />
       )}

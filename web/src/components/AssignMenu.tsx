@@ -1,25 +1,29 @@
 import { useState } from "react";
-import type { LinearIssue } from "../../../shared/api.ts";
+import type { DashboardProject, LinearIssue } from "../../../shared/api.ts";
 import { api } from "../api.ts";
 import { ProviderIcon } from "./ProviderIcon.tsx";
 import { useAction } from "./useAction.ts";
 
 interface Props {
   issue: LinearIssue;
+  projects: DashboardProject[];
   onAssigned: (threadId: string) => void;
   onShowDesk: () => void;
 }
 
-export function AssignMenu({ issue, onAssigned, onShowDesk }: Props) {
+export function AssignMenu({ issue, projects, onAssigned, onShowDesk }: Props) {
   const [open, setOpen] = useState(false);
   const [done, setDone] = useState(false);
+  const [projectId, setProjectId] = useState("");
+  // The team has no T3 project yet: ask once, the server remembers the answer for the team.
+  const needsProject = issue.t3ProjectId === null;
   const { busy, error, run } = useAction();
 
   async function assign(agent: "claude" | "codex") {
     setOpen(false);
     let threadId = "";
     const ok = await run(async () => {
-      threadId = (await api.assignIssue({ workspace: issue.workspace, issueId: issue.id, agent })).threadId;
+      threadId = (await api.assignIssue({ workspace: issue.workspace, issueId: issue.id, agent, ...(needsProject && { projectId }) })).threadId;
     });
     if (!ok) return;
     setDone(true);
@@ -58,10 +62,25 @@ export function AssignMenu({ issue, onAssigned, onShowDesk }: Props) {
       )}
       {open && (
         <div className="menu" role="menu">
-          <button role="menuitem" onClick={() => assign("claude")}>
+          {needsProject && (
+            <label className="menu-project">
+              <small>T3 project for team {issue.team.key}</small>
+              <select value={projectId} onChange={(e) => setProjectId(e.target.value)}>
+                <option value="" disabled>
+                  {projects.length === 0 ? "No T3 project yet" : "Choose a project…"}
+                </option>
+                {projects.map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {p.title}
+                  </option>
+                ))}
+              </select>
+            </label>
+          )}
+          <button role="menuitem" disabled={needsProject && projectId === ""} onClick={() => assign("claude")}>
             <ProviderIcon provider="claudeAgent" /> Claude
           </button>
-          <button role="menuitem" onClick={() => assign("codex")}>
+          <button role="menuitem" disabled={needsProject && projectId === ""} onClick={() => assign("codex")}>
             <ProviderIcon provider="codex" /> Codex
           </button>
         </div>

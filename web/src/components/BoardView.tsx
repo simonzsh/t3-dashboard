@@ -1,10 +1,20 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import type { BoardResult } from "../../../shared/api.ts";
+import type { BoardResult, DashboardProject } from "../../../shared/api.ts";
 import { api } from "../api.ts";
 import { boardColumns } from "../board.ts";
+import { boardNeedsKey } from "../linearSettings.ts";
 import { AssignMenu } from "./AssignMenu.tsx";
+import { LinearSetupCard } from "./LinearSetupCard.tsx";
 
-export function BoardView({ onAssigned, onShowDesk }: { onAssigned: (threadId: string) => void; onShowDesk: () => void }) {
+interface Props {
+  projects: DashboardProject[];
+  /** Changes when the Linear settings change: the board then loads again. */
+  version: number;
+  onAssigned: (threadId: string) => void;
+  onShowDesk: () => void;
+}
+
+export function BoardView({ projects, version, onAssigned, onShowDesk }: Props) {
   const [board, setBoard] = useState<BoardResult | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -22,11 +32,12 @@ export function BoardView({ onAssigned, onShowDesk }: { onAssigned: (threadId: s
   }, []);
 
   useEffect(() => {
-    void load(false);
-  }, [load]);
+    void load(version > 0);
+  }, [load, version]);
 
   const columns = useMemo(() => boardColumns(board?.issues ?? []), [board]);
-  const broken = board?.workspaces.filter((w) => !w.ok) ?? [];
+  const needsKey = board !== null && boardNeedsKey(board);
+  const broken = needsKey ? [] : (board?.workspaces.filter((w) => !w.ok) ?? []);
 
   return (
     <>
@@ -42,7 +53,8 @@ export function BoardView({ onAssigned, onShowDesk }: { onAssigned: (threadId: s
         </p>
       ))}
       {!board && !error && <p className="empty">Loading…</p>}
-      {board && columns.length === 0 && broken.length === 0 && (
+      {board && needsKey && <LinearSetupCard refused={board.configured} onConnected={() => void load(true)} />}
+      {board && !needsKey && columns.length === 0 && broken.length === 0 && (
         <div className="empty-state">
           <strong>No assigned issues</strong>
           <span>Open issues assigned to you appear here.</span>
@@ -71,7 +83,7 @@ export function BoardView({ onAssigned, onShowDesk }: { onAssigned: (threadId: s
                           </span>
                           <span className="card-title">{i.title}</span>
                         </a>
-                        <AssignMenu issue={i} onAssigned={onAssigned} onShowDesk={onShowDesk} />
+                        <AssignMenu issue={i} projects={projects} onAssigned={onAssigned} onShowDesk={onShowDesk} />
                       </article>
                     ))}
                   </div>
