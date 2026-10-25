@@ -19,8 +19,11 @@ export function siteFromBundle(bundle: HTMLBundle): Site {
   const byName = new Map(files.map((file) => [basename(file.path), file]));
   const page = files.find((file) => file.path.endsWith(".html"));
   const respond = (file: BundleFile) => new Response(Bun.file(file.path), { headers: file.headers });
+  // Safari asks for /favicon.ico whatever the page links: answer with the bundled PNG icon.
+  const icon = files.find((file) => basename(file.path).startsWith("favicon-32"));
   return {
     async serve(pathname) {
+      if (pathname === "/favicon.ico" && icon) return respond(icon);
       const asset = byName.get(basename(pathname));
       // Pages without an extension fall back to the app shell (client-side routes).
       if (asset && pathname !== "/" && asset !== page) return respond(asset);

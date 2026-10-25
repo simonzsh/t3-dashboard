@@ -62,7 +62,7 @@ try {
   for (const url of assets) {
     const res = await fetch(new URL(url, base));
     const type = res.headers.get("content-type") ?? "";
-    expect(res.status === 200 && /javascript|css/.test(type), `${url} answered ${res.status} ${type}`);
+    expect(res.status === 200 && /javascript|css|image\/png/.test(type), `${url} answered ${res.status} ${type}`);
     // Dev JSX calls (jsxDEV) crash with production React: the page stays blank.
     if (url.endsWith(".js")) expect(!/void 0,![01],void 0,this\)/.test(await res.text()), `${url} holds dev JSX calls`);
   }
