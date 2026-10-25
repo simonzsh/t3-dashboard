@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, type KeyboardEvent, type ReactNode } from "react";
 import type { DashboardProvider, ImageAttachment, ModelSelection, RuntimeMode, ThreadSettingsBody } from "../../../shared/api.ts";
 import { IMAGE_TYPES, RUNTIME_MODE_LABELS, acceptImages, currentEffort, findModel, modelLabel, selectEffort, selectModel } from "../composer.ts";
+import { NO_AUTOFILL } from "../noAutofill.ts";
 import { ProviderIcon } from "./ProviderIcon.tsx";
 
 // Icon paths from Lucide (ISC).
@@ -208,6 +209,7 @@ export function Composer({ providers, selection, runtimeMode, running, draft, on
   return (
     <form
       className="composer"
+      autoComplete="off"
       onSubmit={(e) => {
         e.preventDefault();
         void submit();
@@ -228,6 +230,7 @@ export function Composer({ providers, selection, runtimeMode, running, draft, on
           </ul>
         )}
         <textarea
+          {...NO_AUTOFILL}
           ref={textarea}
           rows={2}
           value={draft}

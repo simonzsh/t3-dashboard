@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import type { DashboardProject, DashboardProvider } from "../../../shared/api.ts";
 import { api } from "../api.ts";
+import { NO_AUTOFILL } from "../noAutofill.ts";
 import { useAction } from "./useAction.ts";
 import { useEscape } from "./useEscape.ts";
 
@@ -52,6 +53,7 @@ export function NewThreadDialog({ projects, providers, defaultProjectId, onClose
     <div className="dialog-backdrop" onClick={onClose}>
       <form
         className="dialog"
+        autoComplete="off"
         role="dialog"
         aria-modal="true"
         aria-label="New Agent"
@@ -105,11 +107,11 @@ export function NewThreadDialog({ projects, providers, defaultProjectId, onClose
         </label>
         <label>
           Title
-          <input required value={title} onChange={(e) => setTitle(e.target.value)} />
+          <input {...NO_AUTOFILL} type="text" required value={title} onChange={(e) => setTitle(e.target.value)} />
         </label>
         <label>
           First message
-          <textarea required value={text} onChange={(e) => setText(e.target.value)} />
+          <textarea {...NO_AUTOFILL} required value={text} onChange={(e) => setText(e.target.value)} />
         </label>
         <div className="buttons">
           <button className="primary" type="submit" disabled={!valid || action.busy}>

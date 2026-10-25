@@ -264,6 +264,8 @@ main { padding: 24px; display: flex; flex-direction: column; gap: 28px; }
 .file-chip button:hover { color: var(--text-primary); }
 .file-chip .icon { width: 13px; height: 13px; }
 .error { color: var(--danger); }
+/* Masks secrets without a password field; browsers without it show the text. */
+.secret-field { -webkit-text-security: disc; }
 .dialog-backdrop { position: fixed; inset: 0; background: var(--backdrop); display: grid; place-items: center; z-index: 20; }
 .dialog { width: min(480px, 94vw); background: var(--surface-1); border: 1px solid var(--line); border-radius: 14px; padding: 20px; box-shadow: var(--shadow); display: flex; flex-direction: column; gap: 10px; }
 .dialog h2 { margin: 0; font-size: 15px; }
