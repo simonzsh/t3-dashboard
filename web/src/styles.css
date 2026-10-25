@@ -1,12 +1,12 @@
 /* Beige light theme and warm brown dark theme; data-theme is set on <html> before first paint. */
 :root, :root[data-theme="light"] {
   color-scheme: light;
-  --surface-0: #f2eadb;
-  --surface-1: #fbf7ee;
-  --header-bg: #e8dcc4;
-  --line: #ddd0b7;
+  --surface-0: #f8f4ec;
+  --surface-1: #fefcf8;
+  --header-bg: #f0e9dc;
+  --line: #e8dfcf;
   --text-primary: #2b2218;
-  --text-secondary: #6d5f4b;
+  --text-secondary: #74675a;
   --accent: #b5532f;
   --on-accent: #ffffff;
   --shadow: 0 1px 2px rgb(70 50 20 / 0.08), 0 4px 14px rgb(70 50 20 / 0.06);
@@ -26,27 +26,27 @@
 }
 :root[data-theme="dark"] {
   color-scheme: dark;
-  --surface-0: #1f1a15;
-  --surface-1: #2f2720;
-  --header-bg: #2a231c;
-  --line: #463a2d;
-  --text-primary: #f1e7d4;
-  --text-secondary: #b8a98f;
+  --surface-0: #2b2723;
+  --surface-1: #37322c;
+  --header-bg: #322d28;
+  --line: #4a443c;
+  --text-primary: #ede6da;
+  --text-secondary: #b3a998;
   --accent: #d9825b;
-  --on-accent: #1f1a15;
+  --on-accent: #2b2723;
   --shadow: 0 1px 2px rgb(0 0 0 / 0.4), 0 4px 14px rgb(0 0 0 / 0.3);
   --backdrop: rgb(0 0 0 / 0.55);
   --ok: #6fb583;
   --danger: #e0705f;
   --warn: #e0a030;
-  --warn-bg: #43330f;
+  --warn-bg: #4a3b1c;
   --warn-text: #f0c872;
   --work: #7fb0c9;
-  --work-bg: #243540;
+  --work-bg: #2d3c44;
   --work-text: #a6cde0;
-  --done-bg: #2a2e21;
+  --done-bg: #333629;
   --done-text: #aab98f;
-  --err-bg: #4a2620;
+  --err-bg: #4f302a;
   --err-text: #f0a99b;
 }
 * { box-sizing: border-box; }
