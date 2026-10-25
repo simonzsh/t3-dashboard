@@ -438,3 +438,5 @@ button.auto-row:hover { background: var(--surface-0); }
   .pulse, .agent.working::after, .desk-window.state-running .desk-window-head::after, .streaming, .subagent.running .subagent-dot, .activity-item.running .icon { animation: none; }
   .agent { transition: none; }
 }
+.msg.pending { opacity: 0.6; }
+.msg.pending small { opacity: 0.85; }
