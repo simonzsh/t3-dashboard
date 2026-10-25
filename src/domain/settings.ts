@@ -1,6 +1,7 @@
 import type { LinearKeyBody, SettingsResult } from "../../shared/api.ts";
 import type { ReadFile } from "../config/config.ts";
-import { HttpError } from "../server/httpError.ts";
+import { IntegrationError } from "../integrations/errors.ts";
+import { DomainError } from "./errors.ts";
 import type { LinearBoard } from "./linearBoard.ts";
 import { readLinearFile, toSimple, writeLinearConfig } from "../config/linearFile.ts";
 import type { SimpleLinearConfig } from "../config/linearFile.ts";
@@ -27,7 +28,7 @@ export function createSettings(options: SettingsOptions): Settings {
   // Converting a legacy file with several keys would drop all but one of them.
   const guard = () => {
     const current = read();
-    if (current.legacy && current.keyed > 1) throw new HttpError(409, "linear.json holds several keys: edit it by hand.");
+    if (current.legacy && current.keyed > 1) throw new DomainError("conflict", "linear.json holds several keys: edit it by hand.");
     return current;
   };
   const save = (next: SimpleLinearConfig) => {
@@ -46,11 +47,11 @@ export function createSettings(options: SettingsOptions): Settings {
     get: result,
     async connectKey({ apiKey }) {
       const key = typeof apiKey === "string" ? apiKey.trim() : "";
-      if (key === "") throw new HttpError(400, "Enter a Linear API key.");
+      if (key === "") throw new DomainError("invalid", "Enter a Linear API key.");
       guard();
       const check = await board.verifyKey(key);
-      if (check === "refused") throw new HttpError(400, "Linear refused this key.");
-      if (check === "unreachable") throw new HttpError(502, "Linear is unreachable.");
+      if (check === "refused") throw new DomainError("invalid", "Linear refused this key.");
+      if (check === "unreachable") throw new IntegrationError("Linear is unreachable.", { system: "linear", kind: "unreachable" });
       save({ apiKey: key });
       return result();
     },

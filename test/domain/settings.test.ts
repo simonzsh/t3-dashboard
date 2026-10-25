@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { test } from "bun:test";
 import { createSettings } from "../../src/domain/settings.ts";
 import type { KeyCheck } from "../../src/integrations/linear/client.ts";
+import { toHttp } from "../../src/server/httpError.ts";
 
 const FILE = "/cfg/linear.json";
 const KEY = "lin_api_abcdefghijWXYZ";
@@ -41,7 +42,7 @@ test("a new key is verified, then written alone", async () => {
 test("a refused or unreachable key writes nothing", async () => {
   for (const [verdict, status, message] of [["refused", 400, "Linear refused this key."], ["unreachable", 502, "Linear is unreachable."]] as const) {
     const { settings, files, calls } = setup(undefined, verdict);
-    await assert.rejects(settings.connectKey({ apiKey: KEY }), (error: Error & { status?: number }) => error.status === status && error.message === message && !error.message.includes(KEY));
+    await assert.rejects(settings.connectKey({ apiKey: KEY }), (error: Error) => toHttp(error)?.status === status && error.message === message && !error.message.includes(KEY));
     assert.deepEqual(files, {});
     assert.ok(!calls.includes("invalidate"));
   }
@@ -49,7 +50,7 @@ test("a refused or unreachable key writes nothing", async () => {
 
 test("an empty key is a bad request and is not sent to Linear", async () => {
   const { settings, calls } = setup();
-  await assert.rejects(settings.connectKey({ apiKey: "   " }), (error: Error & { status?: number }) => error.status === 400);
+  await assert.rejects(settings.connectKey({ apiKey: "   " }), (error: Error) => toHttp(error)?.status === 400);
   assert.deepEqual(calls, []);
 });
 
@@ -89,7 +90,7 @@ test("a legacy file reads as legacy, takes the first non-empty key and converts 
 test("a legacy file with several keys is never rewritten from the UI", async () => {
   const legacy = { workspaces: [{ name: "A", apiKey: "key-a-1111" }, { name: "B", apiKey: "key-b-2222" }] };
   const { settings, saved } = setup(legacy);
-  assert.throws(() => settings.disconnect(), /several keys/);
+  assert.throws(() => settings.disconnect(), (error: Error) => toHttp(error)?.status === 409 && /several keys/.test(error.message));
   await assert.rejects(settings.connectKey({ apiKey: "key-new-3333" }), /several keys/);
   assert.deepEqual(saved(), legacy);
 });

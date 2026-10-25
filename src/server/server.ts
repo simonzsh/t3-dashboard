@@ -15,7 +15,7 @@ import type {
 } from "../../shared/api.ts";
 import { IMAGE_TYPES, MAX_IMAGE_BYTES, MAX_IMAGES, MAX_MESSAGE_BODY_BYTES, isRuntimeMode } from "../../shared/limits.ts";
 import { ACTIVE_STATUSES, RUNNING_RUN_STATUSES } from "../../shared/status.ts";
-import { HttpError } from "./httpError.ts";
+import { HttpError, toHttp } from "./httpError.ts";
 import { toProviders } from "../domain/providers.ts";
 import type { LinearBoard } from "../domain/linearBoard.ts";
 import type { Settings } from "../domain/settings.ts";
@@ -398,9 +398,9 @@ export function createDashboardServer(options: DashboardServerOptions): Dashboar
       try {
         response = await handle(req, server);
       } catch (error) {
-        if (!(error instanceof HttpError)) console.error(error);
-        const status = error instanceof HttpError ? error.status : 500;
-        const message = error instanceof HttpError ? error.message : "Internal error";
+        const http = toHttp(error);
+        if (!http) console.error(error);
+        const { status, message } = http ?? { status: 500, message: "Internal error" };
         response = json(status, { error: message }, status === 413 ? { connection: "close" } : undefined);
       }
       // Forbids framing: a hostile page could otherwise clickjack the approval buttons.
