@@ -1,5 +1,5 @@
 import { useEffect, useId, useRef, useState, type KeyboardEvent, type ReactNode } from "react";
-import { filterOptions, moveActive, showsFilter, type DropdownOption } from "../dropdown.ts";
+import { filterOptions, moveActive, showsFilter, type DropdownOption } from "../lib/dropdown.ts";
 import { Icon } from "./Icon.tsx";
 import { Popover } from "./Popover.tsx";
 import { TextInput } from "./TextInput.tsx";
