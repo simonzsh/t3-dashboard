@@ -56,7 +56,8 @@ try {
   expect(page.status === 200 && (page.headers.get("content-type") ?? "").includes("text/html"), "/ is not HTML");
   expect(page.headers.get("x-frame-options") === "DENY", "/ lacks x-frame-options");
   expect(html.includes("data-theme"), "the inline theme script is missing");
-  const assets = [...html.matchAll(/<(?:script[^>]*\ssrc|link[^>]*\shref)="([^"]+)"/g)].map((match) => match[1]!);
+  expect(/<link[^>]*rel="icon"[^>]*href="data:image\/svg\+xml/.test(html), "the inline favicon is missing");
+  const assets = [...html.matchAll(/<(?:script[^>]*\ssrc|link[^>]*\shref)="([^"]+)"/g)].map((match) => match[1]!).filter((url) => !url.startsWith("data:"));
   expect(assets.some((url) => url.endsWith(".js")) && assets.some((url) => url.endsWith(".css")), "the page references no JS or CSS");
   for (const url of assets) {
     const res = await fetch(new URL(url, base));
