@@ -34,3 +34,14 @@ test("stop ends the loop, even during a call", async () => {
   await wait(60);
   assert.equal(calls, 1);
 });
+
+test("a call that throws does not end the loop", async () => {
+  let calls = 0;
+  const stop = startPoll(async () => {
+    calls++;
+    throw new Error("boom");
+  }, 5);
+  await wait(40);
+  stop();
+  assert.ok(calls >= 2, `calls: ${calls}`);
+});

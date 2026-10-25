@@ -4,9 +4,15 @@ import { useEffect, useRef } from "react";
 export function startPoll(fn: () => Promise<unknown>, ms: number): () => void {
   let stopped = false;
   let timer: ReturnType<typeof setTimeout>;
+  // A failed call must not end the loop.
   const tick = async () => {
-    await fn();
-    if (!stopped) timer = setTimeout(() => void tick(), ms);
+    try {
+      await fn();
+    } catch {
+      // The next call retries.
+    } finally {
+      if (!stopped) timer = setTimeout(() => void tick(), ms);
+    }
   };
   timer = setTimeout(() => void tick(), ms);
   return () => {
