@@ -5,12 +5,15 @@ import { api } from "../api.ts";
 import { renderMarkdown } from "../markdown.tsx";
 import { Composer } from "./Composer.tsx";
 import { PendingRequestView } from "./PendingRequestView.tsx";
+import { RunActivityView } from "./RunActivity.tsx";
 import { SubagentStrip } from "./SubagentStrip.tsx";
 import { useAction } from "./useAction.ts";
 
 const ROLE_LABELS: Record<string, string> = { user: "You", assistant: "Agent", system: "System" };
 // Subagent progress does not always reach the shell stream: poll while one runs.
 const SUBAGENT_POLL_MS = 4000;
+// Run activity (commands, thinking) has no shell event per step: poll faster while a run is active.
+const RUN_POLL_MS = 2500;
 // Windows remount when they move between grid, minimized bar and mobile view: keep what they showed.
 const detailCache = new Map<string, ThreadDetail>();
 const drafts = new Map<string, string>();
@@ -45,6 +48,7 @@ export function ConversationPanel({ threadId, thread, lastEvent, providers }: Pr
   const [detail, setDetail] = useState<ThreadDetail | null>(() => detailCache.get(threadId) ?? null);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [text, setText] = useState(() => drafts.get(threadId) ?? "");
+  const [revealSubagents, setRevealSubagents] = useState(0);
   const scroller = useRef<HTMLDivElement>(null);
   const stick = useRef(true);
   // One action per control, so an error of one does not wipe another.
@@ -90,8 +94,9 @@ export function ConversationPanel({ threadId, thread, lastEvent, providers }: Pr
   const t = thread ?? detail?.thread ?? null;
   const running = t !== null && runActive(t);
 
-  // Poll only while pending background tasks or a running subagent exist: a bare thread wait has nothing to show.
-  const polling = Boolean(t?.pendingTasks) || (detail?.subagents.some((s) => s.status === "running") ?? false);
+  // Poll only while a run, pending background tasks or a running subagent exist: a bare thread wait has nothing to show.
+  const polling = running || Boolean(t?.pendingTasks) || (detail?.subagents.some((s) => s.status === "running") ?? false);
+  const pollMs = running ? RUN_POLL_MS : SUBAGENT_POLL_MS;
   useEffect(() => {
     if (!polling) return;
     let stopped = false;
@@ -99,20 +104,20 @@ export function ConversationPanel({ threadId, thread, lastEvent, providers }: Pr
     // The next poll starts after the load ends, so slow responses never pile up.
     const tick = async () => {
       await load();
-      if (!stopped) timer = setTimeout(() => void tick(), SUBAGENT_POLL_MS);
+      if (!stopped) timer = setTimeout(() => void tick(), pollMs);
     };
-    timer = setTimeout(() => void tick(), SUBAGENT_POLL_MS);
+    timer = setTimeout(() => void tick(), pollMs);
     return () => {
       stopped = true;
       clearTimeout(timer);
     };
-  }, [polling, threadId]);
+  }, [polling, pollMs, threadId]);
 
   // Follow new messages unless the user scrolled up to read.
   useEffect(() => {
     const el = scroller.current;
     if (el && stick.current) el.scrollTop = el.scrollHeight;
-  }, [detail?.messages.length, detail?.messages.at(-1)?.text, detail?.pendingRequests.length]);
+  }, [detail?.messages.length, detail?.messages.at(-1)?.text, detail?.pendingRequests.length, detail?.activity?.items.length]);
 
   function setDraft(value: string) {
     setText(value);
@@ -151,6 +156,7 @@ export function ConversationPanel({ threadId, thread, lastEvent, providers }: Pr
         {detail?.messages.map((m) => (
           <Message key={m.id} message={m} />
         ))}
+        {detail?.activity && <RunActivityView activity={detail.activity} running={running} onShowSubagents={() => setRevealSubagents((n) => n + 1)} />}
         {detail && detail.pendingRequests.length > 0 && (
           <div className="requests">
             {detail.pendingRequests.map((r) => (
@@ -159,7 +165,7 @@ export function ConversationPanel({ threadId, thread, lastEvent, providers }: Pr
           </div>
         )}
       </div>
-      {detail && <SubagentStrip key={threadId} subagents={detail.subagents} />}
+      {detail && <SubagentStrip key={threadId} subagents={detail.subagents} reveal={revealSubagents} />}
       <Composer
         providers={providers}
         selection={detail?.modelSelection ?? null}

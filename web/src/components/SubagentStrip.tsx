@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { SubagentInfo } from "../../../shared/api.ts";
 import { duration } from "../format.ts";
 
@@ -10,10 +10,18 @@ function elapsed(s: SubagentInfo, now: number): string | null {
   return duration(end - Date.parse(s.startedAt));
 }
 
-export function SubagentStrip({ subagents }: { subagents: SubagentInfo[] }) {
+/** Each change of `reveal` opens the strip and focuses it (a subagent row of the run activity was clicked). */
+export function SubagentStrip({ subagents, reveal = 0 }: { subagents: SubagentInfo[]; reveal?: number }) {
   const running = subagents.filter((s) => s.status === "running").length;
   const [open, setOpen] = useState(false);
   const [now, setNow] = useState(() => Date.now());
+  const head = useRef<HTMLButtonElement>(null);
+
+  useEffect(() => {
+    if (reveal === 0) return;
+    setOpen(true);
+    head.current?.focus();
+  }, [reveal]);
 
   const anyRunning = running > 0;
   useEffect(() => {
@@ -30,7 +38,7 @@ export function SubagentStrip({ subagents }: { subagents: SubagentInfo[] }) {
   if (subagents.length === 0) return null;
   return (
     <div className="subagents">
-      <button type="button" className="subagents-head" aria-expanded={open} onClick={() => setOpen(!open)}>
+      <button type="button" ref={head} className="subagents-head" aria-expanded={open} onClick={() => setOpen(!open)}>
         <span className={`chevron${open ? " open" : ""}`} aria-hidden="true" />
         Subagents
         <span className="subagents-count">{running > 0 ? `${running} running` : subagents.length}</span>
