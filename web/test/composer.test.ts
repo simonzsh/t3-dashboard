@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "bun:test";
 import type { DashboardProvider } from "../../shared/api.ts";
-import { MAX_IMAGE_BYTES, MAX_IMAGES, MAX_TOTAL_BYTES, acceptImages, currentEffort, findModel, modelLabel, selectEffort, selectModel } from "../src/composer.ts";
+import { MAX_IMAGE_BYTES, MAX_IMAGES, MAX_TOTAL_BYTES, acceptImages, currentEffort, findModel, selectEffort, selectModel } from "../src/composer.ts";
 
 const effort = (optionId: string, ids: string[], defaultLevel: string | null) => ({ optionId, levels: ids.map((id) => ({ id, label: id.toUpperCase() })), defaultLevel });
 const providers: DashboardProvider[] = [
@@ -23,12 +23,6 @@ test("findModel locates the provider and model of a selection", () => {
   assert.equal(found?.model.name, "GPT");
   assert.equal(findModel(providers, { instanceId: "codex", model: "gone" }), null);
   assert.equal(findModel(providers, null), null);
-});
-
-test("modelLabel falls back to the raw slug for an unknown model", () => {
-  assert.equal(modelLabel(providers, { instanceId: "claudeAgent", model: "opus" }), "Opus");
-  assert.equal(modelLabel(providers, { instanceId: "x", model: "mystery-1" }), "mystery-1");
-  assert.equal(modelLabel(providers, null), "Model");
 });
 
 test("currentEffort reads the option, else the model default", () => {

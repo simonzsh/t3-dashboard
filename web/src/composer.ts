@@ -20,11 +20,6 @@ export function findModel(providers: DashboardProvider[], selection: ModelSelect
   return provider && model ? { provider, model } : null;
 }
 
-export function modelLabel(providers: DashboardProvider[], selection: ModelSelection | null): string {
-  if (!selection) return "Model";
-  return findModel(providers, selection)?.model.name ?? selection.model;
-}
-
 export function currentEffort(selection: ModelSelection | null, model: DashboardModel): string | null {
   const effort = model.effort;
   if (!effort) return null;

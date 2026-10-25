@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import type { DashboardProvider, ImageAttachment, ModelSelection, RuntimeMode, ThreadSettingsBody } from "../../../shared/api.ts";
-import { IMAGE_TYPES, RUNTIME_MODE_LABELS, acceptImages, currentEffort, findModel, modelLabel, selectEffort, selectModel } from "../composer.ts";
+import { IMAGE_TYPES, RUNTIME_MODE_LABELS, acceptImages, currentEffort, findModel, selectEffort, selectModel } from "../composer.ts";
 import type { DropdownOption } from "../dropdown.ts";
 import { Dropdown, FileInput, Icon, IconButton, Pressable, TextArea } from "../ui/index.ts";
 import { ProviderIcon } from "./ProviderIcon.tsx";
