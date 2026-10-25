@@ -1,6 +1,6 @@
 import { test } from "bun:test";
 import assert from "node:assert/strict";
-import { cut, relativeTime } from "../src/format.ts";
+import { cut, duration, relativeTime } from "../src/format.ts";
 
 const now = new Date("2026-03-01T12:00:00Z");
 
@@ -14,4 +14,12 @@ test("relativeTime picks the unit", () => {
 test("cut adds an ellipsis only when needed", () => {
   assert.equal(cut("abcdef", 6), "abcdef");
   assert.equal(cut("abcdefg", 6), "abcdef…");
+});
+
+test("duration gives seconds, then minutes, then hours", () => {
+  assert.equal(duration(0), "0s");
+  assert.equal(duration(-5_000), "0s");
+  assert.equal(duration(12_400), "12s");
+  assert.equal(duration(185_000), "3m 05s");
+  assert.equal(duration(3_720_000), "1h 02m");
 });
