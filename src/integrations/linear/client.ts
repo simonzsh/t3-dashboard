@@ -40,9 +40,10 @@ export class LinearClient {
   async assignedIssues(apiKey: string): Promise<LinearIssueNode[]> {
     const issues: LinearIssueNode[] = [];
     let after: string | undefined;
+    // Each page keeps its own limit; the whole load has a wider one.
     const signal = AbortSignal.timeout(LOAD_TIMEOUT_MS);
     for (let page = 0; page < MAX_PAGES; page++) {
-      const { pageInfo, nodes } = parse(AssignedIssuesPage, await this.query(apiKey, QUERY, { after }, signal), { system: "linear", what: "Linear issues" }).viewer.assignedIssues;
+      const { pageInfo, nodes } = parse(AssignedIssuesPage, await this.query(apiKey, QUERY, { after }, AbortSignal.any([signal, AbortSignal.timeout(FETCH_TIMEOUT_MS)])), { system: "linear", what: "Linear issues" }).viewer.assignedIssues;
       issues.push(...nodes);
       if (!pageInfo.hasNextPage) return issues;
       if (pageInfo.endCursor === null) {

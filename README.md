@@ -124,7 +124,7 @@ Format du fichier :
 
 | Variable | Défaut | Rôle |
 |---|---|---|
-| `PORT` | `4300` | Port local. L'écoute reste sur `127.0.0.1`. `--port` l'emporte. |
+| `PORT` | `4300` | Port local. L'écoute reste sur `127.0.0.1`. `--port` l'emporte. Une valeur vide, invalide ou `0` donne `4300`. |
 | `T3_DASHBOARD_CONFIG_DIR` | `~/.config/t3-dashboard` | Dossier de `auth.json` et de `linear.json`. |
 | `T3_DASHBOARD_TOKEN_FILE` | aucun | Fichier JSON avec le champ `token`. Sans lui, le dashboard garde son propre jeton. Avec lui, l'écran de réglage refuse un jeton collé : mettez-le dans ce fichier. |
 | `T3_DASHBOARD_ALLOWED_HOSTS` | aucun | Noms d'hôte séparés par des virgules, sans port. Ils s'ajoutent à `127.0.0.1` et `localhost` pour les en-têtes `Host` et `Origin`. Exemple : `box.tailnet.ts.net` derrière `tailscale serve`. Le dashboard n'a pas d'authentification : n'ouvrez que des réseaux privés. |
