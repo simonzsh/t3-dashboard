@@ -27,10 +27,10 @@ test("lastActivityAt is the maximum of the activity fields", () => {
 test("pending category", () => {
   const category = (kind: string) => toDashboardThread(thread({ pendingRuntimeRequest: { id: "req-1", kind } }), now).pending;
   for (const kind of ["command", "file-read", "file-change", "permission", "mcp-elicitation"]) {
-    assert.deepEqual(category(kind), { requestId: "req-1", kind, category: "approval" });
+    assert.deepEqual(category(kind), { category: "approval" });
   }
-  assert.deepEqual(category("user_input"), { requestId: "req-1", kind: "user_input", category: "user-input" });
-  assert.deepEqual(category("auth_refresh"), { requestId: "req-1", kind: "auth_refresh", category: "other" });
+  assert.deepEqual(category("user_input"), { category: "user-input" });
+  assert.deepEqual(category("auth_refresh"), { category: "other" });
   assert.equal(toDashboardThread(thread(), now).pending, null);
 });
 
@@ -57,16 +57,13 @@ test("field mapping with fallbacks", () => {
   );
   assert.equal(full.title, "Thread 1");
   assert.equal(full.provider, "provider-a");
-  assert.equal(full.model, "model-x");
   assert.equal(full.activeRunId, "run-1");
   assert.equal(full.lastError, "oops");
   assert.equal(full.pinned, true);
-  assert.equal(full.updatedAt, ago(1000));
 
   const bare = toDashboardThread({ id: "thread-2" }, now);
   assert.equal(bare.title, "");
   assert.equal(bare.provider, "");
-  assert.equal(bare.model, null);
   assert.equal(bare.pinned, false);
   assert.equal(bare.projectId, "");
   assert.equal(bare.backgroundWork, false);

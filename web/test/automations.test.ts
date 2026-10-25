@@ -12,7 +12,6 @@ function auto(id: string, over: Partial<Automation> = {}): Automation {
     title: `Job ${id}`,
     schedule: { kind: "cron", cron: "0 9 * * *", timeZone: "UTC", label: "daily at 09:00" },
     nextRunAt: null,
-    lastRunAt: null,
     threadId: null,
     model: null,
     ...over,

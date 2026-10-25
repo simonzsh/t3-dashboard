@@ -15,7 +15,7 @@ import { VERSION } from "../src/version.ts";
 import type { Command, ImageUpload, RawConfig, RawProjection, ShellItem, T3Port } from "../src/t3/types.ts";
 
 const now = new Date("2026-03-20T12:00:00.000Z");
-const connection: ConnectionStatus = { t3: "live", origin: "http://127.0.0.1:3773", serverVersion: "1.0.0", protocolMismatch: false, error: null, since: "x", setup: null };
+const connection: ConnectionStatus = { t3: "live", serverVersion: "1.0.0", protocolMismatch: false, error: null, setup: null };
 
 class FakePort implements T3Port {
   commands: Command[] = [];
@@ -619,7 +619,7 @@ test("assign answers 502 when Linear fails and when T3 fails", async () => {
 
 test("GET /api/automations returns the automations read at each call", async () => {
   let calls = 0;
-  const result: AutomationsResult = { automations: [], brains: [{ name: "Brain A", ok: true, error: null, problems: 1 }], fetchedAt: now.toISOString() };
+  const result: AutomationsResult = { automations: [], brains: [{ name: "Brain A", ok: true, error: null, problems: 1 }] };
   const { server } = await start({ automations: () => (calls++, result) });
   const first = await call(server, "GET", "/api/automations");
   assert.equal(first.status, 200);
@@ -745,7 +745,6 @@ test("GET /api/update reports the state, POST /api/update/check asks for the lat
   assert.equal(checked.status, 200);
   assert.equal(checked.json.latest, "1.1.0");
   assert.equal(checked.json.available, true);
-  assert.equal(checked.json.checkedAt, now.toISOString());
   assert.deepEqual((await call(server, "GET", "/api/update")).json, checked.json);
 });
 

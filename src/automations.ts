@@ -40,7 +40,7 @@ function toAutomation(id: string, job: Raw, brain: string, state: { threads: Raw
   const lastRunAt = text(state.runs[id]);
   const title = text(target.newThread) ?? text(job.prompt)?.trim().split("\n")[0]?.trim().slice(0, MAX_TITLE) ?? id;
   const model = text(engine.model) ?? text(threadEngine.model);
-  const common = { id, brain, title, lastRunAt, model };
+  const common = { id, brain, title, model };
 
   const cron = text(schedule.cron);
   if (cron) {
@@ -106,6 +106,5 @@ export function readAutomations(options: AutomationsOptions): AutomationsResult 
   return {
     automations: results.flatMap((result) => result.automations),
     brains: results.map((result) => result.status),
-    fetchedAt: options.now().toISOString(),
   };
 }

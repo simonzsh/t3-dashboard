@@ -13,12 +13,10 @@ const EXPECTED_PROTOCOL = 2;
 export interface LiveSyncOptions {
   port: T3Port;
   store: ShellStore;
-  origin: () => string;
   auth: Pick<TokenManager, "current" | "setup" | "refresh">;
   onConnection(status: ConnectionStatus): void;
   onProviders(providers: DashboardProvider[]): void;
   sleep?: (ms: number) => Promise<void>;
-  now?: () => Date;
 }
 
 const FALLBACK_SETUP = { issueCommand: ISSUE_COMMAND, installUrl: INSTALL_URL };
@@ -53,7 +51,6 @@ export const toProviders = (config: RawConfig): DashboardProvider[] =>
 export class LiveSync {
   private readonly options: LiveSyncOptions;
   private readonly sleep: (ms: number) => Promise<void>;
-  private readonly now: () => Date;
   private status: ConnectionStatus;
   private stopped = false;
   private current: { cancel(): void } | undefined;
@@ -63,8 +60,7 @@ export class LiveSync {
   constructor(options: LiveSyncOptions) {
     this.options = options;
     this.sleep = options.sleep ?? ((ms) => delay(ms, undefined, { ref: false }));
-    this.now = options.now ?? (() => new Date());
-    this.status = { t3: "connecting", origin: null, serverVersion: null, protocolMismatch: false, error: null, since: this.now().toISOString(), setup: null };
+    this.status = { t3: "connecting", serverVersion: null, protocolMismatch: false, error: null, setup: null };
   }
 
   connection(): ConnectionStatus {
@@ -90,7 +86,6 @@ export class LiveSync {
 
   private setStatus(change: Partial<ConnectionStatus>): void {
     const next = { ...this.status, ...change };
-    if (next.t3 !== this.status.t3) next.since = this.now().toISOString();
     this.status = next;
     this.options.onConnection(next);
   }
@@ -102,7 +97,7 @@ export class LiveSync {
       this.refreshed = false;
       if (this.options.auth.current() === null) {
         const setup = this.options.auth.setup();
-        this.setStatus({ t3: "needs-token", origin: this.options.origin(), error: null, setup });
+        this.setStatus({ t3: "needs-token", error: null, setup });
         if (setup?.reason !== "t3-stopped") {
           idle = 0;
           await this.pause(null);
@@ -115,7 +110,7 @@ export class LiveSync {
       }
       idle = 0;
       // The setup screen stays up while a retry connects, so it does not flash.
-      this.setStatus({ t3: "connecting", origin: this.options.origin(), error: null, setup: this.status.t3 === "needs-token" ? null : this.status.setup });
+      this.setStatus({ t3: "connecting", error: null, setup: this.status.t3 === "needs-token" ? null : this.status.setup });
       await this.loadConfig();
       if (this.stopped) return;
       const error = await this.follow(() => (attempt = 0));

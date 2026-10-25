@@ -133,10 +133,6 @@ test("caches for 60 seconds and refresh forces a new read", async () => {
   assert.equal(calls.length, 3);
 });
 
-test("fetchedAt is the time of the read", async () => {
-  const { board } = setup([space("Space 1", "key-1")], () => reply([]));
-  assert.equal((await board.get()).fetchedAt, new Date(1_000_000).toISOString());
-});
 
 test("every team shows, whatever the teams are", async () => {
   const other = (n: number, key: string) => ({ ...node(n), team: { key, name: `Team ${key}` } });

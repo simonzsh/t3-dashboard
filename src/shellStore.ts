@@ -60,7 +60,6 @@ export class ShellStore {
       projects: [...this.live.projects.values()].map(toProject),
       providers,
       threads,
-      generatedAt: this.options.now().toISOString(),
       automationsAvailable,
       t3EnvironmentId,
     };

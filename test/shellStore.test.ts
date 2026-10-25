@@ -181,7 +181,6 @@ test("state carries connection and providers", () => {
   const state = store.state(connection, [{ instanceId: "provider-a", displayName: "Provider A", models: [], runtimeModes: ["full-access"] }], true);
   assert.equal(state.connection, connection);
   assert.equal(state.providers.length, 1);
-  assert.equal(typeof state.generatedAt, "string");
 });
 
 test("project() finds a project by id first, then by exact title", () => {

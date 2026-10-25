@@ -6,7 +6,7 @@ import type { RawBackgroundTask, RawProjection, RawRuntimeRequest, RawSubagent, 
 const unwrap = (element: { item?: RawTurnItem } | RawTurnItem): RawTurnItem => ("item" in element && element.item ? element.item : (element as RawTurnItem));
 
 function pendingDetail(request: RawRuntimeRequest, items: RawTurnItem[]): PendingRequestDetail {
-  const base = { requestId: request.id, resumable: request.responseCapability?.type !== "not_resumable", createdAt: request.createdAt ?? "" };
+  const base = { requestId: request.id, resumable: request.responseCapability?.type !== "not_resumable" };
   const item = items.find((candidate) => candidate.requestId === request.id);
   if (item?.type === "approval_request") {
     return { category: "approval", ...base, requestKind: item.requestKind ?? request.kind ?? "", prompt: item.prompt ?? null, reason: item.reason ?? null };

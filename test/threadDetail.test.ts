@@ -46,9 +46,9 @@ const withRequests: RawProjection = {
   runtimeRequests: [
     { id: "req-approval", kind: "command", status: "pending", createdAt: "2026-03-01T11:00:00Z", responseCapability: { type: "live" } },
     { id: "req-input", kind: "user_input", status: "pending", createdAt: "2026-03-01T11:01:00Z", responseCapability: { type: "not_resumable" } },
-    { id: "req-other", kind: "dynamic_tool_call", status: "pending", createdAt: "2026-03-01T11:02:00Z" },
+    { id: "req-other", kind: "dynamic_tool_call", status: "pending" },
     { id: "req-orphan", kind: "command", status: "pending", createdAt: "2026-03-01T11:03:00Z", responseCapability: { type: "message" } },
-    { id: "req-done", kind: "command", status: "resolved", createdAt: "2026-03-01T11:04:00Z" },
+    { id: "req-done", kind: "command", status: "resolved" },
   ],
   turnItems: [
     { item: { type: "approval_request", requestId: "req-approval", requestKind: "command", prompt: "Run ls?", reason: "Needs a listing" } },
@@ -92,7 +92,6 @@ test("approval request", () => {
     prompt: "Run ls?",
     reason: "Needs a listing",
     resumable: true,
-    createdAt: "2026-03-01T11:00:00Z",
   });
 });
 
@@ -131,8 +130,8 @@ test("user-input request: value falls back to label, defaults, and not_resumable
 
 test("unknown item kind or no matching item gives other", () => {
   const [, , other, orphan] = toThreadDetail("thread-1", withRequests, undefined).pendingRequests;
-  assert.deepEqual(other, { category: "other", requestId: "req-other", requestKind: "dynamic_tool_call", resumable: true, createdAt: "2026-03-01T11:02:00Z" });
-  assert.deepEqual(orphan, { category: "other", requestId: "req-orphan", requestKind: "command", resumable: true, createdAt: "2026-03-01T11:03:00Z" });
+  assert.deepEqual(other, { category: "other", requestId: "req-other", requestKind: "dynamic_tool_call", resumable: true });
+  assert.deepEqual(orphan, { category: "other", requestId: "req-orphan", requestKind: "command", resumable: true });
 });
 
 const withSubagents: RawProjection = {

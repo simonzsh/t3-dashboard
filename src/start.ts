@@ -81,7 +81,6 @@ export async function start({ port, log, env }: StartOptions): Promise<void> {
   const live = new LiveSync({
     port: client,
     store,
-    origin,
     auth,
     onConnection: (status) => hub.broadcast({ type: "connection", data: status }),
     onProviders: (list) => {

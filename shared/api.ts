@@ -16,11 +16,10 @@ export interface DashboardThread {
   projectId: string;
   title: string;
   provider: string;
-  model: string | null;
   status: string;
   /** In the T3 Code sidebar's Settled section. */
   settled: boolean;
-  pending: { requestId: string; kind: string; category: PendingCategory } | null;
+  pending: { category: PendingCategory } | null;
   activeRunId: string | null;
   /** Subagents or a thread wait still run after the turn ended. */
   backgroundWork: boolean;
@@ -29,8 +28,6 @@ export interface DashboardThread {
   lastError: string | null;
   preview: { role: string; text: string } | null;
   pinned: boolean;
-  createdAt: string;
-  updatedAt: string;
   lastActivityAt: string;
 }
 
@@ -72,11 +69,9 @@ export interface SetupInfo {
 
 export interface ConnectionStatus {
   t3: "connecting" | "live" | "offline" | "needs-token";
-  origin: string | null;
   serverVersion: string | null;
   protocolMismatch: boolean;
   error: string | null;
-  since: string;
   /** Not null: the UI shows the full-screen setup. */
   setup: SetupInfo | null;
 }
@@ -86,7 +81,6 @@ export interface DashboardState {
   projects: DashboardProject[];
   providers: DashboardProvider[];
   threads: DashboardThread[];
-  generatedAt: string;
   /** At least one t3-agent brain file exists. */
   automationsAvailable: boolean;
   /** For t3code:// links; null hides the "Open in T3 Code" buttons. */
@@ -130,9 +124,9 @@ export interface UserInputQuestion {
 }
 
 export type PendingRequestDetail =
-  | { category: "approval"; requestId: string; requestKind: string; prompt: string | null; reason: string | null; resumable: boolean; createdAt: string }
-  | { category: "user-input"; requestId: string; questions: UserInputQuestion[]; resumable: boolean; createdAt: string }
-  | { category: "other"; requestId: string; requestKind: string; resumable: boolean; createdAt: string };
+  | { category: "approval"; requestId: string; requestKind: string; prompt: string | null; reason: string | null; resumable: boolean }
+  | { category: "user-input"; requestId: string; questions: UserInputQuestion[]; resumable: boolean }
+  | { category: "other"; requestId: string; requestKind: string; resumable: boolean };
 
 export interface SubagentInfo {
   id: string;
@@ -217,10 +211,6 @@ export interface CreateThreadResult {
   threadId: string;
 }
 
-export interface ErrorResult {
-  error: string;
-}
-
 export interface HealthResult {
   ok: true;
   t3: ConnectionStatus["t3"];
@@ -251,7 +241,6 @@ export interface LinearWorkspaceStatus {
 export interface BoardResult {
   workspaces: LinearWorkspaceStatus[];
   issues: LinearIssue[];
-  fetchedAt: string;
   /** False when no Linear key is set at all: the UI shows the setup card. */
   configured: boolean;
 }
@@ -279,15 +268,10 @@ export interface LinearKeyBody {
   apiKey: string;
 }
 
-export interface TokenBody {
-  token: string;
-}
-
 export interface UpdateStatus {
   current: string;
   latest: string | null;
   available: boolean;
-  checkedAt: string | null;
   canUpdate: boolean;
   /** One sentence that says why `canUpdate` is false. */
   reason: string | null;
@@ -305,7 +289,6 @@ export interface Automation {
   title: string;
   schedule: AutomationSchedule;
   nextRunAt: string | null;
-  lastRunAt: string | null;
   threadId: string | null;
   model: string | null;
 }
@@ -320,5 +303,4 @@ export interface BrainStatus {
 export interface AutomationsResult {
   automations: Automation[];
   brains: BrainStatus[];
-  fetchedAt: string;
 }

@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import type { BoardResult } from "../../shared/api.ts";
 import { boardNeedsKey, linearConnected, maskedKey } from "../src/linearSettings.ts";
 
-const board = (over: Partial<BoardResult>): BoardResult => ({ workspaces: [], issues: [], fetchedAt: "x", configured: true, ...over });
+const board = (over: Partial<BoardResult>): BoardResult => ({ workspaces: [], issues: [], configured: true, ...over });
 const workspace = (ok: boolean, error: string | null) => ({ name: "Linear", ok, error });
 
 test("the setup card shows without a key, or when Linear refuses it, and not for other errors", () => {

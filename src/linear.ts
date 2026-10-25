@@ -99,7 +99,6 @@ export class LinearBoard {
     const board: BoardResult = {
       workspaces: results.map((r) => r.status),
       issues: results.flatMap((r) => r.issues),
-      fetchedAt: now.toISOString(),
       configured: workspaces.some((workspace) => workspace.apiKey !== ""),
     };
     this.cached = { at: now.getTime(), board };

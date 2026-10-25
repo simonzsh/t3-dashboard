@@ -4,7 +4,7 @@ import type { UpdateStatus } from "../../shared/api.ts";
 import { updateLabel, updateQuestion, versionNote, waitForRestart, type RestartProbe } from "../src/updateFlow.ts";
 
 const status = (over: Partial<UpdateStatus> = {}): UpdateStatus => ({
-  current: "1.0.0", latest: "1.1.0", available: true, checkedAt: null, canUpdate: true, reason: null, updating: false, error: null, ...over,
+  current: "1.0.0", latest: "1.1.0", available: true, canUpdate: true, reason: null, updating: false, error: null, ...over,
 });
 
 function probe(steps: Array<{ health?: string | null; status?: UpdateStatus | null }>) {

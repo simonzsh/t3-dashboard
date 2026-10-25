@@ -41,7 +41,6 @@ test("a cron job becomes a routine with a French label, next run, thread and mod
   });
   const result = read(configDir, { "project-1": "Brain A" });
   assert.deepEqual(result.brains, [{ name: "Brain A", ok: true, error: null, problems: 0 }]);
-  assert.equal(result.fetchedAt, now.toISOString());
   assert.deepEqual(result.automations, [
     {
       id: "inbox",
@@ -50,7 +49,6 @@ test("a cron job becomes a routine with a French label, next run, thread and mod
       title: "Inbox watch",
       schedule: { kind: "cron", cron: "*/20 8-19 * * *", timeZone: "Europe/Paris", label: "every 20 min, 08:00–19:00" },
       nextRunAt: "2026-03-20T12:20:00.000Z",
-      lastRunAt: "2026-03-20T11:40:00.000Z",
       threadId: "thread-1",
       model: "model-x",
     },
@@ -72,7 +70,6 @@ test("the model falls back to the routine thread engine, then to null", () => {
   assert.equal(byId.a?.model, "model-y");
   assert.equal(byId.b?.model, null);
   assert.equal(byId.b?.threadId, null);
-  assert.equal(byId.b?.lastRunAt, null);
 });
 
 test("the title is the first prompt line cut at 80 characters when there is no newThread", () => {
@@ -96,7 +93,6 @@ test("an at job is a reminder with its target thread, and a reminder with no bra
     title: "Call back",
     schedule: { kind: "once", at: "2026-03-21T09:00:00Z" },
     nextRunAt: "2026-03-21T09:00:00Z",
-    lastRunAt: null,
     threadId: "thread-7",
     model: null,
   });
@@ -140,7 +136,6 @@ test("missing or broken state files do not hide the jobs", () => {
   writeFileSync(join(workspace, "state", "runs.json"), "{not json");
   const result = read(configDir);
   assert.equal(result.automations.length, 1);
-  assert.equal(result.automations[0]?.lastRunAt, null);
 });
 
 test("a brain without a jobs folder is ok with no automation", () => {

@@ -45,7 +45,6 @@ export class UpdateManager {
       current: version,
       latest: this.latest,
       available: this.latest !== null && isNewer(this.latest, version),
-      checkedAt: this.checkedAt === null ? null : new Date(this.checkedAt).toISOString(),
       canUpdate: unavailable === null,
       reason: unavailable,
       updating: this.updating,

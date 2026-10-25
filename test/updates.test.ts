@@ -37,7 +37,7 @@ function harness(options: Partial<UpdateManagerOptions> & { tags?: Array<string 
 test("status is empty before the first check", () => {
   const { manager } = harness();
   assert.deepEqual(manager.status(), {
-    current: "1.0.0", latest: null, available: false, checkedAt: null, canUpdate: true, reason: null, updating: false, error: null,
+    current: "1.0.0", latest: null, available: false, canUpdate: true, reason: null, updating: false, error: null,
   });
 });
 
@@ -46,7 +46,6 @@ test("a check reports a newer release without the v prefix", async () => {
   const status = await manager.check();
   assert.equal(status.latest, "1.1.0");
   assert.equal(status.available, true);
-  assert.equal(status.checkedAt, new Date(clock.now).toISOString());
 });
 
 test("the same version is not available", async () => {

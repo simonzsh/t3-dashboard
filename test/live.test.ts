@@ -69,14 +69,12 @@ function setup(port = new FakePort(), auth = new FakeAuth()) {
   const live = new LiveSync({
     port,
     store,
-    origin: () => "http://127.0.0.1:3773",
     auth,
     onConnection: (status) => statuses.push(status),
     onProviders: (list) => providers.push(list),
     sleep: async (ms) => {
       sleeps.push(ms);
     },
-    now,
   });
   return { port, store, live, statuses, providers, sleeps, auth };
 }
@@ -98,13 +96,12 @@ test("status goes connecting, live, then offline with the error", async () => {
   live.stop();
 });
 
-test("the status carries origin, server version and no mismatch", async () => {
+test("the status carries the server version and no mismatch", async () => {
   const { port, live, statuses } = setup();
   live.start();
   await until(() => port.subscriptions.length === 1);
   commit(port);
   const status = statuses.at(-1)!;
-  assert.equal(status.origin, "http://127.0.0.1:3773");
   assert.equal(status.serverVersion, "1.0.0");
   assert.equal(status.protocolMismatch, false);
   assert.equal(status.error, null);
@@ -332,12 +329,10 @@ test("retryNow cuts the backoff short", async () => {
   const slow = new LiveSync({
     port,
     store: new ShellStore({ now, onState() {}, onThreads() {}, onProjects() {} }),
-    origin: () => "http://127.0.0.1:3773",
     auth,
     onConnection() {},
     onProviders() {},
     sleep: () => new Promise(() => {}),
-    now,
   });
   slow.start();
   await until(() => port.subscriptions.length === 1);
