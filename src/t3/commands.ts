@@ -4,7 +4,7 @@ import type { Command } from "./types.ts";
 
 type NewId = () => string;
 
-export type DispatchMode = { type: "start_immediately" } | { type: "queue_after_active" } | { type: "steer_active"; targetRunId: string };
+export type DispatchMode = { type: "start_immediately" } | { type: "queue_after_active" };
 
 const PROVENANCE = { createdBy: "user", creationSource: "server" };
 

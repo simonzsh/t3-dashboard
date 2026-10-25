@@ -51,14 +51,14 @@ test("createThreadCommands builds thread.create then message.dispatch", () => {
 });
 
 test("messageCommand carries the dispatch mode", () => {
-  assert.deepEqual(messageCommand("thread-1", "Hi", { type: "steer_active", targetRunId: "run-1" }, counter()), {
+  assert.deepEqual(messageCommand("thread-1", "Hi", { type: "queue_after_active" }, counter()), {
     type: "message.dispatch",
     commandId: "id-1",
     threadId: "thread-1",
     messageId: "id-2",
     text: "Hi",
     attachments: [],
-    dispatchMode: { type: "steer_active", targetRunId: "run-1" },
+    dispatchMode: { type: "queue_after_active" },
     createdBy: "user",
     creationSource: "server",
   });
