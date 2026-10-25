@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import type { DashboardProject, DashboardProvider } from "../../../shared/api.ts";
 import { api } from "../api.ts";
 import { useAction } from "./useAction.ts";
+import { useEscape } from "./useEscape.ts";
 
 interface Props {
   projects: DashboardProject[];
@@ -24,6 +25,7 @@ export function NewThreadDialog({ projects, providers, defaultProjectId, onClose
   const [title, setTitle] = useState("");
   const [text, setText] = useState("");
   const action = useAction();
+  useEscape(onClose);
   const models = providers.find((p) => p.instanceId === provider)?.models ?? [];
 
   // Providers can arrive after the dialog opens: pick a preset once the choice is no longer valid.
@@ -51,6 +53,7 @@ export function NewThreadDialog({ projects, providers, defaultProjectId, onClose
       <form
         className="dialog"
         role="dialog"
+        aria-modal="true"
         aria-label="New Agent"
         onClick={(e) => e.stopPropagation()}
         onSubmit={(e) => {
