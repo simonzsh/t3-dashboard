@@ -102,13 +102,14 @@ test("an at job is a reminder with its target thread, and a reminder with no bra
   });
 });
 
-test("a reminder already run, or past by more than 5 minutes, is removed", () => {
+test("a reminder already run, or past by more than 24 hours, is removed", () => {
   const job = (at: string) => `prompt: R\nschedule:\n  at: ${at}\n`;
   const { configDir } = build({
     jobs: {
       "ran.yaml": job("2026-03-20T13:00:00Z"),
-      "old.yaml": job("2026-03-20T11:54:00Z"),
-      "recent.yaml": job("2026-03-20T11:56:00Z"),
+      "old.yaml": job("2026-03-19T11:59:00Z"),
+      "recent.yaml": job("2026-03-19T12:01:00Z"),
+      "dateonly.yaml": job("2026-03-22"),
       "later.yaml": job("2026-03-22T10:00:00Z"),
     },
     runs: { ran: "2026-03-20T11:00:00Z" },

@@ -14,7 +14,8 @@ export interface AutomationsOptions {
 }
 
 const MAX_TITLE = 80;
-const PAST_REMINDER_MS = 5 * 60_000;
+// t3-agent keeps a due reminder up to 24 h while its thread is busy (REMINDER_WAIT_LIMIT_HOURS).
+const PAST_REMINDER_MS = 24 * 3_600_000;
 
 type Raw = Record<string, unknown>;
 const isObject = (value: unknown): value is Raw => typeof value === "object" && value !== null && !Array.isArray(value);
@@ -57,7 +58,8 @@ function toAutomation(id: string, job: Raw, brain: string, state: { threads: Raw
 
   const at = text(schedule.at);
   const atMs = at ? Date.parse(at) : NaN;
-  if (!at || Number.isNaN(atMs)) throw new Error("Invalid schedule");
+  // Like t3-agent, a date without a time is not a valid moment.
+  if (!at || !at.includes("T") || Number.isNaN(atMs)) throw new Error("Invalid schedule");
   if (lastRunAt || atMs < now.getTime() - PAST_REMINDER_MS) return null;
   return { ...common, kind: "reminder", schedule: { kind: "once", at }, nextRunAt: at, threadId: text(target.thread) };
 }
@@ -93,7 +95,14 @@ function readBrain(brain: Brain, options: AutomationsOptions): { status: BrainSt
 }
 
 export function readAutomations(options: AutomationsOptions): AutomationsResult {
-  const results = loadBrains(options.configDir).map((brain) => readBrain(brain, options));
+  const results = loadBrains(options.configDir).map((brain) => {
+    try {
+      return readBrain(brain, options);
+    } catch {
+      // One unreadable brain folder must not hide the others.
+      return { status: { name: brain.name, ok: false, error: "Dossier du cerveau illisible", problems: 0 }, automations: [] };
+    }
+  });
   return {
     automations: results.flatMap((result) => result.automations),
     brains: results.map((result) => result.status),
