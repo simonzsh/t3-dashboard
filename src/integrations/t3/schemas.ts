@@ -54,6 +54,7 @@ export const RawProject = s.object({
   id: s.string(),
   title: text(),
   defaultModelSelection: s.optional(s.nullable(ModelSelection)),
+  projectIcon: s.optional(s.nullable(s.object({ kind: text(), name: text(), color: text() }))),
 });
 export type RawProject = Infer<typeof RawProject>;
 
@@ -200,6 +201,7 @@ export const PersistedAttachments = s.object({ attachments: s.optional(s.array(A
 /** What assets.createUrl can sign: a stored attachment, or a local file a thread shows. */
 export type AssetResource = { _tag: "attachment"; attachmentId: string } | { _tag: "media-file"; threadId: string; path: string };
 export const AssetUrl = s.object({ relativeUrl: s.string() });
+export const ScratchProject = s.object({ projectId: s.string() });
 
 export interface ImageUpload {
   type: "image";
@@ -216,6 +218,8 @@ export interface T3Port {
   dispatch(command: Command): Promise<unknown>;
   getConfig(): Promise<RawConfig>;
   persistAttachments(threadId: string, messageId: string, images: ImageUpload[]): Promise<AttachmentRef[]>;
+  /** The id of T3's "No project" project, created if missing. */
+  ensureScratchProject(): Promise<string>;
   /** Fetches an asset through a short-lived signed URL; the file name ends the URL. */
   fetchAsset(resource: AssetResource): Promise<{ response: Response; fileName: string }>;
   subscribeShell(onItems: (items: ShellItem[]) => void, onEnd: (error?: Error) => void): { cancel(): void };

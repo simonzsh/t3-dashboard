@@ -5,8 +5,8 @@ import { loadNewAgentProject, presetSelection, saveNewAgentProject, titleFromMes
 import { memoryStore } from "../../fixtures.ts";
 
 const projects = [
-  { id: "p1", title: "Project A", defaultModelSelection: { instanceId: "b", model: "b-2" } },
-  { id: "p2", title: "Project B", defaultModelSelection: { instanceId: "gone", model: "x" } },
+  { id: "p1", title: "Project A", defaultModelSelection: { instanceId: "b", model: "b-2" }, icon: null },
+  { id: "p2", title: "Project B", defaultModelSelection: { instanceId: "gone", model: "x" }, icon: null },
 ];
 const providers = [
   { instanceId: "a", displayName: "A", models: [{ slug: "a-1", name: "A 1" }] },

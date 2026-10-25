@@ -4,8 +4,8 @@ import { loadAssignProject, saveAssignProject } from "../../src/lib/assignProjec
 import { memoryStore } from "../fixtures.ts";
 
 const projects = [
-  { id: "p1", title: "Project A", defaultModelSelection: null },
-  { id: "p2", title: "Project B", defaultModelSelection: null },
+  { id: "p1", title: "Project A", defaultModelSelection: null, icon: null },
+  { id: "p2", title: "Project B", defaultModelSelection: null, icon: null },
 ];
 
 test("nothing is preselected before a first choice", () => {

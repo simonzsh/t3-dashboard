@@ -34,7 +34,7 @@ test("snapshots merge by id while syncing and no state is emitted before synchro
   assert.equal(states.length, 1);
   const titles = states[0]!.threads.map((thread) => thread.title).sort();
   assert.deepEqual(titles, ["Renamed", "thread-1", "thread-3"]);
-  assert.deepEqual(states[0]!.projects, [{ id: "project-1", title: "Project A", defaultModelSelection: null }]);
+  assert.deepEqual(states[0]!.projects, [{ id: "project-1", title: "Project A", defaultModelSelection: null, icon: null }]);
 });
 
 test("the first non-snapshot item commits the sync and is then applied live", () => {
@@ -147,9 +147,9 @@ test("a removal after an upsert in the same call cancels the upsert", () => {
 
 test("project.updated and project.removed", () => {
   const { store, projects } = live();
-  store.apply([{ kind: "project.updated", project: { id: "project-2", title: "Project B", defaultModelSelection: { instanceId: "provider-a", model: "model-x" } } }]);
+  store.apply([{ kind: "project.updated", project: { id: "project-2", title: "Project B", defaultModelSelection: { instanceId: "provider-a", model: "model-x" }, projectIcon: { kind: "lucide", name: "minus", color: "blue" } } }]);
   assert.deepEqual(projects[0], {
-    upserted: [{ id: "project-2", title: "Project B", defaultModelSelection: { instanceId: "provider-a", model: "model-x" } }],
+    upserted: [{ id: "project-2", title: "Project B", defaultModelSelection: { instanceId: "provider-a", model: "model-x" }, icon: { shapes: [{ tag: "path", attrs: { d: "M5 12h14" } }], color: "#3b82f6" } }],
     removed: [],
   });
   store.apply([{ kind: "project.removed", projectId: "project-1" }]);

@@ -34,8 +34,8 @@ test("the filter field shows for long lists or on request", () => {
 
 test("projects become options sorted by title", () => {
   const projects = [
-    { id: "p2", title: "beta", defaultModelSelection: null },
-    { id: "p1", title: "Alpha", defaultModelSelection: null },
+    { id: "p2", title: "beta", defaultModelSelection: null, icon: null },
+    { id: "p1", title: "Alpha", defaultModelSelection: null, icon: null },
   ];
   assert.deepEqual(projectOptions(projects), [
     { id: "p1", label: "Alpha" },

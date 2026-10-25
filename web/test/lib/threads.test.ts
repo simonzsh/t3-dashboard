@@ -30,10 +30,10 @@ test("agentStatus: other threads are idle", () => {
 });
 
 const projects = [
-  { id: "p1", title: "Alpha", defaultModelSelection: null },
-  { id: "p2", title: "Beta", defaultModelSelection: null },
-  { id: "p3", title: "Gamma", defaultModelSelection: null },
-  { id: "p4", title: "Empty", defaultModelSelection: null },
+  { id: "p1", title: "Alpha", defaultModelSelection: null, icon: null },
+  { id: "p2", title: "Beta", defaultModelSelection: null, icon: null },
+  { id: "p3", title: "Gamma", defaultModelSelection: null, icon: null },
+  { id: "p4", title: "Empty", defaultModelSelection: null, icon: null },
 ];
 
 test("groupAgents keeps idle threads as cards", () => {

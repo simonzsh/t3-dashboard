@@ -21,11 +21,12 @@ function validSelection(selection: unknown): ModelSelection | null {
 
 export function validCreate(body: Record<string, unknown>): CreateThreadBody {
   const modelSelection = validSelection(body.modelSelection);
-  if (!isText(body.projectId) || !isText(body.title) || !isText(body.text) || !modelSelection) {
-    throw new HttpError(400, "projectId, title, text and modelSelection (instanceId, model) are required");
+  const projectId = body.projectId ?? "";
+  if (typeof projectId !== "string" || !isText(body.title) || !isText(body.text) || !modelSelection) {
+    throw new HttpError(400, "title, text and modelSelection (instanceId, model) are required; projectId is a string");
   }
   if (body.runtimeMode !== undefined && !isRuntimeMode(body.runtimeMode)) throw new HttpError(400, "runtimeMode is not a known mode");
-  return { projectId: body.projectId.trim(), title: body.title.trim(), text: body.text, modelSelection, ...(isRuntimeMode(body.runtimeMode) && { runtimeMode: body.runtimeMode }) };
+  return { projectId: projectId.trim(), title: body.title.trim(), text: body.text, modelSelection, ...(isRuntimeMode(body.runtimeMode) && { runtimeMode: body.runtimeMode }) };
 }
 
 export function validSettings(body: Record<string, unknown>): ThreadSettingsBody {

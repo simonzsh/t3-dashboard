@@ -33,6 +33,10 @@ export class FakePort implements T3Port {
     return images.map((image, index) => ({ type: "image", id: `stored-${index}`, name: image.name, mimeType: image.mimeType, sizeBytes: image.sizeBytes }));
   }
 
+  async ensureScratchProject() {
+    return "scratch-project";
+  }
+
   async fetchAsset(resource: AssetResource) {
     this.assets.push(resource);
     return { response: new Response("bytes", { headers: { "content-type": this.assetType } }), fileName: this.assetFileName };

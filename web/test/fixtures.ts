@@ -25,7 +25,7 @@ export function thread(id: string, over: Partial<DashboardThread> = {}): Dashboa
 export function baseState(threads: DashboardThread[] = []): DashboardState {
   return {
     connection: { t3: "live", serverVersion: null, protocolMismatch: false, error: null, setup: null },
-    projects: [{ id: "project-a", title: "Project A", defaultModelSelection: null }],
+    projects: [{ id: "project-a", title: "Project A", defaultModelSelection: null, icon: null }],
     providers: [],
     threads,
     automationsAvailable: true,

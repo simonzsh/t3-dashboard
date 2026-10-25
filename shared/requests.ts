@@ -6,6 +6,7 @@ export type ApprovalDecision = "accept" | "acceptForSession" | "decline";
 export type UserInputAnswers = Record<string, string | string[]>;
 
 export interface CreateThreadBody {
+  /** Empty: the thread goes to T3's "No project". */
   projectId: string;
   title: string;
   text: string;

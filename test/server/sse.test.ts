@@ -87,12 +87,12 @@ test("a removal cancels an earlier upsert, and an upsert cancels an earlier remo
   hub.broadcast({ type: "threads", data: { upserted: [thread("t1")], removed: [] } });
   hub.broadcast({ type: "threads", data: { upserted: [], removed: ["t1"] } });
   hub.broadcast({ type: "projects", data: { upserted: [], removed: ["p1"] } });
-  hub.broadcast({ type: "projects", data: { upserted: [{ id: "p1", title: "A", defaultModelSelection: null }], removed: [] } });
+  hub.broadcast({ type: "projects", data: { upserted: [{ id: "p1", title: "A", defaultModelSelection: null, icon: null }], removed: [] } });
   await wait(40);
   const [, threads, projects] = res.frames;
   assert.deepEqual(JSON.parse(threads!.split("data: ")[1]!), { upserted: [], removed: ["t1"] });
   assert.equal(projects!.split("\n")[0], "event: projects");
-  assert.deepEqual(JSON.parse(projects!.split("data: ")[1]!), { upserted: [{ id: "p1", title: "A", defaultModelSelection: null }], removed: [] });
+  assert.deepEqual(JSON.parse(projects!.split("data: ")[1]!), { upserted: [{ id: "p1", title: "A", defaultModelSelection: null, icon: null }], removed: [] });
   hub.close();
 });
 

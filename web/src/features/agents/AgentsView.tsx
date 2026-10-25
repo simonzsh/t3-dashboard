@@ -5,6 +5,7 @@ import { groupAgents } from "../../lib/threads.ts";
 import { excludeRoutineThreads } from "./automations.ts";
 import { AgentCard } from "./AgentCard.tsx";
 import { AutomationsColumn } from "./AutomationsColumn.tsx";
+import { ProjectIcon } from "../../lib/ProjectIcon.tsx";
 import { Loader, Pressable } from "../../ui/index.ts";
 
 interface Props {
@@ -48,6 +49,7 @@ export function AgentsView({ state, now, deskIds, onOpen, onToggleDesk, automati
         {groups.map((g) => (
           <section className="group" key={g.project.id}>
             <h2>
+              <ProjectIcon icon={g.project.icon} />
               {g.project.title} <span className="count">{g.cards.length + g.settled.length}</span>
             </h2>
             {g.cards.length > 0 && (

@@ -1,6 +1,7 @@
 import type { ConnectionStatus, DashboardProject, DashboardProvider, DashboardState, DashboardThread, Diff } from "../../shared/api.ts";
 import { isHidden, toDashboardThread } from "./classify.ts";
 import { DiffBatch } from "./diffBatch.ts";
+import { toProjectIcon } from "./projectIcon.ts";
 import type { RawBackgroundTask, RawProject, RawSnapshot, RawThread, ShellItem } from "../integrations/t3/schemas.ts";
 
 export interface ShellStoreOptions {
@@ -10,7 +11,7 @@ export interface ShellStoreOptions {
   onProjects(diff: Diff<DashboardProject>): void;
 }
 
-const toProject = (raw: RawProject): DashboardProject => ({ id: raw.id, title: raw.title ?? "", defaultModelSelection: raw.defaultModelSelection ?? null });
+const toProject = (raw: RawProject): DashboardProject => ({ id: raw.id, title: raw.title ?? "", defaultModelSelection: raw.defaultModelSelection ?? null, icon: toProjectIcon(raw.projectIcon) });
 
 interface Maps {
   threads: Map<string, RawThread>;
