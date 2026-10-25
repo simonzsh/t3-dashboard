@@ -795,3 +795,28 @@ test("media: only an absolute image path that a message of the thread shows", as
   assert.equal((await call(server, "GET", "/api/threads/t1/media")).status, 400);
   assert.deepEqual(port.assets, [{ _tag: "media-file", threadId: "t1", path: "/tmp/out/shot.png" }]);
 });
+
+test("attachments: a type the browser could run is downloaded, never rendered on the dashboard origin", async () => {
+  const { server, port } = await start();
+  port.assetType = "text/html";
+  const reply = await call(server, "GET", "/api/threads/t1/attachments/t1-img");
+  assert.equal(reply.headers["content-type"], "application/octet-stream");
+  assert.equal(reply.headers["content-disposition"], "attachment");
+  assert.equal(reply.headers["x-content-type-options"], "nosniff");
+});
+
+test("attachments: an id with path characters is refused before any T3 call", async () => {
+  const { server, port } = await start();
+  assert.equal((await call(server, "GET", "/api/threads/t1/attachments/t1-..%2F..%2Fsecret")).status, 404);
+  assert.deepEqual(port.assets, []);
+});
+
+test("media: the path must be the target of a markdown image, not any text in parentheses", async () => {
+  const { server, port } = await start();
+  port.projection = { messages: [{ id: "m", role: "assistant", text: "See (/tmp/a.png) and ![b](/tmp/a\\_b.png)" }] };
+  const get = (path: string) => call(server, "GET", `/api/threads/t1/media?path=${encodeURIComponent(path)}`);
+  assert.equal((await get("/tmp/a.png")).status, 404);
+  assert.equal((await get("/tmp/a_b.png")).status, 200);
+  assert.equal((await get("/tmp/../etc/x.png")).status, 400);
+  assert.equal((await get("/tmp/x\0.png")).status, 400);
+});

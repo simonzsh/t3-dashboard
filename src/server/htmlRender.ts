@@ -29,6 +29,6 @@ function themeStyle(theme: PageTheme): string {
 /** Puts the theme first, so the page's own styles still win. */
 export function themedPage(html: string, theme: PageTheme): string {
   const style = themeStyle(theme);
-  const head = /<head[^>]*>/i.exec(html);
+  const head = /<head(\s[^>]*)?>/i.exec(html);
   return head ? html.slice(0, head.index + head[0].length) + style + html.slice(head.index + head[0].length) : style + html;
 }

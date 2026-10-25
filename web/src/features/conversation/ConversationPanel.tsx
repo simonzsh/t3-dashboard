@@ -198,7 +198,7 @@ export function ConversationPanel({ threadId, thread, providers }: Props) {
           }}
         >
           {loadError && <p className="error">{loadError}</p>}
-          {detail && detail.messages.length === 0 && <p className="empty">No messages</p>}
+          {detail && detail.messages.length === 0 && detail.renders.length === 0 && <p className="empty">No messages</p>}
           {!detail && !loadError && <Loader />}
           {detail &&
             timeline(detail).map((entry) =>

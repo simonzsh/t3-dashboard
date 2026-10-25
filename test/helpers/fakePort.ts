@@ -8,6 +8,7 @@ export class FakePort implements T3Port {
   projection: RawProjection = {};
   assets: AssetResource[] = [];
   assetFileName = "image.png";
+  assetType = "image/png";
   dispatchError: Error | null = null;
   projectionError: Error | null = null;
   config: () => Promise<RawConfig> = async () => ({ providers: [], environment: { serverVersion: "1.0.0", orchestrationProtocolVersion: 2 } });
@@ -34,7 +35,7 @@ export class FakePort implements T3Port {
 
   async fetchAsset(resource: AssetResource) {
     this.assets.push(resource);
-    return { response: new Response("bytes", { headers: { "content-type": "image/png" } }), fileName: this.assetFileName };
+    return { response: new Response("bytes", { headers: { "content-type": this.assetType } }), fileName: this.assetFileName };
   }
 
   subscribeShell(onItems: (items: ShellItem[]) => void, onEnd: (error?: Error) => void) {

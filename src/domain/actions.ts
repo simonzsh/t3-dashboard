@@ -1,3 +1,4 @@
+import { marked } from "marked";
 import type { AssignIssueBody, CreateThreadBody, LinearIssue, ModelSelection, RespondBody, SendMessageBody, ThreadDetail, ThreadSettingsBody } from "../../shared/api.ts";
 import { ACTIVE_STATUSES, RUNNING_RUN_STATUSES } from "../../shared/status.ts";
 import { IntegrationError } from "../integrations/errors.ts";
@@ -51,6 +52,17 @@ export interface Actions {
 export type AssetRequest = { attachmentId: string } | { path: string };
 
 const IMAGE_FILE = /\.(png|jpe?g|gif|webp|avif)$/i;
+const ATTACHMENT_ID = /^[\w-]+$/;
+
+// Same lexer as the web view: only a real `![alt](path)` counts, not any text in parentheses.
+function citesImage(text: string | undefined, path: string): boolean {
+  if (!text) return false;
+  let found = false;
+  marked.walkTokens(marked.lexer(text, { gfm: true }), (token) => {
+    if (token.type === "image" && token.href === path) found = true;
+  });
+  return found;
+}
 
 export function createActions(options: ActionsOptions): Actions {
   const { port, store, board } = options;
@@ -113,13 +125,13 @@ export function createActions(options: ActionsOptions): Actions {
     async asset(threadId, request) {
       let resource: AssetResource;
       if ("attachmentId" in request) {
-        if (!request.attachmentId.startsWith(`${threadId}-`)) throw new DomainError("not-found", "No such attachment in this thread");
+        if (!ATTACHMENT_ID.test(request.attachmentId) || !request.attachmentId.startsWith(`${threadId}-`)) throw new DomainError("not-found", "No such attachment in this thread");
         resource = { _tag: "attachment", attachmentId: request.attachmentId };
       } else {
         const { path } = request;
-        if (!path.startsWith("/") || !IMAGE_FILE.test(path) || path.includes("/../")) throw new DomainError("invalid", "Only images can be shown");
+        if (!path.startsWith("/") || !IMAGE_FILE.test(path) || path.includes("/../") || /[\0-\x1f]/.test(path)) throw new DomainError("invalid", "Only images can be shown");
         const projection = await t3(port.threadProjection(threadId));
-        if (!(projection.messages ?? []).some((message) => message.text?.includes(`(${path})`))) throw new DomainError("not-found", "This thread does not show that image");
+        if (!(projection.messages ?? []).some((message) => citesImage(message.text, path))) throw new DomainError("not-found", "This thread does not show that image");
         resource = { _tag: "media-file", threadId, path };
       }
       const { response, fileName } = await t3(port.fetchAsset(resource));

@@ -45,6 +45,8 @@ const SECURITY_HEADERS = {
 };
 
 
+const IMAGE_TYPE = /^image\/(png|jpeg|gif|webp|avif)\s*(;|$)/i;
+
 function hostnameOf(value: string): string | null {
   try {
     return new URL(value.includes("://") ? value : `http://${value}`).hostname;
@@ -131,7 +133,10 @@ export function createDashboardServer(options: DashboardServerOptions): Dashboar
     const { response, html } = await actions.asset(threadId, request);
     const headers: Record<string, string> = { "cache-control": "private, max-age=3600" };
     if (!html) {
-      headers["content-type"] = response.headers.get("content-type") ?? "application/octet-stream";
+      // Never pass through a type the browser could run (html, svg) on the dashboard origin.
+      const type = response.headers.get("content-type") ?? "";
+      if (IMAGE_TYPE.test(type)) headers["content-type"] = type;
+      else Object.assign(headers, { "content-type": "application/octet-stream", "content-disposition": "attachment" });
       return new Response(response.body, { headers });
     }
     const theme = new URL(req.url).searchParams.get("theme");
