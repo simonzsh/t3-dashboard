@@ -1,15 +1,11 @@
 import assert from "node:assert/strict";
-import { mkdtempSync, mkdirSync, writeFileSync } from "node:fs";
-import type { Server } from "node:http";
-import { request } from "node:http";
-import type { AddressInfo } from "node:net";
-import { tmpdir } from "node:os";
-import { join } from "node:path";
-import { afterEach, test } from "node:test";
+import { afterEach, test } from "bun:test";
 import type { AutomationsResult, ConnectionStatus, DashboardState } from "../shared/api.ts";
 import { LinearBoard } from "../src/linear.ts";
 import type { LinearWorkspaceConfig } from "../src/linearConfig.ts";
 import { createDashboardServer } from "../src/server.ts";
+import type { DashboardHandler } from "../src/server.ts";
+import type { Site } from "../src/site.ts";
 import { ShellStore } from "../src/shellStore.ts";
 import { SseHub } from "../src/sse.ts";
 import type { Command, RawConfig, RawProjection, ShellItem, T3Port } from "../src/t3/types.ts";
@@ -59,14 +55,14 @@ const linearNode = (n: number) => ({
 });
 
 interface StartOptions {
-  staticDir?: string;
+  site?: Site;
   workspaces?: LinearWorkspaceConfig[];
   linearFetch?: (url: string, init: RequestInit) => Promise<Response>;
   automations?: () => AutomationsResult;
 }
 
 async function start(startOptions: StartOptions = {}) {
-  const { staticDir, workspaces = [], linearFetch, automations = () => ({ automations: [], brains: [], fetchedAt: now.toISOString() }) } = startOptions;
+  const { site = { serve: async () => null }, workspaces = [], linearFetch, automations = () => ({ automations: [], brains: [], fetchedAt: now.toISOString() }) } = startOptions;
   const linearCalls: string[] = [];
   const board = new LinearBoard({
     fetch: async (url, init) => {
@@ -102,7 +98,7 @@ async function start(startOptions: StartOptions = {}) {
     },
     { kind: "synchronized" },
   ]);
-  const server = createDashboardServer({
+  const server: DashboardHandler = createDashboardServer({
     port,
     store,
     hub,
@@ -110,41 +106,29 @@ async function start(startOptions: StartOptions = {}) {
     automations,
     getState,
     connection: () => connection,
-    staticDir: staticDir ?? join(tmpdir(), "t3-dashboard-missing-dir"),
+    site,
     newId: () => `id-${++counter}`,
   });
-  await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve));
-  running.push(async () => {
-    hub.close();
-    server.closeAllConnections();
-    await new Promise((resolve) => server.close(resolve));
-  });
-  return { port, store, hub, server, linearCalls, origin: (server.address() as AddressInfo).port };
+  running.push(async () => hub.close());
+  return { port, store, hub, server, linearCalls };
 }
 
 interface Reply {
   status: number;
-  headers: Record<string, string | string[] | undefined>;
+  headers: Record<string, string>;
   text: string;
   json: any;
 }
 
-function call(server: Server, method: string, path: string, options: { headers?: Record<string, string>; body?: unknown; raw?: string } = {}): Promise<Reply> {
-  const { port } = server.address() as AddressInfo;
+async function call(server: DashboardHandler, method: string, path: string, options: { headers?: Record<string, string>; body?: unknown; raw?: string } = {}): Promise<Reply> {
   const payload = options.raw ?? (options.body === undefined ? undefined : JSON.stringify(options.body));
-  const headers = { ...(options.body !== undefined ? { "content-type": "application/json" } : {}), ...options.headers };
-  return new Promise((resolve, reject) => {
-    const req = request({ host: "127.0.0.1", port, method, path, headers }, (res) => {
-      let text = "";
-      res.on("data", (chunk) => (text += chunk));
-      res.on("end", () => resolve({ status: res.statusCode!, headers: res.headers, text, json: text.startsWith("{") || text.startsWith("[") ? JSON.parse(text) : null }));
-    });
-    req.on("error", reject);
-    req.end(payload);
-  });
+  const headers = { host: "127.0.0.1", ...(options.body !== undefined ? { "content-type": "application/json" } : {}), ...options.headers };
+  const res = await server.fetch(new Request(`http://127.0.0.1${path}`, { method, headers, body: payload }));
+  const text = await res.text();
+  return { status: res.status, headers: Object.fromEntries(res.headers), text, json: text.startsWith("{") || text.startsWith("[") ? JSON.parse(text) : null };
 }
 
-const post = (server: Server, path: string, body: unknown = {}, headers?: Record<string, string>) => call(server, "POST", path, { body, ...(headers && { headers }) });
+const post = (server: DashboardHandler, path: string, body: unknown = {}, headers?: Record<string, string>) => call(server, "POST", path, { body, ...(headers && { headers }) });
 const model = { instanceId: "provider-a", model: "model-x" };
 
 test("GET /api/health and /api/state", async () => {
@@ -248,7 +232,7 @@ test("archive, pin and unpin", async () => {
 });
 
 test("every response forbids framing and sniffing", async () => {
-  const { server } = await start({ staticDir: staticDirWith({ "index.html": "<html></html>" }) });
+  const { server } = await start({ site: { serve: async () => new Response("<html></html>", { headers: { "content-type": "text/html" } }) } });
   for (const reply of [await call(server, "GET", "/api/state"), await call(server, "GET", "/"), await post(server, "/api/threads/x/nope")]) {
     assert.equal(reply.headers["x-frame-options"], "DENY");
     assert.equal(reply.headers["content-security-policy"], "frame-ancestors 'none'");
@@ -333,65 +317,34 @@ test("unknown API routes give 404 and never CORS headers", async () => {
 
 test("SSE: first frame is state, then a store diff arrives", async () => {
   const { server, store } = await start();
-  const { port } = server.address() as AddressInfo;
-  const received = await new Promise<string>((resolve, reject) => {
-    const req = request({ host: "127.0.0.1", port, path: "/api/events" }, (res) => {
-      assert.equal(res.headers["content-type"], "text/event-stream");
-      let text = "";
-      res.on("data", (chunk) => {
-        text += chunk;
-        if (text.startsWith("event: state\n") && !text.includes("event: threads")) {
-          store.apply([{ kind: "thread.updated", thread: { id: "new-1", title: "Thread 9", status: "idle", createdAt: "2026-03-05T00:00:00Z" } } satisfies ShellItem]);
-        }
-        if (text.includes("event: threads\n")) {
-          req.destroy();
-          resolve(text);
-        }
-      });
-    });
-    req.on("error", (error) => (error as NodeJS.ErrnoException).code === "ECONNRESET" || reject(error));
-    req.end();
-  });
-  assert.match(received, /^event: state\ndata: \{/);
-  assert.match(received, /event: threads\ndata: \{"upserted":\[\{"id":"new-1"/);
-});
-
-function staticDirWith(files: Record<string, string>): string {
-  const dir = mkdtempSync(join(tmpdir(), "t3-dashboard-static-"));
-  for (const [name, content] of Object.entries(files)) {
-    mkdirSync(join(dir, name, ".."), { recursive: true });
-    writeFileSync(join(dir, name), content);
+  const live = Bun.serve({ port: 0, hostname: "127.0.0.1", fetch: (req, bunServer) => server.fetch(req, bunServer) });
+  const controller = new AbortController();
+  try {
+    const res = await fetch(`http://127.0.0.1:${live.port}/api/events`, { signal: controller.signal });
+    assert.equal(res.headers.get("content-type"), "text/event-stream");
+    const reader = res.body!.pipeThrough(new TextDecoderStream()).getReader();
+    let text = "";
+    while (!text.includes("event: threads\n")) {
+      const { value, done } = await reader.read();
+      assert.ok(!done, "stream ended early");
+      text += value;
+      if (text.startsWith("event: state\n") && !text.includes("event: threads")) {
+        store.apply([{ kind: "thread.updated", thread: { id: "new-1", title: "Thread 9", status: "idle", createdAt: "2026-03-05T00:00:00Z" } } satisfies ShellItem]);
+      }
+    }
+    assert.match(text, /^event: state\ndata: \{/);
+    assert.match(text, /event: threads\ndata: \{"upserted":\[\{"id":"new-1"/);
+  } finally {
+    controller.abort();
+    await live.stop(true);
   }
-  return dir;
-}
-
-test("static: a missing build answers a short page", async () => {
-  const { server } = await start();
-  const reply = await call(server, "GET", "/");
-  assert.equal(reply.status, 200);
-  assert.match(String(reply.headers["content-type"]), /text\/html/);
-  assert.match(reply.text, /npm run build/);
 });
 
-test("static: files, content types and SPA fallback", async () => {
-  const dir = staticDirWith({ "index.html": "<p>app</p>", "assets/app.js": "console.log(1)", "assets/app.css": "a{}", "icon.svg": "<svg/>" });
-  const { server } = await start({ staticDir: dir });
+test("a site page is served for GET and never for other methods", async () => {
+  const { server } = await start({ site: { serve: async (pathname) => (pathname === "/" ? new Response("<p>app</p>") : null) } });
   assert.equal((await call(server, "GET", "/")).text, "<p>app</p>");
-  const js = await call(server, "GET", "/assets/app.js");
-  assert.equal(js.text, "console.log(1)");
-  assert.match(String(js.headers["content-type"]), /text\/javascript/);
-  assert.match(String((await call(server, "GET", "/assets/app.css")).headers["content-type"]), /text\/css/);
-  assert.match(String((await call(server, "GET", "/icon.svg")).headers["content-type"]), /image\/svg\+xml/);
-  assert.equal((await call(server, "GET", "/some/client/route")).text, "<p>app</p>");
-});
-
-test("static: traversal is blocked", async () => {
-  const dir = staticDirWith({ "web/dist/index.html": "<p>app</p>", "secret.txt": "top secret" });
-  const { server } = await start({ staticDir: join(dir, "web", "dist") });
-  for (const path of ["/%2e%2e/%2e%2e/secret.txt", "/..%2f..%2fsecret.txt", "/%2e%2e%2f%2e%2e%2fsecret.txt", "/%00"]) {
-    const reply = await call(server, "GET", path);
-    assert.ok(!reply.text.includes("top secret"), path);
-  }
+  assert.equal((await call(server, "GET", "/missing.js")).status, 404);
+  assert.equal((await post(server, "/")).status, 404);
 });
 
 const space = (name: string, t3Project = "Project A", teams: Record<string, string> | null = null): LinearWorkspaceConfig => ({ name, apiKey: "key-1", t3Project, teams });

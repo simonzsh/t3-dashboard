@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { test } from "node:test";
+import { test } from "bun:test";
 import { ShellStore } from "../src/shellStore.ts";
 import type { DashboardProject, DashboardState, DashboardThread, Diff } from "../shared/api.ts";
 import type { RawProject, RawThread, ShellItem } from "../src/t3/types.ts";

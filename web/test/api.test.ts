@@ -1,4 +1,4 @@
-import test from "node:test";
+import { test } from "bun:test";
 import assert from "node:assert/strict";
 import { createApi } from "../src/api.ts";
 
@@ -66,7 +66,7 @@ test("non-2xx throws with the server message", async () => {
 });
 
 test("non-2xx without JSON error body still throws", async () => {
-  const fetch = (async () => new Response("boom", { status: 500 })) as typeof globalThis.fetch;
+  const fetch = (async () => new Response("boom", { status: 500 })) as unknown as typeof globalThis.fetch;
   await assert.rejects(() => createApi(fetch).getState(), /500/);
 });
 

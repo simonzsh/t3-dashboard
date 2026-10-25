@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { test } from "node:test";
+import { test } from "bun:test";
 import { agentConfigDir, loadBrains } from "../src/brains.ts";
 
 const tempDir = () => mkdtempSync(join(tmpdir(), "t3-dashboard-brains-"));

@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { test } from "node:test";
+import { test } from "bun:test";
 import { linearFile, readLinearWorkspaces } from "../src/linearConfig.ts";
 
 const files = (map: Record<string, string>) => (path: string) => {

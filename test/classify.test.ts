@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { test } from "node:test";
+import { test } from "bun:test";
 import { DONE_WINDOW_DAYS, bucketOf, isHidden, toDashboardThread } from "../src/classify.ts";
 import type { RawThread } from "../src/t3/types.ts";
 

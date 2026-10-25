@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { beforeEach, test } from "node:test";
+import { beforeEach, test } from "bun:test";
 import { T3Client } from "../src/t3/client.ts";
 import { FakeSocket, tick } from "./helpers/fakeSocket.ts";
 

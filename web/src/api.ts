@@ -11,7 +11,7 @@ import type {
   ThreadDetail,
 } from "../../shared/api.ts";
 
-type Fetch = typeof globalThis.fetch;
+type Fetch = (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>;
 
 export function createApi(fetchImpl: Fetch) {
   async function call<T>(path: string, body?: unknown): Promise<T> {

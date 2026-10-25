@@ -1,8 +1,4 @@
-import { readFile, stat } from "node:fs/promises";
-import { createServer } from "node:http";
-import type { IncomingMessage, Server, ServerResponse } from "node:http";
-import { extname, join, resolve, sep } from "node:path";
-import { fileURLToPath } from "node:url";
+import type { Server } from "bun";
 import type {
   ApprovalDecision,
   AssignIssueBody,
@@ -19,6 +15,7 @@ import type {
 import { ACTIVE_STATUSES } from "./classify.ts";
 import { toProviders } from "./live.ts";
 import type { LinearBoard } from "./linear.ts";
+import type { Site } from "./site.ts";
 import type { ShellStore } from "./shellStore.ts";
 import type { SseHub } from "./sse.ts";
 import {
@@ -44,7 +41,7 @@ export interface DashboardServerOptions {
   hub: SseHub;
   getState: () => DashboardState;
   connection: () => ConnectionStatus;
-  staticDir: string | URL;
+  site: Site;
   newId?: () => string;
 }
 
@@ -55,15 +52,6 @@ const CLAUDE_INSTANCE = "claudeAgent";
 const CLAUDE_FALLBACK_MODEL = "claude-opus-5-5";
 const CODEX_INSTANCE = "codex";
 const DECISIONS = new Set<string>(["accept", "acceptForSession", "decline"]);
-const CONTENT_TYPES: Record<string, string> = {
-  ".html": "text/html; charset=utf-8",
-  ".js": "text/javascript; charset=utf-8",
-  ".css": "text/css; charset=utf-8",
-  ".svg": "image/svg+xml",
-  ".json": "application/json; charset=utf-8",
-  ".ico": "image/x-icon",
-};
-const MISSING_BUILD_PAGE = "<!doctype html><meta charset=utf-8><p>Interface non construite : lancez <code>npm run build</code>.</p>";
 
 const SIMPLE_ACTIONS = new Map([
   ["archive", archiveCommand],
@@ -96,24 +84,26 @@ function hostnameOf(value: string): string | null {
   }
 }
 
-function checkOrigin(req: IncomingMessage): void {
-  const host = req.headers.host;
-  const origin = req.headers.origin;
-  const hostOk = host !== undefined && LOCAL_HOSTS.has(hostnameOf(host) ?? "");
-  const originOk = origin === undefined || LOCAL_HOSTS.has(hostnameOf(origin) ?? "");
+function checkOrigin(req: Request): void {
+  const host = req.headers.get("host");
+  const origin = req.headers.get("origin");
+  const hostOk = host !== null && LOCAL_HOSTS.has(hostnameOf(host) ?? "");
+  const originOk = origin === null || LOCAL_HOSTS.has(hostnameOf(origin) ?? "");
   if (!hostOk || !originOk) throw new HttpError(403, "Forbidden host or origin");
 }
 
-async function readJson(req: IncomingMessage): Promise<Record<string, unknown>> {
-  if (!String(req.headers["content-type"] ?? "").toLowerCase().startsWith("application/json")) {
+async function readJson(req: Request): Promise<Record<string, unknown>> {
+  if (!(req.headers.get("content-type") ?? "").toLowerCase().startsWith("application/json")) {
     throw new HttpError(400, "content-type must be application/json");
   }
-  const chunks: Buffer[] = [];
+  const chunks: Uint8Array[] = [];
   let size = 0;
-  for await (const chunk of req) {
-    size += (chunk as Buffer).length;
-    if (size > MAX_BODY_BYTES) throw new HttpError(413, "Body over 1 MB");
-    chunks.push(chunk as Buffer);
+  if (req.body) {
+    for await (const chunk of req.body) {
+      size += chunk.length;
+      if (size > MAX_BODY_BYTES) throw new HttpError(413, "Body over 1 MB");
+      chunks.push(chunk);
+    }
   }
   const text = Buffer.concat(chunks).toString("utf8");
   if (text === "") return {};
@@ -127,10 +117,8 @@ async function readJson(req: IncomingMessage): Promise<Record<string, unknown>> 
   return parsed;
 }
 
-function sendJson(res: ServerResponse, status: number, body: unknown): void {
-  res.writeHead(status, { "content-type": "application/json; charset=utf-8" });
-  res.end(JSON.stringify(body));
-}
+const json = (status: number, body: unknown, headers: Record<string, string> = {}) =>
+  new Response(JSON.stringify(body), { status, headers: { "content-type": "application/json; charset=utf-8", ...headers } });
 
 function validCreate(body: Record<string, unknown>): CreateThreadBody {
   const selection = body.modelSelection;
@@ -167,10 +155,13 @@ function validRespond(body: Record<string, unknown>): RespondBody {
   return { answers: answers as UserInputAnswers };
 }
 
-export function createDashboardServer(options: DashboardServerOptions): Server {
-  const { port, store, hub, board, automations, getState, connection } = options;
+export interface DashboardHandler {
+  fetch(req: Request, server?: Server<undefined>): Promise<Response>;
+}
+
+export function createDashboardServer(options: DashboardServerOptions): DashboardHandler {
+  const { port, store, hub, board, automations, getState, connection, site } = options;
   const newId = options.newId ?? (() => crypto.randomUUID());
-  const staticRoot = resolve(typeof options.staticDir === "string" ? options.staticDir : fileURLToPath(options.staticDir));
 
   const t3 = async <T>(work: Promise<T>): Promise<T> => {
     try {
@@ -242,102 +233,97 @@ export function createDashboardServer(options: DashboardServerOptions): Server {
     return threadId;
   }
 
-  async function api(req: IncomingMessage, res: ServerResponse, segments: string[]): Promise<void> {
+  async function api(req: Request, server: Server<undefined> | undefined, segments: string[]): Promise<Response> {
     const [, resource, id, action, requestId, requestAction] = segments;
     const method = req.method;
     if (method === "GET") {
-      if (segments.length === 2 && resource === "health") return sendJson(res, 200, { ok: true, t3: connection().t3 });
-      if (segments.length === 2 && resource === "state") return sendJson(res, 200, getState());
+      if (segments.length === 2 && resource === "health") return json(200, { ok: true, t3: connection().t3 });
+      if (segments.length === 2 && resource === "state") return json(200, getState());
       if (segments.length === 2 && resource === "board") {
-        const refresh = new URL(req.url ?? "/", "http://localhost").searchParams.get("refresh") === "1";
-        return sendJson(res, 200, await board.get(refresh));
+        const refresh = new URL(req.url).searchParams.get("refresh") === "1";
+        return json(200, await board.get(refresh));
       }
-      if (segments.length === 2 && resource === "automations") return sendJson(res, 200, automations());
-      if (segments.length === 2 && resource === "events") return hub.add(res, getState());
+      if (segments.length === 2 && resource === "automations") return json(200, automations());
+      if (segments.length === 2 && resource === "events") {
+        server?.timeout(req, 0);
+        return hub.add(getState(), req.signal);
+      }
       if (segments.length === 3 && resource === "threads" && id) {
-        return sendJson(res, 200, toThreadDetail(id, await t3(port.threadProjection(id)), store.thread(id)));
+        return json(200, toThreadDetail(id, await t3(port.threadProjection(id)), store.thread(id)));
       }
     } else if (method === "POST" && resource === "board" && id === "assign" && segments.length === 3) {
       const threadId = await assign(validAssign(await readJson(req)));
-      return sendJson(res, 200, { ok: true, threadId });
+      return json(200, { ok: true, threadId });
     } else if (method === "POST" && resource === "threads") {
       const body = await readJson(req);
       if (segments.length === 2) {
         const { threadId, commands } = createThreadCommands(validCreate(body), newId);
         await send(...commands);
-        return sendJson(res, 200, { ok: true, threadId });
+        return json(200, { ok: true, threadId });
       }
       if (id && segments.length === 4) {
         if (action === "messages") {
           if (!isText(body.text)) throw new HttpError(400, "text is required");
           if (body.mode !== undefined && body.mode !== "queue" && body.mode !== "steer") throw new HttpError(400, "mode must be queue or steer");
           await sendMessage(id, { text: body.text, ...(body.mode && { mode: body.mode }) });
-          return sendJson(res, 200, { ok: true });
+          return json(200, { ok: true });
         }
         if (action === "interrupt") {
           await interrupt(id);
-          return sendJson(res, 200, { ok: true });
+          return json(200, { ok: true });
         }
         const simple = SIMPLE_ACTIONS.get(action ?? "");
         if (simple) {
           await send(simple(id, newId));
-          return sendJson(res, 200, { ok: true });
+          return json(200, { ok: true });
         }
       }
       if (id && segments.length === 6 && action === "requests" && requestId) {
         if (requestAction === "respond") {
           const answer = validRespond(body);
           await send("decision" in answer ? approvalCommand(id, requestId, answer.decision, newId) : userInputCommand(id, requestId, answer.answers, newId));
-          return sendJson(res, 200, { ok: true });
+          return json(200, { ok: true });
         }
         if (requestAction === "dismiss") {
           await send(dismissCommand(id, requestId, newId));
-          return sendJson(res, 200, { ok: true });
+          return json(200, { ok: true });
         }
       }
     }
     throw new HttpError(404, "Unknown route");
   }
 
-  async function serveStatic(res: ServerResponse, pathname: string): Promise<void> {
-    const file = resolve(staticRoot, pathname);
-    const inside = file === staticRoot || file.startsWith(staticRoot + sep);
-    const target = inside && (await stat(file).catch(() => null))?.isFile() ? file : join(staticRoot, "index.html");
-    try {
-      const content = await readFile(target);
-      res.writeHead(200, { "content-type": CONTENT_TYPES[extname(target)] ?? "application/octet-stream" });
-      res.end(content);
-    } catch {
-      res.writeHead(200, { "content-type": CONTENT_TYPES[".html"]! });
-      res.end(MISSING_BUILD_PAGE);
-    }
-  }
-
-  async function handle(req: IncomingMessage, res: ServerResponse): Promise<void> {
+  async function handle(req: Request, server: Server<undefined> | undefined): Promise<Response> {
     checkOrigin(req);
     let segments: string[];
+    let pathname: string;
     try {
-      segments = new URL(req.url ?? "/", "http://localhost").pathname.split("/").slice(1).map(decodeURIComponent);
+      pathname = new URL(req.url).pathname;
+      segments = pathname.split("/").slice(1).map(decodeURIComponent);
     } catch {
       throw new HttpError(400, "Malformed URL");
     }
-    if (segments[0] === "api") return api(req, res, segments);
+    if (segments[0] === "api") return api(req, server, segments);
     if (req.method !== "GET" && req.method !== "HEAD") throw new HttpError(404, "Unknown route");
-    const pathname = segments.join("/");
     if (pathname.includes("\0")) throw new HttpError(400, "Malformed URL");
-    return serveStatic(res, pathname);
+    return (await site.serve(pathname)) ?? json(404, { error: "Unknown route" });
   }
 
-  return createServer((req, res) => {
-    // Forbids framing: a hostile page could otherwise clickjack the approval buttons.
-    for (const [name, value] of Object.entries(SECURITY_HEADERS)) res.setHeader(name, value);
-    handle(req, res).catch((error: unknown) => {
-      if (!(error instanceof HttpError)) console.error(error);
-      const status = error instanceof HttpError ? error.status : 500;
-      const message = error instanceof HttpError ? error.message : "Internal error";
-      if (res.headersSent) return res.end();
-      res.setHeader("connection", status === 413 ? "close" : "keep-alive");
-      sendJson(res, status, { error: message });
-    });
-  });
+  return {
+    async fetch(req, server) {
+      let response: Response;
+      try {
+        response = await handle(req, server);
+      } catch (error) {
+        if (!(error instanceof HttpError)) console.error(error);
+        const status = error instanceof HttpError ? error.status : 500;
+        const message = error instanceof HttpError ? error.message : "Internal error";
+        response = json(status, { error: message }, status === 413 ? { connection: "close" } : undefined);
+      }
+      // Forbids framing: a hostile page could otherwise clickjack the approval buttons.
+      const headers = new Headers(response.headers);
+      for (const [name, value] of Object.entries(SECURITY_HEADERS)) headers.set(name, value);
+      return new Response(response.body, { status: response.status, statusText: response.statusText, headers });
+    },
+  };
 }

@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { beforeEach, test } from "node:test";
+import { beforeEach, test } from "bun:test";
 import { RpcConnection, T3RpcError } from "../src/t3/rpc.ts";
 import { FakeSocket, tick } from "./helpers/fakeSocket.ts";
 
