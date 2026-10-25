@@ -15,6 +15,11 @@ test("defaults use the user data runtime file and no token file", () => {
   assert.equal(config.environmentIdFile, "/home/ann/.t3/userdata/environment-id");
 });
 
+test("T3_DASHBOARD_ALLOWED_HOSTS is a trimmed, lowercase list without empty items", () => {
+  assert.deepEqual(loadConfig({}, "/h").allowedHosts, []);
+  assert.deepEqual(loadConfig({ T3_DASHBOARD_ALLOWED_HOSTS: " Box.ts.net , ,b.example" }, "/h").allowedHosts, ["box.ts.net", "b.example"]);
+});
+
 test("T3CODE_HOME moves the environment id file", () => {
   assert.equal(loadConfig({ T3CODE_HOME: "/srv/t3" }, "/home/ann").environmentIdFile, "/srv/t3/userdata/environment-id");
 });

@@ -72,6 +72,7 @@ interface StartOptions {
   linear?: unknown;
   pasteResult?: "ok" | "rejected" | "unreachable" | "locked";
   update?: { unavailable?: string | null; tag?: string };
+  allowedHosts?: string[];
 }
 
 const LINEAR_FILE = "/cfg/linear.json";
@@ -157,6 +158,7 @@ async function start(startOptions: StartOptions = {}) {
     settings,
     setup,
     updates,
+    allowedHosts: startOptions.allowedHosts,
     newId: () => `id-${++counter}`,
   });
   running.push(async () => hub.close());
@@ -463,6 +465,16 @@ test("guards: Host, Origin, content-type, JSON, size", async () => {
   assert.equal((await call(server, "POST", "/api/threads/idle-1/archive", { raw: "{not json" })).status, 400);
   assert.equal((await call(server, "POST", "/api/threads/idle-1/archive", { raw: "x".repeat(1_100_000), headers: { "content-type": "application/json" } })).status, 413);
   assert.deepEqual(port.commands, []);
+});
+
+test("allowed hosts extend the local ones for Host and Origin, ports ignored", async () => {
+  const { server } = await start({ allowedHosts: ["box.tail.ts.net"] });
+  const get = (headers: Record<string, string>) => call(server, "GET", "/api/health", { headers }).then((reply) => reply.status);
+  assert.equal(await get({ host: "box.tail.ts.net:4300" }), 200);
+  assert.equal(await get({ host: "BOX.tail.ts.net", origin: "https://box.tail.ts.net:4300" }), 200);
+  assert.equal(await get({ host: "box.tail.ts.net", origin: "http://evil.example" }), 403);
+  assert.equal(await get({ host: "evil.example", origin: "https://box.tail.ts.net" }), 403);
+  assert.equal(await get({ host: "127.0.0.1", origin: "http://localhost:5173" }), 200);
 });
 
 test("unknown API routes give 404 and never CORS headers", async () => {

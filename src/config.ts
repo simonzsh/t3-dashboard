@@ -9,6 +9,8 @@ export interface Config {
   port: number;
   /** Set only by T3_DASHBOARD_TOKEN_FILE: the dashboard keeps its own token otherwise. */
   tokenFile: string | null;
+  /** Extra Host and Origin names, besides 127.0.0.1 and localhost. */
+  allowedHosts: string[];
   runtimeFile: string;
   /** Names this T3 install in t3code:// links. */
   environmentIdFile: string;
@@ -18,6 +20,7 @@ export function loadConfig(env: Record<string, string | undefined>, homedir: str
   return {
     port: Number(env.PORT ?? DEFAULT_PORT),
     tokenFile: env.T3_DASHBOARD_TOKEN_FILE || null,
+    allowedHosts: (env.T3_DASHBOARD_ALLOWED_HOSTS ?? "").split(",").map((host) => host.trim().toLowerCase()).filter(Boolean),
     runtimeFile: env.T3_SERVER_RUNTIME ?? join(homedir, ".t3", "userdata", "server-runtime.json"),
     environmentIdFile: join(env.T3CODE_HOME || join(homedir, ".t3"), "userdata", "environment-id"),
   };
