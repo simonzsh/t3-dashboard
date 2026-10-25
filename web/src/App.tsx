@@ -107,9 +107,14 @@ export function App() {
   return (
     <div className={`app${tab === "desk" ? " desk-mode" : ""}`}>
       <header className="topbar">
-        <h1>
-          T3<span className="title-rest"> Dashboard</span>
-        </h1>
+        <div className="topbar-left">
+          <h1>
+            T3<span className="title-rest"> Dashboard</span>
+          </h1>
+          <span className={`conn ${live ? "up" : "down"}`} title={live ? "Connected to T3 Code" : "Connection lost"}>
+            <span className="conn-dot" /> <span className="conn-label">{live ? "Connected" : "Offline"}</span>
+          </span>
+        </div>
         <nav className="tabs" role="tablist">
           {TABS.map(({ id, label, key }) => (
             <Pressable key={id} role="tab" aria-selected={tab === id} className={tab === id ? "active" : ""} title={`${label} (${key})`} onClick={() => setTab(id)}>
@@ -130,9 +135,6 @@ export function App() {
                 {updateLabel(update.status)}
               </Button>
             ))}
-          <span className={`conn ${live ? "up" : "down"}`} title={live ? "Connected to T3 Code" : "Connection lost"}>
-            <span className="conn-dot" /> <span className="conn-label">{live ? "Connected" : "Offline"}</span>
-          </span>
           {state &&
             (compact ? (
               <IconButton variant="primary" label="New Agent" title="New Agent (n)" onClick={() => setCreating(true)}>
