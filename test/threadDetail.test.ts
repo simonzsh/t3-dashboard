@@ -205,3 +205,38 @@ test("without runs, keeps the run of the most recently started subagent", () => 
   }, undefined);
   assert.deepEqual(detail.subagents.map((s) => s.id), ["new"]);
 });
+
+const twoRuns = { runs: [{ id: "r1", startedAt: "2026-03-01T10:00:00Z" }, { id: "r2", startedAt: "2026-03-01T11:00:00Z" }] };
+
+test("keeps an older-run subagent that a pending background task still names", () => {
+  const detail = toThreadDetail("t", {
+    ...twoRuns,
+    subagents: [
+      { ...sub("by-child", "r1", "running", "2026-03-01T10:01:00Z"), childThreadId: "child-1" },
+      { ...sub("by-native", "r1", "running", "2026-03-01T10:02:00Z"), nativeTaskRef: { nativeId: "task-2" } },
+      { ...sub("by-title", "r1", "running", "2026-03-01T10:03:00Z"), title: "Explore the API" },
+      sub("stale", "r1", "running", "2026-03-01T10:04:00Z"),
+      sub("new", "r2", "completed", "2026-03-01T11:01:00Z"),
+    ],
+  }, undefined, [
+    { taskId: "task-1", childThreadId: "child-1" },
+    { taskId: "task-2" },
+    { taskId: "task-3", description: "Explore the API" },
+  ]);
+  assert.deepEqual(detail.subagents.map((s) => s.id).sort(), ["by-child", "by-native", "by-title", "new"]);
+});
+
+test("a pending background task without a projection subagent shows as a running row", () => {
+  const detail = toThreadDetail("t", { ...twoRuns, subagents: [sub("new", "r2", "completed", "2026-03-01T11:01:00Z")] }, undefined, [
+    { taskId: "task-9", description: "Review the diff", kind: "subagent" },
+    { taskId: "task-10" },
+  ]);
+  assert.deepEqual(
+    detail.subagents.map((s) => [s.id, s.title, s.status]),
+    [
+      ["task:task-9", "Review the diff", "running"],
+      ["task:task-10", "Subagent", "running"],
+      ["new", "new", "done"],
+    ],
+  );
+});

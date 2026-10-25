@@ -15,7 +15,7 @@ export interface RawThread {
   creationSource?: string | null;
   status?: string | null;
   activeRunId?: string | null;
-  pendingBackgroundTasks?: Array<{ taskId?: string; kind?: string; description?: string; childThreadId?: string | null }> | null;
+  pendingBackgroundTasks?: RawBackgroundTask[] | null;
   blockedOnThreadWait?: boolean | null;
   activityRunStartedAt?: string | null;
   latestRunStartedAt?: string | null;
@@ -90,9 +90,18 @@ export interface RawTurnItem {
   messageId?: string;
 }
 
+export interface RawBackgroundTask {
+  taskId?: string;
+  kind?: string;
+  description?: string | null;
+  childThreadId?: string | null;
+}
+
 export interface RawSubagent {
   id: string;
   runId?: string | null;
+  childThreadId?: string | null;
+  nativeTaskRef?: { nativeId?: string | null } | null;
   title?: string | null;
   prompt?: string | null;
   status?: string | null;

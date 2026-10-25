@@ -87,8 +87,8 @@ export function ConversationPanel({ threadId, thread, lastEvent, providers }: Pr
   const t = thread ?? detail?.thread ?? null;
   const running = t !== null && runActive(t);
 
-  // Poll only while the thread itself is busy: a stale subagent must not keep it going.
-  const subagentRunning = (running || Boolean(t?.backgroundWork)) && (detail?.subagents.some((s) => s.status === "running") ?? false);
+  // Poll while background tasks are pending, or a run has a running subagent: a stale one must not keep it going.
+  const subagentRunning = Boolean(t?.backgroundWork) || (running && (detail?.subagents.some((s) => s.status === "running") ?? false));
   useEffect(() => {
     if (!subagentRunning) return;
     const id = setInterval(() => void load(), SUBAGENT_POLL_MS);

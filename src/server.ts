@@ -51,7 +51,7 @@ export interface SetupControl {
 
 export interface DashboardServerOptions {
   port: T3Port;
-  store: Pick<ShellStore, "thread" | "project">;
+  store: Pick<ShellStore, "thread" | "project" | "backgroundTasks">;
   board: Pick<LinearBoard, "get">;
   automations: () => AutomationsResult;
   hub: SseHub;
@@ -303,7 +303,7 @@ export function createDashboardServer(options: DashboardServerOptions): Dashboar
         return hub.add(getState(), req.signal);
       }
       if (segments.length === 3 && resource === "threads" && id) {
-        return json(200, toThreadDetail(id, await t3(port.threadProjection(id)), store.thread(id)));
+        return json(200, toThreadDetail(id, await t3(port.threadProjection(id)), store.thread(id), store.backgroundTasks(id)));
       }
     } else if (method === "POST" && resource === "board" && id === "assign" && segments.length === 3) {
       const threadId = await assign(validAssign(await readJson(req)));

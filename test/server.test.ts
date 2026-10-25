@@ -385,6 +385,13 @@ test("GET /api/threads/:id joins the projection and the store thread", async () 
   assert.equal((await call(server, "GET", "/api/threads/nope")).json.thread, null);
 });
 
+test("GET /api/threads/:id shows the shell's pending background tasks as running subagents", async () => {
+  const { server, store } = await start();
+  store.apply([{ kind: "thread.updated", thread: { id: "idle-1", projectId: "project-1", status: "completed", pendingBackgroundTasks: [{ taskId: "t1", description: "Explore" }] } }]);
+  const detail = (await call(server, "GET", "/api/threads/idle-1")).json;
+  assert.deepEqual(detail.subagents.map((s: { title: string; status: string }) => [s.title, s.status]), [["Explore", "running"]]);
+});
+
 test("a T3 failure gives 502 with its message", async () => {
   const { server, port } = await start();
   port.dispatchError = new Error("thread.archive: no such thread");
