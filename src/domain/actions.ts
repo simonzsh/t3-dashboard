@@ -11,8 +11,10 @@ import {
   runtimeModeCommand,
   userInputCommand,
   type DispatchMode,
+  type OutgoingMessage,
+  type UnsentCommand,
 } from "../integrations/t3/commands.ts";
-import type { Command, ImageUpload, T3Port } from "../integrations/t3/schemas.ts";
+import type { ImageUpload, T3Port } from "../integrations/t3/schemas.ts";
 import { DomainError } from "./errors.ts";
 import type { LinearBoard } from "./linearBoard.ts";
 import { toProviders } from "./providers.ts";
@@ -57,8 +59,13 @@ export function createActions(options: ActionsOptions): Actions {
       throw new IntegrationError((error as Error).message, { system: "t3", kind: "unreachable" });
     }
   };
-  const send = async (...commands: Command[]) => {
-    for (const command of commands) await t3(port.dispatch(command));
+  const send = async (...commands: UnsentCommand[]) => {
+    for (const command of commands) await t3(port.dispatch({ ...command, commandId: newId() }));
+  };
+  // Images are persisted before the dispatch, under the message id it will carry.
+  const outgoing = async (threadId: string, images: ImageUpload[]): Promise<OutgoingMessage> => {
+    const messageId = newId();
+    return { messageId, attachments: images.length ? await t3(port.persistAttachments(threadId, messageId, images)) : [] };
   };
 
   // The shell can lag behind a run start: the projection then knows the run first.
@@ -100,14 +107,8 @@ export function createActions(options: ActionsOptions): Actions {
     },
 
     async createThread(create, images) {
-      let start;
-      if (images.length) {
-        const threadId = newId();
-        const messageId = newId();
-        start = { threadId, upload: { messageId, attachments: await t3(port.persistAttachments(threadId, messageId, images)) } };
-      }
-      const { threadId, commands } = createThreadCommands(create, newId, start);
-      await send(...commands);
+      const threadId = newId();
+      await send(...createThreadCommands(threadId, create, await outgoing(threadId, images)));
       return threadId;
     },
 
@@ -116,31 +117,26 @@ export function createActions(options: ActionsOptions): Actions {
       const active = thread !== undefined && ACTIVE_STATUSES.has(thread.status);
       const steer = body.mode === "steer";
       const dispatchMode: DispatchMode = active && !steer ? { type: "queue_after_active" } : { type: "start_immediately" };
-      let upload;
-      if (images.length) {
-        const messageId = newId();
-        upload = { messageId, attachments: await t3(port.persistAttachments(threadId, messageId, images)) };
-      }
-      await send(messageCommand(threadId, body.text, dispatchMode, newId, upload, steer ? "steer" : undefined));
+      await send(messageCommand(threadId, body.text, await outgoing(threadId, images), { mode: dispatchMode, steer }));
     },
 
     async changeSettings(threadId, settings) {
-      if (settings.modelSelection) await send(modelSelectionCommand(threadId, settings.modelSelection, newId));
-      if (settings.runtimeMode) await send(runtimeModeCommand(threadId, settings.runtimeMode, newId));
+      if (settings.modelSelection) await send(modelSelectionCommand(threadId, settings.modelSelection));
+      if (settings.runtimeMode) await send(runtimeModeCommand(threadId, settings.runtimeMode));
     },
 
     async interrupt(threadId) {
       const runId = await activeRunId(threadId);
       if (!runId) throw new DomainError("conflict", "No active run to interrupt");
-      await send(interruptCommand(threadId, runId, newId));
+      await send(interruptCommand(threadId, runId));
     },
 
     async respond(threadId, requestId, answer) {
-      await send("decision" in answer ? approvalCommand(threadId, requestId, answer.decision, newId) : userInputCommand(threadId, requestId, answer.answers, newId));
+      await send("decision" in answer ? approvalCommand(threadId, requestId, answer.decision) : userInputCommand(threadId, requestId, answer.answers));
     },
 
     async dismiss(threadId, requestId) {
-      await send(dismissCommand(threadId, requestId, newId));
+      await send(dismissCommand(threadId, requestId));
     },
 
     async assign(body) {
@@ -149,8 +145,8 @@ export function createActions(options: ActionsOptions): Actions {
       if (!project) throw new DomainError("conflict", "T3 project not found");
       const modelSelection = await modelFor(body.agent, project.defaultModelSelection);
       const create = { projectId: project.id, title: `${issue.identifier} ${issue.title}`, text: `Traite le ticket Linear ${issue.identifier} : ${issue.url}`, modelSelection };
-      const { threadId, commands } = createThreadCommands(create, newId);
-      await send(...commands);
+      const threadId = newId();
+      await send(...createThreadCommands(threadId, create, await outgoing(threadId, [])));
       return threadId;
     },
   };

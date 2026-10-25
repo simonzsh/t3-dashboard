@@ -235,6 +235,7 @@ test("POST /api/threads takes a runtime mode and images in one call", async () =
   assert.equal(port.commands[0]!.runtimeMode, "auto");
   assert.deepEqual(port.commands[0]!.modelSelection, selection);
   assert.equal(port.commands[1]!.messageId, "id-2");
+  assert.deepEqual(port.commands.map((command) => command.commandId), ["id-3", "id-4"]);
   assert.deepEqual(port.commands[1]!.attachments, [{ type: "image", id: "stored-0", name: "shot.png", mimeType: "image/png", sizeBytes: 4 }]);
 });
 
