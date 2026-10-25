@@ -7,6 +7,7 @@ import { Dropdown, FileInput, Icon, IconButton, Pressable, TextArea } from "../.
 import { ProviderIcon } from "../../lib/ProviderIcon.tsx";
 import { errorMessage } from "../../lib/format.ts";
 import { useAction } from "../../lib/useAction.ts";
+import { useMediaQuery } from "../../lib/useMediaQuery.ts";
 
 interface Pending {
   key: string;
@@ -51,6 +52,7 @@ export function Composer({ providers, selection, runtimeMode, running, draft, on
   const { error, setError, run: attempt } = useAction();
   const [sending, setSending] = useState(false);
   const [stopping, setStopping] = useState(false);
+  const touch = useMediaQuery("(pointer: coarse)");
   const fileInput = useRef<HTMLInputElement>(null);
   const textarea = useRef<HTMLTextAreaElement>(null);
 
@@ -143,8 +145,10 @@ export function Composer({ providers, selection, runtimeMode, running, draft, on
           rows={2}
           value={draft}
           onChange={(e) => onDraft(e.target.value)}
+          enterKeyHint={touch ? "enter" : "send"}
           onKeyDown={(e) => {
-            if (e.key === "Enter" && !e.shiftKey && !e.nativeEvent.isComposing) {
+            // Touch keyboards have no Shift+Enter: there Enter adds a line and the button sends.
+            if (e.key === "Enter" && !e.shiftKey && !touch && !e.nativeEvent.isComposing) {
               e.preventDefault();
               void submit();
             }
