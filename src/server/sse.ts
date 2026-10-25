@@ -1,51 +1,25 @@
 import type { DashboardEvent, DashboardProject, DashboardState, DashboardThread, Diff } from "../../shared/api.ts";
+import { DiffBatch } from "../domain/diffBatch.ts";
 
 export interface SseHubOptions {
   batchMs?: number;
   pingMs?: number;
 }
 
-class Pending<T extends { id: string }> {
-  private readonly upserted = new Map<string, T>();
-  private readonly removed = new Set<string>();
-
-  merge(diff: Diff<T>): void {
-    for (const item of diff.upserted) {
-      this.upserted.set(item.id, item);
-      this.removed.delete(item.id);
-    }
-    for (const id of diff.removed) {
-      this.upserted.delete(id);
-      this.removed.add(id);
-    }
-  }
-
-  take(): Diff<T> | null {
-    if (this.upserted.size === 0 && this.removed.size === 0) return null;
-    const diff = { upserted: [...this.upserted.values()], removed: [...this.removed] };
-    this.clear();
-    return diff;
-  }
-
-  clear(): void {
-    this.upserted.clear();
-    this.removed.clear();
-  }
-}
-
-interface Client {
-  controller: ReadableStreamDefaultController<Uint8Array>;
-  threads: Pending<DashboardThread>;
-  projects: Pending<DashboardProject>;
-  timer: NodeJS.Timeout | null;
-}
+type Client = ReadableStreamDefaultController<Uint8Array>;
 
 const encoder = new TextEncoder();
 const frame = (type: string, data: unknown) => `event: ${type}\ndata: ${JSON.stringify(data)}\n\n`;
 
-/** Fans events out to the browsers; thread and project diffs are batched per client. */
+/**
+ * Fans events out to the browsers; thread and project diffs are batched once for all clients.
+ * A client that joins mid-batch may get an item again: an upsert is idempotent in the web.
+ */
 export class SseHub {
   private readonly clients = new Set<Client>();
+  private readonly threads = new DiffBatch<DashboardThread>();
+  private readonly projects = new DiffBatch<DashboardProject>();
+  private timer: NodeJS.Timeout | null = null;
   private readonly batchMs: number;
   private readonly pinger: NodeJS.Timeout;
 
@@ -61,7 +35,7 @@ export class SseHub {
     let client: Client;
     const body = new ReadableStream<Uint8Array>({
       start: (controller) => {
-        client = { controller, threads: new Pending(), projects: new Pending(), timer: null };
+        client = controller;
         this.clients.add(client);
         this.write(client, frame("state", initialState));
       },
@@ -74,52 +48,51 @@ export class SseHub {
   }
 
   broadcast(event: DashboardEvent): void {
-    for (const client of this.clients) {
-      if (event.type === "threads" || event.type === "projects") {
-        (event.type === "threads" ? client.threads : client.projects).merge(event.data as Diff<never>);
-        client.timer ??= setTimeout(() => this.flush(client), this.batchMs);
-        continue;
-      }
-      // A full state already holds every pending change.
-      if (event.type === "state") this.cancelBatch(client);
-      this.write(client, frame(event.type, event.data));
+    if (event.type === "threads" || event.type === "projects") {
+      (event.type === "threads" ? this.threads : this.projects).merge(event.data as Diff<never>);
+      this.timer ??= setTimeout(() => this.flush(), this.batchMs);
+      return;
     }
+    // A full state already holds every pending change.
+    if (event.type === "state") this.cancelBatch();
+    this.writeAll(frame(event.type, event.data));
   }
 
   close(): void {
     clearInterval(this.pinger);
-    for (const client of this.clients) {
-      this.cancelBatch(client);
-      client.controller.close();
-    }
+    this.cancelBatch();
+    for (const client of this.clients) client.close();
     this.clients.clear();
   }
 
-  private flush(client: Client): void {
-    client.timer = null;
-    const threads = client.threads.take();
-    if (threads) this.write(client, frame("threads", threads));
-    const projects = client.projects.take();
-    if (projects) this.write(client, frame("projects", projects));
+  private flush(): void {
+    this.timer = null;
+    const threads = this.threads.take();
+    if (threads) this.writeAll(frame("threads", threads));
+    const projects = this.projects.take();
+    if (projects) this.writeAll(frame("projects", projects));
+  }
+
+  private writeAll(text: string): void {
+    for (const client of this.clients) this.write(client, text);
   }
 
   private write(client: Client, text: string): void {
     try {
-      client.controller.enqueue(encoder.encode(text));
+      client.enqueue(encoder.encode(text));
     } catch {
       this.drop(client);
     }
   }
 
-  private cancelBatch(client: Client): void {
-    if (client.timer) clearTimeout(client.timer);
-    client.timer = null;
-    client.threads.clear();
-    client.projects.clear();
+  private cancelBatch(): void {
+    if (this.timer) clearTimeout(this.timer);
+    this.timer = null;
+    this.threads.clear();
+    this.projects.clear();
   }
 
   private drop(client: Client): void {
-    this.cancelBatch(client);
     this.clients.delete(client);
   }
 }

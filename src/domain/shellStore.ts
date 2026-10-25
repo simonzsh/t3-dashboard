@@ -1,5 +1,6 @@
 import type { ConnectionStatus, DashboardProject, DashboardProvider, DashboardState, DashboardThread, Diff } from "../../shared/api.ts";
 import { isHidden, toDashboardThread } from "./classify.ts";
+import { DiffBatch } from "./diffBatch.ts";
 import type { RawBackgroundTask, RawProject, RawSnapshot, RawThread, ShellItem } from "../integrations/t3/schemas.ts";
 
 export interface ShellStoreOptions {
@@ -24,10 +25,8 @@ export class ShellStore {
   private live = emptyMaps();
   private staging: Maps | null = null;
   private derived = new Map<string, DashboardThread>();
-  private upserted = new Set<string>();
-  private removed = new Set<string>();
-  private projectUpserted = new Map<string, DashboardProject>();
-  private projectRemoved = new Set<string>();
+  private readonly threadDiff = new DiffBatch<DashboardThread>();
+  private readonly projectDiff = new DiffBatch<DashboardProject>();
 
   constructor(options: ShellStoreOptions) {
     this.options = options;
@@ -86,7 +85,7 @@ export class ShellStore {
       const previous = this.derived.get(id);
       if (next.settled === previous?.settled) continue;
       this.derived.set(id, next);
-      this.upserted.add(id);
+      this.threadDiff.upsert(next);
     }
     this.flush();
   }
@@ -106,10 +105,8 @@ export class ShellStore {
     this.live = staging;
     const now = this.options.now();
     this.derived = new Map([...staging.threads].map(([id, raw]) => [id, toDashboardThread(raw, now)]));
-    this.upserted.clear();
-    this.removed.clear();
-    this.projectUpserted.clear();
-    this.projectRemoved.clear();
+    this.threadDiff.clear();
+    this.projectDiff.clear();
     this.options.onState();
   }
 
@@ -137,42 +134,31 @@ export class ShellStore {
   private upsertThread(raw: RawThread, location?: string): void {
     if (isHidden(raw, location)) return this.removeThread(raw.id);
     this.live.threads.set(raw.id, raw);
-    this.derived.set(raw.id, toDashboardThread(raw, this.options.now()));
-    this.upserted.add(raw.id);
-    this.removed.delete(raw.id);
+    const thread = toDashboardThread(raw, this.options.now());
+    this.derived.set(raw.id, thread);
+    this.threadDiff.upsert(thread);
   }
 
   private removeThread(id: string): void {
     if (!this.live.threads.delete(id)) return;
     this.derived.delete(id);
-    this.upserted.delete(id);
-    this.removed.add(id);
+    this.threadDiff.remove(id);
   }
 
   private upsertProject(raw: RawProject): void {
     this.live.projects.set(raw.id, raw);
-    this.projectUpserted.set(raw.id, toProject(raw));
-    this.projectRemoved.delete(raw.id);
+    this.projectDiff.upsert(toProject(raw));
   }
 
   private removeProject(id: string): void {
     if (!this.live.projects.delete(id)) return;
-    this.projectUpserted.delete(id);
-    this.projectRemoved.add(id);
+    this.projectDiff.remove(id);
   }
 
   private flush(): void {
-    if (this.upserted.size > 0 || this.removed.size > 0) {
-      const diff = { upserted: [...this.upserted].map((id) => this.derived.get(id)!), removed: [...this.removed] };
-      this.upserted.clear();
-      this.removed.clear();
-      this.options.onThreads(diff);
-    }
-    if (this.projectUpserted.size > 0 || this.projectRemoved.size > 0) {
-      const diff = { upserted: [...this.projectUpserted.values()], removed: [...this.projectRemoved] };
-      this.projectUpserted.clear();
-      this.projectRemoved.clear();
-      this.options.onProjects(diff);
-    }
+    const threads = this.threadDiff.take();
+    if (threads) this.options.onThreads(threads);
+    const projects = this.projectDiff.take();
+    if (projects) this.options.onProjects(projects);
   }
 }
