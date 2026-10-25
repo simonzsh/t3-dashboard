@@ -2,7 +2,7 @@ import { useState } from "react";
 import type { SetupInfo } from "../../../shared/api.ts";
 import { api } from "../api.ts";
 import { setupCopy } from "../setup.ts";
-import { SECRET_FIELD } from "../ui/index.ts";
+import { Button, SecretInput } from "../ui/index.ts";
 import { useAction } from "./useAction.ts";
 
 // The screen goes away by itself: the next `connection` event carries `setup: null`.
@@ -33,9 +33,7 @@ export function SetupScreen({ setup }: { setup: SetupInfo }) {
         {copy.command && (
           <div className="setup-command">
             <code>{copy.command}</code>
-            <button type="button" onClick={() => void copyCommand(copy.command!)}>
-              {copied ? "Copied" : "Copy"}
-            </button>
+            <Button onClick={() => void copyCommand(copy.command!)}>{copied ? "Copied" : "Copy"}</Button>
           </div>
         )}
         {copy.link && (
@@ -55,17 +53,17 @@ export function SetupScreen({ setup }: { setup: SetupInfo }) {
               });
             }}
           >
-            <input {...SECRET_FIELD} id="t3-access-key-field" aria-label="T3 Code access key" placeholder="Paste it here" value={token} onChange={(e) => setToken(e.target.value)} />
-            <button className="primary" type="submit" disabled={paste.busy || token.trim() === ""}>
-              {paste.busy ? "Checking…" : "Save token"}
-            </button>
+            <SecretInput id="t3-access-key-field" aria-label="T3 Code access key" placeholder="Paste it here" value={token} onChange={(e) => setToken(e.target.value)} />
+            <Button variant="primary" type="submit" loading={paste.busy && "Checking…"} disabled={token.trim() === ""}>
+              Save token
+            </Button>
           </form>
         )}
         {paste.error && <span className="error">{paste.error}</span>}
         <div className="buttons">
-          <button type="button" disabled={retry.busy} onClick={() => void retry.run(() => api.retrySetup())}>
-            {retry.busy ? "Retrying…" : "Retry"}
-          </button>
+          <Button loading={retry.busy && "Retrying…"} onClick={() => void retry.run(() => api.retrySetup())}>
+            Retry
+          </Button>
           {retry.error && <span className="error">{retry.error}</span>}
         </div>
       </section>

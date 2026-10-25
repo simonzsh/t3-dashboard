@@ -5,7 +5,7 @@ import { THEME_SETTINGS, type ThemeSetting } from "../theme.ts";
 import type { UpdateControl } from "../useUpdate.ts";
 import { AboutSettings } from "./AboutSettings.tsx";
 import { LinearSettings } from "./LinearSettings.tsx";
-import { useEscape } from "../ui/index.ts";
+import { Button, FileInput, Pressable, Segmented, useEscape } from "../ui/index.ts";
 
 interface Props {
   theme: ThemeSetting;
@@ -53,13 +53,7 @@ export function SettingsDialog({ theme, onThemeChange, background, onBackgroundC
           <h3 id="settings-appearance">Appearance</h3>
           <div className="settings-row">
             <span>Theme</span>
-            <div className="segmented" role="radiogroup" aria-label="Theme">
-              {THEME_SETTINGS.map((id) => (
-                <button key={id} type="button" role="radio" aria-checked={theme === id} className={theme === id ? "active" : ""} onClick={() => onThemeChange(id)}>
-                  {LABELS[id]}
-                </button>
-              ))}
-            </div>
+            <Segmented label="Theme" value={theme} options={THEME_SETTINGS.map((id) => ({ id, label: LABELS[id] }))} onChange={onThemeChange} />
           </div>
         </section>
         <section className="settings-section" aria-labelledby="settings-desk">
@@ -69,9 +63,8 @@ export function SettingsDialog({ theme, onThemeChange, background, onBackgroundC
             <div className="bg-choices">
               <div className="swatches" role="radiogroup" aria-label="Background">
                 {BACKGROUND_PRESETS.map((p) => (
-                  <button
+                  <Pressable
                     key={p.id}
-                    type="button"
                     role="radio"
                     aria-checked={presetId === p.id}
                     aria-label={p.label}
@@ -85,22 +78,14 @@ export function SettingsDialog({ theme, onThemeChange, background, onBackgroundC
                 )}
               </div>
               <div className="buttons">
-                <button type="button" disabled={busy} onClick={() => fileInput.current?.click()}>
-                  {busy ? "Loading…" : "Upload image…"}
-                </button>
-                {background.kind === "image" && (
-                  <button type="button" onClick={() => setError(onBackgroundChange({ kind: "none" }))}>
-                    Remove image
-                  </button>
-                )}
-                <input
+                <Button loading={busy && "Loading…"} onClick={() => fileInput.current?.click()}>
+                  Upload image…
+                </Button>
+                {background.kind === "image" && <Button onClick={() => setError(onBackgroundChange({ kind: "none" }))}>Remove image</Button>}
+                <FileInput
                   ref={fileInput}
-                  type="file"
                   accept="image/*"
-                  hidden
-                  onChange={(e) => {
-                    const file = e.target.files?.[0];
-                    e.target.value = "";
+                  onFiles={([file]) => {
                     if (file) void upload(file);
                   }}
                 />

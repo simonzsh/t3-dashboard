@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { versionNote } from "../updateFlow.ts";
+import { Button, Icon, IconButton } from "../ui/index.ts";
 import type { UpdateControl } from "../useUpdate.ts";
 
 interface Props {
@@ -25,26 +26,22 @@ export function AboutSettings({ update, onUpdate }: Props) {
           ) : (
             checked && !canUpdate && <small className="about-note">{status.reason && status.current !== "dev" ? status.reason : versionNote(status)}</small>
           )}
-          <button
-            type="button"
-            className={`icon-button${update.checking ? " spinning" : ""}`}
-            aria-label="Check for updates"
-            title="Check for updates"
+          <IconButton
+            label="Check for updates"
+            size="sm"
+            className={update.checking ? "spinning" : undefined}
             disabled={update.checking || update.updating}
             onClick={async () => {
               await update.check();
               setChecked(true);
             }}
           >
-            {/* Lucide refresh-cw (ISC). */}
-            <svg className="icon" viewBox="0 0 24 24" aria-hidden="true">
-              <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8M21 3v5h-5M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16M8 16H3v5" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
-            </svg>
-          </button>
+            <Icon name="refresh" strokeWidth={1.8} />
+          </IconButton>
           {canUpdate && (
-            <button type="button" className="primary" disabled={update.updating} onClick={onUpdate}>
-              {update.updating ? "Updating…" : `Update to v${status.latest}`}
-            </button>
+            <Button variant="primary" size="sm" loading={update.updating && "Updating…"} onClick={onUpdate}>
+              {`Update to v${status.latest}`}
+            </Button>
           )}
         </span>
       </div>
