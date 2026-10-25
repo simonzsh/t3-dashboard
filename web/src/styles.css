@@ -450,6 +450,8 @@ button.auto-row:hover { background: var(--surface-0); }
 .desk-tabs { border-bottom: 1px solid var(--line); }
 /* With a chosen background the bars let it show; the chips keep their own surface. */
 .desk.has-bg .desk-dock, .desk.has-bg .desk-tabs { background: transparent; backdrop-filter: none; border-color: transparent; }
+/* The window area already pads 10px above the dock. */
+.desk.has-bg .desk-dock { padding-top: 0; }
 .desk.has-bg .desk-chip:not(.active) { background: color-mix(in srgb, var(--surface-1) 88%, transparent); }
 .desk-chip { flex: none; display: inline-flex; align-items: center; gap: 6px; max-width: 240px; padding: 4px 10px; border-radius: 999px; font-size: 12px; }
 .desk-chip.active { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 12%, var(--surface-1)); }
