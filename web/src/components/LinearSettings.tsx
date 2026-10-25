@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import type { SettingsResult } from "../../../shared/api.ts";
 import { api } from "../api.ts";
-import { KEY_URL, keyLabel } from "../linearSettings.ts";
+import { KEY_URL, maskedKey } from "../linearSettings.ts";
 import { LinearKeyForm } from "./LinearKeyForm.tsx";
 import { useAction } from "./useAction.ts";
 
@@ -31,7 +31,16 @@ export function LinearSettings({ onChange }: Props) {
   return (
     <>
       <div className="settings-row">
-        <span>{keyLabel(linear.keyTail)}</span>
+        {linear.connected ? (
+          <span className="linear-status">
+            <span className="conn up">
+              <span className="conn-dot" /> Connected
+            </span>
+            {linear.keyTail && <code className="key-mask">{maskedKey(linear.keyTail)}</code>}
+          </span>
+        ) : (
+          <span className="linear-status muted">Not connected</span>
+        )}
         {linear.connected && (
           <div className="buttons">
             <button type="button" onClick={() => setChanging(!changing)}>

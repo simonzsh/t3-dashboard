@@ -298,3 +298,6 @@ button.auto-row:hover { background: var(--surface-0); }
 .menu-project { display: flex; flex-direction: column; gap: 4px; padding: 6px 8px; }
 .menu-project small { color: var(--text-secondary); }
 .dialog.settings { max-height: 90vh; overflow-y: auto; }
+.linear-status { display: inline-flex; align-items: center; gap: 10px; }
+.linear-status.muted { color: var(--text-secondary); }
+.key-mask { font: 12px/1 ui-monospace, SFMono-Regular, Menlo, monospace; padding: 4px 7px; border-radius: 6px; border: 1px solid var(--line); color: var(--text-secondary); background: var(--surface-0); }
