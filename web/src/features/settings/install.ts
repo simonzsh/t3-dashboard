@@ -34,6 +34,6 @@ export function installSteps(browser: Browser, mac: boolean): string[] {
       return ["Open the Edge menu (…).", "Choose Apps > Install this site as an app."];
     case "firefox":
     case "other":
-      return [`This browser cannot install web apps. Open the dashboard in ${mac ? "Safari" : "Chrome or Edge"}.`];
+      return [`This browser cannot install web apps. Open the dashboard in ${mac ? "Safari or Chrome" : "Chrome or Edge"}.`];
   }
 }

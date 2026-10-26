@@ -26,6 +26,6 @@ test("detectBrowser finds Safari, Firefox and mobile devices", () => {
 test("installSteps gives one short answer per browser", () => {
   assert.deepEqual(installSteps("ios", false), ["Tap the Share button.", "Choose Add to Home Screen."]);
   assert.deepEqual(installSteps("safari", true), ["In the menu bar, choose File > Add to Dock."]);
-  assert.deepEqual(installSteps("other", true), ["This browser cannot install web apps. Open the dashboard in Safari."]);
+  assert.deepEqual(installSteps("other", true), ["This browser cannot install web apps. Open the dashboard in Safari or Chrome."]);
   assert.deepEqual(installSteps("other", false), ["This browser cannot install web apps. Open the dashboard in Chrome or Edge."]);
 });
