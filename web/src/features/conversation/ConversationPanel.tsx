@@ -154,6 +154,21 @@ export function ConversationPanel({ threadId, thread, providers }: Props) {
     if (el && stick.current) el.scrollTop = el.scrollHeight;
   }, [pending.length, detail?.messages.length, detail?.messages.at(-1)?.text, detail?.pendingRequests.length, detail?.activity?.items.length]);
 
+  // Images and videos get their height only once loaded: keep the bottom in view as they grow.
+  useEffect(() => {
+    const el = scroller.current;
+    if (!el) return;
+    const follow = () => {
+      if (stick.current) el.scrollTop = el.scrollHeight;
+    };
+    el.addEventListener("load", follow, true);
+    el.addEventListener("loadedmetadata", follow, true);
+    return () => {
+      el.removeEventListener("load", follow, true);
+      el.removeEventListener("loadedmetadata", follow, true);
+    };
+  }, []);
+
   function setDraft(value: string) {
     setText(value);
     drafts.set(threadId, value);
