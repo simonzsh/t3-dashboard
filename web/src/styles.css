@@ -156,7 +156,8 @@ main { flex: 1; min-height: 0; overflow: hidden; padding: 24px; display: flex; f
 /* One line: a long title must not make the card taller. */
 .agent-title { font-weight: 600; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .agent-meta { color: var(--text-secondary); font-size: 12px; }
-.agent-foot { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+/* One line: the time always sits next to the badges. */
+.agent-foot { display: flex; align-items: center; gap: 6px; min-width: 0; white-space: nowrap; }
 .badge { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 600; padding: 2px 10px; border-radius: 999px; }
 .badge.waiting { background: var(--warn-bg); color: var(--warn-text); }
 .badge.running { background: var(--work-bg); color: var(--work-text); }

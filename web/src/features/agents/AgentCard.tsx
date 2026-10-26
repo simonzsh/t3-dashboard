@@ -41,7 +41,7 @@ export function AgentCard({ card, now, onDesk, t3EnvironmentId, onOpen, onToggle
           <span className="agent-title">{threadTitle(t)}</span>
         </span>
         <span className="agent-foot">
-          {status === "waiting" && <Badge variant="waiting">Waiting for your reply{t.pending ? ` · ${pendingLabel(t.pending.category).toLowerCase()}` : ""}</Badge>}
+          {status === "waiting" && <Badge variant="waiting">{t.pending ? pendingLabel(t.pending.category) : "Waiting"}</Badge>}
           {status === "working" && (
             <Badge variant="running">
               <span className="pulse" aria-hidden="true" />
