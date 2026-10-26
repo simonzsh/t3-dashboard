@@ -90,7 +90,7 @@ export function DeskView({ desk, dispatch, threads, projects, background, t3Envi
         <div className="empty-state desk-empty">
           <strong>Your Desk is empty</strong>
           <span>Click an agent card to open it here, or use its + button to add it without leaving the list.</span>
-          <span>
+          <span className="shortcut-hint">
             Press <Kbd>1</Kbd> to go back to the agents.
           </span>
         </div>
