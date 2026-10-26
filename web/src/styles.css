@@ -566,7 +566,9 @@ button.auto-row:hover { background: var(--surface-0); }
   .agents-layout > .agents-groups, .agents-layout > .empty-state { margin: 0; padding: 0; }
 }
 @media (max-width: 899px), (pointer: coarse) {
-  button kbd { display: none; }
+  /* No keyboard shortcuts on phones and tablets. */
+  button kbd, .agents-switcher kbd, .shortcut-hint { display: none; }
+  .agents-switcher .field { padding-right: 12px; }
 }
 @media (pointer: coarse) {
   /* iOS zooms into any field under 16px on focus. */
