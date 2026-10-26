@@ -156,8 +156,9 @@ main { flex: 1; min-height: 0; overflow: hidden; padding: 24px; display: flex; f
 /* One line: a long title must not make the card taller. */
 .agent-title { font-weight: 600; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .agent-meta { color: var(--text-secondary); font-size: 12px; }
-.agent-foot { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
-.agent-preview { color: var(--text-secondary); font-size: 13px; word-break: break-word; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+.agent-pin { width: 13px; height: 13px; flex: none; color: var(--text-secondary); }
+/* One line: the time always sits next to the badges. */
+.agent-foot { display: flex; align-items: center; gap: 6px; min-width: 0; white-space: nowrap; }
 .badge { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 600; padding: 2px 10px; border-radius: 999px; }
 .badge.waiting { background: var(--warn-bg); color: var(--warn-text); }
 .badge.running { background: var(--work-bg); color: var(--work-text); }
@@ -286,7 +287,7 @@ main { flex: 1; min-height: 0; overflow: hidden; padding: 24px; display: flex; f
 @keyframes breathe { 0%, 100% { opacity: 1; } 50% { opacity: 0.35; } }
 .requests { display: flex; flex-direction: column; gap: 8px; }
 .request { border: 1px solid var(--line); border-left: 3px solid var(--warn); border-radius: 6px; padding: 10px; background: var(--surface-1); display: flex; flex-direction: column; gap: 8px; }
-.request .buttons, .question { display: flex; flex-direction: column; gap: 4px; border: 0; padding: 0; margin: 0; }
+.question { display: flex; flex-direction: column; gap: 4px; border: 0; padding: 0; margin: 0; }
 .question label { display: flex; gap: 6px; align-items: baseline; }
 .question label small { color: var(--text-secondary); }
 /* Composer: one rounded card with the text and a toolbar, as in T3 Code. */
@@ -340,6 +341,9 @@ main { flex: 1; min-height: 0; overflow: hidden; padding: 24px; display: flex; f
 .error { color: var(--danger); }
 /* Masks secrets without a password field; browsers without it show the text. */
 .secret-field { -webkit-text-security: disc; }
+/* Every row of buttons: spaced, and a dialog's actions sit on the right (Cancel, then the primary). */
+.buttons { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.dialog-actions, .request .buttons { justify-content: flex-end; }
 .dialog-backdrop { position: fixed; inset: 0; background: var(--backdrop); display: grid; place-items: center; z-index: 20; }
 .dialog { width: min(480px, 94vw); background: var(--surface-1); border: 1px solid var(--line); border-radius: 14px; padding: 20px; box-shadow: var(--shadow); display: flex; flex-direction: column; gap: 10px; }
 .dialog h2 { margin: 0; font-size: 15px; }
@@ -514,7 +518,6 @@ button.auto-row:hover { background: var(--surface-0); }
 .setup-link, .linear-card a, .key-box a { color: var(--accent); }
 .setup-paste, .key-row { display: flex; gap: 8px; }
 .setup-paste input, .key-row input { flex: 1; min-width: 0; }
-.setup-card .buttons { display: flex; gap: 8px; align-items: center; }
 .linear-card { margin: 32px auto 0; }
 .linear-card p { margin: 0; }
 .linear-card small, .key-box small { color: var(--text-secondary); }

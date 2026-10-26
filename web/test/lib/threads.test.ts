@@ -96,6 +96,16 @@ test("groupAgents sorts cards waiting > working > finished > idle, then recency"
   assert.deepEqual(group?.cards.map((c) => c.status), ["waiting", "working", "working", "finished", "finished", "idle"]);
 });
 
+test("groupAgents puts pinned cards first; the project still ranks by its most urgent card", () => {
+  const ts = [
+    thread("waiting", { projectId: "p1", pending, lastActivityAt: hoursAgo(1) }),
+    thread("pinned", { projectId: "p1", status: "completed", pinned: true, lastActivityAt: hoursAgo(5) }),
+    thread("working", { projectId: "p2", status: "running", lastActivityAt: hoursAgo(0) }),
+  ];
+  const groups = groupAgents(ts, projects, now);
+  assert.deepEqual(groups.map((g) => g.cards.map((c) => c.thread.id)), [["pinned", "waiting"], ["working"]]);
+});
+
 test("groupAgents sorts projects: waiting, then working, then latest activity", () => {
   const ts = [
     thread("a", { projectId: "p1", status: "completed", lastActivityAt: hoursAgo(1) }),

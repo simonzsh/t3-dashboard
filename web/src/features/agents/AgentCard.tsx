@@ -2,7 +2,7 @@ import { useRef } from "react";
 import type { AgentCard as Card } from "../../lib/threads.ts";
 import { pendingLabel, threadTitle } from "../../lib/threads.ts";
 import { hasFailed } from "../../../../shared/status.ts";
-import { cut, relativeTime } from "../../lib/format.ts";
+import { relativeTime } from "../../lib/format.ts";
 import { tabSelector } from "../../lib/tabs.ts";
 import { Badge, Icon, IconButton, Pressable, fly } from "../../ui/index.ts";
 import { OpenInT3 } from "../../lib/OpenInT3.tsx";
@@ -40,9 +40,8 @@ export function AgentCard({ card, now, onDesk, t3EnvironmentId, onOpen, onToggle
           <ProviderIcon provider={t.provider} />
           <span className="agent-title">{threadTitle(t)}</span>
         </span>
-        {t.preview && <span className="agent-preview">{cut(t.preview.text, 160)}</span>}
         <span className="agent-foot">
-          {status === "waiting" && <Badge variant="waiting">Waiting for your reply{t.pending ? ` · ${pendingLabel(t.pending.category).toLowerCase()}` : ""}</Badge>}
+          {status === "waiting" && <Badge variant="waiting">{t.pending ? pendingLabel(t.pending.category) : "Waiting"}</Badge>}
           {status === "working" && (
             <Badge variant="running">
               <span className="pulse" aria-hidden="true" />
@@ -50,7 +49,7 @@ export function AgentCard({ card, now, onDesk, t3EnvironmentId, onOpen, onToggle
             </Badge>
           )}
           {status === "finished" && <Badge variant={failed ? "error" : "done"}>{failed ? "Error" : "Finished"}</Badge>}
-          {t.pinned && <Badge>Pinned</Badge>}
+          {t.pinned && <Icon name="pin" label="Pinned" className="agent-pin" />}
           <span className="agent-meta">{relativeTime(t.lastActivityAt, now)}</span>
         </span>
       </Pressable>

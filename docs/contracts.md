@@ -1,5 +1,7 @@
 # Vérification des contrats
 
+[Retour au README](../README.md)
+
 `bun run contracts` vérifie que T3 Code, Linear, GitHub et t3-agent envoient et acceptent toujours les champs que le dashboard utilise. Le script lit seulement. Il n'envoie aucune commande, ne crée aucun jeton et ne change rien dans Linear.
 
 ## Ce que le script vérifie
@@ -11,7 +13,7 @@
 | `t3` | `server.getConfig` passe le schéma `RawConfig`. Le protocole d'orchestration est `2`. Chaque mode d'exécution est connu. |
 | `t3` | `orchestration.subscribeShell` : le script lit le flux jusqu'à `synchronized`, puis l'arrête. Chaque élément passe le schéma `ShellItem`. Chaque statut de fil est connu. |
 | `t3` | `GET /api/orchestration/threads/{id}` pour 3 fils au plus. Chaque réponse passe le schéma `ProjectionResponse`. |
-| `t3` | Les 4 tags RPC du dashboard existent dans le client web de T3. |
+| `t3` | Les 6 tags RPC du dashboard existent dans le client web de T3. |
 | `t3` | Les commandes d'écriture (voir plus bas). |
 | `linear` | `{ viewer { id } }`, puis une page des tickets assignés, avec la requête du board. Seulement si une clé existe. |
 | `github` | La dernière release a un `tag_name` au format de version. Son fichier `SHA256SUMS` contient une somme SHA-256 pour chacun des 5 binaires. Le script ne télécharge aucun binaire. |
@@ -21,7 +23,7 @@ Les schémas sont dans `src/integrations/*/schemas.ts`. Le script utilise les m�
 
 ### Commandes d'écriture de T3
 
-Le script n'exécute jamais une commande d'écriture (`thread.create`, `message.dispatch`, `run.interrupt`, `runtime-request.respond`, réglages, pièces jointes). Il fait une comparaison statique :
+Le script n'exécute jamais une commande d'écriture : `thread.create`, `message.dispatch`, `run.interrupt`, `runtime-request.respond`, `thread.user-input.dismiss`, `thread.model-selection.set`, `thread.runtime-mode.set` et l'envoi d'images. Il fait une comparaison statique :
 
 1. Il lit la version de T3 dans `server-runtime.json`.
 2. Il lit comme du texte les fichiers `~/.t3/runtime/versions/<version>/client/assets/*.js`. Il n'importe pas et n'exécute pas ce code.

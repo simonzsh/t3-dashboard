@@ -6,10 +6,6 @@ export function relativeTime(iso: string, now: Date): string {
   return `${Math.floor(min / 1440)} d ago`;
 }
 
-export function cut(text: string, max: number): string {
-  return text.length > max ? `${text.slice(0, max)}…` : text;
-}
-
 export function duration(ms: number): string {
   const s = Math.max(0, Math.floor(ms / 1000));
   const pad = (n: number) => String(n).padStart(2, "0");
