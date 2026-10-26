@@ -1,7 +1,7 @@
 import { test } from "bun:test";
 import assert from "node:assert/strict";
 import type { ThreadSearchMatch } from "../../../../shared/api.ts";
-import { mergeResults, moveSelection, shouldSearchContent, titleMatches } from "../../../src/features/search/search.ts";
+import { mergeResults, moveSelection, shouldSearchContent, titleMatches } from "../../../src/features/switcher/switcher.ts";
 import { thread } from "../../fixtures.ts";
 
 const projects = [

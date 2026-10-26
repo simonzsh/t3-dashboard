@@ -1,8 +1,8 @@
 import { useEffect, useState, type KeyboardEvent } from "react";
 import type { DashboardProject, DashboardThread } from "../../../../shared/api.ts";
 import { Dialog, Icon, TextInput } from "../../ui/index.ts";
-import { mergeResults, moveSelection, titleMatches } from "./search.ts";
-import { optionId, SearchResults } from "./SearchResults.tsx";
+import { mergeResults, moveSelection, titleMatches } from "./switcher.ts";
+import { optionId, SwitcherResults } from "./SwitcherResults.tsx";
 import { useThreadSearch } from "./useThreadSearch.ts";
 
 interface Props {
@@ -14,7 +14,7 @@ interface Props {
   onClose: () => void;
 }
 
-export function SearchDialog({ threads, projects, now, initialQuery, onOpen, onClose }: Props) {
+export function Switcher({ threads, projects, now, initialQuery, onOpen, onClose }: Props) {
   const [query, setQuery] = useState(initialQuery);
   const [index, setIndex] = useState(0);
   const content = useThreadSearch(query);
@@ -37,17 +37,17 @@ export function SearchDialog({ threads, projects, now, initialQuery, onOpen, onC
   }
 
   return (
-    <Dialog title="Search" label="Search conversations" className="search" onClose={onClose}>
-      <div className="search-input">
+    <Dialog title="Jump to" label="Jump to a conversation" className="switcher" onClose={onClose}>
+      <div className="switcher-input">
         <Icon name="search" />
         <TextInput
           autoFocus
           role="combobox"
           aria-expanded={rows.length > 0}
-          aria-controls="search-list"
+          aria-controls="switcher-list"
           aria-activedescendant={selected ? optionId(selected.thread.id) : undefined}
-          aria-label="Search conversations"
-          placeholder="Search by title, project or message"
+          aria-label="Jump to a conversation"
+          placeholder="Jump to a conversation…"
           value={query}
           onChange={(e) => {
             setQuery(e.target.value);
@@ -56,7 +56,7 @@ export function SearchDialog({ threads, projects, now, initialQuery, onOpen, onC
           onKeyDown={onKeyDown}
         />
       </div>
-      <SearchResults
+      <SwitcherResults
         rows={rows}
         selected={selectedIndex}
         now={now}

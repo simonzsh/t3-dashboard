@@ -3,7 +3,7 @@ import type { ThreadSearchMatch } from "../../../../shared/api.ts";
 import { useApi } from "../../api/ApiContext.tsx";
 import { errorMessage } from "../../lib/format.ts";
 import { useDebouncedValue } from "../../lib/useDebouncedValue.ts";
-import { shouldSearchContent } from "./search.ts";
+import { shouldSearchContent } from "./switcher.ts";
 
 const DEBOUNCE_MS = 200;
 

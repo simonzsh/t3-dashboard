@@ -15,7 +15,7 @@ interface Props {
   onOpen: (id: string, addOnly: boolean) => void;
   onToggleDesk: (id: string) => void;
   onSettle: (id: string, settle: boolean) => Promise<unknown>;
-  onSearch: (initialQuery: string) => void;
+  onSwitcher: (initialQuery: string) => void;
   automations: AutomationsResult | null;
   automationsError: string | null;
 }
@@ -34,7 +34,7 @@ function RecentlySettled({ count, children }: { count: number; children: ReactNo
   );
 }
 
-export function AgentsView({ state, now, deskIds, onOpen, onToggleDesk, onSettle, onSearch, automations, automationsError }: Props) {
+export function AgentsView({ state, now, deskIds, onOpen, onToggleDesk, onSettle, onSwitcher, automations, automationsError }: Props) {
   const groups = groupAgents(excludeRoutineThreads(state.threads, automations?.automations ?? []), state.projects, now);
   // Before the first automations answer, routine threads would flash in the grid.
   const available = state.automationsAvailable;
@@ -75,18 +75,18 @@ export function AgentsView({ state, now, deskIds, onOpen, onToggleDesk, onSettle
     );
   return (
     <div className="agents-page">
-      <div className="agents-search">
+      <div className="agents-switcher">
         <Icon name="search" />
         {/* No onFocus: the dialog gives focus back here on close and would reopen. */}
         <TextInput
           readOnly
-          aria-label="Search conversations"
-          placeholder="Search conversations"
-          onClick={() => onSearch("")}
+          aria-label="Jump to a conversation"
+          placeholder="Jump to a conversation…"
+          onClick={() => onSwitcher("")}
           onKeyDown={(e) => {
             if (e.ctrlKey || e.metaKey || e.altKey || (e.key !== "Enter" && e.key.length !== 1)) return;
             e.preventDefault();
-            onSearch(e.key === "Enter" ? "" : e.key);
+            onSwitcher(e.key === "Enter" ? "" : e.key);
           }}
         />
         <Kbd>{navigator.platform.startsWith("Mac") ? "⌘K" : "Ctrl K"}</Kbd>

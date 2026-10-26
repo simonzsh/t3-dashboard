@@ -5,7 +5,7 @@ import { BoardView } from "./features/board/BoardView.tsx";
 import { ConnectionBanner } from "./features/setup/ConnectionBanner.tsx";
 import { DeskView } from "./features/desk/DeskView.tsx";
 import { NewThreadDialog } from "./features/new-thread/NewThreadDialog.tsx";
-import { SearchDialog } from "./features/search/SearchDialog.tsx";
+import { Switcher } from "./features/switcher/Switcher.tsx";
 import { SettingsDialog } from "./features/settings/SettingsDialog.tsx";
 import { SetupScreen } from "./features/setup/SetupScreen.tsx";
 import { UpdateDialog } from "./features/update/UpdateDialog.tsx";
@@ -42,7 +42,7 @@ export function App() {
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [confirmingUpdate, setConfirmingUpdate] = useState(false);
   // null: closed; a string: open, seeded with that query.
-  const [searching, setSearching] = useState<string | null>(null);
+  const [switcherQuery, setSwitcherQuery] = useState<string | null>(null);
   const update = useUpdate();
   const [boardVersion, setBoardVersion] = useState(0);
   const [theme, setTheme] = useTheme();
@@ -70,8 +70,8 @@ export function App() {
     (action) => {
       if (action === "agents" || action === "board" || action === "desk") setTab(action);
       else if (action === "settings") setSettingsOpen(true);
-      else if (action === "search") {
-        if (state && !creating && !settingsOpen && !confirmingUpdate) setSearching((open) => (open === null ? "" : null));
+      else if (action === "switcher") {
+        if (state && !creating && !settingsOpen && !confirmingUpdate) setSwitcherQuery((open) => (open === null ? "" : null));
       } else if (action === "new-agent") {
         if (state) setCreating(true);
       } else if (action === "unmaximize") dispatchDesk({ type: "unmaximize" });
@@ -92,7 +92,7 @@ export function App() {
         focusComposer(target.id);
       }
     },
-    creating || settingsOpen || confirmingUpdate || searching !== null,
+    creating || settingsOpen || confirmingUpdate || switcherQuery !== null,
     tab === "desk",
   );
 
@@ -167,7 +167,7 @@ export function App() {
               onOpen={(id, addOnly) => openOnDesk(id, !addOnly)}
               onToggleDesk={toggleOnDesk}
               onSettle={(id, settle) => (settle ? api.settle(id) : api.unsettle(id))}
-              onSearch={setSearching}
+              onSwitcher={setSwitcherQuery}
               automations={automations.result}
               automationsError={automations.error}
             />
@@ -198,15 +198,15 @@ export function App() {
           }}
         />
       )}
-      {state && searching !== null && (
-        <SearchDialog
+      {state && switcherQuery !== null && (
+        <Switcher
           threads={state.threads}
           projects={state.projects}
           now={now}
-          initialQuery={searching}
-          onClose={() => setSearching(null)}
+          initialQuery={switcherQuery}
+          onClose={() => setSwitcherQuery(null)}
           onOpen={(id) => {
-            setSearching(null);
+            setSwitcherQuery(null);
             openOnDesk(id, true);
           }}
         />
