@@ -11,9 +11,9 @@ function elapsed(s: SubagentInfo, now: number): string | null {
   return duration(end - Date.parse(s.startedAt));
 }
 
-/** Each change of `reveal` opens the strip and focuses it (a subagent row of the run activity was clicked). */
 const STOP_LABELS = { subagent: "Stop subagent", thread: "Stop background tasks" } as const;
 
+/** Each change of `reveal` opens the strip and focuses it (a subagent row of the run activity was clicked). */
 export function SubagentStrip({ subagents, reveal = 0, onStop }: { subagents: SubagentInfo[]; reveal?: number; onStop: (subagent: SubagentInfo) => Promise<void> }) {
   const running = subagents.filter((s) => s.status === "running").length;
   const [open, setOpen] = useState(false);

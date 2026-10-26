@@ -30,7 +30,7 @@ interface Props {
   runtimeMode: RuntimeMode | null;
   /** A run is active: Send steers it and Stop appears. */
   running: boolean;
-  // The Stop button also shows for background tasks with no active run.
+  /** Stop also shows with no active run, for pending background tasks. */
   stoppable?: boolean;
   draft: string;
   onDraft: (text: string) => void;
