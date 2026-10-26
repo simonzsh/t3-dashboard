@@ -9,12 +9,13 @@ interface Props {
   threads: DashboardThread[];
   projects: DashboardProject[];
   now: Date;
+  initialQuery: string;
   onOpen: (threadId: string) => void;
   onClose: () => void;
 }
 
-export function SearchDialog({ threads, projects, now, onOpen, onClose }: Props) {
-  const [query, setQuery] = useState("");
+export function SearchDialog({ threads, projects, now, initialQuery, onOpen, onClose }: Props) {
+  const [query, setQuery] = useState(initialQuery);
   const [index, setIndex] = useState(0);
   const content = useThreadSearch(query);
   const rows = mergeResults(titleMatches(threads, projects, query), content.matches, threads, projects);
@@ -28,7 +29,7 @@ export function SearchDialog({ threads, projects, now, onOpen, onClose }: Props)
   function onKeyDown(e: KeyboardEvent) {
     if (e.key === "ArrowDown" || e.key === "ArrowUp") {
       e.preventDefault();
-      setIndex(moveSelection(index, e.key === "ArrowDown" ? 1 : -1, rows.length));
+      setIndex(moveSelection(selectedIndex, e.key === "ArrowDown" ? 1 : -1, rows.length));
     } else if (e.key === "Enter" && selected) {
       e.preventDefault();
       onOpen(selected.thread.id);

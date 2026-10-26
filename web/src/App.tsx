@@ -41,7 +41,8 @@ export function App() {
   const [creating, setCreating] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [confirmingUpdate, setConfirmingUpdate] = useState(false);
-  const [searching, setSearching] = useState(false);
+  // null: closed; a string: open, seeded with that query.
+  const [searching, setSearching] = useState<string | null>(null);
   const update = useUpdate();
   const [boardVersion, setBoardVersion] = useState(0);
   const [theme, setTheme] = useTheme();
@@ -70,7 +71,7 @@ export function App() {
       if (action === "agents" || action === "board" || action === "desk") setTab(action);
       else if (action === "settings") setSettingsOpen(true);
       else if (action === "search") {
-        if (state && !creating && !settingsOpen && !confirmingUpdate) setSearching((open) => !open);
+        if (state && !creating && !settingsOpen && !confirmingUpdate) setSearching((open) => (open === null ? "" : null));
       } else if (action === "new-agent") {
         if (state) setCreating(true);
       } else if (action === "unmaximize") dispatchDesk({ type: "unmaximize" });
@@ -91,7 +92,7 @@ export function App() {
         focusComposer(target.id);
       }
     },
-    creating || settingsOpen || confirmingUpdate || searching,
+    creating || settingsOpen || confirmingUpdate || searching !== null,
     tab === "desk",
   );
 
@@ -166,7 +167,7 @@ export function App() {
               onOpen={(id, addOnly) => openOnDesk(id, !addOnly)}
               onToggleDesk={toggleOnDesk}
               onSettle={(id, settle) => (settle ? api.settle(id) : api.unsettle(id))}
-              onSearch={() => setSearching(true)}
+              onSearch={setSearching}
               automations={automations.result}
               automationsError={automations.error}
             />
@@ -197,14 +198,15 @@ export function App() {
           }}
         />
       )}
-      {state && searching && (
+      {state && searching !== null && (
         <SearchDialog
           threads={state.threads}
           projects={state.projects}
           now={now}
-          onClose={() => setSearching(false)}
+          initialQuery={searching}
+          onClose={() => setSearching(null)}
           onOpen={(id) => {
-            setSearching(false);
+            setSearching(null);
             openOnDesk(id, true);
           }}
         />

@@ -349,7 +349,6 @@ main { flex: 1; min-height: 0; overflow: hidden; padding: 24px; display: flex; f
 /* Every row of buttons: spaced, and a dialog's actions sit on the right (Cancel, then the primary). */
 .buttons { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
 .dialog.search { width: min(640px, 94vw); max-height: min(560px, 80vh); }
-.dialog.search .dialog-head { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
 .search-input { position: relative; display: flex; align-items: center; flex: none; }
 .search-input .icon { position: absolute; left: 10px; width: 15px; height: 15px; color: var(--text-secondary); pointer-events: none; }
 .search-input .field { width: 100%; padding-left: 32px; }

@@ -15,7 +15,7 @@ interface Props {
   onOpen: (id: string, addOnly: boolean) => void;
   onToggleDesk: (id: string) => void;
   onSettle: (id: string, settle: boolean) => Promise<unknown>;
-  onSearch: () => void;
+  onSearch: (initialQuery: string) => void;
   automations: AutomationsResult | null;
   automationsError: string | null;
 }
@@ -82,11 +82,11 @@ export function AgentsView({ state, now, deskIds, onOpen, onToggleDesk, onSettle
           readOnly
           aria-label="Search conversations"
           placeholder="Search conversations"
-          onClick={onSearch}
+          onClick={() => onSearch("")}
           onKeyDown={(e) => {
             if (e.ctrlKey || e.metaKey || e.altKey || (e.key !== "Enter" && e.key.length !== 1)) return;
             e.preventDefault();
-            onSearch();
+            onSearch(e.key === "Enter" ? "" : e.key);
           }}
         />
         <Kbd>{navigator.platform.startsWith("Mac") ? "⌘K" : "Ctrl K"}</Kbd>

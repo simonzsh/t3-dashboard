@@ -32,7 +32,8 @@ export function useThreadSearch(query: string): Search {
     };
   }, [api, q, active]);
 
-  const current = active && result?.q === q ? result : null;
+  // While the debounce runs, the last answer belongs to another query: hide it.
   const typing = query.trim() !== q;
+  const current = active && !typing && result?.q === q ? result : null;
   return { matches: current?.matches ?? [], loading: shouldSearchContent(query) && (typing || (active && current === null)), error: current?.error ?? null };
 }

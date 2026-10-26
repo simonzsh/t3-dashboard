@@ -104,7 +104,7 @@ Ouvrez Settings avec le bouton de l'en-tête ou la touche `,`. Une barre latéra
 
 ## Raccourcis clavier
 
-Les raccourcis ne marchent pas pendant la saisie dans un champ ni quand une fenêtre de dialogue est ouverte. `Ctrl` + `K` fait exception : il marche partout.
+Les raccourcis ne marchent pas pendant la saisie dans un champ ni quand une fenêtre de dialogue est ouverte. `Ctrl` + `K` fait exception : il marche aussi pendant la saisie. Il ne marche pas quand une autre fenêtre de dialogue est ouverte.
 
 | Touche | Action |
 | --- | --- |
