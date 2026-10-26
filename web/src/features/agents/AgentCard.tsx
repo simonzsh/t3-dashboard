@@ -49,7 +49,7 @@ export function AgentCard({ card, now, onDesk, t3EnvironmentId, onOpen, onToggle
             </Badge>
           )}
           {status === "finished" && <Badge variant={failed ? "error" : "done"}>{failed ? "Error" : "Finished"}</Badge>}
-          {t.pinned && <Badge>Pinned</Badge>}
+          {t.pinned && <Icon name="pin" label="Pinned" className="agent-pin" />}
           <span className="agent-meta">{relativeTime(t.lastActivityAt, now)}</span>
         </span>
       </Pressable>
