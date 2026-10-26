@@ -71,8 +71,7 @@ export function App() {
       else if (action === "settings") setSettingsOpen(true);
       else if (action === "search") {
         if (state && !creating && !settingsOpen && !confirmingUpdate) setSearching((open) => !open);
-      }
-      else if (action === "new-agent") {
+      } else if (action === "new-agent") {
         if (state) setCreating(true);
       } else if (action === "unmaximize") dispatchDesk({ type: "unmaximize" });
       else if (action.startsWith("focus-")) {

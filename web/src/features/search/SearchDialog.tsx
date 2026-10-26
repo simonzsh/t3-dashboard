@@ -18,7 +18,8 @@ export function SearchDialog({ threads, projects, now, onOpen, onClose }: Props)
   const [index, setIndex] = useState(0);
   const content = useThreadSearch(query);
   const rows = mergeResults(titleMatches(threads, projects, query), content.matches, threads, projects);
-  const selected = rows[Math.min(index, rows.length - 1)];
+  const selectedIndex = Math.min(index, rows.length - 1);
+  const selected = rows[selectedIndex];
 
   useEffect(() => {
     if (selected) document.getElementById(optionId(selected.thread.id))?.scrollIntoView({ block: "nearest" });
@@ -56,7 +57,7 @@ export function SearchDialog({ threads, projects, now, onOpen, onClose }: Props)
       </div>
       <SearchResults
         rows={rows}
-        selected={selected ? rows.indexOf(selected) : -1}
+        selected={selectedIndex}
         now={now}
         loading={content.loading}
         error={content.error}
