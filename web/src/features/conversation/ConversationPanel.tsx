@@ -10,6 +10,7 @@ import { Composer } from "./Composer.tsx";
 import { PendingRequestView } from "./PendingRequestView.tsx";
 import { RunActivityView } from "./RunActivity.tsx";
 import { SubagentStrip } from "./SubagentStrip.tsx";
+import { useStickToBottom } from "./useStickToBottom.ts";
 import { usePoll } from "../../lib/usePoll.ts";
 import { errorMessage } from "../../lib/format.ts";
 import { LIVE_RELOAD_MS, SEND_POLL_WINDOW_MS, pollDelay } from "./reload.ts";
@@ -94,6 +95,7 @@ export function ConversationPanel({ threadId, thread, providers }: Props) {
   const [revealSubagents, setRevealSubagents] = useState(0);
   const scroller = useRef<HTMLDivElement>(null);
   const stick = useRef(true);
+  const lastTop = useRef(0);
   const [atBottom, setAtBottom] = useState(true);
 
   // Bumped on every thread change and cleanup: a late response from an older effect is dropped.
@@ -148,26 +150,7 @@ export function ConversationPanel({ threadId, thread, providers }: Props) {
     return () => clearTimeout(timer);
   }, [sentAt]);
 
-  // Follow new messages unless the user scrolled up to read.
-  useEffect(() => {
-    const el = scroller.current;
-    if (el && stick.current) el.scrollTop = el.scrollHeight;
-  }, [pending.length, detail?.messages.length, detail?.messages.at(-1)?.text, detail?.pendingRequests.length, detail?.activity?.items.length]);
-
-  // Images and videos get their height only once loaded: keep the bottom in view as they grow.
-  useEffect(() => {
-    const el = scroller.current;
-    if (!el) return;
-    const follow = () => {
-      if (stick.current) el.scrollTop = el.scrollHeight;
-    };
-    el.addEventListener("load", follow, true);
-    el.addEventListener("loadedmetadata", follow, true);
-    return () => {
-      el.removeEventListener("load", follow, true);
-      el.removeEventListener("loadedmetadata", follow, true);
-    };
-  }, []);
+  useStickToBottom(scroller, stick);
 
   function setDraft(value: string) {
     setText(value);
@@ -208,7 +191,11 @@ export function ConversationPanel({ threadId, thread, providers }: Props) {
           ref={scroller}
           onScroll={(e) => {
             const el = e.currentTarget;
-            stick.current = el.scrollHeight - el.scrollTop - el.clientHeight < NEAR_BOTTOM_PX;
+            const gap = el.scrollHeight - el.scrollTop - el.clientHeight;
+            // Any move up by the user stops the follow, even a small one; a shrinking page that clamps to the bottom does not.
+            const movedUp = el.scrollTop < lastTop.current - 1 && gap > 1;
+            lastTop.current = el.scrollTop;
+            stick.current = !movedUp && gap < NEAR_BOTTOM_PX;
             setAtBottom(stick.current);
           }}
         >
