@@ -8,7 +8,7 @@ import { NewThreadDialog } from "./features/new-thread/NewThreadDialog.tsx";
 import { SettingsDialog } from "./features/settings/SettingsDialog.tsx";
 import { SetupScreen } from "./features/setup/SetupScreen.tsx";
 import { UpdateDialog } from "./features/update/UpdateDialog.tsx";
-import { DESK_LIMIT, gridWindows, isFull } from "./features/desk/desk.ts";
+import { gridWindows } from "./features/desk/desk.ts";
 import { useAutomations } from "./features/agents/useAutomations.ts";
 import { useDashboard } from "./api/events.ts";
 import { useDesk } from "./features/desk/useDesk.ts";
@@ -24,15 +24,8 @@ import { updateLabel } from "./features/update/updateFlow.ts";
 
 const NO_DEFAULTS: ModelDefaults = { selection: null, runtimeMode: null };
 
-const TOAST_MS = 8000;
 // Same breakpoint as the one-line header in styles.css.
 const COMPACT_HEADER = "(max-width: 700px)";
-
-// A full Desk keeps the request so "Replace oldest" can finish it.
-interface FullToast {
-  id: string;
-  showDesk: boolean;
-}
 
 function focusComposer(threadId: string) {
   requestAnimationFrame(() => document.querySelector<HTMLTextAreaElement>(`[data-desk-window="${CSS.escape(threadId)}"] textarea`)?.focus());
@@ -43,7 +36,6 @@ export function App() {
   const [tab, setTab] = useTab();
   const automations = useAutomations(tab === "agents" && state?.automationsAvailable === true);
   const [desk, dispatchDesk] = useDesk(state?.connection.t3 === "live" ? state.threads : null);
-  const [toast, setToast] = useState<FullToast | null>(null);
   const [creating, setCreating] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [confirmingUpdate, setConfirmingUpdate] = useState(false);
@@ -60,17 +52,7 @@ export function App() {
     return () => clearInterval(id);
   }, []);
 
-  useEffect(() => {
-    if (!toast) return;
-    const id = setTimeout(() => setToast(null), TOAST_MS);
-    return () => clearTimeout(id);
-  }, [toast]);
-
   function openOnDesk(id: string, showDesk: boolean) {
-    if (isFull(desk, id)) {
-      setToast({ id, showDesk });
-      return;
-    }
     dispatchDesk({ type: "open", id });
     if (showDesk) setTab("desk");
   }
@@ -189,23 +171,6 @@ export function App() {
             />
           ) : <Loader />)}
       </main>
-      {toast && (
-        <div className="toast" role="status">
-          <span>Desk is full ({DESK_LIMIT}). Close a window first.</span>
-          <Button
-            onClick={() => {
-              dispatchDesk({ type: "replaceOldest", id: toast.id });
-              if (toast.showDesk) setTab("desk");
-              setToast(null);
-            }}
-          >
-            Replace oldest
-          </Button>
-          <IconButton label="Dismiss" variant="ghost" size="sm" onClick={() => setToast(null)}>
-            <Icon name="x" />
-          </IconButton>
-        </div>
-      )}
       {state && creating && (
         <NewThreadDialog
           projects={state.projects}

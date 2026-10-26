@@ -1,5 +1,6 @@
 import type { Store } from "../../lib/storage.ts";
 
+/** Windows shown in the grid at once; the others wait minimized in the dock. */
 export const DESK_LIMIT = 6;
 export const DESK_KEY = "t3-dashboard-desk";
 
@@ -26,7 +27,6 @@ export interface DeskState {
 
 export type DeskAction =
   | { type: "open"; id: string }
-  | { type: "replaceOldest"; id: string }
   | { type: "close"; id: string }
   | { type: "focus"; id: string }
   | { type: "minimize"; id: string }
@@ -72,10 +72,6 @@ export function gridWindows(state: DeskState): DeskWindow[] {
   return state.windows.filter((w) => !w.minimized);
 }
 
-export function isFull(state: DeskState, id: string): boolean {
-  return state.windows.length >= DESK_LIMIT && !state.windows.some((w) => w.id === id);
-}
-
 // Keeps the invariants: focus and maximize point at visible windows.
 function settle(state: DeskState): DeskState {
   const visible = gridWindows(state);
@@ -85,8 +81,18 @@ function settle(state: DeskState): DeskState {
   return { ...state, maximizedId, focusedId };
 }
 
+// A seventh visible window minimizes the oldest visible one, never the window being shown.
+function capVisible(windows: DeskWindow[], keepId: string): DeskWindow[] {
+  let extra = windows.filter((w) => !w.minimized).length - DESK_LIMIT;
+  return windows.map((w) => {
+    if (extra <= 0 || w.minimized || w.id === keepId) return w;
+    extra--;
+    return { ...w, minimized: true };
+  });
+}
+
 function show(state: DeskState, id: string): DeskState {
-  const windows = state.windows.map((w) => (w.id === id ? { ...w, minimized: false } : w));
+  const windows = capVisible(state.windows.map((w) => (w.id === id ? { ...w, minimized: false } : w)), id);
   const maximizedId = state.maximizedId === id ? id : null;
   return settle({ ...state, windows, focusedId: id, maximizedId });
 }
@@ -95,13 +101,7 @@ export function deskReducer(state: DeskState, action: DeskAction): DeskState {
   switch (action.type) {
     case "open":
       if (state.windows.some((w) => w.id === action.id)) return show(state, action.id);
-      if (isFull(state, action.id)) return state;
-      return settle({ ...state, windows: [...state.windows, { id: action.id, minimized: false }], focusedId: action.id });
-    case "replaceOldest": {
-      const oldest = state.windows[0];
-      const rest = oldest && isFull(state, action.id) ? deskReducer(state, { type: "close", id: oldest.id }) : state;
-      return deskReducer(rest, { type: "open", id: action.id });
-    }
+      return show({ ...state, windows: [...state.windows, { id: action.id, minimized: false }] }, action.id);
     case "close":
       return settle({ ...state, windows: state.windows.filter((w) => w.id !== action.id) });
     case "focus":
