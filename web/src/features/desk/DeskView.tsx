@@ -5,7 +5,7 @@ import { threadState } from "../../../../shared/status.ts";
 import { threadTitle } from "../../lib/threads.ts";
 import type { DeskBackground } from "./deskBackground.ts";
 import { cellOf, deskLayout, equalSizes, gridWindows, sizesFor, type DeskAction, type DeskState, type DeskWindow as Win } from "./desk.ts";
-import { Icon, IconButton, Kbd, Pressable } from "../../ui/index.ts";
+import { Icon, IconButton, Kbd, Pressable, useFlip } from "../../ui/index.ts";
 import { useMediaQuery } from "../../lib/useMediaQuery.ts";
 import { DeskWindow } from "./DeskWindow.tsx";
 import { ProviderIcon } from "../../lib/ProviderIcon.tsx";
@@ -76,13 +76,17 @@ export function DeskView({ desk, dispatch, threads, projects, background, t3Envi
   const projectTitles = new Map(projects.map((p) => [p.id, p.title]));
   const seen = useRef(new Set<string>());
   for (const w of desk.windows) if (byId.has(w.id)) seen.current.add(w.id);
+  const root = useRef<HTMLDivElement>(null);
+  const visible = gridWindows(desk);
+  // Windows slide, open, close and fly to the dock when the grid changes; the narrow view swaps tabs without motion.
+  useFlip(root, `${narrow}|${visible.map((w) => w.id).join(",")}|${desk.maximizedId}`, { item: "data-desk-window", origin: "data-desk-chip", enabled: !narrow });
 
   const bgClass = background.kind === "preset" ? ` desk-bg-${background.id} has-bg` : background.kind === "image" ? " has-bg" : "";
   const bgStyle = background.kind === "image" ? { backgroundImage: `url("${background.dataUrl}")` } : undefined;
 
   if (desk.windows.length === 0) {
     return (
-      <div className={`desk${bgClass}`} style={bgStyle}>
+      <div ref={root} className={`desk${bgClass}`} style={bgStyle}>
         <div className="empty-state desk-empty">
           <strong>Your Desk is empty</strong>
           <span>Click an agent card to open it here, or use its + button to add it without leaving the list.</span>
@@ -120,7 +124,13 @@ export function DeskView({ desk, dispatch, threads, projects, background, t3Envi
   const chip = (w: Win, active: boolean, closable = false) => {
     const thread = byId.get(w.id);
     const button = (
-      <Pressable key={w.id} className={`desk-chip${active ? " active" : ""}`} tooltip={threadTitle(thread)} onClick={() => dispatch({ type: "restore", id: w.id })}>
+      <Pressable
+        key={w.id}
+        className={`desk-chip${active ? " active" : ""}`}
+        data-desk-chip={closable ? w.id : undefined}
+        tooltip={threadTitle(thread)}
+        onClick={() => dispatch({ type: "restore", id: w.id })}
+      >
         <span className={`state-dot ${thread ? threadState(thread) : "idle"}`} aria-hidden="true" />
         {thread && <ProviderIcon provider={thread.provider} />}
         <span className="desk-chip-title">{threadTitle(thread)}</span>
@@ -141,7 +151,7 @@ export function DeskView({ desk, dispatch, threads, projects, background, t3Envi
   if (narrow) {
     const active = desk.windows.find((w) => w.id === desk.focusedId) ?? desk.windows[0]!;
     return (
-      <div className={`desk compact${bgClass}`} style={bgStyle}>
+      <div ref={root} className={`desk compact${bgClass}`} style={bgStyle}>
         <nav className="desk-tabs" aria-label="Desk windows">
           {desk.windows.map((w) => chip(w, w.id === active.id))}
         </nav>
@@ -150,10 +160,9 @@ export function DeskView({ desk, dispatch, threads, projects, background, t3Envi
     );
   }
 
-  const visible = gridWindows(desk);
   const minimized = desk.windows.filter((w) => w.minimized);
   return (
-    <div className={`desk${bgClass}`} style={bgStyle}>
+    <div ref={root} className={`desk${bgClass}`} style={bgStyle}>
       <div className="desk-area">
         {visible.length > 0 ? (
           <DeskGrid windows={visible} desk={desk} dispatch={dispatch} render={(w) => renderWindow(w)} />
