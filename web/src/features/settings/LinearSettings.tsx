@@ -34,36 +34,39 @@ export function LinearSettings({ onChange }: Props) {
   return (
     <>
       <div className="settings-row">
-        {linear.connected ? (
-          <span className="linear-status">
-            <span className="conn up">
-              <span className="conn-dot" /> Connected
+        <span>Linear</span>
+        <span className="linear-controls">
+          {linear.connected ? (
+            <span className="linear-status">
+              <span className="conn up">
+                <span className="conn-dot" /> Connected
+              </span>
+              {linear.keyTail && <code className="key-mask">{maskedKey(linear.keyTail)}</code>}
             </span>
-            {linear.keyTail && <code className="key-mask">{maskedKey(linear.keyTail)}</code>}
-          </span>
-        ) : (
-          <span className="linear-status muted">Not connected</span>
-        )}
-        {linear.connected && (
-          <span className="row-icons">
-            <IconButton label="Change key" tooltip="Change key" size="sm" aria-expanded={changing} onClick={() => setChanging(!changing)}>
-              <Icon name="pencil" strokeWidth={1.8} />
-            </IconButton>
-            <IconButton
-              label="Disconnect"
-            tooltip="Disconnect"
-              size="sm"
-              disabled={action.busy}
-              onClick={() =>
-                void action.run(async () => {
-                  saved(await api.disconnectLinear());
-                })
-              }
-            >
-              <Icon name="logOut" strokeWidth={1.8} />
-            </IconButton>
-          </span>
-        )}
+          ) : (
+            <span className="linear-status muted">Not connected</span>
+          )}
+          {linear.connected && (
+            <span className="row-icons">
+              <IconButton label="Change key" tooltip="Change key" size="sm" aria-expanded={changing} onClick={() => setChanging(!changing)}>
+                <Icon name="pencil" strokeWidth={1.8} />
+              </IconButton>
+              <IconButton
+                label="Disconnect"
+                tooltip="Disconnect"
+                size="sm"
+                disabled={action.busy}
+                onClick={() =>
+                  void action.run(async () => {
+                    saved(await api.disconnectLinear());
+                  })
+                }
+              >
+                <Icon name="logOut" strokeWidth={1.8} />
+              </IconButton>
+            </span>
+          )}
+        </span>
       </div>
       {(!linear.connected || changing) && (
         <div className="key-box">

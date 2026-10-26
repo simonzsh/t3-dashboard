@@ -818,3 +818,26 @@ test("media: a cited video streams by byte range", async () => {
   assert.equal(reply.headers["content-range"], "bytes 0-2/10");
   assert.deepEqual(port.ranges, ["bytes=0-2"]);
 });
+
+test("the manifest, the service worker and the icons are served before the site", async () => {
+  const { server } = await start({ site: { serve: async () => new Response("<p>app</p>") } });
+  const manifest = await call(server, "GET", "/manifest.webmanifest");
+  assert.equal(manifest.headers["content-type"], "application/manifest+json");
+  const body = manifest.json as { display: string; start_url: string; icons: Array<{ src: string; sizes: string; purpose: string }> };
+  assert.equal(body.display, "standalone");
+  assert.equal(body.start_url, "/");
+  for (const size of ["192x192", "512x512"]) assert.ok(body.icons.some((icon) => icon.sizes === size && icon.purpose === "any"), size);
+  assert.ok(body.icons.some((icon) => icon.purpose === "maskable"));
+
+  const worker = await call(server, "GET", "/sw.js");
+  assert.match(worker.headers["content-type"]!, /^text\/javascript/);
+  assert.match(worker.text, /addEventListener\("fetch"/);
+
+  for (const icon of body.icons) {
+    const res = await call(server, "GET", icon.src);
+    assert.equal(res.status, 200, icon.src);
+    assert.match(res.headers["content-type"]!, /^image\//);
+    assert.ok(res.text.length > 100, icon.src);
+  }
+  assert.equal((await call(server, "GET", "/")).text, "<p>app</p>");
+});

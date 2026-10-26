@@ -91,12 +91,12 @@ Pour chaque `*.json` du dossier, le serveur lit seulement `workspace` et `projec
 
 ## Settings
 
-Ouvrez Settings avec le bouton de l'en-tête ou la touche `,`.
+Ouvrez Settings avec le bouton de l'en-tête ou la touche `,`. Une barre latérale à gauche liste les onglets ; un seul onglet est visible à la fois.
 
-- Appearance : thème « System », « Light » ou « Dark ».
-- Desk : fond du Desk.
-- Linear : état de la clé, changement ou retrait de la clé.
-- About : version installée, recherche et installation d'une mise à jour. Voir [install.md](install.md#mises-à-jour).
+- Appearance : thème « System », « Light » ou « Dark », et fond du Desk.
+- Connections : état de la clé Linear, changement ou retrait de la clé.
+- App : comment installer le dashboard comme application (Dock, Launchpad, menu Démarrer, écran d'accueil). Les étapes suivent le navigateur et l'appareil : Safari, Chrome, Edge, iPhone et iPad, Android. Dia et Firefox n'installent pas d'app web.
+- Updates : version installée, recherche et installation d'une mise à jour. Voir [install.md](install.md#mises-à-jour).
 
 ## Raccourcis clavier
 

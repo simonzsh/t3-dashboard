@@ -8,6 +8,7 @@ import type { UpdateManager } from "../domain/updates.ts";
 import { VERSION } from "../config/version.ts";
 import { HttpError, toHttp } from "./httpError.ts";
 import { isPageTheme, themedPage } from "./htmlRender.ts";
+import { servePwa } from "./pwa.ts";
 import type { Site } from "./site.ts";
 import type { SseHub } from "./sse.ts";
 import { isObject, isText, validAssign, validCreate, validImages, validMessage, validRespond, validSettings } from "./validate.ts";
@@ -267,7 +268,7 @@ export function createDashboardServer(options: DashboardServerOptions): Dashboar
     if (segments[0] === "api") return api(req, server, segments);
     if (req.method !== "GET" && req.method !== "HEAD") throw new HttpError(404, "Unknown route");
     if (pathname.includes("\0")) throw new HttpError(400, "Malformed URL");
-    return (await site.serve(pathname)) ?? json(404, { error: "Unknown route" });
+    return servePwa(pathname) ?? (await site.serve(pathname)) ?? json(404, { error: "Unknown route" });
   }
 
   return {

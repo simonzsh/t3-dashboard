@@ -1,12 +1,13 @@
-import { useRef } from "react";
+import { useRef, useState, type ReactNode } from "react";
 import { BACKGROUND_PRESETS, type DeskBackground } from "../desk/deskBackground.ts";
 import { imageFileToDataUrl } from "../desk/deskImage.ts";
 import { THEME_SETTINGS, type ThemeSetting } from "./theme.ts";
 import type { UpdateControl } from "../update/useUpdate.ts";
-import { AboutSettings } from "./AboutSettings.tsx";
+import { InstallSettings } from "./InstallSettings.tsx";
 import { LinearSettings } from "./LinearSettings.tsx";
+import { UpdateSettings } from "./UpdateSettings.tsx";
 import { onRadioKeyDown } from "../../ui/radioKeys.ts";
-import { Button, Dialog, FileInput, Pressable, Segmented } from "../../ui/index.ts";
+import { Button, Dialog, FileInput, Pressable, Segmented, Tabs } from "../../ui/index.ts";
 import { useAction } from "../../lib/useAction.ts";
 
 interface Props {
@@ -20,29 +21,35 @@ interface Props {
   onClose: () => void;
 }
 
+const SECTIONS = [
+  { id: "appearance", label: "Appearance" },
+  { id: "connections", label: "Connections" },
+  { id: "app", label: "App" },
+  { id: "updates", label: "Updates" },
+] as const;
+
+type SectionId = (typeof SECTIONS)[number]["id"];
+
 const LABELS: Record<ThemeSetting, string> = { system: "System", light: "Light", dark: "Dark" };
 
 export function SettingsDialog({ theme, onThemeChange, background, onBackgroundChange, onLinearChange, update, onUpdate, onClose }: Props) {
   const fileInput = useRef<HTMLInputElement>(null);
   const { busy, error, setError, run } = useAction();
+  const [section, setSection] = useState<SectionId>("appearance");
   const presetId = background.kind === "preset" ? background.id : background.kind === "none" ? "none" : null;
 
   // onBackgroundChange returns its refusal instead of throwing.
   const upload = (file: File) => run(async () => setError(onBackgroundChange({ kind: "image", dataUrl: await imageFileToDataUrl(file) })));
 
-  return (
-    <Dialog title="Settings" className="settings" onClose={onClose}>
-      <section className="settings-section" aria-labelledby="settings-appearance">
-        <h3 id="settings-appearance">Appearance</h3>
+  const panels: Record<SectionId, ReactNode> = {
+    appearance: (
+      <>
         <div className="settings-row">
           <span>Theme</span>
           <Segmented label="Theme" value={theme} options={THEME_SETTINGS.map((id) => ({ id, label: LABELS[id] }))} onChange={onThemeChange} />
         </div>
-      </section>
-      <section className="settings-section" aria-labelledby="settings-desk">
-        <h3 id="settings-desk">Desk</h3>
-        <div className="settings-row settings-row-top">
-          <span>Background</span>
+        <div className="settings-row">
+          <span>Desk background</span>
           <div className="bg-choices">
             <div className="swatches" role="radiogroup" aria-label="Background" onKeyDown={onRadioKeyDown}>
               {BACKGROUND_PRESETS.map((p) => (
@@ -77,15 +84,21 @@ export function SettingsDialog({ theme, onThemeChange, background, onBackgroundC
             {error && <span className="error">{error}</span>}
           </div>
         </div>
-      </section>
-      <section className="settings-section" aria-labelledby="settings-linear">
-        <h3 id="settings-linear">Linear</h3>
-        <LinearSettings onChange={onLinearChange} />
-      </section>
-      <section className="settings-section" aria-labelledby="settings-about">
-        <h3 id="settings-about">About</h3>
-        <AboutSettings update={update} onUpdate={onUpdate} />
-      </section>
+      </>
+    ),
+    connections: <LinearSettings onChange={onLinearChange} />,
+    app: <InstallSettings />,
+    updates: <UpdateSettings update={update} onUpdate={onUpdate} />,
+  };
+
+  return (
+    <Dialog title="Settings" className="settings" onClose={onClose}>
+      <div className="settings-layout">
+        <Tabs label="Settings sections" idPrefix="settings-tab" className="settings-tabs" value={section} options={SECTIONS} onChange={setSection} />
+        <div className="settings-panel" role="tabpanel" id="settings-tab-panel" tabIndex={0} aria-labelledby={`settings-tab-${section}`}>
+          {panels[section]}
+        </div>
+      </div>
     </Dialog>
   );
 }

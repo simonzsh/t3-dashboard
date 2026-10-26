@@ -352,12 +352,25 @@ main { flex: 1; min-height: 0; overflow: hidden; padding: 24px; display: flex; f
 .dialog label, .dialog-field { display: flex; flex-direction: column; gap: 4px; }
 .dialog textarea { min-height: 90px; }
 .settings { gap: 16px; }
-.settings-section { display: flex; flex-direction: column; gap: 10px; }
-.settings-section h3 { margin: 0; font-size: 12px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-secondary); }
-.settings-row { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
-.settings-row-top { align-items: flex-start; }
-.bg-choices { display: flex; flex-direction: column; align-items: flex-end; gap: 8px; }
-.swatches { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 5px; }
+.dialog.settings { width: min(640px, 94vw); }
+.settings-layout { display: flex; gap: 20px; min-height: 240px; }
+.settings-panel { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 20px; }
+.tabs { display: flex; gap: 2px; }
+.tabs button { border: 0; background: none; padding: 6px 12px; border-radius: 8px; color: var(--text-secondary); font-weight: 500; text-align: left; white-space: nowrap; }
+.tabs button:hover { background: var(--surface-0); color: var(--text-primary); }
+.tabs button.active { background: var(--surface-0); color: var(--accent); }
+.settings-tabs { flex: none; flex-direction: column; width: 120px; }
+@media (max-width: 560px) {
+  .settings-layout { flex-direction: column; gap: 12px; min-height: 0; }
+  .settings-tabs { flex-direction: row; width: auto; overflow-x: auto; }
+}
+/* The title sits above its controls: easier to scan than a label pushed to the far left. */
+.settings-row { display: flex; flex-direction: column; align-items: flex-start; gap: 8px; }
+.settings-row > span:first-child { font-weight: 500; }
+.install-steps { margin: 0; color: var(--text-secondary); font-size: 12px; line-height: 1.5; }
+ol.install-steps { padding-left: 18px; }
+.bg-choices { display: flex; flex-direction: column; align-items: flex-start; gap: 8px; }
+.swatches { display: flex; flex-wrap: wrap; gap: 5px; }
 .swatch { width: 28px; height: 28px; padding: 0; border-radius: 8px; border: 1px solid var(--line); background-size: cover; background-position: center; }
 .swatch.active { box-shadow: 0 0 0 2px var(--surface-1), 0 0 0 4px var(--accent); }
 .segmented { display: flex; gap: 2px; padding: 3px; border-radius: 10px; background: var(--surface-0); border: 1px solid var(--line); }
@@ -533,8 +546,8 @@ button.auto-row:hover { background: var(--surface-0); }
 .issue-banner .icon { flex: none; width: 14px; height: 14px; color: var(--text-secondary); }
 .linear-status { display: inline-flex; align-items: center; gap: 10px; }
 .linear-status.muted { color: var(--text-secondary); }
-.linear-status, .version-line { min-width: 0; white-space: nowrap; }
-.version-line { display: inline-flex; align-items: center; gap: 10px; }
+.linear-controls { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.linear-status { min-width: 0; white-space: nowrap; }
 .row-icons { display: flex; gap: 4px; flex: none; }
 .row-icons { align-items: center; }
 .row-icons .spinning .icon { animation: spin 0.9s linear infinite; }
