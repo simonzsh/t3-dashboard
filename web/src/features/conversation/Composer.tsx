@@ -8,6 +8,7 @@ import { ProviderIcon } from "../../lib/ProviderIcon.tsx";
 import { errorMessage } from "../../lib/format.ts";
 import { useAction } from "../../lib/useAction.ts";
 import { useMediaQuery } from "../../lib/useMediaQuery.ts";
+import { insertText } from "../../lib/paste.ts";
 
 interface Pending {
   key: string;
@@ -166,9 +167,11 @@ export function Composer({ providers, selection, runtimeMode, running, draft, on
           }}
           onPaste={(e) => {
             const files = [...e.clipboardData.files].filter((f) => f.type.startsWith("image/"));
-            if (files.length === 0) return;
+            const text = e.clipboardData.getData("text/plain");
+            if (files.length === 0 && text === "") return;
             e.preventDefault();
-            void addFiles(files);
+            if (files.length > 0) void addFiles(files);
+            else onDraft(insertText(e.currentTarget, text));
           }}
           autoFocus={autoFocus}
           placeholder={placeholder ?? (running ? "Steer the agent…" : "Send a message to the agent…")}
