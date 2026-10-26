@@ -114,18 +114,19 @@ export function Composer({ providers, selection, runtimeMode, running, draft, on
     if (await attempt(() => onSend(draft.trim(), attachments), setSending)) setImages([]);
   }
 
-  const option = (p: DashboardProvider, m: DashboardModel, group: string, suffix = ""): DropdownOption => ({
-    id: `${p.instanceId}\u0000${m.slug}${suffix}`,
+  const option = (p: DashboardProvider, m: DashboardModel, group: string): DropdownOption => ({
+    id: `${p.instanceId}\u0000${m.slug}`,
     label: m.name,
     group,
     icon: <ProviderIcon provider={p.instanceId} />,
   });
-  // T3's favorites come first; their ids get a suffix so each option stays unique.
+  // T3's favorites come first and are not repeated in their provider's group.
   const favorites = providers
     .flatMap((p) => p.models.filter((m) => m.favorite !== null).map((m) => ({ p, m })))
     .sort((a, b) => a.m.favorite! - b.m.favorite!)
-    .map(({ p, m }) => option(p, m, "Favorites", "\u0000favorite"));
-  const modelOptions: DropdownOption[] = [...favorites, ...providers.flatMap((p) => p.models.map((m) => option(p, m, p.displayName)))];
+    .map(({ p, m }) => option(p, m, "Favorites"));
+  const others = providers.flatMap((p) => p.models.filter((m) => m.favorite === null).map((m) => option(p, m, p.displayName)));
+  const modelOptions: DropdownOption[] = [...favorites, ...others];
   const selectedModelId = localSelection ? `${localSelection.instanceId}\u0000${localSelection.model}` : null;
   if (localSelection && !found) modelOptions.unshift({ id: selectedModelId!, label: localSelection.model });
 
