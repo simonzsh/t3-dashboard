@@ -241,6 +241,19 @@ const SPECS: ThreadSpec[] = [
     runs: [{ id: "run-links-1", status: "completed", started: 1695, completed: 1650 }],
     thread: { settledOverride: "settled", settledAt: LAST },
   },
+  {
+    id: "demo-dev-server",
+    projectId: "demo-atlas-web",
+    title: "Profile the product page build",
+    model: CLAUDE,
+    status: "completed",
+    messages: [
+      ["user", 30, "Profile the product page build and keep the dev server up while you look."],
+      ["assistant", 25, "The dev server runs in the background on port 5173. The run is over, but the server still runs."],
+    ],
+    runs: [{ id: "run-profile-1", status: "completed", started: 29, completed: 25 }],
+    thread: { pendingBackgroundTasks: [{ taskId: "bg-dev-server", kind: "shell", description: "bun run dev (port 5173)" }] },
+  },
 ];
 
 function buildThread(spec: ThreadSpec, at: (minutes: number) => string): { thread: RawThread; projection: RawProjection } {
@@ -320,7 +333,7 @@ const CONFIG: RawConfig = {
       { provider: "codex", model: "gpt-5.5-codex" },
     ],
   },
-  environment: { serverVersion: "demo", orchestrationProtocolVersion: 2 },
+  environment: { serverVersion: "demo", orchestrationProtocolVersion: 2, capabilities: { threadStop: true } },
 };
 
 export interface DemoFixtures {

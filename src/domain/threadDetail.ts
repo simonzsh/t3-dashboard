@@ -49,7 +49,7 @@ function toSubagent(raw: RawSubagent): SubagentInfo {
     result: raw.result ? truncate(raw.result, RESULT_CHARS) : null,
     startedAt: raw.startedAt ?? null,
     completedAt: raw.completedAt ?? null,
-    stoppable: status === "running" && Boolean(raw.runId),
+    stop: status === "running" && raw.runId ? "subagent" : null,
   };
 }
 
@@ -81,7 +81,7 @@ function subagentsOf(projection: RawProjection, tasks: RawBackgroundTask[]): Sub
   );
   const orphans: SubagentInfo[] = tasks
     .filter((task) => !kept.some((raw) => matchesTask(raw, task)))
-    .map((task) => ({ id: `task:${task.taskId ?? task.childThreadId ?? task.description}`, title: task.description?.trim() || "Subagent", status: "running", progress: null, result: null, startedAt: null, completedAt: null, stoppable: false }));
+    .map((task) => ({ id: `task:${task.taskId ?? task.childThreadId ?? task.description}`, title: task.description?.trim() || "Subagent", status: "running", progress: null, result: null, startedAt: null, completedAt: null, stop: "thread" }));
   return [...kept.map(toSubagent), ...orphans].sort(
     (a, b) => Number(b.status === "running") - Number(a.status === "running") || (b.startedAt ?? "").localeCompare(a.startedAt ?? ""),
   );

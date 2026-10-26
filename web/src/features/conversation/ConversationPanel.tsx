@@ -1,5 +1,5 @@
 import { memo, useEffect, useRef, useState } from "react";
-import type { ChatMessage, DashboardProvider, HtmlRender, DashboardThread, ImageAttachment, ThreadDetail, ThreadSettingsBody } from "../../../../shared/api.ts";
+import type { ChatMessage, DashboardProvider, HtmlRender, DashboardThread, ImageAttachment, SubagentInfo, ThreadDetail, ThreadSettingsBody } from "../../../../shared/api.ts";
 import { runActive } from "../../../../shared/status.ts";
 import { useApi } from "../../api/ApiContext.tsx";
 import { Icon, IconButton, Loader } from "../../ui/index.ts";
@@ -197,9 +197,9 @@ export function ConversationPanel({ threadId, thread, providers }: Props) {
   }
 
   // The subagent state changes in T3 after the stop: reload even when it fails.
-  async function stopSubagent(subagentId: string): Promise<void> {
+  async function stopSubagent(subagent: SubagentInfo): Promise<void> {
     try {
-      await api.stopSubagent(threadId, subagentId);
+      await (subagent.stop === "thread" ? api.interrupt(threadId) : api.stopSubagent(threadId, subagent.id));
     } finally {
       void load();
     }
@@ -274,6 +274,7 @@ export function ConversationPanel({ threadId, thread, providers }: Props) {
         selection={detail?.modelSelection ?? null}
         runtimeMode={detail?.runtimeMode ?? null}
         running={running}
+        stoppable={running || Boolean(t?.pendingTasks)}
         draft={text}
         onDraft={setDraft}
         onSend={send}

@@ -124,8 +124,8 @@ export interface SubagentInfo {
   result: string | null;
   startedAt: string | null;
   completedAt: string | null;
-  /** Running with a run id: T3 can stop it. */
-  stoppable: boolean;
+  // Which stop applies: the subagent itself, or the whole thread for a background task.
+  stop: "subagent" | "thread" | null;
 }
 
 export interface ActivityItem {

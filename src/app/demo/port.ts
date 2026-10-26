@@ -73,6 +73,9 @@ export class DemoPort implements T3Port {
       case "run.interrupt":
         Object.assign(thread, { status: "interrupted", activeRunId: null, activityRunStartedAt: null, latestRunCompletedAt: at });
         break;
+      case "thread.stop":
+        Object.assign(thread, { pendingBackgroundTasks: [] });
+        break;
       case "subagent.stop":
         projection.subagents = (projection.subagents ?? []).map((raw) =>
           raw.id === command.subagentId ? { ...raw, status: "interrupted", progress: null, completedAt: at } : raw,

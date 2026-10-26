@@ -30,6 +30,8 @@ interface Props {
   runtimeMode: RuntimeMode | null;
   /** A run is active: Send steers it and Stop appears. */
   running: boolean;
+  /** Stop also shows with no active run, for pending background tasks. */
+  stoppable?: boolean;
   draft: string;
   onDraft: (text: string) => void;
   /** Each callback throws on failure: the Composer shows the error. */
@@ -45,7 +47,7 @@ interface Props {
   allowEmpty?: boolean;
 }
 
-export function Composer({ providers, selection, runtimeMode, running, draft, onDraft, onSend, onStop, onSettings, placeholder, autoFocus = false, errorResetKey, allowEmpty = false }: Props) {
+export function Composer({ providers, selection, runtimeMode, running, stoppable = running, draft, onDraft, onSend, onStop, onSettings, placeholder, autoFocus = false, errorResetKey, allowEmpty = false }: Props) {
   // Picks show at once, until new values come in the props or the change fails.
   // Each field has its own override: a model reload never drops a pending mode pick, and the reverse.
   const [selectionOverride, setSelectionOverride] = useState<ModelSelection | null>(null);
@@ -222,8 +224,8 @@ export function Composer({ providers, selection, runtimeMode, running, draft, on
             <IconButton label="Attach images" tooltip="Attach images" variant="ghost" className="composer-icon" onClick={() => fileInput.current?.click()}>
               <Icon name="paperclip" />
             </IconButton>
-            {running && onStop && (
-              <IconButton label="Stop" tooltip="Stop the run" className="composer-round stop" disabled={stopping} onClick={() => void attempt(onStop, setStopping)}>
+            {stoppable && onStop && (
+              <IconButton label="Stop" tooltip={running ? "Stop the run" : "Stop background tasks"} className="composer-round stop" disabled={stopping} onClick={() => void attempt(onStop, setStopping)}>
                 <Icon name="stop" />
               </IconButton>
             )}
