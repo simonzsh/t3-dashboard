@@ -7,6 +7,7 @@ export function useOpenHistory(): [readonly string[], (id: string) => void] {
   const [ids, setIds] = useState(() => loadHistory(browserStorage()));
   const record = useCallback((id: string) => {
     setIds((prev) => {
+      if (prev[0] === id) return prev;
       const next = recordOpened(prev, id);
       saveHistory(browserStorage(), next);
       return next;
