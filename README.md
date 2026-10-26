@@ -21,6 +21,7 @@ The screenshots come from the demo mode: the projects, agents and conversations 
 - See one card per T3 Code session, grouped by project, with the project icon.
 - See pinned agents first, then the agents that wait for a reply, then the agents that work.
 - Open a conversation on the Desk with one click.
+- Press Ctrl+K (Cmd+K on Mac) to open the switcher and jump to a conversation by title, project or message, from any screen. Before you type, it suggests the agents that wait for you, then your recent ones.
 
 **Desk**
 

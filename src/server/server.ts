@@ -11,7 +11,7 @@ import { isPageTheme, themedPage } from "./htmlRender.ts";
 import { servePwa } from "./pwa.ts";
 import type { Site } from "./site.ts";
 import type { SseHub } from "./sse.ts";
-import { isObject, isText, validAssign, validCreate, validImages, validMessage, validRespond, validSettings } from "./validate.ts";
+import { isObject, isText, validAssign, validCreate, validImages, validMessage, validRespond, validSearch, validSettings } from "./validate.ts";
 
 export interface SetupControl {
   /** Resolves the token again. */
@@ -163,6 +163,14 @@ export function createDashboardServer(options: DashboardServerOptions): Dashboar
       handle: ({ req, server }) => {
         server?.timeout(req, 0);
         return hub.add(getState(), req.signal);
+      },
+    },
+    {
+      method: "GET",
+      path: "/api/search",
+      handle: async ({ req }) => {
+        const { query, limit } = validSearch(new URL(req.url).searchParams);
+        return json(200, await actions.searchThreads(query, limit));
       },
     },
     { method: "GET", path: "/api/threads/:id", handle: async ({ params }) => json(200, await actions.threadDetail(params.id!)) },

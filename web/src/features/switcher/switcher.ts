@@ -1,0 +1,85 @@
+import type { DashboardProject, DashboardThread, ThreadSearchMatch } from "../../../../shared/api.ts";
+import { agentStatus } from "../../../../shared/status.ts";
+import { threadTitle } from "../../lib/threads.ts";
+
+export interface SwitcherRow {
+  thread: DashboardThread;
+  project: { id: string; title: string; icon: DashboardProject["icon"] };
+  snippet?: string;
+  source?: ThreadSearchMatch["source"];
+}
+
+// The server accepts 2 to 200 characters once trimmed.
+export const shouldSearchContent = (query: string): boolean => {
+  const n = query.trim().length;
+  return n >= 2 && n <= 200;
+};
+
+export interface TextPart {
+  text: string;
+  match: boolean;
+}
+
+/** Cuts `text` around each case-insensitive occurrence of `query`, to highlight it. */
+export function highlightParts(text: string, query: string): TextPart[] {
+  const q = query.trim().toLocaleLowerCase();
+  const lower = text.toLocaleLowerCase();
+  // Some letters change length when lowercased; then indexes would not line up.
+  if (!q || lower.length !== text.length) return [{ text, match: false }];
+  const parts: TextPart[] = [];
+  let from = 0;
+  for (let at = lower.indexOf(q); at !== -1; at = lower.indexOf(q, from)) {
+    if (at > from) parts.push({ text: text.slice(from, at), match: false });
+    parts.push({ text: text.slice(at, at + q.length), match: true });
+    from = at + q.length;
+  }
+  if (from < text.length) parts.push({ text: text.slice(from), match: false });
+  return parts;
+}
+
+export const moveSelection = (index: number, delta: number, length: number): number => Math.max(0, Math.min(length - 1, index + delta));
+
+function rowOf(thread: DashboardThread, projects: DashboardProject[]): SwitcherRow {
+  const project = projects.find((p) => p.id === thread.projectId);
+  return { thread, project: { id: thread.projectId, title: project?.title ?? thread.projectId, icon: project?.icon ?? null } };
+}
+
+export function titleMatches(threads: DashboardThread[], projects: DashboardProject[], query: string): SwitcherRow[] {
+  const q = query.trim().toLowerCase();
+  if (!q) return [];
+  return threads
+    .map((t) => rowOf(t, projects))
+    .filter((r) => threadTitle(r.thread).toLowerCase().includes(q) || r.project.title.toLowerCase().includes(q))
+    .sort((a, b) => b.thread.lastActivityAt.localeCompare(a.thread.lastActivityAt));
+}
+
+// Title hits lead; content hits add a snippet to them or follow in the server's order.
+export function mergeResults(titleHits: SwitcherRow[], content: ThreadSearchMatch[], threads: DashboardThread[], projects: DashboardProject[]): SwitcherRow[] {
+  const byId = new Map(threads.map((t) => [t.id, t]));
+  const rows = new Map(titleHits.map((r) => [r.thread.id, { ...r }]));
+  for (const m of content) {
+    const row = rows.get(m.threadId);
+    if (row) {
+      row.snippet ??= m.snippet;
+      row.source ??= m.source;
+      continue;
+    }
+    const thread = byId.get(m.threadId);
+    if (thread) rows.set(thread.id, { ...rowOf(thread, projects), snippet: m.snippet, source: m.source });
+  }
+  return [...rows.values()];
+}
+
+export const SUGGESTION_LIMIT = 8;
+
+// Empty query: threads that wait for the user, then recently opened ones, then the latest activity.
+export function suggestThreads(threads: DashboardThread[], projects: DashboardProject[], history: readonly string[], onDesk: ReadonlySet<string>, limit = SUGGESTION_LIMIT): SwitcherRow[] {
+  const byId = new Map(threads.filter((t) => !onDesk.has(t.id)).map((t) => [t.id, t]));
+  const latest = (a: DashboardThread, b: DashboardThread) => b.lastActivityAt.localeCompare(a.lastActivityAt);
+  const ordered = [
+    ...[...byId.values()].filter((t) => agentStatus(t) === "waiting").sort(latest),
+    ...history.flatMap((id) => byId.get(id) ?? []),
+    ...[...byId.values()].sort(latest),
+  ];
+  return [...new Set(ordered)].slice(0, limit).map((t) => rowOf(t, projects));
+}

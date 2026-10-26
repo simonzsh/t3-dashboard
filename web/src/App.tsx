@@ -5,6 +5,8 @@ import { BoardView } from "./features/board/BoardView.tsx";
 import { ConnectionBanner } from "./features/setup/ConnectionBanner.tsx";
 import { DeskView } from "./features/desk/DeskView.tsx";
 import { NewThreadDialog } from "./features/new-thread/NewThreadDialog.tsx";
+import { Switcher } from "./features/switcher/Switcher.tsx";
+import { useOpenHistory } from "./features/switcher/useOpenHistory.ts";
 import { SettingsDialog } from "./features/settings/SettingsDialog.tsx";
 import { SetupScreen } from "./features/setup/SetupScreen.tsx";
 import { UpdateDialog } from "./features/update/UpdateDialog.tsx";
@@ -37,9 +39,12 @@ export function App() {
   const [tab, setTab] = useTab();
   const automations = useAutomations(tab === "agents" && state?.automationsAvailable === true);
   const [desk, dispatchDesk] = useDesk(state?.connection.t3 === "live" ? state.threads : null);
+  const [openHistory, recordOpened] = useOpenHistory();
   const [creating, setCreating] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [confirmingUpdate, setConfirmingUpdate] = useState(false);
+  // null: closed; a string: open, seeded with that query.
+  const [switcherQuery, setSwitcherQuery] = useState<string | null>(null);
   const update = useUpdate();
   const [boardVersion, setBoardVersion] = useState(0);
   const [theme, setTheme] = useTheme();
@@ -55,6 +60,7 @@ export function App() {
 
   function openOnDesk(id: string, showDesk: boolean) {
     dispatchDesk({ type: "open", id });
+    recordOpened(id);
     if (showDesk) setTab("desk");
   }
 
@@ -67,7 +73,9 @@ export function App() {
     (action) => {
       if (action === "agents" || action === "board" || action === "desk") setTab(action);
       else if (action === "settings") setSettingsOpen(true);
-      else if (action === "new-agent") {
+      else if (action === "switcher") {
+        if (state && !creating && !settingsOpen && !confirmingUpdate) setSwitcherQuery((open) => (open === null ? "" : null));
+      } else if (action === "new-agent") {
         if (state) setCreating(true);
       } else if (action === "unmaximize") dispatchDesk({ type: "unmaximize" });
       else if (action.startsWith("focus-")) {
@@ -87,7 +95,7 @@ export function App() {
         focusComposer(target.id);
       }
     },
-    creating || settingsOpen || confirmingUpdate,
+    creating || settingsOpen || confirmingUpdate || switcherQuery !== null,
     tab === "desk",
   );
 
@@ -162,6 +170,7 @@ export function App() {
               onOpen={(id, addOnly) => openOnDesk(id, !addOnly)}
               onToggleDesk={toggleOnDesk}
               onSettle={(id, settle) => (settle ? api.settle(id) : api.unsettle(id))}
+              onSwitcher={setSwitcherQuery}
               automations={automations.result}
               automationsError={automations.error}
             />
@@ -188,6 +197,21 @@ export function App() {
           onClose={() => setCreating(false)}
           onCreated={(id) => {
             setCreating(false);
+            openOnDesk(id, true);
+          }}
+        />
+      )}
+      {state && switcherQuery !== null && (
+        <Switcher
+          threads={state.threads}
+          projects={state.projects}
+          now={now}
+          history={openHistory}
+          onDesk={new Set(gridWindows(desk).map((w) => w.id))}
+          initialQuery={switcherQuery}
+          onClose={() => setSwitcherQuery(null)}
+          onOpen={(id) => {
+            setSwitcherQuery(null);
             openOnDesk(id, true);
           }}
         />

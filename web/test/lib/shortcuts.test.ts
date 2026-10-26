@@ -60,3 +60,20 @@ test("arrow keys move the desk focus, only on the desk and outside text fields",
   assert.equal(matchShortcut(press("ArrowLeft"), false), null);
   assert.equal(matchShortcut(press("ArrowLeft", { target: { tagName: "TEXTAREA", isContentEditable: false } }), false, true), null);
 });
+
+test("Ctrl+K and Cmd+K open the switcher, even while typing or with a dialog open", () => {
+  const typing = { tagName: "TEXTAREA", isContentEditable: false };
+  for (const m of ["ctrlKey", "metaKey"] as const) {
+    assert.equal(matchShortcut(press("k", { [m]: true }), false), "switcher", m);
+    assert.equal(matchShortcut(press("K", { [m]: true }), false), "switcher", m);
+    assert.equal(matchShortcut(press("k", { [m]: true, target: typing }), false), "switcher", m);
+    assert.equal(matchShortcut(press("k", { [m]: true }), true), "switcher", m);
+  }
+  assert.equal(matchShortcut(press("k", { ctrlKey: true, target: { tagName: "INPUT", isContentEditable: false } }), false), "switcher");
+});
+
+test("a bare K and Ctrl+Alt+K do not open the switcher", () => {
+  assert.equal(matchShortcut(press("k"), false), null);
+  assert.equal(matchShortcut(press("k", { ctrlKey: true, altKey: true }), false), null);
+  assert.equal(matchShortcut(press("n", { ctrlKey: true }), false), null);
+});

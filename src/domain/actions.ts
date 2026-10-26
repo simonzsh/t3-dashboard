@@ -1,5 +1,5 @@
 import { marked } from "marked";
-import type { AssignIssueBody, CreateThreadBody, LinearIssue, ModelSelection, RespondBody, SendMessageBody, ThreadDetail, ThreadSettingsBody } from "../../shared/api.ts";
+import type { AssignIssueBody, CreateThreadBody, LinearIssue, ModelSelection, RespondBody, SendMessageBody, ThreadDetail, ThreadSearchResult, ThreadSettingsBody } from "../../shared/api.ts";
 import { ACTIVE_STATUSES, RUNNING_RUN_STATUSES } from "../../shared/status.ts";
 import { IntegrationError } from "../integrations/errors.ts";
 import {
@@ -36,6 +36,8 @@ export interface ActionsOptions {
 /** What the user can do to T3 threads from the dashboard. */
 export interface Actions {
   threadDetail(threadId: string): Promise<ThreadDetail>;
+  /** Message matches in threads the dashboard lists, in T3's order. */
+  searchThreads(query: string, limit?: number): Promise<ThreadSearchResult>;
   createThread(create: CreateThreadBody, images: ImageUpload[]): Promise<string>;
   sendMessage(threadId: string, body: Omit<SendMessageBody, "attachments">, images: ImageUpload[]): Promise<void>;
   changeSettings(threadId: string, settings: ThreadSettingsBody): Promise<void>;
@@ -107,6 +109,11 @@ export function createActions(options: ActionsOptions): Actions {
   }
 
   return {
+    async searchThreads(query, limit) {
+      const matches = await t3(port.searchThreads(query, limit));
+      return { matches: matches.filter((match) => store.thread(match.threadId)) };
+    },
+
     async threadDetail(threadId) {
       return toThreadDetail(threadId, await t3(port.threadProjection(threadId)), store.thread(threadId), store.backgroundTasks(threadId));
     },

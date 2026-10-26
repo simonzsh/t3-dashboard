@@ -1,5 +1,6 @@
 import type { FetchLike } from "../../integrations/linear/client.ts";
-import type { AttachmentRef, Command, ImageUpload, RawConfig, RawProjection, RawThread, ShellItem, T3Port } from "../../integrations/t3/schemas.ts";
+import type { AttachmentRef, Command, ImageUpload, RawConfig, RawProjection, RawSearchMatch, RawThread, ShellItem, T3Port } from "../../integrations/t3/schemas.ts";
+import { searchProjections } from "./search.ts";
 import { demoFixtures, demoIssues, SCRATCH_PROJECT_ID } from "./fixtures.ts";
 
 type Listener = (items: ShellItem[]) => void;
@@ -25,6 +26,10 @@ export class DemoPort implements T3Port {
     const projection = this.projections.get(threadId);
     if (!projection) throw new Error("Unknown demo thread");
     return projection;
+  }
+
+  async searchThreads(query: string, limit?: number): Promise<RawSearchMatch[]> {
+    return searchProjections(this.projections.values(), query, limit);
   }
 
   async getConfig(): Promise<RawConfig> {

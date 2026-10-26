@@ -70,3 +70,39 @@ test("the demo Linear board and automations need no network", async () => {
   assert.ok(automations.length >= 3 && automations.every((automation) => automation.nextRunAt !== null));
   assert.ok(brains.every((brain) => brain.ok));
 });
+
+test("demo search is case-insensitive and gives one row per thread, the user's message first", async () => {
+  const port = new DemoPort(() => NOW);
+  const matches = await port.searchThreads("RATE LIMIT");
+  const rows = matches.filter((match) => match.threadId === "demo-rate-limit");
+  assert.equal(rows.length, 1);
+  assert.equal(rows[0]!.source, "user");
+  assert.ok(rows[0]!.snippet.toLowerCase().includes("rate limit"));
+  assert.equal(new Set(matches.map((match) => match.threadId)).size, matches.length);
+});
+
+test("demo search falls back to the assistant message and lists user matches first", async () => {
+  const port = new DemoPort(() => NOW);
+  const matches = await port.searchThreads("token bucket");
+  assert.deepEqual(matches.map((match) => [match.threadId, match.source]), [["demo-rate-limit", "assistant"]]);
+  const all = await port.searchThreads("the");
+  const firstAssistant = all.findIndex((match) => match.source === "assistant");
+  assert.ok(firstAssistant === -1 || all.slice(firstAssistant).every((match) => match.source === "assistant"));
+});
+
+test("demo search finds nothing for an unknown word and honours the limit", async () => {
+  const port = new DemoPort(() => NOW);
+  assert.deepEqual(await port.searchThreads("zzzqqq"), []);
+  assert.equal((await port.searchThreads("the", 2)).length, 2);
+});
+
+test("demo search cuts long messages to 240 characters around the hit", async () => {
+  const port = new DemoPort(() => NOW);
+  const text = `${"a ".repeat(400)}needle${" b".repeat(400)}`;
+  await port.dispatch({ type: "thread.create", threadId: "long", projectId: "p", title: "Long", runtimeMode: "full-access" });
+  await port.dispatch({ type: "message.dispatch", threadId: "long", messageId: "m1", text });
+  const [match] = await port.searchThreads("needle");
+  assert.ok(match!.snippet.length <= 240);
+  assert.ok(match!.snippet.includes("needle"));
+  assert.ok(match!.snippet.startsWith("…") && match!.snippet.endsWith("…"));
+});

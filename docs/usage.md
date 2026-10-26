@@ -104,11 +104,12 @@ Ouvrez Settings avec le bouton de l'en-tête ou la touche `,`. Une barre latéra
 
 ## Raccourcis clavier
 
-Les raccourcis ne marchent pas pendant la saisie dans un champ ni quand une fenêtre de dialogue est ouverte.
+Les raccourcis ne marchent pas pendant la saisie dans un champ ni quand une fenêtre de dialogue est ouverte. `Ctrl` + `K` fait exception : il marche aussi pendant la saisie. Il ne marche pas quand une autre fenêtre de dialogue est ouverte.
 
 | Touche | Action |
 | --- | --- |
 | `1`, `2`, `3` | Ouvre Agents, Desk ou Board. |
+| `Ctrl` + `K` ou `⌘` + `K` | Ouvre ou ferme le switcher « Jump to » : il cherche une conversation par titre, projet ou message. Sans texte, il propose les agents qui attendent une réponse, puis vos conversations récentes. `↑` `↓` choisissent, `Entrée` ouvre dans le Desk. |
 | `N` | Ouvre New Agent. |
 | `,` | Ouvre Settings. |
 | `X` | Desk : ferme la fenêtre active. |
