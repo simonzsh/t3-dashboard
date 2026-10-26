@@ -192,13 +192,12 @@ const SPECS: ThreadSpec[] = [
     projectId: "demo-atlas-api",
     title: "Investigate the flaky webhook test",
     model: CODEX,
-    status: "failed",
+    status: "completed",
     messages: [
       ["user", 190, "`payments/webhook.test.ts` fails about once in ten runs on CI. Find out why."],
-      ["assistant", 171, "The test depends on the order of two async events. I could not make it fail locally in 200 runs; the CI runner timed out before the last attempt."],
+      ["assistant", 171, "The test depended on the order of two async events. It now waits for both events before it checks the result. 200 runs in a row pass on CI."],
     ],
-    runs: [{ id: "run-flaky-1", status: "failed", started: 189, completed: 171 }],
-    thread: { lastError: "Command timed out after 600 s" },
+    runs: [{ id: "run-flaky-1", status: "completed", started: 189, completed: 171 }],
   },
   {
     id: "demo-charts",
