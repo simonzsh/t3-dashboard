@@ -42,7 +42,7 @@ export function BoardView({ projects, providers, modelDefaults, version, onAssig
             <span className="conn-dot" aria-hidden="true" /> Connected to Linear
           </span>
         )}
-        <IconButton label="Refresh" className="refresh" aria-busy={loading} disabled={loading} onClick={() => void load(true)}>
+        <IconButton label="Refresh" tooltip="Refresh data from Linear" className="refresh" aria-busy={loading} disabled={loading} onClick={() => void load(true)}>
           <Icon name="refresh" className={`icon${loading ? " spinning" : ""}`} />
         </IconButton>
       </div>

@@ -545,6 +545,8 @@ button.auto-row:hover { background: var(--surface-0); }
   .app:not(.desk-mode) { height: auto; min-height: 100dvh; overflow: visible; }
   .app:not(.desk-mode) main { flex: none; overflow: visible; padding-bottom: max(24px, env(safe-area-inset-bottom)); }
   .app:not(.desk-mode) :is(.board, .agents-page, .agents-layout) { flex: none; overflow: visible; }
+  /* The search stays under the sticky top bar, as on desktop where the list scrolls below it. */
+  .app:not(.desk-mode) .agents-switcher { position: sticky; top: calc(max(8px, env(safe-area-inset-top)) + 44px); z-index: 4; margin: -8px 0; padding: 8px 0; background: var(--surface-0); }
 }
 @media (max-width: 700px) {
   /* minmax(0, …): a one-line title must not widen the column past the screen. */
