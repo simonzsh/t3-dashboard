@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 import type { SubagentInfo } from "../../../../shared/api.ts";
 import { STEP_LABELS, duration } from "../../lib/format.ts";
-import { Pressable } from "../../ui/index.ts";
+import { useAction } from "../../lib/useAction.ts";
+import { Button, Pressable } from "../../ui/index.ts";
 
 
 function elapsed(s: SubagentInfo, now: number): string | null {
@@ -11,11 +12,13 @@ function elapsed(s: SubagentInfo, now: number): string | null {
 }
 
 /** Each change of `reveal` opens the strip and focuses it (a subagent row of the run activity was clicked). */
-export function SubagentStrip({ subagents, reveal = 0 }: { subagents: SubagentInfo[]; reveal?: number }) {
+export function SubagentStrip({ subagents, reveal = 0, onStop }: { subagents: SubagentInfo[]; reveal?: number; onStop: (subagentId: string) => Promise<void> }) {
   const running = subagents.filter((s) => s.status === "running").length;
   const [open, setOpen] = useState(false);
   const [now, setNow] = useState(() => Date.now());
   const head = useRef<HTMLButtonElement>(null);
+  const action = useAction();
+  const [stopping, setStopping] = useState<string | null>(null);
 
   useEffect(() => {
     if (reveal === 0) return;
@@ -60,12 +63,20 @@ export function SubagentStrip({ subagents, reveal = 0 }: { subagents: SubagentIn
                     </span>
                   )}
                 </span>
-                <span className="subagent-time">{elapsed(s, now)}</span>
+                <span className="subagent-side">
+                  <span className="subagent-time">{elapsed(s, now)}</span>
+                  {s.stoppable && (
+                    <Button size="sm" variant="danger" disabled={stopping !== null} loading={stopping === s.id} onClick={() => void action.run(() => onStop(s.id), (busy) => setStopping(busy ? s.id : null))}>
+                      Stop
+                    </Button>
+                  )}
+                </span>
               </li>
             );
           })}
         </ul>
       )}
+      {open && action.error && <span className="error subagent-error">{action.error}</span>}
     </div>
   );
 }

@@ -145,6 +145,7 @@ export const RawSubagent = s.object({
   id: s.string(),
   runId: text(),
   childThreadId: text(),
+  origin: text(),
   nativeTaskRef: s.optional(s.nullable(s.object({ nativeId: text() }))),
   title: text(),
   prompt: text(),
@@ -204,7 +205,13 @@ const RawSettings = s.object({
 export const RawConfig = s.object({
   providers: s.optional(s.array(RawProvider)),
   settings: s.optional(s.nullable(RawSettings)),
-  environment: s.optional(s.object({ serverVersion: text(), orchestrationProtocolVersion: s.optional(s.nullable(s.number())) })),
+  environment: s.optional(
+    s.object({
+      serverVersion: text(),
+      orchestrationProtocolVersion: s.optional(s.nullable(s.number())),
+      capabilities: s.optional(s.nullable(s.object({ threadStop: s.optional(s.boolean()) }))),
+    }),
+  ),
 });
 export type RawConfig = Infer<typeof RawConfig>;
 

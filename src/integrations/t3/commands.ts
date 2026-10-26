@@ -54,6 +54,11 @@ export const runtimeModeCommand = (threadId: string, runtimeMode: RuntimeMode): 
 // holdQueue keeps queued messages from starting a new run right after the stop.
 export const interruptCommand = (threadId: string, runId: string): UnsentCommand => ({ type: "run.interrupt", threadId, runId, holdQueue: true });
 
+export const subagentStopCommand = (threadId: string, runId: string, subagentId: string): UnsentCommand => ({ type: "subagent.stop", threadId, runId, subagentId });
+
+// Stops a delegated task's own thread, whatever its run: only T3 builds with the threadStop capability know it.
+export const threadStopCommand = (threadId: string): UnsentCommand => ({ type: "thread.stop", threadId });
+
 export const approvalCommand = (threadId: string, requestId: string, decision: ApprovalDecision): UnsentCommand => ({ type: "runtime-request.respond", threadId, requestId, decision });
 
 export const userInputCommand = (threadId: string, requestId: string, answers: UserInputAnswers): UnsentCommand => ({ type: "runtime-request.respond", threadId, requestId, answers });

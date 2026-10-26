@@ -124,6 +124,8 @@ export interface SubagentInfo {
   result: string | null;
   startedAt: string | null;
   completedAt: string | null;
+  /** Running with a run id: T3 can stop it. */
+  stoppable: boolean;
 }
 
 export interface ActivityItem {

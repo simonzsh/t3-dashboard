@@ -17,6 +17,8 @@ import {
   messageCommand,
   modelSelectionCommand,
   runtimeModeCommand,
+  subagentStopCommand,
+  threadStopCommand,
   userInputCommand,
   type UnsentCommand,
 } from "./commands.ts";
@@ -52,6 +54,8 @@ export function samplePayloads(): Record<string, Record<string, unknown>[]> {
     modelSelectionCommand("t", selection),
     ...RUNTIME_MODES.map((mode) => runtimeModeCommand("t", mode)),
     interruptCommand("t", "r"),
+    subagentStopCommand("t", "r", "s"),
+    threadStopCommand("t"),
     ...APPROVALS.map((decision) => approvalCommand("t", "q", decision)),
     userInputCommand("t", "q", { a: "b" }),
     dismissCommand("t", "q"),

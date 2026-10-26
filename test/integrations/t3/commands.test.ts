@@ -10,6 +10,8 @@ import {
   messageCommand,
   modelSelectionCommand,
   runtimeModeCommand,
+  subagentStopCommand,
+  threadStopCommand,
   userInputCommand,
 } from "../../../src/integrations/t3/commands.ts";
 
@@ -66,6 +68,14 @@ test("messageCommand asks T3 to steer only when told to", () => {
 
 test("run.interrupt holds the queue", () => {
   assert.deepEqual(interruptCommand("thread-1", "run-1"), { type: "run.interrupt", threadId: "thread-1", runId: "run-1", holdQueue: true });
+});
+
+test("subagent.stop names the parent thread, the run and the subagent", () => {
+  assert.deepEqual(subagentStopCommand("thread-1", "run-1", "sub-1"), { type: "subagent.stop", threadId: "thread-1", runId: "run-1", subagentId: "sub-1" });
+});
+
+test("thread.stop names only the thread", () => {
+  assert.deepEqual(threadStopCommand("child-1"), { type: "thread.stop", threadId: "child-1" });
 });
 
 test("approvalCommand sends the decision", () => {

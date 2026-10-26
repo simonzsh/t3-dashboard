@@ -155,12 +155,24 @@ test("subagents: only the latest run, running first then newest first", () => {
 
 test("subagents: normalised status, progress only while running, result truncated", () => {
   const [live, failed, done] = toThreadDetail("thread-1", withSubagents, undefined).subagents;
-  assert.deepEqual(live, { id: "live", title: "Implement", status: "running", progress: "Running bun test", result: null, startedAt: "2026-03-01T10:04:00Z", completedAt: null });
+  assert.deepEqual(live, { id: "live", title: "Implement", status: "running", progress: "Running bun test", result: null, startedAt: "2026-03-01T10:04:00Z", completedAt: null, stoppable: true });
   assert.equal(failed!.status, "failed");
   assert.equal(failed!.title, "Review the diff for bugs");
   assert.equal(done!.status, "done");
   assert.equal(done!.progress, null);
   assert.equal(done!.result, `${"x".repeat(199)}…`);
+});
+
+test("subagents: only a running subagent with a run id can be stopped", () => {
+  const projection: RawProjection = {
+    subagents: [
+      { id: "live", runId: "run-1", status: "running", startedAt: "2026-03-01T10:04:00Z" },
+      { id: "done", runId: "run-1", status: "completed", startedAt: "2026-03-01T10:02:00Z", completedAt: "2026-03-01T10:03:00Z" },
+    ],
+  };
+  const tasks = [{ description: "Shell job" }];
+  const { subagents } = toThreadDetail("thread-1", projection, undefined, tasks);
+  assert.deepEqual(subagents.map((s) => [s.id, s.stoppable]), [["live", true], ["task:Shell job", false], ["done", false]]);
 });
 
 test("subagents: an unknown status counts as running only while not completed", () => {
