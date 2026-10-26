@@ -14,6 +14,7 @@ interface Props {
   deskIds: ReadonlySet<string>;
   onOpen: (id: string, addOnly: boolean) => void;
   onToggleDesk: (id: string) => void;
+  onSettle: (id: string) => Promise<unknown>;
   automations: AutomationsResult | null;
   automationsError: string | null;
 }
@@ -32,7 +33,7 @@ function RecentlySettled({ count, children }: { count: number; children: ReactNo
   );
 }
 
-export function AgentsView({ state, now, deskIds, onOpen, onToggleDesk, automations, automationsError }: Props) {
+export function AgentsView({ state, now, deskIds, onOpen, onToggleDesk, onSettle, automations, automationsError }: Props) {
   const groups = groupAgents(excludeRoutineThreads(state.threads, automations?.automations ?? []), state.projects, now);
   // Before the first automations answer, routine threads would flash in the grid.
   const available = state.automationsAvailable;
@@ -55,14 +56,14 @@ export function AgentsView({ state, now, deskIds, onOpen, onToggleDesk, automati
             {g.cards.length > 0 && (
               <div className="grid">
                 {g.cards.map((c) => (
-                  <AgentCard key={c.thread.id} card={c} now={now} onDesk={deskIds.has(c.thread.id)} t3EnvironmentId={state.t3EnvironmentId} onOpen={onOpen} onToggleDesk={onToggleDesk} />
+                  <AgentCard key={c.thread.id} card={c} now={now} onDesk={deskIds.has(c.thread.id)} t3EnvironmentId={state.t3EnvironmentId} onOpen={onOpen} onToggleDesk={onToggleDesk} onSettle={onSettle} />
                 ))}
               </div>
             )}
             {g.settled.length > 0 && (
               <RecentlySettled count={g.settled.length}>
                 {g.settled.map((t) => (
-                  <AgentCard key={t.id} card={{ thread: t, status: agentStatus(t) }} now={now} onDesk={deskIds.has(t.id)} t3EnvironmentId={state.t3EnvironmentId} onOpen={onOpen} onToggleDesk={onToggleDesk} />
+                  <AgentCard key={t.id} card={{ thread: t, status: agentStatus(t) }} now={now} onDesk={deskIds.has(t.id)} t3EnvironmentId={state.t3EnvironmentId} onOpen={onOpen} onToggleDesk={onToggleDesk} onSettle={onSettle} />
                 ))}
               </RecentlySettled>
             )}

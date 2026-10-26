@@ -10,6 +10,7 @@ import { SetupScreen } from "./features/setup/SetupScreen.tsx";
 import { UpdateDialog } from "./features/update/UpdateDialog.tsx";
 import { gridWindows } from "./features/desk/desk.ts";
 import { useAutomations } from "./features/agents/useAutomations.ts";
+import { api } from "./api/client.ts";
 import { useDashboard } from "./api/events.ts";
 import { useDesk } from "./features/desk/useDesk.ts";
 import { useDeskBackground } from "./features/desk/useDeskBackground.ts";
@@ -153,6 +154,7 @@ export function App() {
               deskIds={deskIds}
               onOpen={(id, addOnly) => openOnDesk(id, !addOnly)}
               onToggleDesk={toggleOnDesk}
+              onSettle={api.settle}
               automations={automations.result}
               automationsError={automations.error}
             />

@@ -68,6 +68,9 @@ export class DemoPort implements T3Port {
       case "run.interrupt":
         Object.assign(thread, { status: "interrupted", activeRunId: null, activityRunStartedAt: null, latestRunCompletedAt: at });
         break;
+      case "thread.settle":
+        Object.assign(thread, { settledOverride: "settled", settledAt: at });
+        break;
       case "thread.model-selection.set":
         thread.modelSelection = command.modelSelection as RawThread["modelSelection"];
         break;

@@ -6,6 +6,7 @@ import {
   approvalCommand,
   createThreadCommands,
   dismissCommand,
+  settleCommand,
   interruptCommand,
   messageCommand,
   modelSelectionCommand,
@@ -40,6 +41,7 @@ export interface Actions {
   interrupt(threadId: string): Promise<void>;
   respond(threadId: string, requestId: string, answer: RespondBody): Promise<void>;
   dismiss(threadId: string, requestId: string): Promise<void>;
+  settle(threadId: string): Promise<void>;
   assign(body: Omit<AssignIssueBody, "attachments">, images: ImageUpload[]): Promise<string>;
   /** An image or page of the thread, fetched from T3. */
   asset(threadId: string, request: AssetRequest, range?: string): Promise<{ response: Response; html: boolean }>;
@@ -156,6 +158,10 @@ export function createActions(options: ActionsOptions): Actions {
 
     async dismiss(threadId, requestId) {
       await send(dismissCommand(threadId, requestId));
+    },
+
+    async settle(threadId) {
+      await send(settleCommand(threadId));
     },
 
     async assign(body, images) {

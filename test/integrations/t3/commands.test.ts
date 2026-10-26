@@ -4,6 +4,7 @@ import {
   approvalCommand,
   createThreadCommands,
   dismissCommand,
+  settleCommand,
   interruptCommand,
   messageCommand,
   modelSelectionCommand,
@@ -96,6 +97,10 @@ test("modelSelectionCommand and runtimeModeCommand", () => {
 
 test("dismissCommand", () => {
   assert.deepEqual(dismissCommand("thread-1", "req-1"), { type: "thread.user-input.dismiss", threadId: "thread-1", requestId: "req-1" });
+});
+
+test("settleCommand", () => {
+  assert.deepEqual(settleCommand("thread-1"), { type: "thread.settle", threadId: "thread-1" });
 });
 
 test("no builder produces acceptAlways", () => {

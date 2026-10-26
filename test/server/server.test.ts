@@ -373,6 +373,12 @@ test("dismiss", async () => {
   assert.deepEqual(port.commands[0], { type: "thread.user-input.dismiss", commandId: "id-1", threadId: "run-1", requestId: "req 1" });
 });
 
+test("settle", async () => {
+  const { server, port } = await start();
+  assert.equal((await post(server, "/api/threads/run-1/settle")).status, 200);
+  assert.deepEqual(port.commands[0], { type: "thread.settle", commandId: "id-1", threadId: "run-1" });
+});
+
 test("GET /api/threads/:id joins the projection and the store thread", async () => {
   const { server, port } = await start();
   port.projection = { messages: [{ id: "m1", role: "user", text: "Hello" }], visibleTurnItems: [{ item: { messageId: "m1" } }] };

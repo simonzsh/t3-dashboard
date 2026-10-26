@@ -38,12 +38,14 @@ test("action routes hit the right URL with a JSON body", async () => {
   await api.updateSettings("t 1", { runtimeMode: "auto" });
   await api.respond("t 1", "r/1", { decision: "accept" });
   await api.dismiss("t 1", "r/1");
+  await api.settle("t 1");
   assert.deepEqual(calls.map((c) => c.url), [
     "/api/threads/t%201/messages",
     "/api/threads/t%201/interrupt",
     "/api/threads/t%201/settings",
     "/api/threads/t%201/requests/r%2F1/respond",
     "/api/threads/t%201/requests/r%2F1/dismiss",
+    "/api/threads/t%201/settle",
   ]);
   for (const c of calls) {
     assert.equal(c.init?.method, "POST");

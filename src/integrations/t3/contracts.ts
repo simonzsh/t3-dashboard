@@ -11,6 +11,7 @@ import {
   approvalCommand,
   createThreadCommands,
   dismissCommand,
+  settleCommand,
   interruptCommand,
   messageCommand,
   modelSelectionCommand,
@@ -53,6 +54,7 @@ export function samplePayloads(): Record<string, Record<string, unknown>[]> {
     ...APPROVALS.map((decision) => approvalCommand("t", "q", decision)),
     userInputCommand("t", "q", { a: "b" }),
     dismissCommand("t", "q"),
+    settleCommand("t"),
   ];
   const payloads: Record<string, Record<string, unknown>[]> = {};
   for (const command of commands) (payloads[String(command.type)] ??= []).push({ ...command, commandId: "c" });

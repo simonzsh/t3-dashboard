@@ -69,6 +69,11 @@
     "runtimeMode": "required: approval-required | auto | auto-accept-edits | full-access",
     "threadId": "required"
   },
+  "thread.settle": {
+    "commandId": "required",
+    "settledAt": "optional",
+    "threadId": "required"
+  },
   "thread.user-input.dismiss": {
     "commandId": "required",
     "requestId": "required",
