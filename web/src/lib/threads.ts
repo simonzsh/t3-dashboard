@@ -41,10 +41,8 @@ export function groupAgents(threads: DashboardThread[], projects: DashboardProje
     g.cards.sort((a, b) => Number(b.thread.pinned) - Number(a.thread.pinned) || RANK[a.status] - RANK[b.status] || recent(a.thread, b.thread));
     g.settled.sort(recent);
   }
-  // A group ranks by its most urgent card; settled-only groups go last.
-  const rank = (g: AgentGroup) => Math.min(Object.keys(RANK).length, ...g.cards.map((c) => RANK[c.status]));
-  const latest = (g: AgentGroup) => g.cards.reduce((max, c) => (c.thread.lastActivityAt > max ? c.thread.lastActivityAt : max), g.cards.length > 0 ? "" : (g.settled[0]?.lastActivityAt ?? ""));
-  return groups.sort((a, b) => rank(a) - rank(b) || latest(b).localeCompare(latest(a)));
+  // Fixed order: a group never jumps when a thread changes status, settles or unsettles.
+  return groups.sort((a, b) => a.project.title.localeCompare(b.project.title) || a.project.id.localeCompare(b.project.id));
 }
 
 export function providerKind(provider: string): "claude" | "codex" | "other" {

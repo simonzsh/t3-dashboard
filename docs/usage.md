@@ -10,13 +10,17 @@ L'onglet Agents montre une carte par session T3 Code.
 
 - Les cartes sont groupées par projet T3. Chaque groupe montre l'icône et le nom du projet.
 - Dans un groupe, les agents épinglés dans T3 Code viennent en premier, avec une petite épingle. Ensuite, l'ordre est : en attente, au travail, fini, inactif.
-- Les groupes qui ont un agent en attente passent avant les autres.
+- Les groupes suivent l'ordre alphabétique des projets. Cet ordre ne change jamais. Un point orange près du nom signale un agent en attente dans le groupe.
 - Une carte montre le fournisseur (Claude ou Codex), le titre, l'état et l'heure de la dernière activité. Si l'agent attend une approbation ou une réponse, la carte le dit.
 - Un agent terminé (« settled » dans T3 Code) va dans une section repliée sous son groupe. Il disparaît après 3 jours sans activité.
 - Les sessions archivées ou supprimées, les sous-agents et les fils des routines t3-agent n'apparaissent pas.
 - Un clic sur une carte ouvre la conversation sur le Desk. Maj + clic l'ajoute au Desk sans changer d'onglet.
 - Le bouton « Add to Desk » ajoute la carte au Desk. Un deuxième clic la retire.
 - Le lien « Open in T3 Code » ouvre la session dans T3 Code.
+- Les boutons sont en bas à droite de la carte, après l'état et l'heure : T3 (icône seule), Settle, puis Add to Desk.
+- Le bouton « Settle » (icône de boîte) range un agent terminé dans « Recently settled », comme T3 Code. Il n'existe pas pour un agent qui travaille ou qui attend.
+- Les cartes de « Recently settled » sont grisées : on les distingue des autres d'un coup d'œil.
+- Dans « Recently settled », le bouton « Unsettle » remet l'agent dans la liste.
 
 Les cartes changent d'état en direct, sans recharger la page.
 
