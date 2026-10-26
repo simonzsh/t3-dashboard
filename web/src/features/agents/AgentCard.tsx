@@ -59,12 +59,12 @@ export function AgentCard({ card, now, onDesk, t3EnvironmentId, onOpen, onToggle
         </span>
       </Pressable>
       <div className="agent-actions">
+        <OpenInT3 environmentId={t3EnvironmentId} threadId={t.id} className="card-open-t3 sm" />
         {canSettle && (
           <IconButton label="Archive" size="sm" variant={error ? "danger" : "secondary"} disabled={busy} tooltip={error ?? "Archive (settle in T3 Code)"} onClick={() => run(() => onSettle(t.id))}>
             <Icon name="archive" />
           </IconButton>
         )}
-        <OpenInT3 environmentId={t3EnvironmentId} threadId={t.id} className="card-open-t3 sm" />
         <IconButton
           label="Add to Desk"
           size="sm"
