@@ -170,8 +170,10 @@ export function createActions(options: ActionsOptions): Actions {
       const subagent = subagents.find((raw) => raw.id === subagentId);
       if (!subagent) throw new DomainError("not-found", "Unknown subagent");
       if (!subagent.runId || subagentStatus(subagent) !== "running") throw new DomainError("conflict", "This subagent is not running");
-      await send(subagentStopCommand(threadId, subagent.runId, subagentId));
-      if (subagent.origin !== "app_owned" || !subagent.childThreadId) return;
+      const stop = send(subagentStopCommand(threadId, subagent.runId, subagentId));
+      if (subagent.origin !== "app_owned" || !subagent.childThreadId) return stop;
+      // Like T3 Code: a refused subagent.stop must not leave the child thread running.
+      await stop.catch(() => undefined);
       const child = subagent.childThreadId;
       if ((await t3(port.getConfig())).environment?.capabilities?.threadStop === true) return send(threadStopCommand(child));
       const childRunId = await activeRunId(child);

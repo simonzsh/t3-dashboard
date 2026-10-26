@@ -32,7 +32,7 @@ function stopHarness(projections: Record<string, RawProjection>, config: RawConf
   const store = { thread: () => undefined, project: () => undefined, backgroundTasks: () => [] };
   let counter = 0;
   const actions = createActions({ port, store, board: { get: async () => ({ configured: true, ok: true, error: null, issues: [] }) }, newId: () => `id-${++counter}` });
-  return { actions, commands };
+  return { actions, commands, port };
 }
 
 const delegated = { id: "sub-1", runId: "run-1", status: "running", origin: "app_owned", childThreadId: "child-1" };
@@ -127,6 +127,14 @@ test("stopSubagent skips the child interrupt when the child has no active run", 
   const { actions, commands } = stopHarness({ "thread-1": { subagents: [delegated] }, "child-1": { runs: [{ id: "c1", status: "completed" }] } });
   await actions.stopSubagent("thread-1", "sub-1");
   assert.deepEqual(commands.map((c) => c.type), ["subagent.stop"]);
+});
+
+test("stopSubagent still stops the child thread when T3 refuses subagent.stop", async () => {
+  const { actions, commands, port } = stopHarness({ "thread-1": { subagents: [delegated] } }, { environment: { capabilities: { threadStop: true } } });
+  const dispatch = port.dispatch.bind(port);
+  port.dispatch = async (command) => (command.type === "subagent.stop" ? Promise.reject(new Error("refused")) : dispatch(command));
+  await actions.stopSubagent("thread-1", "sub-1");
+  assert.deepEqual(commands.map((c) => c.type), ["thread.stop"]);
 });
 
 test("stopSubagent refuses an unknown, finished or run-less subagent and sends nothing", async () => {
