@@ -6,7 +6,7 @@ interface Props<T extends string> {
   value: T;
   options: ReadonlyArray<{ id: T; label: string }>;
   onChange: (id: T) => void;
-  /** Prefix of the ids: the panel sets `aria-labelledby` to `${idPrefix}-${id}`. */
+  /** Prefix of the ids: the panel takes the id `${idPrefix}-panel` and sets `aria-labelledby` to `${idPrefix}-${id}`. */
   idPrefix: string;
   className?: string;
 }
@@ -23,7 +23,7 @@ export function Tabs<T extends string>({ label, value, options, onChange, idPref
   return (
     <div className={className ? `tabs ${className}` : "tabs"} role="tablist" aria-label={label} onKeyDown={onKeyDown}>
       {options.map((o) => (
-        <button key={o.id} type="button" role="tab" id={`${idPrefix}-${o.id}`} aria-selected={value === o.id} tabIndex={value === o.id ? 0 : -1} className={value === o.id ? "active" : ""} onClick={() => onChange(o.id)}>
+        <button key={o.id} type="button" role="tab" id={`${idPrefix}-${o.id}`} aria-selected={value === o.id} aria-controls={`${idPrefix}-panel`} tabIndex={value === o.id ? 0 : -1} className={value === o.id ? "active" : ""} onClick={() => onChange(o.id)}>
           {o.label}
         </button>
       ))}

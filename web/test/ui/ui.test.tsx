@@ -152,6 +152,6 @@ test("solid icon parts are filled, not stroked", () => {
 test("Tabs is a tab list with the active tab selected and the only tab stop", () => {
   const out = html(<Tabs label="Sections" idPrefix="s" value="b" options={[{ id: "a", label: "A" }, { id: "b", label: "B" }]} onChange={() => {}} />);
   assert.match(out, /role="tablist" aria-label="Sections"/);
-  assert.match(out, /role="tab" id="s-a" aria-selected="false" tabindex="-1"/);
-  assert.match(out, /role="tab" id="s-b" aria-selected="true" tabindex="0" class="active"/);
+  assert.match(out, /role="tab" id="s-a" aria-selected="false" aria-controls="s-panel" tabindex="-1"/);
+  assert.match(out, /role="tab" id="s-b" aria-selected="true" aria-controls="s-panel" tabindex="0" class="active"/);
 });

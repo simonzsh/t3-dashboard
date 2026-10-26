@@ -96,7 +96,7 @@ export function SettingsDialog({ theme, onThemeChange, background, onBackgroundC
     <Dialog title="Settings" className="settings" onClose={onClose}>
       <div className="settings-layout">
         <Tabs label="Settings sections" idPrefix="settings-tab" className="settings-tabs" value={section} options={SECTIONS} onChange={setSection} />
-        <div className="settings-panel" role="tabpanel" aria-labelledby={`settings-tab-${section}`}>
+        <div className="settings-panel" role="tabpanel" id="settings-tab-panel" tabIndex={0} aria-labelledby={`settings-tab-${section}`}>
           {panels[section]}
         </div>
       </div>
