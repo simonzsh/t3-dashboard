@@ -6,6 +6,7 @@ import { excludeRoutineThreads } from "./automations.ts";
 import { AgentCard } from "./AgentCard.tsx";
 import { AutomationsColumn } from "./AutomationsColumn.tsx";
 import { ProjectIcon } from "../../lib/ProjectIcon.tsx";
+import { useScrolled } from "../../lib/useScrolled.ts";
 import { Icon, Kbd, Loader, Pressable, TextInput } from "../../ui/index.ts";
 
 interface Props {
@@ -35,6 +36,7 @@ function RecentlySettled({ count, children }: { count: number; children: ReactNo
 }
 
 export function AgentsView({ state, now, deskIds, onOpen, onToggleDesk, onSettle, onSwitcher, automations, automationsError }: Props) {
+  const scrolled = useScrolled();
   const groups = groupAgents(excludeRoutineThreads(state.threads, automations?.automations ?? []), state.projects, now);
   // Before the first automations answer, routine threads would flash in the grid.
   const available = state.automationsAvailable;
@@ -75,7 +77,7 @@ export function AgentsView({ state, now, deskIds, onOpen, onToggleDesk, onSettle
     );
   return (
     <div className="agents-page">
-      <div className="agents-switcher">
+      <div className={`agents-switcher${scrolled ? " scrolled" : ""}`}>
         <Icon name="search" />
         {/* No onFocus: the dialog gives focus back here on close and would reopen. */}
         <TextInput
