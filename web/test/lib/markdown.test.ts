@@ -66,3 +66,8 @@ test("a local video becomes a player", () => {
   const out = renderToStaticMarkup(renderMarkdown("![demo](/tmp/a.mp4)", { localMedia: (path) => `/media?path=${encodeURIComponent(path)}` }));
   assert.match(out, /^<p><video class="md-image" src="\/media\?path=%2Ftmp%2Fa.mp4" aria-label="demo" controls="" muted="" playsInline="" preload="metadata"><\/video><\/p>$/);
 });
+
+test("breaks turns single newlines into <br>", () => {
+  assert.equal(renderToStaticMarkup(renderMarkdown("a\nb", { breaks: true })), "<p>a<br/>b</p>");
+  assert.equal(html("a\nb"), "<p>a\nb</p>");
+});

@@ -224,7 +224,7 @@ main { flex: 1; min-height: 0; overflow: hidden; padding: 24px; display: flex; f
 .msg small { display: flex; align-items: center; gap: 6px; font-size: 11px; color: var(--text-secondary); opacity: 0; transition: opacity 0.15s; }
 .msg:hover small, .msg:focus-within small, .msg:last-child small { opacity: 0.85; }
 .msg.user { align-items: flex-end; }
-.msg.user .bubble { max-width: min(85%, 640px); padding: 8px 13px; border-radius: 16px 16px 4px 16px; white-space: pre-wrap; background: color-mix(in srgb, var(--accent) 13%, var(--surface-1)); border: 1px solid color-mix(in srgb, var(--accent) 24%, var(--line)); color: var(--text-primary); }
+.msg.user .bubble { max-width: min(85%, 640px); padding: 8px 13px; border-radius: 16px 16px 4px 16px; overflow-wrap: anywhere; background: color-mix(in srgb, var(--accent) 13%, var(--surface-1)); border: 1px solid color-mix(in srgb, var(--accent) 24%, var(--line)); color: var(--text-primary); }
 .msg.system { align-items: center; }
 .msg.system .md { max-width: 90%; font-size: 12px; color: var(--text-secondary); text-align: center; white-space: pre-wrap; }
 .msg.system small { display: none; }
