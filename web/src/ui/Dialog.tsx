@@ -35,7 +35,7 @@ export function Dialog({ title, label, onClose, onCancel, cancelLabel = "Cancel"
 
   // Before the first paint, so the dialog never shows at full size first.
   useLayoutEffect(() => {
-    const anims = [backdrop.current && enter(backdrop.current), box.current && enter(box.current, { y: 16, scale: 0.86, duration: 380, spring: true })];
+    const anims = [backdrop.current && enter(backdrop.current), box.current && enter(box.current, { y: 16, scale: 0.85, duration: 420, spring: true })];
     return () => anims.forEach((anim) => anim?.cancel());
   }, []);
 

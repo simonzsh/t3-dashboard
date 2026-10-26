@@ -77,7 +77,11 @@ function exit(source: Element, from: Rect): Animation | null {
 /** Fades the element in from a slight offset or scale: dialogs, menus, new windows. */
 export function enter(el: Element, { y = 0, scale = 1, duration = BASE, spring = false }: { y?: number; scale?: number; duration?: number; spring?: boolean } = {}): Animation | null {
   if (reducedMotion()) return null;
-  return el.animate([{ opacity: 0, translate: `0 ${y}px`, scale: `${scale}` }, { opacity: 1, translate: "0 0", scale: "1" }], { duration, easing: spring ? SPRING : EASE });
+  const from = { opacity: 0, translate: `0 ${y}px`, scale: `${scale}` };
+  const rest = { opacity: 1, translate: "0 0", scale: "1" };
+  // The spring overshoots once, then settles: a visible bounce, not a wobble.
+  const frames = spring ? [from, { opacity: 1, translate: "0 -2px", scale: "1.04", offset: 0.55 }, { scale: "0.99", offset: 0.8 }, rest] : [from, rest];
+  return el.animate(frames, { duration, easing: spring ? "ease-out" : EASE });
 }
 
 /** Slides an element from its old rect to the one it has now (FLIP), above its neighbours while it moves. */
