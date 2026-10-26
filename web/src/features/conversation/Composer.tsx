@@ -144,7 +144,7 @@ export function Composer({ providers, selection, runtimeMode, running, draft, on
               <li key={p.key} className="file-chip">
                 <img src={p.dataUrl} alt="" />
                 <span data-tooltip={p.file.name}>{p.file.name}</span>
-                <Pressable aria-label={`Remove ${p.file.name}`} tooltip="Remove" onClick={() => setImages((current) => current.filter((x) => x.key !== p.key))}>
+                <Pressable aria-label={`Remove ${p.file.name}`} onClick={() => setImages((current) => current.filter((x) => x.key !== p.key))}>
                   <Icon name="x" />
                 </Pressable>
               </li>
@@ -215,7 +215,7 @@ export function Composer({ providers, selection, runtimeMode, running, draft, on
           </div>
           <div className="composer-actions">
             <FileInput ref={fileInput} accept={IMAGE_TYPES.join(",")} multiple onFiles={(files) => void addFiles(files)} />
-            <IconButton label="Attach images" variant="ghost" className="composer-icon" onClick={() => fileInput.current?.click()}>
+            <IconButton label="Attach images" tooltip="Attach images" variant="ghost" className="composer-icon" onClick={() => fileInput.current?.click()}>
               <Icon name="paperclip" />
             </IconButton>
             {running && onStop && (

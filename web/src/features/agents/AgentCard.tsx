@@ -31,7 +31,6 @@ export function AgentCard({ card, now, onDesk, t3EnvironmentId, onOpen, onToggle
       <Pressable
         ref={cardRef}
         className={`agent ${status}${onDesk ? " on-desk" : ""}`}
-        tooltip={threadTitle(t)}
         onClick={(e) => {
           if (e.shiftKey) flyToDesk();
           onOpen(t.id, e.shiftKey);

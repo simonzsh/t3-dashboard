@@ -28,6 +28,7 @@ export function AboutSettings({ update, onUpdate }: Props) {
           )}
           <IconButton
             label="Check for updates"
+            tooltip="Check for updates"
             size="sm"
             className={update.checking ? "spinning" : undefined}
             disabled={update.checking || update.updating}

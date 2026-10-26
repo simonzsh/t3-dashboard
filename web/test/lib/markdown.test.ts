@@ -56,8 +56,13 @@ test("a fenced code block inside a list item renders as code", () => {
 });
 
 test("a local image shows through the caller's URL; others stay links", () => {
-  const withMedia = (text: string) => renderToStaticMarkup(renderMarkdown(text, { localImage: (path) => `/media?path=${encodeURIComponent(path)}` }));
+  const withMedia = (text: string) => renderToStaticMarkup(renderMarkdown(text, { localMedia: (path) => `/media?path=${encodeURIComponent(path)}` }));
   assert.equal(withMedia("![shot](/tmp/a.png)"), '<p><img class="md-image" src="/media?path=%2Ftmp%2Fa.png" alt="shot" loading="lazy"/></p>');
   assert.equal(withMedia("![logo](https://example.com/a.png)"), '<p><a href="https://example.com/a.png" target="_blank" rel="noreferrer">logo</a></p>');
   assert.equal(html("![shot](/tmp/a.png)"), "<p>shot</p>");
+});
+
+test("a local video becomes a player", () => {
+  const out = renderToStaticMarkup(renderMarkdown("![demo](/tmp/a.mp4)", { localMedia: (path) => `/media?path=${encodeURIComponent(path)}` }));
+  assert.match(out, /^<p><video class="md-image" src="\/media\?path=%2Ftmp%2Fa.mp4" aria-label="demo" controls="" muted="" playsInline="" preload="metadata"><\/video><\/p>$/);
 });

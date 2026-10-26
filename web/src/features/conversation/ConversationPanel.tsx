@@ -22,7 +22,7 @@ const NEAR_BOTTOM_PX = 40;
 
 // Streaming re-renders the whole list: parse a message again only when its text changes.
 const MarkdownText = memo(function MarkdownText({ text, threadId }: { text: string; threadId: string }) {
-  return renderMarkdown(text, { localImage: (path) => mediaUrl(threadId, path) });
+  return renderMarkdown(text, { localMedia: (path) => mediaUrl(threadId, path) });
 });
 
 function Message({ message: m, threadId }: { message: ChatMessage; threadId: string }) {

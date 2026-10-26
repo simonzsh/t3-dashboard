@@ -46,11 +46,12 @@ export function LinearSettings({ onChange }: Props) {
         )}
         {linear.connected && (
           <span className="row-icons">
-            <IconButton label="Change key" size="sm" aria-expanded={changing} onClick={() => setChanging(!changing)}>
+            <IconButton label="Change key" tooltip="Change key" size="sm" aria-expanded={changing} onClick={() => setChanging(!changing)}>
               <Icon name="pencil" strokeWidth={1.8} />
             </IconButton>
             <IconButton
               label="Disconnect"
+            tooltip="Disconnect"
               size="sm"
               disabled={action.busy}
               onClick={() =>

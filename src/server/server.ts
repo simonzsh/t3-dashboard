@@ -45,7 +45,7 @@ const SECURITY_HEADERS = {
 };
 
 
-const IMAGE_TYPE = /^image\/(png|jpeg|gif|webp|avif)\s*(;|$)/i;
+const MEDIA_TYPE = /^(image\/(png|jpeg|gif|webp|avif)|video\/(mp4|webm|quicktime))\s*(;|$)/i;
 
 function hostnameOf(value: string): string | null {
   try {
@@ -130,14 +130,19 @@ export function createDashboardServer(options: DashboardServerOptions): Dashboar
 
   // Images keep T3's type; a page is served sandboxed, so its scripts get an opaque origin and cannot call /api.
   async function asset(req: Request, threadId: string, request: AssetRequest): Promise<Response> {
-    const { response, html } = await actions.asset(threadId, request);
+    const { response, html } = await actions.asset(threadId, request, req.headers.get("range") ?? undefined);
     const headers: Record<string, string> = { "cache-control": "private, max-age=3600" };
     if (!html) {
       // Never pass through a type the browser could run (html, svg) on the dashboard origin.
       const type = response.headers.get("content-type") ?? "";
-      if (IMAGE_TYPE.test(type)) headers["content-type"] = type;
+      if (MEDIA_TYPE.test(type)) headers["content-type"] = type;
       else Object.assign(headers, { "content-type": "application/octet-stream", "content-disposition": "attachment" });
-      return new Response(response.body, { headers });
+      // Videos play by byte ranges: Safari refuses one without them.
+      for (const name of ["content-range", "accept-ranges", "content-length"]) {
+        const value = response.headers.get(name);
+        if (value) headers[name] = value;
+      }
+      return new Response(response.body, { status: response.status, headers });
     }
     const theme = new URL(req.url).searchParams.get("theme");
     headers["content-type"] = "text/html; charset=utf-8";
