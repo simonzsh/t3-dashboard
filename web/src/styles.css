@@ -205,7 +205,8 @@ main { flex: 1; min-height: 0; overflow: hidden; padding: 24px; display: flex; f
 .card-title::after { content: ""; position: absolute; inset: 0; border-radius: inherit; }
 .card-title:hover { text-decoration: underline; }
 .card .assign { grid-area: assign; position: relative; z-index: 1; min-height: 26px; }
-.prio-icon { flex: none; width: 14px; height: 14px; color: var(--text-secondary); }
+/* z-index 1: stays above the stretched link so its tooltip shows. */
+.prio-icon { flex: none; position: relative; z-index: 1; width: 14px; height: 14px; color: var(--text-secondary); }
 .prio-icon.urgent { color: var(--err-text); }
 /* The AI button: an accent disc, quiet until the card is hovered or focused. */
 .assign-ai.icon-button { width: 26px; min-width: 26px; height: 26px; border-radius: 50%; color: var(--accent); background: color-mix(in srgb, var(--accent) 12%, var(--surface-1)); border-color: color-mix(in srgb, var(--accent) 30%, var(--line)); transition: background 0.12s, color 0.12s, opacity 0.12s, transform 0.12s; }
