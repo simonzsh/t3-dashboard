@@ -26,9 +26,10 @@ test("a loading Button is disabled and busy, and shows the loading text", () => 
   assert.match(html(<Button loading>Save</Button>), />Save<\/button>$/);
 });
 
-test("an IconButton names itself with its label", () => {
+test("an IconButton names itself with its label and has no tooltip unless asked", () => {
   const out = html(<IconButton label="Close"><Icon name="x" /></IconButton>);
-  assert.match(out, /^<button type="button" aria-label="Close" data-tooltip="Close" class="icon-button md"><svg class="icon"/);
+  assert.match(out, /^<button type="button" aria-label="Close" class="icon-button md"><svg class="icon"/);
+  assert.doesNotMatch(html(<IconButton label="Close" shortcut="X">x</IconButton>), /data-shortcut/);
 });
 
 test("an IconButton takes a tooltip and a shortcut apart from its label", () => {
@@ -87,7 +88,8 @@ test("a Dialog has a title, a close button and the dialog role", () => {
   const out = html(<Dialog title="Settings" onClose={() => {}}><p>Body</p></Dialog>);
   assert.match(out, /role="dialog" aria-modal="true" aria-labelledby="[^"]+"/);
   assert.match(out, /<h2 id="[^"]+">Settings<\/h2>/);
-  assert.match(out, /aria-label="Close" data-tooltip="Close" data-shortcut="Esc"/);
+  assert.match(out, /aria-label="Close"/);
+  assert.doesNotMatch(out, /data-tooltip/);
   assert.match(out, /<p>Body<\/p>/);
   assert.doesNotMatch(out, /dialog-actions/);
 });

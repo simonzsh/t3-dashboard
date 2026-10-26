@@ -128,7 +128,6 @@ export function DeskView({ desk, dispatch, threads, projects, background, t3Envi
         key={w.id}
         className={`desk-chip${active ? " active" : ""}`}
         data-desk-chip={closable ? w.id : undefined}
-        tooltip={threadTitle(thread)}
         onClick={() => dispatch({ type: "restore", id: w.id })}
       >
         <span className={`state-dot ${thread ? threadState(thread) : "idle"}`} aria-hidden="true" />

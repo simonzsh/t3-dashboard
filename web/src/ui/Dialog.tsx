@@ -76,7 +76,7 @@ export function Dialog({ title, label, onClose, onCancel, cancelLabel = "Cancel"
       >
         <div className="dialog-head">
           <h2 id={titleId}>{title}</h2>
-          <IconButton label="Close" shortcut="Esc" variant="ghost" size="sm" className="dialog-close" onClick={onClose}>
+          <IconButton label="Close" variant="ghost" size="sm" className="dialog-close" onClick={onClose}>
             <Icon name="x" />
           </IconButton>
         </div>

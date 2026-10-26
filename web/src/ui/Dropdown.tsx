@@ -85,7 +85,6 @@ export function Dropdown({ label, value, options, onPick, icon, placeholder, dis
         type="button"
         className="dropdown-trigger"
         aria-label={label}
-        data-tooltip={label}
         aria-haspopup="listbox"
         aria-expanded={open}
         aria-controls={open ? `${id}-list` : undefined}

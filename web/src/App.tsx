@@ -110,7 +110,7 @@ export function App() {
         </div>
         <nav className="tabs" role="tablist">
           {TABS.map(({ id, label, key }) => (
-            <Pressable key={id} role="tab" data-tab={id} aria-selected={tab === id} className={tab === id ? "active" : ""} tooltip={label} shortcut={key} onClick={() => setTab(id)}>
+            <Pressable key={id} role="tab" data-tab={id} aria-selected={tab === id} className={tab === id ? "active" : ""} onClick={() => setTab(id)}>
               {label}
               {id === "desk" && deskWaiting && <span className="tab-alert" role="img" aria-label="An agent is waiting for your reply" />}
               <Kbd>{key}</Kbd>
@@ -120,25 +120,25 @@ export function App() {
         <div className="topbar-right">
           {update.status?.available && update.status.canUpdate &&
             (compact ? (
-              <IconButton className="update-pill" label={updateLabel(update.status)} disabled={update.updating || update.status.updating} onClick={() => setConfirmingUpdate(true)}>
+              <IconButton className="update-pill" label={updateLabel(update.status)} tooltip={updateLabel(update.status)} disabled={update.updating || update.status.updating} onClick={() => setConfirmingUpdate(true)}>
                 <Icon name="arrowUp" strokeWidth={1.8} />
               </IconButton>
             ) : (
-              <Button className="update-pill" tooltip="A new version is available" loading={(update.updating || update.status.updating) && "Updating…"} onClick={() => setConfirmingUpdate(true)}>
+              <Button className="update-pill" loading={(update.updating || update.status.updating) && "Updating…"} onClick={() => setConfirmingUpdate(true)}>
                 {updateLabel(update.status)}
               </Button>
             ))}
           {state &&
             (compact ? (
-              <IconButton variant="primary" label="New Agent" shortcut="N" onClick={() => setCreating(true)}>
+              <IconButton variant="primary" label="New Agent" onClick={() => setCreating(true)}>
                 <Icon name="plus" />
               </IconButton>
             ) : (
-              <Button variant="primary" tooltip="New Agent" shortcut="N" kbd="N" onClick={() => setCreating(true)}>
+              <Button variant="primary" kbd="N" onClick={() => setCreating(true)}>
                 New Agent
               </Button>
             ))}
-          <IconButton label="Settings" shortcut="," kbd="," onClick={() => setSettingsOpen(true)}>
+          <IconButton label="Settings" kbd="," onClick={() => setSettingsOpen(true)}>
             <Icon name="settings" strokeWidth={1.8} />
           </IconButton>
         </div>

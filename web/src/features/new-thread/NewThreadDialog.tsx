@@ -59,7 +59,7 @@ export function NewThreadDialog({ projects, providers, defaults, onClose, onCrea
   return (
     <Dialog title={issue ? "Assign to an agent" : "New Agent"} className="new-agent" onClose={onClose}>
       {issue && (
-        <a className="issue-banner" href={issue.url} target="_blank" rel="noreferrer" data-tooltip="Open in Linear">
+        <a className="issue-banner" href={issue.url} target="_blank" rel="noreferrer">
           <span className="issue-banner-id">{issue.identifier}</span>
           <span className="issue-banner-title">{issue.title}</span>
           <Icon name="arrowUpRight" />

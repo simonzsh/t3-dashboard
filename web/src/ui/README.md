@@ -8,6 +8,7 @@ Ce dossier contient les composants de base du dashboard. Les écrans de `web/src
 - Dans une rangée de boutons, mettez Annuler à gauche et l'action principale à droite. Le `Dialog` applique cet ordre.
 - La couleur d'accent marque l'action principale, le focus et la sélection. N'utilisez pas d'autre couleur pour ces rôles.
 - Le style des composants vient de `styles.css`. Les jetons sont en haut du fichier : `--focus-ring`, `--radius-*`, `--control-sm` (28 px) et `--control-md` (32 px).
+- Une info-bulle seulement sur une icône dont le sens n'est pas évident, ou sur un texte coupé. Pas sur un bouton à texte, un onglet, un sélecteur ou une carte.
 - N'utilisez pas l'attribut natif `title` pour une info-bulle : un test le bloque. Écrivez `tooltip` et `shortcut` (ou `data-tooltip`). Le nom accessible reste `aria-label`.
 - Chaque élément qui peut avoir le focus reçoit l'anneau d'accent. Ne remettez pas `outline: none` sans un autre signe visible du focus.
 
@@ -16,7 +17,7 @@ Ce dossier contient les composants de base du dashboard. Les écrans de `web/src
 | Composant | Utilisation |
 | --- | --- |
 | `Button` | Bouton avec un texte. Variantes : `primary` (une seule par rangée), `secondary` (par défaut), `ghost`, `danger`, `link`. Tailles : `sm`, `md`. `kbd` montre un raccourci. `loading` désactive le bouton ; un texte remplace alors le libellé. |
-| `IconButton` | Bouton avec une icône seule. `label` est obligatoire : il donne le nom accessible et l'info-bulle (`tooltip` la remplace). Mêmes variantes et tailles que `Button`. |
+| `IconButton` | Bouton avec une icône seule. `label` est obligatoire : il donne le nom accessible. Ajoutez `tooltip` seulement si l'icône ne parle pas d'elle-même (contrôles de fenêtre, joindre, envoyer). Mêmes variantes et tailles que `Button`. |
 | `Pressable` | Surface cliquable avec son propre style : carte, ligne, onglet, pastille. Pas de variante, pas de hauteur fixe. Utilisez `Button` ou `IconButton` pour un bouton normal. |
 | `TextInput`, `TextArea` | Champ de texte. Le remplissage automatique est désactivé. |
 | `SecretInput` | Champ masqué pour une clé ou un jeton. C'est un champ texte, pas un champ mot de passe : les gestionnaires de mots de passe ne s'ouvrent pas. |
