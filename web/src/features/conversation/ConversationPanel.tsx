@@ -10,7 +10,7 @@ import { Composer } from "./Composer.tsx";
 import { PendingRequestView } from "./PendingRequestView.tsx";
 import { RunActivityView } from "./RunActivity.tsx";
 import { SubagentStrip } from "./SubagentStrip.tsx";
-import { useStickToBottom } from "./useStickToBottom.ts";
+import { RESIZE_SETTLE_MS, useStickToBottom } from "./useStickToBottom.ts";
 import { usePoll } from "../../lib/usePoll.ts";
 import { errorMessage } from "../../lib/format.ts";
 import { LIVE_RELOAD_MS, SEND_POLL_WINDOW_MS, pollDelay } from "./reload.ts";
@@ -154,7 +154,7 @@ export function ConversationPanel({ threadId, thread, providers }: Props) {
     return () => clearTimeout(timer);
   }, [sentAt]);
 
-  useStickToBottom(scroller, stick);
+  const resizedAt = useStickToBottom(scroller, stick);
 
   function setDraft(value: string) {
     setText(value);
@@ -195,6 +195,12 @@ export function ConversationPanel({ threadId, thread, providers }: Props) {
           ref={scroller}
           onScroll={(e) => {
             const el = e.currentTarget;
+            // A resize (the desk grid changed) moves the page on its own: stay at the bottom instead of dropping the follow.
+            if (stick.current && performance.now() - resizedAt.current < RESIZE_SETTLE_MS) {
+              el.scrollTop = el.scrollHeight;
+              lastTop.current = el.scrollTop;
+              return;
+            }
             const gap = el.scrollHeight - el.scrollTop - el.clientHeight;
             // Any move up by the user stops the follow, even a small one; a shrinking page that clamps to the bottom does not.
             const movedUp = el.scrollTop < lastTop.current - 1 && gap > 1;
