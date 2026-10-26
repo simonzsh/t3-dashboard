@@ -52,6 +52,15 @@ test("Alt+1 to Alt+6 focus a desk window", () => {
   assert.equal(matchShortcut(press("1", { altKey: true }), true, true), null);
 });
 
+test("arrow keys move the desk focus, only on the desk and outside text fields", () => {
+  assert.equal(matchShortcut(press("ArrowLeft"), false, true), "focus-left");
+  assert.equal(matchShortcut(press("ArrowRight"), false, true), "focus-right");
+  assert.equal(matchShortcut(press("ArrowUp"), false, true), "focus-up");
+  assert.equal(matchShortcut(press("ArrowDown"), false, true), "focus-down");
+  assert.equal(matchShortcut(press("ArrowLeft"), false), null);
+  assert.equal(matchShortcut(press("ArrowLeft", { target: { tagName: "TEXTAREA", isContentEditable: false } }), false, true), null);
+});
+
 test("Ctrl+K and Cmd+K open the switcher, even while typing or with a dialog open", () => {
   const typing = { tagName: "TEXTAREA", isContentEditable: false };
   for (const m of ["ctrlKey", "metaKey"] as const) {
