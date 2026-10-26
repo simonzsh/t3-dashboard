@@ -31,7 +31,7 @@ export function AssignMenu({ issue, projects, providers, modelDefaults, onAssign
         </span>
       ) : (
         <IconButton label="Assign to an agent" tooltip="Assign to an agent" size="sm" className="assign-ai" aria-haspopup="dialog" onClick={() => setOpen(true)}>
-          <Icon name="sparkles" strokeWidth={1.8} />
+          <Icon name="assignBot" strokeWidth={1.8} />
         </IconButton>
       )}
       {open &&

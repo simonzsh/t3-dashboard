@@ -1,7 +1,7 @@
 // A string is a stroked path; `{ solid }` is a filled path without stroke.
 type Part = string | { solid: string };
 
-// Icon paths from Lucide (ISC), plus the stop square.
+// Icon paths from Lucide (ISC), plus the assign robot and the stop square.
 const ICONS = {
   chevron: ["m6 9 6 6 6-6"],
   brain: [
@@ -40,9 +40,14 @@ const ICONS = {
   wrench: ["M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.8-3.8a6 6 0 0 1-7.9 7.9l-6.9 6.9a2.1 2.1 0 0 1-3-3l6.9-6.9a6 6 0 0 1 7.9-7.9z"],
   edit: ["M17 3a2.8 2.8 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"],
   bot: ["M12 8V4H8M6 8h12a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2v-8a2 2 0 0 1 2-2ZM2 14h2M20 14h2M15 13v2M9 13v2"],
-  sparkles: [
-    "M9.94 15.5a2 2 0 0 0-1.44-1.44l-6.13-1.58a.5.5 0 0 1 0-.96L8.5 9.94A2 2 0 0 0 9.94 8.5l1.58-6.13a.5.5 0 0 1 .96 0l1.58 6.13a2 2 0 0 0 1.44 1.44l6.13 1.58a.5.5 0 0 1 0 .96l-6.13 1.58a2 2 0 0 0-1.44 1.44l-1.58 6.13a.5.5 0 0 1-.96 0Z",
-    "M20 3v4M22 5h-4M4 17v2M5 18H3",
+  assignBot: [
+    "M5 9h8a2.5 2.5 0 0 1 2.5 2.5v5a2.5 2.5 0 0 1-2.5 2.5H5a2.5 2.5 0 0 1-2.5-2.5v-5A2.5 2.5 0 0 1 5 9Z",
+    "M9 9V6M1 13.5v2M17 13.5v2",
+    "M10.2 4.8a1.2 1.2 0 1 1-2.4 0 1.2 1.2 0 0 1 2.4 0Z",
+    { solid: "M7.8 13.5a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0Z" },
+    { solid: "M13.2 13.5a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0Z" },
+    "M7 16.4h4",
+    "M20 3v6M17 6h6",
   ],
   stop: [{ solid: "M9 7h6a2 2 0 0 1 2 2v6a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2V9a2 2 0 0 1 2-2Z" }],
 } satisfies Record<string, Part[]>;
