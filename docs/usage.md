@@ -104,11 +104,12 @@ Ouvrez Settings avec le bouton de l'en-tête ou la touche `,`. Une barre latéra
 
 ## Raccourcis clavier
 
-Les raccourcis ne marchent pas pendant la saisie dans un champ ni quand une fenêtre de dialogue est ouverte.
+Les raccourcis ne marchent pas pendant la saisie dans un champ ni quand une fenêtre de dialogue est ouverte. `Ctrl` + `K` fait exception : il marche partout.
 
 | Touche | Action |
 | --- | --- |
 | `1`, `2`, `3` | Ouvre Agents, Desk ou Board. |
+| `Ctrl` + `K` ou `⌘` + `K` | Ouvre ou ferme la recherche de conversations (titre, projet et messages). `↑` `↓` choisissent, `Entrée` ouvre dans le Desk. |
 | `N` | Ouvre New Agent. |
 | `,` | Ouvre Settings. |
 | `X` | Desk : ferme la fenêtre active. |
