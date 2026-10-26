@@ -9,7 +9,7 @@ Le dashboard a trois onglets : Agents, Desk et Board. Le bouton New Agent et les
 L'onglet Agents montre une carte par session T3 Code.
 
 - Les cartes sont groupées par projet T3. Chaque groupe montre l'icône et le nom du projet.
-- Dans un groupe, l'ordre est : en attente, au travail, fini, inactif. Les agents qui attendent une réponse passent donc en haut.
+- Dans un groupe, les agents épinglés dans T3 Code viennent en premier, avec une petite épingle. Ensuite, l'ordre est : en attente, au travail, fini, inactif.
 - Les groupes qui ont un agent en attente passent avant les autres.
 - Une carte montre le fournisseur (Claude ou Codex), le titre, l'état et l'heure de la dernière activité. Si l'agent attend une approbation ou une réponse, la carte le dit.
 - Un agent terminé (« settled » dans T3 Code) va dans une section repliée sous son groupe. Il disparaît après 3 jours sans activité.

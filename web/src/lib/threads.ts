@@ -37,11 +37,12 @@ export function groupAgents(threads: DashboardThread[], projects: DashboardProje
   }
   const groups = [...byProject.values()];
   for (const g of groups) {
-    g.cards.sort((a, b) => RANK[a.status] - RANK[b.status] || recent(a.thread, b.thread));
+    // Pinned cards lead, like the T3 Code sidebar; then the most urgent status.
+    g.cards.sort((a, b) => Number(b.thread.pinned) - Number(a.thread.pinned) || RANK[a.status] - RANK[b.status] || recent(a.thread, b.thread));
     g.settled.sort(recent);
   }
-  // Cards are sorted, so the first card carries the group's best status; settled-only groups go last.
-  const rank = (g: AgentGroup) => (g.cards[0] ? RANK[g.cards[0].status] : Object.keys(RANK).length);
+  // A group ranks by its most urgent card; settled-only groups go last.
+  const rank = (g: AgentGroup) => Math.min(Object.keys(RANK).length, ...g.cards.map((c) => RANK[c.status]));
   const latest = (g: AgentGroup) => g.cards.reduce((max, c) => (c.thread.lastActivityAt > max ? c.thread.lastActivityAt : max), g.cards.length > 0 ? "" : (g.settled[0]?.lastActivityAt ?? ""));
   return groups.sort((a, b) => rank(a) - rank(b) || latest(b).localeCompare(latest(a)));
 }
