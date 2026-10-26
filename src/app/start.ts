@@ -32,7 +32,7 @@ import { VERSION } from "../config/version.ts";
 
 const RECLASSIFY_MS = 60_000;
 const LISTEN_RETRY_MS = 5_000;
-const UPDATE_CHECK_MS = 24 * 60 * 60 * 1000;
+const UPDATE_CHECK_MS = 60 * 60 * 1000;
 const UPDATE_CHECK_TIMEOUT_MS = 5_000;
 const readText = (path: string) => readFileSync(path, "utf8");
 

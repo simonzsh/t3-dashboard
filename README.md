@@ -66,7 +66,7 @@ La commande télécharge la dernière release GitHub, vérifie la somme SHA-256,
 
 Le dashboard cherche une nouvelle release au démarrage, puis une fois par jour. Une erreur réseau ou l'absence de release n'affiche rien.
 
-Quand une version plus récente existe, le bouton « Update vX.Y.Z » apparaît dans l'en-tête. Cliquez dessus, puis confirmez. Le dashboard fait la même mise à jour que `t3-dashboard update`, puis redémarre. La page attend le nouveau dashboard et se recharge seule. Si la mise à jour échoue, la page affiche l'erreur.
+Le dashboard cherche une nouvelle version au démarrage, puis toutes les heures. Quand une version plus récente existe, le bouton « Update vX.Y.Z » apparaît dans l'en-tête. Cliquez dessus, puis confirmez. Le dashboard fait la même mise à jour que `t3-dashboard update`, puis redémarre. La page attend le nouveau dashboard et se recharge seule. Si la mise à jour échoue, la page affiche l'erreur.
 
 Les réglages ont une section « About » : version installée, dernière version connue, bouton « Check for updates ».
 
