@@ -1,7 +1,7 @@
 import { test } from "bun:test";
 import assert from "node:assert/strict";
 import type { ThreadSearchMatch } from "../../../../shared/api.ts";
-import { mergeResults, moveSelection, shouldSearchContent, titleMatches } from "../../../src/features/switcher/switcher.ts";
+import { mergeResults, moveSelection, shouldSearchContent, suggestThreads, titleMatches } from "../../../src/features/switcher/switcher.ts";
 import { thread } from "../../fixtures.ts";
 
 const projects = [
@@ -65,4 +65,34 @@ test("moveSelection clamps at both ends and survives an empty list", () => {
   assert.equal(moveSelection(1, 1, 3), 2);
   assert.equal(moveSelection(2, 1, 3), 2);
   assert.equal(moveSelection(0, 1, 0), 0);
+});
+
+const waiting = { pending: { kind: "approval" } } as unknown as Partial<ReturnType<typeof thread>>;
+const ids = (rows: { thread: { id: string } }[]) => rows.map((r) => r.thread.id);
+
+test("suggestions: waiting threads first, then history order, then latest activity", () => {
+  const all = [
+    thread("old", { lastActivityAt: "2026-01-01T00:00:00.000Z" }),
+    thread("new", { lastActivityAt: "2026-01-09T00:00:00.000Z" }),
+    thread("mid", { lastActivityAt: "2026-01-05T00:00:00.000Z" }),
+    thread("h1", { lastActivityAt: "2026-01-02T00:00:00.000Z" }),
+    thread("h2", { lastActivityAt: "2026-01-03T00:00:00.000Z" }),
+    thread("w", { ...waiting, lastActivityAt: "2026-01-01T00:00:00.000Z" }),
+  ];
+  assert.deepEqual(ids(suggestThreads(all, projects, ["h2", "h1"], new Set(), 8)), ["w", "h2", "h1", "new", "mid", "old"]);
+});
+
+test("suggestions: one row per thread, even when waiting and in the history", () => {
+  const all = [thread("a", waiting), thread("b")];
+  assert.deepEqual(ids(suggestThreads(all, projects, ["a", "b", "a"], new Set(), 8)), ["a", "b"]);
+});
+
+test("suggestions skip the threads visible on the Desk and unknown history ids", () => {
+  const all = [thread("a"), thread("b", waiting), thread("c")];
+  assert.deepEqual(ids(suggestThreads(all, projects, ["gone", "a"], new Set(["b"]), 8)), ["a", "c"]);
+});
+
+test("suggestions stop at the cap", () => {
+  const all = Array.from({ length: 12 }, (_, i) => thread(`t${i}`, { lastActivityAt: `2026-01-${String(i + 1).padStart(2, "0")}T00:00:00.000Z` }));
+  assert.deepEqual(ids(suggestThreads(all, projects, [], new Set(), 8)), ["t11", "t10", "t9", "t8", "t7", "t6", "t5", "t4"]);
 });

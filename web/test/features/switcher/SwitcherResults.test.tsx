@@ -38,3 +38,8 @@ test("no rows after a search says so; before any search it stays quiet", () => {
   assert.doesNotMatch(render({ rows: [], selected: -1, searched: false }), /No conversations/);
   assert.doesNotMatch(render({ rows: [], selected: -1, loading: true }), /No conversations/);
 });
+
+test("a label titles the list, for the suggestions", () => {
+  assert.match(render({ label: "Suggested" }), /Suggested/);
+  assert.doesNotMatch(render(), /switcher-label/);
+});

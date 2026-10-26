@@ -6,6 +6,7 @@ import { ConnectionBanner } from "./features/setup/ConnectionBanner.tsx";
 import { DeskView } from "./features/desk/DeskView.tsx";
 import { NewThreadDialog } from "./features/new-thread/NewThreadDialog.tsx";
 import { Switcher } from "./features/switcher/Switcher.tsx";
+import { useOpenHistory } from "./features/switcher/useOpenHistory.ts";
 import { SettingsDialog } from "./features/settings/SettingsDialog.tsx";
 import { SetupScreen } from "./features/setup/SetupScreen.tsx";
 import { UpdateDialog } from "./features/update/UpdateDialog.tsx";
@@ -38,6 +39,7 @@ export function App() {
   const [tab, setTab] = useTab();
   const automations = useAutomations(tab === "agents" && state?.automationsAvailable === true);
   const [desk, dispatchDesk] = useDesk(state?.connection.t3 === "live" ? state.threads : null);
+  const [openHistory, recordOpened] = useOpenHistory();
   const [creating, setCreating] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [confirmingUpdate, setConfirmingUpdate] = useState(false);
@@ -58,6 +60,7 @@ export function App() {
 
   function openOnDesk(id: string, showDesk: boolean) {
     dispatchDesk({ type: "open", id });
+    recordOpened(id);
     if (showDesk) setTab("desk");
   }
 
@@ -203,6 +206,8 @@ export function App() {
           threads={state.threads}
           projects={state.projects}
           now={now}
+          history={openHistory}
+          onDesk={new Set(gridWindows(desk).map((w) => w.id))}
           initialQuery={switcherQuery}
           onClose={() => setSwitcherQuery(null)}
           onOpen={(id) => {

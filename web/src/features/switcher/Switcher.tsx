@@ -1,7 +1,7 @@
 import { useEffect, useState, type KeyboardEvent } from "react";
 import type { DashboardProject, DashboardThread } from "../../../../shared/api.ts";
 import { Dialog, Icon, TextInput } from "../../ui/index.ts";
-import { mergeResults, moveSelection, titleMatches } from "./switcher.ts";
+import { mergeResults, moveSelection, suggestThreads, titleMatches } from "./switcher.ts";
 import { optionId, SwitcherResults } from "./SwitcherResults.tsx";
 import { useThreadSearch } from "./useThreadSearch.ts";
 
@@ -9,16 +9,20 @@ interface Props {
   threads: DashboardThread[];
   projects: DashboardProject[];
   now: Date;
+  history: readonly string[];
+  /** Threads already in a visible Desk window: not worth suggesting. */
+  onDesk: ReadonlySet<string>;
   initialQuery: string;
   onOpen: (threadId: string) => void;
   onClose: () => void;
 }
 
-export function Switcher({ threads, projects, now, initialQuery, onOpen, onClose }: Props) {
+export function Switcher({ threads, projects, now, history, onDesk, initialQuery, onOpen, onClose }: Props) {
   const [query, setQuery] = useState(initialQuery);
   const [index, setIndex] = useState(0);
   const content = useThreadSearch(query);
-  const rows = mergeResults(titleMatches(threads, projects, query), content.matches, threads, projects);
+  const suggesting = query.trim() === "";
+  const rows = suggesting ? suggestThreads(threads, projects, history, onDesk) : mergeResults(titleMatches(threads, projects, query), content.matches, threads, projects);
   const selectedIndex = Math.min(index, rows.length - 1);
   const selected = rows[selectedIndex];
 
@@ -62,7 +66,8 @@ export function Switcher({ threads, projects, now, initialQuery, onOpen, onClose
         now={now}
         loading={content.loading}
         error={content.error}
-        searched={query.trim().length > 0}
+        label={suggesting ? "Suggested" : undefined}
+        searched={!suggesting}
         onSelect={setIndex}
         onOpen={onOpen}
       />

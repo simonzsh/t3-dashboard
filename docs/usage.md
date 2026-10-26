@@ -109,7 +109,7 @@ Les raccourcis ne marchent pas pendant la saisie dans un champ ni quand une fen�
 | Touche | Action |
 | --- | --- |
 | `1`, `2`, `3` | Ouvre Agents, Desk ou Board. |
-| `Ctrl` + `K` ou `⌘` + `K` | Ouvre ou ferme la recherche de conversations (titre, projet et messages). `↑` `↓` choisissent, `Entrée` ouvre dans le Desk. |
+| `Ctrl` + `K` ou `⌘` + `K` | Ouvre ou ferme le switcher « Jump to » : il cherche une conversation par titre, projet ou message. Sans texte, il propose les agents qui attendent une réponse, puis vos conversations récentes. `↑` `↓` choisissent, `Entrée` ouvre dans le Desk. |
 | `N` | Ouvre New Agent. |
 | `,` | Ouvre Settings. |
 | `X` | Desk : ferme la fenêtre active. |

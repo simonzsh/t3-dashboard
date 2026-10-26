@@ -12,6 +12,8 @@ interface Props {
   loading: boolean;
   /** Content search failed: the title matches still show. */
   error: string | null;
+  /** Small heading above the list. */
+  label?: string;
   searched: boolean;
   onSelect: (index: number) => void;
   onOpen: (threadId: string) => void;
@@ -19,9 +21,10 @@ interface Props {
 
 export const optionId = (threadId: string) => `switcher-option-${threadId}`;
 
-export function SwitcherResults({ rows, selected, now, loading, error, searched, onSelect, onOpen }: Props) {
+export function SwitcherResults({ rows, selected, now, loading, error, label, searched, onSelect, onOpen }: Props) {
   return (
     <div className="switcher-results">
+      {rows.length > 0 && label && <p className="switcher-label">{label}</p>}
       {rows.length > 0 && (
         <div id="switcher-list" role="listbox" aria-label="Conversations">
           {rows.map((row, i) => (
