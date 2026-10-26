@@ -3,8 +3,8 @@ import { test } from "bun:test";
 import type { BoardResult } from "../../shared/api.ts";
 import { createActions } from "../../src/domain/actions.ts";
 import { DomainError } from "../../src/domain/errors.ts";
-import { IntegrationError } from "../../src/integrations/errors.ts";
 import type { ShellStore } from "../../src/domain/shellStore.ts";
+import { IntegrationError } from "../../src/integrations/errors.ts";
 import type { Command, T3Port } from "../../src/integrations/t3/schemas.ts";
 
 const issue = {

@@ -3,7 +3,7 @@ import type { RawProjection, RawSearchMatch } from "../../integrations/t3/schema
 const SNIPPET_MAX = 240;
 
 // Cuts around the hit and marks each cut edge with an ellipsis.
-export function snippetAround(text: string, at: number, length: number): string {
+function snippetAround(text: string, at: number, length: number): string {
   if (text.length <= SNIPPET_MAX) return text;
   const room = SNIPPET_MAX - 2;
   const start = Math.min(Math.max(0, at - Math.floor((room - length) / 2)), text.length - room);
