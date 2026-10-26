@@ -24,7 +24,7 @@ export const BACKGROUND_PRESETS: Array<{ id: BackgroundPresetId; label: string }
 ];
 
 const NONE: DeskBackground = { kind: "none" };
-// Old preset ids: a saved one falls back to Sand, the closest beige.
+// Old preset ids: a saved one falls back to Sand, the closest gray.
 const RETIRED = new Set(["dune", "clay", "sage", "dusk", "linen"]);
 
 export function parseBackground(raw: string | null): DeskBackground {
