@@ -91,11 +91,12 @@ Pour chaque `*.json` du dossier, le serveur lit seulement `workspace` et `projec
 
 ## Settings
 
-Ouvrez Settings avec le bouton de l'en-tête ou la touche `,`.
+Ouvrez Settings avec le bouton de l'en-tête ou la touche `,`. Une barre latérale à gauche liste les onglets ; un seul onglet est visible à la fois.
 
 - Appearance : thème « System », « Light » ou « Dark ».
 - Desk : fond du Desk.
 - Linear : état de la clé, changement ou retrait de la clé.
+- App : installe le dashboard comme application (Dock, Launchpad, menu Démarrer). Chrome, Edge et les autres navigateurs Chromium proposent le bouton Install. Dans Safari, utilisez Fichier > Ajouter au Dock. Firefox ne gère pas cette fonction.
 - About : version installée, recherche et installation d'une mise à jour. Voir [install.md](install.md#mises-à-jour).
 
 ## Raccourcis clavier

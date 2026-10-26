@@ -366,6 +366,9 @@ main { flex: 1; min-height: 0; overflow: hidden; padding: 24px; display: flex; f
 }
 .settings-row { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
 .settings-row-top { align-items: flex-start; }
+.install-choice { display: flex; flex-direction: column; align-items: flex-end; gap: 8px; max-width: 320px; }
+.settings-note { margin: 0; text-align: right; color: var(--text-secondary); font-size: 13px; }
+.settings-note.error { color: var(--danger); }
 .bg-choices { display: flex; flex-direction: column; align-items: flex-end; gap: 8px; }
 .swatches { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 5px; }
 .swatch { width: 28px; height: 28px; padding: 0; border-radius: 8px; border: 1px solid var(--line); background-size: cover; background-position: center; }

@@ -4,6 +4,7 @@ import { imageFileToDataUrl } from "../desk/deskImage.ts";
 import { THEME_SETTINGS, type ThemeSetting } from "./theme.ts";
 import type { UpdateControl } from "../update/useUpdate.ts";
 import { AboutSettings } from "./AboutSettings.tsx";
+import { InstallSettings } from "./InstallSettings.tsx";
 import { LinearSettings } from "./LinearSettings.tsx";
 import { onRadioKeyDown } from "../../ui/radioKeys.ts";
 import { Button, Dialog, FileInput, Pressable, Segmented, Tabs } from "../../ui/index.ts";
@@ -24,6 +25,7 @@ const SECTIONS = [
   { id: "appearance", label: "Appearance" },
   { id: "desk", label: "Desk" },
   { id: "linear", label: "Linear" },
+  { id: "app", label: "App" },
   { id: "about", label: "About" },
 ] as const;
 
@@ -86,6 +88,7 @@ export function SettingsDialog({ theme, onThemeChange, background, onBackgroundC
       </div>
     ),
     linear: <LinearSettings onChange={onLinearChange} />,
+    app: <InstallSettings />,
     about: <AboutSettings update={update} onUpdate={onUpdate} />,
   };
 

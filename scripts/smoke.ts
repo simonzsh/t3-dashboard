@@ -66,6 +66,12 @@ try {
     // Dev JSX calls (jsxDEV) crash with production React: the page stays blank.
     if (url.endsWith(".js")) expect(!/void 0,![01],void 0,this\)/.test(await res.text()), `${url} holds dev JSX calls`);
   }
+  const worker = await fetch(`${base}/sw.js`);
+  expect(worker.status === 200 && (worker.headers.get("content-type") ?? "").includes("javascript"), "/sw.js is not served as JavaScript");
+  const manifest = await fetch(`${base}/manifest.webmanifest`);
+  expect(manifest.status === 200 && (manifest.headers.get("content-type") ?? "").includes("manifest+json"), "/manifest.webmanifest is not served");
+  const icon = await fetch(`${base}/icons/icon-512.png`);
+  expect(icon.status === 200 && icon.headers.get("content-type") === "image/png", "/icons/icon-512.png is not served");
   expect(version.stdout.toString().startsWith("t3-dashboard "), "--version prints no version");
   expect(unknown.exitCode === 2, "an unknown command does not exit with 2");
   const pidPath = join(dir, ".local", "state", "t3-dashboard", "dashboard.pid");
