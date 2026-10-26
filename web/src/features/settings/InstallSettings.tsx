@@ -1,42 +1,30 @@
-import { useSyncExternalStore } from "react";
-import { Button } from "../../ui/index.ts";
-import { useAction } from "../../lib/useAction.ts";
 import { useMediaQuery } from "../../lib/useMediaQuery.ts";
-import { detectBrowser, installSteps, installView, isMac, type InstallView } from "./install.ts";
-import { installState, promptInstall, subscribeInstall } from "./installPrompt.ts";
+import { detectBrowser, installSteps } from "./install.ts";
+
+interface UADataNavigator extends Navigator {
+  userAgentData?: { brands: { brand: string }[] };
+}
 
 export function InstallSettings() {
-  const { canPrompt, installed } = useSyncExternalStore(subscribeInstall, installState);
   const standalone = useMediaQuery("(display-mode: standalone)");
-  const { busy, error, run } = useAction();
-  const view = installView({ standalone, installed, canPrompt, browser: detectBrowser(navigator.userAgent, navigator.maxTouchPoints) });
+  const nav = navigator as UADataNavigator;
+  const steps = installSteps(
+    detectBrowser({ userAgent: nav.userAgent, touchPoints: nav.maxTouchPoints, brands: nav.userAgentData?.brands.map((b) => b.brand) }),
+    /Macintosh/.test(nav.userAgent),
+  );
 
   return (
     <div className="settings-row">
       <span>Install as an app</span>
-      {view === "prompt" ? (
-        <Button variant="primary" loading={busy && "Installing…"} onClick={() => run(promptInstall)}>
-          Install
-        </Button>
+      {standalone ? (
+        <p className="install-steps">Installed.</p>
+      ) : steps.length > 1 ? (
+        <ol className="install-steps">
+          {steps.map((s) => <li key={s}>{s}</li>)}
+        </ol>
       ) : (
-        <InstallSteps view={view} />
+        <p className="install-steps">{steps[0]}</p>
       )}
-      {view === "chromium" && !window.isSecureContext && <p className="install-steps error">This page needs HTTPS or localhost to be installable.</p>}
-      {error && <span className="error">{error}</span>}
-    </div>
-  );
-}
-
-/** Numbered only when they are taps to follow in order; elsewhere they are plain advice. */
-function InstallSteps({ view }: { view: Exclude<InstallView, "prompt"> }) {
-  const steps = installSteps(view, isMac(navigator.userAgent));
-  return view === "ios" || view === "android" ? (
-    <ol className="install-steps">
-      {steps.map((s) => <li key={s}>{s}</li>)}
-    </ol>
-  ) : (
-    <div className="install-steps">
-      {steps.map((s) => <p key={s}>{s}</p>)}
     </div>
   );
 }

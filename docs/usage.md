@@ -95,7 +95,7 @@ Ouvrez Settings avec le bouton de l'en-tête ou la touche `,`. Une barre latéra
 
 - Appearance : thème « System », « Light » ou « Dark », et fond du Desk.
 - Connections : état de la clé Linear, changement ou retrait de la clé.
-- App : installe le dashboard comme application (Dock, Launchpad, menu Démarrer, écran d'accueil). Chrome et Edge installent en un clic. Les autres navigateurs affichent les étapes pour l'appareil : Safari sur Mac, iPhone et iPad, Android. Dia et Firefox n'installent pas d'app web.
+- App : comment installer le dashboard comme application (Dock, Launchpad, menu Démarrer, écran d'accueil). Les étapes suivent le navigateur et l'appareil : Safari, Chrome, Edge, iPhone et iPad, Android. Dia et Firefox n'installent pas d'app web.
 - Updates : version installée, recherche et installation d'une mise à jour. Voir [install.md](install.md#mises-à-jour).
 
 ## Raccourcis clavier
