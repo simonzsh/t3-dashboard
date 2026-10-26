@@ -9,7 +9,6 @@ import {
   deskReducer,
   equalSizes,
   gridWindows,
-  isFull,
   loadDesk,
   parseDesk,
   saveDesk,
@@ -58,24 +57,22 @@ test("open on an open window focuses it and restores it if minimized", () => {
   assert.equal(s.windows[0]!.minimized, false);
 });
 
-test("the desk holds at most six windows, minimized ones included", () => {
-  let s = open(EMPTY_DESK, "a", "b", "c", "d", "e");
-  s = deskReducer(s, { type: "minimize", id: "a" });
-  assert.equal(isFull(s, "f"), false);
-  s = open(s, "f");
-  assert.equal(s.windows.length, DESK_LIMIT);
-  assert.equal(isFull(s, "g"), true);
-  assert.equal(isFull(s, "c"), false, "an open window can always be focused");
-  assert.deepEqual(open(s, "g"), s, "open is a no-op when full");
-});
-
-test("replaceOldest closes the first opened window and opens the new one", () => {
+test("a seventh visible window minimizes the oldest visible one", () => {
   let s = open(EMPTY_DESK, "a", "b", "c", "d", "e", "f");
   s = deskReducer(s, { type: "maximize", id: "a" });
-  s = deskReducer(s, { type: "replaceOldest", id: "g" });
-  assert.deepEqual(ids(s), ["b", "c", "d", "e", "f", "g"]);
+  s = open(s, "g");
+  assert.deepEqual(ids(s), ["a", "b", "c", "d", "e", "f", "g"]);
+  assert.deepEqual(s.windows.filter((w) => w.minimized).map((w) => w.id), ["a"]);
   assert.equal(s.focusedId, "g");
   assert.equal(s.maximizedId, null);
+});
+
+test("restoring a minimized window keeps six visible", () => {
+  let s = open(EMPTY_DESK, "a", "b", "c", "d", "e", "f", "g");
+  s = deskReducer(s, { type: "restore", id: "a" });
+  assert.equal(gridWindows(s).length, DESK_LIMIT);
+  assert.deepEqual(s.windows.filter((w) => w.minimized).map((w) => w.id), ["b"]);
+  assert.equal(s.focusedId, "a");
 });
 
 test("close removes the window and moves the focus to the last visible one", () => {
