@@ -4,7 +4,7 @@ import { pendingLabel, threadTitle } from "../../lib/threads.ts";
 import { hasFailed } from "../../../../shared/status.ts";
 import { relativeTime } from "../../lib/format.ts";
 import { tabSelector } from "../../lib/tabs.ts";
-import { Badge, Button, Icon, IconButton, Pressable, fly } from "../../ui/index.ts";
+import { Badge, Icon, IconButton, Pressable, fly } from "../../ui/index.ts";
 import { OpenInT3 } from "../../lib/OpenInT3.tsx";
 import { ProviderIcon } from "../../lib/ProviderIcon.tsx";
 import { useAction } from "../../lib/useAction.ts";
@@ -60,9 +60,9 @@ export function AgentCard({ card, now, onDesk, t3EnvironmentId, onOpen, onToggle
       </Pressable>
       <div className="agent-actions">
         {canSettle && (
-          <Button size="sm" variant={error ? "danger" : "ghost"} loading={busy} tooltip={error ?? "Move to Settled in T3 Code"} onClick={() => run(() => onSettle(t.id))}>
-            Archive
-          </Button>
+          <IconButton label="Archive" size="sm" variant={error ? "danger" : "secondary"} disabled={busy} tooltip={error ?? "Archive (settle in T3 Code)"} onClick={() => run(() => onSettle(t.id))}>
+            <Icon name="archive" />
+          </IconButton>
         )}
         <OpenInT3 environmentId={t3EnvironmentId} threadId={t.id} className="card-open-t3 sm" />
         <IconButton

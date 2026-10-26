@@ -147,7 +147,7 @@ main { flex: 1; min-height: 0; overflow: hidden; padding: 24px; display: flex; f
 /* The buttons sit at the bottom right, next to the status and the time: the title keeps the full width. */
 .agent-actions { position: absolute; right: 10px; bottom: 11px; display: flex; align-items: center; gap: 4px; }
 .agent-wrap .agent-foot { padding-right: 68px; }
-.agent-wrap.can-settle .agent-foot { padding-right: 140px; }
+.agent-wrap.can-settle .agent-foot { padding-right: 106px; }
 .desk-toggle.on { color: var(--accent); background: color-mix(in srgb, var(--accent) 14%, var(--surface-1)); border-color: color-mix(in srgb, var(--accent) 50%, var(--line)); }
 .card-open-t3 { border-radius: var(--radius-md); border: 1px solid var(--line); background: var(--surface-1); }
 .card-open-t3:hover { color: var(--text-primary); border-color: var(--accent); }
