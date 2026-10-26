@@ -120,3 +120,10 @@ test("the title guard sees HTML elements and kit buttons but not SVG titles or c
   assert.deepEqual(nativeTitles(`<IconButton label="A" title="B (K)" onClick={() => go(a > b)}>x</IconButton>`), ["IconButton"]);
   assert.deepEqual(nativeTitles(`<svg><title>Done</title></svg><Dialog title="Settings" onClose={f} />`), []);
 });
+
+// A CSS cleanup once dropped this rule and left dialog buttons glued together.
+test("button rows are spaced and dialog actions sit on the right", async () => {
+  const css = await Bun.file(new URL("../src/styles.css", import.meta.url)).text();
+  assert.match(css, /^\.buttons \{[^}]*display: flex;[^}]*gap: 8px;/m);
+  assert.match(css, /^\.dialog-actions[^{]*\{[^}]*justify-content: flex-end;/m);
+});

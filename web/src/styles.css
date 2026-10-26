@@ -286,7 +286,7 @@ main { flex: 1; min-height: 0; overflow: hidden; padding: 24px; display: flex; f
 @keyframes breathe { 0%, 100% { opacity: 1; } 50% { opacity: 0.35; } }
 .requests { display: flex; flex-direction: column; gap: 8px; }
 .request { border: 1px solid var(--line); border-left: 3px solid var(--warn); border-radius: 6px; padding: 10px; background: var(--surface-1); display: flex; flex-direction: column; gap: 8px; }
-.request .buttons, .question { display: flex; flex-direction: column; gap: 4px; border: 0; padding: 0; margin: 0; }
+.question { display: flex; flex-direction: column; gap: 4px; border: 0; padding: 0; margin: 0; }
 .question label { display: flex; gap: 6px; align-items: baseline; }
 .question label small { color: var(--text-secondary); }
 /* Composer: one rounded card with the text and a toolbar, as in T3 Code. */
@@ -340,6 +340,9 @@ main { flex: 1; min-height: 0; overflow: hidden; padding: 24px; display: flex; f
 .error { color: var(--danger); }
 /* Masks secrets without a password field; browsers without it show the text. */
 .secret-field { -webkit-text-security: disc; }
+/* Every row of buttons: spaced, and a dialog's actions sit on the right (Cancel, then the primary). */
+.buttons { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.dialog-actions, .request .buttons { justify-content: flex-end; }
 .dialog-backdrop { position: fixed; inset: 0; background: var(--backdrop); display: grid; place-items: center; z-index: 20; }
 .dialog { width: min(480px, 94vw); background: var(--surface-1); border: 1px solid var(--line); border-radius: 14px; padding: 20px; box-shadow: var(--shadow); display: flex; flex-direction: column; gap: 10px; }
 .dialog h2 { margin: 0; font-size: 15px; }
@@ -514,7 +517,6 @@ button.auto-row:hover { background: var(--surface-0); }
 .setup-link, .linear-card a, .key-box a { color: var(--accent); }
 .setup-paste, .key-row { display: flex; gap: 8px; }
 .setup-paste input, .key-row input { flex: 1; min-width: 0; }
-.setup-card .buttons { display: flex; gap: 8px; align-items: center; }
 .linear-card { margin: 32px auto 0; }
 .linear-card p { margin: 0; }
 .linear-card small, .key-box small { color: var(--text-secondary); }
