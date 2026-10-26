@@ -26,6 +26,8 @@ export function AgentCard({ card, now, onDesk, t3EnvironmentId, onOpen, onToggle
   const { busy, error, run } = useAction();
   // T3 refuses to settle a thread that runs or waits; unsettling is always allowed.
   const canSettle = !t.settled && (status === "finished" || status === "idle");
+  // A settled card that is not active looks greyed, so it stands out from live ones in an opened list.
+  const quiet = t.settled && (status === "finished" || status === "idle");
   const cardRef = useRef<HTMLButtonElement>(null);
   // Adding without leaving the tab: the card flies to the Desk tab so the user sees where it went.
   const flyToDesk = () => {
@@ -43,7 +45,7 @@ export function AgentCard({ card, now, onDesk, t3EnvironmentId, onOpen, onToggle
     <div className={`agent-wrap${canSettle || t.settled ? " can-settle" : ""}`}>
       <Pressable
         ref={cardRef}
-        className={`agent ${status}${onDesk ? " on-desk" : ""}`}
+        className={`agent ${status}${onDesk ? " on-desk" : ""}${quiet ? " is-settled" : ""}`}
         onClick={(e) => {
           if (e.shiftKey) flyToDesk();
           onOpen(t.id, e.shiftKey);

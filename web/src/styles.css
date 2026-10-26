@@ -172,6 +172,8 @@ main { flex: 1; min-height: 0; overflow: hidden; padding: 24px; display: flex; f
 .agent.working::after { content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 3px; background: linear-gradient(90deg, transparent, var(--work), transparent); background-size: 50% 100%; background-repeat: no-repeat; animation: shimmer 1.8s ease-in-out infinite; }
 .agent.finished { background: color-mix(in srgb, var(--done-bg) 40%, var(--surface-1)); box-shadow: none; }
 .agent.finished .agent-title { font-weight: 500; }
+.agent.is-settled { background: var(--surface-0); border-color: var(--line); box-shadow: none; }
+.agent.is-settled .agent-head, .agent.is-settled .agent-foot { opacity: 0.6; filter: grayscale(1); }
 .pulse { width: 8px; height: 8px; border-radius: 50%; background: var(--work); animation: pulse 1.4s ease-in-out infinite; }
 @keyframes pulse { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.35; transform: scale(0.7); } }
 @keyframes shimmer { 0% { background-position: -50% 0; } 100% { background-position: 150% 0; } }
