@@ -20,6 +20,8 @@ const ROLE_LABELS: Record<string, string> = { user: "You", assistant: "Agent", s
 const detailCache = new Map<string, ThreadDetail>();
 const drafts = new Map<string, string>();
 const NEAR_BOTTOM_PX = 40;
+// A scroll this soon after a wheel, touch, key or pointer input counts as the user's own.
+const USER_SCROLL_MS = 150;
 
 // Streaming re-renders the whole list: parse a message again only when its text changes.
 const MarkdownText = memo(function MarkdownText({ text, threadId, breaks }: { text: string; threadId: string; breaks?: boolean }) {
@@ -100,6 +102,8 @@ export function ConversationPanel({ threadId, thread, providers }: Props) {
   const scroller = useRef<HTMLDivElement>(null);
   const stick = useRef(true);
   const lastTop = useRef(0);
+  const lastInput = useRef(-Infinity);
+  const smoothing = useRef(false);
   const [atBottom, setAtBottom] = useState(true);
 
   // Bumped on every thread change and cleanup: a late response from an older effect is dropped.
@@ -156,6 +160,11 @@ export function ConversationPanel({ threadId, thread, providers }: Props) {
 
   useStickToBottom(scroller, stick);
 
+  function touched() {
+    lastInput.current = performance.now();
+    smoothing.current = false;
+  }
+
   function setDraft(value: string) {
     setText(value);
     drafts.set(threadId, value);
@@ -193,10 +202,26 @@ export function ConversationPanel({ threadId, thread, providers }: Props) {
         <div
           className="messages"
           ref={scroller}
+          onWheel={touched}
+          onTouchMove={touched}
+          onPointerDown={touched}
+          onKeyDown={touched}
           onScroll={(e) => {
             const el = e.currentTarget;
             const gap = el.scrollHeight - el.scrollTop - el.clientHeight;
-            // Any move up by the user stops the follow, even a small one; a shrinking page that clamps to the bottom does not.
+            // Only the user can leave the bottom. A scroll with no input just before it comes from the layout
+            // (the desk grid changed, content moved): it keeps the bottom, or the place, as it was.
+            if (performance.now() - lastInput.current > USER_SCROLL_MS) {
+              lastTop.current = el.scrollTop;
+              if (smoothing.current) {
+                if (gap > 1) return;
+                smoothing.current = false;
+                stick.current = true;
+                setAtBottom(true);
+              } else if (stick.current && gap > 1) el.scrollTop = el.scrollHeight;
+              return;
+            }
+            lastInput.current = performance.now();
             const movedUp = el.scrollTop < lastTop.current - 1 && gap > 1;
             lastTop.current = el.scrollTop;
             stick.current = !movedUp && gap < NEAR_BOTTOM_PX;
@@ -224,7 +249,11 @@ export function ConversationPanel({ threadId, thread, providers }: Props) {
           <IconButton
             className="to-bottom"
             label="Scroll to the latest message"
-            onClick={() => scroller.current?.scrollTo({ top: scroller.current.scrollHeight, behavior: "smooth" })}
+            onClick={() => {
+              smoothing.current = true;
+              lastInput.current = -Infinity;
+              scroller.current?.scrollTo({ top: scroller.current.scrollHeight, behavior: "smooth" });
+            }}
           >
             <Icon name="arrowDown" />
           </IconButton>
