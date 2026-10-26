@@ -7,6 +7,7 @@ export class FakePort implements T3Port {
   subscriptions: Array<{ onItems(items: ShellItem[]): void; onEnd(error?: Error): void; cancelled: boolean }> = [];
   projection: RawProjection = {};
   assets: AssetResource[] = [];
+  ranges: Array<string | undefined> = [];
   assetFileName = "image.png";
   assetType = "image/png";
   dispatchError: Error | null = null;
@@ -37,7 +38,8 @@ export class FakePort implements T3Port {
     return "scratch-project";
   }
 
-  async fetchAsset(resource: AssetResource) {
+  async fetchAsset(resource: AssetResource, range?: string) {
+    this.ranges.push(range);
     this.assets.push(resource);
     return { response: new Response("bytes", { headers: { "content-type": this.assetType } }), fileName: this.assetFileName };
   }

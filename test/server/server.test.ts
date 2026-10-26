@@ -803,3 +803,18 @@ test("media: the path must be the target of a markdown image, not any text in pa
   assert.equal((await get("/tmp/../etc/x.png")).status, 400);
   assert.equal((await get("/tmp/x\0.png")).status, 400);
 });
+
+test("media: a cited video streams by byte range", async () => {
+  const { server, port } = await start();
+  port.projection = { messages: [{ id: "m", role: "assistant", text: "![demo](/tmp/out/demo.mp4)" }] };
+  port.fetchAsset = async (resource, range) => {
+    port.assets.push(resource);
+    port.ranges.push(range);
+    return { response: new Response("vid", { status: 206, headers: { "content-type": "video/mp4", "content-range": "bytes 0-2/10", "accept-ranges": "bytes" } }), fileName: "demo.mp4" };
+  };
+  const reply = await call(server, "GET", `/api/threads/t1/media?path=${encodeURIComponent("/tmp/out/demo.mp4")}`, { headers: { range: "bytes=0-2" } });
+  assert.equal(reply.status, 206);
+  assert.equal(reply.headers["content-type"], "video/mp4");
+  assert.equal(reply.headers["content-range"], "bytes 0-2/10");
+  assert.deepEqual(port.ranges, ["bytes=0-2"]);
+});

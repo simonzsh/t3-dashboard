@@ -83,9 +83,9 @@ export class T3Client implements T3Port {
     return read(ScratchProject, await this.oneShot(RPC.ensureScratch, {}), "projects.ensureScratch").projectId;
   }
 
-  async fetchAsset(resource: AssetResource): Promise<{ response: Response; fileName: string }> {
+  async fetchAsset(resource: AssetResource, range?: string): Promise<{ response: Response; fileName: string }> {
     const { relativeUrl } = read(AssetUrl, await this.oneShot(RPC.createAssetUrl, { resource }), "assets.createUrl");
-    const response = await this.fetchImpl(`${(await this.baseUrl()).replace(/\/+$/, "")}${relativeUrl}`, { signal: AbortSignal.timeout(UPLOAD_TIMEOUT_MS) });
+    const response = await this.fetchImpl(`${(await this.baseUrl()).replace(/\/+$/, "")}${relativeUrl}`, { headers: range ? { range } : {}, signal: AbortSignal.timeout(UPLOAD_TIMEOUT_MS) });
     if (response.status === 404) throw new IntegrationError("Attachment not found", { system: "t3", kind: "refused" });
     if (!response.ok) throw new IntegrationError(`T3 answered ${response.status} for an asset`, { system: "t3", kind: "unreachable" });
     return { response, fileName: decodeURIComponent(relativeUrl.split("/").at(-1) ?? "") };

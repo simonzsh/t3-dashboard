@@ -4,9 +4,11 @@ import { Choice } from "../ui/index.ts";
 
 // marked is only the lexer: tokens become React elements, so raw HTML stays text.
 interface Ctx {
-  /** URL that serves an image at this absolute path, if the caller can serve it. */
-  localImage?: (path: string) => string;
+  /** URL that serves an image or a video at this absolute path, if the caller can serve it. */
+  localMedia?: (path: string) => string;
 }
+
+const VIDEO_FILE = /\.(mp4|m4v|webm|mov)$/i;
 
 const SAFE_PROTOCOLS = new Set(["http:", "https:", "mailto:"]);
 
@@ -45,8 +47,9 @@ function inline(tokens: Token[] | undefined, ctx: Ctx): ReactNode[] {
       case "link":
         return link(t.href, inline(t.tokens, ctx), key);
       case "image": {
-        // A local path is an image the agent made: the dashboard serves it, other images stay links.
-        const src = t.href.startsWith("/") ? ctx.localImage?.(t.href) : undefined;
+        // A local path is an image or video the agent made: the dashboard serves it, others stay links.
+        const src = t.href.startsWith("/") ? ctx.localMedia?.(t.href) : undefined;
+        if (src && VIDEO_FILE.test(t.href)) return <video key={key} className="md-image" src={src} aria-label={t.text} controls muted playsInline preload="metadata" />;
         return src ? <img key={key} className="md-image" src={src} alt={t.text} loading="lazy" /> : link(t.href, t.text || t.href, key);
       }
       case "checkbox":

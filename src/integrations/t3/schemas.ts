@@ -230,6 +230,6 @@ export interface T3Port {
   /** The id of T3's "No project" project, created if missing. */
   ensureScratchProject(): Promise<string>;
   /** Fetches an asset through a short-lived signed URL; the file name ends the URL. */
-  fetchAsset(resource: AssetResource): Promise<{ response: Response; fileName: string }>;
+  fetchAsset(resource: AssetResource, range?: string): Promise<{ response: Response; fileName: string }>;
   subscribeShell(onItems: (items: ShellItem[]) => void, onEnd: (error?: Error) => void): { cancel(): void };
 }
