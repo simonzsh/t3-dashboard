@@ -68,6 +68,7 @@ export function Switcher({ threads, projects, now, history, onDesk, initialQuery
         error={content.error}
         label={suggesting ? "Suggested" : undefined}
         searched={!suggesting}
+        query={query}
         onSelect={setIndex}
         onOpen={onOpen}
       />

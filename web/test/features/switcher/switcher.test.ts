@@ -1,7 +1,7 @@
 import { test } from "bun:test";
 import assert from "node:assert/strict";
 import type { ThreadSearchMatch } from "../../../../shared/api.ts";
-import { mergeResults, moveSelection, shouldSearchContent, suggestThreads, titleMatches } from "../../../src/features/switcher/switcher.ts";
+import { highlightParts, mergeResults, moveSelection, shouldSearchContent, suggestThreads, titleMatches } from "../../../src/features/switcher/switcher.ts";
 import { thread } from "../../fixtures.ts";
 
 const projects = [
@@ -95,4 +95,14 @@ test("suggestions skip the threads visible on the Desk and unknown history ids",
 test("suggestions stop at the cap", () => {
   const all = Array.from({ length: 12 }, (_, i) => thread(`t${i}`, { lastActivityAt: `2026-01-${String(i + 1).padStart(2, "0")}T00:00:00.000Z` }));
   assert.deepEqual(ids(suggestThreads(all, projects, [], new Set(), 8)), ["t11", "t10", "t9", "t8", "t7", "t6", "t5", "t4"]);
+});
+
+test("highlightParts marks each case-insensitive occurrence", () => {
+  assert.deepEqual(highlightParts("Fix the fix", "FIX"), [
+    { text: "Fix", match: true },
+    { text: " the ", match: false },
+    { text: "fix", match: true },
+  ]);
+  assert.deepEqual(highlightParts("abc", "  "), [{ text: "abc", match: false }]);
+  assert.deepEqual(highlightParts("abc", "zz"), [{ text: "abc", match: false }]);
 });

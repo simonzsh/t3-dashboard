@@ -15,6 +15,28 @@ export const shouldSearchContent = (query: string): boolean => {
   return n >= 2 && n <= 200;
 };
 
+export interface TextPart {
+  text: string;
+  match: boolean;
+}
+
+/** Cuts `text` around each case-insensitive occurrence of `query`, to highlight it. */
+export function highlightParts(text: string, query: string): TextPart[] {
+  const q = query.trim().toLocaleLowerCase();
+  const lower = text.toLocaleLowerCase();
+  // Some letters change length when lowercased; then indexes would not line up.
+  if (!q || lower.length !== text.length) return [{ text, match: false }];
+  const parts: TextPart[] = [];
+  let from = 0;
+  for (let at = lower.indexOf(q); at !== -1; at = lower.indexOf(q, from)) {
+    if (at > from) parts.push({ text: text.slice(from, at), match: false });
+    parts.push({ text: text.slice(at, at + q.length), match: true });
+    from = at + q.length;
+  }
+  if (from < text.length) parts.push({ text: text.slice(from), match: false });
+  return parts;
+}
+
 export const moveSelection = (index: number, delta: number, length: number): number => Math.max(0, Math.min(length - 1, index + delta));
 
 function rowOf(thread: DashboardThread, projects: DashboardProject[]): SwitcherRow {

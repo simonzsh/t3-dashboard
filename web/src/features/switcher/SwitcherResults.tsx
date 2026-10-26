@@ -3,7 +3,7 @@ import { ProjectIcon } from "../../lib/ProjectIcon.tsx";
 import { ProviderIcon } from "../../lib/ProviderIcon.tsx";
 import { threadTitle } from "../../lib/threads.ts";
 import { Loader, Pressable } from "../../ui/index.ts";
-import type { SwitcherRow } from "./switcher.ts";
+import { highlightParts, type SwitcherRow } from "./switcher.ts";
 
 interface Props {
   rows: SwitcherRow[];
@@ -15,13 +15,15 @@ interface Props {
   /** Small heading above the list. */
   label?: string;
   searched: boolean;
+  /** Typed text, highlighted in titles and snippets. */
+  query: string;
   onSelect: (index: number) => void;
   onOpen: (threadId: string) => void;
 }
 
 export const optionId = (threadId: string) => `switcher-option-${threadId}`;
 
-export function SwitcherResults({ rows, selected, now, loading, error, label, searched, onSelect, onOpen }: Props) {
+export function SwitcherResults({ rows, selected, now, loading, error, label, searched, query, onSelect, onOpen }: Props) {
   return (
     <div className="switcher-results">
       {rows.length > 0 && label && <p className="switcher-label">{label}</p>}
@@ -40,13 +42,19 @@ export function SwitcherResults({ rows, selected, now, loading, error, label, se
             >
               <span className="switcher-row-head">
                 <ProviderIcon provider={row.thread.provider} />
-                <span className="switcher-title">{threadTitle(row.thread)}</span>
+                <span className="switcher-title">
+                  <Highlight text={threadTitle(row.thread)} query={query} />
+                </span>
                 <span className="switcher-meta">
                   <ProjectIcon icon={row.project.icon} />
                   {row.project.title} · {relativeTime(row.thread.lastActivityAt, now)}
                 </span>
               </span>
-              {row.snippet && <span className="switcher-snippet">{row.snippet}</span>}
+              {row.snippet && (
+                <span className="switcher-snippet">
+                  <Highlight text={row.snippet} query={query} />
+                </span>
+              )}
             </Pressable>
           ))}
         </div>
@@ -56,4 +64,8 @@ export function SwitcherResults({ rows, selected, now, loading, error, label, se
       {!loading && !error && searched && rows.length === 0 && <p className="switcher-note">No conversations found.</p>}
     </div>
   );
+}
+
+function Highlight({ text, query }: { text: string; query: string }) {
+  return highlightParts(text, query).map((part, i) => (part.match ? <mark key={i}>{part.text}</mark> : part.text));
 }

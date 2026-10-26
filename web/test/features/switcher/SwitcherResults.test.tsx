@@ -11,7 +11,7 @@ const rows: SwitcherRow[] = [
   { thread: thread("t2", { title: "Second" }), project, snippet: "…found the needle here…", source: "assistant" },
 ];
 const render = (over: Partial<Parameters<typeof SwitcherResults>[0]> = {}) =>
-  renderToStaticMarkup(<SwitcherResults rows={rows} selected={1} now={new Date("2026-01-10T11:00:00.000Z")} loading={false} error={null} searched onSelect={() => {}} onOpen={() => {}} {...over} />);
+  renderToStaticMarkup(<SwitcherResults rows={rows} selected={1} now={new Date("2026-01-10T11:00:00.000Z")} loading={false} error={null} searched query="" onSelect={() => {}} onOpen={() => {}} {...over} />);
 
 test("each row shows its title, project and age; a content match shows its snippet", () => {
   const out = render();
@@ -42,4 +42,10 @@ test("no rows after a search says so; before any search it stays quiet", () => {
 test("a label titles the list, for the suggestions", () => {
   assert.match(render({ label: "Suggested" }), /Suggested/);
   assert.doesNotMatch(render(), /switcher-label/);
+});
+
+test("the typed text is highlighted in titles and snippets", () => {
+  const out = render({ query: "NEEDLE" });
+  assert.match(out, /found the <mark>needle<\/mark> here/);
+  assert.match(render({ query: "sec" }), /<mark>Sec<\/mark>ond/);
 });
