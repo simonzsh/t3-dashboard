@@ -5,10 +5,11 @@ import { buildAnswers, canSubmit, type Drafts } from "./answers.ts";
 import { Button, Choice, TextInput } from "../../ui/index.ts";
 import { useAction } from "../../lib/useAction.ts";
 
+// The primary action comes last, on the right, as in the dialogs.
 const DECISIONS: Array<[ApprovalDecision, string]> = [
-  ["accept", "Accept"],
-  ["acceptForSession", "Accept for session"],
   ["decline", "Decline"],
+  ["acceptForSession", "Accept for session"],
+  ["accept", "Accept"],
 ];
 
 export function PendingRequestView({ threadId, request }: { threadId: string; request: PendingRequestDetail }) {
@@ -30,7 +31,7 @@ export function PendingRequestView({ threadId, request }: { threadId: string; re
           {request.reason && <small>{request.reason}</small>}
           <div className="buttons">
             {DECISIONS.map(([decision, label]) => (
-              <Button key={decision} disabled={locked || action.busy} onClick={() => void action.run(() => api.respond(threadId, request.requestId, { decision }))}>
+              <Button key={decision} variant={decision === "accept" ? "primary" : undefined} disabled={locked || action.busy} onClick={() => void action.run(() => api.respond(threadId, request.requestId, { decision }))}>
                 {label}
               </Button>
             ))}
