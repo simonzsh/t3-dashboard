@@ -6,6 +6,8 @@ import { Choice } from "../ui/index.ts";
 interface Ctx {
   /** URL that serves an image or a video at this absolute path, if the caller can serve it. */
   localMedia?: (path: string) => string;
+  /** Turn single newlines into line breaks, as typed in the chat input. */
+  breaks?: boolean;
 }
 
 const VIDEO_FILE = /\.(mp4|m4v|webm|mov)$/i;
@@ -148,5 +150,5 @@ function blocks(tokens: Token[] | undefined, ctx: Ctx): ReactNode[] {
 }
 
 export function renderMarkdown(text: string, ctx: Ctx = {}): ReactNode {
-  return <>{blocks(marked.lexer(text, { gfm: true }), ctx)}</>;
+  return <>{blocks(marked.lexer(text, { gfm: true, breaks: ctx.breaks }), ctx)}</>;
 }

@@ -22,8 +22,8 @@ const drafts = new Map<string, string>();
 const NEAR_BOTTOM_PX = 40;
 
 // Streaming re-renders the whole list: parse a message again only when its text changes.
-const MarkdownText = memo(function MarkdownText({ text, threadId }: { text: string; threadId: string }) {
-  return renderMarkdown(text, { localMedia: (path) => mediaUrl(threadId, path) });
+const MarkdownText = memo(function MarkdownText({ text, threadId, breaks }: { text: string; threadId: string; breaks?: boolean }) {
+  return renderMarkdown(text, { localMedia: (path) => mediaUrl(threadId, path), breaks });
 });
 
 function Message({ message: m, threadId }: { message: ChatMessage; threadId: string }) {
@@ -39,7 +39,11 @@ function Message({ message: m, threadId }: { message: ChatMessage; threadId: str
           ))}
         </div>
       )}
-      {m.role === "user" ? m.text && <div className="bubble">{m.text}</div> : <div className="md">{m.role === "assistant" ? <MarkdownText text={m.text} threadId={threadId} /> : m.text}</div>}
+      {m.role === "user" ? m.text && (
+          <div className="bubble md">
+            <MarkdownText text={m.text} threadId={threadId} breaks />
+          </div>
+        ) : <div className="md">{m.role === "assistant" ? <MarkdownText text={m.text} threadId={threadId} /> : m.text}</div>}
       <small>
         {ROLE_LABELS[m.role] ?? m.role} · {time}
         {m.streaming && <span className="streaming" role="img" aria-label="Running" />}
