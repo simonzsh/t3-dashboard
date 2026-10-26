@@ -136,6 +136,7 @@ main { flex: 1; min-height: 0; overflow: hidden; padding: 24px; display: flex; f
 .project-icon { flex: none; width: 16px; height: 16px; }
 .group h2 .project-icon { align-self: center; width: 15px; height: 15px; }
 .group h2 { display: flex; align-items: baseline; gap: 8px; font-size: 13px; margin: 0 0 12px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-secondary); }
+.group-alert { align-self: center; width: 8px; height: 8px; border-radius: 50%; background: var(--warn); }
 .count { font-size: 12px; padding: 0 7px; border-radius: 999px; background: var(--line); color: var(--text-primary); }
 .workspace { text-transform: none; letter-spacing: 0; font-size: 12px; font-weight: 400; }
 /* Capped width: a card never stretches across a half-empty row. */

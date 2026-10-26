@@ -51,7 +51,8 @@ export function AgentsView({ state, now, deskIds, onOpen, onToggleDesk, onSettle
           <section className="group" key={g.project.id}>
             <h2>
               <ProjectIcon icon={g.project.icon} />
-              {g.project.title} <span className="count">{g.cards.length + g.settled.length}</span>
+              {g.project.title}
+              {g.cards.some((c) => c.status === "waiting") && <span className="group-alert" role="img" aria-label="An agent is waiting for your reply" />} <span className="count">{g.cards.length + g.settled.length}</span>
             </h2>
             {g.cards.length > 0 && (
               <div className="grid">

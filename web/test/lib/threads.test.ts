@@ -72,14 +72,17 @@ test("groupAgents keeps a waiting or working thread as a card even if settled", 
   assert.deepEqual(group?.settled, []);
 });
 
-test("groupAgents shows projects with only settled threads after the others", () => {
+test("groupAgents orders projects by title, whatever the activity or the status", () => {
   const ts = [
-    thread("s", { projectId: "p1", status: "completed", settled: true, lastActivityAt: hoursAgo(0.5) }),
-    thread("c", { projectId: "p2", status: "idle", lastActivityAt: hoursAgo(24 * 5) }),
+    thread("a", { projectId: "p2", pending, lastActivityAt: hoursAgo(0.1) }),
+    thread("b", { projectId: "p1", status: "completed", settled: true, lastActivityAt: hoursAgo(24 * 2) }),
+    thread("c", { projectId: "p3", status: "idle", lastActivityAt: hoursAgo(24 * 5) }),
   ];
-  const groups = groupAgents(ts, projects, now);
-  assert.deepEqual(groups.map((g) => g.project.id), ["p2", "p1"]);
-  assert.deepEqual(groups[1]?.cards, []);
+  const ids = (list: typeof ts) => groupAgents(list, projects, now).map((g) => g.project.id);
+  assert.deepEqual(ids(ts), ids([...ts].reverse()));
+  assert.deepEqual(ids(ts), [...ids(ts)].sort((x, y) => (projects.find((p) => p.id === x)?.title ?? x).localeCompare(projects.find((p) => p.id === y)?.title ?? y)));
+  const settledOnly = groupAgents([ts[1]!], projects, now);
+  assert.deepEqual(settledOnly[0]?.cards, []);
 });
 
 test("groupAgents sorts cards waiting > working > finished > idle, then recency", () => {
@@ -96,7 +99,7 @@ test("groupAgents sorts cards waiting > working > finished > idle, then recency"
   assert.deepEqual(group?.cards.map((c) => c.status), ["waiting", "working", "working", "finished", "finished", "idle"]);
 });
 
-test("groupAgents puts pinned cards first; the project still ranks by its most urgent card", () => {
+test("groupAgents puts pinned cards first within a project", () => {
   const ts = [
     thread("waiting", { projectId: "p1", pending, lastActivityAt: hoursAgo(1) }),
     thread("pinned", { projectId: "p1", status: "completed", pinned: true, lastActivityAt: hoursAgo(5) }),
@@ -106,25 +109,14 @@ test("groupAgents puts pinned cards first; the project still ranks by its most u
   assert.deepEqual(groups.map((g) => g.cards.map((c) => c.thread.id)), [["pinned", "waiting"], ["working"]]);
 });
 
-test("groupAgents sorts projects: waiting, then working, then latest activity", () => {
+test("groupAgents sorts projects by title: status and activity do not move them", () => {
   const ts = [
-    thread("a", { projectId: "p1", status: "completed", lastActivityAt: hoursAgo(1) }),
+    thread("a", { projectId: "p3", pending, lastActivityAt: hoursAgo(0.1) }),
     thread("b", { projectId: "p2", status: "running", lastActivityAt: hoursAgo(9) }),
-    thread("c", { projectId: "p3", pending, lastActivityAt: hoursAgo(20) }),
+    thread("c", { projectId: "p1", status: "completed", lastActivityAt: hoursAgo(20) }),
   ];
-  assert.deepEqual(groupAgents(ts, projects, now).map((g) => g.project.id), ["p3", "p2", "p1"]);
-  const tie = [
-    thread("a", { projectId: "p1", status: "completed", lastActivityAt: hoursAgo(4) }),
-    thread("b", { projectId: "p2", status: "completed", lastActivityAt: hoursAgo(2) }),
-  ];
-  assert.deepEqual(groupAgents(tie, projects, now).map((g) => g.project.id), ["p2", "p1"]);
-  // A finished card can carry a project's latest activity even behind an older working card.
-  const mixed = [
-    thread("a1", { projectId: "p1", status: "running", lastActivityAt: hoursAgo(2) }),
-    thread("a2", { projectId: "p1", status: "completed", lastActivityAt: hoursAgo(0.1) }),
-    thread("b1", { projectId: "p2", status: "running", lastActivityAt: hoursAgo(1) }),
-  ];
-  assert.deepEqual(groupAgents(mixed, projects, now).map((g) => g.project.id), ["p1", "p2"]);
+  assert.deepEqual(groupAgents(ts, projects, now).map((g) => g.project.id), ["p1", "p2", "p3"]);
+  assert.deepEqual(groupAgents([...ts].reverse(), projects, now).map((g) => g.project.id), ["p1", "p2", "p3"]);
 });
 
 test("groupAgents falls back to the project id when the project is unknown", () => {
