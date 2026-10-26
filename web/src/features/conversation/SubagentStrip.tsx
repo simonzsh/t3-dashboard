@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import type { SubagentInfo } from "../../../../shared/api.ts";
 import { STEP_LABELS, duration } from "../../lib/format.ts";
 import { useAction } from "../../lib/useAction.ts";
-import { Button, Pressable } from "../../ui/index.ts";
+import { Icon, IconButton, Pressable } from "../../ui/index.ts";
 
 
 function elapsed(s: SubagentInfo, now: number): string | null {
@@ -66,9 +66,9 @@ export function SubagentStrip({ subagents, reveal = 0, onStop }: { subagents: Su
                 <span className="subagent-side">
                   <span className="subagent-time">{elapsed(s, now)}</span>
                   {s.stoppable && (
-                    <Button size="sm" variant="danger" disabled={stopping !== null} loading={stopping === s.id} onClick={() => void action.run(() => onStop(s.id), (busy) => setStopping(busy ? s.id : null))}>
-                      Stop
-                    </Button>
+                    <IconButton label="Stop subagent" tooltip="Stop subagent" size="sm" variant="ghost" className="subagent-stop" disabled={stopping !== null} aria-busy={stopping === s.id || undefined} onClick={() => void action.run(() => onStop(s.id), (busy) => setStopping(busy ? s.id : null))}>
+                      <Icon name="stop" />
+                    </IconButton>
                   )}
                 </span>
               </li>
