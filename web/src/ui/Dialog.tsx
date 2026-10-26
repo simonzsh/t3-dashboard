@@ -1,7 +1,8 @@
-import { useEffect, useId, useRef, type KeyboardEvent, type ReactNode } from "react";
+import { useEffect, useId, useLayoutEffect, useRef, type KeyboardEvent, type ReactNode } from "react";
 import { Button } from "./Button.tsx";
 import { Icon } from "./Icon.tsx";
 import { IconButton } from "./IconButton.tsx";
+import { enter } from "./motion.ts";
 import { useEscape } from "./useEscape.ts";
 
 interface Action {
@@ -30,6 +31,13 @@ export function Dialog({ title, label, onClose, onCancel, cancelLabel = "Cancel"
   useEscape(onClose);
   const titleId = useId();
   const box = useRef<HTMLDivElement>(null);
+  const backdrop = useRef<HTMLDivElement>(null);
+
+  // Before the first paint, so the dialog never shows at full size first.
+  useLayoutEffect(() => {
+    const anims = [backdrop.current && enter(backdrop.current), box.current && enter(box.current, { y: 8, scale: 0.96 })];
+    return () => anims.forEach((anim) => anim?.cancel());
+  }, []);
 
   // Focus the autoFocus element or the first focusable one; give focus back on unmount.
   useEffect(() => {
@@ -55,7 +63,7 @@ export function Dialog({ title, label, onClose, onCancel, cancelLabel = "Cancel"
     }
   }
   return (
-    <div className="dialog-backdrop" onClick={onClose}>
+    <div className="dialog-backdrop" ref={backdrop} onClick={onClose}>
       <div
         className={className ? `dialog ${className}` : "dialog"}
         role="dialog"

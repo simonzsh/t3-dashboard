@@ -1,6 +1,7 @@
 import { useEffect, useLayoutEffect, useRef, type ReactNode, type RefObject } from "react";
 import { createPortal } from "react-dom";
 import { placeMenu } from "../lib/dropdown.ts";
+import { enter } from "./motion.ts";
 
 interface Props {
   anchor: RefObject<HTMLElement | null>;
@@ -49,6 +50,11 @@ export function Popover({ anchor, onClose, align = "start", minWidth = 0, matchW
       window.removeEventListener("resize", place);
     };
   }, [align, minWidth, matchWidth]);
+
+  useLayoutEffect(() => {
+    const anim = box.current && enter(box.current, { y: -4, duration: 160 });
+    return () => anim?.cancel();
+  }, []);
 
   useEffect(() => {
     // React events cross portals: a click in a child menu marks this one as inside too.
