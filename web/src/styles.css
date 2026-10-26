@@ -548,6 +548,7 @@ button.auto-row:hover { background: var(--surface-0); }
 .issue-banner .icon { flex: none; width: 14px; height: 14px; color: var(--text-secondary); }
 .linear-status { display: inline-flex; align-items: center; gap: 10px; }
 .linear-status.muted { color: var(--text-secondary); }
+.linear-controls { display: flex; align-items: center; gap: 10px; min-width: 0; }
 .linear-status, .version-line { min-width: 0; white-space: nowrap; }
 .version-line { display: inline-flex; align-items: center; gap: 10px; }
 .row-icons { display: flex; gap: 4px; flex: none; }
