@@ -5,6 +5,7 @@ import { BoardView } from "./features/board/BoardView.tsx";
 import { ConnectionBanner } from "./features/setup/ConnectionBanner.tsx";
 import { DeskView } from "./features/desk/DeskView.tsx";
 import { NewThreadDialog } from "./features/new-thread/NewThreadDialog.tsx";
+import { InstallButton } from "./features/settings/InstallButton.tsx";
 import { SettingsDialog } from "./features/settings/SettingsDialog.tsx";
 import { SetupScreen } from "./features/setup/SetupScreen.tsx";
 import { UpdateDialog } from "./features/update/UpdateDialog.tsx";
@@ -138,6 +139,7 @@ export function App() {
                 New Agent
               </Button>
             ))}
+          <InstallButton compact={compact} />
           <IconButton label="Settings" kbd="," onClick={() => setSettingsOpen(true)}>
             <Icon name="settings" strokeWidth={1.8} />
           </IconButton>
