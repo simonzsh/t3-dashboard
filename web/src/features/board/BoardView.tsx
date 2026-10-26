@@ -80,7 +80,7 @@ export function BoardView({ projects, providers, modelDefaults, version, onAssig
                           <PriorityIcon priority={i.priority} label={i.priorityLabel} />
                           <span className="ident">{i.identifier}</span>
                         </span>
-                        <a href={i.url} target="_blank" rel="noreferrer" className="card-title" data-tooltip={i.title} data-tooltip-clipped="">
+                        <a href={i.url} target="_blank" rel="noreferrer" className="card-title" data-tooltip={i.title} data-tooltip-clipped>
                           {i.title}
                         </a>
                         <AssignMenu issue={i} projects={projects} providers={providers} modelDefaults={modelDefaults} onAssigned={onAssigned} onShowDesk={onShowDesk} />
