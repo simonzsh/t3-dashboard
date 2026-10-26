@@ -45,6 +45,12 @@
     "requestId": "required",
     "threadId": "required"
   },
+  "subagent.stop": {
+    "commandId": "required",
+    "runId": "required",
+    "subagentId": "required",
+    "threadId": "required"
+  },
   "thread.create": {
     "branch": "required",
     "commandId": "required",
@@ -72,6 +78,11 @@
   "thread.settle": {
     "commandId": "required",
     "settledAt": "optional",
+    "threadId": "required"
+  },
+  "thread.stop": {
+    "commandId": "required",
+    "reason": "optional",
     "threadId": "required"
   },
   "thread.unsettle": {

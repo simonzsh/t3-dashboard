@@ -53,6 +53,7 @@ Ces actions écrivent dans le vrai T3 Code. Faites-les une fois après une mise 
 4. Répondre à une approbation avec chacun des 3 boutons.
 5. Répondre à une question, puis cliquer sur « Dismiss ».
 6. Vérifier qu'un agent qui démarre ou finit change de carte dans l'onglet Agents sans recharger la page.
+7. Déléguer une tâche depuis une conversation, puis cliquer sur « Stop » à côté de sa ligne. Vérifier dans T3 Code que la tâche et son fil enfant sont arrêtés, et que le bouton disparaît.
 
 ## Architecture
 

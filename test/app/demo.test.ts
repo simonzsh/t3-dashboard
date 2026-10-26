@@ -106,3 +106,15 @@ test("demo search cuts long messages to 240 characters around the hit", async ()
   assert.ok(match!.snippet.includes("needle"));
   assert.ok(match!.snippet.startsWith("…") && match!.snippet.endsWith("…"));
 });
+
+test("stopping the running demo subagent turns it failed", async () => {
+  const port = new DemoPort(() => NOW);
+  const store = syncedStore(port);
+  await Bun.sleep(0);
+  const actions = createActions({ port, store, board: { get: async () => ({ configured: true, ok: true, error: null, issues: [] }) } });
+  const threadId = store.state({ t3: "live", serverVersion: null, protocolMismatch: false, error: null, setup: null }, [], true).threads.find((thread) => thread.title.includes("heckout"))!.id;
+  const before = (await actions.threadDetail(threadId)).subagents.find((s) => s.stoppable)!;
+  await actions.stopSubagent(threadId, before.id);
+  const after = (await actions.threadDetail(threadId)).subagents.find((s) => s.id === before.id)!;
+  assert.deepEqual([after.status, after.stoppable], ["failed", false]);
+});

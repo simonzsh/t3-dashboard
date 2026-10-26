@@ -12,6 +12,8 @@ import {
   messageCommand,
   modelSelectionCommand,
   runtimeModeCommand,
+  subagentStopCommand,
+  threadStopCommand,
   userInputCommand,
   type DispatchMode,
   type OutgoingMessage,
@@ -21,7 +23,7 @@ import type { AssetResource, ImageUpload, T3Port } from "../integrations/t3/sche
 import { DomainError } from "./errors.ts";
 import type { LinearBoard } from "./linearBoard.ts";
 import type { ShellStore } from "./shellStore.ts";
-import { toThreadDetail } from "./threadDetail.ts";
+import { subagentStatus, toThreadDetail } from "./threadDetail.ts";
 
 export type { ImageUpload };
 
@@ -42,6 +44,8 @@ export interface Actions {
   sendMessage(threadId: string, body: Omit<SendMessageBody, "attachments">, images: ImageUpload[]): Promise<void>;
   changeSettings(threadId: string, settings: ThreadSettingsBody): Promise<void>;
   interrupt(threadId: string): Promise<void>;
+  /** Stops a running subagent the way T3 Code does; a delegated task also loses its own thread. */
+  stopSubagent(threadId: string, subagentId: string): Promise<void>;
   respond(threadId: string, requestId: string, answer: RespondBody): Promise<void>;
   dismiss(threadId: string, requestId: string): Promise<void>;
   settle(threadId: string): Promise<void>;
@@ -159,6 +163,21 @@ export function createActions(options: ActionsOptions): Actions {
       const runId = await activeRunId(threadId);
       if (!runId) throw new DomainError("conflict", "No active run to interrupt");
       await send(interruptCommand(threadId, runId));
+    },
+
+    async stopSubagent(threadId, subagentId) {
+      const { subagents = [] } = await t3(port.threadProjection(threadId));
+      const subagent = subagents.find((raw) => raw.id === subagentId);
+      if (!subagent) throw new DomainError("not-found", "Unknown subagent");
+      if (!subagent.runId || subagentStatus(subagent) !== "running") throw new DomainError("conflict", "This subagent is not running");
+      const stop = send(subagentStopCommand(threadId, subagent.runId, subagentId));
+      if (subagent.origin !== "app_owned" || !subagent.childThreadId) return stop;
+      // Like T3 Code: a refused subagent.stop must not leave the child thread running.
+      await stop.catch(() => undefined);
+      const child = subagent.childThreadId;
+      if ((await t3(port.getConfig())).environment?.capabilities?.threadStop === true) return send(threadStopCommand(child));
+      const childRunId = await activeRunId(child);
+      if (childRunId) await send(interruptCommand(child, childRunId));
     },
 
     async respond(threadId, requestId, answer) {

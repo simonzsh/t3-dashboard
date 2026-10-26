@@ -196,6 +196,15 @@ export function ConversationPanel({ threadId, thread, providers }: Props) {
     }
   }
 
+  // The subagent state changes in T3 after the stop: reload even when it fails.
+  async function stopSubagent(subagentId: string): Promise<void> {
+    try {
+      await api.stopSubagent(threadId, subagentId);
+    } finally {
+      void load();
+    }
+  }
+
   return (
     <div className="conversation">
       <div className="messages-frame">
@@ -259,7 +268,7 @@ export function ConversationPanel({ threadId, thread, providers }: Props) {
           </IconButton>
         )}
       </div>
-      {detail && <SubagentStrip key={threadId} subagents={detail.subagents} reveal={revealSubagents} />}
+      {detail && <SubagentStrip key={threadId} subagents={detail.subagents} reveal={revealSubagents} onStop={stopSubagent} />}
       <Composer
         providers={providers}
         selection={detail?.modelSelection ?? null}

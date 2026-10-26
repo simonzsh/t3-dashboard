@@ -23,7 +23,7 @@ Les schémas sont dans `src/integrations/*/schemas.ts`. Le script utilise les m�
 
 ### Commandes d'écriture de T3
 
-Le script n'exécute jamais une commande d'écriture : `thread.create`, `message.dispatch`, `run.interrupt`, `runtime-request.respond`, `thread.user-input.dismiss`, `thread.model-selection.set`, `thread.runtime-mode.set` et l'envoi d'images. Il fait une comparaison statique :
+Le script n'exécute jamais une commande d'écriture : `thread.create`, `message.dispatch`, `run.interrupt`, `subagent.stop`, `thread.stop`, `runtime-request.respond`, `thread.user-input.dismiss`, `thread.model-selection.set`, `thread.runtime-mode.set` et l'envoi d'images. Il fait une comparaison statique :
 
 1. Il lit la version de T3 dans `server-runtime.json`.
 2. Il lit comme du texte les fichiers `~/.t3/runtime/versions/<version>/client/assets/*.js`. Il n'importe pas et n'exécute pas ce code.

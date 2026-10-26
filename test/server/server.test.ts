@@ -874,3 +874,11 @@ test("GET /api/search refuses a bad query or limit before any T3 call", async ()
   assert.equal((await call(server, "GET", `/api/search?q=${"a".repeat(200)}`)).status, 200);
   assert.equal(port.searchCalls.length, 1);
 });
+
+test("stopping a subagent sends subagent.stop, 404 when unknown", async () => {
+  const { server, port } = await start();
+  port.projection = { subagents: [{ id: "sub 1", runId: "run-a", status: "running" }] };
+  assert.deepEqual((await post(server, "/api/threads/run-1/subagents/sub%201/stop")).json, { ok: true });
+  assert.deepEqual(port.commands, [{ type: "subagent.stop", commandId: "id-1", threadId: "run-1", runId: "run-a", subagentId: "sub 1" }]);
+  assert.equal((await post(server, "/api/threads/run-1/subagents/other/stop")).status, 404);
+});

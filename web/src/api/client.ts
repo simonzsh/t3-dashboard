@@ -52,6 +52,7 @@ export function createApi(fetchImpl: Fetch) {
     settle: (id: string) => call<OkResult>(`${t(id)}/settle`, {}),
     unsettle: (id: string) => call<OkResult>(`${t(id)}/unsettle`, {}),
     interrupt: (id: string) => call<OkResult>(`${t(id)}/interrupt`, {}),
+    stopSubagent: (id: string, subagentId: string) => call<OkResult>(`${t(id)}/subagents/${encodeURIComponent(subagentId)}/stop`, {}),
     updateSettings: (id: string, b: ThreadSettingsBody) => call<OkResult>(`${t(id)}/settings`, b),
     respond: (id: string, requestId: string, b: RespondBody) =>
       call<OkResult>(`${t(id)}/requests/${encodeURIComponent(requestId)}/respond`, b),

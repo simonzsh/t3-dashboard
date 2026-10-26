@@ -272,6 +272,10 @@ main { flex: 1; min-height: 0; overflow: hidden; padding: 24px; display: flex; f
 .subagent-title, .subagent-detail { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .subagent-title { color: var(--text-primary); }
 .subagent-detail { color: var(--text-secondary); }
+.subagent-side { display: flex; align-items: center; gap: 8px; }
+.subagent-stop { color: var(--text-secondary); }
+.subagent-stop:hover:not(:disabled) { color: var(--danger); }
+.subagent-error { display: block; padding: 0 12px 8px; }
 .subagent-time { color: var(--text-secondary); font-variant-numeric: tabular-nums; }
 .activity { display: flex; flex-direction: column; gap: 8px; font-size: 13px; color: var(--text-secondary); }
 .activity-head { align-self: flex-start; display: inline-flex; align-items: center; gap: 8px; padding: 0; border: 0; background: none; color: var(--text-secondary); font-variant-numeric: tabular-nums; }

@@ -5,7 +5,7 @@ import { createActions } from "../../src/domain/actions.ts";
 import { DomainError } from "../../src/domain/errors.ts";
 import type { ShellStore } from "../../src/domain/shellStore.ts";
 import { IntegrationError } from "../../src/integrations/errors.ts";
-import type { Command, T3Port } from "../../src/integrations/t3/schemas.ts";
+import type { Command, RawConfig, RawProjection, T3Port } from "../../src/integrations/t3/schemas.ts";
 
 const issue = {
   id: "issue-1",
@@ -21,6 +21,21 @@ const issue = {
 };
 
 const searchMatch = (threadId: string) => ({ threadId, projectId: "project-1", source: "user" as const, snippet: `hit in ${threadId}`, messageCreatedAt: null });
+
+function stopHarness(projections: Record<string, RawProjection>, config: RawConfig = {}) {
+  const commands: Command[] = [];
+  const port = {
+    threadProjection: async (id: string) => projections[id] ?? {},
+    dispatch: async (command: Command) => void commands.push(command),
+    getConfig: async () => config,
+  } as unknown as T3Port;
+  const store = { thread: () => undefined, project: () => undefined, backgroundTasks: () => [] };
+  let counter = 0;
+  const actions = createActions({ port, store, board: { get: async () => ({ configured: true, ok: true, error: null, issues: [] }) }, newId: () => `id-${++counter}` });
+  return { actions, commands, port };
+}
+
+const delegated = { id: "sub-1", runId: "run-1", status: "running", origin: "app_owned", childThreadId: "child-1" };
 
 function harness({ searchResult = [] as ReturnType<typeof searchMatch>[], searchError = null as Error | null, board = { configured: true, ok: true, error: null, issues: [issue] } as BoardResult, dispatchError = null as Error | null } = {}) {
   const commands: Command[] = [];
@@ -88,4 +103,44 @@ test("search drops matches of threads the dashboard does not list and keeps T3's
 test("a T3 search failure comes back as a T3 integration error", async () => {
   const { actions } = harness({ searchError: new Error("search down") });
   await assert.rejects(actions.searchThreads("hit"), (error: unknown) => error instanceof IntegrationError && error.system === "t3" && error.message === "search down");
+});
+
+test("stopSubagent of a native subagent sends only subagent.stop", async () => {
+  const { actions, commands } = stopHarness({ "thread-1": { subagents: [{ id: "sub-1", runId: "run-1", status: "running", origin: "provider_native" }] } });
+  await actions.stopSubagent("thread-1", "sub-1");
+  assert.deepEqual(commands, [{ type: "subagent.stop", threadId: "thread-1", runId: "run-1", subagentId: "sub-1", commandId: "id-1" }]);
+});
+
+test("stopSubagent of a delegated task then stops the child thread when T3 can", async () => {
+  const { actions, commands } = stopHarness({ "thread-1": { subagents: [delegated] } }, { environment: { capabilities: { threadStop: true } } });
+  await actions.stopSubagent("thread-1", "sub-1");
+  assert.deepEqual(commands.map((c) => [c.type, c.threadId]), [["subagent.stop", "thread-1"], ["thread.stop", "child-1"]]);
+});
+
+test("stopSubagent without threadStop interrupts the active run of the child", async () => {
+  const { actions, commands } = stopHarness({ "thread-1": { subagents: [delegated] }, "child-1": { runs: [{ id: "c1", status: "completed" }, { id: "c2", status: "running" }] } });
+  await actions.stopSubagent("thread-1", "sub-1");
+  assert.deepEqual(commands[1], { type: "run.interrupt", threadId: "child-1", runId: "c2", holdQueue: true, commandId: "id-2" });
+});
+
+test("stopSubagent skips the child interrupt when the child has no active run", async () => {
+  const { actions, commands } = stopHarness({ "thread-1": { subagents: [delegated] }, "child-1": { runs: [{ id: "c1", status: "completed" }] } });
+  await actions.stopSubagent("thread-1", "sub-1");
+  assert.deepEqual(commands.map((c) => c.type), ["subagent.stop"]);
+});
+
+test("stopSubagent still stops the child thread when T3 refuses subagent.stop", async () => {
+  const { actions, commands, port } = stopHarness({ "thread-1": { subagents: [delegated] } }, { environment: { capabilities: { threadStop: true } } });
+  const dispatch = port.dispatch.bind(port);
+  port.dispatch = async (command) => (command.type === "subagent.stop" ? Promise.reject(new Error("refused")) : dispatch(command));
+  await actions.stopSubagent("thread-1", "sub-1");
+  assert.deepEqual(commands.map((c) => c.type), ["thread.stop"]);
+});
+
+test("stopSubagent refuses an unknown, finished or run-less subagent and sends nothing", async () => {
+  const { actions, commands } = stopHarness({ "thread-1": { subagents: [{ id: "done", runId: "run-1", status: "completed", completedAt: "2026-03-01T10:00:00Z" }, { id: "no-run", status: "running" }] } });
+  await assert.rejects(actions.stopSubagent("thread-1", "missing"), rejectsWith("not-found"));
+  await assert.rejects(actions.stopSubagent("thread-1", "done"), rejectsWith("conflict"));
+  await assert.rejects(actions.stopSubagent("thread-1", "no-run"), rejectsWith("conflict"));
+  assert.deepEqual(commands, []);
 });
