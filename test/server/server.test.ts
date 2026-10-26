@@ -853,3 +853,24 @@ test("the manifest, the service worker and the icons are served before the site"
   }
   assert.equal((await call(server, "GET", "/")).text, "<p>app</p>");
 });
+
+test("GET /api/search returns the matches of listed threads and sends the trimmed query and limit to T3", async () => {
+  const { server, port } = await start();
+  const match = (threadId: string) => ({ threadId, projectId: "project-1", source: "assistant" as const, snippet: `hit ${threadId}`, messageCreatedAt: null });
+  port.searchResult = [match("run-1"), match("unknown"), match("idle-1")];
+  const reply = await call(server, "GET", "/api/search?q=%20deploy%20&limit=7");
+  assert.equal(reply.status, 200);
+  assert.deepEqual(reply.json, { matches: [match("run-1"), match("idle-1")] });
+  assert.deepEqual(port.searchCalls, [{ query: "deploy", limit: 7 }]);
+  await call(server, "GET", "/api/search?q=deploy");
+  assert.deepEqual(port.searchCalls[1], { query: "deploy", limit: 50 });
+});
+
+test("GET /api/search refuses a bad query or limit before any T3 call", async () => {
+  const { server, port } = await start();
+  for (const path of ["/api/search", "/api/search?q=a", "/api/search?q=%20a%20", `/api/search?q=${"a".repeat(201)}`, "/api/search?q=ab&limit=0", "/api/search?q=ab&limit=51", "/api/search?q=ab&limit=x", "/api/search?q=ab&limit=1.5", "/api/search?q=ab&limit="]) {
+    assert.equal((await call(server, "GET", path)).status, 400, path);
+  }
+  assert.equal((await call(server, "GET", `/api/search?q=${"a".repeat(200)}`)).status, 200);
+  assert.equal(port.searchCalls.length, 1);
+});

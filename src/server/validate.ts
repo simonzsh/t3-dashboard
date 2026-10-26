@@ -4,6 +4,7 @@ import type { ImageUpload } from "../domain/actions.ts";
 import { HttpError } from "./httpError.ts";
 
 // Request bodies are untrusted: each check returns a typed body or throws a 400.
+const MAX_SEARCH_LIMIT = 50;
 const BASE64 = /^[A-Za-z0-9+/]*={0,2}$/;
 const DECISIONS = new Set<string>(["accept", "acceptForSession", "decline"]);
 
@@ -27,6 +28,15 @@ export function validCreate(body: Record<string, unknown>): CreateThreadBody {
   }
   if (body.runtimeMode !== undefined && !isRuntimeMode(body.runtimeMode)) throw new HttpError(400, "runtimeMode is not a known mode");
   return { projectId: projectId.trim(), title: body.title.trim(), text: body.text, modelSelection, ...(isRuntimeMode(body.runtimeMode) && { runtimeMode: body.runtimeMode }) };
+}
+
+export function validSearch(params: URLSearchParams): { query: string; limit: number } {
+  const query = (params.get("q") ?? "").trim();
+  if (query.length < 2 || query.length > 200) throw new HttpError(400, "q must be 2 to 200 characters");
+  const raw = params.get("limit");
+  const limit = raw === null ? MAX_SEARCH_LIMIT : Number(raw);
+  if (raw === "" || !Number.isInteger(limit) || limit < 1 || limit > MAX_SEARCH_LIMIT) throw new HttpError(400, `limit must be an integer from 1 to ${MAX_SEARCH_LIMIT}`);
+  return { query, limit };
 }
 
 export function validSettings(body: Record<string, unknown>): ThreadSettingsBody {

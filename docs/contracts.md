@@ -13,7 +13,7 @@
 | `t3` | `server.getConfig` passe le schéma `RawConfig`. Le protocole d'orchestration est `2`. Chaque mode d'exécution est connu. |
 | `t3` | `orchestration.subscribeShell` : le script lit le flux jusqu'à `synchronized`, puis l'arrête. Chaque élément passe le schéma `ShellItem`. Chaque statut de fil est connu. |
 | `t3` | `GET /api/orchestration/threads/{id}` pour 3 fils au plus. Chaque réponse passe le schéma `ProjectionResponse`. |
-| `t3` | Les 6 tags RPC du dashboard existent dans le client web de T3. |
+| `t3` | Les 7 tags RPC du dashboard existent dans le client web de T3. |
 | `t3` | Les commandes d'écriture (voir plus bas). |
 | `linear` | `{ viewer { id } }`, puis une page des tickets assignés, avec la requête du board. Seulement si une clé existe. |
 | `github` | La dernière release a un `tag_name` au format de version. Son fichier `SHA256SUMS` contient une somme SHA-256 pour chacun des 5 binaires. Le script ne télécharge aucun binaire. |

@@ -4,6 +4,7 @@ import type { BoardResult } from "../../shared/api.ts";
 import { createActions } from "../../src/domain/actions.ts";
 import { DomainError } from "../../src/domain/errors.ts";
 import { IntegrationError } from "../../src/integrations/errors.ts";
+import type { ShellStore } from "../../src/domain/shellStore.ts";
 import type { Command, T3Port } from "../../src/integrations/t3/schemas.ts";
 
 const issue = {
@@ -19,7 +20,9 @@ const issue = {
   updatedAt: "2026-03-20T10:00:00.000Z",
 };
 
-function harness({ board = { configured: true, ok: true, error: null, issues: [issue] } as BoardResult, dispatchError = null as Error | null } = {}) {
+const searchMatch = (threadId: string) => ({ threadId, projectId: "project-1", source: "user" as const, snippet: `hit in ${threadId}`, messageCreatedAt: null });
+
+function harness({ searchResult = [] as ReturnType<typeof searchMatch>[], searchError = null as Error | null, board = { configured: true, ok: true, error: null, issues: [issue] } as BoardResult, dispatchError = null as Error | null } = {}) {
   const commands: Command[] = [];
   const port: T3Port = {
     threadProjection: async () => ({}),
@@ -28,13 +31,17 @@ function harness({ board = { configured: true, ok: true, error: null, issues: [i
       commands.push(command);
     },
     getConfig: async () => ({}),
+    searchThreads: async () => {
+      if (searchError) throw searchError;
+      return searchResult;
+    },
     fetchAsset: async () => ({ response: new Response(""), fileName: "" }),
     ensureScratchProject: async () => "scratch-project",
     persistAttachments: async () => [],
     subscribeShell: () => ({ cancel() {} }),
   };
   const store = {
-    thread: () => undefined,
+    thread: (id: string) => (id.startsWith("known") ? ({ id } as ReturnType<ShellStore["thread"]>) : undefined),
     project: (id: string) => (id === "project-1" ? { id, title: "Project", defaultModelSelection: null, icon: null } : undefined),
     backgroundTasks: () => [],
   };
@@ -70,4 +77,15 @@ test("assign refuses an unknown issue and an unknown project", async () => {
   const { actions } = harness();
   await assert.rejects(actions.assign({ issueId: "nope", projectId: "project-1", text: "", modelSelection: { instanceId: "i", model: "m" } }, []), rejectsWith("not-found"));
   await assert.rejects(actions.assign({ issueId: "issue-1", projectId: "nope", text: "", modelSelection: { instanceId: "i", model: "m" } }, []), rejectsWith("conflict"));
+});
+
+test("search drops matches of threads the dashboard does not list and keeps T3's order", async () => {
+  const { actions } = harness({ searchResult: [searchMatch("known-b"), searchMatch("gone"), searchMatch("known-a")] });
+  const { matches } = await actions.searchThreads("hit", 5);
+  assert.deepEqual(matches.map((match) => match.threadId), ["known-b", "known-a"]);
+});
+
+test("a T3 search failure comes back as a T3 integration error", async () => {
+  const { actions } = harness({ searchError: new Error("search down") });
+  await assert.rejects(actions.searchThreads("hit"), (error: unknown) => error instanceof IntegrationError && error.system === "t3" && error.message === "search down");
 });

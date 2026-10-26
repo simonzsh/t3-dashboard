@@ -75,6 +75,19 @@ export const ShellItem = s.variant("kind", {
 });
 export type ShellItem = Infer<typeof ShellItem>;
 
+export const SearchThreadsResponse = s.object({
+  matches: s.array(
+    s.object({
+      threadId: s.string(),
+      projectId: s.string(),
+      source: s.union(s.literal("user"), s.literal("assistant")),
+      snippet: s.string(),
+      messageCreatedAt: s.nullable(s.string()),
+    }),
+  ),
+});
+export type RawSearchMatch = Infer<typeof SearchThreadsResponse>["matches"][number];
+
 export const RawMessage = s.object({
   id: s.string(),
   role: s.union(s.literal("user"), s.union(s.literal("assistant"), s.literal("system"))),
@@ -226,6 +239,8 @@ export interface T3Port {
   threadProjection(threadId: string): Promise<RawProjection>;
   dispatch(command: Command): Promise<unknown>;
   getConfig(): Promise<RawConfig>;
+  /** Message matches in T3, best first. */
+  searchThreads(query: string, limit?: number): Promise<RawSearchMatch[]>;
   persistAttachments(threadId: string, messageId: string, images: ImageUpload[]): Promise<AttachmentRef[]>;
   /** The id of T3's "No project" project, created if missing. */
   ensureScratchProject(): Promise<string>;

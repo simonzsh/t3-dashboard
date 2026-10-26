@@ -1,8 +1,8 @@
 import { describe, issues, parse, type Schema } from "../contract.ts";
 import { IntegrationError } from "../errors.ts";
 import { RpcConnection } from "./rpc.ts";
-import { AssetUrl, PersistedAttachments, ScratchProject, ProjectionResponse, RawConfig, ShellItem, WebSocketTicket } from "./schemas.ts";
-import type { AssetResource, AttachmentRef, Command, ImageUpload, RawProjection, T3Port } from "./schemas.ts";
+import { AssetUrl, PersistedAttachments, ScratchProject, ProjectionResponse, RawConfig, SearchThreadsResponse, ShellItem, WebSocketTicket } from "./schemas.ts";
+import type { AssetResource, AttachmentRef, Command, ImageUpload, RawProjection, RawSearchMatch, T3Port } from "./schemas.ts";
 
 export const ORCHESTRATION_PROTOCOL = "2";
 // Images go up as data URLs of up to 10 MB each: give T3 time to write them.
@@ -16,6 +16,7 @@ export const RPC = {
   ensureScratch: "projects.ensureScratch",
   dispatch: "orchestration.dispatchCommand",
   subscribeShell: "orchestration.subscribeShell",
+  searchThreads: "orchestration.searchThreads",
 } as const;
 
 export type Validation = "ok" | "rejected" | "unreachable";
@@ -72,6 +73,11 @@ export class T3Client implements T3Port {
 
   async getConfig(): Promise<RawConfig> {
     return read(RawConfig, await this.oneShot(RPC.getConfig, {}), "server.getConfig");
+  }
+
+  async searchThreads(query: string, limit?: number): Promise<RawSearchMatch[]> {
+    const payload = limit === undefined ? { query } : { query, limit };
+    return read(SearchThreadsResponse, await this.oneShot(RPC.searchThreads, payload), "orchestration.searchThreads").matches;
   }
 
   async persistAttachments(threadId: string, messageId: string, images: ImageUpload[]): Promise<AttachmentRef[]> {

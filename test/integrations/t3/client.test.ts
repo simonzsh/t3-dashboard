@@ -208,3 +208,31 @@ test("subscribeShell passes every item on and warns once per wrong field, withou
   assert.deepEqual(seen, [[bad, { kind: "thread.renamed", whatever: 1 }], [bad]]);
   assert.deepEqual(warnings, ["T3 contract: orchestration.subscribeShell item thread.title should be string or null, got number"]);
 });
+
+test("searchThreads sends the query and limit and returns the matches", async () => {
+  const { client } = setup();
+  const done = client.searchThreads("deploy", 10);
+  const socket = await nextSocket();
+  assert.equal(socket.sent[0]!.tag, "orchestration.searchThreads");
+  assert.deepEqual(socket.sent[0]!.payload, { query: "deploy", limit: 10 });
+  const match = { threadId: "t1", projectId: "p1", source: "user", snippet: "to deploy", messageCreatedAt: null };
+  socket.receive({ _tag: "Exit", requestId: "1", exit: { _tag: "Success", value: { matches: [match] } } });
+  assert.deepEqual(await done, [match]);
+});
+
+test("searchThreads omits the limit when none is given", async () => {
+  const { client } = setup();
+  const done = client.searchThreads("deploy");
+  const socket = await nextSocket();
+  assert.deepEqual(socket.sent[0]!.payload, { query: "deploy" });
+  socket.receive({ _tag: "Exit", requestId: "1", exit: { _tag: "Success", value: { matches: [] } } });
+  assert.deepEqual(await done, []);
+});
+
+test("a search answer of the wrong shape is a protocol error", async () => {
+  const { client } = setup();
+  const done = client.searchThreads("deploy");
+  const socket = await nextSocket();
+  socket.receive({ _tag: "Exit", requestId: "1", exit: { _tag: "Success", value: { matches: [{ threadId: "t1" }] } } });
+  assert.match((await protocolError(done)).message, /matches\[0\]\.projectId should be string/);
+});
