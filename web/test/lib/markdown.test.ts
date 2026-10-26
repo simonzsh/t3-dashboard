@@ -1,7 +1,7 @@
 import { test } from "bun:test";
 import assert from "node:assert/strict";
 import { renderToStaticMarkup } from "react-dom/server";
-import { plainText, renderMarkdown, safeHref } from "../../src/lib/markdown.tsx";
+import { renderMarkdown, safeHref } from "../../src/lib/markdown.tsx";
 
 const html = (text: string) => renderToStaticMarkup(renderMarkdown(text));
 
@@ -65,9 +65,4 @@ test("a local image shows through the caller's URL; others stay links", () => {
 test("a local video becomes a player", () => {
   const out = renderToStaticMarkup(renderMarkdown("![demo](/tmp/a.mp4)", { localMedia: (path) => `/media?path=${encodeURIComponent(path)}` }));
   assert.match(out, /^<p><video class="md-image" src="\/media\?path=%2Ftmp%2Fa.mp4" aria-label="demo" controls="" muted="" playsInline="" preload="metadata"><\/video><\/p>$/);
-});
-
-test("plainText keeps the words and drops the marks", () => {
-  assert.equal(plainText("Ready to run on **staging**: `0042_split`.\n\n- one\n- two"), "Ready to run on staging: 0042_split. one two");
-  assert.equal(plainText("| A | B |\n| - | - |\n| 1 | 2 |"), "A B 1 2");
 });

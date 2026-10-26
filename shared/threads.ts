@@ -25,7 +25,6 @@ export interface DashboardThread {
   /** The shell lists pending background tasks: subagents may run without a run. */
   pendingTasks: boolean;
   lastError: string | null;
-  preview: { role: string; text: string } | null;
   pinned: boolean;
   lastActivityAt: string;
 }

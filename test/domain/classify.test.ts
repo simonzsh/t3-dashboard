@@ -34,13 +34,6 @@ test("pending category", () => {
   assert.equal(toDashboardThread(thread(), now).pending, null);
 });
 
-test("preview is cut to 280 characters with an ellipsis", () => {
-  const preview = (text: string) => toDashboardThread(thread({ latestVisibleMessage: { role: "user", text } }), now).preview;
-  assert.deepEqual(preview("a".repeat(280)), { role: "user", text: "a".repeat(280) });
-  assert.deepEqual(preview("a".repeat(281)), { role: "user", text: `${"a".repeat(280)}…` });
-  assert.equal(toDashboardThread(thread(), now).preview, null);
-});
-
 test("field mapping with fallbacks", () => {
   const full = toDashboardThread(
     thread({

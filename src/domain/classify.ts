@@ -1,7 +1,6 @@
 import type { DashboardThread, PendingCategory } from "../../shared/api.ts";
 import type { RawThread } from "../integrations/t3/schemas.ts";
 
-const PREVIEW_MAX = 280;
 const EPOCH = new Date(0).toISOString();
 
 const APPROVAL_KINDS = new Set(["command", "file-read", "file-change", "permission", "mcp-elicitation"]);
@@ -39,12 +38,6 @@ function categoryOf(kind: string): PendingCategory {
   return kind === "user_input" ? "user-input" : "other";
 }
 
-function previewOf(message: RawThread["latestVisibleMessage"]): DashboardThread["preview"] {
-  if (!message || typeof message.text !== "string") return null;
-  const text = message.text.length > PREVIEW_MAX ? `${message.text.slice(0, PREVIEW_MAX)}…` : message.text;
-  return { role: message.role ?? "", text };
-}
-
 export function toDashboardThread(raw: RawThread, now: Date): DashboardThread {
   const pending = raw.pendingRuntimeRequest;
   return {
@@ -59,7 +52,6 @@ export function toDashboardThread(raw: RawThread, now: Date): DashboardThread {
     backgroundWork: hasBackgroundWork(raw),
     pendingTasks: (raw.pendingBackgroundTasks?.length ?? 0) > 0,
     lastError: raw.lastError ?? null,
-    preview: previewOf(raw.latestVisibleMessage),
     pinned: raw.pinnedAt != null,
     lastActivityAt: lastActivityOf(raw),
   };

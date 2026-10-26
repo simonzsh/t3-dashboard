@@ -15,7 +15,6 @@ export function thread(id: string, over: Partial<DashboardThread> = {}): Dashboa
     backgroundWork: false,
     pendingTasks: false,
     lastError: null,
-    preview: null,
     pinned: false,
     lastActivityAt: "2026-01-10T10:00:00.000Z",
     ...over,

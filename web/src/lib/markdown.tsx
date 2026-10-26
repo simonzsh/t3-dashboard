@@ -150,14 +150,3 @@ function blocks(tokens: Token[] | undefined, ctx: Ctx): ReactNode[] {
 export function renderMarkdown(text: string, ctx: Ctx = {}): ReactNode {
   return <>{blocks(marked.lexer(text, { gfm: true }), ctx)}</>;
 }
-
-/** The words of a Markdown text on one line, for a short preview: no marks, code or table pipes. */
-export function plainText(text: string): string {
-  const words: string[] = [];
-  marked.walkTokens(marked.lexer(text, { gfm: true }), (token) => {
-    const t = token as Tokens.Generic;
-    if (t.type === "text" || t.type === "codespan") words.push(t.tokens ? "" : t.text);
-    else if (t.type === "code") words.push(t.text);
-  });
-  return words.join(" ").replace(/\s+/g, " ").replace(/ ([.,;:!?)])/g, "$1").trim();
-}
