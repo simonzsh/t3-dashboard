@@ -12,6 +12,10 @@ t3-dashboard is a web dashboard on top of T3 Code. It shows all your Claude and 
 | --- | --- |
 | ![Board](docs/screenshots/board.png) | ![New Agent](docs/screenshots/new-agent.png) |
 
+| Jump to a conversation |
+| --- |
+| ![Jump to](docs/screenshots/search.png) |
+
 The screenshots come from the demo mode: the projects, agents and conversations are invented.
 
 ## What you can do
@@ -21,7 +25,7 @@ The screenshots come from the demo mode: the projects, agents and conversations 
 - See one card per T3 Code session, grouped by project, with the project icon.
 - See pinned agents first, then the agents that wait for a reply, then the agents that work.
 - Open a conversation on the Desk with one click.
-- Press Ctrl+K (Cmd+K on Mac) to open the switcher and jump to a conversation by title, project or message, from any screen. Before you type, it suggests the agents that wait for you, then your recent ones.
+- Press Ctrl+K (Cmd+K on Mac) to open the switcher and jump to a conversation by title, project or message, from any screen. The words you type are highlighted in the matching messages. Before you type, it suggests the agents that wait for you, then your recent ones.
 
 **Desk**
 
