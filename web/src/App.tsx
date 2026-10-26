@@ -110,7 +110,7 @@ export function App() {
         </div>
         <nav className="tabs" role="tablist">
           {TABS.map(({ id, label, key }) => (
-            <Pressable key={id} role="tab" aria-selected={tab === id} className={tab === id ? "active" : ""} tooltip={label} shortcut={key} onClick={() => setTab(id)}>
+            <Pressable key={id} role="tab" data-tab={id} aria-selected={tab === id} className={tab === id ? "active" : ""} tooltip={label} shortcut={key} onClick={() => setTab(id)}>
               {label}
               {id === "desk" && deskWaiting && <span className="tab-alert" role="img" aria-label="An agent is waiting for your reply" />}
               <Kbd>{key}</Kbd>
