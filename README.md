@@ -1,8 +1,8 @@
 # t3-dashboard
 
-t3-dashboard est un tableau de bord web au-dessus de T3 Code. Il montre tous vos agents Claude et Codex sur un seul écran. Vous suivez leur travail, vous leur répondez et vous lancez de nouveaux agents. Le Board affiche vos tickets Linear : un clic confie un ticket à un agent. Le dashboard tourne en arrière-plan sur votre ordinateur et s'ouvre dans le navigateur.
+t3-dashboard is a web dashboard on top of T3 Code. It shows all your Claude and Codex agents on one screen. You follow their work, reply to them and start new agents. The Board shows your Linear issues: one click gives an issue to an agent. The dashboard runs in the background on your computer and opens in your browser.
 
-## Captures d'écran
+## Screenshots
 
 | Agents | Desk |
 | --- | --- |
@@ -12,88 +12,88 @@ t3-dashboard est un tableau de bord web au-dessus de T3 Code. Il montre tous vos
 | --- | --- |
 | ![Board](docs/screenshots/board.png) | ![New Agent](docs/screenshots/new-agent.png) |
 
-Les captures viennent du mode démo : les projets, les agents et les conversations sont inventés.
+The screenshots come from the demo mode: the projects, agents and conversations are invented.
 
-## Ce que vous pouvez faire
+## What you can do
 
 **Agents**
 
-- Voir une carte par session T3 Code, groupée par projet, avec l'icône du projet.
-- Voir en premier les agents qui attendent une réponse, puis ceux qui travaillent.
-- Ouvrir une conversation sur le Desk d'un clic.
+- See one card per T3 Code session, grouped by project, with the project icon.
+- See pinned agents first, then the agents that wait for a reply, then the agents that work.
+- Open a conversation on the Desk with one click.
 
 **Desk**
 
-- Suivre plusieurs conversations côte à côte. Six fenêtres restent visibles. À la septième, la plus ancienne se réduit dans le dock.
-- Envoyer un message, joindre des images, changer de modèle, arrêter un run.
-- Répondre aux approbations et aux questions des agents.
-- Lire les images, les vidéos et les pages HTML que l'agent affiche.
+- Follow several conversations side by side. Six windows stay visible. When you open a seventh, the oldest one goes to the dock.
+- Send a message, attach images, change the model, stop a run.
+- Reply to the approvals and questions of the agents.
+- See the images, videos and HTML pages that the agent shows.
 
 **Board**
 
-- Voir les tickets Linear qui vous sont assignés, par statut et par projet.
-- Confier un ticket à un agent : la fenêtre New Agent s'ouvre avec le ticket.
+- See the Linear issues assigned to you, by status and by project.
+- Give an issue to an agent: the New Agent window opens with the issue.
 
-**Automatisations**
+**Automations**
 
-- Voir les routines et les rappels des assistants t3-agent, en lecture seule.
+- See the routines and reminders of the t3-agent assistants, read-only.
 
-Le bouton New Agent (touche `N`) lance un agent dans un projet T3, ou dans « No project ». Il propose le modèle par défaut et les favoris de T3 Code. Le détail de chaque écran est dans [docs/usage.md](docs/usage.md).
+The New Agent button (key `N`) starts an agent in a T3 project, or in "No project". It uses the default model and the favorites of T3 Code. Each screen is described in [docs/usage.md](docs/usage.md).
 
-## Installation
+## Install
 
-Prérequis : T3 Code installé sur le même ordinateur.
+Requirement: T3 Code installed on the same computer.
 
-macOS et Linux :
+macOS and Linux:
 
 ```sh
 curl -fsSL https://raw.githubusercontent.com/simonzsh/t3-dashboard/main/install.sh | sh
 ```
 
-Windows (PowerShell) :
+Windows (PowerShell):
 
 ```powershell
 irm https://raw.githubusercontent.com/simonzsh/t3-dashboard/main/install.ps1 | iex
 ```
 
-Le script télécharge le binaire et vérifie sa somme SHA-256. Il enregistre ensuite un service qui démarre à l'ouverture de session. Puis il ouvre `http://127.0.0.1:4300`.
+The script downloads the binary and checks its SHA-256 sum. Then it registers a service that starts when you log in, and opens `http://127.0.0.1:4300`.
 
-### Premier lancement
+### First start
 
-1. Le dashboard crée seul son jeton d'accès à T3 Code. Vous ne faites rien.
-2. Si T3 Code est arrêté, un écran l'explique. Lancez T3 Code, puis cliquez sur « Retry ».
-3. Si le jeton ne peut pas être créé, l'écran donne une commande. Exécutez-la, puis collez le jeton.
-4. Facultatif : dans l'onglet Board, collez une clé API Linear pour voir vos tickets.
+1. The dashboard creates its own access token for T3 Code. You do nothing.
+2. If T3 Code is not running, a screen tells you. Start T3 Code, then click "Retry".
+3. If the token cannot be created, the screen gives a command. Run it, then paste the token.
+4. Optional: in the Board tab, paste a Linear API key to see your issues.
 
-Le détail est dans [docs/install.md](docs/install.md).
+More details in [docs/install.md](docs/install.md).
 
-## Connexions
+## Connections
 
-| Système | Obligatoire | Usage |
+| System | Required | Use |
 | --- | --- | --- |
-| API locale de T3 Code | Oui | Lit les projets, les sessions et les conversations. Envoie les messages, les réponses et les nouveaux agents. |
-| Clé API Linear | Non | Lit les tickets qui vous sont assignés, pour le Board. |
-| Releases GitHub | Non | Cherche une nouvelle version et la télécharge quand vous cliquez. |
-| Fichiers des assistants t3-agent | Non | Lit les routines et les rappels, sans jamais écrire. |
+| T3 Code local API | Yes | Reads the projects, sessions and conversations. Sends the messages, the replies and the new agents. |
+| Linear API key | No | Reads the issues assigned to you, for the Board. |
+| GitHub Releases | No | Looks for a new version and downloads it when you click. |
+| t3-agent assistant files | No | Reads the routines and reminders. Never writes. |
 
-## Fonctionnement
+## How it works
 
-- Le dashboard est un binaire unique. Il contient le serveur et l'interface.
-- Le serveur écoute seulement sur `127.0.0.1`. Il n'a pas d'authentification.
-- Le jeton T3 et la clé Linear restent sur le serveur. Le navigateur ne les voit jamais.
-- Le serveur garde une connexion ouverte avec T3 Code. L'interface se met à jour en direct, sans recharger la page.
+- The dashboard is a single binary. It contains the server and the interface.
+- The server listens only on `127.0.0.1`. It has no authentication.
+- The T3 token and the Linear key stay on the server. The browser never sees them.
+- The server keeps a live connection to T3 Code. The interface updates live, without a page reload.
 
-## Mise à jour
+## Update
 
-Le dashboard cherche une nouvelle version toutes les heures. Quand elle existe, cliquez sur le bouton « Update vX.Y.Z » de l'en-tête. Dans un terminal : `t3-dashboard update`.
+The dashboard looks for a new version every hour. When one is available, click the "Update vX.Y.Z" button in the header. In a terminal: `t3-dashboard update`.
 
-## Désinstallation
+## Uninstall
 
-Exécutez `t3-dashboard uninstall`, puis supprimez le binaire. La procédure complète est dans [docs/install.md](docs/install.md#désinstallation).
+Run `t3-dashboard uninstall`, then delete the binary. The full procedure is in [docs/install.md](docs/install.md#désinstallation).
 
 ## Documentation
 
-- [docs/install.md](docs/install.md) : installation, service, commandes, mises à jour, logs, Linear, variables d'environnement, accès à distance.
-- [docs/usage.md](docs/usage.md) : écrans, actions et raccourcis clavier.
-- [docs/development.md](docs/development.md) : développement avec Bun, mode démo, vérifications, architecture, sécurité.
-- [docs/contracts.md](docs/contracts.md) : vérification des contrats avec T3 Code, Linear, GitHub et t3-agent.
+- [docs/install.md](docs/install.md): install, service, commands, updates, logs, Linear, environment variables, remote access.
+- [docs/usage.md](docs/usage.md): screens, actions and keyboard shortcuts.
+- [docs/development.md](docs/development.md): development with Bun, demo mode, checks, architecture, security.
+- [docs/contracts.md](docs/contracts.md): contract checks against T3 Code, Linear, GitHub and t3-agent.
