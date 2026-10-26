@@ -366,9 +366,10 @@ main { flex: 1; min-height: 0; overflow: hidden; padding: 24px; display: flex; f
 }
 .settings-row { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
 .settings-row-top { align-items: flex-start; }
-.install-choice { display: flex; flex-direction: column; align-items: flex-end; gap: 8px; max-width: 320px; }
-.settings-note { margin: 0; text-align: right; color: var(--text-secondary); font-size: 13px; }
-.settings-note.error { color: var(--danger); }
+.install-section { display: flex; flex-direction: column; align-items: flex-start; gap: 8px; }
+.install-steps { margin: 0; color: var(--text-secondary); font-size: 12px; line-height: 1.5; }
+ol.install-steps { padding-left: 18px; }
+.install-steps.error { color: var(--danger); }
 .bg-choices { display: flex; flex-direction: column; align-items: flex-end; gap: 8px; }
 .swatches { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 5px; }
 .swatch { width: 28px; height: 28px; padding: 0; border-radius: 8px; border: 1px solid var(--line); background-size: cover; background-position: center; }
@@ -563,4 +564,4 @@ button.auto-row:hover { background: var(--surface-0); }
 .msg.pending small { opacity: 0.85; }
 .about-note { color: var(--text-secondary); font-size: 12px; white-space: nowrap; }
 .about-note.error { color: var(--danger); white-space: normal; }
-.install-note { max-width: 280px; padding: 10px 12px; line-height: 1.45; }
+.install-note { max-width: 280px; padding: 10px 12px; }

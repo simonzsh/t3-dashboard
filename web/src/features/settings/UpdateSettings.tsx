@@ -8,7 +8,7 @@ interface Props {
   onUpdate: () => void;
 }
 
-export function AboutSettings({ update, onUpdate }: Props) {
+export function UpdateSettings({ update, onUpdate }: Props) {
   const { status } = update;
   // The automatic checks stay silent: a note shows only after a click.
   const [checked, setChecked] = useState(false);

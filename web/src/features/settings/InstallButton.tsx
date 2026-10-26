@@ -1,7 +1,8 @@
 import { useRef, useState, useSyncExternalStore } from "react";
 import { Button, Icon, IconButton, Popover } from "../../ui/index.ts";
 import { useMediaQuery } from "../../lib/useMediaQuery.ts";
-import { detectBrowser, INSTALL_NOTES, installView } from "./install.ts";
+import { detectBrowser, installSteps, installView, isMac } from "./install.ts";
+import { InstallSteps } from "./InstallSettings.tsx";
 import { installState, promptInstall, subscribeInstall } from "./installPrompt.ts";
 
 /** One click opens the browser's install dialog; browsers without one get their exact steps instead. */
@@ -10,7 +11,7 @@ export function InstallButton({ compact }: { compact: boolean }) {
   const standalone = useMediaQuery("(display-mode: standalone)");
   const [open, setOpen] = useState(false);
   const anchor = useRef<HTMLButtonElement>(null);
-  const view = installView({ standalone, installed, canPrompt, browser: detectBrowser(navigator.userAgent) });
+  const view = installView({ standalone, installed, canPrompt, browser: detectBrowser(navigator.userAgent, navigator.maxTouchPoints) });
   if (view === "installed") return null;
   const onClick = () => (view === "prompt" ? void promptInstall() : setOpen((o) => !o));
   return (
@@ -27,7 +28,7 @@ export function InstallButton({ compact }: { compact: boolean }) {
       )}
       {open && view !== "prompt" && (
         <Popover anchor={anchor} align="end" className="menu install-note" role="dialog" onClose={() => setOpen(false)}>
-          {INSTALL_NOTES[view]}
+          <InstallSteps steps={installSteps(view, isMac(navigator.userAgent))} />
         </Popover>
       )}
     </>

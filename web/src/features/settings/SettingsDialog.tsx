@@ -3,9 +3,9 @@ import { BACKGROUND_PRESETS, type DeskBackground } from "../desk/deskBackground.
 import { imageFileToDataUrl } from "../desk/deskImage.ts";
 import { THEME_SETTINGS, type ThemeSetting } from "./theme.ts";
 import type { UpdateControl } from "../update/useUpdate.ts";
-import { AboutSettings } from "./AboutSettings.tsx";
 import { InstallSettings } from "./InstallSettings.tsx";
 import { LinearSettings } from "./LinearSettings.tsx";
+import { UpdateSettings } from "./UpdateSettings.tsx";
 import { onRadioKeyDown } from "../../ui/radioKeys.ts";
 import { Button, Dialog, FileInput, Pressable, Segmented, Tabs } from "../../ui/index.ts";
 import { useAction } from "../../lib/useAction.ts";
@@ -23,10 +23,9 @@ interface Props {
 
 const SECTIONS = [
   { id: "appearance", label: "Appearance" },
-  { id: "desk", label: "Desk" },
-  { id: "linear", label: "Linear" },
+  { id: "connections", label: "Connections" },
   { id: "app", label: "App" },
-  { id: "about", label: "About" },
+  { id: "updates", label: "Updates" },
 ] as const;
 
 type SectionId = (typeof SECTIONS)[number]["id"];
@@ -44,52 +43,52 @@ export function SettingsDialog({ theme, onThemeChange, background, onBackgroundC
 
   const panels: Record<SectionId, ReactNode> = {
     appearance: (
-      <div className="settings-row">
-        <span>Theme</span>
-        <Segmented label="Theme" value={theme} options={THEME_SETTINGS.map((id) => ({ id, label: LABELS[id] }))} onChange={onThemeChange} />
-      </div>
-    ),
-    desk: (
-      <div className="settings-row settings-row-top">
-        <span>Background</span>
-        <div className="bg-choices">
-          <div className="swatches" role="radiogroup" aria-label="Background" onKeyDown={onRadioKeyDown}>
-            {BACKGROUND_PRESETS.map((p) => (
-              <Pressable
-                key={p.id}
-                role="radio"
-                aria-checked={presetId === p.id}
-                tabIndex={presetId === p.id || (presetId === null && p.id === BACKGROUND_PRESETS[0]?.id) ? 0 : -1}
-                aria-label={p.label}
-                tooltip={p.label}
-                className={`swatch desk-bg-${p.id}${presetId === p.id ? " active" : ""}`}
-                onClick={() => setError(onBackgroundChange(p.id === "none" ? { kind: "none" } : { kind: "preset", id: p.id }))}
-              />
-            ))}
-            {background.kind === "image" && (
-              <span className="swatch active" role="img" aria-label="Uploaded image" style={{ backgroundImage: `url("${background.dataUrl}")` }} />
-            )}
-          </div>
-          <div className="buttons">
-            <Button loading={busy && "Loading…"} onClick={() => fileInput.current?.click()}>
-              Upload image…
-            </Button>
-            {background.kind === "image" && <Button onClick={() => setError(onBackgroundChange({ kind: "none" }))}>Remove image</Button>}
-            <FileInput
-              ref={fileInput}
-              accept="image/*"
-              onFiles={([file]) => {
-                if (file) void upload(file);
-              }}
-            />
-          </div>
-          {error && <span className="error">{error}</span>}
+      <>
+        <div className="settings-row">
+          <span>Theme</span>
+          <Segmented label="Theme" value={theme} options={THEME_SETTINGS.map((id) => ({ id, label: LABELS[id] }))} onChange={onThemeChange} />
         </div>
-      </div>
+        <div className="settings-row settings-row-top">
+          <span>Desk background</span>
+          <div className="bg-choices">
+            <div className="swatches" role="radiogroup" aria-label="Background" onKeyDown={onRadioKeyDown}>
+              {BACKGROUND_PRESETS.map((p) => (
+                <Pressable
+                  key={p.id}
+                  role="radio"
+                  aria-checked={presetId === p.id}
+                  tabIndex={presetId === p.id || (presetId === null && p.id === BACKGROUND_PRESETS[0]?.id) ? 0 : -1}
+                  aria-label={p.label}
+                  tooltip={p.label}
+                  className={`swatch desk-bg-${p.id}${presetId === p.id ? " active" : ""}`}
+                  onClick={() => setError(onBackgroundChange(p.id === "none" ? { kind: "none" } : { kind: "preset", id: p.id }))}
+                />
+              ))}
+              {background.kind === "image" && (
+                <span className="swatch active" role="img" aria-label="Uploaded image" style={{ backgroundImage: `url("${background.dataUrl}")` }} />
+              )}
+            </div>
+            <div className="buttons">
+              <Button loading={busy && "Loading…"} onClick={() => fileInput.current?.click()}>
+                Upload image…
+              </Button>
+              {background.kind === "image" && <Button onClick={() => setError(onBackgroundChange({ kind: "none" }))}>Remove image</Button>}
+              <FileInput
+                ref={fileInput}
+                accept="image/*"
+                onFiles={([file]) => {
+                  if (file) void upload(file);
+                }}
+              />
+            </div>
+            {error && <span className="error">{error}</span>}
+          </div>
+        </div>
+      </>
     ),
-    linear: <LinearSettings onChange={onLinearChange} />,
+    connections: <LinearSettings onChange={onLinearChange} />,
     app: <InstallSettings />,
-    about: <AboutSettings update={update} onUpdate={onUpdate} />,
+    updates: <UpdateSettings update={update} onUpdate={onUpdate} />,
   };
 
   return (
