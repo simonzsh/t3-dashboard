@@ -10,6 +10,7 @@ import {
   equalSizes,
   gridWindows,
   loadDesk,
+  neighborId,
   parseDesk,
   saveDesk,
   sizesFor,
@@ -180,4 +181,17 @@ test("sizesFor uses saved sizes only when they match the layout", () => {
   assert.deepEqual(sizesFor(s, 4), { columns: { c0: 50, c1: 50 }, rows: { r0: 50, r1: 50 } });
   const stale = deskReducer(EMPTY_DESK, { type: "setSizes", count: 2, sizes: { columns: { c0: 100 }, rows: { r0: 100 } } });
   assert.deepEqual(sizesFor(stale, 2).columns, { c0: 50, c1: 50 });
+});
+
+test("neighborId wraps left and right and moves by rows up and down", () => {
+  const s = open(EMPTY_DESK, "a", "b", "c", "d", "e");
+  const at = (id: string) => deskReducer(s, { type: "focus", id });
+  assert.equal(neighborId(at("a"), "right"), "b");
+  assert.equal(neighborId(at("e"), "right"), "a");
+  assert.equal(neighborId(at("a"), "left"), "e");
+  assert.equal(neighborId(at("a"), "down"), "d");
+  assert.equal(neighborId(at("e"), "up"), "b");
+  assert.equal(neighborId(at("c"), "down"), null);
+  assert.equal(neighborId(at("a"), "up"), null);
+  assert.equal(neighborId(EMPTY_DESK, "right"), null);
 });

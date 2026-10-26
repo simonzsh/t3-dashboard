@@ -10,6 +10,10 @@ export type ShortcutAction =
   | "toggle-fullscreen"
   | "minimize-window"
   | "unmaximize"
+  | "focus-left"
+  | "focus-right"
+  | "focus-up"
+  | "focus-down"
   | WindowShortcut;
 
 export interface KeyInfo {
@@ -23,7 +27,16 @@ export interface KeyInfo {
 }
 
 const KEYS: Record<string, ShortcutAction> = { "1": "agents", "2": "desk", "3": "board", n: "new-agent", ",": "settings" };
-const DESK_KEYS: Record<string, ShortcutAction> = { x: "close-window", f: "toggle-fullscreen", m: "minimize-window", escape: "unmaximize" };
+const DESK_KEYS: Record<string, ShortcutAction> = {
+  x: "close-window",
+  f: "toggle-fullscreen",
+  m: "minimize-window",
+  escape: "unmaximize",
+  arrowleft: "focus-left",
+  arrowright: "focus-right",
+  arrowup: "focus-up",
+  arrowdown: "focus-down",
+};
 const TYPING = new Set(["INPUT", "TEXTAREA", "SELECT"]);
 
 function windowShortcut(e: KeyInfo): WindowShortcut | null {

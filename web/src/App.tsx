@@ -8,7 +8,7 @@ import { NewThreadDialog } from "./features/new-thread/NewThreadDialog.tsx";
 import { SettingsDialog } from "./features/settings/SettingsDialog.tsx";
 import { SetupScreen } from "./features/setup/SetupScreen.tsx";
 import { UpdateDialog } from "./features/update/UpdateDialog.tsx";
-import { gridWindows } from "./features/desk/desk.ts";
+import { gridWindows, neighborId, type Direction } from "./features/desk/desk.ts";
 import { useAutomations } from "./features/agents/useAutomations.ts";
 import { useDashboard } from "./api/events.ts";
 import { useDesk } from "./features/desk/useDesk.ts";
@@ -69,6 +69,13 @@ export function App() {
       else if (action === "new-agent") {
         if (state) setCreating(true);
       } else if (action === "unmaximize") dispatchDesk({ type: "unmaximize" });
+      else if (action.startsWith("focus-")) {
+        // A maximized window hides its neighbors: arrows do nothing there.
+        const id = desk.maximizedId ? null : neighborId(desk, action.slice("focus-".length) as Direction);
+        if (!id) return;
+        // No composer focus: a focused textarea would block the next arrow.
+        dispatchDesk({ type: "focus", id });
+      }
       else if (action === "close-window" || action === "toggle-fullscreen" || action === "minimize-window") {
         const type = action === "close-window" ? "close" : action === "minimize-window" ? "minimize" : "maximize";
         if (desk.focusedId) dispatchDesk({ type, id: desk.focusedId });

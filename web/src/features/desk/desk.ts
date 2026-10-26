@@ -49,6 +49,20 @@ export function cellOf(index: number, columns: number): { row: number; column: n
   return { row: Math.floor(index / columns), column: index % columns };
 }
 
+export type Direction = "left" | "right" | "up" | "down";
+
+/** The window next to the focused one in a direction; left and right wrap, up and down stay in their column. */
+export function neighborId(state: DeskState, direction: Direction): string | null {
+  const grid = gridWindows(state);
+  const from = grid.findIndex((w) => w.id === state.focusedId);
+  if (grid.length === 0) return null;
+  if (from < 0) return grid[0]!.id;
+  if (direction === "left" || direction === "right") return grid[(from + (direction === "right" ? 1 : grid.length - 1)) % grid.length]!.id;
+  const { columns } = deskLayout(grid.length);
+  const target = from + (direction === "down" ? columns : -columns);
+  return grid[target]?.id ?? null;
+}
+
 export function equalSizes(prefix: string, count: number): TrackSizes {
   return Object.fromEntries(Array.from({ length: count }, (_, i) => [`${prefix}${i}`, 100 / count]));
 }
