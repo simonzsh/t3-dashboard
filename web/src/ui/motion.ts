@@ -80,8 +80,10 @@ export function enter(el: Element, { y = 0, scale = 1, duration = BASE, spring =
   const from = { opacity: 0, translate: `0 ${y}px`, scale: `${scale}` };
   const rest = { opacity: 1, translate: "0 0", scale: "1" };
   // The spring overshoots once, then settles: a visible bounce, not a wobble.
-  const frames = spring ? [from, { opacity: 1, translate: "0 -2px", scale: "1.04", offset: 0.55 }, { scale: "0.99", offset: 0.8 }, rest] : [from, rest];
-  return el.animate(frames, { duration, easing: spring ? "ease-out" : EASE });
+  const frames = spring
+    ? [{ ...from, easing: "ease-out" }, { opacity: 1, translate: "0 -2px", scale: "1.04", offset: 0.55, easing: "ease-in-out" }, { scale: "0.99", offset: 0.8, easing: "ease-in-out" }, rest]
+    : [from, rest];
+  return el.animate(frames, { duration, easing: spring ? "linear" : EASE });
 }
 
 /** Slides an element from its old rect to the one it has now (FLIP), above its neighbours while it moves. */
