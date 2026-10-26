@@ -144,7 +144,7 @@ export function Composer({ providers, selection, runtimeMode, running, draft, on
             {images.map((p) => (
               <li key={p.key} className="file-chip">
                 <img src={p.dataUrl} alt="" />
-                <span data-tooltip={p.file.name}>{p.file.name}</span>
+                <span data-tooltip={p.file.name} data-tooltip-clipped>{p.file.name}</span>
                 <Pressable aria-label={`Remove ${p.file.name}`} onClick={() => setImages((current) => current.filter((x) => x.key !== p.key))}>
                   <Icon name="x" />
                 </Pressable>
