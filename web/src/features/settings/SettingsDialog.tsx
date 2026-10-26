@@ -48,7 +48,7 @@ export function SettingsDialog({ theme, onThemeChange, background, onBackgroundC
           <span>Theme</span>
           <Segmented label="Theme" value={theme} options={THEME_SETTINGS.map((id) => ({ id, label: LABELS[id] }))} onChange={onThemeChange} />
         </div>
-        <div className="settings-row settings-row-top">
+        <div className="settings-row">
           <span>Desk background</span>
           <div className="bg-choices">
             <div className="swatches" role="radiogroup" aria-label="Background" onKeyDown={onRadioKeyDown}>

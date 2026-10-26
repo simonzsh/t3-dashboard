@@ -12,8 +12,8 @@ export function InstallSettings() {
   const view = installView({ standalone, installed, canPrompt, browser: detectBrowser(navigator.userAgent, navigator.maxTouchPoints) });
 
   return (
-    <div className="install-section">
-      <span className="install-title">Install as an app</span>
+    <div className="settings-row">
+      <span>Install as an app</span>
       {view === "prompt" ? (
         <Button variant="primary" loading={busy && "Installing…"} onClick={() => run(promptInstall)}>
           Install

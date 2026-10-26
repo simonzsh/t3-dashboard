@@ -17,15 +17,9 @@ export function UpdateSettings({ update, onUpdate }: Props) {
   return (
     <>
       <div className="settings-row">
-        <span className="version-line">
-          Version <code className="key-mask">{status.current}</code>
-        </span>
+        <span>Version</span>
         <span className="row-icons">
-          {update.error ? (
-            <span className="error about-note">{update.error}</span>
-          ) : (
-            checked && !canUpdate && <small className="about-note">{status.reason && status.current !== "dev" ? status.reason : versionNote(status)}</small>
-          )}
+          <code className="key-mask">{status.current}</code>
           <IconButton
             label="Check for updates"
             tooltip="Check for updates"
@@ -43,6 +37,11 @@ export function UpdateSettings({ update, onUpdate }: Props) {
             <Button variant="primary" size="sm" loading={update.updating && "Updating…"} onClick={onUpdate}>
               {`Update to v${status.latest}`}
             </Button>
+          )}
+          {update.error ? (
+            <span className="error about-note">{update.error}</span>
+          ) : (
+            checked && !canUpdate && <small className="about-note">{status.reason && status.current !== "dev" ? status.reason : versionNote(status)}</small>
           )}
         </span>
       </div>
