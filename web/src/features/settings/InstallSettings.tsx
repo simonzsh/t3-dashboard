@@ -2,7 +2,7 @@ import { useSyncExternalStore } from "react";
 import { Button } from "../../ui/index.ts";
 import { useAction } from "../../lib/useAction.ts";
 import { useMediaQuery } from "../../lib/useMediaQuery.ts";
-import { detectBrowser, installSteps, installView, isMac } from "./install.ts";
+import { detectBrowser, installSteps, installView, isMac, type InstallView } from "./install.ts";
 import { installState, promptInstall, subscribeInstall } from "./installPrompt.ts";
 
 export function InstallSettings() {
@@ -19,7 +19,7 @@ export function InstallSettings() {
           Install
         </Button>
       ) : (
-        <InstallSteps steps={installSteps(view, isMac(navigator.userAgent))} />
+        <InstallSteps view={view} />
       )}
       {view === "chromium" && !window.isSecureContext && <p className="install-steps error">This page needs HTTPS or localhost to be installable.</p>}
       {error && <span className="error">{error}</span>}
@@ -27,12 +27,16 @@ export function InstallSettings() {
   );
 }
 
-export function InstallSteps({ steps }: { steps: string[] }) {
-  return steps.length > 1 ? (
+/** Numbered only when they are taps to follow in order; elsewhere they are plain advice. */
+export function InstallSteps({ view }: { view: Exclude<InstallView, "prompt"> }) {
+  const steps = installSteps(view, isMac(navigator.userAgent));
+  return view === "ios" || view === "android" ? (
     <ol className="install-steps">
       {steps.map((s) => <li key={s}>{s}</li>)}
     </ol>
   ) : (
-    <p className="install-steps">{steps[0]}</p>
+    <div className="install-steps">
+      {steps.map((s) => <p key={s}>{s}</p>)}
+    </div>
   );
 }

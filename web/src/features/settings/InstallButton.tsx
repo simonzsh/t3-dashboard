@@ -1,7 +1,7 @@
 import { useRef, useState, useSyncExternalStore } from "react";
 import { Button, Icon, IconButton, Popover } from "../../ui/index.ts";
 import { useMediaQuery } from "../../lib/useMediaQuery.ts";
-import { detectBrowser, installSteps, installView, isMac } from "./install.ts";
+import { detectBrowser, installView } from "./install.ts";
 import { InstallSteps } from "./InstallSettings.tsx";
 import { installState, promptInstall, subscribeInstall } from "./installPrompt.ts";
 
@@ -28,7 +28,7 @@ export function InstallButton({ compact }: { compact: boolean }) {
       )}
       {open && view !== "prompt" && (
         <Popover anchor={anchor} align="end" className="menu install-note" role="dialog" onClose={() => setOpen(false)}>
-          <InstallSteps steps={installSteps(view, isMac(navigator.userAgent))} />
+          <InstallSteps view={view} />
         </Popover>
       )}
     </>
