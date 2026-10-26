@@ -6,6 +6,7 @@ export type ShortcutAction =
   | "desk"
   | "new-agent"
   | "settings"
+  | "search"
   | "close-window"
   | "toggle-fullscreen"
   | "minimize-window"
@@ -45,6 +46,8 @@ function windowShortcut(e: KeyInfo): WindowShortcut | null {
 }
 
 export function matchShortcut(e: KeyInfo, dialogOpen: boolean, onDesk = false): ShortcutAction | null {
+  // Before the guards: the search opens from a field or a dialog too, and App decides.
+  if ((e.ctrlKey || e.metaKey) && !e.altKey && e.key.toLowerCase() === "k") return "search";
   if (dialogOpen || e.ctrlKey || e.metaKey) return null;
   if (e.target && (TYPING.has(e.target.tagName) || e.target.isContentEditable)) return null;
   if (e.altKey) return onDesk ? windowShortcut(e) : null;

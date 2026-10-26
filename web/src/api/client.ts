@@ -10,6 +10,7 @@ import type {
   RespondBody,
   SendMessageBody,
   SettingsResult,
+  ThreadSearchResult,
   ThreadDetail,
   ThreadSettingsBody,
   UpdateStatus,
@@ -43,6 +44,8 @@ export function createApi(fetchImpl: Fetch) {
     checkUpdate: () => call<UpdateStatus>("/api/update/check", {}),
     applyUpdate: () => call<UpdateStatus>("/api/update/apply", {}),
     getHealth: () => call<HealthResult>("/api/health"),
+    searchThreads: (query: string, limit?: number) =>
+      call<ThreadSearchResult>(`/api/search?q=${encodeURIComponent(query)}${limit ? `&limit=${limit}` : ""}`),
     getThread: (id: string) => call<ThreadDetail>(t(id)),
     createThread: (b: CreateThreadBody) => call<CreateThreadResult>("/api/threads", b),
     sendMessage: (id: string, b: SendMessageBody) => call<OkResult>(`${t(id)}/messages`, b),

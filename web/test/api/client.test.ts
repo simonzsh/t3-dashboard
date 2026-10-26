@@ -126,3 +126,12 @@ test("update calls use GET for the status and POST for check and apply", async (
   await api.applyUpdate();
   assert.deepEqual(calls.map((c) => [c.url, c.init?.method ?? "GET"]), [["/api/update", "GET"], ["/api/update/check", "POST"], ["/api/update/apply", "POST"]]);
 });
+
+test("searchThreads encodes the query and sends the limit only when given", async () => {
+  const { calls, api } = fake(200, { matches: [] });
+  await api.searchThreads("a&b #c d");
+  await api.searchThreads("x", 20);
+  assert.equal(calls[0]?.url, "/api/search?q=a%26b%20%23c%20d");
+  assert.equal(calls[1]?.url, "/api/search?q=x&limit=20");
+  assert.equal(calls[0]?.init?.method ?? "GET", "GET");
+});
