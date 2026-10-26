@@ -5,7 +5,7 @@ import { createActions } from "../../src/domain/actions.ts";
 import { DomainError } from "../../src/domain/errors.ts";
 import type { ShellStore } from "../../src/domain/shellStore.ts";
 import { IntegrationError } from "../../src/integrations/errors.ts";
-import type { Command, RawConfig, RawProjection, T3Port } from "../../src/integrations/t3/schemas.ts";
+import type { Command, RawBackgroundTask, RawConfig, RawProjection, T3Port } from "../../src/integrations/t3/schemas.ts";
 
 const issue = {
   id: "issue-1",
@@ -22,14 +22,14 @@ const issue = {
 
 const searchMatch = (threadId: string) => ({ threadId, projectId: "project-1", source: "user" as const, snippet: `hit in ${threadId}`, messageCreatedAt: null });
 
-function stopHarness(projections: Record<string, RawProjection>, config: RawConfig = {}) {
+function stopHarness(projections: Record<string, RawProjection>, config: RawConfig = {}, tasks: RawBackgroundTask[] = []) {
   const commands: Command[] = [];
   const port = {
     threadProjection: async (id: string) => projections[id] ?? {},
     dispatch: async (command: Command) => void commands.push(command),
     getConfig: async () => config,
   } as unknown as T3Port;
-  const store = { thread: () => undefined, project: () => undefined, backgroundTasks: () => [] };
+  const store = { thread: () => undefined, project: () => undefined, backgroundTasks: () => tasks };
   let counter = 0;
   const actions = createActions({ port, store, board: { get: async () => ({ configured: true, ok: true, error: null, issues: [] }) }, newId: () => `id-${++counter}` });
   return { actions, commands, port };
@@ -69,6 +69,24 @@ const rejectsWith = (code: string) => (error: unknown) => error instanceof Domai
 
 test("interrupt without an active run is a conflict and sends nothing", async () => {
   const { actions, commands } = harness();
+  await assert.rejects(actions.interrupt("thread-1"), rejectsWith("conflict"));
+  assert.deepEqual(commands, []);
+});
+
+test("interrupt without an active run stops the thread when T3 can", async () => {
+  const { actions, commands } = stopHarness({ "thread-1": {} }, { environment: { capabilities: { threadStop: true } } });
+  await actions.interrupt("thread-1");
+  assert.deepEqual(commands, [{ type: "thread.stop", threadId: "thread-1", commandId: "id-1" }]);
+});
+
+test("interrupt without an active run nor threadStop interrupts the last run while background tasks wait", async () => {
+  const { actions, commands } = stopHarness({ "thread-1": { runs: [{ id: "r1", status: "completed" }, { id: "r2", status: "completed" }] } }, {}, [{ description: "Shell job" }]);
+  await actions.interrupt("thread-1");
+  assert.deepEqual(commands, [{ type: "run.interrupt", threadId: "thread-1", runId: "r2", holdQueue: true, commandId: "id-1" }]);
+});
+
+test("interrupt without an active run, threadStop or background tasks is a conflict", async () => {
+  const { actions, commands } = stopHarness({ "thread-1": { runs: [{ id: "r1", status: "completed" }] } });
   await assert.rejects(actions.interrupt("thread-1"), rejectsWith("conflict"));
   assert.deepEqual(commands, []);
 });

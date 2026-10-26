@@ -113,8 +113,21 @@ test("stopping the running demo subagent turns it failed", async () => {
   await Bun.sleep(0);
   const actions = createActions({ port, store, board: { get: async () => ({ configured: true, ok: true, error: null, issues: [] }) } });
   const threadId = store.state({ t3: "live", serverVersion: null, protocolMismatch: false, error: null, setup: null }, [], true).threads.find((thread) => thread.title.includes("heckout"))!.id;
-  const before = (await actions.threadDetail(threadId)).subagents.find((s) => s.stoppable)!;
+  const before = (await actions.threadDetail(threadId)).subagents.find((s) => s.stop === "subagent")!;
   await actions.stopSubagent(threadId, before.id);
   const after = (await actions.threadDetail(threadId)).subagents.find((s) => s.id === before.id)!;
-  assert.deepEqual([after.status, after.stoppable], ["failed", false]);
+  assert.deepEqual([after.status, after.stop], ["failed", null]);
+});
+
+test("interrupting the idle demo thread stops its background task", async () => {
+  const port = new DemoPort(() => NOW);
+  const store = syncedStore(port);
+  await Bun.sleep(0);
+  const actions = createActions({ port, store, board: { get: async () => ({ configured: true, ok: true, error: null, issues: [] }) } });
+  const threadId = "demo-dev-server";
+  const before = (await actions.threadDetail(threadId)).subagents;
+  assert.deepEqual(before.map((s) => [s.status, s.stop]), [["running", "thread"]]);
+  await actions.interrupt(threadId);
+  await Bun.sleep(0);
+  assert.deepEqual((await actions.threadDetail(threadId)).subagents, []);
 });

@@ -100,6 +100,8 @@ export function createActions(options: ActionsOptions): Actions {
     return runs.findLast((run) => RUNNING_RUN_STATUSES.has(run.status ?? ""))?.id ?? null;
   }
 
+  const canStopThread = async () => (await t3(port.getConfig())).environment?.capabilities?.threadStop === true;
+
   async function findIssue(issueId: string): Promise<LinearIssue> {
     let result = await board.get(false);
     let issue = result.issues.find((entry) => entry.id === issueId);
@@ -161,8 +163,12 @@ export function createActions(options: ActionsOptions): Actions {
 
     async interrupt(threadId) {
       const runId = await activeRunId(threadId);
-      if (!runId) throw new DomainError("conflict", "No active run to interrupt");
-      await send(interruptCommand(threadId, runId));
+      if (runId) return send(interruptCommand(threadId, runId));
+      // Like T3 Code: with no active run, stop the thread (and its background tasks).
+      if (await canStopThread()) return send(threadStopCommand(threadId));
+      const lastRunId = store.backgroundTasks(threadId).length ? (await t3(port.threadProjection(threadId))).runs?.at(-1)?.id : undefined;
+      if (!lastRunId) throw new DomainError("conflict", "No active run to interrupt");
+      await send(interruptCommand(threadId, lastRunId));
     },
 
     async stopSubagent(threadId, subagentId) {
@@ -175,7 +181,7 @@ export function createActions(options: ActionsOptions): Actions {
       // Like T3 Code: a refused subagent.stop must not leave the child thread running.
       await stop.catch(() => undefined);
       const child = subagent.childThreadId;
-      if ((await t3(port.getConfig())).environment?.capabilities?.threadStop === true) return send(threadStopCommand(child));
+      if (await canStopThread()) return send(threadStopCommand(child));
       const childRunId = await activeRunId(child);
       if (childRunId) await send(interruptCommand(child, childRunId));
     },

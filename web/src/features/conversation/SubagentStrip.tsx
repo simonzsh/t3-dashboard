@@ -12,7 +12,9 @@ function elapsed(s: SubagentInfo, now: number): string | null {
 }
 
 /** Each change of `reveal` opens the strip and focuses it (a subagent row of the run activity was clicked). */
-export function SubagentStrip({ subagents, reveal = 0, onStop }: { subagents: SubagentInfo[]; reveal?: number; onStop: (subagentId: string) => Promise<void> }) {
+const STOP_LABELS = { subagent: "Stop subagent", thread: "Stop background tasks" } as const;
+
+export function SubagentStrip({ subagents, reveal = 0, onStop }: { subagents: SubagentInfo[]; reveal?: number; onStop: (subagent: SubagentInfo) => Promise<void> }) {
   const running = subagents.filter((s) => s.status === "running").length;
   const [open, setOpen] = useState(false);
   const [now, setNow] = useState(() => Date.now());
@@ -65,8 +67,8 @@ export function SubagentStrip({ subagents, reveal = 0, onStop }: { subagents: Su
                 </span>
                 <span className="subagent-side">
                   <span className="subagent-time">{elapsed(s, now)}</span>
-                  {s.stoppable && (
-                    <IconButton label="Stop subagent" tooltip="Stop subagent" size="sm" variant="ghost" className="subagent-stop" disabled={stopping !== null} aria-busy={stopping === s.id || undefined} onClick={() => void action.run(() => onStop(s.id), (busy) => setStopping(busy ? s.id : null))}>
+                  {s.stop && (
+                    <IconButton label={STOP_LABELS[s.stop]} tooltip={STOP_LABELS[s.stop]} size="sm" variant="ghost" className="subagent-stop" disabled={stopping !== null} aria-busy={stopping === s.id || undefined} onClick={() => void action.run(() => onStop(s), (busy) => setStopping(busy ? s.id : null))}>
                       <Icon name="stop" />
                     </IconButton>
                   )}

@@ -54,6 +54,7 @@ Ces actions écrivent dans le vrai T3 Code. Faites-les une fois après une mise 
 5. Répondre à une question, puis cliquer sur « Dismiss ».
 6. Vérifier qu'un agent qui démarre ou finit change de carte dans l'onglet Agents sans recharger la page.
 7. Déléguer une tâche depuis une conversation, puis cliquer sur « Stop » à côté de sa ligne. Vérifier dans T3 Code que la tâche et son fil enfant sont arrêtés, et que le bouton disparaît.
+8. Lancer une commande shell en arrière-plan depuis une conversation, puis laisser le run finir. Vérifier que le bouton « Stop » du composer reste visible. Cliquer dessus, ou sur le bouton de la ligne de la tâche. Vérifier dans T3 Code que la tâche est arrêtée. Le dashboard arrête alors toutes les tâches de fond de la conversation.
 
 ## Architecture
 
