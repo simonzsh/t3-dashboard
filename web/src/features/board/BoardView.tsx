@@ -3,9 +3,10 @@ import type { BoardResult, DashboardProject, DashboardProvider, ModelDefaults } 
 import { useApi } from "../../api/ApiContext.tsx";
 import { boardColumns } from "./board.ts";
 import { boardNeedsKey, linearConnected } from "../settings/linearSettings.ts";
-import { Badge, Icon, IconButton, Loader } from "../../ui/index.ts";
+import { Icon, IconButton, Loader } from "../../ui/index.ts";
 import { AssignMenu } from "./AssignMenu.tsx";
 import { LinearSetupCard } from "./LinearSetupCard.tsx";
+import { PriorityIcon } from "./PriorityIcon.tsx";
 import { useAction } from "../../lib/useAction.ts";
 
 interface Props {
@@ -75,16 +76,12 @@ export function BoardView({ projects, providers, modelDefaults, version, onAssig
                     </h3>
                     {g.issues.map((i) => (
                       <article className="card" key={i.id}>
-                        <a href={i.url} target="_blank" rel="noreferrer" className="card-link">
-                          <span className="card-top">
-                            <span className="ident">{i.identifier}</span>
-                            {i.priority > 0 && (
-                              <Badge variant={i.priority === 1 ? "error" : i.priority === 2 ? "waiting" : "neutral"} className="prio">
-                                {i.priorityLabel}
-                              </Badge>
-                            )}
-                          </span>
-                          <span className="card-title">{i.title}</span>
+                        <span className="card-meta">
+                          <PriorityIcon priority={i.priority} label={i.priorityLabel} />
+                          <span className="ident">{i.identifier}</span>
+                        </span>
+                        <a href={i.url} target="_blank" rel="noreferrer" className="card-title" data-tooltip={i.title} data-tooltip-clipped="">
+                          {i.title}
                         </a>
                         <AssignMenu issue={i} projects={projects} providers={providers} modelDefaults={modelDefaults} onAssigned={onAssigned} onShowDesk={onShowDesk} />
                       </article>
