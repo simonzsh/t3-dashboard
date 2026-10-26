@@ -1,7 +1,7 @@
 // html_render pages read T3's theme variables; these map them to the dashboard palette.
 const PALETTES = {
-  light: { background: "#fefcf8", foreground: "#2b2218", muted: "#f8f4ec", mutedForeground: "#74675a", card: "#f8f4ec", border: "#e8dfcf", accent: "#b5532f", accentForeground: "#ffffff", success: "#4f8f5f", warning: "#c47f0a", destructive: "#b3382b", info: "#4f7f9a", code: "#f0e9dc" },
-  dark: { background: "#37322c", foreground: "#ede6da", muted: "#2b2723", mutedForeground: "#b3a998", card: "#2b2723", border: "#4a443c", accent: "#d9825b", accentForeground: "#2b2723", success: "#6fb583", warning: "#e0a030", destructive: "#e0705f", info: "#7fb0c9", code: "#322d28" },
+  light: { background: "#ffffff", foreground: "#313338", muted: "#f2f3f5", mutedForeground: "#5c5e66", card: "#f2f3f5", border: "#d4d7dc", accent: "#4752c4", accentForeground: "#ffffff", success: "#248046", warning: "#b57a00", destructive: "#da373c", info: "#0b72b8", code: "#e3e5e8" },
+  dark: { background: "#313338", foreground: "#dbdee1", muted: "#2b2d31", mutedForeground: "#949ba4", card: "#2b2d31", border: "#3f4147", accent: "#5865f2", accentForeground: "#ffffff", success: "#23a559", warning: "#f0b232", destructive: "#f23f43", info: "#00a8fc", code: "#1e1f22" },
 } as const;
 
 export type PageTheme = keyof typeof PALETTES;
