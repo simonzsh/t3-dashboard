@@ -29,7 +29,7 @@ export function installView({ standalone, installed, canPrompt, browser }: State
   return browser;
 }
 
-const ELSEWHERE = "Open this page in Chrome or Edge and click Install app.";
+const ELSEWHERE = "To install it, open this page in Chrome or Edge, then Settings > App > Install.";
 
 /** The steps for this device, one per line. */
 export function installSteps(view: Exclude<InstallView, "prompt">, mac: boolean): string[] {
@@ -44,7 +44,7 @@ export function installSteps(view: Exclude<InstallView, "prompt">, mac: boolean)
     case "safari":
       return ["In the menu bar, choose File > Add to Dock."];
     case "chromium":
-      return ["This browser does not install web apps.", ELSEWHERE, ...safari];
+      return ["This browser offers no install here: the app is already installed, or the browser does not support it (Dia, for example).", ELSEWHERE, ...safari];
     case "firefox":
       return ["Firefox does not install web apps.", ELSEWHERE, ...safari];
     case "other":

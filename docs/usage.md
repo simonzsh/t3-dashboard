@@ -98,8 +98,6 @@ Ouvrez Settings avec le bouton de l'en-tête ou la touche `,`. Une barre latéra
 - App : installe le dashboard comme application (Dock, Launchpad, menu Démarrer, écran d'accueil). Chrome et Edge installent en un clic. Les autres navigateurs affichent les étapes pour l'appareil : Safari sur Mac, iPhone et iPad, Android. Dia et Firefox n'installent pas d'app web.
 - Updates : version installée, recherche et installation d'une mise à jour. Voir [install.md](install.md#mises-à-jour).
 
-Le bouton Install app de l'en-tête fait la même chose depuis n'importe quel onglet.
-
 ## Raccourcis clavier
 
 Les raccourcis ne marchent pas pendant la saisie dans un champ ni quand une fenêtre de dialogue est ouverte.

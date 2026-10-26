@@ -28,7 +28,7 @@ export function InstallSettings() {
 }
 
 /** Numbered only when they are taps to follow in order; elsewhere they are plain advice. */
-export function InstallSteps({ view }: { view: Exclude<InstallView, "prompt"> }) {
+function InstallSteps({ view }: { view: Exclude<InstallView, "prompt"> }) {
   const steps = installSteps(view, isMac(navigator.userAgent));
   return view === "ios" || view === "android" ? (
     <ol className="install-steps">

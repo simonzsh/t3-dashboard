@@ -565,4 +565,3 @@ button.auto-row:hover { background: var(--surface-0); }
 .msg.pending small { opacity: 0.85; }
 .about-note { color: var(--text-secondary); font-size: 12px; white-space: nowrap; }
 .about-note.error { color: var(--danger); white-space: normal; }
-.install-note { max-width: 280px; padding: 10px 12px; }
