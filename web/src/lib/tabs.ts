@@ -6,6 +6,9 @@ export const TABS: ReadonlyArray<{ id: Tab; label: string; key: string }> = [
   { id: "board", label: "Board", key: "3" },
 ];
 
+// The header tab button, found by the animations that fly into it.
+export const tabSelector = (tab: Tab): string => `[data-tab="${tab}"]`;
+
 export const hashForTab = (tab: Tab): string => `#/${tab}`;
 
 // An empty or unknown hash falls back to Agents, so an old link never shows a blank page.

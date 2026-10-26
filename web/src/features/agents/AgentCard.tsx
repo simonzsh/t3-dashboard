@@ -1,8 +1,10 @@
+import { useRef } from "react";
 import type { AgentCard as Card } from "../../lib/threads.ts";
 import { pendingLabel, threadTitle } from "../../lib/threads.ts";
 import { hasFailed } from "../../../../shared/status.ts";
 import { cut, relativeTime } from "../../lib/format.ts";
-import { Badge, Icon, IconButton, Pressable } from "../../ui/index.ts";
+import { tabSelector } from "../../lib/tabs.ts";
+import { Badge, Icon, IconButton, Pressable, fly } from "../../ui/index.ts";
 import { OpenInT3 } from "../../lib/OpenInT3.tsx";
 import { ProviderIcon } from "../../lib/ProviderIcon.tsx";
 
@@ -19,9 +21,22 @@ interface Props {
 export function AgentCard({ card, now, onDesk, t3EnvironmentId, onOpen, onToggleDesk }: Props) {
   const { thread: t, status } = card;
   const failed = hasFailed(t);
+  const cardRef = useRef<HTMLButtonElement>(null);
+  // Adding without leaving the tab: the card flies to the Desk tab so the user sees where it went.
+  const flyToDesk = () => {
+    if (!onDesk && cardRef.current) fly(cardRef.current, document.querySelector(tabSelector("desk")));
+  };
   return (
     <div className="agent-wrap">
-      <Pressable className={`agent ${status}${onDesk ? " on-desk" : ""}`} tooltip={threadTitle(t)} onClick={(e) => onOpen(t.id, e.shiftKey)}>
+      <Pressable
+        ref={cardRef}
+        className={`agent ${status}${onDesk ? " on-desk" : ""}`}
+        tooltip={threadTitle(t)}
+        onClick={(e) => {
+          if (e.shiftKey) flyToDesk();
+          onOpen(t.id, e.shiftKey);
+        }}
+      >
         <span className="agent-head">
           <ProviderIcon provider={t.provider} />
           <span className="agent-title">{threadTitle(t)}</span>
@@ -47,7 +62,10 @@ export function AgentCard({ card, now, onDesk, t3EnvironmentId, onOpen, onToggle
         className={`desk-toggle${onDesk ? " on" : ""}`}
         aria-pressed={onDesk}
         tooltip={onDesk ? "On Desk (click to remove)" : "Add to Desk"}
-        onClick={() => onToggleDesk(t.id)}
+        onClick={() => {
+          flyToDesk();
+          onToggleDesk(t.id);
+        }}
       >
         <Icon name={onDesk ? "check" : "plus"} />
       </IconButton>
