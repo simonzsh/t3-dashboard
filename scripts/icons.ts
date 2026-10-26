@@ -2,10 +2,11 @@ import { writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { deflateSync } from "node:zlib";
 
-// Draws the star of web/apple-touch-icon.png: writes the SVG source and the PNGs of the web app manifest.
+// Draws the star: writes the SVG source, the PNGs of the web app manifest and the web favicons.
 const OUT = join(import.meta.dir, "..", "src", "server", "pwa");
-const BACKGROUND = "#f8f4ec";
-const RAY = "#d97757";
+const WEB = join(import.meta.dir, "..", "web");
+const BACKGROUND = "#1e1f22";
+const RAY = "#5865f2";
 const ANGLES = [0, 32, 70, 105, 140, 180, 215, 250, 290, 325];
 // On a 512 canvas: rays run from radius INNER to OUTER with round ends of WIDTH.
 const [INNER, OUTER, WIDTH] = [54, 131, 34];
@@ -90,3 +91,5 @@ writeFileSync(join(OUT, "icon.svg"), svg());
 writeFileSync(join(OUT, "icon-192.png"), raster(192, 1));
 writeFileSync(join(OUT, "icon-512.png"), raster(512, 1));
 writeFileSync(join(OUT, "icon-maskable-512.png"), raster(512, MASKABLE_SCALE));
+writeFileSync(join(WEB, "favicon-32.png"), raster(32, 1));
+writeFileSync(join(WEB, "apple-touch-icon.png"), raster(180, 1));
