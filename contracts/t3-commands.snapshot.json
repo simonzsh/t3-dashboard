@@ -74,6 +74,11 @@
     "settledAt": "optional",
     "threadId": "required"
   },
+  "thread.unsettle": {
+    "commandId": "required",
+    "reason": "required: user",
+    "threadId": "required"
+  },
   "thread.user-input.dismiss": {
     "commandId": "required",
     "requestId": "required",

@@ -17,8 +17,9 @@ L'onglet Agents montre une carte par session T3 Code.
 - Un clic sur une carte ouvre la conversation sur le Desk. Maj + clic l'ajoute au Desk sans changer d'onglet.
 - Le bouton « Add to Desk » ajoute la carte au Desk. Un deuxième clic la retire.
 - Le lien « Open in T3 Code » ouvre la session dans T3 Code.
-- Les boutons sont en bas à droite de la carte, après l'état et l'heure : T3 (icône seule), Archive, puis Add to Desk.
-- Le bouton « Archive » (icône de boîte) range un agent terminé dans « settled », comme T3 Code. Il n'existe pas pour un agent qui travaille ou qui attend.
+- Les boutons sont en bas à droite de la carte, après l'état et l'heure : T3 (icône seule), Settle, puis Add to Desk.
+- Le bouton « Settle » (icône de boîte) range un agent terminé dans « Recently settled », comme T3 Code. Il n'existe pas pour un agent qui travaille ou qui attend.
+- Dans « Recently settled », le bouton « Unsettle » remet l'agent dans la liste.
 
 Les cartes changent d'état en direct, sans recharger la page.
 

@@ -47,6 +47,7 @@ export function createApi(fetchImpl: Fetch) {
     createThread: (b: CreateThreadBody) => call<CreateThreadResult>("/api/threads", b),
     sendMessage: (id: string, b: SendMessageBody) => call<OkResult>(`${t(id)}/messages`, b),
     settle: (id: string) => call<OkResult>(`${t(id)}/settle`, {}),
+    unsettle: (id: string) => call<OkResult>(`${t(id)}/unsettle`, {}),
     interrupt: (id: string) => call<OkResult>(`${t(id)}/interrupt`, {}),
     updateSettings: (id: string, b: ThreadSettingsBody) => call<OkResult>(`${t(id)}/settings`, b),
     respond: (id: string, requestId: string, b: RespondBody) =>

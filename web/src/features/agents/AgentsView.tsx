@@ -14,7 +14,7 @@ interface Props {
   deskIds: ReadonlySet<string>;
   onOpen: (id: string, addOnly: boolean) => void;
   onToggleDesk: (id: string) => void;
-  onSettle: (id: string) => Promise<unknown>;
+  onSettle: (id: string, settle: boolean) => Promise<unknown>;
   automations: AutomationsResult | null;
   automationsError: string | null;
 }

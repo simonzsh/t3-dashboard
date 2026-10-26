@@ -17,14 +17,14 @@ interface Props {
   // addOnly: put the agent on the Desk without leaving the current tab.
   onOpen: (id: string, addOnly: boolean) => void;
   onToggleDesk: (id: string) => void;
-  onSettle: (id: string) => Promise<unknown>;
+  onSettle: (id: string, settle: boolean) => Promise<unknown>;
 }
 
 export function AgentCard({ card, now, onDesk, t3EnvironmentId, onOpen, onToggleDesk, onSettle }: Props) {
   const { thread: t, status } = card;
   const failed = hasFailed(t);
   const { busy, error, run } = useAction();
-  // T3 refuses to settle a thread that runs or waits.
+  // T3 refuses to settle a thread that runs or waits; unsettling is always allowed.
   const canSettle = !t.settled && (status === "finished" || status === "idle");
   const cardRef = useRef<HTMLButtonElement>(null);
   // Adding without leaving the tab: the card flies to the Desk tab so the user sees where it went.
@@ -32,7 +32,7 @@ export function AgentCard({ card, now, onDesk, t3EnvironmentId, onOpen, onToggle
     if (!onDesk && cardRef.current) fly(cardRef.current, document.querySelector(tabSelector("desk")));
   };
   return (
-    <div className={`agent-wrap${canSettle ? " can-settle" : ""}`}>
+    <div className={`agent-wrap${canSettle || t.settled ? " can-settle" : ""}`}>
       <Pressable
         ref={cardRef}
         className={`agent ${status}${onDesk ? " on-desk" : ""}`}
@@ -60,9 +60,16 @@ export function AgentCard({ card, now, onDesk, t3EnvironmentId, onOpen, onToggle
       </Pressable>
       <div className="agent-actions">
         <OpenInT3 environmentId={t3EnvironmentId} threadId={t.id} className="card-open-t3 sm" />
-        {canSettle && (
-          <IconButton label="Archive" size="sm" variant={error ? "danger" : "secondary"} disabled={busy} tooltip={error ?? "Archive (settle in T3 Code)"} onClick={() => run(() => onSettle(t.id))}>
-            <Icon name="archive" />
+        {(canSettle || t.settled) && (
+          <IconButton
+            label={t.settled ? "Unsettle" : "Settle"}
+            size="sm"
+            variant={error ? "danger" : "secondary"}
+            disabled={busy}
+            tooltip={error ?? (t.settled ? "Unsettle" : "Settle")}
+            onClick={() => run(() => onSettle(t.id, !t.settled))}
+          >
+            <Icon name={t.settled ? "unarchive" : "archive"} />
           </IconButton>
         )}
         <IconButton

@@ -154,7 +154,7 @@ export function App() {
               deskIds={deskIds}
               onOpen={(id, addOnly) => openOnDesk(id, !addOnly)}
               onToggleDesk={toggleOnDesk}
-              onSettle={api.settle}
+              onSettle={(id, settle) => (settle ? api.settle(id) : api.unsettle(id))}
               automations={automations.result}
               automationsError={automations.error}
             />

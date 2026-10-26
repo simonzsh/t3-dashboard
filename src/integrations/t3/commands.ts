@@ -61,4 +61,6 @@ export const userInputCommand = (threadId: string, requestId: string, answers: U
 // Same as the Settle action of the T3 Code sidebar; T3 refuses it while the thread runs or waits.
 export const settleCommand = (threadId: string): UnsentCommand => ({ type: "thread.settle", threadId });
 
+export const unsettleCommand = (threadId: string): UnsentCommand => ({ type: "thread.unsettle", threadId, reason: "user" });
+
 export const dismissCommand = (threadId: string, requestId: string): UnsentCommand => ({ type: "thread.user-input.dismiss", threadId, requestId });

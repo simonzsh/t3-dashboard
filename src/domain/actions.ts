@@ -7,6 +7,7 @@ import {
   createThreadCommands,
   dismissCommand,
   settleCommand,
+  unsettleCommand,
   interruptCommand,
   messageCommand,
   modelSelectionCommand,
@@ -42,6 +43,7 @@ export interface Actions {
   respond(threadId: string, requestId: string, answer: RespondBody): Promise<void>;
   dismiss(threadId: string, requestId: string): Promise<void>;
   settle(threadId: string): Promise<void>;
+  unsettle(threadId: string): Promise<void>;
   assign(body: Omit<AssignIssueBody, "attachments">, images: ImageUpload[]): Promise<string>;
   /** An image or page of the thread, fetched from T3. */
   asset(threadId: string, request: AssetRequest, range?: string): Promise<{ response: Response; html: boolean }>;
@@ -162,6 +164,10 @@ export function createActions(options: ActionsOptions): Actions {
 
     async settle(threadId) {
       await send(settleCommand(threadId));
+    },
+
+    async unsettle(threadId) {
+      await send(unsettleCommand(threadId));
     },
 
     async assign(body, images) {

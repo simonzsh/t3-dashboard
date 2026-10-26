@@ -12,6 +12,7 @@ import {
   createThreadCommands,
   dismissCommand,
   settleCommand,
+  unsettleCommand,
   interruptCommand,
   messageCommand,
   modelSelectionCommand,
@@ -55,6 +56,7 @@ export function samplePayloads(): Record<string, Record<string, unknown>[]> {
     userInputCommand("t", "q", { a: "b" }),
     dismissCommand("t", "q"),
     settleCommand("t"),
+    unsettleCommand("t"),
   ];
   const payloads: Record<string, Record<string, unknown>[]> = {};
   for (const command of commands) (payloads[String(command.type)] ??= []).push({ ...command, commandId: "c" });

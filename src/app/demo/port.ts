@@ -71,6 +71,9 @@ export class DemoPort implements T3Port {
       case "thread.settle":
         Object.assign(thread, { settledOverride: "settled", settledAt: at });
         break;
+      case "thread.unsettle":
+        Object.assign(thread, { settledOverride: "active", settledAt: null, unsettledAt: at });
+        break;
       case "thread.model-selection.set":
         thread.modelSelection = command.modelSelection as RawThread["modelSelection"];
         break;
