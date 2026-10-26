@@ -42,7 +42,7 @@ export function DeskWindow({ id, thread, projectTitle, missing, focused, maximiz
     >
       <header className="desk-window-head">
         {thread && <ProviderIcon provider={thread.provider} />}
-        <span className="dw-title" data-tooltip={title}>
+        <span className="dw-title" data-tooltip={title} data-tooltip-clipped>
           {title}
         </span>
         {projectTitle && <span className="dw-project">{projectTitle}</span>}

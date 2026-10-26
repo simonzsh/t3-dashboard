@@ -17,7 +17,7 @@ function Row({ item, onShowSubagents }: { item: ActivityItem; onShowSubagents: (
           {item.text}
         </Button>
       ) : (
-        <span className="activity-text" data-tooltip={item.text}>
+        <span className="activity-text" data-tooltip={item.text} data-tooltip-clipped>
           {item.text}
           {item.detail && <span className="activity-detail"> {item.detail}</span>}
         </span>

@@ -8,6 +8,9 @@ interface Shown {
   shortcut?: string;
 }
 
+// Tooltips that repeat the visible text only help when the ellipsis or line clamp hides part of it.
+const isClipped = (el: HTMLElement) => el.scrollWidth > el.clientWidth || el.scrollHeight > el.clientHeight;
+
 /** One layer for the whole app: it follows the pointer and the keyboard focus over `data-tooltip` elements. */
 export function TooltipLayer() {
   const id = useId();
@@ -17,7 +20,7 @@ export function TooltipLayer() {
   useEffect(() => {
     const show = (target: EventTarget | null) => {
       const anchor = target instanceof Element ? target.closest<HTMLElement>("[data-tooltip]") : null;
-      if (!anchor || window.matchMedia("(hover: none)").matches) return setShown(null);
+      if (!anchor || window.matchMedia("(hover: none)").matches || (anchor.hasAttribute("data-tooltip-clipped") && !isClipped(anchor))) return setShown(null);
       setShown((now) => (now?.anchor === anchor ? now : { anchor, text: anchor.dataset.tooltip!, shortcut: anchor.dataset.shortcut }));
     };
     const hide = () => setShown(null);

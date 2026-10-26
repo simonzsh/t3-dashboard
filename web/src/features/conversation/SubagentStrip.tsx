@@ -51,11 +51,11 @@ export function SubagentStrip({ subagents, reveal = 0 }: { subagents: SubagentIn
               <li key={s.id} className={`subagent ${s.status}`}>
                 <span className="subagent-dot" role="img" aria-label={STEP_LABELS[s.status]} data-tooltip={STEP_LABELS[s.status]} />
                 <span className="subagent-text">
-                  <span className="subagent-title" data-tooltip={s.title}>
+                  <span className="subagent-title" data-tooltip={s.title} data-tooltip-clipped>
                     {s.title}
                   </span>
                   {detail && (
-                    <span className="subagent-detail" data-tooltip={detail}>
+                    <span className="subagent-detail" data-tooltip={detail} data-tooltip-clipped>
                       {detail}
                     </span>
                   )}
