@@ -140,7 +140,7 @@ export function DeskView({ desk, dispatch, threads, projects, background, t3Envi
     return (
       <span key={w.id} className="desk-chip-wrap">
         {button}
-        <IconButton size="sm" variant="ghost" className="desk-chip-close" label="Close" onClick={() => dispatch({ type: "close", id: w.id })}>
+        <IconButton size="sm" variant="ghost" className="desk-chip-close" label="Remove from Desk" tooltip="Remove from Desk" onClick={() => dispatch({ type: "close", id: w.id })}>
           <Icon name="x" />
         </IconButton>
       </span>
