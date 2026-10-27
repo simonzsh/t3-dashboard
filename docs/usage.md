@@ -13,7 +13,7 @@ L'onglet Agents montre une carte par session T3 Code.
 - Les groupes suivent l'ordre alphabétique des projets. Cet ordre ne change jamais. Un point jaune près du nom signale un agent en attente dans le groupe.
 - Une carte montre le fournisseur (Claude ou Codex), le titre, l'état et l'heure de la dernière activité. Si l'agent attend une approbation ou une réponse, la carte le dit.
 - Un agent terminé (« settled » dans T3 Code) va dans une section repliée sous son groupe. Il disparaît après 3 jours sans activité.
-- Les sessions archivées ou supprimées, les sous-agents et les fils des routines t3-agent n'apparaissent pas.
+- Les sessions archivées ou supprimées, les sous-agents et les fils des tâches planifiées (voir [Automatisations](#automatisations)) n'apparaissent pas.
 - Un clic sur une carte ouvre la conversation sur le Desk. Maj + clic l'ajoute au Desk sans changer d'onglet.
 - Le bouton « Add to Desk » ajoute la carte au Desk. Un deuxième clic la retire.
 - Le lien « Open in T3 Code » ouvre la session dans T3 Code.
@@ -84,14 +84,39 @@ Le souvenir du projet reste dans le `localStorage` du navigateur, pas sur le ser
 
 ## Automatisations
 
-La colonne de droite de l'onglet Agents liste les routines et les rappels des assistants t3-agent. Elle apparaît seulement si un assistant existe dans `~/.config/t3-agent`. Elle ne fait que lire.
+La colonne de droite de l'onglet Agents liste les tâches planifiées de T3 Code. Elle apparaît quand T3 Code est connecté. Elle se met à jour toutes les 30 s tant que l'onglet est ouvert.
 
-- Une routine est un job avec `schedule.cron`. La liste montre le libellé, la prochaine exécution et l'état du dernier run.
-- Le fil d'une routine n'apparaît pas dans la grille des agents.
-- Un rappel est un job avec `schedule.at`. Un rappel passé disparaît.
-- Un fichier de job illisible est ignoré et compté comme un problème.
+- Une routine tourne à chaque passage. La ligne montre le projet, la cadence, le prochain passage et l'état du dernier passage. Une tâche en pause affiche « paused ».
+- Un rappel est une tâche dont le titre commence par « Reminder: » ou « Rappel : ». La ligne montre la date du rappel. Le préfixe n'est pas affiché.
+- Un clic sur une ligne ouvre le fil de la tâche.
+- Si T3 Code est trop ancien pour lister les tâches, la colonne montre l'erreur. La grille des agents marche toujours.
 
-Pour chaque `*.json` du dossier, le serveur lit seulement `workspace` et `projectId`. Il ne lit, ne renvoie et ne logge jamais le `token`.
+### Créer un rappel ou une routine
+
+1. Écrivez la demande dans le champ « New reminder or routine… » en haut de la colonne. Exemple : « Chaque jour ouvré à 9 h, résume mes tickets Linear ».
+2. Choisissez un projet, ou laissez « No project ». Le dashboard garde ce choix pour la fois suivante.
+3. Appuyez sur Entrée, ou cliquez sur « Add ».
+
+Le dashboard crée un fil avec le modèle par défaut du projet. Ce fil demande à l'agent de créer la tâche avec l'outil `schedule_task` de T3 Code. La ligne apparaît dans la colonne après la création. Le bouton « Open » ouvre le fil.
+
+- Une demande ponctuelle devient un rappel. L'agent met le préfixe « Reminder: » au titre. À la fin, il supprime la tâche.
+- Une demande répétée devient une routine.
+- Le fil créé par le champ reste dans la grille tant que l'agent prépare la tâche. Quand la tâche existe, le fil sort de la grille et s'ouvre depuis la colonne. Quand un rappel a passé et que sa tâche est supprimée, le fil revient dans la grille avec le résultat.
+- Le dashboard garde la liste de ces fils dans `~/.config/t3-dashboard/automation-threads.json`.
+
+### Depuis une conversation
+
+Vous pouvez aussi demander une tâche dans une conversation normale. L'agent la lie à cette conversation. Elle reste dans la grille. Pour un rappel unique, écrivez : « Crée un rappel : le titre commence par "Reminder: ", et supprime la tâche après le passage ».
+
+### Fils des tâches sans conversation liée
+
+Une tâche sans fil lié crée un nouveau fil à chaque passage. Le dashboard cache ces fils de la grille. Il les reconnaît par le projet, le titre, l'origine et la date de création de la tâche. Le fil du dernier passage s'ouvre depuis la ligne de la tâche.
+
+### Limites de T3 Code
+
+- L'intervalle minimum est de 1 minute.
+- Une heure fixe suit l'heure locale du serveur T3 Code. T3 Code n'a pas de fuseau horaire par tâche.
+- Si l'agent ne supprime pas la tâche d'un rappel, le rappel se répète.
 
 ## Settings
 

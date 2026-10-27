@@ -36,7 +36,7 @@ Un lancement manuel du workflow construit les binaires sans publier de release.
 ```sh
 bun run check       # types et tests, serveur et interface
 bun run smoke       # construit le binaire et vérifie qu'il sert l'interface
-bun run contracts   # lit T3 Code, Linear, GitHub et t3-agent, sans rien écrire
+bun run contracts   # lit T3 Code, Linear et GitHub, sans rien écrire
 ```
 
 - La CI (`ci.yml`) lance `bun run check` et `bun run smoke` sur chaque PR et sur `main`.
@@ -55,6 +55,8 @@ Ces actions écrivent dans le vrai T3 Code. Faites-les une fois après une mise 
 6. Vérifier qu'un agent qui démarre ou finit change de carte dans l'onglet Agents sans recharger la page.
 7. Déléguer une tâche depuis une conversation, puis cliquer sur « Stop » à côté de sa ligne. Vérifier dans T3 Code que la tâche et son fil enfant sont arrêtés, et que le bouton disparaît.
 8. Lancer une commande shell en arrière-plan depuis une conversation, puis laisser le run finir. Vérifier que le bouton « Stop » du composer reste visible. Cliquer dessus, ou sur le bouton de la ligne de la tâche. Vérifier dans T3 Code que la tâche est arrêtée. Le dashboard arrête alors toutes les tâches de fond de la conversation.
+9. Dans l'onglet Agents, vérifier que la colonne « Automations » liste les tâches planifiées de T3 Code (`scheduledTasks.list`). Un T3 trop ancien affiche une erreur dans la colonne, et la grille marche toujours.
+10. Écrire « Reminder: dans 2 minutes, dis bonjour » dans le champ de la colonne, puis envoyer. Vérifier que l'agent crée la tâche avec `schedule_task`, que le fil sort de la grille, puis que le rappel revient dans la grille après son passage.
 
 ## Architecture
 
@@ -67,10 +69,10 @@ Le code a trois parties : le serveur (`src/`), l'interface (`web/src/`) et le co
 | `main.ts` | Point d'entrée. Il lit les arguments et lance la bonne commande. |
 | `app/` | Racine de composition. `start.ts` crée les vrais clients et les relie. `deps.ts` donne les vrais accès au disque et aux processus. |
 | `cli/` | Commandes qui s'exécutent une fois : arguments, installation, service, mise à jour du binaire. |
-| `config/` | Variables d'environnement, chemins, version et fichiers du dashboard (clé Linear, jeton, PID). |
+| `config/` | Variables d'environnement, chemins, version et fichiers du dashboard (clé Linear, jeton, PID, fils des automatisations). |
 | `server/` | HTTP, SSE et site statique. Le routeur lit et vérifie les requêtes (`validate.ts`), puis appelle le domaine. `htmlRender.ts` applique le thème aux pages `html_render`. |
 | `domain/` | Règles et état : synchronisation avec T3, classement des fils, détail d'un fil, actions, jeton, board Linear, réglages, mises à jour, automatisations, icônes des projets, modèles. |
-| `integrations/` | Tous les appels vers un autre système : T3 Code, Linear, GitHub et les fichiers t3-agent. Chaque réponse passe par un schéma. |
+| `integrations/` | Tous les appels vers un autre système : T3 Code, Linear et GitHub. Chaque réponse passe par un schéma. |
 
 ### Interface (`web/src/`)
 
