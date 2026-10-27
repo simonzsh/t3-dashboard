@@ -1,6 +1,8 @@
 import type { Automation, AutomationsResult, DashboardThread } from "../../../../shared/api.ts";
 import { lastRunState, nextLabel, reminderDate, splitAutomations } from "./automations.ts";
-import { Loader, Pressable } from "../../ui/index.ts";
+import { agentStatus } from "../../../../shared/status.ts";
+import { Badge, Loader, Pressable } from "../../ui/index.ts";
+import { StatusBadge } from "./StatusBadge.tsx";
 
 interface Props {
   result: AutomationsResult | null;
@@ -24,10 +26,19 @@ function Row({ a, thread, now, onOpen }: { a: Automation; thread: DashboardThrea
       </span>
       <span className="auto-side">
         <span className="auto-next">{a.enabled ? nextLabel(a.nextRunAt, now) : "paused"}</span>
-        {last?.kind === "waiting" && <span className="auto-state waiting">● waiting for your reply</span>}
-        {last?.kind === "running" && <span className="auto-state running">● running</span>}
-        {last?.kind === "failed" && <span className="auto-state failed" data-tooltip={last.error ?? "The last run failed"}>⚠</span>}
-        {last?.kind === "done" && <span className="auto-state done">✓ {last.at}</span>}
+        {last?.kind === "waiting" && <Badge variant="waiting">Waiting</Badge>}
+        {last?.kind === "running" && (
+          <Badge variant="running">
+            <span className="pulse" aria-hidden="true" />
+            Running
+          </Badge>
+        )}
+        {last?.kind === "failed" && (
+          <span data-tooltip={last.error ?? "The last run failed"}>
+            <Badge variant="error">Failed</Badge>
+          </span>
+        )}
+        {last?.kind === "done" && <Badge variant="done">Finished {last.at}</Badge>}
       </span>
     </>
   );
@@ -35,7 +46,7 @@ function Row({ a, thread, now, onOpen }: { a: Automation; thread: DashboardThrea
   return (
     <li>
       {threadId ? (
-        <Pressable className="auto-row" onClick={(e) => onOpen(threadId, e.shiftKey)}>
+        <Pressable className={`auto-row${last ? ` ${last.kind}` : ""}`} onClick={(e) => onOpen(threadId, e.shiftKey)}>
           {body}
         </Pressable>
       ) : (
@@ -46,16 +57,16 @@ function Row({ a, thread, now, onOpen }: { a: Automation; thread: DashboardThrea
 }
 
 function SetupRow({ thread, onOpen }: { thread: DashboardThread; onOpen: (id: string, addOnly: boolean) => void }) {
-  const waiting = thread.pending !== null;
+  const status = agentStatus(thread);
   return (
     <li>
-      <Pressable className="auto-row" onClick={(e) => onOpen(thread.id, e.shiftKey)}>
+      <Pressable className={`auto-row ${status === "working" ? "running" : status}`} onClick={(e) => onOpen(thread.id, e.shiftKey)}>
         <span className="auto-main">
           <span className="auto-title">{thread.title}</span>
           <span className="auto-sub">Setting up</span>
         </span>
         <span className="auto-side">
-          <span className={`auto-state ${waiting ? "waiting" : "running"}`}>{waiting ? "● waiting for your reply" : "● running"}</span>
+          <StatusBadge thread={thread} status={status} />
         </span>
       </Pressable>
     </li>

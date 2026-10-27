@@ -429,19 +429,17 @@ ol.install-steps { padding-left: 18px; }
 .settled-head + .grid { margin-top: 8px; }
 .automations { max-height: 100%; overflow-y: auto; box-sizing: border-box; display: flex; flex-direction: column; gap: 20px; padding: 16px; border-radius: 14px; background: var(--surface-1); border: 1px solid var(--line); box-shadow: var(--shadow); }
 .auto-heading { margin: 0; font-size: 15px; }
-.auto-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
-.auto-list li + li { border-top: 1px solid var(--line); }
-.auto-row { display: flex; gap: 12px; justify-content: space-between; align-items: flex-start; width: 100%; padding: 10px 4px; border: 0; border-radius: 8px; background: none; text-align: left; }
+.auto-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.auto-row { position: relative; display: flex; gap: 12px; justify-content: space-between; align-items: flex-start; width: 100%; padding: 10px 12px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface-1); box-shadow: var(--shadow); text-align: left; transition: transform 0.12s, box-shadow 0.12s, border-color 0.12s; }
 button.auto-row { cursor: pointer; }
-button.auto-row:hover { background: var(--surface-0); }
+button.auto-row:hover { transform: translateY(-1px); }
+.auto-row.waiting { border-color: var(--warn); background: color-mix(in srgb, var(--warn-bg) 55%, var(--surface-1)); }
+.auto-row.running { border-color: color-mix(in srgb, var(--work) 45%, var(--line)); overflow: hidden; }
+.auto-row.running::after { content: ""; position: absolute; left: 0; bottom: 0; height: 3px; width: 50%; background: linear-gradient(90deg, transparent, var(--work), transparent); will-change: transform; animation: shimmer 1.8s ease-in-out infinite; }
 .auto-main, .auto-side { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
 .auto-side { flex: none; align-items: flex-end; font-size: 12px; }
 .auto-title { font-weight: 500; overflow-wrap: anywhere; }
 .auto-sub, .auto-next, .auto-empty { color: var(--text-secondary); font-size: 12px; }
-.auto-state.waiting { color: var(--warn); font-weight: 600; }
-.auto-state.running { color: var(--work-text); }
-.auto-state.failed { color: var(--err-text); }
-.auto-state.done { color: var(--done-text); }
 .auto-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
 .tabs .count { font-size: 11px; padding: 0 6px; background: color-mix(in srgb, var(--accent) 18%, transparent); color: var(--accent); font-weight: 600; }
 .tab-alert { width: 8px; height: 8px; border-radius: 50%; background: var(--warn); box-shadow: 0 0 0 2px color-mix(in srgb, var(--warn) 30%, transparent); }
@@ -617,9 +615,9 @@ button.auto-row:hover { background: var(--surface-0); }
 .key-mask { font: 12px/1 var(--font-mono); padding: 4px 7px; border-radius: 6px; border: 1px solid var(--line); color: var(--text-secondary); background: var(--surface-0); }
 /* After every animated rule, so it wins on equal specificity. */
 @media (prefers-reduced-motion: reduce) {
-  .pulse, .agent.working::after, .desk-window.state-running .desk-window-head::after, .streaming, .subagent.running .subagent-dot, .activity-item.running .icon, .spinning { animation: none; }
+  .pulse, .agent.working::after, .auto-row.running::after, .desk-window.state-running .desk-window-head::after, .streaming, .subagent.running .subagent-dot, .activity-item.running .icon, .spinning { animation: none; }
   .loader svg { animation: none; }
-  .agent { transition: none; }
+  .agent, .auto-row { transition: none; }
 }
 .msg.pending { opacity: 0.6; }
 .msg.pending small { opacity: 0.85; }

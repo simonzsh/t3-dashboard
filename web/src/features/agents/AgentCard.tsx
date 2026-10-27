@@ -1,14 +1,14 @@
 import { memo, useRef } from "react";
 import type { AgentCard as Card } from "../../lib/threads.ts";
-import { pendingLabel, threadTitle } from "../../lib/threads.ts";
-import { hasFailed } from "../../../../shared/status.ts";
+import { threadTitle } from "../../lib/threads.ts";
 import { relativeTime } from "../../lib/format.ts";
 import { tabSelector } from "../../lib/tabs.ts";
-import { Badge, Icon, IconButton, Pressable, fly } from "../../ui/index.ts";
+import { Icon, IconButton, Pressable, fly } from "../../ui/index.ts";
 import { OpenInT3 } from "../../lib/OpenInT3.tsx";
 import { ProviderIcon } from "../../lib/ProviderIcon.tsx";
 import { useAction } from "../../lib/useAction.ts";
 import { sameCardProps } from "./cardProps.ts";
+import { StatusBadge } from "./StatusBadge.tsx";
 
 interface Props {
   card: Card;
@@ -23,7 +23,6 @@ interface Props {
 
 function AgentCardView({ card, now, onDesk, t3EnvironmentId, onOpen, onToggleDesk, onSettle }: Props) {
   const { thread: t, status } = card;
-  const failed = hasFailed(t);
   const { busy, error, run } = useAction();
   // T3 refuses to settle a thread that runs or waits; unsettling is always allowed.
   const canSettle = !t.settled && (status === "finished" || status === "idle");
@@ -57,14 +56,7 @@ function AgentCardView({ card, now, onDesk, t3EnvironmentId, onOpen, onToggleDes
           <span className="agent-title">{threadTitle(t)}</span>
         </span>
         <span className="agent-foot">
-          {status === "waiting" && <Badge variant="waiting">{t.pending ? pendingLabel(t.pending.category) : "Waiting"}</Badge>}
-          {status === "working" && (
-            <Badge variant="running">
-              <span className="pulse" aria-hidden="true" />
-              Running
-            </Badge>
-          )}
-          {status === "finished" && <Badge variant={failed ? "error" : "done"}>{failed ? "Error" : "Finished"}</Badge>}
+          <StatusBadge thread={t} status={status} />
           {t.pinned && <Icon name="pin" label="Pinned" className="agent-pin" />}
           <span className="agent-meta">{relativeTime(t.lastActivityAt, now)}</span>
         </span>
