@@ -134,6 +134,17 @@ test("setSizes keeps one layout per window count", () => {
   assert.deepEqual(s.sizes["4"]?.rows, { r0: 40, r1: 60 });
 });
 
+test("a change in the visible window count resets the grid to equal tracks", () => {
+  let s = open(EMPTY_DESK, "a", "b", "c", "d");
+  s = deskReducer(s, { type: "setSizes", count: 4, sizes: { columns: { c0: 50, c1: 50 }, rows: { r0: 60, r1: 40 } } });
+  s = deskReducer(s, { type: "focus", id: "a" });
+  assert.deepEqual(s.sizes["4"]?.rows, { r0: 60, r1: 40 });
+  s = deskReducer(s, { type: "minimize", id: "d" });
+  s = deskReducer(s, { type: "restore", id: "d" });
+  assert.deepEqual(s.sizes, {});
+  assert.deepEqual(sizesFor(s, 4).rows, { r0: 50, r1: 50 });
+});
+
 test("parseDesk round-trips and falls back on bad input", () => {
   let s = open(EMPTY_DESK, "a", "b");
   s = deskReducer(s, { type: "minimize", id: "a" });
