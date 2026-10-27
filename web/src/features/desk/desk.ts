@@ -111,7 +111,13 @@ function show(state: DeskState, id: string): DeskState {
   return settle({ ...state, windows, focusedId: id, maximizedId });
 }
 
+// A new window count starts with equal tracks: a drag only holds for the layout it was made in.
 export function deskReducer(state: DeskState, action: DeskAction): DeskState {
+  const next = reduce(state, action);
+  return gridWindows(next).length === gridWindows(state).length ? next : { ...next, sizes: {} };
+}
+
+function reduce(state: DeskState, action: DeskAction): DeskState {
   switch (action.type) {
     case "open":
       if (state.windows.some((w) => w.id === action.id)) return show(state, action.id);
