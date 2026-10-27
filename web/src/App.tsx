@@ -1,5 +1,5 @@
 import type { ModelDefaults } from "../../shared/api.ts";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { AgentsView } from "./features/agents/AgentsView.tsx";
 import { BoardView } from "./features/board/BoardView.tsx";
 import { ConnectionBanner } from "./features/setup/ConnectionBanner.tsx";
@@ -68,6 +68,13 @@ export function App() {
     if (desk.windows.some((w) => w.id === id)) dispatchDesk({ type: "close", id });
     else openOnDesk(id, false);
   }
+
+  // The cards are memoized: these callbacks keep one identity and call the latest handlers.
+  const handlers = useRef({ openOnDesk, toggleOnDesk });
+  handlers.current = { openOnDesk, toggleOnDesk };
+  const onOpen = useCallback((id: string, addOnly: boolean) => handlers.current.openOnDesk(id, !addOnly), []);
+  const onToggleDesk = useCallback((id: string) => handlers.current.toggleOnDesk(id), []);
+  const onSettle = useCallback((id: string, settle: boolean) => (settle ? api.settle(id) : api.unsettle(id)), []);
 
   useShortcuts(
     (action) => {
@@ -167,9 +174,9 @@ export function App() {
               state={state}
               now={now}
               deskIds={deskIds}
-              onOpen={(id, addOnly) => openOnDesk(id, !addOnly)}
-              onToggleDesk={toggleOnDesk}
-              onSettle={(id, settle) => (settle ? api.settle(id) : api.unsettle(id))}
+              onOpen={onOpen}
+              onToggleDesk={onToggleDesk}
+              onSettle={onSettle}
               onSwitcher={setSwitcherQuery}
               automations={automations.result}
               automationsError={automations.error}

@@ -1,4 +1,4 @@
-import { useState, type ReactNode } from "react";
+import { useMemo, useState, type ReactNode } from "react";
 import type { AutomationsResult, DashboardState } from "../../../../shared/api.ts";
 import { agentStatus } from "../../../../shared/status.ts";
 import { groupAgents } from "../../lib/threads.ts";
@@ -37,7 +37,11 @@ function RecentlySettled({ count, children }: { count: number; children: ReactNo
 
 export function AgentsView({ state, now, deskIds, onOpen, onToggleDesk, onSettle, onSwitcher, automations, automationsError }: Props) {
   const scrolled = useScrolled();
-  const groups = groupAgents(excludeRoutineThreads(state.threads, automations?.automations ?? []), state.projects, now);
+  const routines = automations?.automations;
+  const groups = useMemo(
+    () => groupAgents(excludeRoutineThreads(state.threads, routines ?? []), state.projects, now),
+    [state.threads, state.projects, routines, now],
+  );
   // Before the first automations answer, routine threads would flash in the grid.
   const available = state.automationsAvailable;
   const loading = available && automations === null && automationsError === null;

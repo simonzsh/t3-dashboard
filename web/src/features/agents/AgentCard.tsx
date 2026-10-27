@@ -1,4 +1,4 @@
-import { useRef } from "react";
+import { memo, useRef } from "react";
 import type { AgentCard as Card } from "../../lib/threads.ts";
 import { pendingLabel, threadTitle } from "../../lib/threads.ts";
 import { hasFailed } from "../../../../shared/status.ts";
@@ -8,6 +8,7 @@ import { Badge, Icon, IconButton, Pressable, fly } from "../../ui/index.ts";
 import { OpenInT3 } from "../../lib/OpenInT3.tsx";
 import { ProviderIcon } from "../../lib/ProviderIcon.tsx";
 import { useAction } from "../../lib/useAction.ts";
+import { sameCardProps } from "./cardProps.ts";
 
 interface Props {
   card: Card;
@@ -20,7 +21,7 @@ interface Props {
   onSettle: (id: string, settle: boolean) => Promise<unknown>;
 }
 
-export function AgentCard({ card, now, onDesk, t3EnvironmentId, onOpen, onToggleDesk, onSettle }: Props) {
+function AgentCardView({ card, now, onDesk, t3EnvironmentId, onOpen, onToggleDesk, onSettle }: Props) {
   const { thread: t, status } = card;
   const failed = hasFailed(t);
   const { busy, error, run } = useAction();
@@ -102,3 +103,5 @@ export function AgentCard({ card, now, onDesk, t3EnvironmentId, onOpen, onToggle
     </div>
   );
 }
+
+export const AgentCard = memo(AgentCardView, sameCardProps);
