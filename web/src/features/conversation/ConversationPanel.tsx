@@ -14,6 +14,7 @@ import { useStickToBottom } from "./useStickToBottom.ts";
 import { documentPage, usePoll } from "../../lib/usePoll.ts";
 import { singleFlight } from "../../lib/singleFlight.ts";
 import { errorMessage, formatMessageTime } from "../../lib/format.ts";
+import { useDocumentTheme } from "../../lib/useDocumentTheme.ts";
 import { timeline } from "./timeline.ts";
 import { LIVE_RELOAD_MS, SEND_POLL_WINDOW_MS, pollDelay } from "./reload.ts";
 
@@ -59,7 +60,7 @@ const Message = memo(function Message({ message: m, threadId }: { message: ChatM
 
 // Sandboxed without same-origin: the page's scripts run but cannot reach the dashboard API.
 const RenderFrame = memo(function RenderFrame({ render, threadId }: { render: HtmlRender; threadId: string }) {
-  const theme = document.documentElement.getAttribute("data-theme") ?? "light";
+  const theme = useDocumentTheme();
   return (
     <div className="msg assistant render">
       <iframe title={render.title || "Page"} src={attachmentUrl(threadId, render.attachmentId, theme)} sandbox="allow-scripts allow-popups" loading="lazy" style={{ height: render.height }} />
