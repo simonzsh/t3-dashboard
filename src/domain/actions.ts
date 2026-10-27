@@ -38,6 +38,8 @@ export interface ActionsOptions {
 /** What the user can do to T3 threads from the dashboard. */
 export interface Actions {
   threadDetail(threadId: string): Promise<ThreadDetail>;
+  /** The unified diff of what one finished run changed. The ordinal is the run's number in its thread. */
+  runDiff(threadId: string, runOrdinal: number): Promise<{ diff: string }>;
   /** Message matches in threads the dashboard lists, in T3's order. */
   searchThreads(query: string, limit?: number): Promise<ThreadSearchResult>;
   createThread(create: CreateThreadBody, images: ImageUpload[]): Promise<string>;
@@ -149,6 +151,16 @@ export function createActions(options: ActionsOptions): Actions {
     async searchThreads(query, limit) {
       const matches = await t3(port.searchThreads(query, limit));
       return { matches: matches.filter((match) => store.thread(match.threadId)) };
+    },
+
+    async runDiff(threadId, runOrdinal) {
+      try {
+        return { diff: await t3(port.turnDiff(threadId, runOrdinal)) };
+      } catch (error) {
+        // T3 refuses a run without a ready checkpoint: the run is not ready, not a server fault.
+        if (error instanceof IntegrationError && error.kind === "refused") throw new DomainError("conflict", "The changes of this run are not available");
+        throw error;
+      }
     },
 
     async threadDetail(threadId) {

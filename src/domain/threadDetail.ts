@@ -1,4 +1,4 @@
-import type { ActivityItem, ChatMessage, DashboardThread, HtmlRender, RunActivity, PendingRequestDetail, SubagentInfo, ThreadDetail } from "../../shared/api.ts";
+import type { ActivityItem, ChatMessage, DashboardThread, HtmlRender, RunActivity, RunChange, RunChanges, PendingRequestDetail, SubagentInfo, ThreadDetail } from "../../shared/api.ts";
 import { FAILED_STATUSES } from "../../shared/status.ts";
 import { isRuntimeMode } from "../../shared/limits.ts";
 import type { RawBackgroundTask, RawProjection, RawRuntimeRequest, RawSubagent, RawTurnItem } from "../integrations/t3/schemas.ts";
@@ -124,6 +124,16 @@ function toActivity(item: RawTurnItem, kind: ActivityItem["kind"]): ActivityItem
   return { id: item.id!, kind, text: truncate(raw, ACTIVITY_CHARS), detail: kind === "tool" ? toolSummary(item.input) : null, status: activityStatus(item) };
 }
 
+const toChange = (file: NonNullable<RawTurnItem["files"]>[number]): RunChange => ({ path: file.path, kind: file.kind ?? "modified", additions: file.additions ?? 0, deletions: file.deletions ?? 0 });
+
+// A run without a number or an end has no diff to ask for yet.
+function runChangesOf(projection: RawProjection, items: RawTurnItem[]): RunChanges[] {
+  return (projection.runs ?? []).flatMap((run) => {
+    const files = items.find((item) => item.type === "checkpoint" && item.runId === run.id)?.files ?? [];
+    return run.ordinal !== undefined && run.completedAt && files.length > 0 ? [{ runId: run.id, ordinal: run.ordinal, completedAt: run.completedAt, changes: files.map(toChange) }] : [];
+  });
+}
+
 function activityOf(projection: RawProjection, items: RawTurnItem[]): RunActivity | null {
   const runId = projection.thread?.activeRunId ?? latestRunId(projection);
   const run = projection.runs?.find((candidate) => candidate.id === runId);
@@ -156,6 +166,7 @@ function rendersOf(items: RawTurnItem[]): HtmlRender[] {
 /** `tasks` are the shell thread's pending background tasks: they say which subagents still run. */
 export function toThreadDetail(threadId: string, projection: RawProjection, thread: DashboardThread | undefined, tasks: RawBackgroundTask[] = []): ThreadDetail {
   const visible = new Set((projection.visibleTurnItems ?? []).map((element) => unwrap(element).messageId));
+  const items = [...(projection.turnItems ?? []), ...(projection.visibleTurnItems ?? [])].map(unwrap);
   const messages: ChatMessage[] = (projection.messages ?? [])
     .filter((message) => visible.has(message.id))
     .map((message) => ({
@@ -165,8 +176,8 @@ export function toThreadDetail(threadId: string, projection: RawProjection, thre
       createdAt: message.createdAt ?? "",
       streaming: message.streaming ?? false,
       attachments: (message.attachments ?? []).filter((file) => file.type === "image").map((file) => ({ id: file.id, name: file.name ?? "image" })),
+      runId: message.runId ?? items.find((item) => item.messageId === message.id)?.runId ?? null,
     }));
-  const items = [...(projection.turnItems ?? []), ...(projection.visibleTurnItems ?? [])].map(unwrap);
   const pendingRequests = (projection.runtimeRequests ?? []).filter((request) => request.status === "pending").map((request) => pendingDetail(request, items));
   const runtimeMode = projection.thread?.runtimeMode;
   return {
@@ -179,5 +190,6 @@ export function toThreadDetail(threadId: string, projection: RawProjection, thre
     modelSelection: projection.thread?.modelSelection ?? null,
     runtimeMode: isRuntimeMode(runtimeMode) ? runtimeMode : null,
     activity: activityOf(projection, items),
+    runChanges: runChangesOf(projection, items),
   };
 }

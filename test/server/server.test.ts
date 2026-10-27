@@ -1001,6 +1001,25 @@ test("GET /api/search refuses a bad query or limit before any T3 call", async ()
   assert.equal(port.searchCalls.length, 1);
 });
 
+test("GET /api/threads/:id/runs/:ordinal/diff returns the run diff from T3", async () => {
+  const { server, port } = await start();
+  port.diff = "diff --git a/x b/x\n+y";
+  const reply = await call(server, "GET", "/api/threads/run-1/runs/2/diff");
+  assert.equal(reply.status, 200);
+  assert.deepEqual(reply.json, { diff: "diff --git a/x b/x\n+y" });
+  assert.deepEqual(port.diffCalls, [{ threadId: "run-1", runOrdinal: 2 }]);
+});
+
+test("the run diff route answers 400 for a bad ordinal, 409 when T3 refuses and 502 when T3 is down", async () => {
+  const { server, port } = await start();
+  for (const ordinal of ["0", "-1", "1.5", "x", "01"]) assert.equal((await call(server, "GET", `/api/threads/run-1/runs/${ordinal}/diff`)).status, 400, ordinal);
+  assert.equal(port.diffCalls.length, 0);
+  port.diffError = new IntegrationError("T3 refused the request: no checkpoint", { system: "t3", kind: "refused" });
+  assert.equal((await call(server, "GET", "/api/threads/run-1/runs/2/diff")).status, 409);
+  port.diffError = new Error("socket closed");
+  assert.equal((await call(server, "GET", "/api/threads/run-1/runs/2/diff")).status, 502);
+});
+
 test("stopping a subagent sends subagent.stop, 404 when unknown", async () => {
   const { server, port } = await start();
   port.projection = { subagents: [{ id: "sub 1", runId: "run-a", status: "running" }] };

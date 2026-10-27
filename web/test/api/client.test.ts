@@ -204,3 +204,20 @@ test("getThread keeps etags per thread and forgets the oldest past 50", async ()
   assert.equal(sentEtag(calls[51]), null, "oldest entry was evicted");
   assert.equal(sentEtag(calls[52]), 'W/"50"');
 });
+
+test("getRunDiff asks for the run's diff once and serves the next calls from its cache", async () => {
+  const { calls, api } = fake(200, { diff: "diff --git a/x b/x" });
+  assert.deepEqual(await api.getRunDiff("a/b", 3), { diff: "diff --git a/x b/x" });
+  await api.getRunDiff("a/b", 3);
+  assert.equal(calls.length, 1);
+  assert.equal(calls[0]?.url, "/api/threads/a%2Fb/runs/3/diff");
+  await api.getRunDiff("a/b", 4);
+  assert.equal(calls.length, 2);
+});
+
+test("getRunDiff does not cache a failure", async () => {
+  const { calls, api } = fake(409, { error: "The changes of this run are not available" });
+  await assert.rejects(api.getRunDiff("t", 1), /not available/);
+  await assert.rejects(api.getRunDiff("t", 1), /not available/);
+  assert.equal(calls.length, 2);
+});

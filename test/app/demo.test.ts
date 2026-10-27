@@ -7,6 +7,7 @@ import { LinearClient } from "../../src/integrations/linear/client.ts";
 import { RawConfig, RawProjection, RawProject, RawThread } from "../../src/integrations/t3/schemas.ts";
 import { ShellStore } from "../../src/domain/shellStore.ts";
 import { toProviders } from "../../src/domain/providers.ts";
+import { toThreadDetail } from "../../src/domain/threadDetail.ts";
 import { createActions } from "../../src/domain/actions.ts";
 import { createAutomations } from "../../src/domain/automations.ts";
 import { agentStatus } from "../../shared/status.ts";
@@ -82,6 +83,20 @@ test("the demo Linear board and automations need no network", async () => {
   const left = await port.listScheduledTasks();
   assert.equal(left.length, automations.length - 1);
   assert.ok(!left.some((task) => task.id === reminder.id));
+});
+
+test("demo runs with changes (one of them older than the latest run) serve a diff that covers their files", async () => {
+  const port = new DemoPort(() => NOW);
+  const runs = async (id: string) => toThreadDetail(id, await port.threadProjection(id), undefined).runChanges;
+  const [links] = await runs("demo-deep-links");
+  const [checkout] = await runs("demo-checkout");
+  assert.equal(checkout!.runId, "run-checkout-1");
+  for (const [id, run] of [["demo-deep-links", links!], ["demo-checkout", checkout!]] as const) {
+    assert.equal(run.changes.length, 2, id);
+    const diff = await port.turnDiff(id, run.ordinal);
+    for (const change of run.changes) assert.ok(diff.includes(`diff --git a/${change.path} b/${change.path}`), change.path);
+  }
+  await assert.rejects(port.turnDiff("demo-checkout", 2));
 });
 
 test("demo search is case-insensitive and gives one row per thread, the user's message first", async () => {

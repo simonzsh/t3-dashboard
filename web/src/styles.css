@@ -305,6 +305,20 @@ main { flex: 1; min-height: 0; overflow: hidden; padding: 24px; display: flex; f
 .activity-item.command .activity-text, .activity-item.file .activity-text { font: 12px/1.5 var(--font-mono); }
 .activity-item.failed .activity-text { color: var(--err-text); }
 .activity-detail { opacity: 0.75; }
+.run-changes { display: flex; flex-direction: column; gap: 4px; font-size: 13px; color: var(--text-secondary); }
+.run-changes-title { font-size: 12px; opacity: 0.8; }
+.run-changes ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 2px; }
+.run-change { display: flex; align-items: center; gap: 8px; width: 100%; padding: 2px 0; border: 0; background: none; color: inherit; font: 12px/1.5 var(--font-mono); text-align: left; }
+.run-change:hover { color: var(--text-primary); }
+.run-change-path { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.run-change-kind { opacity: 0.7; }
+.run-change-add { color: var(--done-text); }
+.run-change-del { color: var(--err-text); }
+.run-diff { margin: 4px 0; padding: 6px 0; max-height: 320px; overflow: auto; border: 1px solid var(--line); border-radius: 8px; background: var(--surface-0); font: 12px/1.5 var(--font-mono); }
+.run-diff span { display: block; padding: 0 8px; white-space: pre; }
+.run-diff .add { color: var(--done-text); background: color-mix(in srgb, var(--done-bg) 60%, transparent); }
+.run-diff .del { color: var(--err-text); background: color-mix(in srgb, var(--err-bg) 60%, transparent); }
+.run-diff .hunk { opacity: 0.6; }
 .activity-item button.activity-text { font-size: inherit; }
 @keyframes breathe { 0%, 100% { opacity: 1; } 50% { opacity: 0.35; } }
 .requests { display: flex; flex-direction: column; gap: 8px; }

@@ -4,7 +4,7 @@ import type { ChatMessage } from "../../../../shared/api.ts";
 import { PENDING_MAX_MS, isSettled, pendingLabel } from "../../../src/features/conversation/pending.ts";
 
 const SENT = Date.parse("2026-01-01T10:00:00.000Z");
-const msg = (role: ChatMessage["role"], text: string, createdAt: string): ChatMessage => ({ id: `${role}-${createdAt}`, role, text, createdAt, streaming: false, attachments: [] });
+const msg = (role: ChatMessage["role"], text: string, createdAt: string): ChatMessage => ({ id: `${role}-${createdAt}`, role, text, createdAt, streaming: false, attachments: [], runId: null });
 const pending = { id: "p1", text: "hello", images: 0, sentAt: SENT, baseline: 0 };
 
 test("a pending message is settled once a new user message has the same text, whatever its clock", () => {

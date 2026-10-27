@@ -9,6 +9,7 @@ import { type PendingMessage, countSame, isSettled, pendingLabel } from "./pendi
 import { Composer } from "./Composer.tsx";
 import { PendingRequestView } from "./PendingRequestView.tsx";
 import { RunActivityView } from "./RunActivity.tsx";
+import { RunChanges } from "./RunChanges.tsx";
 import { SubagentStrip } from "./SubagentStrip.tsx";
 import { useStickToBottom } from "./useStickToBottom.ts";
 import { documentPage, usePoll } from "../../lib/usePoll.ts";
@@ -72,9 +73,11 @@ const RenderFrame = memo(function RenderFrame({ render, threadId }: { render: Ht
 const Timeline = memo(function Timeline({ detail, threadId }: { detail: ThreadDetail; threadId: string }) {
   return (
     <>
-      {timeline(detail).map((entry) =>
-        entry.kind === "message" ? <Message key={entry.message.id} message={entry.message} threadId={threadId} /> : <RenderFrame key={entry.render.id} render={entry.render} threadId={threadId} />,
-      )}
+      {timeline(detail).map((entry) => {
+        if (entry.kind === "message") return <Message key={entry.message.id} message={entry.message} threadId={threadId} />;
+        if (entry.kind === "render") return <RenderFrame key={entry.render.id} render={entry.render} threadId={threadId} />;
+        return <RunChanges key={entry.run.runId} threadId={threadId} ordinal={entry.run.ordinal} changes={entry.run.changes} />;
+      })}
     </>
   );
 });

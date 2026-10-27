@@ -248,6 +248,24 @@ test("searchThreads sends the query and limit and returns the matches", async ()
   assert.deepEqual(await done, [match]);
 });
 
+test("turnDiff asks for the turn range of one run and returns the diff text", async () => {
+  const { client } = setup();
+  const done = client.turnDiff("t1", 3);
+  const socket = await nextSocket();
+  assert.equal(socket.sent[0]!.tag, "orchestration.getTurnDiff");
+  assert.deepEqual(socket.sent[0]!.payload, { threadId: "t1", fromTurnCount: 2, toTurnCount: 3 });
+  socket.receive({ _tag: "Exit", requestId: "1", exit: { _tag: "Success", value: { threadId: "t1", fromTurnCount: 2, toTurnCount: 3, diff: "diff --git a/x b/x\n+y" } } });
+  assert.equal(await done, "diff --git a/x b/x\n+y");
+});
+
+test("turnDiff refused by T3 is a refused error", async () => {
+  const { client } = setup();
+  const done = client.turnDiff("t1", 1);
+  const socket = await nextSocket();
+  socket.receive({ _tag: "Exit", requestId: "1", exit: { _tag: "Failure", cause: { error: { message: "checkpoint unavailable" } } } });
+  await assert.rejects(done, (error: unknown) => error instanceof IntegrationError && error.kind === "refused");
+});
+
 test("searchThreads omits the limit when none is given", async () => {
   const { client } = setup();
   const done = client.searchThreads("deploy");
