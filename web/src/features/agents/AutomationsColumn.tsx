@@ -1,18 +1,26 @@
 import type { Automation, AutomationsResult, DashboardThread } from "../../../../shared/api.ts";
 import { lastRunState, nextLabel, reminderDate, splitAutomations } from "./automations.ts";
-import { Loader, Pressable } from "../../ui/index.ts";
+import { agentStatus } from "../../../../shared/status.ts";
+import { useState } from "react";
+import { Badge, Icon, IconButton, Loader, Pressable } from "../../ui/index.ts";
+import { DeleteAutomationDialog } from "./DeleteAutomationDialog.tsx";
+import { StatusBadge } from "./StatusBadge.tsx";
 
 interface Props {
   result: AutomationsResult | null;
   error: string | null;
   threads: DashboardThread[];
+  /** Threads whose agent is still setting a task up. */
+  setup: DashboardThread[];
   now: Date;
   onOpen: (id: string, addOnly: boolean) => void;
+  onDeleted: () => void;
 }
 
-function Row({ a, thread, now, onOpen }: { a: Automation; thread: DashboardThread | undefined; now: Date; onOpen: (id: string, addOnly: boolean) => void }) {
-  const last = lastRunState(thread);
-  const sub = a.schedule.kind === "cron" ? `${a.brain} · ${a.schedule.label}` : `${a.brain} · ${reminderDate(a.schedule.at)}`;
+function Row({ a, thread, now, onOpen, onDelete }: { a: Automation; thread: DashboardThread | undefined; now: Date; onOpen: (id: string, addOnly: boolean) => void; onDelete: (a: Automation) => void }) {
+  const last = lastRunState(a, thread);
+  const when = a.kind === "reminder" ? (a.nextRunAt ? reminderDate(a.nextRunAt) : "") : a.scheduleLabel;
+  const sub = [a.project, when].filter(Boolean).join(" · ");
   const body = (
     <>
       <span className="auto-main">
@@ -20,32 +28,61 @@ function Row({ a, thread, now, onOpen }: { a: Automation; thread: DashboardThrea
         <span className="auto-sub">{sub}</span>
       </span>
       <span className="auto-side">
-        <span className="auto-next">{nextLabel(a.nextRunAt, now)}</span>
-        {last?.kind === "waiting" && <span className="auto-state waiting">● waiting for your reply</span>}
-        {last?.kind === "running" && <span className="auto-state running">● running</span>}
-        {last?.kind === "failed" && <span className="auto-state failed" data-tooltip="The last run failed">⚠</span>}
-        {last?.kind === "done" && <span className="auto-state done">✓ {last.at}</span>}
+        <span className="auto-next">{a.enabled ? nextLabel(a.nextRunAt, now) : "paused"}</span>
+        {last?.kind === "waiting" && <Badge variant="waiting">Waiting</Badge>}
+        {last?.kind === "running" && (
+          <Badge variant="running">
+            <span className="pulse" aria-hidden="true" />
+            Running
+          </Badge>
+        )}
+        {last?.kind === "failed" && (
+          <span data-tooltip={last.error ?? "The last run failed"}>
+            <Badge variant="error">Error</Badge>
+          </span>
+        )}
+        {last?.kind === "done" && <Badge variant="done">Finished {last.at}</Badge>}
       </span>
     </>
   );
   const { threadId } = a;
   return (
-    <li>
+    <li className="auto-item">
       {threadId ? (
-        <Pressable className="auto-row" onClick={(e) => onOpen(threadId, e.shiftKey)}>
+        <Pressable className={`auto-row${last ? ` ${last.kind}` : ""}`} onClick={(e) => onOpen(threadId, e.shiftKey)}>
           {body}
         </Pressable>
       ) : (
         <div className="auto-row">{body}</div>
       )}
+      <IconButton label="Delete automation" size="sm" variant="ghost" className="auto-delete" onClick={() => onDelete(a)}>
+        <Icon name="trash" />
+      </IconButton>
     </li>
   );
 }
 
-export function AutomationsColumn({ result, error, threads, now, onOpen }: Props) {
+function SetupRow({ thread, onOpen }: { thread: DashboardThread; onOpen: (id: string, addOnly: boolean) => void }) {
+  const status = agentStatus(thread);
+  return (
+    <li>
+      <Pressable className={`auto-row ${status === "working" ? "running" : status}`} onClick={(e) => onOpen(thread.id, e.shiftKey)}>
+        <span className="auto-main">
+          <span className="auto-title">{thread.title}</span>
+          <span className="auto-sub">Setting up</span>
+        </span>
+        <span className="auto-side">
+          <StatusBadge thread={thread} status={status} />
+        </span>
+      </Pressable>
+    </li>
+  );
+}
+
+export function AutomationsColumn({ result, error, threads, setup, now, onOpen, onDeleted }: Props) {
+  const [deleting, setDeleting] = useState<Automation | null>(null);
   const byId = new Map(threads.map((t) => [t.id, t]));
   const { routines, reminders } = splitAutomations(result?.automations ?? []);
-  const broken = result?.brains.filter((b) => !b.ok) ?? [];
   const section = (title: string, rows: Automation[], empty: string) => (
     <section className="group">
       <h2>
@@ -56,7 +93,7 @@ export function AutomationsColumn({ result, error, threads, now, onOpen }: Props
       ) : (
         <ul className="auto-list">
           {rows.map((a) => (
-            <Row key={`${a.brain}/${a.id}`} a={a} thread={a.threadId ? byId.get(a.threadId) : undefined} now={now} onOpen={onOpen} />
+            <Row key={a.id} a={a} thread={a.threadId ? byId.get(a.threadId) : undefined} now={now} onOpen={onOpen} onDelete={setDeleting} />
           ))}
         </ul>
       )}
@@ -64,13 +101,17 @@ export function AutomationsColumn({ result, error, threads, now, onOpen }: Props
   );
   return (
     <aside className="automations" aria-label="Automations">
-      <h2 className="auto-heading">Automations</h2>
+      <div className="auto-head">
+        <h2 className="auto-heading">Automations</h2>
+      </div>
+      {setup.length > 0 && (
+        <ul className="auto-list">
+          {setup.map((t) => (
+            <SetupRow key={t.id} thread={t} onOpen={onOpen} />
+          ))}
+        </ul>
+      )}
       {error && <p className="notice error-notice">{error}</p>}
-      {broken.map((b) => (
-        <p className="notice" key={b.name}>
-          <strong>{b.name}</strong> : {b.error ?? "unreadable"}
-        </p>
-      ))}
       {!result && !error ? (
         <Loader />
       ) : (
@@ -78,6 +119,16 @@ export function AutomationsColumn({ result, error, threads, now, onOpen }: Props
           {section("Routines", routines, "No routines")}
           {section("Reminders", reminders, "No reminders")}
         </>
+      )}
+      {deleting && (
+        <DeleteAutomationDialog
+          automation={deleting}
+          onClose={() => setDeleting(null)}
+          onDeleted={() => {
+            setDeleting(null);
+            onDeleted();
+          }}
+        />
       )}
     </aside>
   );

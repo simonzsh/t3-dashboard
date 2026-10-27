@@ -17,7 +17,7 @@ function setup() {
   const projects: Array<Diff<DashboardProject>> = [];
   const store = new ShellStore({
     now: () => now,
-    onState: () => states.push(store.state(connection, [], true)),
+    onState: () => states.push(store.state(connection, [])),
     onThreads: (diff) => threads.push(diff),
     onProjects: (diff) => projects.push(diff),
   });
@@ -29,7 +29,7 @@ test("snapshots merge by id while syncing and no state is emitted before synchro
   store.beginSync();
   store.apply([snapshot([raw("thread-1"), raw("thread-2")], [{ id: "project-1", title: "Project A" }]), snapshot([raw("thread-2", { title: "Renamed" }), raw("thread-3")])]);
   assert.equal(states.length, 0);
-  assert.deepEqual(store.state(connection, [], true).threads, []);
+  assert.deepEqual(store.state(connection, []).threads, []);
   store.apply([{ kind: "synchronized" }]);
   assert.equal(states.length, 1);
   const titles = states[0]!.threads.map((thread) => thread.title).sort();
@@ -124,7 +124,7 @@ test("a live snapshot merges by id and emits a diff", () => {
   const { store, threads } = live();
   store.apply([snapshot([raw("thread-2", { title: "Changed" }), raw("thread-9")])]);
   assert.deepEqual(threads[0]!.upserted.map((thread) => thread.id).sort(), ["thread-2", "thread-9"]);
-  assert.equal(store.state(connection, [], true).threads.length, 3);
+  assert.equal(store.state(connection, []).threads.length, 3);
 });
 
 test("several items in one call give one diff", () => {
@@ -154,7 +154,7 @@ test("project.updated and project.removed", () => {
   });
   store.apply([{ kind: "project.removed", projectId: "project-1" }]);
   assert.deepEqual(projects[1], { upserted: [], removed: ["project-1"] });
-  assert.deepEqual(store.state(connection, [], true).projects.map((project) => project.id), ["project-2"]);
+  assert.deepEqual(store.state(connection, []).projects.map((project) => project.id), ["project-2"]);
 });
 
 test("unknown kinds are ignored", () => {
@@ -178,7 +178,7 @@ test("reclassify re-emits a settled thread when its snooze ends", () => {
 
 test("state carries connection and providers", () => {
   const { store } = live();
-  const state = store.state(connection, [{ instanceId: "provider-a", displayName: "Provider A", models: [], runtimeModes: ["full-access"] }], true);
+  const state = store.state(connection, [{ instanceId: "provider-a", displayName: "Provider A", models: [], runtimeModes: ["full-access"] }]);
   assert.equal(state.connection, connection);
   assert.equal(state.providers.length, 1);
 });
@@ -194,10 +194,15 @@ test("project() finds a project by id first, then by exact title", () => {
   assert.equal(store.project(""), undefined);
 });
 
-test("state carries whether automations are available", () => {
+test("state carries the T3 environment id", () => {
   const { store } = setup();
-  assert.equal(store.state(connection, [], true).automationsAvailable, true);
-  assert.equal(store.state(connection, [], false).automationsAvailable, false);
-  assert.equal(store.state(connection, [], true).t3EnvironmentId, null);
-  assert.equal(store.state(connection, [], true, "env-1").t3EnvironmentId, "env-1");
+  assert.equal(store.state(connection, []).t3EnvironmentId, null);
+  assert.equal(store.state(connection, [], "env-1").t3EnvironmentId, "env-1");
+});
+
+test("rawThreads lists the live threads as T3 sent them", () => {
+  const { store } = setup();
+  store.beginSync();
+  store.apply([snapshot([raw("thread-1"), raw("thread-2", { title: "Two" })]), { kind: "synchronized" }]);
+  assert.deepEqual(store.rawThreads().map((thread) => thread.id).sort(), ["thread-1", "thread-2"]);
 });

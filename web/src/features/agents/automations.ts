@@ -1,40 +1,57 @@
 import type { Automation, DashboardThread } from "../../../../shared/api.ts";
 import { ACTIVE_STATUSES, hasFailed } from "../../../../shared/status.ts";
 
-export type LastRun = { kind: "waiting" } | { kind: "running" } | { kind: "failed" } | { kind: "done"; at: string };
+export type LastRun = { kind: "waiting" } | { kind: "running" } | { kind: "failed"; error: string | null } | { kind: "done"; at: string };
 
 const DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 const DAY_MS = 86_400_000;
 
-// Routine threads live only in the automations column; reminder targets stay agents.
-export function excludeRoutineThreads(threads: DashboardThread[], automations: Automation[]): DashboardThread[] {
-  const ids = new Set(automations.flatMap((a) => (a.kind === "routine" && a.threadId ? [a.threadId] : [])));
-  return ids.size === 0 ? threads : threads.filter((t) => !ids.has(t.id));
+// Dedicated threads and run threads of scheduled tasks live in the automations column only.
+export function excludeRoutineThreads(threads: DashboardThread[], hiddenThreadIds: readonly string[]): DashboardThread[] {
+  if (hiddenThreadIds.length === 0) return threads;
+  const hidden = new Set(hiddenThreadIds);
+  return threads.filter((t) => !hidden.has(t.id));
 }
 
-const reminderAt = (a: Automation) => (a.schedule.kind === "once" ? a.schedule.at : (a.nextRunAt ?? ""));
+// A setup thread shows as a row only while the agent works or waits; idle with no task, it returns to the grid.
+export function setupThreads(threads: DashboardThread[], setupThreadIds: readonly string[]): DashboardThread[] {
+  const byId = new Map(threads.map((t) => [t.id, t]));
+  return setupThreadIds.flatMap((id) => {
+    const t = byId.get(id);
+    return t && (ACTIVE_STATUSES.has(t.status) || t.pending) ? [t] : [];
+  });
+}
+
+// Setup threads that were active and no longer are: their task may exist, but the list does not know it yet.
+export function finishedSetups(wasActive: ReadonlySet<string>, active: readonly DashboardThread[]): string[] {
+  const still = new Set(active.map((t) => t.id));
+  return [...wasActive].filter((id) => !still.has(id));
+}
+
+const byNextRun = (a: Automation, b: Automation) => Number(a.nextRunAt === null) - Number(b.nextRunAt === null) || (a.nextRunAt ?? "").localeCompare(b.nextRunAt ?? "");
 
 export function splitAutomations(list: Automation[]): { routines: Automation[]; reminders: Automation[] } {
-  const routines = list
-    .filter((a) => a.kind === "routine")
-    .sort((a, b) => Number(a.nextRunAt === null) - Number(b.nextRunAt === null) || (a.nextRunAt ?? "").localeCompare(b.nextRunAt ?? ""));
-  const reminders = list.filter((a) => a.kind === "reminder").sort((a, b) => reminderAt(a).localeCompare(reminderAt(b)));
-  return { routines, reminders };
+  return {
+    routines: list.filter((a) => a.kind === "routine").sort(byNextRun),
+    reminders: list.filter((a) => a.kind === "reminder").sort(byNextRun),
+  };
 }
 
 const two = (n: number) => String(n).padStart(2, "0");
 const hm = (d: Date) => `${d.getHours()}:${two(d.getMinutes())}`;
 
-// t3-agent keeps no run result: the routine thread's status is the only signal.
-export function lastRunState(t: DashboardThread | undefined): LastRun | null {
-  if (!t) return null;
-  // A routine blocked on the user must say so: its thread is hidden from the agents grid.
-  if (t.pending) return { kind: "waiting" };
-  if (ACTIVE_STATUSES.has(t.status)) return { kind: "running" };
-  if (hasFailed(t)) return { kind: "failed" };
-  const at = new Date(t.lastActivityAt);
-  return { kind: "done", at: `${two(at.getHours())}:${two(at.getMinutes())}` };
+// T3 marks a run "succeeded" once it is sent, not when the agent ends: the thread gives the real state.
+export function lastRunState(a: Automation, thread?: DashboardThread): LastRun | null {
+  if (thread?.pending) return { kind: "waiting" };
+  if (a.lastRunStatus === "failed") return { kind: "failed", error: a.lastRunError };
+  if (a.lastRunStatus === "running" || (thread && ACTIVE_STATUSES.has(thread.status))) return { kind: "running" };
+  if (thread && hasFailed(thread)) return { kind: "failed", error: thread.lastError };
+  if (a.lastRunStatus === "succeeded" && a.lastRunAt) {
+    const at = new Date(a.lastRunAt);
+    return { kind: "done", at: `${two(at.getHours())}:${two(at.getMinutes())}` };
+  }
+  return null;
 }
 
 export function nextLabel(iso: string | null, now: Date): string {

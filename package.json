@@ -14,13 +14,11 @@
     "contracts": "bun run scripts/contracts.ts"
   },
   "dependencies": {
-    "croner": "^10.0.1",
     "lucide": "^1.61.0",
     "marked": "^18.1.1",
     "react": "^19.3.1",
     "react-dom": "^19.3.1",
-    "react-resizable-panels": "^4.15.0",
-    "yaml": "^2.9.1"
+    "react-resizable-panels": "^4.15.0"
   },
   "devDependencies": {
     "@types/bun": "latest",

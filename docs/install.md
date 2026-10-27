@@ -47,7 +47,7 @@ Options du script :
 | Windows | Tâche planifiée « T3 Dashboard » à l'ouverture de session |
 
 - Le service redémarre seul après une panne.
-- `install` copie dans le service ces variables, si elles sont définies au moment de l'installation : `T3_DASHBOARD_TOKEN_FILE`, `T3_DASHBOARD_CONFIG_DIR`, `T3_DASHBOARD_LINEAR_FILE`, `T3_DASHBOARD_AGENT_CONFIG_DIR`, `T3_DASHBOARD_T3_BIN`, `T3_DASHBOARD_ALLOWED_HOSTS`, `T3_SERVER_RUNTIME` et `T3CODE_HOME`. Pour changer une valeur, définissez la variable et relancez `install`.
+- `install` copie dans le service ces variables, si elles sont définies au moment de l'installation : `T3_DASHBOARD_TOKEN_FILE`, `T3_DASHBOARD_CONFIG_DIR`, `T3_DASHBOARD_LINEAR_FILE`, `T3_DASHBOARD_T3_BIN`, `T3_DASHBOARD_ALLOWED_HOSTS`, `T3_SERVER_RUNTIME` et `T3CODE_HOME`. Pour changer une valeur, définissez la variable et relancez `install`.
 - `install` et `update` attendent 15 s au plus que le nouveau binaire réponde sur le port.
 - Si un autre programme ou un ancien dashboard tient le port, la commande s'arrête avec cette erreur : « Port 4300 is used by another program or an older dashboard. » Arrêtez ce programme, ou installez avec `--port <n>`.
 - Sous Linux, `install` demande `systemctl`. Sans `systemctl`, utilisez `t3-dashboard start`.
@@ -154,12 +154,11 @@ Le dashboard n'a pas d'authentification. Toute personne qui atteint l'adresse pe
 | Variable | Défaut | Rôle |
 | --- | --- | --- |
 | `PORT` | `4300` | Port local. L'écoute reste sur `127.0.0.1`. `--port` l'emporte. Une valeur vide, invalide ou `0` donne `4300`. |
-| `T3_DASHBOARD_CONFIG_DIR` | `~/.config/t3-dashboard` | Dossier de `auth.json` et de `linear.json`. |
+| `T3_DASHBOARD_CONFIG_DIR` | `~/.config/t3-dashboard` | Dossier de `auth.json`, de `linear.json` et de `automation-threads.json`. |
 | `T3_DASHBOARD_TOKEN_FILE` | aucun | Fichier JSON avec le champ `token`. Sans lui, le dashboard garde son propre jeton. Avec lui, l'écran de réglage refuse un jeton collé : mettez le jeton dans ce fichier. |
 | `T3_DASHBOARD_ALLOWED_HOSTS` | aucun | Noms d'hôte séparés par des virgules, sans port. Ils s'ajoutent à `127.0.0.1` et `localhost` pour les en-têtes `Host` et `Origin`. Voir [Accès à distance](#accès-à-distance). |
 | `T3_DASHBOARD_T3_BIN` | recherche auto | Chemin absolu de `t3`. |
 | `T3_DASHBOARD_LINEAR_FILE` | `<config>/linear.json` | Fichier de la config Linear. |
-| `T3_DASHBOARD_AGENT_CONFIG_DIR` | `~/.config/t3-agent` | Dossier des configs t3-agent, un `*.json` par assistant. |
 | `T3CODE_HOME` | `~/.t3` | Dossier de base de T3 Code. Le dashboard le passe aussi à `t3 auth session issue`. |
 | `T3_SERVER_RUNTIME` | `<T3CODE_HOME>/userdata/server-runtime.json` | Fichier JSON avec le champ `origin`, relu à chaque connexion à T3. Repli : `http://127.0.0.1:3773`. |
 | `T3_DASHBOARD_REPO` | `simonzsh/t3-dashboard` | Repo GitHub des releases, pour `update`, la vérification horaire et les scripts d'installation. |

@@ -6,8 +6,6 @@ import { readStoredToken } from "../config/storedToken.ts";
 import type { SystemReport } from "../integrations/drift.ts";
 import { checkGithub } from "../integrations/github/contracts.ts";
 import { checkLinear } from "../integrations/linear/contracts.ts";
-import { checkAgentFiles } from "../integrations/t3-agent/contracts.ts";
-import { agentConfigDir } from "../integrations/t3-agent/files.ts";
 import { checkT3 } from "../integrations/t3/contracts.ts";
 
 type Env = Record<string, string | undefined>;
@@ -23,6 +21,5 @@ export function runContracts({ env, snapshotFile, updateSnapshot }: { env: Env; 
     checkT3({ env, homedir: home, token: readStoredToken(env, home, readText), readFile: readText, snapshotFile, updateSnapshot }),
     checkLinear(linearKey),
     checkGithub(),
-    checkAgentFiles(agentConfigDir(env, home)),
   ]);
 }

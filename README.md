@@ -41,7 +41,7 @@ The screenshots come from the demo mode: the projects, agents and conversations 
 
 **Automations**
 
-- See the routines and reminders of the t3-agent assistants, read-only.
+- See the routines and reminders (T3 Code scheduled tasks), and ask an agent to create one.
 
 The New Agent button (key `N`) starts an agent in a T3 project, or in "No project". It uses the default model and the favorites of T3 Code. Each screen is described in [docs/usage.md](docs/usage.md).
 
@@ -76,10 +76,9 @@ More details in [docs/install.md](docs/install.md).
 
 | System | Required | Use |
 | --- | --- | --- |
-| T3 Code local API | Yes | Reads the projects, sessions and conversations. Sends the messages, the replies and the new agents. |
+| T3 Code local API | Yes | Reads the projects, sessions, conversations and scheduled tasks. Sends the messages, the replies and the new agents. |
 | Linear API key | No | Reads the issues assigned to you, for the Board. |
 | GitHub Releases | No | Looks for a new version and downloads it when you click. |
-| t3-agent assistant files | No | Reads the routines and reminders. Never writes. |
 
 ## How it works
 
@@ -101,4 +100,4 @@ Run `t3-dashboard uninstall`, then delete the binary. The full procedure is in [
 - [docs/install.md](docs/install.md): install, service, commands, updates, logs, Linear, environment variables, remote access.
 - [docs/usage.md](docs/usage.md): screens, actions and keyboard shortcuts.
 - [docs/development.md](docs/development.md): development with Bun, demo mode, checks, architecture, security.
-- [docs/contracts.md](docs/contracts.md): contract checks against T3 Code, Linear, GitHub and t3-agent.
+- [docs/contracts.md](docs/contracts.md): contract checks against T3 Code, Linear and GitHub.

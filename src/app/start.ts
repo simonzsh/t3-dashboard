@@ -4,19 +4,19 @@ import { setTimeout as sleep } from "node:timers/promises";
 import index from "../../web/index.html";
 import type { DashboardProvider } from "../../shared/api.ts";
 import { createActions } from "../domain/actions.ts";
-import { readAutomations } from "../domain/automations.ts";
+import { createAutomations } from "../domain/automations.ts";
 import { TokenManager } from "../domain/tokenManager.ts";
 import { envAllowedHosts, envPort } from "../config/config.ts";
 import { latestTag } from "../integrations/github/releases.ts";
 import { LinearClient } from "../integrations/linear/client.ts";
-import { agentConfigDir, loadBrains } from "../integrations/t3-agent/files.ts";
 import { findT3, runCommand } from "../integrations/t3/cli.ts";
 import { T3Client, validateWith } from "../integrations/t3/client.ts";
 import { environmentIdFile, readEnvironmentId, readServerVersion, resolveOrigin, runtimeFile } from "../integrations/t3/runtime.ts";
 import { LiveSync } from "../domain/liveSync.ts";
 import { LinearBoard } from "../domain/linearBoard.ts";
 import { readLinearKey } from "../config/linearFile.ts";
-import { linearFile, pidFile } from "../config/paths.ts";
+import { addAutomationThread, readAutomationThreads } from "../config/automationThreads.ts";
+import { automationThreadsFile, linearFile, pidFile } from "../config/paths.ts";
 import { redirectConsole, writePidFile } from "../config/runFiles.ts";
 import { writeSecret } from "../config/secretFile.ts";
 import { createDashboardServer } from "../server/server.ts";
@@ -100,8 +100,7 @@ export async function start({ port, log, env }: StartOptions): Promise<void> {
       hub.broadcast({ type: "modelDefaults", data: defaults });
     },
   });
-  const brainsDir = agentConfigDir(env, home);
-  const getState = () => store.state(live.connection(), providers, loadBrains(brainsDir).length > 0, readEnvironmentId(environmentId, readText), modelDefaults);
+  const getState = () => store.state(live.connection(), providers, readEnvironmentId(environmentId, readText), modelDefaults);
 
   const linearPath = linearFile(env, home);
   const board = new LinearBoard({
@@ -109,8 +108,6 @@ export async function start({ port, log, env }: StartOptions): Promise<void> {
     readKey: () => readLinearKey(linearPath, readText),
     now: () => new Date(),
   });
-
-  const automations = () => readAutomations({ configDir: brainsDir, now: () => new Date(), projectTitle: (id) => store.project(id)?.title || null });
 
   const settings = createSettings({ file: linearPath, readFile: readText, writeSecret, board });
   const setup = { refresh: () => auth.refresh(), paste: (token: string) => auth.paste(token), wake: () => live.retryNow() };
@@ -135,6 +132,13 @@ export async function start({ port, log, env }: StartOptions): Promise<void> {
     },
   });
   const actions = createActions({ port: client, store, board });
+  const threadsFile = automationThreadsFile(env, home);
+  const automations = createAutomations({
+    port: client,
+    store,
+    dedicated: { read: () => readAutomationThreads(threadsFile, readText), add: (id) => addAutomationThread(threadsFile, id, readText, writeSecret) },
+    createThread: actions.createThread,
+  });
   const handler = createDashboardServer({ actions, hub, board, automations, getState, connection: () => live.connection(), site, settings, setup, updates, allowedHosts: envAllowedHosts(env) });
 
   const reclassifier = setInterval(() => store.reclassify(new Date()), RECLASSIFY_MS);

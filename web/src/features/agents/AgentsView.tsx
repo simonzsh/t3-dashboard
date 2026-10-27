@@ -1,8 +1,8 @@
-import { useMemo, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import type { AutomationsResult, DashboardState } from "../../../../shared/api.ts";
 import { agentStatus } from "../../../../shared/status.ts";
 import { groupAgents } from "../../lib/threads.ts";
-import { excludeRoutineThreads } from "./automations.ts";
+import { excludeRoutineThreads, finishedSetups, setupThreads } from "./automations.ts";
 import { AgentCard } from "./AgentCard.tsx";
 import { AutomationsColumn } from "./AutomationsColumn.tsx";
 import { ProjectIcon } from "../../lib/ProjectIcon.tsx";
@@ -19,7 +19,10 @@ interface Props {
   onSwitcher: (initialQuery: string) => void;
   automations: AutomationsResult | null;
   automationsError: string | null;
+  onAutomationsStale: () => Promise<void>;
 }
+
+const NONE: readonly string[] = [];
 
 // Collapsed by default: settled threads need no attention.
 function RecentlySettled({ count, children }: { count: number; children: ReactNode }) {
@@ -35,15 +38,33 @@ function RecentlySettled({ count, children }: { count: number; children: ReactNo
   );
 }
 
-export function AgentsView({ state, now, deskIds, onOpen, onToggleDesk, onSettle, onSwitcher, automations, automationsError }: Props) {
+/** Setup rows, plus the ones that just finished: they stay in the column until a fresh list says where they go. */
+function useSetupRows(threads: DashboardState["threads"], setupIds: readonly string[], reload: () => Promise<void>) {
+  const active = useMemo(() => setupThreads(threads, setupIds), [threads, setupIds]);
+  const wasActive = useRef<ReadonlySet<string>>(new Set());
+  const [settling, setSettling] = useState<ReadonlySet<string>>(new Set());
+  const key = active.map((t) => t.id).join(",");
+  useEffect(() => {
+    const done = finishedSetups(wasActive.current, active);
+    wasActive.current = new Set(active.map((t) => t.id));
+    if (done.length === 0) return;
+    setSettling((s) => new Set([...s, ...done]));
+    const clear = () => setSettling((s) => new Set([...s].filter((id) => !done.includes(id))));
+    void reload().then(clear, clear);
+  }, [key]);
+  return useMemo(() => [...active, ...threads.filter((t) => settling.has(t.id) && !active.includes(t))], [active, threads, settling]);
+}
+
+export function AgentsView({ state, now, deskIds, onOpen, onToggleDesk, onSettle, onSwitcher, automations, automationsError, onAutomationsStale }: Props) {
   const scrolled = useScrolled();
-  const routines = automations?.automations;
+  const hiddenIds = automations?.hiddenThreadIds;
+  const setup = useSetupRows(state.threads, automations?.setupThreadIds ?? NONE, onAutomationsStale);
   const groups = useMemo(
-    () => groupAgents(excludeRoutineThreads(state.threads, routines ?? []), state.projects, now),
-    [state.threads, state.projects, routines, now],
+    () => groupAgents(excludeRoutineThreads(state.threads, [...(hiddenIds ?? []), ...setup.map((t) => t.id)]), state.projects, now),
+    [state.threads, state.projects, hiddenIds, setup, now],
   );
   // Before the first automations answer, routine threads would flash in the grid.
-  const available = state.automationsAvailable;
+  const available = state.connection.t3 === "live";
   const loading = available && automations === null && automationsError === null;
   const agents = loading ? (
     <Loader />
@@ -99,7 +120,7 @@ export function AgentsView({ state, now, deskIds, onOpen, onToggleDesk, onSettle
       </div>
       <div className={`agents-layout${available ? "" : " wide"}`}>
         {agents}
-        {available && <AutomationsColumn result={automations} error={automationsError} threads={state.threads} now={now} onOpen={onOpen} />}
+        {available && <AutomationsColumn result={automations} error={automationsError} threads={state.threads} setup={setup} now={now} onOpen={onOpen} onDeleted={() => void onAutomationsStale()} />}
       </div>
     </div>
   );

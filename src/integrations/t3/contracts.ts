@@ -24,7 +24,7 @@ import {
 } from "./commands.ts";
 import type { RpcConnection } from "./rpc.ts";
 import { runtimeFile, readServerVersion, resolveOrigin } from "./runtime.ts";
-import { ProjectionResponse, RawConfig, RawThread, RuntimeOrigin, RuntimeVersion, ShellItem, type ImageUpload } from "./schemas.ts";
+import { ProjectionResponse, RawConfig, RawThread, RuntimeOrigin, ScheduledTasksResponse, RuntimeVersion, ShellItem, type ImageUpload } from "./schemas.ts";
 
 export interface T3ContractOptions {
   env: Record<string, string | undefined>;
@@ -145,6 +145,7 @@ async function checkLive(checks: Checks, options: T3ContractOptions, token: stri
   if (!(await checks.run("websocket ticket", async () => (connection = await client.openSocket())))) return;
   try {
     await checks.run(RPC.getConfig, async () => checkConfig(checks, await connection!.request(RPC.getConfig, {})));
+    await checks.run(RPC.listScheduledTasks, async () => checks.issues(RPC.listScheduledTasks, issues(ScheduledTasksResponse, await connection!.request(RPC.listScheduledTasks, {}))));
   } finally {
     connection?.close();
   }

@@ -28,7 +28,6 @@ export function baseState(threads: DashboardThread[] = []): DashboardState {
     providers: [],
     modelDefaults: { selection: null, runtimeMode: null },
     threads,
-    automationsAvailable: true,
     t3EnvironmentId: null,
   };
 }

@@ -1,13 +1,14 @@
 import assert from "node:assert/strict";
 import { test } from "bun:test";
 import { DemoPort, demoLinearFetch } from "../../src/app/demo/port.ts";
-import { demoAutomations, demoFixtures } from "../../src/app/demo/fixtures.ts";
+import { demoFixtures } from "../../src/app/demo/fixtures.ts";
 import { issues } from "../../src/integrations/contract.ts";
 import { LinearClient } from "../../src/integrations/linear/client.ts";
 import { RawConfig, RawProjection, RawProject, RawThread } from "../../src/integrations/t3/schemas.ts";
 import { ShellStore } from "../../src/domain/shellStore.ts";
 import { toProviders } from "../../src/domain/providers.ts";
 import { createActions } from "../../src/domain/actions.ts";
+import { createAutomations } from "../../src/domain/automations.ts";
 import { agentStatus } from "../../shared/status.ts";
 
 const NOW = new Date("2026-10-26T10:00:00Z");
@@ -32,7 +33,7 @@ test("the demo shell fills the store with threads in every state", async () => {
   const port = new DemoPort(() => NOW);
   const store = syncedStore(port);
   await Bun.sleep(0);
-  const state = store.state({ t3: "live", serverVersion: null, protocolMismatch: false, error: null, setup: null }, [], true);
+  const state = store.state({ t3: "live", serverVersion: null, protocolMismatch: false, error: null, setup: null }, []);
   assert.equal(state.projects.length, demoFixtures(NOW).projects.length);
   assert.ok(state.threads.length >= 8);
   const statuses = new Set(state.threads.map(agentStatus));
@@ -45,7 +46,7 @@ test("demo thread details show messages, activity, subagents and requests", asyn
   const store = syncedStore(port);
   await Bun.sleep(0);
   const actions = createActions({ port, store, board: { get: async () => ({ configured: true, ok: true, error: null, issues: [] }) } });
-  const details = await Promise.all(store.state({ t3: "live", serverVersion: null, protocolMismatch: false, error: null, setup: null }, [], true).threads.map((thread) => actions.threadDetail(thread.id)));
+  const details = await Promise.all(store.state({ t3: "live", serverVersion: null, protocolMismatch: false, error: null, setup: null }, []).threads.map((thread) => actions.threadDetail(thread.id)));
   assert.ok(details.every((detail) => detail.messages.length > 0));
   assert.ok(details.some((detail) => (detail.activity?.items.length ?? 0) > 0 && detail.subagents.length >= 2));
   assert.deepEqual(details.flatMap((detail) => detail.pendingRequests.map((request) => request.category)).sort(), ["approval", "user-input"]);
@@ -66,9 +67,21 @@ test("a message sent in the demo lands in its thread", async () => {
 test("the demo Linear board and automations need no network", async () => {
   const issuesList = await new LinearClient(demoLinearFetch(NOW)).assignedIssues("demo");
   assert.ok(new Set(issuesList.map((issue) => issue.state.name)).size >= 4);
-  const { automations, brains } = demoAutomations(NOW);
+  const port = new DemoPort(() => NOW);
+  const store = syncedStore(port);
+  await Bun.sleep(0);
+  const { automations, hiddenThreadIds, setupThreadIds } = await createAutomations({ port, store, dedicated: { read: () => new Set(["demo-digest", "demo-setup"]), add() {} }, createThread: async () => "x" }).list();
   assert.ok(automations.length >= 3 && automations.every((automation) => automation.nextRunAt !== null));
-  assert.ok(brains.every((brain) => brain.ok));
+  assert.ok(automations.some((automation) => automation.kind === "reminder"));
+  assert.deepEqual(hiddenThreadIds, ["demo-digest"]);
+  assert.deepEqual(setupThreadIds, ["demo-setup"]);
+  assert.equal(store.thread("demo-setup")?.status, "running");
+  const reminder = automations.find((automation) => automation.kind === "reminder")!;
+  assert.ok(store.thread(reminder.threadId!), "the reminder is bound to a conversation that stays in the grid");
+  await port.deleteScheduledTask(reminder.id);
+  const left = await port.listScheduledTasks();
+  assert.equal(left.length, automations.length - 1);
+  assert.ok(!left.some((task) => task.id === reminder.id));
 });
 
 test("demo search is case-insensitive and gives one row per thread, the user's message first", async () => {
@@ -112,7 +125,7 @@ test("stopping the running demo subagent turns it failed", async () => {
   const store = syncedStore(port);
   await Bun.sleep(0);
   const actions = createActions({ port, store, board: { get: async () => ({ configured: true, ok: true, error: null, issues: [] }) } });
-  const threadId = store.state({ t3: "live", serverVersion: null, protocolMismatch: false, error: null, setup: null }, [], true).threads.find((thread) => thread.title.includes("heckout"))!.id;
+  const threadId = store.state({ t3: "live", serverVersion: null, protocolMismatch: false, error: null, setup: null }, []).threads.find((thread) => thread.title.includes("heckout"))!.id;
   const before = (await actions.threadDetail(threadId)).subagents.find((s) => s.stop === "subagent")!;
   await actions.stopSubagent(threadId, before.id);
   const after = (await actions.threadDetail(threadId)).subagents.find((s) => s.id === before.id)!;

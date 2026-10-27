@@ -1,7 +1,8 @@
 import type { Server } from "bun";
-import type { AutomationsResult, ConnectionStatus, DashboardState } from "../../shared/api.ts";
+import type { ConnectionStatus, DashboardState } from "../../shared/api.ts";
 import { MAX_MESSAGE_BODY_BYTES } from "../../shared/limits.ts";
 import type { Actions, AssetRequest } from "../domain/actions.ts";
+import type { Automations } from "../domain/automations.ts";
 import type { LinearBoard } from "../domain/linearBoard.ts";
 import type { Settings } from "../domain/settings.ts";
 import type { UpdateManager } from "../domain/updates.ts";
@@ -12,7 +13,7 @@ import { matchesEtag } from "./etag.ts";
 import { servePwa } from "./pwa.ts";
 import type { Site } from "./site.ts";
 import type { SseHub } from "./sse.ts";
-import { isObject, isText, validAssign, validCreate, validImages, validMessage, validRespond, validSearch, validSettings } from "./validate.ts";
+import { isObject, isText, validAssign, validAutomationRequest, validCreate, validImages, validMessage, validRespond, validSearch, validSettings } from "./validate.ts";
 
 export interface SetupControl {
   /** Resolves the token again. */
@@ -25,7 +26,7 @@ export interface SetupControl {
 export interface DashboardServerOptions {
   actions: Actions;
   board: Pick<LinearBoard, "get">;
-  automations: () => AutomationsResult;
+  automations: Pick<Automations, "list" | "request" | "remove">;
   hub: SseHub;
   getState: () => DashboardState;
   connection: () => ConnectionStatus;
@@ -164,7 +165,7 @@ export function createDashboardServer(options: DashboardServerOptions): Dashboar
   const routes: Route[] = [
     { method: "GET", path: "/api/health", handle: () => json(200, { ok: true, t3: connection().t3, version: VERSION }) },
     { method: "GET", path: "/api/board", handle: async ({ req }) => json(200, await board.get(new URL(req.url).searchParams.get("refresh") === "1")) },
-    { method: "GET", path: "/api/automations", handle: () => json(200, automations()) },
+    { method: "GET", path: "/api/automations", handle: async () => json(200, await automations.list()) },
     { method: "GET", path: "/api/settings", handle: () => json(200, settings.get()) },
     { method: "GET", path: "/api/update", handle: () => json(200, updates.status()) },
     {
@@ -234,6 +235,8 @@ export function createDashboardServer(options: DashboardServerOptions): Dashboar
     },
     { method: "POST", path: "/api/settings/linear/key", handle: async ({ body }) => json(200, await settings.connectKey({ apiKey: String(body.apiKey ?? "") })) },
     { method: "POST", path: "/api/settings/linear/disconnect", handle: () => json(200, settings.disconnect()) },
+    { method: "POST", path: "/api/automations", handle: async ({ body }) => ok({ threadId: await automations.request(validAutomationRequest(body)) }) },
+    { method: "POST", path: "/api/automations/:id/delete", handle: ({ params }) => done(automations.remove(params.id!)) },
     {
       method: "POST",
       path: "/api/threads",

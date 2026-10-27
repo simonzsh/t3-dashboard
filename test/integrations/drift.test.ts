@@ -48,7 +48,7 @@ test("a check that throws is drift only for a protocol error; other errors mean 
 
 const ok: SystemReport = { system: "github", checks: 2, findings: [] };
 const skipped: SystemReport = { system: "linear", checks: 0, findings: [], skipped: "no Linear key is configured" };
-const unchecked: SystemReport = { system: "t3-agent", checks: 1, findings: [{ level: "unchecked", text: "brains: unreadable" }] };
+const unchecked: SystemReport = { system: "github", checks: 1, findings: [{ level: "unchecked", text: "releases: unreadable" }] };
 const broken: SystemReport = {
   system: "t3",
   version: "0.1.2",
@@ -74,8 +74,8 @@ test("the report gives one line per system, then its findings, then the result",
       "  - could not run: x: unreachable",
       "linear: SKIPPED, no Linear key is configured",
       "github: OK, 2 checks",
-      "t3-agent: COULD NOT RUN, 1 check",
-      "  - could not run: brains: unreadable",
+      "github: COULD NOT RUN, 1 check",
+      "  - could not run: releases: unreadable",
       "",
       "Result: breaking change (exit 1)",
     ].join("\n"),

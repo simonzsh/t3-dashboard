@@ -34,9 +34,9 @@ const RULES: Rule[] = [
     },
   },
   {
-    name: "T3, t3-agent, Linear or GitHub location",
+    name: "T3, Linear or GitHub location",
     pattern:
-      /server-runtime\.json|environment-id|routine-threads\.json|runs\.json|"jobs"|"\.t3"|"t3-agent"|"auth", "session"|api\.linear\.app|github\.com|env\.(?:T3CODE_HOME|T3_SERVER_RUNTIME|T3_DASHBOARD_T3_BIN|T3_DASHBOARD_AGENT_CONFIG_DIR)\b/,
+      /server-runtime\.json|environment-id|"\.t3"|"auth", "session"|api\.linear\.app|github\.com|env\.(?:T3CODE_HOME|T3_SERVER_RUNTIME|T3_DASHBOARD_T3_BIN)\b/,
     allowed: {},
   },
 ];

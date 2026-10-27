@@ -1,7 +1,7 @@
 import type { FetchLike } from "../../integrations/linear/client.ts";
-import type { AttachmentRef, Command, ImageUpload, RawConfig, RawProjection, RawSearchMatch, RawThread, ShellItem, T3Port } from "../../integrations/t3/schemas.ts";
+import type { AttachmentRef, Command, ImageUpload, RawConfig, RawProjection, RawScheduledTask, RawSearchMatch, RawThread, ShellItem, T3Port } from "../../integrations/t3/schemas.ts";
 import { searchProjections } from "./search.ts";
-import { demoFixtures, demoIssues, SCRATCH_PROJECT_ID } from "./fixtures.ts";
+import { demoFixtures, demoIssues, demoScheduledTasks, SCRATCH_PROJECT_ID } from "./fixtures.ts";
 
 type Listener = (items: ShellItem[]) => void;
 
@@ -12,6 +12,7 @@ export class DemoPort implements T3Port {
   private readonly config: RawConfig;
   private readonly projections = new Map<string, RawProjection>();
   private readonly listeners = new Set<Listener>();
+  private readonly deletedTasks = new Set<string>();
   private sequence = 0;
 
   constructor(now: () => Date) {
@@ -34,6 +35,14 @@ export class DemoPort implements T3Port {
 
   async getConfig(): Promise<RawConfig> {
     return this.config;
+  }
+
+  async listScheduledTasks(): Promise<RawScheduledTask[]> {
+    return demoScheduledTasks(this.now()).filter((task) => !this.deletedTasks.has(task.id));
+  }
+
+  async deleteScheduledTask(id: string): Promise<void> {
+    this.deletedTasks.add(id);
   }
 
   async dispatch(command: Command): Promise<unknown> {

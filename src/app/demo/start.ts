@@ -1,6 +1,7 @@
 import index from "../../../web/index.html";
 import type { DashboardProvider } from "../../../shared/api.ts";
 import { createActions } from "../../domain/actions.ts";
+import { createAutomations } from "../../domain/automations.ts";
 import { LinearBoard } from "../../domain/linearBoard.ts";
 import { LiveSync } from "../../domain/liveSync.ts";
 import { NO_MODEL_DEFAULTS } from "../../domain/providers.ts";
@@ -13,7 +14,7 @@ import { siteFromBundle } from "../../server/site.ts";
 import { SseHub } from "../../server/sse.ts";
 import { readLinearKey } from "../../config/linearFile.ts";
 import { VERSION } from "../../config/version.ts";
-import { DEMO_ENVIRONMENT_ID, demoAutomations } from "./fixtures.ts";
+import { DEMO_ENVIRONMENT_ID } from "./fixtures.ts";
 import { DemoPort, demoLinearFetch } from "./port.ts";
 
 const DEMO_PORT = 3001;
@@ -46,7 +47,7 @@ export async function startDemo(env: Record<string, string | undefined>): Promis
       hub.broadcast({ type: "modelDefaults", data: defaults });
     },
   });
-  const getState = () => store.state(live.connection(), providers, true, DEMO_ENVIRONMENT_ID, modelDefaults);
+  const getState = () => store.state(live.connection(), providers, DEMO_ENVIRONMENT_ID, modelDefaults);
 
   // The Linear key lives in memory, so the settings tab can connect and disconnect.
   const files = new Map([["linear.json", JSON.stringify({ apiKey: "lin_api_demo0000" })]]);
@@ -62,11 +63,14 @@ export async function startDemo(env: Record<string, string | undefined>): Promis
   });
   const setup = { refresh: async () => {}, paste: async () => "ok" as const, wake: () => live.retryNow() };
   const site = siteFromBundle(index);
+  const actions = createActions({ port, store, board });
+  const dedicated = new Set(["demo-digest", "demo-setup"]);
+  const automations = createAutomations({ port, store, dedicated: { read: () => dedicated, add: (id) => void dedicated.add(id) }, createThread: actions.createThread });
   const handler = createDashboardServer({
-    actions: createActions({ port, store, board }),
+    actions,
     hub,
     board,
-    automations: () => demoAutomations(new Date()),
+    automations,
     getState,
     connection: () => live.connection(),
     site,

@@ -144,7 +144,6 @@ const overrides = {
   T3_DASHBOARD_TOKEN_FILE: "/secret dir/token.json",
   T3_DASHBOARD_CONFIG_DIR: "/cfg",
   T3_DASHBOARD_LINEAR_FILE: "/cfg/l.json",
-  T3_DASHBOARD_AGENT_CONFIG_DIR: "/agents",
   T3_DASHBOARD_T3_BIN: "/bin/t3",
   T3_SERVER_RUNTIME: "/rt.json",
   T3CODE_HOME: "/t3home",

@@ -49,6 +49,7 @@ const ICONS = {
     "M7 16.4h4",
     "M20 3v6M17 6h6",
   ],
+  trash: ["M3 6h18", "M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6", "M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2", "M10 11v6", "M14 11v6"],
   stop: [{ solid: "M9 7h6a2 2 0 0 1 2 2v6a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2V9a2 2 0 0 1 2-2Z" }],
 } satisfies Record<string, Part[]>;
 

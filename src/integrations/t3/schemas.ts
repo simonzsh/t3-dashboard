@@ -50,6 +50,34 @@ export const RawThread = s.object({
 });
 export type RawThread = Infer<typeof RawThread>;
 
+export const RawScheduledTask = s.object({
+  id: s.string(),
+  title: text(),
+  prompt: text(),
+  enabled: s.optional(s.boolean()),
+  schedule: s.optional(
+    s.object({
+      type: s.string(),
+      everyMs: s.optional(s.number()),
+      timeOfDay: text(),
+      weekdays: s.optional(s.nullable(s.array(s.number()))),
+    }),
+  ),
+  projectId: text(),
+  threadId: text(),
+  modelSelection: s.optional(s.nullable(ModelSelection)),
+  createdBy: text(),
+  creationSource: text(),
+  createdAt: text(),
+  nextRunAt: text(),
+  lastRunAt: text(),
+  lastRunStatus: text(),
+  lastRunError: text(),
+});
+export type RawScheduledTask = Infer<typeof RawScheduledTask>;
+export const ScheduledTasksResponse = s.object({ tasks: s.array(RawScheduledTask) });
+export const DeletedScheduledTask = s.object({ id: s.string() });
+
 export const RawProject = s.object({
   id: s.string(),
   title: text(),
@@ -246,6 +274,8 @@ export interface T3Port {
   threadProjection(threadId: string): Promise<RawProjection>;
   dispatch(command: Command): Promise<unknown>;
   getConfig(): Promise<RawConfig>;
+  listScheduledTasks(): Promise<RawScheduledTask[]>;
+  deleteScheduledTask(id: string): Promise<void>;
   /** Message matches in T3, best first. */
   searchThreads(query: string, limit?: number): Promise<RawSearchMatch[]>;
   persistAttachments(threadId: string, messageId: string, images: ImageUpload[]): Promise<AttachmentRef[]>;

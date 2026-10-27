@@ -5,6 +5,7 @@ export type ShortcutAction =
   | "board"
   | "desk"
   | "new-agent"
+  | "new-automation"
   | "settings"
   | "switcher"
   | "close-window"
@@ -24,6 +25,7 @@ export interface KeyInfo {
   ctrlKey: boolean;
   metaKey: boolean;
   altKey: boolean;
+  shiftKey?: boolean;
   target: { tagName: string; isContentEditable: boolean } | null;
 }
 
@@ -52,5 +54,6 @@ export function matchShortcut(e: KeyInfo, dialogOpen: boolean, onDesk = false): 
   if (e.target && (TYPING.has(e.target.tagName) || e.target.isContentEditable)) return null;
   if (e.altKey) return onDesk ? windowShortcut(e) : null;
   const key = e.key.toLowerCase();
+  if (key === "n" && e.shiftKey) return "new-automation";
   return KEYS[key] ?? (onDesk ? DESK_KEYS[key] : undefined) ?? null;
 }

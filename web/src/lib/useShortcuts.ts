@@ -13,7 +13,7 @@ export function useShortcuts(onAction: (action: ShortcutAction) => void, dialogO
   useEffect(() => {
     const listener = (e: KeyboardEvent) => {
       const el = e.target instanceof HTMLElement ? e.target : null;
-      const info = { key: e.key, code: e.code, ctrlKey: e.ctrlKey, metaKey: e.metaKey, altKey: e.altKey, target: el };
+      const info = { key: e.key, code: e.code, ctrlKey: e.ctrlKey, metaKey: e.metaKey, altKey: e.altKey, shiftKey: e.shiftKey, target: el };
       const action = matchShortcut(info, blocked.current, desk.current);
       if (!action) return;
       e.preventDefault();
