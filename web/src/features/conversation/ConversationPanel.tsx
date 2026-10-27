@@ -11,8 +11,11 @@ import { PendingRequestView } from "./PendingRequestView.tsx";
 import { RunActivityView } from "./RunActivity.tsx";
 import { SubagentStrip } from "./SubagentStrip.tsx";
 import { useStickToBottom } from "./useStickToBottom.ts";
-import { usePoll } from "../../lib/usePoll.ts";
-import { errorMessage } from "../../lib/format.ts";
+import { documentPage, usePoll } from "../../lib/usePoll.ts";
+import { singleFlight } from "../../lib/singleFlight.ts";
+import { errorMessage, formatMessageTime } from "../../lib/format.ts";
+import { useDocumentTheme } from "../../lib/useDocumentTheme.ts";
+import { timeline } from "./timeline.ts";
 import { LIVE_RELOAD_MS, SEND_POLL_WINDOW_MS, pollDelay } from "./reload.ts";
 
 const ROLE_LABELS: Record<string, string> = { user: "You", assistant: "Agent", system: "System" };
@@ -22,14 +25,15 @@ const drafts = new Map<string, string>();
 const NEAR_BOTTOM_PX = 40;
 // A scroll this soon after a wheel, touch, key or pointer input counts as the user's own.
 const USER_SCROLL_MS = 150;
+const MAX_REAIMS = 3;
 
 // Streaming re-renders the whole list: parse a message again only when its text changes.
 const MarkdownText = memo(function MarkdownText({ text, threadId, breaks }: { text: string; threadId: string; breaks?: boolean }) {
   return renderMarkdown(text, { localMedia: (path) => mediaUrl(threadId, path), breaks });
 });
 
-function Message({ message: m, threadId }: { message: ChatMessage; threadId: string }) {
-  const time = new Date(m.createdAt).toLocaleString("en-US", { dateStyle: "medium", timeStyle: "short" });
+const Message = memo(function Message({ message: m, threadId }: { message: ChatMessage; threadId: string }) {
+  const time = formatMessageTime(m.createdAt);
   return (
     <div className={`msg ${m.role}`}>
       {m.attachments.length > 0 && (
@@ -52,28 +56,28 @@ function Message({ message: m, threadId }: { message: ChatMessage; threadId: str
       </small>
     </div>
   );
-}
+});
 
 // Sandboxed without same-origin: the page's scripts run but cannot reach the dashboard API.
-function RenderFrame({ render, threadId }: { render: HtmlRender; threadId: string }) {
-  const theme = document.documentElement.getAttribute("data-theme") ?? "light";
+const RenderFrame = memo(function RenderFrame({ render, threadId }: { render: HtmlRender; threadId: string }) {
+  const theme = useDocumentTheme();
   return (
     <div className="msg assistant render">
       <iframe title={render.title || "Page"} src={attachmentUrl(threadId, render.attachmentId, theme)} sandbox="allow-scripts allow-popups" loading="lazy" style={{ height: render.height }} />
     </div>
   );
-}
+});
 
-type Entry = { kind: "message"; at: string; message: ChatMessage } | { kind: "render"; at: string; render: HtmlRender };
-
-// Pages sit between messages by time; a stable sort keeps the message order T3 gave.
-function timeline(detail: ThreadDetail): Entry[] {
-  const entries: Entry[] = [
-    ...detail.messages.map((message) => ({ kind: "message" as const, at: message.createdAt, message })),
-    ...detail.renders.map((render) => ({ kind: "render" as const, at: render.createdAt, render })),
-  ];
-  return entries.sort((a, b) => a.at.localeCompare(b.at));
-}
+// A fragment, so each message stays a direct child of .messages. A keystroke does not render the list.
+const Timeline = memo(function Timeline({ detail, threadId }: { detail: ThreadDetail; threadId: string }) {
+  return (
+    <>
+      {timeline(detail).map((entry) =>
+        entry.kind === "message" ? <Message key={entry.message.id} message={entry.message} threadId={threadId} /> : <RenderFrame key={entry.render.id} render={entry.render} threadId={threadId} />,
+      )}
+    </>
+  );
+});
 
 function PendingBubble({ message: p }: { message: PendingMessage }) {
   return (
@@ -104,12 +108,21 @@ export function ConversationPanel({ threadId, thread, providers }: Props) {
   const lastTop = useRef(0);
   const lastInput = useRef(-Infinity);
   const smoothing = useRef(false);
+  const reaims = useRef(0);
   const [atBottom, setAtBottom] = useState(true);
 
   // Bumped on every thread change and cleanup: a late response from an older effect is dropped.
   const epoch = useRef(0);
 
-  async function load() {
+  const unmounted = useRef(false);
+  // Reset on mount too: StrictMode runs the cleanup once before the real mount.
+  useEffect(() => {
+    unmounted.current = false;
+    return () => void (unmounted.current = true);
+  }, []);
+
+  async function loadOnce() {
+    if (unmounted.current) return;
     const mine = epoch.current;
     try {
       const next = await api.getThread(threadId);
@@ -128,6 +141,13 @@ export function ConversationPanel({ threadId, thread, providers }: Props) {
     }
   }
 
+  // Overlapping triggers (live reload, poll, send) share one request; a late one adds a single rerun.
+  const latestLoad = useRef(loadOnce);
+  latestLoad.current = loadOnce;
+  const [load] = useState(() => singleFlight(() => latestLoad.current()));
+  // A background tab skips reloads; the page shows again, it catches up.
+  const staleWhileHidden = useRef(false);
+
   useEffect(() => {
     void load();
     return () => {
@@ -142,14 +162,31 @@ export function ConversationPanel({ threadId, thread, providers }: Props) {
   useEffect(() => {
     if (seenThread.current === thread) return;
     seenThread.current = thread;
-    const timer = setTimeout(() => void load(), LIVE_RELOAD_MS);
+    const timer = setTimeout(() => {
+      if (documentPage.hidden()) staleWhileHidden.current = true;
+      else void load();
+    }, LIVE_RELOAD_MS);
     return () => clearTimeout(timer);
   }, [thread]);
 
   const t = thread ?? detail?.thread ?? null;
   const running = t !== null && runActive(t);
   const background = Boolean(t?.pendingTasks) || (detail?.subagents.some((s) => s.status === "running") ?? false);
-  usePoll(load, pollDelay({ running, sentAt, background, now: Date.now() }));
+  const delay = pollDelay({ running, sentAt, background, now: Date.now() });
+  usePoll(load, delay);
+
+  const polling = useRef(false);
+  polling.current = delay !== null;
+  useEffect(
+    () =>
+      documentPage.onChange(() => {
+        if (documentPage.hidden() || !staleWhileHidden.current) return;
+        staleWhileHidden.current = false;
+        // An active poll catches up by itself: a second load here would only double the request.
+        if (!polling.current) void load();
+      }),
+    [],
+  );
 
   // A timer closes the send window: a failing load may not render again to close it.
   useEffect(() => {
@@ -215,6 +252,14 @@ export function ConversationPanel({ threadId, thread, providers }: Props) {
           onTouchMove={touched}
           onPointerDown={touched}
           onKeyDown={touched}
+          onScrollEnd={(e) => {
+            // content-visibility lets estimated heights settle while the smooth scroll runs: aim again.
+            const el = e.currentTarget;
+            if (smoothing.current && el.scrollHeight - el.scrollTop - el.clientHeight > 1 && reaims.current < MAX_REAIMS) {
+              reaims.current++;
+              el.scrollTo({ top: el.scrollHeight, behavior: "smooth" });
+            }
+          }}
           onScroll={(e) => {
             const el = e.currentTarget;
             const gap = el.scrollHeight - el.scrollTop - el.clientHeight;
@@ -240,10 +285,7 @@ export function ConversationPanel({ threadId, thread, providers }: Props) {
           {loadError && <p className="error">{loadError}</p>}
           {detail && detail.messages.length === 0 && detail.renders.length === 0 && <p className="empty">No messages</p>}
           {!detail && !loadError && <Loader />}
-          {detail &&
-            timeline(detail).map((entry) =>
-              entry.kind === "message" ? <Message key={entry.message.id} message={entry.message} threadId={threadId} /> : <RenderFrame key={entry.render.id} render={entry.render} threadId={threadId} />,
-            )}
+          {detail && <Timeline detail={detail} threadId={threadId} />}
           {detail && pending.map((p) => <PendingBubble key={p.id} message={p} />)}
           {detail?.activity && <RunActivityView activity={detail.activity} running={running} onShowSubagents={() => setRevealSubagents((n) => n + 1)} />}
           {detail && detail.pendingRequests.length > 0 && (
@@ -260,6 +302,7 @@ export function ConversationPanel({ threadId, thread, providers }: Props) {
             label="Scroll to the latest message"
             onClick={() => {
               smoothing.current = true;
+              reaims.current = 0;
               lastInput.current = -Infinity;
               scroller.current?.scrollTo({ top: scroller.current.scrollHeight, behavior: "smooth" });
             }}

@@ -45,3 +45,52 @@ test("a call that throws does not end the loop", async () => {
   stop();
   assert.ok(calls >= 2, `calls: ${calls}`);
 });
+
+function fakePage(hidden: boolean) {
+  const state = { hidden, listeners: new Set<() => void>() };
+  return {
+    state,
+    page: {
+      hidden: () => state.hidden,
+      onChange: (cb: () => void) => {
+        state.listeners.add(cb);
+        return () => void state.listeners.delete(cb);
+      },
+    },
+    set(value: boolean) {
+      state.hidden = value;
+      for (const cb of [...state.listeners]) cb();
+    },
+  };
+}
+
+test("a hidden page skips the call and stops the loop, then catches up at once when visible", async () => {
+  const fake = fakePage(true);
+  let calls = 0;
+  const stop = startPoll(async () => void calls++, 5, fake.page);
+  await wait(30);
+  assert.equal(calls, 0);
+  fake.set(false);
+  assert.equal(calls, 1, "immediate catch-up call");
+  await wait(30);
+  assert.ok(calls >= 2, `calls: ${calls}`);
+  stop();
+});
+
+test("showing the page before a tick was skipped adds no extra call", async () => {
+  const fake = fakePage(false);
+  let calls = 0;
+  const stop = startPoll(async () => void calls++, 50, fake.page);
+  fake.set(true);
+  fake.set(false);
+  assert.equal(calls, 0);
+  stop();
+});
+
+test("stop removes the visibility listener", () => {
+  const fake = fakePage(false);
+  const stop = startPoll(async () => {}, 5, fake.page);
+  assert.equal(fake.state.listeners.size, 1);
+  stop();
+  assert.equal(fake.state.listeners.size, 0);
+});

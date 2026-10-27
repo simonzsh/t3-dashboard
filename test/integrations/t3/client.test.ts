@@ -46,7 +46,7 @@ test("threadProjection sends the Bearer and protocol headers and strips the trai
   assert.equal(calls[0]!.headers["x-t3-orchestration-protocol"], "2");
 });
 
-test("dispatch fetches a ticket first, then opens the ws URL, then closes the socket", async () => {
+test("dispatch fetches a ticket first, then opens the ws URL and keeps the socket", async () => {
   const { client, calls } = setup();
   const done = client.dispatch({ type: "thread.pin", threadId: "t" });
   const socket = await nextSocket();
@@ -56,16 +56,16 @@ test("dispatch fetches a ticket first, then opens the ws URL, then closes the so
   assert.deepEqual(socket.sent[0], { _tag: "Request", id: "1", tag: "orchestration.dispatchCommand", payload: { type: "thread.pin", threadId: "t" }, headers: [] });
   socket.receive({ _tag: "Exit", requestId: "1", exit: { _tag: "Success", value: { sequence: 3 } } });
   assert.deepEqual(await done, { sequence: 3 });
-  assert.equal(socket.closed, true);
+  assert.equal(socket.closed, false);
 });
 
-test("dispatch closes the socket when T3 refuses the command", async () => {
+test("dispatch keeps the socket when T3 refuses the command", async () => {
   const { client } = setup();
   const done = client.dispatch({ type: "x" });
   const socket = await nextSocket();
   socket.receive({ _tag: "Exit", requestId: "1", exit: { _tag: "Failure", cause: { message: "refused" } } });
   await assert.rejects(done, /refused/);
-  assert.equal(socket.closed, true);
+  assert.equal(socket.closed, false);
 });
 
 test("https origins give wss URLs", async () => {
@@ -235,4 +235,204 @@ test("a search answer of the wrong shape is a protocol error", async () => {
   const socket = await nextSocket();
   socket.receive({ _tag: "Exit", requestId: "1", exit: { _tag: "Success", value: { matches: [{ threadId: "t1" }] } } });
   assert.match((await protocolError(done)).message, /matches\[0\]\.projectId should be string/);
+});
+
+const ok = (id: string, value: unknown = {}) => ({ _tag: "Exit", requestId: id, exit: { _tag: "Success", value } });
+const tickets = (calls: Call[]) => calls.filter((call) => call.url.endsWith("/api/auth/websocket-ticket")).length;
+
+async function waitFor(condition: () => boolean): Promise<void> {
+  for (let i = 0; i < 30 && !condition(); i++) await tick();
+  assert.ok(condition(), "condition never held");
+}
+
+test("two dispatches share one ticket and one open socket", async () => {
+  const { client, calls } = setup();
+  const first = client.dispatch({ type: "a" });
+  const socket = await nextSocket();
+  socket.receive(ok("1", { sequence: 1 }));
+  await first;
+  const second = client.dispatch({ type: "b" });
+  await waitFor(() => socket.sent.length === 2);
+  socket.receive(ok("2", { sequence: 2 }));
+  assert.deepEqual(await second, { sequence: 2 });
+  assert.equal(tickets(calls), 1);
+  assert.equal(FakeSocket.instances.length, 1);
+  assert.equal(socket.closed, false);
+});
+
+test("calls made before the socket opens share its ticket and socket", async () => {
+  const { client, calls } = setup();
+  const config = client.getConfig();
+  const dispatched = client.dispatch({ type: "a" });
+  const socket = await nextSocket();
+  await waitFor(() => socket.sent.length === 2);
+  assert.deepEqual(socket.sent.map((frame) => frame.id), ["1", "2"]);
+  socket.receive(ok("1", { providers: [] }));
+  socket.receive(ok("2", { sequence: 1 }));
+  await Promise.all([config, dispatched]);
+  assert.equal(tickets(calls), 1);
+  assert.equal(FakeSocket.instances.length, 1);
+});
+
+test("after the socket closes the next call opens a new one", async () => {
+  const { client, calls } = setup();
+  const first = client.getConfig();
+  const socket = await nextSocket();
+  socket.receive(ok("1"));
+  await first;
+  socket.close();
+  FakeSocket.reset();
+  const second = client.getConfig();
+  const next = await nextSocket();
+  next.receive(ok("1"));
+  await second;
+  assert.equal(tickets(calls), 2);
+});
+
+test("an error before the socket opens falls back to a one-shot socket, even for dispatch", async () => {
+  const { client, calls } = setup();
+  const done = client.dispatch({ type: "a" });
+  await waitFor(() => FakeSocket.instances.length === 1);
+  FakeSocket.instances[0]!.fail();
+  FakeSocket.instances[0]!.close();
+  await waitFor(() => FakeSocket.instances.length === 2);
+  const retry = FakeSocket.instances[1]!;
+  retry.open();
+  retry.receive(ok("1", { sequence: 9 }));
+  assert.deepEqual(await done, { sequence: 9 });
+  assert.equal(tickets(calls), 2);
+  assert.equal(retry.closed, true);
+});
+
+test("a dispatch cut after the socket opened is never sent twice", async () => {
+  const { client } = setup();
+  const done = client.dispatch({ type: "a" });
+  const socket = await nextSocket();
+  socket.close();
+  await assert.rejects(done, (error: Error) => error instanceof IntegrationError && error.kind === "unreachable");
+  for (let i = 0; i < 5; i++) await tick();
+  assert.equal(FakeSocket.instances.length, 1);
+  assert.equal(socket.sent.length, 1);
+});
+
+test("an idempotent call cut after the socket opened is retried once", async () => {
+  const { client } = setup();
+  const done = client.searchThreads("x");
+  const socket = await nextSocket();
+  socket.close();
+  await waitFor(() => FakeSocket.instances.length === 2);
+  const retry = FakeSocket.instances[1]!;
+  retry.open();
+  retry.receive(ok("1", { matches: [] }));
+  assert.deepEqual(await done, []);
+});
+
+test("a refused request keeps the socket for the next call", async () => {
+  const { client, calls } = setup();
+  const refused = client.dispatch({ type: "a" });
+  const socket = await nextSocket();
+  socket.receive({ _tag: "Exit", requestId: "1", exit: { _tag: "Failure", cause: { message: "no" } } });
+  await assert.rejects(refused, /no/);
+  const next = client.dispatch({ type: "b" });
+  await waitFor(() => socket.sent.length === 2);
+  socket.receive(ok("2"));
+  await next;
+  assert.equal(tickets(calls), 1);
+  assert.equal(FakeSocket.instances.length, 1);
+});
+
+test("a timeout closes the socket and the next call opens a new one", async () => {
+  const { client, calls } = setup();
+  const slow = client.getConfig();
+  const socket = await nextSocket();
+  socket.receive(ok("1"));
+  await slow;
+  // The default 10 s timeout is too long for a test: call with 5 ms.
+  const stuck = (client as unknown as { call(tag: string, payload: unknown, ms: number): Promise<unknown> }).call("server.getConfig", {}, 5);
+  await assert.rejects(stuck, /did not answer/);
+  assert.equal(socket.closed, true);
+  FakeSocket.reset();
+  const next = client.getConfig();
+  const fresh = await nextSocket();
+  fresh.receive(ok("1"));
+  await next;
+  assert.equal(tickets(calls), 2);
+});
+
+test("a timeout leaves other pending calls on the socket, which closes once they settle", async () => {
+  const { client } = setup();
+  const other = client.getConfig();
+  const socket = await nextSocket();
+  const stuck = (client as unknown as { call(tag: string, payload: unknown, ms: number): Promise<unknown> }).call("server.getConfig", {}, 5);
+  await assert.rejects(stuck, /did not answer/);
+  assert.equal(socket.closed, false);
+  socket.receive(ok("1"));
+  await other;
+  assert.equal(socket.closed, true);
+});
+
+test("a new token opens a new socket with a new ticket", async () => {
+  let token = "one";
+  const calls: Call[] = [];
+  const fakeFetch = (async (url: string, init: RequestInit) => {
+    calls.push({ url, method: init.method ?? "GET", headers: init.headers as Record<string, string> });
+    return Response.json({ ticket: "t" });
+  }) as unknown as typeof fetch;
+  const client = new T3Client({ origin: async () => "http://t3", token: () => token, fetch: fakeFetch, WebSocket: FakeSocket as unknown as typeof WebSocket });
+  const first = client.getConfig();
+  const socket = await nextSocket();
+  socket.receive(ok("1"));
+  await first;
+  token = "two";
+  const second = client.getConfig();
+  await waitFor(() => FakeSocket.instances.length === 2);
+  FakeSocket.instances[1]!.open();
+  FakeSocket.instances[1]!.receive(ok("1"));
+  await second;
+  assert.deepEqual(calls.map((call) => call.headers.authorization), ["Bearer one", "Bearer two"]);
+  assert.equal(socket.closed, true);
+});
+
+test("a new token leaves a busy old socket open until its call settles", async () => {
+  let token = "one";
+  const fakeFetch = (async () => Response.json({ ticket: "t" })) as unknown as typeof fetch;
+  const client = new T3Client({ origin: async () => "http://t3", token: () => token, fetch: fakeFetch, WebSocket: FakeSocket as unknown as typeof WebSocket });
+  const slow = client.getConfig();
+  const socket = await nextSocket();
+  token = "two";
+  const second = client.getConfig();
+  await waitFor(() => FakeSocket.instances.length === 2);
+  assert.equal(socket.closed, false);
+  socket.receive(ok("1"));
+  await slow;
+  assert.equal(socket.closed, true);
+  FakeSocket.instances[1]!.open();
+  FakeSocket.instances[1]!.receive(ok("1"));
+  await second;
+});
+
+test("persistAttachments uses its own socket and closes it", async () => {
+  const { client } = setup();
+  const config = client.getConfig();
+  const shared = await nextSocket();
+  shared.receive(ok("1"));
+  await config;
+  const upload = client.persistAttachments("t", "m", []);
+  await waitFor(() => FakeSocket.instances.length === 2);
+  const own = FakeSocket.instances[1]!;
+  own.open();
+  own.receive(ok("1", { attachments: [] }));
+  await upload;
+  assert.equal(own.closed, true);
+  assert.equal(shared.closed, false);
+});
+
+test("close ends the shared socket", async () => {
+  const { client } = setup();
+  const config = client.getConfig();
+  const socket = await nextSocket();
+  socket.receive(ok("1"));
+  await config;
+  client.close();
+  await waitFor(() => socket.closed);
 });

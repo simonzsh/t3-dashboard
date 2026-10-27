@@ -61,14 +61,15 @@ const MEDIA_FILE = /\.(png|jpe?g|gif|webp|avif|mp4|m4v|webm|mov)$/i;
 const ATTACHMENT_ID = /^[\w-]+$/;
 
 // Same lexer as the web view: only a real `![alt](path)` counts, not any text in parentheses.
-function citesImage(text: string | undefined, path: string): boolean {
-  if (!text) return false;
-  let found = false;
+function addImageTargets(text: string | undefined, into: Set<string>): void {
+  if (!text) return;
   marked.walkTokens(marked.lexer(text, { gfm: true }), (token) => {
-    if (token.type === "image" && token.href === path) found = true;
+    if (token.type === "image") into.add(token.href);
   });
-  return found;
 }
+
+// A page loads many images at once: they share one projection fetch.
+const CITED_TTL_MS = 10_000;
 
 export function createActions(options: ActionsOptions): Actions {
   const { port, store, board } = options;
@@ -91,6 +92,36 @@ export function createActions(options: ActionsOptions): Actions {
     const messageId = newId();
     return { messageId, attachments: images.length ? await t3(port.persistAttachments(threadId, messageId, images)) : [] };
   };
+
+  const cited = new Map<string, { at: number; paths: Promise<Set<string>> }>();
+
+  function fetchCited(threadId: string) {
+    const paths = t3(port.threadProjection(threadId)).then((projection) => {
+      const found = new Set<string>();
+      for (const message of projection.messages ?? []) if (message.role === "assistant") addImageTargets(message.text, found);
+      return found;
+    });
+    const entry = { at: Date.now(), paths };
+    for (const [id, old] of cited) if (entry.at - old.at >= CITED_TTL_MS) cited.delete(id);
+    cited.set(threadId, entry);
+    paths.catch(() => {
+      if (cited.get(threadId) === entry) cited.delete(threadId);
+    });
+    return entry;
+  }
+
+  async function threadCites(threadId: string, path: string): Promise<boolean> {
+    const cachedEntry = cited.get(threadId);
+    if (cachedEntry && Date.now() - cachedEntry.at < CITED_TTL_MS) {
+      if ((await cachedEntry.paths).has(path)) return true;
+      // The thread may have cited the path since: check once with a fresh projection.
+      const latest = cited.get(threadId);
+      // Concurrent misses share the first refetch.
+      if (latest && latest !== cachedEntry) return (await latest.paths).has(path);
+      cited.delete(threadId);
+    }
+    return (await fetchCited(threadId).paths).has(path);
+  }
 
   // The shell can lag behind a run start: the projection then knows the run first.
   async function activeRunId(threadId: string): Promise<string | null> {
@@ -133,8 +164,7 @@ export function createActions(options: ActionsOptions): Actions {
       } else {
         const { path } = request;
         if (!path.startsWith("/") || !MEDIA_FILE.test(path) || path.includes("/../") || /[\0-\x1f]/.test(path)) throw new DomainError("invalid", "Only images and videos can be shown");
-        const projection = await t3(port.threadProjection(threadId));
-        if (!(projection.messages ?? []).some((message) => message.role === "assistant" && citesImage(message.text, path))) throw new DomainError("not-found", "This thread does not show that image");
+        if (!(await threadCites(threadId, path))) throw new DomainError("not-found", "This thread does not show that image");
         resource = { _tag: "media-file", threadId, path };
       }
       const { response, fileName } = await t3(port.fetchAsset(resource, range));

@@ -18,6 +18,10 @@ import type {
 
 type Fetch = (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>;
 
+const THREAD_CACHE_MAX = 50;
+// Thread loads share one flight: a request that never answers would freeze the window.
+const THREAD_TIMEOUT_MS = 30_000;
+
 export function createApi(fetchImpl: Fetch) {
   async function call<T>(path: string, body?: unknown): Promise<T> {
     const init: RequestInit =
@@ -31,6 +35,35 @@ export function createApi(fetchImpl: Fetch) {
     return data as T;
   }
   const t = (id: string) => `/api/threads/${encodeURIComponent(id)}`;
+  // A 304 returns the same object, so memoized views see no change.
+  const threads = new Map<string, { etag: string; detail: ThreadDetail }>();
+  async function getThread(id: string): Promise<ThreadDetail> {
+    const path = t(id);
+    for (let attempt = 0; ; attempt++) {
+      const known = threads.get(id);
+      const signal = AbortSignal.timeout(THREAD_TIMEOUT_MS);
+      const res = await fetchImpl(path, known ? { headers: { "if-none-match": known.etag }, signal } : { signal });
+      if (res.status === 304 && known) return known.detail;
+      // A 304 we cannot match is retried once without the header.
+      if (res.status === 304 && attempt === 0) {
+        threads.delete(id);
+        continue;
+      }
+      const data: unknown = await res.json().catch(() => null);
+      if (!res.ok) {
+        const msg = (data as { error?: unknown } | null)?.error;
+        throw new Error(typeof msg === "string" ? msg : `Error ${res.status}`);
+      }
+      const detail = data as ThreadDetail;
+      const etag = res.headers.get("etag");
+      threads.delete(id);
+      if (etag) {
+        threads.set(id, { etag, detail });
+        if (threads.size > THREAD_CACHE_MAX) threads.delete(threads.keys().next().value!);
+      }
+      return detail;
+    }
+  }
   return {
     getAutomations: () => call<AutomationsResult>("/api/automations"),
     getBoard: (refresh = false) => call<BoardResult>(refresh ? "/api/board?refresh=1" : "/api/board"),
@@ -46,7 +79,7 @@ export function createApi(fetchImpl: Fetch) {
     getHealth: () => call<HealthResult>("/api/health"),
     searchThreads: (query: string, limit?: number) =>
       call<ThreadSearchResult>(`/api/search?q=${encodeURIComponent(query)}${limit ? `&limit=${limit}` : ""}`),
-    getThread: (id: string) => call<ThreadDetail>(t(id)),
+    getThread,
     createThread: (b: CreateThreadBody) => call<CreateThreadResult>("/api/threads", b),
     sendMessage: (id: string, b: SendMessageBody) => call<OkResult>(`${t(id)}/messages`, b),
     settle: (id: string) => call<OkResult>(`${t(id)}/settle`, {}),

@@ -1,7 +1,9 @@
+import { memo, type Dispatch } from "react";
 import type { DashboardProvider, DashboardThread } from "../../../../shared/api.ts";
 import { threadState, type ThreadState } from "../../../../shared/status.ts";
 import { threadTitle } from "../../lib/threads.ts";
 import { Badge, Button, Icon, IconButton } from "../../ui/index.ts";
+import type { DeskAction } from "./desk.ts";
 import { ConversationPanel } from "../conversation/ConversationPanel.tsx";
 import { OpenInT3 } from "../../lib/OpenInT3.tsx";
 import { ProviderIcon } from "../../lib/ProviderIcon.tsx";
@@ -19,13 +21,15 @@ interface Props {
   compact: boolean;
   t3EnvironmentId: string | null;
   providers: DashboardProvider[];
-  onFocus: () => void;
-  onClose: () => void;
-  onMinimize: () => void;
-  onToggleMaximize: () => void;
+  // Stable across renders, so a window rerenders only when its own props change.
+  dispatch: Dispatch<DeskAction>;
 }
 
-export function DeskWindow({ id, thread, projectTitle, missing, focused, maximized, compact, t3EnvironmentId, providers, onFocus, onClose, onMinimize, onToggleMaximize }: Props) {
+function DeskWindowView({ id, thread, projectTitle, missing, focused, maximized, compact, t3EnvironmentId, providers, dispatch }: Props) {
+  const onFocus = () => dispatch({ type: "focus", id });
+  const onClose = () => dispatch({ type: "close", id });
+  const onMinimize = () => dispatch({ type: "minimize", id });
+  const onToggleMaximize = () => dispatch({ type: "maximize", id });
   const state = thread ? threadState(thread) : null;
   const title = threadTitle(thread);
   return (
@@ -79,3 +83,5 @@ export function DeskWindow({ id, thread, projectTitle, missing, focused, maximiz
     </section>
   );
 }
+
+export const DeskWindow = memo(DeskWindowView);

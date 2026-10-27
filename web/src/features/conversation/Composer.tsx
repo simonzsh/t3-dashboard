@@ -70,19 +70,20 @@ export function Composer({ providers, selection, runtimeMode, running, stoppable
 
   // Grows with the text up to the CSS max height; measured again when the window resizes,
   // since a size taken while the window was narrow or hidden would stick.
+  const fit = useRef(() => {});
   useEffect(() => {
     const el = textarea.current;
     if (!el) return;
-    const fit = () => {
+    fit.current = () => {
       el.style.height = "";
       if (el.value === "" || el.clientWidth === 0) return;
       el.style.height = `${el.scrollHeight}px`;
     };
-    fit();
-    const observer = new ResizeObserver(fit);
+    const observer = new ResizeObserver(() => fit.current());
     observer.observe(el.parentElement ?? el);
     return () => observer.disconnect();
-  }, [draft]);
+  }, []);
+  useEffect(() => fit.current(), [draft]);
 
   const found = findModel(providers, localSelection);
   const effort = found ? currentEffort(localSelection, found.model) : null;

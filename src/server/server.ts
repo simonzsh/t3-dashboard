@@ -8,6 +8,7 @@ import type { UpdateManager } from "../domain/updates.ts";
 import { VERSION } from "../config/version.ts";
 import { HttpError, toHttp } from "./httpError.ts";
 import { isPageTheme, themedPage } from "./htmlRender.ts";
+import { matchesEtag } from "./etag.ts";
 import { servePwa } from "./pwa.ts";
 import type { Site } from "./site.ts";
 import type { SseHub } from "./sse.ts";
@@ -92,6 +93,15 @@ async function readJson(req: Request, maxBytes = MAX_BODY_BYTES): Promise<Record
 const json = (status: number, body: unknown, headers: Record<string, string> = {}) =>
   new Response(JSON.stringify(body), { status, headers: { "content-type": "application/json; charset=utf-8", ...headers } });
 
+// A weak etag of the exact body lets the client poll without downloading an unchanged thread.
+function threadResponse(req: Request, detail: unknown): Response {
+  const body = JSON.stringify(detail);
+  const etag = `W/"${Bun.hash(body).toString(36)}"`;
+  const headers = { etag, "cache-control": "no-cache" };
+  if (matchesEtag(req.headers.get("if-none-match"), etag)) return new Response(null, { status: 304, headers });
+  return new Response(body, { headers: { "content-type": "application/json; charset=utf-8", ...headers } });
+}
+
 export interface DashboardHandler {
   fetch(req: Request, server?: Server<undefined>): Promise<Response>;
 }
@@ -173,7 +183,7 @@ export function createDashboardServer(options: DashboardServerOptions): Dashboar
         return json(200, await actions.searchThreads(query, limit));
       },
     },
-    { method: "GET", path: "/api/threads/:id", handle: async ({ params }) => json(200, await actions.threadDetail(params.id!)) },
+    { method: "GET", path: "/api/threads/:id", handle: async ({ req, params }) => threadResponse(req, await actions.threadDetail(params.id!)) },
     { method: "GET", path: "/api/threads/:id/attachments/:attachmentId", handle: ({ req, params }) => asset(req, params.id!, { attachmentId: params.attachmentId! }) },
     {
       method: "GET",
@@ -279,7 +289,7 @@ export function createDashboardServer(options: DashboardServerOptions): Dashboar
     if (segments[0] === "api") return api(req, server, segments);
     if (req.method !== "GET" && req.method !== "HEAD") throw new HttpError(404, "Unknown route");
     if (pathname.includes("\0")) throw new HttpError(400, "Malformed URL");
-    return servePwa(pathname) ?? (await site.serve(pathname)) ?? json(404, { error: "Unknown route" });
+    return servePwa(pathname) ?? (await site.serve(pathname, req)) ?? json(404, { error: "Unknown route" });
   }
 
   return {
@@ -294,15 +304,23 @@ export function createDashboardServer(options: DashboardServerOptions): Dashboar
         response = json(status, { error: message }, status === 413 ? { connection: "close" } : undefined);
       }
       // Forbids framing: a hostile page could otherwise clickjack the approval buttons.
-      const headers = new Headers(response.headers);
       // A sandboxed page allows framing by the dashboard itself: its own CSP replaces the default.
-      const framable = headers.get("content-security-policy")?.includes("frame-ancestors 'self'");
-      for (const [name, value] of Object.entries(SECURITY_HEADERS)) {
-        if (framable && name !== "x-content-type-options") continue;
-        headers.set(name, value);
+      const framable = response.headers.get("content-security-policy")?.includes("frame-ancestors 'self'");
+      const secured = (headers: Headers) => {
+        for (const [name, value] of Object.entries(SECURITY_HEADERS)) {
+          if (framable && name !== "x-content-type-options") continue;
+          headers.set(name, value);
+        }
+        if (framable) headers.set("x-frame-options", "SAMEORIGIN");
+        return headers;
+      };
+      // Setting in place keeps Bun's fast path for known-length bodies; a response with immutable headers is copied.
+      try {
+        secured(response.headers);
+        return response;
+      } catch {
+        return new Response(response.body, { status: response.status, statusText: response.statusText, headers: secured(new Headers(response.headers)) });
       }
-      if (framable) headers.set("x-frame-options", "SAMEORIGIN");
-      return new Response(response.body, { status: response.status, statusText: response.statusText, headers });
     },
   };
 }

@@ -158,6 +158,7 @@ export async function start({ port, log, env }: StartOptions): Promise<void> {
     clearInterval(checker);
     live.stop();
     hub.close();
+    client.close();
     void server.stop(true).then(() => process.exit(0));
   };
   process.on("SIGINT", shutdown);

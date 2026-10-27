@@ -344,6 +344,21 @@ test("every response forbids framing and sniffing", async () => {
   }
 });
 
+test("a site response keeps its body and status and gets the security headers in place", async () => {
+  const site = new Response("<html></html>", { status: 203, headers: { "content-type": "text/html", etag: '"x"' } });
+  const { server } = await start({ site: { serve: async () => site } });
+  const res = await server.fetch(new Request("http://127.0.0.1/", { headers: { host: "127.0.0.1" } }));
+  assert.equal(res, site);
+  assert.deepEqual([res.status, await res.text(), res.headers.get("etag")], [203, "<html></html>", '"x"']);
+  assert.deepEqual([res.headers.get("x-frame-options"), res.headers.get("content-security-policy"), res.headers.get("x-content-type-options")], ["DENY", "frame-ancestors 'none'", "nosniff"]);
+});
+
+test("a response with immutable headers is copied, not refused", async () => {
+  const { server } = await start({ site: { serve: async () => Response.redirect("http://127.0.0.1/x", 302) } });
+  const res = await server.fetch(new Request("http://127.0.0.1/", { headers: { host: "127.0.0.1" } }));
+  assert.deepEqual([res.status, res.headers.get("x-frame-options")], [302, "DENY"]);
+});
+
 test("prototype keys are not thread actions", async () => {
   const { server, port } = await start();
   for (const action of ["constructor", "toString"]) assert.equal((await post(server, `/api/threads/idle-1/${action}`)).status, 404);
@@ -393,6 +408,31 @@ test("GET /api/threads/:id joins the projection and the store thread", async () 
   assert.equal(detail.thread.title, "Thread 2");
   assert.equal(detail.messages[0].text, "Hello");
   assert.equal((await call(server, "GET", "/api/threads/nope")).json.thread, null);
+});
+
+test("GET /api/threads/:id answers 304 to a matching if-none-match and a new etag once the thread changes", async () => {
+  const { server, port } = await start();
+  port.projection = { messages: [{ id: "m1", role: "user", text: "Hello" }], visibleTurnItems: [{ item: { messageId: "m1" } }] };
+  const first = await call(server, "GET", "/api/threads/run-1");
+  const etag = first.headers.etag!;
+  assert.match(etag, /^W\/"[0-9a-z]+"$/);
+  assert.equal(first.headers["cache-control"], "no-cache");
+  const same = await call(server, "GET", "/api/threads/run-1", { headers: { "if-none-match": etag } });
+  assert.deepEqual([same.status, same.text, same.headers.etag, same.headers["cache-control"]], [304, "", etag, "no-cache"]);
+  const listed = await call(server, "GET", "/api/threads/run-1", { headers: { "if-none-match": `"x", ${etag}` } });
+  assert.equal(listed.status, 304);
+  port.projection = { messages: [{ id: "m1", role: "user", text: "Hello" }, { id: "m2", role: "assistant", text: "Hi" }], visibleTurnItems: [{ item: { messageId: "m1" } }, { item: { messageId: "m2" } }] };
+  const changed = await call(server, "GET", "/api/threads/run-1", { headers: { "if-none-match": etag } });
+  assert.equal(changed.status, 200);
+  assert.notEqual(changed.headers.etag, etag);
+  assert.equal(changed.json.messages.length, 2);
+});
+
+test("GET /api/threads/:id errors carry no etag", async () => {
+  const { server, port } = await start();
+  port.projectionError = new Error("T3 answered 500");
+  const reply = await call(server, "GET", "/api/threads/idle-1", { headers: { "if-none-match": "*" } });
+  assert.deepEqual([reply.status, reply.headers.etag], [502, undefined]);
 });
 
 test("GET /api/threads/:id shows the shell's pending background tasks as running subagents", async () => {
@@ -789,6 +829,43 @@ test("media: only an absolute image path that a message of the thread shows", as
   assert.equal((await get("relative/shot.png")).status, 400);
   assert.equal((await call(server, "GET", "/api/threads/t1/media")).status, 400);
   assert.deepEqual(port.assets, [{ _tag: "media-file", threadId: "t1", path: "/tmp/out/shot.png" }]);
+});
+
+test("media: images of one thread share a single projection fetch, and a new citation is found", async () => {
+  const { server, port } = await start();
+  port.projection = { messages: [{ id: "m", role: "assistant", text: "![a](/tmp/a.png) ![b](/tmp/b.png) ![c](/tmp/c.png)" }] };
+  const get = (path: string) => call(server, "GET", `/api/threads/t9/media?path=${encodeURIComponent(path)}`);
+  const statuses = await Promise.all(["/tmp/a.png", "/tmp/b.png", "/tmp/c.png"].map(get));
+  assert.deepEqual(statuses.map((reply) => reply.status), [200, 200, 200]);
+  assert.equal(port.projectionCalls, 1);
+  assert.equal((await get("/tmp/a.png")).status, 200);
+  assert.equal(port.projectionCalls, 1);
+  assert.equal((await get("/tmp/d.png")).status, 404);
+  assert.equal(port.projectionCalls, 2);
+  port.projection = { messages: [{ id: "m", role: "assistant", text: "![d](/tmp/d.png)" }] };
+  assert.equal((await get("/tmp/d.png")).status, 200);
+  assert.equal(port.projectionCalls, 3);
+});
+
+test("media: concurrent misses for new citations share one refetch", async () => {
+  const { server, port } = await start();
+  port.projection = { messages: [{ id: "m", role: "assistant", text: "![a](/tmp/a.png)" }] };
+  const get = (path: string) => call(server, "GET", `/api/threads/t7/media?path=${encodeURIComponent(path)}`);
+  assert.equal((await get("/tmp/a.png")).status, 200);
+  port.projection = { messages: [{ id: "m", role: "assistant", text: "![b](/tmp/b.png) ![c](/tmp/c.png) ![d](/tmp/d.png)" }] };
+  const statuses = await Promise.all(["/tmp/b.png", "/tmp/c.png", "/tmp/d.png"].map(get));
+  assert.deepEqual(statuses.map((reply) => reply.status), [200, 200, 200]);
+  assert.equal(port.projectionCalls, 2);
+});
+
+test("media: a failed projection fetch is not cached", async () => {
+  const { server, port } = await start();
+  port.projection = { messages: [{ id: "m", role: "assistant", text: "![a](/tmp/a.png)" }] };
+  const path = encodeURIComponent("/tmp/a.png");
+  port.projectionError = new Error("T3 answered 500");
+  assert.equal((await call(server, "GET", `/api/threads/t8/media?path=${path}`)).status, 502);
+  port.projectionError = null;
+  assert.equal((await call(server, "GET", `/api/threads/t8/media?path=${path}`)).status, 200);
 });
 
 test("attachments: a type the browser could run is downloaded, never rendered on the dashboard origin", async () => {
