@@ -390,7 +390,7 @@ const hoursFrom = (now: Date, hours: number) => new Date(now.getTime() + hours *
 
 /** Scheduled tasks as T3 lists them: one bound to a dedicated thread, one unbound, one reminder on a normal conversation. */
 export function demoScheduledTasks(now: Date): RawScheduledTask[] {
-  const common = { enabled: true, createdBy: "agent", creationSource: "tool", createdAt: hoursFrom(now, -72) };
+  const common = { enabled: true, createdBy: "agent", creationSource: "mcp", createdAt: hoursFrom(now, -72) };
   return [
     {
       ...common,

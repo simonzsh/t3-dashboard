@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { AutomationsResult } from "../../../../shared/api.ts";
 import { useApi } from "../../api/ApiContext.tsx";
 import { errorMessage } from "../../lib/format.ts";
@@ -12,14 +12,21 @@ export function useAutomations(active: boolean): { result: AutomationsResult | n
   const [result, setResult] = useState<AutomationsResult | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  const load = (): Promise<void> =>
-    api.getAutomations().then(
+  // A reload and a poll can overlap: only the latest request may set the state.
+  const seq = useRef(0);
+  const load = (): Promise<void> => {
+    const id = ++seq.current;
+    return api.getAutomations().then(
       (r) => {
+        if (id !== seq.current) return;
         setResult(r);
         setError(null);
       },
-      (e: unknown) => setError(errorMessage(e)),
+      (e: unknown) => {
+        if (id === seq.current) setError(errorMessage(e));
+      },
     );
+  };
   useEffect(() => {
     if (active) void load();
   }, [active]);

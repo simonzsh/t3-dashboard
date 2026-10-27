@@ -67,6 +67,13 @@ test("lastRunState says waiting when the thread is blocked on the user", () => {
   assert.deepEqual(lastRunState(auto("a", { lastRunStatus: "running" }), thread("t", { status: "running" })), { kind: "running" });
 });
 
+test("lastRunState follows the thread after T3 sent the run", () => {
+  const sent = auto("a", { lastRunStatus: "succeeded", lastRunAt: local(10, 25, 9, 40).toISOString() });
+  assert.deepEqual(lastRunState(sent, thread("t", { status: "running" })), { kind: "running" });
+  assert.deepEqual(lastRunState(sent, thread("t", { status: "failed", lastError: "turn failed" })), { kind: "failed", error: "turn failed" });
+  assert.deepEqual(lastRunState(sent, thread("t", { status: "idle" })), { kind: "done", at: "09:40" });
+});
+
 test("nextLabel gives minutes, then a day word and a time", () => {
   assert.equal(nextLabel(null, NOW), "");
   assert.equal(nextLabel(local(10, 25, 14, 0).toISOString(), NOW), "now");

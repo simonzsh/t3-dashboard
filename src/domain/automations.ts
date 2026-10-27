@@ -61,7 +61,11 @@ ${request.trim()}
 
 Règles :
 - Lie la tâche à ce fil (bindToCurrentThread: true) : chaque passage revient ici.
-- Demande ponctuelle (une seule fois) = rappel : le titre commence par "Reminder: ", schedule fixed_time ou interval pour l'heure voulue, et le prompt de la tâche finit par « Ensuite, supprime cette tâche planifiée avec delete_scheduled_task (id <id>). » Après la création, mets le vrai id dans le prompt avec update_scheduled_task.
+- Demande ponctuelle (une seule fois) = rappel :
+  - le titre commence par "Reminder: " ;
+  - fixed_time seulement si son prochain passage tombe à la bonne date (moins de 7 jours, bon jour de la semaine) ; sinon interval, avec everyMs égal au délai jusqu'à l'heure voulue ;
+  - vérifie que nextRunAt est la date voulue ;
+  - le prompt de la tâche finit par « Ensuite, supprime cette tâche planifiée avec delete_scheduled_task (id <id>). » Après la création, mets le vrai id dans le prompt avec update_scheduled_task.
 - Sinon c'est une routine : titre court, sans préfixe "Reminder:".
 - Le prompt de la tâche se suffit à lui-même : il dit quoi faire à chaque passage.
 - Réponds en une ligne : la cadence et le prochain passage (nextRunAt).`;

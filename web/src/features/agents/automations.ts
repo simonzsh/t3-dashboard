@@ -1,4 +1,5 @@
 import type { Automation, DashboardThread } from "../../../../shared/api.ts";
+import { ACTIVE_STATUSES, hasFailed } from "../../../../shared/status.ts";
 
 export type LastRun = { kind: "waiting" } | { kind: "running" } | { kind: "failed"; error: string | null } | { kind: "done"; at: string };
 
@@ -25,11 +26,12 @@ export function splitAutomations(list: Automation[]): { routines: Automation[]; 
 const two = (n: number) => String(n).padStart(2, "0");
 const hm = (d: Date) => `${d.getHours()}:${two(d.getMinutes())}`;
 
-// The thread only matters when it is blocked on the user: its run is hidden from the agents grid.
+// T3 marks a run "succeeded" once it is sent, not when the agent ends: the thread gives the real state.
 export function lastRunState(a: Automation, thread?: DashboardThread): LastRun | null {
   if (thread?.pending) return { kind: "waiting" };
-  if (a.lastRunStatus === "running") return { kind: "running" };
   if (a.lastRunStatus === "failed") return { kind: "failed", error: a.lastRunError };
+  if (a.lastRunStatus === "running" || (thread && ACTIVE_STATUSES.has(thread.status))) return { kind: "running" };
+  if (thread && hasFailed(thread)) return { kind: "failed", error: thread.lastError };
   if (a.lastRunStatus === "succeeded" && a.lastRunAt) {
     const at = new Date(a.lastRunAt);
     return { kind: "done", at: `${two(at.getHours())}:${two(at.getMinutes())}` };

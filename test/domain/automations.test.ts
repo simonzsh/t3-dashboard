@@ -101,6 +101,7 @@ test("automationPrompt carries the trimmed request and the reminder rules", () =
   assert.match(prompt, /schedule_task/);
   assert.match(prompt, /bindToCurrentThread: true/);
   assert.match(prompt, /"Reminder: "/);
+  assert.match(prompt, /interval, avec everyMs/);
   assert.match(prompt, /\n\nRemind me at 5pm\n\n/);
 });
 
