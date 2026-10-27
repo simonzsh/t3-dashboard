@@ -139,6 +139,7 @@ function harness(overrides: { dedicatedAdd?: (id: string) => void } = {}) {
       return "new-thread";
     },
     warn: (message) => warnings.push(message),
+    newId: () => "id-1",
   });
   return { automations, port, created, added, warnings };
 }
@@ -201,4 +202,46 @@ test("list turns a plain port error into a T3 error and keeps an integration err
   const original = new IntegrationError("old T3", { system: "t3", kind: "protocol" });
   port.scheduledTasksError = original;
   await assert.rejects(automations.list(), (error) => error === original);
+});
+
+test("rename sets the title of an unbound task and sends no thread command", async () => {
+  const { automations, port } = harness();
+  port.scheduledTasks = [task()];
+  await automations.rename("task-1", "  Daily triage ");
+  assert.deepEqual(port.renamedTasks, [{ id: "task-1", title: "Daily triage" }]);
+  assert.deepEqual(port.commands, []);
+});
+
+test("rename keeps the reminder prefix of the T3 title", async () => {
+  const { automations, port } = harness();
+  port.scheduledTasks = [task({ title: "Rappel : Appeler Paul" }), task({ id: "task-2", title: "Reminder: Call" })];
+  await automations.rename("task-1", "Appeler Marie");
+  await automations.rename("task-2", "Call Anna");
+  assert.deepEqual(port.renamedTasks, [{ id: "task-1", title: "Rappel : Appeler Marie" }, { id: "task-2", title: "Reminder: Call Anna" }]);
+});
+
+test("rename also renames the bound thread with a stamped command", async () => {
+  const { automations, port } = harness();
+  port.scheduledTasks = [task({ threadId: "t-dedicated" })];
+  await automations.rename("task-1", "Daily triage");
+  assert.deepEqual(port.commands, [{ type: "thread.metadata.update", threadId: "t-dedicated", title: "Daily triage", commandId: "id-1" }]);
+});
+
+test("rename refuses a webhook task, an unknown task and an empty title", async () => {
+  const { automations, port } = harness();
+  port.scheduledTasks = [task({ schedule: { type: "webhook" } })];
+  const code = (id: string, title: string) => automations.rename(id, title).then(() => null, (error: DomainError) => error.code);
+  assert.equal(await code("task-1", "x"), "conflict");
+  assert.equal(await code("nope", "x"), "not-found");
+  assert.equal(await code("task-1", "  "), "invalid");
+  assert.deepEqual(port.renamedTasks, []);
+  assert.deepEqual(port.commands, []);
+});
+
+test("rename keeps the thread as it is when T3 refuses the task rename", async () => {
+  const { automations, port } = harness();
+  port.scheduledTasks = [task({ threadId: "t-dedicated" })];
+  port.renameError = new IntegrationError("refused", { system: "t3", kind: "refused" });
+  await assert.rejects(automations.rename("task-1", "x"), IntegrationError);
+  assert.deepEqual(port.commands, []);
 });

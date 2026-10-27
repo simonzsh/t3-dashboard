@@ -32,6 +32,13 @@ export function validAutomationRequest(body: Record<string, unknown>): Automatio
   return { text: body.text.trim(), projectId: projectId.trim(), modelSelection, ...(isRuntimeMode(body.runtimeMode) && { runtimeMode: body.runtimeMode }) };
 }
 
+const MAX_RENAME = 120;
+
+export function validRename(body: Record<string, unknown>): string {
+  if (!isText(body.title) || body.title.trim().length > MAX_RENAME) throw new HttpError(400, `title (1 to ${MAX_RENAME} characters) is required`);
+  return body.title.trim();
+}
+
 export function validCreate(body: Record<string, unknown>): CreateThreadBody {
   const modelSelection = validSelection(body.modelSelection);
   const projectId = body.projectId ?? "";

@@ -9,6 +9,7 @@ import {
   interruptCommand,
   messageCommand,
   modelSelectionCommand,
+  renameThreadCommand,
   runtimeModeCommand,
   subagentStopCommand,
   threadStopCommand,
@@ -116,6 +117,10 @@ test("settleCommand", () => {
 
 test("unsettleCommand", () => {
   assert.deepEqual(unsettleCommand("thread-1"), { type: "thread.unsettle", threadId: "thread-1", reason: "user" });
+});
+
+test("renameThreadCommand sets the thread title only", () => {
+  assert.deepEqual(renameThreadCommand("thread-1", "New name"), { type: "thread.metadata.update", threadId: "thread-1", title: "New name" });
 });
 
 test("no builder produces acceptAlways", () => {
