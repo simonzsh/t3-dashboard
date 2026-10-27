@@ -1,7 +1,7 @@
 import { test } from "bun:test";
 import assert from "node:assert/strict";
 import type { Automation, DashboardThread } from "../../../../shared/api.ts";
-import { excludeRoutineThreads, setupThreads, lastRunState, nextLabel, reminderDate, splitAutomations } from "../../../src/features/agents/automations.ts";
+import { excludeRoutineThreads, finishedSetups, setupThreads, lastRunState, nextLabel, reminderDate, splitAutomations } from "../../../src/features/agents/automations.ts";
 import { thread } from "../../fixtures.ts";
 
 function auto(id: string, over: Partial<Automation> = {}): Automation {
@@ -99,4 +99,10 @@ test("setupThreads keeps the setup threads that are active or waiting, in the gi
   ];
   assert.deepEqual(setupThreads(threads, ["t-idle", "t-run", "t-ask", "t-gone"]).map((t) => t.id), ["t-run", "t-ask"]);
   assert.deepEqual(setupThreads(threads, []), []);
+});
+
+test("finishedSetups lists the setup threads that stopped being active", () => {
+  const active = [thread("t-run", { status: "running" })];
+  assert.deepEqual(finishedSetups(new Set(["t-run", "t-done"]), active), ["t-done"]);
+  assert.deepEqual(finishedSetups(new Set(), active), []);
 });

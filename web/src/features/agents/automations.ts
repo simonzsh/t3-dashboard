@@ -23,6 +23,12 @@ export function setupThreads(threads: DashboardThread[], setupThreadIds: readonl
   });
 }
 
+// Setup threads that were active and no longer are: their task may exist, but the list does not know it yet.
+export function finishedSetups(wasActive: ReadonlySet<string>, active: readonly DashboardThread[]): string[] {
+  const still = new Set(active.map((t) => t.id));
+  return [...wasActive].filter((id) => !still.has(id));
+}
+
 const byNextRun = (a: Automation, b: Automation) => Number(a.nextRunAt === null) - Number(b.nextRunAt === null) || (a.nextRunAt ?? "").localeCompare(b.nextRunAt ?? "");
 
 export function splitAutomations(list: Automation[]): { routines: Automation[]; reminders: Automation[] } {

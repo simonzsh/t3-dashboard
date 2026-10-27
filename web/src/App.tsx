@@ -194,6 +194,7 @@ export function App() {
               onSwitcher={setSwitcherQuery}
               automations={automations.result}
               automationsError={automations.error}
+              onAutomationsStale={automations.reload}
             />
           ) : <Loader />)}
         {tab === "board" && <BoardView projects={state?.projects ?? []} providers={state?.providers ?? []} modelDefaults={state?.modelDefaults ?? NO_DEFAULTS} version={boardVersion} onAssigned={(id) => openOnDesk(id, false)} onShowDesk={() => setTab("desk")} />}
