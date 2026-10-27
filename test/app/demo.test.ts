@@ -78,6 +78,10 @@ test("the demo Linear board and automations need no network", async () => {
   assert.equal(store.thread("demo-setup")?.status, "running");
   const reminder = automations.find((automation) => automation.kind === "reminder")!;
   assert.ok(store.thread(reminder.threadId!), "the reminder is bound to a conversation that stays in the grid");
+  await port.deleteScheduledTask(reminder.id);
+  const left = await port.listScheduledTasks();
+  assert.equal(left.length, automations.length - 1);
+  assert.ok(!left.some((task) => task.id === reminder.id));
 });
 
 test("demo search is case-insensitive and gives one row per thread, the user's message first", async () => {

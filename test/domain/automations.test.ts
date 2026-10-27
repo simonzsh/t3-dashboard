@@ -111,6 +111,20 @@ test("automationPrompt carries the trimmed request and the reminder rules", () =
   assert.match(prompt, /\n\nRemind me at 5pm\n\n/);
 });
 
+test("remove deletes the task through the port", async () => {
+  const { automations, port } = harness();
+  await automations.remove("task-1");
+  assert.deepEqual(port.deletedTasks, ["task-1"]);
+});
+
+test("remove wraps a port failure as an IntegrationError", async () => {
+  const { automations, port } = harness();
+  port.deleteError = new Error("socket closed");
+  await assert.rejects(automations.remove("task-1"), (error) => error instanceof IntegrationError && error.kind === "unreachable");
+  port.deleteError = new IntegrationError("refused", { system: "t3", kind: "refused" });
+  await assert.rejects(automations.remove("task-1"), (error) => error instanceof IntegrationError && error.kind === "refused");
+});
+
 function harness(overrides: { dedicatedAdd?: (id: string) => void } = {}) {
   const port = new FakePort();
   const created: Array<{ create: unknown; images: unknown }> = [];

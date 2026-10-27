@@ -432,6 +432,10 @@ ol.install-steps { padding-left: 18px; }
 .auto-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
 .auto-row { position: relative; display: flex; gap: 12px; justify-content: space-between; align-items: flex-start; width: 100%; padding: 10px 12px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface-1); box-shadow: var(--shadow); text-align: left; transition: transform 0.12s, box-shadow 0.12s, border-color 0.12s; }
 button.auto-row { cursor: pointer; }
+/* The delete button is a sibling of the row button, at its top right, so it never nests in it. */
+.auto-item { position: relative; }
+.auto-item .auto-row { padding-right: 44px; }
+.auto-delete { position: absolute; top: 8px; right: 8px; }
 button.auto-row:hover { transform: translateY(-1px); }
 .auto-row.waiting { border-color: var(--warn); background: color-mix(in srgb, var(--warn-bg) 55%, var(--surface-1)); }
 .auto-row.running { border-color: color-mix(in srgb, var(--work) 45%, var(--line)); overflow: hidden; }

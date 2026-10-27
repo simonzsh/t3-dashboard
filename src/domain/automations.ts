@@ -79,7 +79,7 @@ function titleFromRequest(text: string): string {
 }
 
 export interface AutomationsOptions {
-  port: Pick<T3Port, "listScheduledTasks">;
+  port: Pick<T3Port, "listScheduledTasks" | "deleteScheduledTask">;
   store: Pick<ShellStore, "project" | "rawThreads">;
   /** The threads the Agents page created for a scheduled task. */
   dedicated: { read(): ReadonlySet<string>; add(threadId: string): void };
@@ -91,6 +91,17 @@ export interface Automations {
   list(): Promise<AutomationsResult>;
   /** Starts a thread that asks an agent to schedule the request; returns its id. */
   request(body: AutomationRequestBody): Promise<string>;
+  /** Deletes the T3 scheduled task. */
+  remove(id: string): Promise<void>;
+}
+
+async function viaT3<T>(work: Promise<T>): Promise<T> {
+  try {
+    return await work;
+  } catch (error) {
+    if (error instanceof IntegrationError) throw error;
+    throw new IntegrationError((error as Error).message, { system: "t3", kind: "unreachable" });
+  }
 }
 
 export function createAutomations(options: AutomationsOptions): Automations {
@@ -99,15 +110,11 @@ export function createAutomations(options: AutomationsOptions): Automations {
 
   return {
     async list() {
-      let tasks: RawScheduledTask[];
-      try {
-        tasks = await port.listScheduledTasks();
-      } catch (error) {
-        if (error instanceof IntegrationError) throw error;
-        throw new IntegrationError((error as Error).message, { system: "t3", kind: "unreachable" });
-      }
+      const tasks = await viaT3(port.listScheduledTasks());
       return toAutomations(tasks, store.rawThreads(), dedicated.read(), (id) => store.project(id)?.title || null);
     },
+
+    remove: (id) => viaT3(port.deleteScheduledTask(id)),
 
     async request({ text, projectId, modelSelection, runtimeMode }) {
       const request = text.trim();

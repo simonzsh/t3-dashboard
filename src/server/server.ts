@@ -26,7 +26,7 @@ export interface SetupControl {
 export interface DashboardServerOptions {
   actions: Actions;
   board: Pick<LinearBoard, "get">;
-  automations: Pick<Automations, "list" | "request">;
+  automations: Pick<Automations, "list" | "request" | "remove">;
   hub: SseHub;
   getState: () => DashboardState;
   connection: () => ConnectionStatus;
@@ -236,6 +236,7 @@ export function createDashboardServer(options: DashboardServerOptions): Dashboar
     { method: "POST", path: "/api/settings/linear/key", handle: async ({ body }) => json(200, await settings.connectKey({ apiKey: String(body.apiKey ?? "") })) },
     { method: "POST", path: "/api/settings/linear/disconnect", handle: () => json(200, settings.disconnect()) },
     { method: "POST", path: "/api/automations", handle: async ({ body }) => ok({ threadId: await automations.request(validAutomationRequest(body)) }) },
+    { method: "POST", path: "/api/automations/:id/delete", handle: ({ params }) => done(automations.remove(params.id!)) },
     {
       method: "POST",
       path: "/api/threads",

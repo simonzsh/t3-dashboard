@@ -14,6 +14,8 @@ export class FakePort implements T3Port {
   searchResult: RawSearchMatch[] = [];
   scheduledTasks: RawScheduledTask[] = [];
   scheduledTasksError: Error | null = null;
+  deletedTasks: string[] = [];
+  deleteError: Error | null = null;
   dispatchError: Error | null = null;
   projectionError: Error | null = null;
   projectionCalls = 0;
@@ -34,6 +36,11 @@ export class FakePort implements T3Port {
   async listScheduledTasks() {
     if (this.scheduledTasksError) throw this.scheduledTasksError;
     return this.scheduledTasks;
+  }
+
+  async deleteScheduledTask(id: string) {
+    if (this.deleteError) throw this.deleteError;
+    this.deletedTasks.push(id);
   }
 
   async searchThreads(query: string, limit?: number) {

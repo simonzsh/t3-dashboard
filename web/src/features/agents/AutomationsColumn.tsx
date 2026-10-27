@@ -1,7 +1,9 @@
 import type { Automation, AutomationsResult, DashboardThread } from "../../../../shared/api.ts";
 import { lastRunState, nextLabel, reminderDate, splitAutomations } from "./automations.ts";
 import { agentStatus } from "../../../../shared/status.ts";
-import { Badge, Loader, Pressable } from "../../ui/index.ts";
+import { useState } from "react";
+import { Badge, Icon, IconButton, Loader, Pressable } from "../../ui/index.ts";
+import { DeleteAutomationDialog } from "./DeleteAutomationDialog.tsx";
 import { StatusBadge } from "./StatusBadge.tsx";
 
 interface Props {
@@ -12,9 +14,10 @@ interface Props {
   setup: DashboardThread[];
   now: Date;
   onOpen: (id: string, addOnly: boolean) => void;
+  onDeleted: () => void;
 }
 
-function Row({ a, thread, now, onOpen }: { a: Automation; thread: DashboardThread | undefined; now: Date; onOpen: (id: string, addOnly: boolean) => void }) {
+function Row({ a, thread, now, onOpen, onDelete }: { a: Automation; thread: DashboardThread | undefined; now: Date; onOpen: (id: string, addOnly: boolean) => void; onDelete: (a: Automation) => void }) {
   const last = lastRunState(a, thread);
   const when = a.kind === "reminder" ? (a.nextRunAt ? reminderDate(a.nextRunAt) : "") : a.scheduleLabel;
   const sub = [a.project, when].filter(Boolean).join(" · ");
@@ -44,7 +47,7 @@ function Row({ a, thread, now, onOpen }: { a: Automation; thread: DashboardThrea
   );
   const { threadId } = a;
   return (
-    <li>
+    <li className="auto-item">
       {threadId ? (
         <Pressable className={`auto-row${last ? ` ${last.kind}` : ""}`} onClick={(e) => onOpen(threadId, e.shiftKey)}>
           {body}
@@ -52,6 +55,9 @@ function Row({ a, thread, now, onOpen }: { a: Automation; thread: DashboardThrea
       ) : (
         <div className="auto-row">{body}</div>
       )}
+      <IconButton label="Delete automation" size="sm" variant="ghost" className="auto-delete" onClick={() => onDelete(a)}>
+        <Icon name="trash" />
+      </IconButton>
     </li>
   );
 }
@@ -73,7 +79,8 @@ function SetupRow({ thread, onOpen }: { thread: DashboardThread; onOpen: (id: st
   );
 }
 
-export function AutomationsColumn({ result, error, threads, setup, now, onOpen }: Props) {
+export function AutomationsColumn({ result, error, threads, setup, now, onOpen, onDeleted }: Props) {
+  const [deleting, setDeleting] = useState<Automation | null>(null);
   const byId = new Map(threads.map((t) => [t.id, t]));
   const { routines, reminders } = splitAutomations(result?.automations ?? []);
   const section = (title: string, rows: Automation[], empty: string) => (
@@ -86,7 +93,7 @@ export function AutomationsColumn({ result, error, threads, setup, now, onOpen }
       ) : (
         <ul className="auto-list">
           {rows.map((a) => (
-            <Row key={a.id} a={a} thread={a.threadId ? byId.get(a.threadId) : undefined} now={now} onOpen={onOpen} />
+            <Row key={a.id} a={a} thread={a.threadId ? byId.get(a.threadId) : undefined} now={now} onOpen={onOpen} onDelete={setDeleting} />
           ))}
         </ul>
       )}
@@ -112,6 +119,16 @@ export function AutomationsColumn({ result, error, threads, setup, now, onOpen }
           {section("Routines", routines, "No routines")}
           {section("Reminders", reminders, "No reminders")}
         </>
+      )}
+      {deleting && (
+        <DeleteAutomationDialog
+          automation={deleting}
+          onClose={() => setDeleting(null)}
+          onDeleted={() => {
+            setDeleting(null);
+            onDeleted();
+          }}
+        />
       )}
     </aside>
   );

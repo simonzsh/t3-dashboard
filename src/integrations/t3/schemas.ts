@@ -76,6 +76,7 @@ export const RawScheduledTask = s.object({
 });
 export type RawScheduledTask = Infer<typeof RawScheduledTask>;
 export const ScheduledTasksResponse = s.object({ tasks: s.array(RawScheduledTask) });
+export const DeletedScheduledTask = s.object({ id: s.string() });
 
 export const RawProject = s.object({
   id: s.string(),
@@ -274,6 +275,7 @@ export interface T3Port {
   dispatch(command: Command): Promise<unknown>;
   getConfig(): Promise<RawConfig>;
   listScheduledTasks(): Promise<RawScheduledTask[]>;
+  deleteScheduledTask(id: string): Promise<void>;
   /** Message matches in T3, best first. */
   searchThreads(query: string, limit?: number): Promise<RawSearchMatch[]>;
   persistAttachments(threadId: string, messageId: string, images: ImageUpload[]): Promise<AttachmentRef[]>;

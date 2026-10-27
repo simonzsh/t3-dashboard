@@ -106,6 +106,13 @@ test("requestAutomation posts the request as JSON", async () => {
   assert.deepEqual(JSON.parse(String(calls[0]?.init?.body)), body);
 });
 
+test("deleteAutomation posts to the delete route of the task", async () => {
+  const { calls, api } = fake(200, { ok: true });
+  await api.deleteAutomation("task/1");
+  assert.equal(calls[0]?.url, "/api/automations/task%2F1/delete");
+  assert.equal(calls[0]?.init?.method, "POST");
+});
+
 test("settings and setup calls use the right routes and verbs", async () => {
   const { calls, api } = fake(200, {});
   await api.getSettings();
