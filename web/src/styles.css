@@ -542,18 +542,19 @@ button.auto-row:hover { transform: translateY(-1px); }
 @media (max-width: 700px) {
   .agents-switcher { max-width: none; }
   /* Floating dots: which pane shows. Each dot is a 24px tap target around an 8px mark. */
-  .pane-dots { position: fixed; z-index: 5; left: 50%; bottom: max(16px, env(safe-area-inset-bottom)); translate: -50% 0; display: flex; padding: 2px 4px; border-radius: 999px; background: var(--surface-1); border: 1px solid var(--line); box-shadow: var(--shadow); }
+  .pane-dots { position: fixed; z-index: 5; left: 50%; bottom: calc(var(--bottom-bar) + env(safe-area-inset-bottom) + 12px); translate: -50% 0; display: flex; padding: 2px 4px; border-radius: 999px; background: var(--surface-1); border: 1px solid var(--line); box-shadow: var(--shadow); }
   .pane-dots button { display: grid; place-items: center; width: 24px; height: 24px; padding: 0; border: 0; background: none; }
   .pane-dots button::before { content: ""; width: 8px; height: 8px; border-radius: 999px; background: var(--line); transition: width 0.16s, background-color 0.16s; }
   .pane-dots button.active::before { width: 16px; background: var(--accent); }
   .app:not(.desk-mode) :is(.agents-page, .board):has(.pane-dots) { padding-bottom: 48px; }
   .switcher-meta { display: none; }
-  /* One line: short title, small tabs, icon actions. The insets keep it clear of the iPhone notch in landscape. */
-  .topbar { gap: 8px; padding: max(8px, env(safe-area-inset-top)) max(12px, env(safe-area-inset-right)) 8px max(12px, env(safe-area-inset-left)); }
+  /* Bottom bar within thumb reach: last in the column, stuck to the bottom of the screen. Fixed height, so the pane dots sit above it. */
+  .app { --bottom-bar: 56px; }
+  .topbar { order: 1; top: auto; bottom: 0; display: flex; gap: 8px; box-sizing: border-box; height: calc(var(--bottom-bar) + env(safe-area-inset-bottom)); padding: 0 max(12px, env(safe-area-inset-right)) env(safe-area-inset-bottom) max(12px, env(safe-area-inset-left)); border-bottom: 0; border-top: 1px solid var(--line); }
   .topbar-left, .topbar-right { gap: 8px; }
-  .tabs { gap: 2px; }
-  .tabs button { padding: 4px 10px; font-size: 13px; }
-  .topbar h1 .title-rest, .conn-label { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+  .tabs { flex: 1; min-width: 0; gap: 2px; }
+  .tabs button { flex: 1; justify-content: center; padding: 9px 6px; font-size: 13px; }
+  .topbar h1, .conn-label { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
   .topbar-right > button.primary { padding: 0; }
   .topbar-right button.update-pill { padding: 0; }
   .kanban { flex: none; flex-direction: column; overflow-x: visible; }
@@ -567,13 +568,13 @@ button.auto-row:hover { transform: translateY(-1px); }
   .card-title { display: block; padding: 0; white-space: nowrap; text-overflow: ellipsis; }
   /* Agents and Board scroll the page itself, so Safari's floating address bar sits over the content instead of under a cut-off box. */
   .app:not(.desk-mode) { height: auto; min-height: 100dvh; overflow: visible; }
-  .app:not(.desk-mode) main { flex: none; overflow: visible; padding-bottom: max(24px, env(safe-area-inset-bottom)); }
+  /* main fills the screen, so a short page keeps the bar at the bottom. */
+  .app:not(.desk-mode) main { flex: 1 0 auto; overflow: visible; }
   .app:not(.desk-mode) :is(.board, .agents-page, .agents-layout) { flex: none; overflow: visible; }
   /* With panes the page fills the screen, so a swipe works below a short pane too. */
-  .app:not(.desk-mode) :is(main, .board, .agents-page):has(.pane-dots), .app:not(.desk-mode) .agents-page:has(.pane-dots) .agents-layout { flex: 1 0 auto; }
-  /* The search stays under the sticky top bar, as on desktop where the list scrolls below it. */
-  /* Stuck 12px under the top bar; the band shows only once the page scrolls, with 12px above and below the search. */
-  .app:not(.desk-mode) .agents-switcher { position: sticky; top: calc(max(8px, env(safe-area-inset-top)) + 56px); z-index: 4; }
+  .app:not(.desk-mode) :is(.board, .agents-page):has(.pane-dots), .app:not(.desk-mode) .agents-page:has(.pane-dots) .agents-layout { flex: 1 0 auto; }
+  /* The search stays 12px under the top of the screen; the band shows only once the page scrolls, with 12px above and below the search. */
+  .app:not(.desk-mode) .agents-switcher { position: sticky; top: max(12px, env(safe-area-inset-top)); z-index: 4; }
   .app:not(.desk-mode) .agents-switcher.scrolled::before { content: ""; position: absolute; z-index: -1; inset: -12px -24px; background: var(--surface-0); border-bottom: 1px solid var(--line); }
 }
 @media (max-width: 700px) {
@@ -583,7 +584,7 @@ button.auto-row:hover { transform: translateY(-1px); }
 @media (max-width: 380px) {
   .topbar { gap: 6px; padding-inline: max(8px, env(safe-area-inset-left)) max(8px, env(safe-area-inset-right)); }
   .topbar-left, .topbar-right { gap: 6px; }
-  .tabs button { padding: 4px 7px; font-size: 12px; }
+  .tabs button { padding: 9px 4px; font-size: 12px; }
 }
 @media (max-width: 900px) {
   /* The layout scrolls here, so it takes the shadow padding: a negative margin inside a scroller makes it scroll sideways. */
