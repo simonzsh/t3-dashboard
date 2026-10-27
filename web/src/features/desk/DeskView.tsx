@@ -132,6 +132,17 @@ export function DeskView({ desk, dispatch, threads, projects, background, t3Envi
   const activeId = (desk.windows.find((w) => w.id === desk.focusedId) ?? desk.windows[0])?.id ?? "";
   const { area, swipe } = useWindowSwipe(narrow, desk.windows, activeId, dispatch);
 
+  // Keeps the open tab centered in the bar, whether a swipe or a tap changed it.
+  const tabs = useRef<HTMLElement>(null);
+  useEffect(() => {
+    const bar = tabs.current;
+    const tab = bar?.querySelector<HTMLElement>(".desk-chip.active");
+    if (!bar || !tab) return;
+    const b = bar.getBoundingClientRect();
+    const t = tab.getBoundingClientRect();
+    bar.scrollTo({ left: bar.scrollLeft + t.left - b.left - (b.width - t.width) / 2, behavior: "smooth" });
+  }, [narrow, activeId]);
+
   const bgClass = background.kind === "preset" ? ` desk-bg-${background.id} has-bg` : background.kind === "image" ? " has-bg" : "";
   const bgStyle = background.kind === "image" ? { backgroundImage: `url("${background.dataUrl}")` } : undefined;
 
@@ -199,7 +210,7 @@ export function DeskView({ desk, dispatch, threads, projects, background, t3Envi
     const active = desk.windows.find((w) => w.id === activeId)!;
     return (
       <div ref={root} className={`desk compact${bgClass}`} style={bgStyle}>
-        <nav className="desk-tabs" aria-label="Desk windows">
+        <nav ref={tabs} className="desk-tabs" aria-label="Desk windows">
           {desk.windows.map((w) => chip(w, w.id === active.id))}
         </nav>
         <div ref={area} className="desk-area" {...swipe}>
