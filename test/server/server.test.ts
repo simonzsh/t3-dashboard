@@ -3,6 +3,8 @@ import { afterEach, test } from "bun:test";
 import type { AutomationsResult, ConnectionStatus, DashboardState } from "../../shared/api.ts";
 import { LinearClient } from "../../src/integrations/linear/client.ts";
 import { createActions } from "../../src/domain/actions.ts";
+import type { Automations } from "../../src/domain/automations.ts";
+import { IntegrationError } from "../../src/integrations/errors.ts";
 import { LinearBoard } from "../../src/domain/linearBoard.ts";
 import { readLinearKey } from "../../src/config/linearFile.ts";
 import { createSettings } from "../../src/domain/settings.ts";
@@ -29,7 +31,7 @@ interface StartOptions {
   site?: Site;
   linearKey?: string;
   linearFetch?: (url: string, init: RequestInit) => Promise<Response>;
-  automations?: () => AutomationsResult;
+  automations?: Pick<Automations, "list" | "request">;
   // Content of the Linear file. Without it, `linearKey` feeds the board directly.
   linear?: unknown;
   pasteResult?: "ok" | "rejected" | "unreachable" | "locked";
@@ -40,7 +42,7 @@ interface StartOptions {
 const LINEAR_FILE = "/cfg/linear.json";
 
 async function start(startOptions: StartOptions = {}) {
-  const { site = { serve: async () => null }, linearKey = "", linearFetch, automations = () => ({ automations: [], brains: [] }) } = startOptions;
+  const { site = { serve: async () => null }, linearKey = "", linearFetch, automations = { list: async () => ({ automations: [], hiddenThreadIds: [] }), request: async () => "thread-x" } } = startOptions;
   const linearCalls: string[] = [];
   const files: Record<string, string> = startOptions.linear === undefined ? {} : { [LINEAR_FILE]: JSON.stringify(startOptions.linear) };
   const readFile = (path: string) => {
@@ -489,6 +491,7 @@ test("every POST route refuses a body that is not JSON", async () => {
     "/api/settings/linear/key",
     "/api/settings/linear/disconnect",
     "/api/threads",
+    "/api/automations",
     "/api/threads/run-1/messages",
     "/api/threads/run-1/settings",
     "/api/threads/run-1/interrupt",
@@ -635,15 +638,50 @@ test("assign answers 502 when Linear fails and when T3 fails", async () => {
   assert.equal((await post(server, "/api/board/assign", assignBody)).status, 502);
 });
 
-test("GET /api/automations returns the automations read at each call", async () => {
+test("GET /api/automations returns the automations listed at each call", async () => {
   let calls = 0;
-  const result: AutomationsResult = { automations: [], brains: [{ name: "Brain A", ok: true, error: null, problems: 1 }] };
-  const { server } = await start({ automations: () => (calls++, result) });
+  const result: AutomationsResult = { automations: [], hiddenThreadIds: ["thread-1"] };
+  const { server } = await start({ automations: { list: async () => (calls++, result), request: async () => "" } });
   const first = await call(server, "GET", "/api/automations");
   assert.equal(first.status, 200);
+  assert.equal(first.headers["content-type"], "application/json; charset=utf-8");
   assert.deepEqual(first.json, result);
   await call(server, "GET", "/api/automations");
   assert.equal(calls, 2);
+});
+
+test("an automations failure gives 502", async () => {
+  const failing = async () => {
+    throw new IntegrationError("T3 is down", { system: "t3", kind: "unreachable" });
+  };
+  const { server } = await start({ automations: { list: failing, request: failing } });
+  assert.equal((await call(server, "GET", "/api/automations")).status, 502);
+  assert.equal((await post(server, "/api/automations", { text: "x", projectId: "", modelSelection: model })).status, 502);
+});
+
+test("POST /api/automations passes the request on and returns the thread id", async () => {
+  const requests: unknown[] = [];
+  const { server } = await start({ automations: { list: async () => ({ automations: [], hiddenThreadIds: [] }), request: async (body) => (requests.push(body), "thread-9") } });
+  const reply = await post(server, "/api/automations", { text: " Remind me ", projectId: " project-1 ", modelSelection: model, runtimeMode: "auto" });
+  assert.equal(reply.status, 200);
+  assert.deepEqual(reply.json, { ok: true, threadId: "thread-9" });
+  assert.deepEqual(requests, [{ text: "Remind me", projectId: "project-1", modelSelection: model, runtimeMode: "auto" }]);
+});
+
+test("POST /api/automations validates its body", async () => {
+  const requests: unknown[] = [];
+  const { server } = await start({ automations: { list: async () => ({ automations: [], hiddenThreadIds: [] }), request: async (body) => (requests.push(body), "x") } });
+  const bad = [
+    { projectId: "", modelSelection: model },
+    { text: "  ", projectId: "", modelSelection: model },
+    { text: "x".repeat(2001), projectId: "", modelSelection: model },
+    { text: "x", projectId: 3, modelSelection: model },
+    { text: "x", projectId: "" },
+    { text: "x", projectId: "", modelSelection: model, runtimeMode: "nope" },
+  ];
+  for (const body of bad) assert.equal((await post(server, "/api/automations", body)).status, 400, JSON.stringify(body));
+  assert.equal((await post(server, "/api/automations", { text: "x", modelSelection: model })).status, 200);
+  assert.deepEqual(requests, [{ text: "x", projectId: "", modelSelection: model }]);
 });
 
 const KEY = "lin_api_secretkey_ABCD";

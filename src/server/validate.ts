@@ -1,4 +1,4 @@
-import type { ApprovalDecision, AssignIssueBody, CreateThreadBody, ModelSelection, RespondBody, SendMessageBody, ThreadSettingsBody, UserInputAnswers } from "../../shared/api.ts";
+import type { ApprovalDecision, AssignIssueBody, AutomationRequestBody, CreateThreadBody, ModelSelection, RespondBody, SendMessageBody, ThreadSettingsBody, UserInputAnswers } from "../../shared/api.ts";
 import { IMAGE_TYPES, MAX_IMAGE_BYTES, MAX_IMAGES, isRuntimeMode } from "../../shared/limits.ts";
 import type { ImageUpload } from "../domain/actions.ts";
 import { HttpError } from "./httpError.ts";
@@ -18,6 +18,18 @@ function validSelection(selection: unknown): ModelSelection | null {
     ? options.filter((o): o is { id: string; value: string | number | boolean } => isObject(o) && typeof o.id === "string" && ["string", "number", "boolean"].includes(typeof o.value))
     : undefined;
   return { instanceId, model, ...(valid && { options: valid }) };
+}
+
+const MAX_AUTOMATION_TEXT = 2000;
+
+export function validAutomationRequest(body: Record<string, unknown>): AutomationRequestBody {
+  const modelSelection = validSelection(body.modelSelection);
+  const projectId = body.projectId ?? "";
+  if (typeof projectId !== "string" || !isText(body.text) || body.text.trim().length > MAX_AUTOMATION_TEXT || !modelSelection) {
+    throw new HttpError(400, `text (1 to ${MAX_AUTOMATION_TEXT} characters) and modelSelection (instanceId, model) are required; projectId is a string`);
+  }
+  if (body.runtimeMode !== undefined && !isRuntimeMode(body.runtimeMode)) throw new HttpError(400, "runtimeMode is not a known mode");
+  return { text: body.text.trim(), projectId: projectId.trim(), modelSelection, ...(isRuntimeMode(body.runtimeMode) && { runtimeMode: body.runtimeMode }) };
 }
 
 export function validCreate(body: Record<string, unknown>): CreateThreadBody {

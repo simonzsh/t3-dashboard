@@ -1,4 +1,4 @@
-export type IntegrationSystem = "t3" | "linear" | "github" | "t3-agent";
+export type IntegrationSystem = "t3" | "linear" | "github";
 
 /** unreachable: no answer; refused: an answer that says no; protocol: an answer we cannot read. */
 export type IntegrationErrorKind = "unreachable" | "refused" | "protocol" | "not-authenticated";
