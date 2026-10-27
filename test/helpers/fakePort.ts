@@ -14,9 +14,11 @@ export class FakePort implements T3Port {
   searchResult: RawSearchMatch[] = [];
   dispatchError: Error | null = null;
   projectionError: Error | null = null;
+  projectionCalls = 0;
   config: () => Promise<RawConfig> = async () => ({ providers: [], environment: { serverVersion: "1.0.0", orchestrationProtocolVersion: 2 } });
 
   async threadProjection(): Promise<RawProjection> {
+    this.projectionCalls++;
     if (this.projectionError) throw this.projectionError;
     return this.projection;
   }

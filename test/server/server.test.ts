@@ -831,6 +831,32 @@ test("media: only an absolute image path that a message of the thread shows", as
   assert.deepEqual(port.assets, [{ _tag: "media-file", threadId: "t1", path: "/tmp/out/shot.png" }]);
 });
 
+test("media: images of one thread share a single projection fetch, and a new citation is found", async () => {
+  const { server, port } = await start();
+  port.projection = { messages: [{ id: "m", role: "assistant", text: "![a](/tmp/a.png) ![b](/tmp/b.png) ![c](/tmp/c.png)" }] };
+  const get = (path: string) => call(server, "GET", `/api/threads/t9/media?path=${encodeURIComponent(path)}`);
+  const statuses = await Promise.all(["/tmp/a.png", "/tmp/b.png", "/tmp/c.png"].map(get));
+  assert.deepEqual(statuses.map((reply) => reply.status), [200, 200, 200]);
+  assert.equal(port.projectionCalls, 1);
+  assert.equal((await get("/tmp/a.png")).status, 200);
+  assert.equal(port.projectionCalls, 1);
+  assert.equal((await get("/tmp/d.png")).status, 404);
+  assert.equal(port.projectionCalls, 2);
+  port.projection = { messages: [{ id: "m", role: "assistant", text: "![d](/tmp/d.png)" }] };
+  assert.equal((await get("/tmp/d.png")).status, 200);
+  assert.equal(port.projectionCalls, 3);
+});
+
+test("media: a failed projection fetch is not cached", async () => {
+  const { server, port } = await start();
+  port.projection = { messages: [{ id: "m", role: "assistant", text: "![a](/tmp/a.png)" }] };
+  const path = encodeURIComponent("/tmp/a.png");
+  port.projectionError = new Error("T3 answered 500");
+  assert.equal((await call(server, "GET", `/api/threads/t8/media?path=${path}`)).status, 502);
+  port.projectionError = null;
+  assert.equal((await call(server, "GET", `/api/threads/t8/media?path=${path}`)).status, 200);
+});
+
 test("attachments: a type the browser could run is downloaded, never rendered on the dashboard origin", async () => {
   const { server, port } = await start();
   port.assetType = "text/html";
