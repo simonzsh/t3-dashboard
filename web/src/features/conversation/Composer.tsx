@@ -45,9 +45,11 @@ interface Props {
   errorResetKey?: unknown;
   /** Send works with an empty message, e.g. when the parent adds its own text. */
   allowEmpty?: boolean;
+  /** Hides the attach button and ignores pasted images, for a parent that cannot send them. */
+  noImages?: boolean;
 }
 
-export function Composer({ providers, selection, runtimeMode, running, stoppable = running, draft, onDraft, onSend, onStop, onSettings, placeholder, autoFocus = false, errorResetKey, allowEmpty = false }: Props) {
+export function Composer({ providers, selection, runtimeMode, running, stoppable = running, draft, onDraft, onSend, onStop, onSettings, placeholder, autoFocus = false, errorResetKey, allowEmpty = false, noImages = false }: Props) {
   // Picks show at once, until new values come in the props or the change fails.
   // Each field has its own override: a model reload never drops a pending mode pick, and the reverse.
   const [selectionOverride, setSelectionOverride] = useState<ModelSelection | null>(null);
@@ -173,7 +175,7 @@ export function Composer({ providers, selection, runtimeMode, running, stoppable
             const text = e.clipboardData.getData("text/plain");
             if (files.length === 0 && text === "") return;
             e.preventDefault();
-            if (files.length > 0) void addFiles(files);
+            if (files.length > 0 && !noImages) void addFiles(files);
             else onDraft(insertText(e.currentTarget, text));
           }}
           autoFocus={autoFocus}
@@ -220,10 +222,14 @@ export function Composer({ providers, selection, runtimeMode, running, stoppable
             />
           </div>
           <div className="composer-actions">
-            <FileInput ref={fileInput} accept={IMAGE_TYPES.join(",")} multiple onFiles={(files) => void addFiles(files)} />
-            <IconButton label="Attach images" tooltip="Attach images" variant="ghost" className="composer-icon" onClick={() => fileInput.current?.click()}>
-              <Icon name="paperclip" />
-            </IconButton>
+            {!noImages && (
+              <>
+                <FileInput ref={fileInput} accept={IMAGE_TYPES.join(",")} multiple onFiles={(files) => void addFiles(files)} />
+                <IconButton label="Attach images" tooltip="Attach images" variant="ghost" className="composer-icon" onClick={() => fileInput.current?.click()}>
+                  <Icon name="paperclip" />
+                </IconButton>
+              </>
+            )}
             {stoppable && onStop && (
               <IconButton label="Stop" tooltip={running ? "Stop the run" : "Stop background tasks"} className="composer-round stop" disabled={stopping} onClick={() => void attempt(onStop, setStopping)}>
                 <Icon name="stop" />
