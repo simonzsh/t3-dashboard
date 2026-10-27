@@ -71,7 +71,9 @@ export class DemoPort implements T3Port {
         thread.pendingRuntimeRequest = null;
         break;
       case "run.interrupt":
-        Object.assign(thread, { status: "interrupted", activeRunId: null, activityRunStartedAt: null, latestRunCompletedAt: at });
+        Object.assign(thread, { status: "interrupted", activeRunId: null, activityRunStartedAt: null, latestRunCompletedAt: at, pendingRuntimeRequest: null });
+        // Stopping the turn drops its pending questions, as in T3.
+        projection.runtimeRequests = (projection.runtimeRequests ?? []).map((request) => (request.status === "pending" ? { ...request, status: "cancelled" } : request));
         break;
       case "thread.stop":
         Object.assign(thread, { pendingBackgroundTasks: [] });
