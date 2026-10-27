@@ -137,3 +137,54 @@ test("searchThreads encodes the query and sends the limit only when given", asyn
   assert.equal(calls[1]?.url, "/api/search?q=x&limit=20");
   assert.equal(calls[0]?.init?.method ?? "GET", "GET");
 });
+
+function scripted(responses: Response[]) {
+  const calls: Call[] = [];
+  const fetch = (async (url: string, init?: RequestInit) => {
+    calls.push({ url, init });
+    return responses.shift()!;
+  }) as typeof globalThis.fetch;
+  return { calls, api: createApi(fetch) };
+}
+
+const ok = (body: unknown, etag?: string) =>
+  new Response(JSON.stringify(body), { status: 200, headers: { "content-type": "application/json", ...(etag && { etag }) } });
+const sentEtag = (call?: Call) => new Headers(call?.init?.headers).get("if-none-match");
+
+test("getThread sends no condition first, then the etag, and a 304 returns the same object", async () => {
+  const { calls, api } = scripted([ok({ n: 1 }, 'W/"abc"'), new Response(null, { status: 304 })]);
+  const first = await api.getThread("t1");
+  const second = await api.getThread("t1");
+  assert.equal(sentEtag(calls[0]), null);
+  assert.equal(sentEtag(calls[1]), 'W/"abc"');
+  assert.equal(second, first);
+});
+
+test("getThread keeps nothing from a 200 without etag", async () => {
+  const { calls, api } = scripted([ok({ n: 1 }), ok({ n: 2 })]);
+  await api.getThread("t1");
+  assert.deepEqual(await api.getThread("t1"), { n: 2 });
+  assert.equal(sentEtag(calls[1]), null);
+});
+
+test("getThread retries once without the header on an unexpected 304", async () => {
+  const { calls, api } = scripted([new Response(null, { status: 304 }), ok({ n: 3 }, 'W/"x"')]);
+  assert.deepEqual(await api.getThread("t1"), { n: 3 });
+  assert.equal(calls.length, 2);
+  assert.equal(sentEtag(calls[1]), null);
+});
+
+test("getThread still throws the server message", async () => {
+  const { api } = scripted([new Response(JSON.stringify({ error: "gone" }), { status: 404 })]);
+  await assert.rejects(api.getThread("t1"), /gone/);
+});
+
+test("getThread keeps etags per thread and forgets the oldest past 50", async () => {
+  const responses = Array.from({ length: 51 }, (_, i) => ok({ i }, `W/"${i}"`));
+  const { calls, api } = scripted([...responses, ok({}, 'W/"again"'), ok({}, 'W/"again"')]);
+  for (let i = 0; i < 51; i++) await api.getThread(`t${i}`);
+  await api.getThread("t0");
+  await api.getThread("t50");
+  assert.equal(sentEtag(calls[51]), null, "oldest entry was evicted");
+  assert.equal(sentEtag(calls[52]), 'W/"50"');
+});

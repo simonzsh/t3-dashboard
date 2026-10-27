@@ -18,6 +18,8 @@ import type {
 
 type Fetch = (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>;
 
+const THREAD_CACHE_MAX = 50;
+
 export function createApi(fetchImpl: Fetch) {
   async function call<T>(path: string, body?: unknown): Promise<T> {
     const init: RequestInit =
@@ -29,6 +31,34 @@ export function createApi(fetchImpl: Fetch) {
       throw new Error(typeof msg === "string" ? msg : `Error ${res.status}`);
     }
     return data as T;
+  }
+  // A 304 returns the same object, so memoized views see no change.
+  const threads = new Map<string, { etag: string; detail: ThreadDetail }>();
+  async function getThread(id: string): Promise<ThreadDetail> {
+    const path = t(id);
+    for (let attempt = 0; ; attempt++) {
+      const known = threads.get(id);
+      const res = await fetchImpl(path, known ? { headers: { "if-none-match": known.etag } } : {});
+      if (res.status === 304 && known) return known.detail;
+      // A 304 we cannot match is retried once without the header.
+      if (res.status === 304 && attempt === 0) {
+        threads.delete(id);
+        continue;
+      }
+      const data: unknown = await res.json().catch(() => null);
+      if (!res.ok) {
+        const msg = (data as { error?: unknown } | null)?.error;
+        throw new Error(typeof msg === "string" ? msg : `Error ${res.status}`);
+      }
+      const detail = data as ThreadDetail;
+      const etag = res.headers.get("etag");
+      threads.delete(id);
+      if (etag) {
+        threads.set(id, { etag, detail });
+        if (threads.size > THREAD_CACHE_MAX) threads.delete(threads.keys().next().value!);
+      }
+      return detail;
+    }
   }
   const t = (id: string) => `/api/threads/${encodeURIComponent(id)}`;
   return {
@@ -46,7 +76,7 @@ export function createApi(fetchImpl: Fetch) {
     getHealth: () => call<HealthResult>("/api/health"),
     searchThreads: (query: string, limit?: number) =>
       call<ThreadSearchResult>(`/api/search?q=${encodeURIComponent(query)}${limit ? `&limit=${limit}` : ""}`),
-    getThread: (id: string) => call<ThreadDetail>(t(id)),
+    getThread,
     createThread: (b: CreateThreadBody) => call<CreateThreadResult>("/api/threads", b),
     sendMessage: (id: string, b: SendMessageBody) => call<OkResult>(`${t(id)}/messages`, b),
     settle: (id: string) => call<OkResult>(`${t(id)}/settle`, {}),
