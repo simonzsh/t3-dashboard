@@ -344,6 +344,21 @@ test("every response forbids framing and sniffing", async () => {
   }
 });
 
+test("a site response keeps its body and status and gets the security headers in place", async () => {
+  const site = new Response("<html></html>", { status: 203, headers: { "content-type": "text/html", etag: '"x"' } });
+  const { server } = await start({ site: { serve: async () => site } });
+  const res = await server.fetch(new Request("http://127.0.0.1/", { headers: { host: "127.0.0.1" } }));
+  assert.equal(res, site);
+  assert.deepEqual([res.status, await res.text(), res.headers.get("etag")], [203, "<html></html>", '"x"']);
+  assert.deepEqual([res.headers.get("x-frame-options"), res.headers.get("content-security-policy"), res.headers.get("x-content-type-options")], ["DENY", "frame-ancestors 'none'", "nosniff"]);
+});
+
+test("a response with immutable headers is copied, not refused", async () => {
+  const { server } = await start({ site: { serve: async () => Response.redirect("http://127.0.0.1/x", 302) } });
+  const res = await server.fetch(new Request("http://127.0.0.1/", { headers: { host: "127.0.0.1" } }));
+  assert.deepEqual([res.status, res.headers.get("x-frame-options")], [302, "DENY"]);
+});
+
 test("prototype keys are not thread actions", async () => {
   const { server, port } = await start();
   for (const action of ["constructor", "toString"]) assert.equal((await post(server, `/api/threads/idle-1/${action}`)).status, 404);

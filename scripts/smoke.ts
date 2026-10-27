@@ -66,6 +66,15 @@ try {
     // Dev JSX calls (jsxDEV) crash with production React: the page stays blank.
     if (url.endsWith(".js")) expect(!/void 0,![01],void 0,this\)/.test(await res.text()), `${url} holds dev JSX calls`);
   }
+  const script = assets.find((url) => url.endsWith(".js"));
+  if (script) {
+    const packed = await fetch(new URL(script, base), { headers: { "accept-encoding": "br" } });
+    expect(packed.headers.get("content-encoding") === "br", `${script} is not brotli with accept-encoding: br`);
+    expect((packed.headers.get("cache-control") ?? "").includes("immutable"), `${script} is not immutable`);
+  }
+  const etag = page.headers.get("etag");
+  expect(page.headers.get("cache-control") === "no-cache" && etag !== null, "/ lacks no-cache or an etag");
+  expect((await fetch(base, { headers: { "if-none-match": etag ?? "" } })).status === 304, "/ with a matching if-none-match is not 304");
   const worker = await fetch(`${base}/sw.js`);
   expect(worker.status === 200 && (worker.headers.get("content-type") ?? "").includes("javascript"), "/sw.js is not served as JavaScript");
   const manifest = await fetch(`${base}/manifest.webmanifest`);
