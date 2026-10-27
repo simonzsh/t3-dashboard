@@ -63,6 +63,12 @@ export function neighborId(state: DeskState, direction: Direction): string | nul
   return grid[target]?.id ?? null;
 }
 
+/** The window `step` places after `id` in opening order (negative: before), or null past either end. */
+export function stepId(windows: readonly DeskWindow[], id: string, step: 1 | -1): string | null {
+  const at = windows.findIndex((w) => w.id === id);
+  return at < 0 ? null : (windows[at + step]?.id ?? null);
+}
+
 export function equalSizes(prefix: string, count: number): TrackSizes {
   return Object.fromEntries(Array.from({ length: count }, (_, i) => [`${prefix}${i}`, 100 / count]));
 }

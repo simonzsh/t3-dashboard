@@ -546,7 +546,7 @@ button.auto-row:hover { transform: translateY(-1px); }
   .pane-dots button { display: grid; place-items: center; width: 24px; height: 24px; padding: 0; border: 0; background: none; }
   .pane-dots button::before { content: ""; width: 8px; height: 8px; border-radius: 999px; background: var(--line); transition: width 0.16s, background-color 0.16s; }
   .pane-dots button.active::before { width: 16px; background: var(--accent); }
-  .app:not(.desk-mode) .agents-page:has(.pane-dots) { padding-bottom: 48px; }
+  .app:not(.desk-mode) :is(.agents-page, .board):has(.pane-dots) { padding-bottom: 48px; }
   .switcher-meta { display: none; }
   /* One line: short title, small tabs, icon actions. The insets keep it clear of the iPhone notch in landscape. */
   .topbar { gap: 8px; padding: max(8px, env(safe-area-inset-top)) max(12px, env(safe-area-inset-right)) 8px max(12px, env(safe-area-inset-left)); }
@@ -569,6 +569,8 @@ button.auto-row:hover { transform: translateY(-1px); }
   .app:not(.desk-mode) { height: auto; min-height: 100dvh; overflow: visible; }
   .app:not(.desk-mode) main { flex: none; overflow: visible; padding-bottom: max(24px, env(safe-area-inset-bottom)); }
   .app:not(.desk-mode) :is(.board, .agents-page, .agents-layout) { flex: none; overflow: visible; }
+  /* With panes the page fills the screen, so a swipe works below a short pane too. */
+  .app:not(.desk-mode) :is(main, .board, .agents-page):has(.pane-dots), .app:not(.desk-mode) .agents-page:has(.pane-dots) .agents-layout { flex: 1 0 auto; }
   /* The search stays under the sticky top bar, as on desktop where the list scrolls below it. */
   /* Stuck 12px under the top bar; the band shows only once the page scrolls, with 12px above and below the search. */
   .app:not(.desk-mode) .agents-switcher { position: sticky; top: calc(max(8px, env(safe-area-inset-top)) + 56px); z-index: 4; }
