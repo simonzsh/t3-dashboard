@@ -37,13 +37,7 @@ function Row({ a, thread, project, now, onOpen, onRename, onDelete }: RowProps) 
   const sub = [a.project, when].filter(Boolean).join(" · ");
   const body = (
     <>
-      <span className="auto-main">
-        <span className="auto-title">{a.title}</span>
-        <span className="auto-sub">
-          <ProjectIcon icon={project?.icon ?? null} />
-          <span className="auto-sub-text">{sub}</span>
-        </span>
-      </span>
+      <span className="auto-title">{a.title}</span>
       <span className="auto-side">
         <span className="auto-next">{a.enabled ? nextLabel(a.nextRunAt, now) : "paused"}</span>
         {last?.kind === "waiting" && <Badge variant="waiting">Waiting</Badge>}
@@ -60,17 +54,21 @@ function Row({ a, thread, project, now, onOpen, onRename, onDelete }: RowProps) 
         )}
         {last?.kind === "done" && <Badge variant="done">Finished {last.at}</Badge>}
       </span>
+      <span className="auto-sub">
+        <ProjectIcon icon={project?.icon ?? null} />
+        <span className="auto-sub-text">{sub}</span>
+      </span>
     </>
   );
   const { threadId } = a;
   return (
     <li className="auto-item">
       {threadId ? (
-        <Pressable className={`auto-row${last ? ` ${last.kind}` : ""}`} onClick={(e) => onOpen(threadId, e.shiftKey)}>
+        <Pressable className={`auto-row auto-grid${last ? ` ${last.kind}` : ""}`} onClick={(e) => onOpen(threadId, e.shiftKey)}>
           {body}
         </Pressable>
       ) : (
-        <div className="auto-row">{body}</div>
+        <div className="auto-row auto-grid">{body}</div>
       )}
       <IconButton label="Rename automation" size="sm" variant="ghost" className="auto-rename" onClick={() => onRename(a)}>
         <Icon name="edit" />
