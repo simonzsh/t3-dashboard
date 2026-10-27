@@ -1,5 +1,6 @@
 import type {
   AssignIssueBody,
+  AutomationRequestBody,
   AutomationsResult,
   BoardResult,
   ConnectionStatus,
@@ -66,6 +67,7 @@ export function createApi(fetchImpl: Fetch) {
   }
   return {
     getAutomations: () => call<AutomationsResult>("/api/automations"),
+    requestAutomation: (b: AutomationRequestBody) => call<CreateThreadResult>("/api/automations", b),
     getBoard: (refresh = false) => call<BoardResult>(refresh ? "/api/board?refresh=1" : "/api/board"),
     assignIssue: (b: AssignIssueBody) => call<CreateThreadResult>("/api/board/assign", b),
     getSettings: () => call<SettingsResult>("/api/settings"),

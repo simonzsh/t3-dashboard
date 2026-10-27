@@ -19,6 +19,7 @@ interface Props {
   onSwitcher: (initialQuery: string) => void;
   automations: AutomationsResult | null;
   automationsError: string | null;
+  onAutomationSent: () => void;
 }
 
 // Collapsed by default: settled threads need no attention.
@@ -35,15 +36,15 @@ function RecentlySettled({ count, children }: { count: number; children: ReactNo
   );
 }
 
-export function AgentsView({ state, now, deskIds, onOpen, onToggleDesk, onSettle, onSwitcher, automations, automationsError }: Props) {
+export function AgentsView({ state, now, deskIds, onOpen, onToggleDesk, onSettle, onSwitcher, automations, automationsError, onAutomationSent }: Props) {
   const scrolled = useScrolled();
-  const routines = automations?.automations;
+  const hiddenIds = automations?.hiddenThreadIds;
   const groups = useMemo(
-    () => groupAgents(excludeRoutineThreads(state.threads, routines ?? []), state.projects, now),
-    [state.threads, state.projects, routines, now],
+    () => groupAgents(excludeRoutineThreads(state.threads, hiddenIds ?? []), state.projects, now),
+    [state.threads, state.projects, hiddenIds, now],
   );
   // Before the first automations answer, routine threads would flash in the grid.
-  const available = state.automationsAvailable;
+  const available = state.connection.t3 === "live";
   const loading = available && automations === null && automationsError === null;
   const agents = loading ? (
     <Loader />
@@ -99,7 +100,7 @@ export function AgentsView({ state, now, deskIds, onOpen, onToggleDesk, onSettle
       </div>
       <div className={`agents-layout${available ? "" : " wide"}`}>
         {agents}
-        {available && <AutomationsColumn result={automations} error={automationsError} threads={state.threads} now={now} onOpen={onOpen} />}
+        {available && <AutomationsColumn result={automations} error={automationsError} threads={state.threads} now={now} projects={state.projects} providers={state.providers} defaults={state.modelDefaults} onOpen={onOpen} onSent={onAutomationSent} />}
       </div>
     </div>
   );

@@ -37,7 +37,7 @@ function focusComposer(threadId: string) {
 export function App() {
   const { state, sseDown } = useDashboard();
   const [tab, setTab] = useTab();
-  const automations = useAutomations(tab === "agents" && state?.automationsAvailable === true);
+  const automations = useAutomations(tab === "agents" && state?.connection.t3 === "live");
   const [desk, dispatchDesk] = useDesk(state?.connection.t3 === "live" ? state.threads : null);
   const [openHistory, recordOpened] = useOpenHistory();
   const [creating, setCreating] = useState(false);
@@ -180,6 +180,7 @@ export function App() {
               onSwitcher={setSwitcherQuery}
               automations={automations.result}
               automationsError={automations.error}
+              onAutomationSent={automations.reload}
             />
           ) : <Loader />)}
         {tab === "board" && <BoardView projects={state?.projects ?? []} providers={state?.providers ?? []} modelDefaults={state?.modelDefaults ?? NO_DEFAULTS} version={boardVersion} onAssigned={(id) => openOnDesk(id, false)} onShowDesk={() => setTab("desk")} />}
