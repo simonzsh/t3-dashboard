@@ -232,7 +232,6 @@ main { flex: 1; min-height: 0; overflow: hidden; padding: 24px; display: flex; f
 .msg.render iframe { width: 100%; border: 0; display: block; background: transparent; }
 .messages { flex: 1; min-height: 0; overflow: auto; padding: 16px 14px; display: flex; flex-direction: column; gap: 18px; }
 /* Chat layout: user bubbles on the right, agent text full width on the left. */
-.messages > .msg:not(.render):not(.pending) { content-visibility: auto; contain-intrinsic-size: auto 120px; }
 .msg { display: flex; flex-direction: column; gap: 4px; min-width: 0; overflow-wrap: anywhere; }
 .msg small { display: flex; align-items: center; gap: 6px; font-size: 11px; color: var(--text-secondary); opacity: 0; transition: opacity 0.15s; }
 .msg:hover small, .msg:focus-within small, .msg:last-child small { opacity: 0.85; }
