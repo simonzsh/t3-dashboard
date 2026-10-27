@@ -145,10 +145,10 @@ async function checkLive(checks: Checks, options: T3ContractOptions, token: stri
   if (!(await checks.run("websocket ticket", async () => (connection = await client.openSocket())))) return;
   try {
     await checks.run(RPC.getConfig, async () => checkConfig(checks, await connection!.request(RPC.getConfig, {})));
+    await checks.run(RPC.listScheduledTasks, async () => checks.issues(RPC.listScheduledTasks, issues(ScheduledTasksResponse, await connection!.request(RPC.listScheduledTasks, {}))));
   } finally {
     connection?.close();
   }
-  await checks.run(RPC.listScheduledTasks, async () => checks.issues(RPC.listScheduledTasks, issues(ScheduledTasksResponse, await client.call(RPC.listScheduledTasks, {}))));
   let threads: RawThread[] = [];
   await checks.run(RPC.subscribeShell, async () => {
     const items = await shellSnapshot(client);

@@ -1,13 +1,14 @@
 import assert from "node:assert/strict";
 import { test } from "bun:test";
 import { DemoPort, demoLinearFetch } from "../../src/app/demo/port.ts";
-import { demoAutomations, demoFixtures } from "../../src/app/demo/fixtures.ts";
+import { demoFixtures } from "../../src/app/demo/fixtures.ts";
 import { issues } from "../../src/integrations/contract.ts";
 import { LinearClient } from "../../src/integrations/linear/client.ts";
 import { RawConfig, RawProjection, RawProject, RawThread } from "../../src/integrations/t3/schemas.ts";
 import { ShellStore } from "../../src/domain/shellStore.ts";
 import { toProviders } from "../../src/domain/providers.ts";
 import { createActions } from "../../src/domain/actions.ts";
+import { createAutomations } from "../../src/domain/automations.ts";
 import { agentStatus } from "../../shared/status.ts";
 
 const NOW = new Date("2026-10-26T10:00:00Z");
@@ -66,9 +67,15 @@ test("a message sent in the demo lands in its thread", async () => {
 test("the demo Linear board and automations need no network", async () => {
   const issuesList = await new LinearClient(demoLinearFetch(NOW)).assignedIssues("demo");
   assert.ok(new Set(issuesList.map((issue) => issue.state.name)).size >= 4);
-  const { automations, brains } = demoAutomations(NOW);
+  const port = new DemoPort(() => NOW);
+  const store = syncedStore(port);
+  await Bun.sleep(0);
+  const { automations, hiddenThreadIds } = await createAutomations({ port, store, dedicated: { read: () => new Set(["demo-digest"]), add() {} }, createThread: async () => "x" }).list();
   assert.ok(automations.length >= 3 && automations.every((automation) => automation.nextRunAt !== null));
-  assert.ok(brains.every((brain) => brain.ok));
+  assert.ok(automations.some((automation) => automation.kind === "reminder"));
+  assert.deepEqual(hiddenThreadIds, ["demo-digest"]);
+  const reminder = automations.find((automation) => automation.kind === "reminder")!;
+  assert.ok(store.thread(reminder.threadId!), "the reminder is bound to a conversation that stays in the grid");
 });
 
 test("demo search is case-insensitive and gives one row per thread, the user's message first", async () => {

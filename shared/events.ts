@@ -9,7 +9,6 @@ export interface DashboardState {
   providers: DashboardProvider[];
   modelDefaults: ModelDefaults;
   threads: DashboardThread[];
-  /** At least one t3-agent brain file exists. */
   /** For t3code:// links; null hides the "Open in T3 Code" buttons. */
   t3EnvironmentId: string | null;
 }

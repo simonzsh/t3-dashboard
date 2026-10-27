@@ -33,7 +33,6 @@ const child = Bun.spawn([exe], {
     PORT: String(port),
     T3_DASHBOARD_TOKEN_FILE: tokenFile,
     T3_SERVER_RUNTIME: runtimeFile,
-    T3_DASHBOARD_AGENT_CONFIG_DIR: join(dir, "agents"),
     T3_DASHBOARD_LINEAR_FILE: join(dir, "linear.json"),
     T3_DASHBOARD_CONFIG_DIR: join(dir, "config"),
   },
