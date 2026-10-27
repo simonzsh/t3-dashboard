@@ -55,22 +55,22 @@ export function toAutomations(tasks: RawScheduledTask[], threads: RawThread[], d
   return { automations, hiddenThreadIds: [...hidden], setupThreadIds: [...dedicated].filter((id) => !bound.has(id)) };
 }
 
-/** The message that asks an agent to create the scheduled task; French like the rest of the agent prompts. */
+/** The message that asks an agent to create the scheduled task. Predefined prompts are English. */
 export function automationPrompt(request: string): string {
-  return `Crée une tâche planifiée T3 Code avec l'outil schedule_task pour cette demande :
+  return `Create a T3 Code scheduled task with the schedule_task tool for this request:
 
 ${request.trim()}
 
-Règles :
-- Lie la tâche à ce fil (bindToCurrentThread: true) : chaque passage revient ici.
-- Demande ponctuelle (une seule fois) = rappel :
-  - le titre commence par "Reminder: " ;
-  - fixed_time seulement si son prochain passage tombe à la bonne date (moins de 7 jours, bon jour de la semaine) ; sinon interval, avec everyMs égal au délai jusqu'à l'heure voulue ;
-  - vérifie que nextRunAt est la date voulue ;
-  - le prompt de la tâche finit par « Ensuite, supprime cette tâche planifiée avec delete_scheduled_task (id <id>). » Après la création, mets le vrai id dans le prompt avec update_scheduled_task.
-- Sinon c'est une routine : titre court, sans préfixe "Reminder:".
-- Le prompt de la tâche se suffit à lui-même : il dit quoi faire à chaque passage.
-- Réponds en une ligne : la cadence et le prochain passage (nextRunAt).`;
+Rules:
+- Bind the task to this thread (bindToCurrentThread: true): every run comes back here.
+- A one-time request is a reminder:
+  - the title starts with "Reminder: ";
+  - use fixed_time only if its next run falls on the right date (less than 7 days away, right weekday); otherwise use interval, with everyMs equal to the delay until the wanted time;
+  - check that nextRunAt is the wanted date;
+  - the task prompt ends with "Then delete this scheduled task with delete_scheduled_task (id <id>)." After you create the task, put the real id in the prompt with update_scheduled_task.
+- Otherwise it is a routine: a short title, without the "Reminder:" prefix.
+- The task prompt must stand alone: it says what to do on each run.
+- Reply in one line: the schedule and the next run (nextRunAt).`;
 }
 
 function titleFromRequest(text: string): string {

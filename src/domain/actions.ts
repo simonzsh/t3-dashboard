@@ -241,9 +241,9 @@ export function createActions(options: ActionsOptions): Actions {
         projectId = project.id;
       } else projectId = await t3(port.ensureScratchProject());
       // The agent always gets the issue link, after the user's own instructions if any.
-      const reference = `Ticket Linear ${issue.identifier} : ${issue.url}`;
+      const reference = `Linear issue ${issue.identifier}: ${issue.url}`;
       const instructions = body.text.trim();
-      const text = instructions ? `${instructions}\n\n${reference}` : `Traite le ticket Linear ${issue.identifier} : ${issue.url}`;
+      const text = instructions ? `${instructions}\n\n${reference}` : `Handle Linear issue ${issue.identifier}: ${issue.url}`;
       const create = { projectId, title: `${issue.identifier} ${issue.title}`, text, modelSelection: body.modelSelection, ...(body.runtimeMode && { runtimeMode: body.runtimeMode }) };
       const threadId = newId();
       await send(...createThreadCommands(threadId, create, await outgoing(threadId, images)));

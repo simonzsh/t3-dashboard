@@ -573,14 +573,14 @@ test("POST /api/board/assign creates a thread on the issue with the chosen model
   assert.equal(port.commands[0]!.projectId, "project-1");
   assert.equal(port.commands[0]!.title, "TEAM-1 Issue 1");
   assert.equal(port.commands[0]!.runtimeMode, "auto");
-  assert.equal(port.commands[1]!.text, "Traite le ticket Linear TEAM-1 : https://linear.example/TEAM-1");
+  assert.equal(port.commands[1]!.text, "Handle Linear issue TEAM-1: https://linear.example/TEAM-1");
   assert.deepEqual(port.commands[0]!.modelSelection, { instanceId: "claudeAgent", model: "claude-opus-5-5" });
 });
 
 test("assign puts the user's instructions first, then the issue link", async () => {
   const { server, port } = await start({ linearKey: "key-1" });
   await post(server, "/api/board/assign", { ...assignBody, text: "  Start with the tests.  " });
-  assert.equal(port.commands[1]!.text, "Start with the tests.\n\nTicket Linear TEAM-1 : https://linear.example/TEAM-1");
+  assert.equal(port.commands[1]!.text, "Start with the tests.\n\nLinear issue TEAM-1: https://linear.example/TEAM-1");
 });
 
 test("assign without a project goes to T3's No project", async () => {

@@ -104,7 +104,7 @@ test("assign names the thread after the issue and asks the agent to handle it", 
   assert.equal(create?.threadId, threadId);
   assert.equal(create?.title, "TEAM-1 Fix it");
   const message = commands.find((command) => command.type === "message.dispatch");
-  assert.equal(message?.text, "Traite le ticket Linear TEAM-1 : https://linear.example/TEAM-1");
+  assert.equal(message?.text, "Handle Linear issue TEAM-1: https://linear.example/TEAM-1");
 });
 
 test("assign refuses an unknown issue and an unknown project", async () => {
