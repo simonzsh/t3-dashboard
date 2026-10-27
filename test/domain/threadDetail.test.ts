@@ -111,6 +111,7 @@ test("user-input request: value falls back to label, defaults, and not_resumable
   assert.equal(request.category, "user-input");
   assert.equal(request.resumable, false);
   if (request.category !== "user-input") return;
+  assert.equal(request.dismissable, false);
   assert.deepEqual(request.questions, [
     {
       id: "q1",
@@ -126,6 +127,18 @@ test("user-input request: value falls back to label, defaults, and not_resumable
     },
     { id: "q2", header: null, question: "Anything else?", options: [], multiSelect: false, allowCustomAnswer: true, required: true },
   ]);
+});
+
+test("user-input request is dismissable only when a message can answer it", () => {
+  const dismissable = (type: string) => {
+    const projection: RawProjection = {
+      runtimeRequests: [{ id: "r", kind: "user_input", status: "pending", responseCapability: { type } }],
+      turnItems: [{ type: "user_input_request", requestId: "r", questions: [] }],
+    };
+    const request = toThreadDetail("thread-1", projection, undefined).pendingRequests[0]!;
+    return request.category === "user-input" && request.dismissable;
+  };
+  assert.deepEqual([dismissable("message"), dismissable("live")], [true, false]);
 });
 
 test("unknown item kind or no matching item gives other", () => {

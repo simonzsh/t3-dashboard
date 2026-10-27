@@ -76,9 +76,15 @@ export function PendingRequestView({ threadId, request }: { threadId: string; re
             );
           })}
           <div className="buttons">
-            <Button disabled={locked || action.busy} onClick={() => void action.run(() => api.dismiss(threadId, request.requestId))}>
-              Dismiss
-            </Button>
+            {request.dismissable ? (
+              <Button disabled={locked || action.busy} onClick={() => void action.run(() => api.dismiss(threadId, request.requestId))}>
+                Dismiss
+              </Button>
+            ) : (
+              <Button disabled={locked || action.busy} onClick={() => void action.run(() => api.interrupt(threadId))}>
+                Stop turn
+              </Button>
+            )}
             <Button
               variant="primary"
               disabled={locked || action.busy || !canSubmit(request.questions, drafts)}
