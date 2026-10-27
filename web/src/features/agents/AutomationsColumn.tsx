@@ -41,7 +41,7 @@ function Row({ a, thread, project, now, onOpen, onRename, onDelete }: RowProps) 
         <span className="auto-title">{a.title}</span>
         <span className="auto-sub">
           <ProjectIcon icon={project?.icon ?? null} />
-          {sub}
+          <span className="auto-sub-text">{sub}</span>
         </span>
       </span>
       <span className="auto-side">
