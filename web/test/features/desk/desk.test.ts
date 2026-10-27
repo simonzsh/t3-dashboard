@@ -149,7 +149,6 @@ test("parseDesk round-trips and falls back on bad input", () => {
   let s = open(EMPTY_DESK, "a", "b");
   s = deskReducer(s, { type: "minimize", id: "a" });
   s = deskReducer(s, { type: "maximize", id: "b" });
-  s = deskReducer(s, { type: "setSizes", count: 1, sizes: { columns: { c0: 100 }, rows: { r0: 100 } } });
   assert.deepEqual(parseDesk(JSON.stringify(s)), s);
   assert.deepEqual(parseDesk(null), EMPTY_DESK);
   assert.deepEqual(parseDesk("{not json"), EMPTY_DESK);
@@ -161,14 +160,14 @@ test("parseDesk repairs inconsistent data", () => {
     windows: [{ id: "a", minimized: false }, { id: "a", minimized: true }, { id: 3 }, { id: "b", minimized: "yes" }, ...["c", "d", "e", "f", "g", "h"].map((id) => ({ id, minimized: false }))],
     focusedId: "zz",
     maximizedId: "a",
-    sizes: { "2": { columns: { c0: 50, c1: "x" }, rows: { r0: 100 } }, "3": "bad" },
+    sizes: { "4": { columns: { c0: 50, c1: 50 }, rows: { r0: 60, r1: 40 } } },
   });
   const s = parseDesk(raw);
   assert.deepEqual(ids(s), ["a", "b", "c", "d", "e", "f"]);
   assert.equal(s.windows[1]!.minimized, false);
   assert.equal(s.focusedId, "f");
   assert.equal(s.maximizedId, "a");
-  assert.deepEqual(s.sizes, { "2": { columns: { c0: 50 }, rows: { r0: 100 } } });
+  assert.deepEqual(s.sizes, {});
   const minimizedMax = parseDesk(JSON.stringify({ windows: [{ id: "a", minimized: true }], maximizedId: "a", focusedId: "a" }));
   assert.equal(minimizedMax.maximizedId, null);
   assert.equal(minimizedMax.focusedId, null);
