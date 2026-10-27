@@ -149,22 +149,6 @@ function reduce(state: DeskState, action: DeskAction): DeskState {
 
 const isObject = (v: unknown): v is Record<string, unknown> => typeof v === "object" && v !== null && !Array.isArray(v);
 
-function parseTracks(raw: unknown): TrackSizes {
-  if (!isObject(raw)) return {};
-  const out: TrackSizes = {};
-  for (const [id, v] of Object.entries(raw)) if (typeof v === "number" && Number.isFinite(v) && v >= 0) out[id] = v;
-  return out;
-}
-
-function parseSizes(raw: unknown): Record<string, DeskSizes> {
-  if (!isObject(raw)) return {};
-  const out: Record<string, DeskSizes> = {};
-  for (const [count, value] of Object.entries(raw)) {
-    if (isObject(value)) out[count] = { columns: parseTracks(value.columns), rows: parseTracks(value.rows) };
-  }
-  return out;
-}
-
 // Anything unexpected in storage gives a valid desk, never an exception.
 export function parseDesk(raw: string | null): DeskState {
   let data: unknown;
@@ -181,7 +165,7 @@ export function parseDesk(raw: string | null): DeskState {
     if (windows.length === DESK_LIMIT) break;
   }
   const idOrNull = (v: unknown) => (typeof v === "string" ? v : null);
-  return settle({ windows, focusedId: idOrNull(data.focusedId), maximizedId: idOrNull(data.maximizedId), sizes: parseSizes(data.sizes) });
+  return settle({ windows, focusedId: idOrNull(data.focusedId), maximizedId: idOrNull(data.maximizedId), sizes: {} });
 }
 
 
@@ -195,7 +179,8 @@ export function loadDesk(storage: Store | null): DeskState {
 
 export function saveDesk(storage: Store | null, state: DeskState): void {
   try {
-    storage?.setItem(DESK_KEY, JSON.stringify(state));
+    // Sizes stay in memory: a drag from an old session must not shape the grid on the next load.
+    storage?.setItem(DESK_KEY, JSON.stringify({ ...state, sizes: {} }));
   } catch {
     // Ignored on purpose: the desk then starts empty on the next load.
   }
