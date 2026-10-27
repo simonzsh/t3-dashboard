@@ -68,7 +68,7 @@ Rules:
   - the title starts with "Reminder: ";
   - use fixed_time only if its next run falls on the right date (less than 7 days away, right weekday); otherwise use interval, with everyMs equal to the delay until the wanted time;
   - check that nextRunAt is the wanted date;
-  - the task prompt ends with "Then delete this scheduled task with delete_scheduled_task (id <id>)." After you create the task, put the real id in the prompt with update_scheduled_task.
+  - the task prompt ends with "Then delete this scheduled task with delete_scheduled_task (id <id>)." After you create the task, put the real id in the prompt: call schedule_task again with scheduledTaskId and the new prompt.
 - Otherwise it is a routine: a short title, without the "Reminder:" prefix.
 - The task prompt must stand alone: it says what to do on each run.
 - Reply in one line: the schedule and the next run (nextRunAt).`;
