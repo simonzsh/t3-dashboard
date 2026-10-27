@@ -89,7 +89,7 @@ body { margin: 0; font: 14px/1.45 system-ui, -apple-system, "Segoe UI", sans-ser
 :where(.field):focus-visible { outline: none; border-color: var(--field-border-focus); box-shadow: var(--field-ring); }
 /* Shared text-field look: the composer's border, ring and placeholder; a textarea also takes its radius and padding. */
 .field::placeholder { color: var(--text-secondary); opacity: 1; }
-textarea.field { padding: 10px 14px; border-radius: var(--radius-composer); line-height: 1.5; resize: vertical; }
+textarea.field { padding: 10px 14px; border-radius: var(--radius-composer); line-height: 1.5; resize: none; max-height: min(40vh, 260px); overflow-y: auto; }
 button, input, textarea { font: inherit; color: inherit; background: var(--surface-1); border: 1px solid var(--line); border-radius: var(--radius-md); padding: 6px 12px; }
 button { cursor: pointer; }
 button:hover:not(:disabled) { border-color: var(--accent); }
