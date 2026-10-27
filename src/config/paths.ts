@@ -24,3 +24,6 @@ const inStateDir = (name: string) => (env: Env, homedir: string, platform: Platf
 
 export const logFile = inStateDir("dashboard.log");
 export const pidFile = inStateDir("dashboard.pid");
+
+/** Threads the Agents page created for a scheduled task. */
+export const automationThreadsFile = (env: Env, homedir: string): string => join(configDir(env, homedir), "automation-threads.json");
