@@ -32,6 +32,7 @@ export function createApi(fetchImpl: Fetch) {
     }
     return data as T;
   }
+  const t = (id: string) => `/api/threads/${encodeURIComponent(id)}`;
   // A 304 returns the same object, so memoized views see no change.
   const threads = new Map<string, { etag: string; detail: ThreadDetail }>();
   async function getThread(id: string): Promise<ThreadDetail> {
@@ -60,7 +61,6 @@ export function createApi(fetchImpl: Fetch) {
       return detail;
     }
   }
-  const t = (id: string) => `/api/threads/${encodeURIComponent(id)}`;
   return {
     getAutomations: () => call<AutomationsResult>("/api/automations"),
     getBoard: (refresh = false) => call<BoardResult>(refresh ? "/api/board?refresh=1" : "/api/board"),
