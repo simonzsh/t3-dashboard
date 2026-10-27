@@ -1,4 +1,4 @@
-import { useEffect, useRef, type Dispatch, type MouseEvent, type ReactNode } from "react";
+import { useEffect, useMemo, useRef, type Dispatch, type MouseEvent, type ReactNode } from "react";
 import { Cell, Grid, Gridline, useGridRef, type GridLayout } from "react-resizable-panels";
 import type { DashboardProject, DashboardProvider, DashboardThread } from "../../../../shared/api.ts";
 import { threadState } from "../../../../shared/status.ts";
@@ -28,6 +28,8 @@ function DeskGrid({ windows, desk, dispatch, render }: { windows: Win[]; desk: D
   const { columns, rows } = deskLayout(count);
   const gridRef = useGridRef();
   const sizes = sizesFor(desk, count);
+  const columnTracks = useMemo(() => Array.from({ length: columns }, (_, i) => ({ id: `c${i}`, minSize: MIN_COLUMN_PX })), [columns]);
+  const rowTracks = useMemo(() => Array.from({ length: rows }, (_, i) => ({ id: `r${i}`, minSize: MIN_ROW_PX })), [rows]);
 
   // Tracks change with the window count: apply the sizes kept for the new layout.
   useEffect(() => {
@@ -49,8 +51,8 @@ function DeskGrid({ windows, desk, dispatch, render }: { windows: Win[]; desk: D
       // The library clips the grid and its cells: that cut the window shadows into square boxes.
       style={{ overflow: "visible" }}
       gridRef={gridRef}
-      columns={Array.from({ length: columns }, (_, i) => ({ id: `c${i}`, minSize: MIN_COLUMN_PX }))}
-      rows={Array.from({ length: rows }, (_, i) => ({ id: `r${i}`, minSize: MIN_ROW_PX }))}
+      columns={columnTracks}
+      rows={rowTracks}
       defaultLayout={sizes}
       onLayoutChanged={(layout, meta) => {
         if (meta.isUserInteraction) save(meta.requestedLayout ?? layout);
@@ -72,8 +74,8 @@ function DeskGrid({ windows, desk, dispatch, render }: { windows: Win[]; desk: D
 
 export function DeskView({ desk, dispatch, threads, projects, background, t3EnvironmentId, providers }: Props) {
   const narrow = useMediaQuery("(max-width: 899px)");
-  const byId = new Map(threads.map((t) => [t.id, t]));
-  const projectTitles = new Map(projects.map((p) => [p.id, p.title]));
+  const byId = useMemo(() => new Map(threads.map((t) => [t.id, t])), [threads]);
+  const projectTitles = useMemo(() => new Map(projects.map((p) => [p.id, p.title])), [projects]);
   const seen = useRef(new Set<string>());
   for (const w of desk.windows) if (byId.has(w.id)) seen.current.add(w.id);
   const root = useRef<HTMLDivElement>(null);
@@ -113,10 +115,7 @@ export function DeskView({ desk, dispatch, threads, projects, background, t3Envi
         compact={compact}
         t3EnvironmentId={t3EnvironmentId}
         providers={providers}
-        onFocus={() => dispatch({ type: "focus", id: w.id })}
-        onClose={() => dispatch({ type: "close", id: w.id })}
-        onMinimize={() => dispatch({ type: "minimize", id: w.id })}
-        onToggleMaximize={() => dispatch({ type: "maximize", id: w.id })}
+        dispatch={dispatch}
       />
     );
   };
