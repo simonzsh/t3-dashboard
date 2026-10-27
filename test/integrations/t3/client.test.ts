@@ -393,6 +393,24 @@ test("a new token opens a new socket with a new ticket", async () => {
   assert.equal(socket.closed, true);
 });
 
+test("a new token leaves a busy old socket open until its call settles", async () => {
+  let token = "one";
+  const fakeFetch = (async () => Response.json({ ticket: "t" })) as unknown as typeof fetch;
+  const client = new T3Client({ origin: async () => "http://t3", token: () => token, fetch: fakeFetch, WebSocket: FakeSocket as unknown as typeof WebSocket });
+  const slow = client.getConfig();
+  const socket = await nextSocket();
+  token = "two";
+  const second = client.getConfig();
+  await waitFor(() => FakeSocket.instances.length === 2);
+  assert.equal(socket.closed, false);
+  socket.receive(ok("1"));
+  await slow;
+  assert.equal(socket.closed, true);
+  FakeSocket.instances[1]!.open();
+  FakeSocket.instances[1]!.receive(ok("1"));
+  await second;
+});
+
 test("persistAttachments uses its own socket and closes it", async () => {
   const { client } = setup();
   const config = client.getConfig();

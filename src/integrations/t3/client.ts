@@ -195,7 +195,8 @@ export class T3Client implements T3Port {
       // Another caller may have replaced the entry while this one waited.
       if (this.shared !== current) return this.sharedSocket();
       this.shared = null;
-      if (!sameTarget) void current.conn.then((old) => old.close(), () => {});
+      // A busy old socket closes in call() once its last request settles.
+      if (!sameTarget) void current.conn.then((old) => !old.busy && old.close(), () => {});
     }
     const entry: SharedSocket = { conn: this.openSocket(), token, origin };
     this.shared = entry;
