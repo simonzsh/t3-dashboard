@@ -27,10 +27,8 @@ test("the topbar has no backdrop blur and a near-opaque background", () => {
   assert.match(line, /var\(--header-bg\) 97%/);
 });
 
-test("settled messages are skipped by the renderer until near the viewport", () => {
-  const line = rule(".messages > .msg:not(.render):not(.pending)");
-  assert.match(line, /content-visibility: auto;/);
-  assert.match(line, /contain-intrinsic-size: auto 120px;/);
+test("messages are never skipped by the renderer: estimated heights make the scroll jump", () => {
+  assert.doesNotMatch(css, /content-visibility/);
 });
 
 test("reduced motion still stops both shimmer bars", () => {

@@ -253,7 +253,7 @@ export function ConversationPanel({ threadId, thread, providers }: Props) {
           onPointerDown={touched}
           onKeyDown={touched}
           onScrollEnd={(e) => {
-            // content-visibility lets estimated heights settle while the smooth scroll runs: aim again.
+            // Content can still grow while the smooth scroll runs (images, renders): aim again.
             const el = e.currentTarget;
             if (smoothing.current && el.scrollHeight - el.scrollTop - el.clientHeight > 1 && reaims.current < MAX_REAIMS) {
               reaims.current++;
