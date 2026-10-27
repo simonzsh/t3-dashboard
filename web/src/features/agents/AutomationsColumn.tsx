@@ -1,23 +1,37 @@
-import type { Automation, AutomationsResult, DashboardThread } from "../../../../shared/api.ts";
+import type { Automation, AutomationsResult, DashboardProject, DashboardThread } from "../../../../shared/api.ts";
 import { lastRunState, nextLabel, reminderDate, splitAutomations } from "./automations.ts";
 import { agentStatus } from "../../../../shared/status.ts";
 import { useState } from "react";
 import { Badge, Icon, IconButton, Loader, Pressable } from "../../ui/index.ts";
 import { DeleteAutomationDialog } from "./DeleteAutomationDialog.tsx";
+import { RenameAutomationDialog } from "./RenameAutomationDialog.tsx";
+import { ProjectIcon } from "../../lib/ProjectIcon.tsx";
 import { StatusBadge } from "./StatusBadge.tsx";
 
 interface Props {
   result: AutomationsResult | null;
   error: string | null;
   threads: DashboardThread[];
+  projects: DashboardProject[];
   /** Threads whose agent is still setting a task up. */
   setup: DashboardThread[];
   now: Date;
   onOpen: (id: string, addOnly: boolean) => void;
   onDeleted: () => void;
+  onRenamed: () => void;
 }
 
-function Row({ a, thread, now, onOpen, onDelete }: { a: Automation; thread: DashboardThread | undefined; now: Date; onOpen: (id: string, addOnly: boolean) => void; onDelete: (a: Automation) => void }) {
+interface RowProps {
+  a: Automation;
+  thread: DashboardThread | undefined;
+  project: DashboardProject | undefined;
+  now: Date;
+  onOpen: (id: string, addOnly: boolean) => void;
+  onRename: (a: Automation) => void;
+  onDelete: (a: Automation) => void;
+}
+
+function Row({ a, thread, project, now, onOpen, onRename, onDelete }: RowProps) {
   const last = lastRunState(a, thread);
   const when = a.kind === "reminder" ? (a.nextRunAt ? reminderDate(a.nextRunAt) : "") : a.scheduleLabel;
   const sub = [a.project, when].filter(Boolean).join(" · ");
@@ -25,7 +39,10 @@ function Row({ a, thread, now, onOpen, onDelete }: { a: Automation; thread: Dash
     <>
       <span className="auto-main">
         <span className="auto-title">{a.title}</span>
-        <span className="auto-sub">{sub}</span>
+        <span className="auto-sub">
+          <ProjectIcon icon={project?.icon ?? null} />
+          {sub}
+        </span>
       </span>
       <span className="auto-side">
         <span className="auto-next">{a.enabled ? nextLabel(a.nextRunAt, now) : "paused"}</span>
@@ -55,6 +72,9 @@ function Row({ a, thread, now, onOpen, onDelete }: { a: Automation; thread: Dash
       ) : (
         <div className="auto-row">{body}</div>
       )}
+      <IconButton label="Rename automation" size="sm" variant="ghost" className="auto-rename" onClick={() => onRename(a)}>
+        <Icon name="edit" />
+      </IconButton>
       <IconButton label="Delete automation" size="sm" variant="ghost" className="auto-delete" onClick={() => onDelete(a)}>
         <Icon name="trash" />
       </IconButton>
@@ -79,9 +99,11 @@ function SetupRow({ thread, onOpen }: { thread: DashboardThread; onOpen: (id: st
   );
 }
 
-export function AutomationsColumn({ result, error, threads, setup, now, onOpen, onDeleted }: Props) {
+export function AutomationsColumn({ result, error, threads, projects, setup, now, onOpen, onDeleted, onRenamed }: Props) {
   const [deleting, setDeleting] = useState<Automation | null>(null);
+  const [renaming, setRenaming] = useState<Automation | null>(null);
   const byId = new Map(threads.map((t) => [t.id, t]));
+  const projectById = new Map(projects.map((p) => [p.id, p]));
   const { routines, reminders } = splitAutomations(result?.automations ?? []);
   const section = (title: string, rows: Automation[], empty: string) => (
     <section className="group">
@@ -93,7 +115,7 @@ export function AutomationsColumn({ result, error, threads, setup, now, onOpen, 
       ) : (
         <ul className="auto-list">
           {rows.map((a) => (
-            <Row key={a.id} a={a} thread={a.threadId ? byId.get(a.threadId) : undefined} now={now} onOpen={onOpen} onDelete={setDeleting} />
+            <Row key={a.id} a={a} thread={a.threadId ? byId.get(a.threadId) : undefined} project={projectById.get(a.projectId)} now={now} onOpen={onOpen} onRename={setRenaming} onDelete={setDeleting} />
           ))}
         </ul>
       )}
@@ -119,6 +141,16 @@ export function AutomationsColumn({ result, error, threads, setup, now, onOpen, 
           {section("Routines", routines, "No routines")}
           {section("Reminders", reminders, "No reminders")}
         </>
+      )}
+      {renaming && (
+        <RenameAutomationDialog
+          automation={renaming}
+          onClose={() => setRenaming(null)}
+          onRenamed={() => {
+            setRenaming(null);
+            onRenamed();
+          }}
+        />
       )}
       {deleting && (
         <DeleteAutomationDialog
