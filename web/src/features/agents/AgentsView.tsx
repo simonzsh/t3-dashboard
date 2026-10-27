@@ -9,7 +9,7 @@ import { ProjectIcon } from "../../lib/ProjectIcon.tsx";
 import { useMediaQuery } from "../../lib/useMediaQuery.ts";
 import { useScrolled } from "../../lib/useScrolled.ts";
 import { swipeDirection } from "../../lib/swipe.ts";
-import { enter, Icon, Kbd, Loader, Pressable, Segmented, TextInput } from "../../ui/index.ts";
+import { enter, Icon, Kbd, Loader, Pressable, TextInput } from "../../ui/index.ts";
 
 interface Props {
   state: DashboardState;
@@ -33,7 +33,7 @@ const PANES: ReadonlyArray<{ id: Pane; label: string }> = [
   { id: "automations", label: "Automations" },
 ];
 
-/** On a phone, one pane at a time: the tabs or a horizontal swipe switch it, and the new pane slides in from its side. */
+/** On a phone, one pane at a time: a horizontal swipe or the dots switch it, and the new pane slides in from its side. */
 function usePanes(enabled: boolean) {
   const [pane, setPane] = useState<Pane>("agents");
   const layout = useRef<HTMLDivElement>(null);
@@ -167,11 +167,17 @@ export function AgentsView({ state, now, deskIds, onOpen, onToggleDesk, onSettle
         />
         <Kbd>{navigator.platform.startsWith("Mac") ? "⌘K" : "Ctrl K"}</Kbd>
       </div>
-      {pane && <Segmented label="Show" value={pane} options={PANES} onChange={show} />}
       <div ref={layout} className={`agents-layout${available ? "" : " wide"}`} {...swipe}>
         {pane !== "automations" && agents}
         {available && pane !== "agents" && <AutomationsColumn result={automations} error={automationsError} threads={state.threads} projects={state.projects} setup={setup} now={now} onOpen={onOpen} onDeleted={() => void onAutomationsStale()} onRenamed={() => void onAutomationsStale()} />}
       </div>
+      {pane && (
+        <nav className="pane-dots" aria-label="Views">
+          {PANES.map((p) => (
+            <Pressable key={p.id} className={p.id === pane ? "active" : ""} aria-label={p.label} aria-current={p.id === pane ? "page" : undefined} onClick={() => show(p.id)} />
+          ))}
+        </nav>
+      )}
     </div>
   );
 }
