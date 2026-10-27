@@ -38,3 +38,11 @@ test("reduced motion still stops both shimmer bars", () => {
   assert.match(block, /\.agent\.working::after/);
   assert.match(block, /\.desk-window\.state-running \.desk-window-head::after/);
 });
+
+test("fields and the composer card share one focus ring and radius", () => {
+  assert.match(rule(":where(.field):focus-visible"), /box-shadow: var\(--field-ring\)/);
+  assert.match(rule(".composer-card:focus-within"), /var\(--field-ring\)/);
+  assert.match(rule("textarea.field"), /border-radius: var\(--radius-composer\)/);
+  assert.match(rule(".composer-card"), /border-radius: var\(--radius-composer\)/);
+  assert.match(rule(".field::placeholder"), /var\(--text-secondary\)/);
+});
