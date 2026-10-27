@@ -61,10 +61,10 @@ const SPECS: ThreadSpec[] = [
     activity: [
       { id: "a1", type: "reasoning", runId: "run-checkout-2", text: "Read the summary component and its tests before changing the layout.", at: 6, done: 6 },
       { id: "a2", type: "command_execution", runId: "run-checkout-2", input: 'rg -n "OrderSummary" web/src', exitCode: 0, at: 6, done: 6 },
-      { id: "a3", type: "file_change", runId: "run-checkout-2", fileName: "web/src/checkout/OrderSummary.tsx", at: 5, done: 5 },
+      { id: "a3", type: "file_change", runId: "run-checkout-2", fileName: "web/src/checkout/OrderSummary.tsx", diffStr: JSON.stringify({ oldString: "<Row label=\"Shipping\" />\n<Row label=\"Taxes\" />", newString: "<Fees>\n  <Row label=\"Shipping\" />\n  <Row label=\"Taxes\" />\n</Fees>" }), at: 5, done: 5 },
       { id: "a4", type: "subagent", runId: "run-checkout-2", title: "Audit price formatting helpers", at: 5, done: 3 },
       { id: "a5", type: "subagent", runId: "run-checkout-2", title: "Check mobile breakpoints", status: "running", at: 4 },
-      { id: "a6", type: "file_change", runId: "run-checkout-2", fileName: "web/src/checkout/summary.css", at: 3, done: 3 },
+      { id: "a6", type: "file_change", runId: "run-checkout-2", fileName: "web/src/checkout/summary.css", diffStr: JSON.stringify({ oldString: ".summary-total { font-size: 16px; }", newString: ".summary-total { font-size: 22px; text-align: right; }" }), at: 3, done: 3 },
       { id: "a7", type: "command_execution", runId: "run-checkout-2", input: "bun test web/src/checkout", exitCode: 0, at: 2, done: 2 },
       { id: "a8", type: "dynamic_tool", runId: "run-checkout-2", toolName: "mcp__browser__preview_open", input: { url: "http://localhost:5173/checkout" }, at: 2, done: 1 },
       { id: "a9", type: "reasoning", runId: "run-checkout-2", text: "Compare the new layout with the design spec.", status: "running", at: 1 },

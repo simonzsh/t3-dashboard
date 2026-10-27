@@ -313,12 +313,30 @@ test("activity: maps each work item of the run in ordinal order and skips messag
     ],
   }, undefined);
   assert.deepEqual(detail.activity!.items, [
-    { id: "think", kind: "thinking", text: "Check the tests first", detail: null, status: "done" },
-    { id: "cmd", kind: "command", text: "bun test", detail: null, status: "done" },
-    { id: "edit", kind: "file", text: "/repo/src/a.ts", detail: null, status: "done" },
-    { id: "tool", kind: "tool", text: "preview_open", detail: "http://localhost:3000", status: "done" },
-    { id: "sub", kind: "subagent", text: "Explore", detail: null, status: "running" },
+    { id: "think", kind: "thinking", text: "Check the tests first", detail: null, diff: null, status: "done" },
+    { id: "cmd", kind: "command", text: "bun test", detail: null, diff: null, status: "done" },
+    { id: "edit", kind: "file", text: "/repo/src/a.ts", detail: null, diff: null, status: "done" },
+    { id: "tool", kind: "tool", text: "preview_open", detail: "http://localhost:3000", diff: null, status: "done" },
+    { id: "sub", kind: "subagent", text: "Explore", detail: null, diff: null, status: "running" },
   ]);
+});
+
+test("activity: a file change carries the changed lines, cut after 40", () => {
+  const edit = JSON.stringify({ type: "update", filePath: "/r/a.ts", oldString: "a\nb", newString: "a\nc", originalFile: "x".repeat(5000) });
+  const created = JSON.stringify({ type: "create", filePath: "/r/b.ts", content: Array.from({ length: 50 }, (_, i) => `l${i}`).join("\n") });
+  const detail = toThreadDetail("t", {
+    ...activityRun,
+    turnItems: [
+      item("edit", "file_change", 1, { fileName: "/r/a.ts", diffStr: edit }),
+      item("new", "file_change", 2, { fileName: "/r/b.ts", diffStr: created }),
+      item("bad", "file_change", 3, { fileName: "/r/c.ts", diffStr: "nope" }),
+    ],
+  }, undefined);
+  const [a, b, c] = detail.activity!.items;
+  assert.equal(a!.diff, "-a\n-b\n+a\n+c");
+  assert.equal(b!.diff!.split("\n").length, 41);
+  assert.ok(b!.diff!.endsWith("… 10 more lines"));
+  assert.equal(c!.diff, null);
 });
 
 test("activity: failures, live items, fallbacks and truncation", () => {

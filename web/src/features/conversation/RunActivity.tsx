@@ -8,6 +8,27 @@ const PREVIEW_ITEMS = 4;
 
 const ICONS: Record<ActivityItem["kind"], IconName> = { thinking: "thinking", command: "terminal", tool: "wrench", file: "edit", subagent: "bot" };
 
+function DiffRow({ item }: { item: ActivityItem }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <details className="activity-diff" onToggle={(e) => setOpen(e.currentTarget.open)}>
+      <summary>
+        <span className="activity-text" data-tooltip={item.text} data-tooltip-clipped>
+          {item.text}
+        </span>
+        <span className={`chevron${open ? " open" : ""}`} aria-hidden="true" />
+      </summary>
+      <pre>
+        {item.diff!.split("\n").map((line, i) => (
+          <span key={i} className={line.startsWith("+") ? "add" : line.startsWith("-") ? "del" : undefined}>
+            {line}
+          </span>
+        ))}
+      </pre>
+    </details>
+  );
+}
+
 function Row({ item, onShowSubagents }: { item: ActivityItem; onShowSubagents: () => void }) {
   return (
     <li className={`activity-item ${item.kind} ${item.status}`}>
@@ -16,6 +37,8 @@ function Row({ item, onShowSubagents }: { item: ActivityItem; onShowSubagents: (
         <Button variant="link" className="activity-text" onClick={onShowSubagents}>
           {item.text}
         </Button>
+      ) : item.diff ? (
+        <DiffRow item={item} />
       ) : (
         <span className="activity-text" data-tooltip={item.text} data-tooltip-clipped>
           {item.text}

@@ -305,6 +305,13 @@ main { flex: 1; min-height: 0; overflow: hidden; padding: 24px; display: flex; f
 .activity-item.command .activity-text, .activity-item.file .activity-text { font: 12px/1.5 var(--font-mono); }
 .activity-item.failed .activity-text { color: var(--err-text); }
 .activity-detail { opacity: 0.75; }
+.activity-diff { min-width: 0; }
+.activity-diff summary { display: flex; align-items: center; gap: 8px; cursor: pointer; list-style: none; }
+.activity-diff summary::-webkit-details-marker { display: none; }
+.activity-diff summary .chevron { flex: none; }
+.activity-diff pre { margin: 4px 0 0; padding: 6px 8px; max-height: 240px; overflow: auto; border: 1px solid var(--line); border-radius: 8px; background: var(--surface-0); font: 12px/1.5 var(--font-mono); }
+.activity-diff .add { display: block; color: var(--done-text, var(--text-primary)); background: color-mix(in srgb, var(--done-bg) 60%, transparent); }
+.activity-diff .del { display: block; color: var(--err-text); background: color-mix(in srgb, var(--err-bg) 60%, transparent); }
 .activity-item button.activity-text { font-size: inherit; }
 @keyframes breathe { 0%, 100% { opacity: 1; } 50% { opacity: 0.35; } }
 .requests { display: flex; flex-direction: column; gap: 8px; }

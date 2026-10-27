@@ -162,6 +162,7 @@ export const RawTurnItem = s.object({
   input: s.optional(s.unknown()),
   toolName: text(),
   fileName: text(),
+  diffStr: text(),
   exitCode: s.optional(s.nullable(s.number())),
   outputIndicatesFailure: s.optional(s.nullable(s.boolean())),
   startedAt: text(),

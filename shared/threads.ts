@@ -136,6 +136,8 @@ export interface ActivityItem {
   text: string;
   /** Tool input summary; null for other kinds. */
   detail: string | null;
+  /** Changed lines of a file item, "+" and "-" prefixed; truncated. Null for other kinds or when T3 sent none. */
+  diff: string | null;
   status: "running" | "done" | "failed";
 }
 
