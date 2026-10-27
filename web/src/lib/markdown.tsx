@@ -149,6 +149,24 @@ function blocks(tokens: Token[] | undefined, ctx: Ctx): ReactNode[] {
   return (tokens ?? []).map((token, key) => block(token, key, ctx));
 }
 
+const TOKEN_CACHE_MAX = 500;
+const tokenCache = new Map<string, Token[]>();
+
+// Remounted windows and reloads lex the same text again. Rendering only reads tokens, so sharing them is safe.
+export function lex(text: string, breaks = false): Token[] {
+  const key = `${breaks ? 1 : 0}\u0000${text}`;
+  const hit = tokenCache.get(key);
+  if (hit) {
+    tokenCache.delete(key);
+    tokenCache.set(key, hit);
+    return hit;
+  }
+  const tokens = marked.lexer(text, { gfm: true, breaks });
+  if (tokenCache.size >= TOKEN_CACHE_MAX) tokenCache.delete(tokenCache.keys().next().value!);
+  tokenCache.set(key, tokens);
+  return tokens;
+}
+
 export function renderMarkdown(text: string, ctx: Ctx = {}): ReactNode {
-  return <>{blocks(marked.lexer(text, { gfm: true, breaks: ctx.breaks }), ctx)}</>;
+  return <>{blocks(lex(text, ctx.breaks), ctx)}</>;
 }

@@ -1,7 +1,7 @@
 import { test } from "bun:test";
 import assert from "node:assert/strict";
 import { renderToStaticMarkup } from "react-dom/server";
-import { renderMarkdown, safeHref } from "../../src/lib/markdown.tsx";
+import { lex, renderMarkdown, safeHref } from "../../src/lib/markdown.tsx";
 
 const html = (text: string) => renderToStaticMarkup(renderMarkdown(text));
 
@@ -70,4 +70,21 @@ test("a local video becomes a player", () => {
 test("breaks turns single newlines into <br>", () => {
   assert.equal(renderToStaticMarkup(renderMarkdown("a\nb", { breaks: true })), "<p>a<br/>b</p>");
   assert.equal(html("a\nb"), "<p>a\nb</p>");
+});
+
+test("lex returns the same tokens for the same text and keeps breaks apart", () => {
+  const plain = lex("a\nb");
+  assert.equal(lex("a\nb"), plain);
+  assert.notEqual(lex("a\nb", true), plain);
+  assert.equal(lex("a\nb", true), lex("a\nb", true));
+});
+
+test("lex keeps recent texts and drops the least recently used past 500", () => {
+  const first = lex("text 0");
+  const second = lex("text 1");
+  for (let i = 2; i < 500; i++) lex(`text ${i}`);
+  assert.equal(lex("text 0"), first, "a hit refreshes the entry");
+  lex("text 500");
+  assert.equal(lex("text 0"), first);
+  assert.notEqual(lex("text 1"), second, "text 1 was evicted");
 });
