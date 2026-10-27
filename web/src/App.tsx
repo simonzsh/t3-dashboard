@@ -168,7 +168,7 @@ export function App() {
           {state &&
             (compact ? (
               <IconButton label="New Automation" onClick={() => setCreatingAutomation(true)}>
-                <Icon name="plus" />
+                <Icon name="clock" />
               </IconButton>
             ) : (
               <Button kbd="⇧N" onClick={() => setCreatingAutomation(true)}>
