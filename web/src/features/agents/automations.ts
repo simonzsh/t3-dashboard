@@ -14,6 +14,15 @@ export function excludeRoutineThreads(threads: DashboardThread[], hiddenThreadId
   return threads.filter((t) => !hidden.has(t.id));
 }
 
+// A setup thread shows as a row only while the agent works or waits; idle with no task, it returns to the grid.
+export function setupThreads(threads: DashboardThread[], setupThreadIds: readonly string[]): DashboardThread[] {
+  const byId = new Map(threads.map((t) => [t.id, t]));
+  return setupThreadIds.flatMap((id) => {
+    const t = byId.get(id);
+    return t && (ACTIVE_STATUSES.has(t.status) || t.pending) ? [t] : [];
+  });
+}
+
 const byNextRun = (a: Automation, b: Automation) => Number(a.nextRunAt === null) - Number(b.nextRunAt === null) || (a.nextRunAt ?? "").localeCompare(b.nextRunAt ?? "");
 
 export function splitAutomations(list: Automation[]): { routines: Automation[]; reminders: Automation[] } {

@@ -1,7 +1,7 @@
 import { test } from "bun:test";
 import assert from "node:assert/strict";
-import type { Automation } from "../../../../shared/api.ts";
-import { excludeRoutineThreads, lastRunState, nextLabel, reminderDate, splitAutomations } from "../../../src/features/agents/automations.ts";
+import type { Automation, DashboardThread } from "../../../../shared/api.ts";
+import { excludeRoutineThreads, setupThreads, lastRunState, nextLabel, reminderDate, splitAutomations } from "../../../src/features/agents/automations.ts";
 import { thread } from "../../fixtures.ts";
 
 function auto(id: string, over: Partial<Automation> = {}): Automation {
@@ -88,4 +88,15 @@ test("nextLabel gives minutes, then a day word and a time", () => {
 
 test("reminderDate shows the day and time of the reminder", () => {
   assert.equal(reminderDate(local(10, 26, 9, 0).toISOString()), "Oct 26, 9:00");
+});
+
+test("setupThreads keeps the setup threads that are active or waiting, in the given order", () => {
+  const threads = [
+    thread("t-chat"),
+    thread("t-run", { status: "running" }),
+    thread("t-idle"),
+    thread("t-ask", { pending: { kind: "approval" } as DashboardThread["pending"] }),
+  ];
+  assert.deepEqual(setupThreads(threads, ["t-idle", "t-run", "t-ask", "t-gone"]).map((t) => t.id), ["t-run", "t-ask"]);
+  assert.deepEqual(setupThreads(threads, []), []);
 });

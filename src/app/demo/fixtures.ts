@@ -153,6 +153,16 @@ const SPECS: ThreadSpec[] = [
     thread: { activeRunId: "run-onboarding-1", runtimeMode: "full-access" },
   },
   {
+    id: "demo-setup",
+    projectId: "demo-assistant",
+    title: "Remind me to book the offsite",
+    model: SONNET,
+    status: "running",
+    messages: [["user", 1, "Create a scheduled task for this request: remind me to book the offsite on Friday."]],
+    runs: [{ id: "run-setup-1", status: "running", started: 1 }],
+    thread: { activeRunId: "run-setup-1" },
+  },
+  {
     id: "demo-dark-mode",
     projectId: "demo-atlas-web",
     title: "Fix dark mode contrast on charts",

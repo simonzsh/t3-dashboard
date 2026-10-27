@@ -27,4 +27,6 @@ export interface AutomationsResult {
   automations: Automation[];
   /** Threads the Agents grid leaves out: dedicated bound threads and runs of unbound tasks. */
   hiddenThreadIds: string[];
+  /** Dedicated threads with no task yet: the agent is still setting the task up, or it failed. */
+  setupThreadIds: string[];
 }

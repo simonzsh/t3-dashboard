@@ -23,8 +23,10 @@ function runThreads(task: RawScheduledTask, threads: RawThread[]): RawThread[] {
 /** The tasks of T3 as rows, plus the threads the Agents grid leaves out. */
 export function toAutomations(tasks: RawScheduledTask[], threads: RawThread[], dedicated: ReadonlySet<string>, projectTitle: (id: string) => string | null): AutomationsResult {
   const hidden = new Set<string>();
+  const bound = new Set<string>();
   const automations = tasks.map((task): Automation => {
     let threadId = task.threadId ?? null;
+    if (threadId !== null) bound.add(threadId);
     if (threadId === null) {
       const runs = runThreads(task, threads);
       for (const run of runs) hidden.add(run.id);
@@ -50,7 +52,7 @@ export function toAutomations(tasks: RawScheduledTask[], threads: RawThread[], d
       model: task.modelSelection?.model ?? null,
     };
   });
-  return { automations, hiddenThreadIds: [...hidden] };
+  return { automations, hiddenThreadIds: [...hidden], setupThreadIds: [...dedicated].filter((id) => !bound.has(id)) };
 }
 
 /** The message that asks an agent to create the scheduled task; French like the rest of the agent prompts. */

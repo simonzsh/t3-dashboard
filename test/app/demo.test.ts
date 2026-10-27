@@ -70,10 +70,12 @@ test("the demo Linear board and automations need no network", async () => {
   const port = new DemoPort(() => NOW);
   const store = syncedStore(port);
   await Bun.sleep(0);
-  const { automations, hiddenThreadIds } = await createAutomations({ port, store, dedicated: { read: () => new Set(["demo-digest"]), add() {} }, createThread: async () => "x" }).list();
+  const { automations, hiddenThreadIds, setupThreadIds } = await createAutomations({ port, store, dedicated: { read: () => new Set(["demo-digest", "demo-setup"]), add() {} }, createThread: async () => "x" }).list();
   assert.ok(automations.length >= 3 && automations.every((automation) => automation.nextRunAt !== null));
   assert.ok(automations.some((automation) => automation.kind === "reminder"));
   assert.deepEqual(hiddenThreadIds, ["demo-digest"]);
+  assert.deepEqual(setupThreadIds, ["demo-setup"]);
+  assert.equal(store.thread("demo-setup")?.status, "running");
   const reminder = automations.find((automation) => automation.kind === "reminder")!;
   assert.ok(store.thread(reminder.threadId!), "the reminder is bound to a conversation that stays in the grid");
 });

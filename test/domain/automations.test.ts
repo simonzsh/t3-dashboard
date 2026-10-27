@@ -63,6 +63,12 @@ test("run status maps to running, succeeded or failed; never and unknown give nu
   assert.equal(convert([task({ lastRunStatus: "failed", lastRunError: "Boom" })]).automations[0]!.lastRunError, "Boom");
 });
 
+test("setupThreadIds lists the dedicated threads that no task is bound to", () => {
+  assert.deepEqual(convert([], [], ["t-a", "t-b"]).setupThreadIds, ["t-a", "t-b"]);
+  assert.deepEqual(convert([task({ threadId: "t-a" })], [], ["t-a", "t-b"]).setupThreadIds, ["t-b"]);
+  assert.deepEqual(convert([task({ threadId: "t-chat" })], [], []).setupThreadIds, []);
+});
+
 test("a dedicated thread is hidden only while a task is bound to it", () => {
   const bound = convert([task({ threadId: "t-dedicated" })], [], ["t-dedicated"]);
   assert.deepEqual(bound.hiddenThreadIds, ["t-dedicated"]);
