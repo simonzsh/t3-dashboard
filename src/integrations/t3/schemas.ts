@@ -116,7 +116,7 @@ export const SearchThreadsResponse = s.object({
 });
 export type RawSearchMatch = Infer<typeof SearchThreadsResponse>["matches"][number];
 
-export const TurnDiffResponse = s.object({ diff: s.optional(s.string()) });
+export const TurnDiffResponse = s.object({ diff: s.string() });
 
 export const RawMessage = s.object({
   id: s.string(),

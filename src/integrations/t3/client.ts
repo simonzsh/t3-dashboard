@@ -99,7 +99,7 @@ export class T3Client implements T3Port {
 
   async turnDiff(threadId: string, runOrdinal: number): Promise<string> {
     const payload = { threadId, fromTurnCount: runOrdinal - 1, toTurnCount: runOrdinal };
-    return read(TurnDiffResponse, await this.call(RPC.getTurnDiff, payload), "orchestration.getTurnDiff").diff ?? "";
+    return read(TurnDiffResponse, await this.call(RPC.getTurnDiff, payload), "orchestration.getTurnDiff").diff;
   }
 
   async searchThreads(query: string, limit?: number): Promise<RawSearchMatch[]> {
