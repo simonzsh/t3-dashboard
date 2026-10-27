@@ -88,6 +88,7 @@ La colonne de droite de l'onglet Agents liste les tâches planifiées de T3 Code
 
 - Une routine tourne à chaque passage. La ligne montre le projet, la cadence, le prochain passage et l'état du dernier passage. Une tâche en pause affiche « paused ».
 - Un rappel est une tâche dont le titre commence par « Reminder: » ou « Rappel : ». La ligne montre la date du rappel. Le préfixe n'est pas affiché.
+- Après son passage, un rappel se met en pause. La ligne affiche alors « Finished » avec l'heure du passage. Les rappels terminés sont en bas de la liste, le plus récent en premier.
 - Un clic sur une ligne ouvre le fil de la tâche.
 - Chaque ligne montre l'icône du projet. Pour renommer une tâche, cliquez sur l'icône crayon de sa ligne, changez le titre, puis appuyez sur `Entrée`. Le fil lié est renommé aussi. Le préfixe d'un rappel est gardé. Une tâche webhook ne peut pas être renommée.
 - Pour supprimer une tâche, cliquez sur l'icône corbeille de sa ligne, puis sur « Delete ». La tâche est supprimée dans T3 Code. Cette action est définitive.
@@ -102,16 +103,16 @@ La colonne de droite de l'onglet Agents liste les tâches planifiées de T3 Code
 
 Le dashboard crée un fil avec le modèle par défaut du projet. Ce fil demande à l'agent de créer la tâche avec l'outil `schedule_task` de T3 Code. La fenêtre se ferme. En cas d'erreur, elle reste ouverte et montre l'erreur.
 
-- Une demande ponctuelle devient un rappel. L'agent met le préfixe « Reminder: » au titre. À la fin, il supprime la tâche.
+- Une demande ponctuelle devient un rappel. L'agent met le préfixe « Reminder: » au titre. À la fin, il met la tâche en pause. Il ne la supprime pas.
 - Une demande répétée devient une routine.
 - Le fil créé par la fenêtre n'est pas dans la grille tant que l'agent prépare la tâche. Il apparaît en haut de la colonne, sur une ligne « running » ou « waiting for your reply ». Un clic sur la ligne ouvre le fil.
 - Quand la tâche existe, la ligne devient celle de la tâche. Le fil s'ouvre depuis cette ligne.
-- Si le fil est inactif et sans tâche (création échouée, ou rappel passé et tâche supprimée), il revient dans la grille avec le résultat.
+- Si le fil est inactif et sans tâche (création échouée, ou tâche supprimée), il revient dans la grille avec le résultat.
 - Le dashboard garde la liste de ces fils dans `~/.config/t3-dashboard/automation-threads.json`.
 
 ### Depuis une conversation
 
-Vous pouvez aussi demander une tâche dans une conversation normale. L'agent la lie à cette conversation. Elle reste dans la grille. Pour un rappel unique, écrivez : « Crée un rappel : le titre commence par "Reminder: ", et supprime la tâche après le passage ».
+Vous pouvez aussi demander une tâche dans une conversation normale. L'agent la lie à cette conversation. Elle reste dans la grille. Pour un rappel unique, écrivez : « Crée un rappel : le titre commence par "Reminder: ", et mets la tâche en pause après le passage ».
 
 ### Fils des tâches sans conversation liée
 
@@ -121,7 +122,7 @@ Une tâche sans fil lié crée un nouveau fil à chaque passage. Le dashboard ca
 
 - L'intervalle minimum est de 1 minute.
 - Une heure fixe suit l'heure locale du serveur T3 Code. T3 Code n'a pas de fuseau horaire par tâche.
-- Si l'agent ne supprime pas la tâche d'un rappel, le rappel se répète.
+- Si l'agent ne met pas en pause la tâche d'un rappel, le rappel se répète.
 
 ## Settings
 

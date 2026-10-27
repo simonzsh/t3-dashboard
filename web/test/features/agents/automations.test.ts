@@ -1,7 +1,7 @@
 import { test } from "bun:test";
 import assert from "node:assert/strict";
 import type { Automation, DashboardThread } from "../../../../shared/api.ts";
-import { excludeRoutineThreads, finishedSetups, setupThreads, lastRunState, nextLabel, reminderDate, splitAutomations } from "../../../src/features/agents/automations.ts";
+import { excludeRoutineThreads, finishedSetups, isFinishedReminder, setupThreads, lastRunState, nextLabel, reminderDate, splitAutomations } from "../../../src/features/agents/automations.ts";
 import { thread } from "../../fixtures.ts";
 
 function auto(id: string, over: Partial<Automation> = {}): Automation {
@@ -48,6 +48,24 @@ test("splitAutomations sorts routines by next run (none last) and reminders by d
   ]);
   assert.deepEqual(routines.map((a) => a.id), ["soon", "late", "none"]);
   assert.deepEqual(reminders.map((a) => a.id), ["rem-1", "rem-2"]);
+});
+
+test("splitAutomations puts finished reminders last, newest first", () => {
+  const done = (id: string, lastRunAt: string) => auto(id, { kind: "reminder", enabled: false, lastRunAt, lastRunStatus: "succeeded" });
+  const { reminders } = splitAutomations([
+    done("done-old", "2026-10-20T09:00:00.000Z"),
+    auto("next", { kind: "reminder", nextRunAt: "2026-10-30T09:00:00.000Z" }),
+    done("done-new", "2026-10-24T09:00:00.000Z"),
+  ]);
+  assert.deepEqual(reminders.map((a) => a.id), ["next", "done-new", "done-old"]);
+});
+
+test("isFinishedReminder needs a disabled reminder that ran", () => {
+  const lastRunAt = "2026-10-24T09:00:00.000Z";
+  assert.equal(isFinishedReminder(auto("a", { kind: "reminder", enabled: false, lastRunAt })), true);
+  assert.equal(isFinishedReminder(auto("a", { kind: "reminder", enabled: false })), false);
+  assert.equal(isFinishedReminder(auto("a", { kind: "reminder", lastRunAt })), false);
+  assert.equal(isFinishedReminder(auto("a", { enabled: false, lastRunAt })), false);
 });
 
 test("lastRunState reads the task's last run", () => {

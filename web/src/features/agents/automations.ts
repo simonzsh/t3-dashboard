@@ -31,10 +31,16 @@ export function finishedSetups(wasActive: ReadonlySet<string>, active: readonly 
 
 const byNextRun = (a: Automation, b: Automation) => Number(a.nextRunAt === null) - Number(b.nextRunAt === null) || (a.nextRunAt ?? "").localeCompare(b.nextRunAt ?? "");
 
+// A reminder disables itself after its run instead of deleting itself, so the column can show it as finished.
+export const isFinishedReminder = (a: Automation): boolean => a.kind === "reminder" && !a.enabled && a.lastRunAt !== null;
+
+const byLastRunDesc = (a: Automation, b: Automation) => (b.lastRunAt ?? "").localeCompare(a.lastRunAt ?? "");
+
 export function splitAutomations(list: Automation[]): { routines: Automation[]; reminders: Automation[] } {
+  const reminders = list.filter((a) => a.kind === "reminder");
   return {
     routines: list.filter((a) => a.kind === "routine").sort(byNextRun),
-    reminders: list.filter((a) => a.kind === "reminder").sort(byNextRun),
+    reminders: [...reminders.filter((a) => !isFinishedReminder(a)).sort(byNextRun), ...reminders.filter(isFinishedReminder).sort(byLastRunDesc)],
   };
 }
 
