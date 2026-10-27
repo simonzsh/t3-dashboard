@@ -35,7 +35,7 @@ function Row({ a, thread, now, onOpen }: { a: Automation; thread: DashboardThrea
         )}
         {last?.kind === "failed" && (
           <span data-tooltip={last.error ?? "The last run failed"}>
-            <Badge variant="error">Failed</Badge>
+            <Badge variant="error">Error</Badge>
           </span>
         )}
         {last?.kind === "done" && <Badge variant="done">Finished {last.at}</Badge>}
