@@ -1,6 +1,6 @@
 import { test } from "bun:test";
 import assert from "node:assert/strict";
-import { STEP_LABELS, duration, errorMessage, relativeTime } from "../../src/lib/format.ts";
+import { STEP_LABELS, duration, errorMessage, formatMessageTime, relativeTime } from "../../src/lib/format.ts";
 
 const now = new Date("2026-03-01T12:00:00Z");
 
@@ -27,4 +27,10 @@ test("errorMessage gives the message of an Error, or the value as text", () => {
 
 test("STEP_LABELS names each step status", () => {
   assert.deepEqual(STEP_LABELS, { running: "Running", done: "Done", failed: "Failed" });
+});
+
+test("formatMessageTime matches toLocaleString with the same options", () => {
+  for (const iso of ["2026-03-01T12:00:00Z", "2025-12-31T23:59:00Z"]) {
+    assert.equal(formatMessageTime(iso), new Date(iso).toLocaleString("en-US", { dateStyle: "medium", timeStyle: "short" }));
+  }
 });

@@ -6,6 +6,10 @@ export function relativeTime(iso: string, now: Date): string {
   return `${Math.floor(min / 1440)} d ago`;
 }
 
+// One formatter for all messages: building one per render is slow.
+const MESSAGE_TIME = new Intl.DateTimeFormat("en-US", { dateStyle: "medium", timeStyle: "short" });
+export const formatMessageTime = (iso: string): string => MESSAGE_TIME.format(new Date(iso));
+
 export function duration(ms: number): string {
   const s = Math.max(0, Math.floor(ms / 1000));
   const pad = (n: number) => String(n).padStart(2, "0");
