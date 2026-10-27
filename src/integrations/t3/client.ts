@@ -48,6 +48,15 @@ export interface T3ClientOptions {
   warn?: (message: string) => void;
 }
 
+// Safe to send twice: a retry after a lost connection cannot repeat a side effect.
+const IDEMPOTENT = new Set<string>([RPC.getConfig, RPC.searchThreads, RPC.createAssetUrl, RPC.ensureScratch]);
+
+interface SharedSocket {
+  conn: Promise<RpcConnection>;
+  token: string | null;
+  origin: string;
+}
+
 const read = <T>(schema: Schema<T>, value: unknown, what: string): T => parse(schema, value, { system: "t3", what: `T3 ${what}` });
 
 export class T3Client implements T3Port {
@@ -57,6 +66,7 @@ export class T3Client implements T3Port {
   private readonly Socket: typeof WebSocket;
   private readonly warn: (message: string) => void;
   private readonly warned = new Set<string>();
+  private shared: SharedSocket | null = null;
 
   constructor({ origin, token, fetch = globalThis.fetch, WebSocket = globalThis.WebSocket, warn = console.warn }: T3ClientOptions) {
     this.origin = origin;
@@ -72,12 +82,12 @@ export class T3Client implements T3Port {
   }
 
   async getConfig(): Promise<RawConfig> {
-    return read(RawConfig, await this.oneShot(RPC.getConfig, {}), "server.getConfig");
+    return read(RawConfig, await this.call(RPC.getConfig, {}), "server.getConfig");
   }
 
   async searchThreads(query: string, limit?: number): Promise<RawSearchMatch[]> {
     const payload = limit === undefined ? { query } : { query, limit };
-    return read(SearchThreadsResponse, await this.oneShot(RPC.searchThreads, payload), "orchestration.searchThreads").matches;
+    return read(SearchThreadsResponse, await this.call(RPC.searchThreads, payload), "orchestration.searchThreads").matches;
   }
 
   async persistAttachments(threadId: string, messageId: string, images: ImageUpload[]): Promise<AttachmentRef[]> {
@@ -86,11 +96,11 @@ export class T3Client implements T3Port {
   }
 
   async ensureScratchProject(): Promise<string> {
-    return read(ScratchProject, await this.oneShot(RPC.ensureScratch, {}), "projects.ensureScratch").projectId;
+    return read(ScratchProject, await this.call(RPC.ensureScratch, {}), "projects.ensureScratch").projectId;
   }
 
   async fetchAsset(resource: AssetResource, range?: string): Promise<{ response: Response; fileName: string }> {
-    const { relativeUrl } = read(AssetUrl, await this.oneShot(RPC.createAssetUrl, { resource }), "assets.createUrl");
+    const { relativeUrl } = read(AssetUrl, await this.call(RPC.createAssetUrl, { resource }), "assets.createUrl");
     const response = await this.fetchImpl(`${(await this.baseUrl()).replace(/\/+$/, "")}${relativeUrl}`, { headers: range ? { range } : {}, signal: AbortSignal.timeout(UPLOAD_TIMEOUT_MS) });
     if (response.status === 404) throw new IntegrationError("Attachment not found", { system: "t3", kind: "refused" });
     if (!response.ok) throw new IntegrationError(`T3 answered ${response.status} for an asset`, { system: "t3", kind: "unreachable" });
@@ -98,7 +108,14 @@ export class T3Client implements T3Port {
   }
 
   dispatch(command: Command): Promise<unknown> {
-    return this.oneShot(RPC.dispatch, command);
+    return this.call(RPC.dispatch, command);
+  }
+
+  /** Closes the shared socket. The next call opens a new one. */
+  close(): void {
+    const shared = this.shared;
+    this.shared = null;
+    void shared?.conn.then((conn) => conn.close(), () => {});
   }
 
   subscribeShell(onItems: (items: ShellItem[]) => void, onEnd: (error?: Error) => void): { cancel(): void } {
@@ -145,6 +162,47 @@ export class T3Client implements T3Port {
       this.warn(message);
     }
     return values as ShellItem[];
+  }
+
+  // Calls share one socket (one ticket) instead of opening one per request.
+  private async call(tag: string, payload: unknown, timeoutMs?: number): Promise<unknown> {
+    const entry = await this.sharedSocket();
+    const conn = await entry.conn;
+    try {
+      return await conn.request(tag, payload, timeoutMs);
+    } catch (error) {
+      if (error instanceof IntegrationError && error.kind === "refused") throw error;
+      if (this.shared === entry) this.shared = null;
+      if (!conn.isClosed) {
+        // Timeout: the socket may be stuck.
+        conn.close();
+        throw error;
+      }
+      // A command cut mid-flight may have reached T3: never send it twice.
+      if (conn.isOpen && !IDEMPOTENT.has(tag)) throw error;
+      return this.oneShot(tag, payload, timeoutMs);
+    }
+  }
+
+  private async sharedSocket(): Promise<SharedSocket> {
+    const token = this.token();
+    const origin = await this.baseUrl();
+    const current = this.shared;
+    if (current) {
+      const sameTarget = current.token === token && current.origin === origin;
+      const conn = sameTarget ? await current.conn.catch(() => null) : null;
+      if (conn && !conn.isClosed) return current;
+      // Another caller may have replaced the entry while this one waited.
+      if (this.shared !== current) return this.sharedSocket();
+      this.shared = null;
+      if (!sameTarget) void current.conn.then((old) => old.close(), () => {});
+    }
+    const entry: SharedSocket = { conn: this.openSocket(), token, origin };
+    this.shared = entry;
+    entry.conn.catch(() => {
+      if (this.shared === entry) this.shared = null;
+    });
+    return entry;
   }
 
   private async oneShot(tag: string, payload: unknown, timeoutMs?: number): Promise<unknown> {

@@ -167,3 +167,12 @@ test("Pong frames are ignored and bad frames do not throw", () => {
   socket.onmessage?.({ data: "not json" });
   rpc.close();
 });
+
+test("isOpen turns true on open and isClosed on close", () => {
+  const { rpc, socket } = connect();
+  assert.deepEqual([rpc.isOpen, rpc.isClosed], [false, false]);
+  socket.open();
+  assert.deepEqual([rpc.isOpen, rpc.isClosed], [true, false]);
+  rpc.close();
+  assert.deepEqual([rpc.isOpen, rpc.isClosed], [true, true]);
+});

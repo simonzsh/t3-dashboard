@@ -55,6 +55,14 @@ export class RpcConnection {
     this.pinger.unref();
   }
 
+  get isOpen(): boolean {
+    return this.opened;
+  }
+
+  get isClosed(): boolean {
+    return this.done;
+  }
+
   request(tag: string, payload: unknown, timeoutMs = 10_000): Promise<unknown> {
     if (this.done) return Promise.reject(unreachable("T3 WebSocket closed"));
     const id = this.newId();
