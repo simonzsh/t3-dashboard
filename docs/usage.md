@@ -2,7 +2,7 @@
 
 [Retour au README](../README.md)
 
-Le dashboard a trois onglets : Agents, Desk et Board. Le bouton New Agent et les réglages (Settings) sont dans l'en-tête.
+Le dashboard a trois onglets : Agents, Desk et Board. Les boutons New Agent et New Automation et les réglages (Settings) sont dans l'en-tête.
 
 ## Agents
 
@@ -93,7 +93,7 @@ La colonne de droite de l'onglet Agents liste les tâches planifiées de T3 Code
 
 ### Créer un rappel ou une routine
 
-1. Cliquez sur « Create » dans l'en-tête de la colonne. Une fenêtre s'ouvre.
+1. Ouvrez une nouvelle automatisation. Cliquez sur « New Automation » dans l'en-tête, à droite de New Agent, ou appuyez sur `⇧` + `N`. Une fenêtre s'ouvre.
 2. Écrivez la demande dans la zone de texte. Exemple : « Chaque jour ouvré à 9 h, résume mes tickets Linear ». Elle peut avoir plusieurs lignes.
 3. Choisissez un projet, ou laissez « No project ». Le dashboard garde ce choix pour la fois suivante.
 4. Cliquez sur « Create » dans la fenêtre.
@@ -139,6 +139,7 @@ Les raccourcis ne marchent pas pendant la saisie dans un champ ni quand une fen�
 | `1`, `2`, `3` | Ouvre Agents, Desk ou Board. |
 | `Ctrl` + `K` ou `⌘` + `K` | Ouvre ou ferme le switcher « Jump to » : il cherche une conversation par titre, projet ou message. Sans texte, il propose les agents qui attendent une réponse, puis vos conversations récentes. `↑` `↓` choisissent, `Entrée` ouvre dans le Desk. |
 | `N` | Ouvre New Agent. |
+| `⇧` + `N` | Ouvre une nouvelle automatisation (New Automation). |
 | `,` | Ouvre Settings. |
 | `X` | Desk : ferme la fenêtre active. |
 | `F` | Desk : met la fenêtre active en plein écran, ou l'en sort. |

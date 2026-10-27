@@ -6,7 +6,7 @@ import { loadProjectChoice, saveProjectChoice } from "../../lib/projectChoice.ts
 import { ProjectPicker } from "../../lib/ProjectPicker.tsx";
 import { browserStorage } from "../../lib/storage.ts";
 import { Dialog, TextArea } from "../../ui/index.ts";
-import { presetSelection } from "../new-thread/newAgent.ts";
+import { presetSelection } from "./newAgent.ts";
 
 const KEY = "t3-dashboard-automation-project";
 
@@ -19,8 +19,8 @@ interface Props {
   onSent: () => void;
 }
 
-/** Asks an agent, in a new thread, to schedule a reminder or a routine. */
-export function AutomationDialog({ projects, providers, defaults, onClose, onSent }: Props) {
+/** New automation: asks an agent, in a new thread, to schedule a reminder or a routine. */
+export function NewAutomationDialog({ projects, providers, defaults, onClose, onSent }: Props) {
   const api = useApi();
   const [text, setText] = useState("");
   const [projectId, setProjectId] = useState(() => loadProjectChoice(browserStorage(), KEY, projects));
@@ -45,7 +45,7 @@ export function AutomationDialog({ projects, providers, defaults, onClose, onSen
   }
 
   return (
-    <Dialog title="New reminder or routine" className="new-agent" onClose={onClose} onCancel={onClose} primary={{ label: busy ? "Sending…" : "Create", onClick: () => void submit(), disabled: busy || text.trim() === "" }}>
+    <Dialog title="New automation" className="new-agent" onClose={onClose} onCancel={onClose} primary={{ label: busy ? "Sending…" : "Create", onClick: () => void submit(), disabled: busy || text.trim() === "" }}>
       <div className="dialog-field">
         <span>Project</span>
         <ProjectPicker label="Project" projects={projects} value={projectId} allowNone onPick={setProjectId} />

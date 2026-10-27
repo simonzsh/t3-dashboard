@@ -13,6 +13,14 @@ test("plain keys map to actions", () => {
   assert.equal(matchShortcut(press("x"), false), null);
 });
 
+test("Shift+N opens a new automation, plain N a new agent", () => {
+  assert.equal(matchShortcut(press("N", { shiftKey: true }), false), "new-automation");
+  assert.equal(matchShortcut(press("N", { shiftKey: true, target: { tagName: "TEXTAREA", isContentEditable: false } }), false), null);
+  assert.equal(matchShortcut(press("N", { shiftKey: true }), true), null);
+  assert.equal(matchShortcut(press("N", { shiftKey: true, ctrlKey: true }), false), null);
+  assert.equal(matchShortcut(press("N", { shiftKey: true, altKey: true }), false), null);
+});
+
 test("modifiers disable shortcuts", () => {
   for (const m of ["ctrlKey", "metaKey", "altKey"] as const) assert.equal(matchShortcut(press("n", { [m]: true }), false), null, m);
 });

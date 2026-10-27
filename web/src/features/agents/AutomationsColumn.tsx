@@ -1,8 +1,6 @@
-import type { Automation, AutomationsResult, DashboardProject, DashboardProvider, DashboardThread, ModelDefaults } from "../../../../shared/api.ts";
-import { useState } from "react";
+import type { Automation, AutomationsResult, DashboardThread } from "../../../../shared/api.ts";
 import { lastRunState, nextLabel, reminderDate, splitAutomations } from "./automations.ts";
-import { Button, Loader, Pressable } from "../../ui/index.ts";
-import { AutomationDialog } from "./AutomationDialog.tsx";
+import { Loader, Pressable } from "../../ui/index.ts";
 
 interface Props {
   result: AutomationsResult | null;
@@ -11,11 +9,7 @@ interface Props {
   /** Threads whose agent is still setting a task up. */
   setup: DashboardThread[];
   now: Date;
-  projects: DashboardProject[];
-  providers: DashboardProvider[];
-  defaults: ModelDefaults;
   onOpen: (id: string, addOnly: boolean) => void;
-  onSent: () => void;
 }
 
 function Row({ a, thread, now, onOpen }: { a: Automation; thread: DashboardThread | undefined; now: Date; onOpen: (id: string, addOnly: boolean) => void }) {
@@ -68,8 +62,7 @@ function SetupRow({ thread, onOpen }: { thread: DashboardThread; onOpen: (id: st
   );
 }
 
-export function AutomationsColumn({ result, error, threads, setup, now, projects, providers, defaults, onOpen, onSent }: Props) {
-  const [creating, setCreating] = useState(false);
+export function AutomationsColumn({ result, error, threads, setup, now, onOpen }: Props) {
   const byId = new Map(threads.map((t) => [t.id, t]));
   const { routines, reminders } = splitAutomations(result?.automations ?? []);
   const section = (title: string, rows: Automation[], empty: string) => (
@@ -92,11 +85,7 @@ export function AutomationsColumn({ result, error, threads, setup, now, projects
     <aside className="automations" aria-label="Automations">
       <div className="auto-head">
         <h2 className="auto-heading">Automations</h2>
-        <Button size="sm" onClick={() => setCreating(true)}>
-          Create
-        </Button>
       </div>
-      {creating && <AutomationDialog projects={projects} providers={providers} defaults={defaults} onClose={() => setCreating(false)} onSent={onSent} />}
       {setup.length > 0 && (
         <ul className="auto-list">
           {setup.map((t) => (

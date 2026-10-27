@@ -4,6 +4,7 @@ import { AgentsView } from "./features/agents/AgentsView.tsx";
 import { BoardView } from "./features/board/BoardView.tsx";
 import { ConnectionBanner } from "./features/setup/ConnectionBanner.tsx";
 import { DeskView } from "./features/desk/DeskView.tsx";
+import { NewAutomationDialog } from "./features/new-thread/NewAutomationDialog.tsx";
 import { NewThreadDialog } from "./features/new-thread/NewThreadDialog.tsx";
 import { Switcher } from "./features/switcher/Switcher.tsx";
 import { useOpenHistory } from "./features/switcher/useOpenHistory.ts";
@@ -41,6 +42,7 @@ export function App() {
   const [desk, dispatchDesk] = useDesk(state?.connection.t3 === "live" ? state.threads : null);
   const [openHistory, recordOpened] = useOpenHistory();
   const [creating, setCreating] = useState(false);
+  const [creatingAutomation, setCreatingAutomation] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [confirmingUpdate, setConfirmingUpdate] = useState(false);
   // null: closed; a string: open, seeded with that query.
@@ -81,9 +83,11 @@ export function App() {
       if (action === "agents" || action === "board" || action === "desk") setTab(action);
       else if (action === "settings") setSettingsOpen(true);
       else if (action === "switcher") {
-        if (state && !creating && !settingsOpen && !confirmingUpdate) setSwitcherQuery((open) => (open === null ? "" : null));
+        if (state && !creating && !creatingAutomation && !settingsOpen && !confirmingUpdate) setSwitcherQuery((open) => (open === null ? "" : null));
       } else if (action === "new-agent") {
         if (state) setCreating(true);
+      } else if (action === "new-automation") {
+        if (state) setCreatingAutomation(true);
       } else if (action === "unmaximize") dispatchDesk({ type: "unmaximize" });
       else if (action.startsWith("focus-")) {
         // A maximized window hides its neighbors: arrows do nothing there.
@@ -102,7 +106,7 @@ export function App() {
         focusComposer(target.id);
       }
     },
-    creating || settingsOpen || confirmingUpdate || switcherQuery !== null,
+    creating || creatingAutomation || settingsOpen || confirmingUpdate || switcherQuery !== null,
     tab === "desk",
   );
 
@@ -161,6 +165,16 @@ export function App() {
                 New Agent
               </Button>
             ))}
+          {state &&
+            (compact ? (
+              <IconButton label="New Automation" onClick={() => setCreatingAutomation(true)}>
+                <Icon name="plus" />
+              </IconButton>
+            ) : (
+              <Button kbd="⇧N" onClick={() => setCreatingAutomation(true)}>
+                New Automation
+              </Button>
+            ))}
           <IconButton label="Settings" kbd="," onClick={() => setSettingsOpen(true)}>
             <Icon name="settings" strokeWidth={1.8} />
           </IconButton>
@@ -180,7 +194,6 @@ export function App() {
               onSwitcher={setSwitcherQuery}
               automations={automations.result}
               automationsError={automations.error}
-              onAutomationSent={automations.reload}
             />
           ) : <Loader />)}
         {tab === "board" && <BoardView projects={state?.projects ?? []} providers={state?.providers ?? []} modelDefaults={state?.modelDefaults ?? NO_DEFAULTS} version={boardVersion} onAssigned={(id) => openOnDesk(id, false)} onShowDesk={() => setTab("desk")} />}
@@ -207,6 +220,15 @@ export function App() {
             setCreating(false);
             openOnDesk(id, true);
           }}
+        />
+      )}
+      {state && creatingAutomation && (
+        <NewAutomationDialog
+          projects={state.projects}
+          providers={state.providers}
+          defaults={state.modelDefaults}
+          onClose={() => setCreatingAutomation(false)}
+          onSent={automations.reload}
         />
       )}
       {state && switcherQuery !== null && (

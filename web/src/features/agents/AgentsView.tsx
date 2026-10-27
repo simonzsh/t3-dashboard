@@ -19,7 +19,6 @@ interface Props {
   onSwitcher: (initialQuery: string) => void;
   automations: AutomationsResult | null;
   automationsError: string | null;
-  onAutomationSent: () => void;
 }
 
 // Collapsed by default: settled threads need no attention.
@@ -36,7 +35,7 @@ function RecentlySettled({ count, children }: { count: number; children: ReactNo
   );
 }
 
-export function AgentsView({ state, now, deskIds, onOpen, onToggleDesk, onSettle, onSwitcher, automations, automationsError, onAutomationSent }: Props) {
+export function AgentsView({ state, now, deskIds, onOpen, onToggleDesk, onSettle, onSwitcher, automations, automationsError }: Props) {
   const scrolled = useScrolled();
   const hiddenIds = automations?.hiddenThreadIds;
   const setup = useMemo(() => setupThreads(state.threads, automations?.setupThreadIds ?? []), [state.threads, automations?.setupThreadIds]);
@@ -101,7 +100,7 @@ export function AgentsView({ state, now, deskIds, onOpen, onToggleDesk, onSettle
       </div>
       <div className={`agents-layout${available ? "" : " wide"}`}>
         {agents}
-        {available && <AutomationsColumn result={automations} error={automationsError} threads={state.threads} setup={setup} now={now} projects={state.projects} providers={state.providers} defaults={state.modelDefaults} onOpen={onOpen} onSent={onAutomationSent} />}
+        {available && <AutomationsColumn result={automations} error={automationsError} threads={state.threads} setup={setup} now={now} onOpen={onOpen} />}
       </div>
     </div>
   );

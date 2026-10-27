@@ -62,7 +62,6 @@ const FEATURE_EDGES = new Map([
   ["features/new-thread -> features/conversation", "the new thread dialog reuses the composer"],
   ["features/board -> features/settings", "the board setup card reuses the Linear key form"],
   ["features/board -> features/new-thread", "assigning an issue opens the New Agent dialog"],
-  ["features/agents -> features/new-thread", "the create dialog uses the New Agent model preset"],
   ["features/settings -> features/update", "the Updates tab shows the update status"],
   ["features/settings -> features/desk", "settings pick the desk background"],
 ]);
