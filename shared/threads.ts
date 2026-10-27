@@ -83,6 +83,8 @@ export interface ChatMessage {
   createdAt: string;
   streaming: boolean;
   attachments: ChatAttachment[];
+  /** The run that wrote or answered the message; null when T3 does not say. */
+  runId: string | null;
 }
 
 /** A page the agent showed with html_render; the same route serves it, sandboxed. */
@@ -147,16 +149,20 @@ export interface RunChange {
   deletions: number;
 }
 
+/** The files one finished run changed. The ordinal is the run's number: GET /api/threads/:id/runs/:ordinal/diff takes it. */
+export interface RunChanges {
+  runId: string;
+  ordinal: number;
+  completedAt: string;
+  changes: RunChange[];
+}
+
 /** What the active run (or the latest one) did, oldest first. */
 export interface RunActivity {
   runId: string;
-  /** The run's number in its thread: GET /api/threads/:id/runs/:ordinal/diff takes it. */
-  ordinal: number | null;
   startedAt: string | null;
   completedAt: string | null;
   items: ActivityItem[];
-  /** Files the run changed; empty while it runs. */
-  changes: RunChange[];
 }
 
 export interface ThreadDetail {
@@ -170,4 +176,6 @@ export interface ThreadDetail {
   modelSelection: ModelSelection | null;
   runtimeMode: RuntimeMode | null;
   activity: RunActivity | null;
+  /** Every finished run whose checkpoint lists files, oldest first. */
+  runChanges: RunChanges[];
 }

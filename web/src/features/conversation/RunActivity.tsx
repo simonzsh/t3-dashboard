@@ -2,7 +2,6 @@ import { useEffect, useRef, useState } from "react";
 import type { ActivityItem, RunActivity } from "../../../../shared/api.ts";
 import { STEP_LABELS, duration } from "../../lib/format.ts";
 import { Button, Icon, Pressable, type IconName } from "../../ui/index.ts";
-import { RunChanges } from "./RunChanges.tsx";
 
 // Collapsed, a live run shows only its latest steps.
 const PREVIEW_ITEMS = 4;
@@ -28,14 +27,13 @@ function Row({ item, onShowSubagents }: { item: ActivityItem; onShowSubagents: (
 }
 
 interface Props {
-  threadId: string;
   activity: RunActivity;
   /** The thread says a run is active: the activity may still be the previous run's. */
   running: boolean;
   onShowSubagents: () => void;
 }
 
-export function RunActivityView({ threadId, activity, running, onShowSubagents }: Props) {
+export function RunActivityView({ activity, running, onShowSubagents }: Props) {
   const live = running && activity.completedAt === null;
   const [open, setOpen] = useState(false);
   const [now, setNow] = useState(() => Date.now());
@@ -70,9 +68,6 @@ export function RunActivityView({ threadId, activity, running, onShowSubagents }
             <Row key={item.id} item={item} onShowSubagents={onShowSubagents} />
           ))}
         </ul>
-      )}
-      {!live && activity.ordinal !== null && activity.changes.length > 0 && (
-        <RunChanges key={activity.runId} threadId={threadId} ordinal={activity.ordinal} changes={activity.changes} />
       )}
     </div>
   );

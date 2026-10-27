@@ -15,8 +15,8 @@ const projection: RawProjection = {
 test("keeps visible messages in their original order and defaults streaming to false", () => {
   const detail = toThreadDetail("thread-1", projection, undefined);
   assert.deepEqual(detail.messages, [
-    { id: "m1", role: "user", text: "Hello", createdAt: "2026-03-01T10:00:00Z", streaming: false, attachments: [] },
-    { id: "m2", role: "assistant", text: "Hi there", createdAt: "2026-03-01T10:00:02Z", streaming: true, attachments: [] },
+    { id: "m1", role: "user", text: "Hello", createdAt: "2026-03-01T10:00:00Z", streaming: false, attachments: [], runId: null },
+    { id: "m2", role: "assistant", text: "Hi there", createdAt: "2026-03-01T10:00:02Z", streaming: true, attachments: [], runId: null },
   ]);
   assert.equal(detail.threadId, "thread-1");
   assert.equal(detail.thread, null);
@@ -289,9 +289,9 @@ test("activity: the thread's active run, else the latest run, with its times", (
     { id: "r2", status: "completed", startedAt: "2026-03-01T11:00:00Z", completedAt: "2026-03-01T11:12:00Z" },
   ];
   const active = toThreadDetail("t", { runs, thread: { id: "t", activeRunId: "r1" } }, undefined).activity;
-  assert.deepEqual(active, { runId: "r1", ordinal: null, startedAt: "2026-03-01T10:00:00Z", completedAt: null, items: [], changes: [] });
+  assert.deepEqual(active, { runId: "r1", startedAt: "2026-03-01T10:00:00Z", completedAt: null, items: [] });
   const latest = toThreadDetail("t", { runs }, undefined).activity;
-  assert.deepEqual(latest, { runId: "r2", ordinal: null, startedAt: "2026-03-01T11:00:00Z", completedAt: "2026-03-01T11:12:00Z", items: [], changes: [] });
+  assert.deepEqual(latest, { runId: "r2", startedAt: "2026-03-01T11:00:00Z", completedAt: "2026-03-01T11:12:00Z", items: [] });
 });
 
 const item = (id: string, type: string, ordinal: number, extra: Record<string, unknown> = {}) => ({ id, type, runId: "r1", ordinal, status: "completed", completedAt: "2026-03-01T10:05:00Z", ...extra });
@@ -322,29 +322,46 @@ test("activity: maps each work item of the run in ordinal order and skips messag
 });
 
 const finished = { runs: [{ id: "r1", ordinal: 4, status: "completed", startedAt: "2026-03-01T10:00:00Z", completedAt: "2026-03-01T10:09:00Z" }] };
+const checkpoint = (runId: string, files: unknown[]) => item(`cp-${runId}`, "checkpoint", 9, { runId, files });
+const file = { path: "src/a.ts", kind: "modified", additions: 3, deletions: 1 };
 
-test("activity: a finished run lists the files of its checkpoint with the run ordinal", () => {
-  const files = [
-    { path: "src/a.ts", kind: "modified", additions: 3, deletions: 1 },
-    { path: "src/b.ts", kind: "added", additions: 10, deletions: null },
-  ];
-  const detail = toThreadDetail("t", { ...finished, turnItems: [item("cp", "checkpoint", 9, { files })] }, undefined);
-  assert.equal(detail.activity!.ordinal, 4);
-  assert.deepEqual(detail.activity!.changes, [
-    { path: "src/a.ts", kind: "modified", additions: 3, deletions: 1 },
-    { path: "src/b.ts", kind: "added", additions: 10, deletions: 0 },
+test("runChanges: a finished run lists the files of its checkpoint with its ordinal", () => {
+  const files = [file, { path: "src/b.ts", kind: "added", additions: 10, deletions: null }];
+  const detail = toThreadDetail("t", { ...finished, turnItems: [checkpoint("r1", files)] }, undefined);
+  assert.deepEqual(detail.runChanges, [
+    {
+      runId: "r1",
+      ordinal: 4,
+      completedAt: "2026-03-01T10:09:00Z",
+      changes: [file, { path: "src/b.ts", kind: "added", additions: 10, deletions: 0 }],
+    },
   ]);
-  assert.deepEqual(detail.activity!.items, []);
 });
 
-test("activity: no changes without files, for another run's checkpoint, or while the run is live", () => {
-  const files = [{ path: "a.ts", kind: "modified", additions: 1, deletions: 0 }];
-  const none = toThreadDetail("t", { ...finished, turnItems: [item("cp", "checkpoint", 9, { files: [] })] }, undefined);
-  assert.deepEqual(none.activity!.changes, []);
-  const other = toThreadDetail("t", { ...finished, turnItems: [item("cp", "checkpoint", 9, { files, runId: "r0" })] }, undefined);
-  assert.deepEqual(other.activity!.changes, []);
-  const live = toThreadDetail("t", { ...activityRun, turnItems: [item("cp", "checkpoint", 9, { files })] }, undefined);
-  assert.deepEqual(live.activity!.changes, []);
+test("runChanges: every finished run with files shows, in run order; others do not", () => {
+  const runs = [
+    { id: "r1", ordinal: 1, status: "completed", completedAt: "2026-03-01T10:09:00Z" },
+    { id: "r2", ordinal: 2, status: "completed", completedAt: "2026-03-01T11:09:00Z" },
+    { id: "r3", ordinal: 3, status: "completed", completedAt: "2026-03-01T12:09:00Z" },
+    { id: "r4", ordinal: 4, status: "running", completedAt: null },
+    { id: "r5", status: "completed", completedAt: "2026-03-01T13:09:00Z" },
+  ];
+  const turnItems = [checkpoint("r3", [file]), checkpoint("r1", [file]), checkpoint("r2", []), checkpoint("r4", [file]), checkpoint("r5", [file]), checkpoint("gone", [file])];
+  const detail = toThreadDetail("t", { runs, turnItems }, undefined);
+  assert.deepEqual(detail.runChanges.map((entry) => [entry.runId, entry.ordinal]), [["r1", 1], ["r3", 3]]);
+  assert.deepEqual(toThreadDetail("t", { runs }, undefined).runChanges, []);
+});
+
+test("messages carry the run of the message, else the run of its turn item", () => {
+  const detail = toThreadDetail("t", {
+    messages: [
+      { id: "m1", role: "user", runId: "r1" },
+      { id: "m2", role: "assistant" },
+      { id: "m3", role: "assistant" },
+    ],
+    visibleTurnItems: [{ item: { type: "message", messageId: "m1" } }, { item: { type: "message", messageId: "m2", runId: "r2" } }, { item: { type: "message", messageId: "m3" } }],
+  }, undefined);
+  assert.deepEqual(detail.messages.map((message) => message.runId), ["r1", "r2", null]);
 });
 
 test("activity: failures, live items, fallbacks and truncation", () => {

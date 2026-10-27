@@ -16,13 +16,19 @@ const PROJECTS: RawProject[] = [
   { id: SCRATCH_PROJECT_ID, title: "No project" },
 ];
 
-export const DEMO_CHANGES = [
+const LINKS_CHANGES = [
   { path: "src/notifications/router.ts", kind: "modified", additions: 4, deletions: 1 },
   { path: "src/notifications/routes.ts", kind: "added", additions: 3, deletions: 0 },
 ];
 
-/** The unified diff of the demo checkpoint: it matches DEMO_CHANGES. */
-export const DEMO_DIFF = `diff --git a/src/notifications/router.ts b/src/notifications/router.ts
+const CHECKOUT_CHANGES = [
+  { path: "web/src/checkout/OrderSummary.tsx", kind: "modified", additions: 4, deletions: 2 },
+  { path: "web/src/checkout/summary.css", kind: "modified", additions: 1, deletions: 1 },
+];
+
+/** Fake unified diffs of the demo checkpoints, by "threadId:runOrdinal": each covers the files of its checkpoint. */
+export const DEMO_DIFFS: Record<string, string> = {
+  "demo-deep-links:1": `diff --git a/src/notifications/router.ts b/src/notifications/router.ts
 index 3f2a1c4..9b8d0e7 100644
 --- a/src/notifications/router.ts
 +++ b/src/notifications/router.ts
@@ -42,7 +48,28 @@ index 0000000..c41d2a9
 +const ROUTES: Record<string, string> = { order: "/orders", profile: "/me" };
 +
 +export const routeFor = (screen: string) => ROUTES[screen];
-`;
+`,
+  "demo-checkout:1": `diff --git a/web/src/checkout/OrderSummary.tsx b/web/src/checkout/OrderSummary.tsx
+index 5d1e2a0..7c4b9f3 100644
+--- a/web/src/checkout/OrderSummary.tsx
++++ b/web/src/checkout/OrderSummary.tsx
+@@ -21,5 +21,7 @@ export function OrderSummary({ order }: Props) {
+-      <Row label="Shipping" />
+-      <Row label="Taxes" />
++      <Fees>
++        <Row label="Shipping" />
++        <Row label="Taxes" />
++      </Fees>
+       <Total value={order.total} />
+diff --git a/web/src/checkout/summary.css b/web/src/checkout/summary.css
+index 8a0c3d1..e12f4b6 100644
+--- a/web/src/checkout/summary.css
++++ b/web/src/checkout/summary.css
+@@ -3,3 +3,3 @@
+-.summary-total { font-size: 16px; }
++.summary-total { font-size: 22px; }
+`,
+};
 
 const CLAUDE = { instanceId: "claudeAgent", model: "claude-opus-5-5" };
 const SONNET = { instanceId: "claudeAgent", model: "claude-sonnet-5" };
@@ -87,6 +114,7 @@ const SPECS: ThreadSpec[] = [
       { id: "run-checkout-2", status: "running", started: 6 },
     ],
     activity: [
+      { id: "c1", type: "checkpoint", runId: "run-checkout-1", files: CHECKOUT_CHANGES, at: 44, done: 44 },
       { id: "a1", type: "reasoning", runId: "run-checkout-2", text: "Read the summary component and its tests before changing the layout.", at: 6, done: 6 },
       { id: "a2", type: "command_execution", runId: "run-checkout-2", input: 'rg -n "OrderSummary" web/src', exitCode: 0, at: 6, done: 6 },
       { id: "a3", type: "file_change", runId: "run-checkout-2", fileName: "web/src/checkout/OrderSummary.tsx", at: 5, done: 5 },
@@ -276,7 +304,7 @@ const SPECS: ThreadSpec[] = [
     runs: [{ id: "run-links-1", status: "completed", started: 1695, completed: 1650 }],
     activity: [
       { id: "l1", type: "command_execution", runId: "run-links-1", input: "bun test src/notifications", exitCode: 0, at: 1660, done: 1660 },
-      { id: "l2", type: "checkpoint", runId: "run-links-1", files: DEMO_CHANGES, at: 1650, done: 1650 },
+      { id: "l2", type: "checkpoint", runId: "run-links-1", files: LINKS_CHANGES, at: 1650, done: 1650 },
     ],
     thread: { settledOverride: "settled", settledAt: LAST },
   },

@@ -122,6 +122,7 @@ export const RawMessage = s.object({
   id: s.string(),
   role: s.union(s.literal("user"), s.union(s.literal("assistant"), s.literal("system"))),
   text: s.optional(s.string()),
+  runId: text(),
   streaming: s.optional(s.boolean()),
   createdAt: s.optional(s.string()),
   attachments: s.optional(s.nullable(s.array(s.object({ type: s.string(), id: s.string(), name: text() })))),

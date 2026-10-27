@@ -85,14 +85,18 @@ test("the demo Linear board and automations need no network", async () => {
   assert.ok(!left.some((task) => task.id === reminder.id));
 });
 
-test("the demo thread with a finished run lists two changed files and serves a diff that covers them", async () => {
+test("demo runs with changes (one of them older than the latest run) serve a diff that covers their files", async () => {
   const port = new DemoPort(() => NOW);
-  const detail = toThreadDetail("demo-deep-links", await port.threadProjection("demo-deep-links"), undefined);
-  const { ordinal, changes } = detail.activity!;
-  assert.equal(changes.length, 2);
-  const diff = await port.turnDiff("demo-deep-links", ordinal!);
-  for (const change of changes) assert.ok(diff.includes(`diff --git a/${change.path} b/${change.path}`), change.path);
-  await assert.rejects(port.turnDiff("demo-checkout", 1));
+  const runs = async (id: string) => toThreadDetail(id, await port.threadProjection(id), undefined).runChanges;
+  const [links] = await runs("demo-deep-links");
+  const [checkout] = await runs("demo-checkout");
+  assert.equal(checkout!.runId, "run-checkout-1");
+  for (const [id, run] of [["demo-deep-links", links!], ["demo-checkout", checkout!]] as const) {
+    assert.equal(run.changes.length, 2, id);
+    const diff = await port.turnDiff(id, run.ordinal);
+    for (const change of run.changes) assert.ok(diff.includes(`diff --git a/${change.path} b/${change.path}`), change.path);
+  }
+  await assert.rejects(port.turnDiff("demo-checkout", 2));
 });
 
 test("demo search is case-insensitive and gives one row per thread, the user's message first", async () => {
