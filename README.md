@@ -93,7 +93,7 @@ The dashboard looks for a new version every hour. When one is available, click t
 
 ## Uninstall
 
-Run `t3-dashboard uninstall`, then delete the binary. The full procedure is in [docs/install.md](docs/install.md#désinstallation).
+Run `t3-dashboard uninstall`, then delete the binary. The full procedure is in [docs/install.md](docs/install.md#uninstall).
 
 ## Documentation
 

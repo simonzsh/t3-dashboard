@@ -1,127 +1,127 @@
-# Développement
+# Development
 
-[Retour au README](../README.md)
+[Back to the README](../README.md)
 
-Le serveur est écrit en TypeScript pour Bun. Il parle à T3 Code et expose une API locale. Il sert aussi l'interface React, qui se trouve dans `web/`.
+The server is written in TypeScript for Bun. It talks to T3 Code and exposes a local API. It also serves the React interface, which is in `web/`.
 
 ## Bun
 
-Bun 1.4 ou plus récent est nécessaire. La CI utilise Bun 1.4.2.
+You need Bun 1.4 or later. The CI uses Bun 1.4.2.
 
 ```sh
 bun install
-bun run dev     # rechargement à chaud du serveur et de l'interface
-bun start       # sans rechargement
-bun run demo    # mode démo, avec des données inventées
-bun run build   # binaire unique dans dist/t3-dashboard
+bun run dev     # hot reload of the server and the interface
+bun start       # no reload
+bun run demo    # demo mode, with made-up data
+bun run build   # single binary in dist/t3-dashboard
 ```
 
-- Une version lancée par Bun s'appelle `dev`. Elle ne cherche pas de mise à jour seule et ne contacte pas GitHub au démarrage.
-- `install` et `update` refusent de tourner hors du binaire compilé. Le service pointe toujours vers ce binaire.
+- A version that Bun starts has the name `dev`. It does not look for updates automatically and does not contact GitHub at startup.
+- `install` and `update` refuse to run outside the compiled binary. The service always points to this binary.
 
-## Mode démo
+## Demo mode
 
-`bun run demo` lance le dashboard avec des données inventées : projets, agents, conversations, tickets Linear et routines. Il ne contacte ni T3 Code ni Linear. Les captures d'écran de `docs/screenshots/` viennent de ce mode. Relancez-le pour refaire les captures après un changement de l'interface.
+`bun run demo` starts the dashboard with made-up data: projects, agents, conversations, Linear tickets and routines. It does not contact T3 Code or Linear. The screenshots in `docs/screenshots/` come from this mode. Start it again to make new screenshots after a change to the interface.
 
-## Publier une version
+## Publish a release
 
-1. Poussez un tag `v*`, par exemple `v0.3.0`.
-2. Le workflow `release.yml` construit les 5 binaires : macOS arm64 et x64, Linux x64 et arm64, Windows x64.
-3. Le workflow écrit `SHA256SUMS` et crée la release GitHub. Un tag avec un tiret (`v1.0.0-rc.1`) donne une préversion.
+1. Push a `v*` tag, for example `v0.3.0`.
+2. The `release.yml` workflow builds the 5 binaries: macOS arm64 and x64, Linux x64 and arm64, Windows x64.
+3. The workflow writes `SHA256SUMS` and creates the GitHub release. A tag with a hyphen (`v1.0.0-rc.1`) gives a prerelease.
 
-Un lancement manuel du workflow construit les binaires sans publier de release.
+A manual run of the workflow builds the binaries but does not publish a release.
 
-## Vérifications
+## Checks
 
 ```sh
-bun run check       # types et tests, serveur et interface
-bun run smoke       # construit le binaire et vérifie qu'il sert l'interface
-bun run contracts   # lit T3 Code, Linear et GitHub, sans rien écrire
+bun run check       # types and tests, server and interface
+bun run smoke       # builds the binary and checks that it serves the interface
+bun run contracts   # reads T3 Code, Linear and GitHub, writes nothing
 ```
 
-- La CI (`ci.yml`) lance `bun run check` et `bun run smoke` sur chaque PR et sur `main`.
-- Aucun test ne contacte T3 Code. `bun run smoke` utilise un dossier temporaire et un port fermé à la place de T3.
-- `bun run contracts` contacte les vrais systèmes en lecture seule : voir [contracts.md](contracts.md).
+- The CI (`ci.yml`) runs `bun run check` and `bun run smoke` on each PR and on `main`.
+- No test contacts T3 Code. `bun run smoke` uses a temporary folder and a closed port in place of T3.
+- `bun run contracts` contacts the real systems in read-only mode: see [contracts.md](contracts.md).
 
-### Vérifications manuelles
+### Manual checks
 
-Ces actions écrivent dans le vrai T3 Code. Faites-les une fois après une mise à jour de T3.
+These actions write to the real T3 Code. Do them once after each T3 update.
 
-1. Créer un agent avec New Agent.
-2. Envoyer un message sur un fil inactif, puis pendant un run (`steer`).
-3. Arrêter un run.
-4. Répondre à une approbation avec chacun des 3 boutons.
-5. Répondre à une question, puis cliquer sur « Dismiss ».
-6. Vérifier qu'un agent qui démarre ou finit change de carte dans l'onglet Agents sans recharger la page.
-7. Déléguer une tâche depuis une conversation, puis cliquer sur « Stop » à côté de sa ligne. Vérifier dans T3 Code que la tâche et son fil enfant sont arrêtés, et que le bouton disparaît.
-8. Lancer une commande shell en arrière-plan depuis une conversation, puis laisser le run finir. Vérifier que le bouton « Stop » du composer reste visible. Cliquer dessus, ou sur le bouton de la ligne de la tâche. Vérifier dans T3 Code que la tâche est arrêtée. Le dashboard arrête alors toutes les tâches de fond de la conversation.
-9. Dans l'onglet Agents, vérifier que la colonne « Automations » liste les tâches planifiées de T3 Code (`scheduledTasks.list`). Un T3 trop ancien affiche une erreur dans la colonne, et la grille marche toujours.
-10. Écrire « Reminder: dans 2 minutes, dis bonjour » dans le champ de la colonne, puis envoyer. Vérifier que l'agent crée la tâche avec `schedule_task`, et que le fil sort de la grille. Après le passage, vérifier que la tâche est en pause et que la ligne du rappel affiche « Finished ».
+1. Create an agent with New Agent.
+2. Send a message on an idle thread, then during a run (`steer`).
+3. Stop a run.
+4. Answer an approval with each of the 3 buttons.
+5. Answer a question, then click "Dismiss".
+6. Make sure that an agent that starts or finishes moves to a different card in the Agents tab without a page reload.
+7. Delegate a task from a conversation, then click "Stop" next to its row. In T3 Code, make sure that the task and its child thread are stopped. Make sure that the button disappears.
+8. Start a background shell command from a conversation, then let the run finish. Make sure that the composer "Stop" button stays visible. Click it, or the button on the task row. In T3 Code, make sure that the task is stopped. The dashboard then stops all background tasks of the conversation.
+9. In the Agents tab, make sure that the "Automations" column lists the T3 Code scheduled tasks (`scheduledTasks.list`). An old T3 version shows an error in the column, and the grid continues to work.
+10. Type "Reminder: in 2 minutes, say hello" in the column field, then send it. Make sure that the agent creates the task with `schedule_task`, and that the thread leaves the grid. After the run, make sure that the task is paused and that the reminder row shows "Finished".
 
 ## Architecture
 
-Le code a trois parties : le serveur (`src/`), l'interface (`web/src/`) et le contrat entre les deux (`shared/`). Les tests ont la même structure dans `test/` et `web/test/`.
+The code has three parts: the server (`src/`), the interface (`web/src/`) and the contract between the two (`shared/`). The tests have the same structure in `test/` and `web/test/`.
 
-### Serveur (`src/`)
+### Server (`src/`)
 
-| Dossier | Contenu |
+| Folder | Contents |
 | --- | --- |
-| `main.ts` | Point d'entrée. Il lit les arguments et lance la bonne commande. |
-| `app/` | Racine de composition. `start.ts` crée les vrais clients et les relie. `deps.ts` donne les vrais accès au disque et aux processus. |
-| `cli/` | Commandes qui s'exécutent une fois : arguments, installation, service, mise à jour du binaire. |
-| `config/` | Variables d'environnement, chemins, version et fichiers du dashboard (clé Linear, jeton, PID, fils des automatisations). |
-| `server/` | HTTP, SSE et site statique. Le routeur lit et vérifie les requêtes (`validate.ts`), puis appelle le domaine. `htmlRender.ts` applique le thème aux pages `html_render`. |
-| `domain/` | Règles et état : synchronisation avec T3, classement des fils, détail d'un fil, actions, jeton, board Linear, réglages, mises à jour, automatisations, icônes des projets, modèles. |
-| `integrations/` | Tous les appels vers un autre système : T3 Code, Linear et GitHub. Chaque réponse passe par un schéma. |
+| `main.ts` | Entry point. It reads the arguments and starts the correct command. |
+| `app/` | Composition root. `start.ts` creates the real clients and connects them. `deps.ts` gives the real access to the disk and to processes. |
+| `cli/` | Commands that run one time: arguments, installation, service, binary update. |
+| `config/` | Environment variables, paths, version and dashboard files (Linear key, token, PID, automation threads). |
+| `server/` | HTTP, SSE and static site. The router reads and validates the requests (`validate.ts`), then calls the domain. `htmlRender.ts` applies the theme to the `html_render` pages. |
+| `domain/` | Rules and state: sync with T3, thread sorting, thread detail, actions, token, Linear board, settings, updates, automations, project icons, models. |
+| `integrations/` | All calls to another system: T3 Code, Linear and GitHub. Each response goes through a schema. |
 
 ### Interface (`web/src/`)
 
-| Dossier | Contenu |
+| Folder | Contents |
 | --- | --- |
-| `api/` | Client de l'API locale, flux d'évènements (`useDashboard`) et `ApiContext`. `useApi()` donne la vraie API, sauf si un `ApiProvider` en donne une autre. |
-| `lib/` | Fonctions et composants partagés par plusieurs écrans. |
-| `features/` | Un dossier par écran : `agents`, `desk`, `conversation`, `board`, `settings`, `setup`, `update`, `new-thread`. |
-| `ui/` | Composants de base, infobulles et animations. Voir `web/src/ui/README.md`. |
+| `api/` | Local API client, event stream (`useDashboard`) and `ApiContext`. `useApi()` gives the real API, unless an `ApiProvider` gives a different one. |
+| `lib/` | Functions and components that more than one screen uses. |
+| `features/` | One folder for each screen: `agents`, `desk`, `conversation`, `board`, `settings`, `setup`, `update`, `new-thread`. |
+| `ui/` | Base components, tooltips and animations. See `web/src/ui/README.md`. |
 
-### Contrat (`shared/`)
+### Contract (`shared/`)
 
-`shared/api.ts` réexporte les types de chaque thème : `threads`, `connection`, `events`, `requests`, `linear`, `settings`, `automations`. `limits.ts` contient les limites communes (images, taille des messages, modes d'exécution). `status.ts` contient le modèle de statut des fils. `events.ts` donne la liste des types d'évènements : l'interface s'abonne à cette liste.
+`shared/api.ts` re-exports the types of each topic: `threads`, `connection`, `events`, `requests`, `linear`, `settings`, `automations`. `limits.ts` contains the shared limits (images, message size, runtime modes). `status.ts` contains the thread status model. `events.ts` gives the list of event types: the interface subscribes to this list.
 
-### Règles d'import
+### Import rules
 
-Le test `test/architecture.test.ts` lit les imports et bloque une dépendance interdite.
+The `test/architecture.test.ts` test reads the imports and blocks a forbidden dependency.
 
-- `shared/` n'importe rien.
-- `config/` importe seulement `shared/`.
-- `main.ts` importe `app/`, `cli/` et `config/`.
-- `integrations/contract.ts`, `integrations/errors.ts` et `integrations/drift.ts` (rapport des contrats) n'importent qu'eux-mêmes.
-- Une intégration importe `config/`, `shared/` et ces trois fichiers. Elle n'importe pas le domaine, le serveur ni une autre intégration.
-- `domain/` importe `shared/`, `config/` et `integrations/`. Il n'importe pas `server/`, `app/` ni `cli/`.
-- `server/` importe `shared/`, `domain/`, `config/` et `integrations/errors.ts`. Il passe par le domaine pour parler à T3 ou à Linear.
-- `cli/` importe `config/`, `integrations/github/` et `integrations/errors.ts`.
-- `app/` importe tout.
-- `ui/` n'importe que `ui/`. Seule exception : `Dropdown.tsx` et `Popover.tsx` importent la logique de menu de `lib/dropdown.ts`.
-- `lib/` importe `ui/`, `api/` et `shared/`. `api/` importe seulement `shared/`.
-- Un écran importe `lib/`, `api/`, `ui/` et `shared/`. Il n'importe un autre écran que par un lien de la liste du test, par exemple `board` vers `new-thread`.
-- L'interface n'importe jamais `src/`.
+- `shared/` imports nothing.
+- `config/` imports only `shared/`.
+- `main.ts` imports `app/`, `cli/` and `config/`.
+- `integrations/contract.ts`, `integrations/errors.ts` and `integrations/drift.ts` (contract report) import only each other.
+- An integration imports `config/`, `shared/` and these three files. It does not import the domain, the server or a different integration.
+- `domain/` imports `shared/`, `config/` and `integrations/`. It does not import `server/`, `app/` or `cli/`.
+- `server/` imports `shared/`, `domain/`, `config/` and `integrations/errors.ts`. It goes through the domain to talk to T3 or Linear.
+- `cli/` imports `config/`, `integrations/github/` and `integrations/errors.ts`.
+- `app/` imports everything.
+- `ui/` imports only `ui/`. One exception: `Dropdown.tsx` and `Popover.tsx` import the menu logic from `lib/dropdown.ts`.
+- `lib/` imports `ui/`, `api/` and `shared/`. `api/` imports only `shared/`.
+- A screen imports `lib/`, `api/`, `ui/` and `shared/`. It imports a different screen only through a link in the test list, for example `board` to `new-thread`.
+- The interface never imports `src/`.
 
-Un deuxième test (`test/integrations/boundary.test.ts`) bloque `fetch`, `WebSocket` et le lancement de processus hors de `integrations/`. Seuls `app/start.ts` et `app/deps.ts` ont une exception.
+A second test (`test/integrations/boundary.test.ts`) blocks `fetch`, `WebSocket` and process launches outside `integrations/`. Only `app/start.ts` and `app/deps.ts` have an exception.
 
-### Erreurs
+### Errors
 
-- Une intégration lance une `IntegrationError` : système, type (`unreachable`, `refused`, `protocol`, `not-authenticated`) et message.
-- Le domaine lance une `DomainError` : `invalid`, `not-found` ou `conflict`.
-- `toHttp(error)` dans `server/httpError.ts` donne le code HTTP : 400, 404 ou 409 pour le domaine, 400 pour une clé Linear refusée, 502 pour les autres erreurs d'intégration. Une autre erreur donne 500 et va dans le log.
-- Un message d'erreur ne contient jamais une clé, un jeton ni le corps d'une réponse.
+- An integration throws an `IntegrationError`: system, type (`unreachable`, `refused`, `protocol`, `not-authenticated`) and message.
+- The domain throws a `DomainError`: `invalid`, `not-found` or `conflict`.
+- `toHttp(error)` in `server/httpError.ts` gives the HTTP code: 400, 404 or 409 for the domain, 400 for a refused Linear key, 502 for the other integration errors. A different error gives 500 and goes into the log.
+- An error message never contains a key, a token or a response body.
 
-## Sécurité
+## Security
 
-- Le jeton T3 et la clé Linear restent sur le serveur. Le navigateur ne les voit jamais.
-- Le serveur écoute seulement sur `127.0.0.1`.
-- Chaque requête vérifie les en-têtes `Host` et `Origin` : `127.0.0.1`, `localhost` ou un nom de `T3_DASHBOARD_ALLOWED_HOSTS`.
-- Le serveur n'envoie aucun en-tête CORS.
-- Chaque `POST` exige le type `application/json`. Ce contrôle bloque les requêtes d'un autre site (CSRF). Le corps fait 1 Mo au plus, 25 Mo pour un message avec des images.
-- Les réponses interdisent l'affichage du dashboard dans le cadre d'un autre site (`X-Frame-Options: DENY`).
-- Le serveur sert seulement les pièces jointes du fil et les fichiers qu'un message de l'agent cite. Il affiche les images et les vidéos. Un autre type de fichier est servi en téléchargement, jamais affiché.
-- Une page `html_render` est servie avec `Content-Security-Policy: sandbox`. Ses scripts ont une origine opaque et ne peuvent pas appeler `/api`.
-- L'interface ne propose pas « Toujours accepter » : seuls `accept`, `acceptForSession` et `decline` passent.
+- The T3 token and the Linear key stay on the server. The browser never sees them.
+- The server listens only on `127.0.0.1`.
+- Each request checks the `Host` and `Origin` headers: `127.0.0.1`, `localhost` or a name from `T3_DASHBOARD_ALLOWED_HOSTS`.
+- The server sends no CORS header.
+- Each `POST` requires the `application/json` type. This check blocks requests from a different site (CSRF). The body is 1 MB maximum, or 25 MB for a message with images.
+- The responses prevent the display of the dashboard in a frame of a different site (`X-Frame-Options: DENY`).
+- The server serves only the thread attachments and the files that an agent message cites. It shows images and videos. It serves other file types as downloads and never shows them.
+- The server serves an `html_render` page with `Content-Security-Policy: sandbox`. Its scripts have an opaque origin and cannot call `/api`.
+- The interface does not offer "Always accept": only `accept`, `acceptForSession` and `decline` go through.
