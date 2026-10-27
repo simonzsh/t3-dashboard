@@ -65,6 +65,19 @@
     "title": "required",
     "worktreePath": "required"
   },
+  "thread.metadata.update": {
+    "branch": "optional",
+    "commandId": "required",
+    "expectedBranch": "optional",
+    "expectedEmpty": "optional",
+    "expectedWorktreePath": "optional",
+    "limitRecovery": "optional",
+    "linkedPullRequest": "optional",
+    "regenerateTitle": "optional",
+    "threadId": "required",
+    "title": "optional",
+    "worktreePath": "optional"
+  },
   "thread.model-selection.set": {
     "commandId": "required",
     "modelSelection": "required",

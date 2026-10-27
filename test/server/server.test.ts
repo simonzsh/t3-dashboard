@@ -5,6 +5,7 @@ import { LinearClient } from "../../src/integrations/linear/client.ts";
 import { createActions } from "../../src/domain/actions.ts";
 import type { Automations } from "../../src/domain/automations.ts";
 import { IntegrationError } from "../../src/integrations/errors.ts";
+import { DomainError } from "../../src/domain/errors.ts";
 import { LinearBoard } from "../../src/domain/linearBoard.ts";
 import { readLinearKey } from "../../src/config/linearFile.ts";
 import { createSettings } from "../../src/domain/settings.ts";
@@ -31,7 +32,7 @@ interface StartOptions {
   site?: Site;
   linearKey?: string;
   linearFetch?: (url: string, init: RequestInit) => Promise<Response>;
-  automations?: Pick<Automations, "list" | "request" | "remove">;
+  automations?: Pick<Automations, "list" | "request" | "remove" | "rename">;
   // Content of the Linear file. Without it, `linearKey` feeds the board directly.
   linear?: unknown;
   pasteResult?: "ok" | "rejected" | "unreachable" | "locked";
@@ -42,7 +43,7 @@ interface StartOptions {
 const LINEAR_FILE = "/cfg/linear.json";
 
 async function start(startOptions: StartOptions = {}) {
-  const { site = { serve: async () => null }, linearKey = "", linearFetch, automations = { list: async () => ({ automations: [], hiddenThreadIds: [], setupThreadIds: [] }), request: async () => "thread-x", remove: async () => {} } } = startOptions;
+  const { site = { serve: async () => null }, linearKey = "", linearFetch, automations = { list: async () => ({ automations: [], hiddenThreadIds: [], setupThreadIds: [] }), request: async () => "thread-x", remove: async () => {}, rename: async () => {} } } = startOptions;
   const linearCalls: string[] = [];
   const files: Record<string, string> = startOptions.linear === undefined ? {} : { [LINEAR_FILE]: JSON.stringify(startOptions.linear) };
   const readFile = (path: string) => {
@@ -493,6 +494,7 @@ test("every POST route refuses a body that is not JSON", async () => {
     "/api/threads",
     "/api/automations",
     "/api/automations/task-1/delete",
+    "/api/automations/task-1/rename",
     "/api/threads/run-1/messages",
     "/api/threads/run-1/settings",
     "/api/threads/run-1/interrupt",
@@ -642,7 +644,7 @@ test("assign answers 502 when Linear fails and when T3 fails", async () => {
 test("GET /api/automations returns the automations listed at each call", async () => {
   let calls = 0;
   const result: AutomationsResult = { automations: [], hiddenThreadIds: ["thread-1"], setupThreadIds: ["thread-2"] };
-  const { server } = await start({ automations: { list: async () => (calls++, result), request: async () => "", remove: async () => {} } });
+  const { server } = await start({ automations: { list: async () => (calls++, result), request: async () => "", remove: async () => {}, rename: async () => {} } });
   const first = await call(server, "GET", "/api/automations");
   assert.equal(first.status, 200);
   assert.equal(first.headers["content-type"], "application/json; charset=utf-8");
@@ -655,7 +657,7 @@ test("an automations failure gives 502", async () => {
   const failing = async () => {
     throw new IntegrationError("T3 is down", { system: "t3", kind: "unreachable" });
   };
-  const { server } = await start({ automations: { list: failing, request: failing, remove: failing } });
+  const { server } = await start({ automations: { list: failing, request: failing, remove: failing, rename: failing } });
   assert.equal((await call(server, "GET", "/api/automations")).status, 502);
   assert.equal((await post(server, "/api/automations", { text: "x", projectId: "", modelSelection: model })).status, 502);
   assert.equal((await post(server, "/api/automations/task-1/delete", {})).status, 502);
@@ -663,16 +665,35 @@ test("an automations failure gives 502", async () => {
 
 test("POST /api/automations/:id/delete removes the task", async () => {
   const removed: string[] = [];
-  const { server } = await start({ automations: { list: async () => ({ automations: [], hiddenThreadIds: [], setupThreadIds: [] }), request: async () => "x", remove: async (id) => void removed.push(id) } });
+  const { server } = await start({ automations: { list: async () => ({ automations: [], hiddenThreadIds: [], setupThreadIds: [] }), request: async () => "x", remove: async (id) => void removed.push(id), rename: async () => {} } });
   const reply = await post(server, "/api/automations/task%2F1/delete", {});
   assert.equal(reply.status, 200);
   assert.deepEqual(reply.json, { ok: true });
   assert.deepEqual(removed, ["task/1"]);
 });
 
+test("POST /api/automations/:id/rename trims the title and passes it on", async () => {
+  const renamed: unknown[] = [];
+  const { server } = await start({ automations: { list: async () => ({ automations: [], hiddenThreadIds: [], setupThreadIds: [] }), request: async () => "x", remove: async () => {}, rename: async (id, title) => void renamed.push([id, title]) } });
+  const reply = await post(server, "/api/automations/task%2F1/rename", { title: "  New name " });
+  assert.equal(reply.status, 200);
+  assert.deepEqual(reply.json, { ok: true });
+  assert.deepEqual(renamed, [["task/1", "New name"]]);
+  for (const body of [{}, { title: "   " }, { title: 5 }, { title: "x".repeat(121) }]) assert.equal((await post(server, "/api/automations/task-1/rename", body)).status, 400, JSON.stringify(body));
+  assert.equal((await post(server, "/api/automations/task-1/rename", { title: "x".repeat(120) })).status, 200);
+});
+
+test("rename errors map to 404, 409 and 502", async () => {
+  const fail = (error: Error) => ({ list: async () => ({ automations: [], hiddenThreadIds: [], setupThreadIds: [] }), request: async () => "x", remove: async () => {}, rename: async () => Promise.reject(error) });
+  const status = async (error: Error) => (await post((await start({ automations: fail(error) })).server, "/api/automations/task-1/rename", { title: "x" })).status;
+  assert.equal(await status(new DomainError("not-found", "gone")), 404);
+  assert.equal(await status(new DomainError("conflict", "webhook")), 409);
+  assert.equal(await status(new IntegrationError("T3 is down", { system: "t3", kind: "unreachable" })), 502);
+});
+
 test("POST /api/automations passes the request on and returns the thread id", async () => {
   const requests: unknown[] = [];
-  const { server } = await start({ automations: { list: async () => ({ automations: [], hiddenThreadIds: [], setupThreadIds: [] }), request: async (body) => (requests.push(body), "thread-9"), remove: async () => {} } });
+  const { server } = await start({ automations: { list: async () => ({ automations: [], hiddenThreadIds: [], setupThreadIds: [] }), request: async (body) => (requests.push(body), "thread-9"), remove: async () => {}, rename: async () => {} } });
   const reply = await post(server, "/api/automations", { text: " Remind me ", projectId: " project-1 ", modelSelection: model, runtimeMode: "auto" });
   assert.equal(reply.status, 200);
   assert.deepEqual(reply.json, { ok: true, threadId: "thread-9" });
@@ -681,7 +702,7 @@ test("POST /api/automations passes the request on and returns the thread id", as
 
 test("POST /api/automations validates its body", async () => {
   const requests: unknown[] = [];
-  const { server } = await start({ automations: { list: async () => ({ automations: [], hiddenThreadIds: [], setupThreadIds: [] }), request: async (body) => (requests.push(body), "x"), remove: async () => {} } });
+  const { server } = await start({ automations: { list: async () => ({ automations: [], hiddenThreadIds: [], setupThreadIds: [] }), request: async (body) => (requests.push(body), "x"), remove: async () => {}, rename: async () => {} } });
   const bad = [
     { projectId: "", modelSelection: model },
     { text: "  ", projectId: "", modelSelection: model },

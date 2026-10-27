@@ -13,6 +13,7 @@ export class DemoPort implements T3Port {
   private readonly projections = new Map<string, RawProjection>();
   private readonly listeners = new Set<Listener>();
   private readonly deletedTasks = new Set<string>();
+  private readonly renamedTasks = new Map<string, string>();
   private sequence = 0;
 
   constructor(now: () => Date) {
@@ -38,11 +39,17 @@ export class DemoPort implements T3Port {
   }
 
   async listScheduledTasks(): Promise<RawScheduledTask[]> {
-    return demoScheduledTasks(this.now()).filter((task) => !this.deletedTasks.has(task.id));
+    return demoScheduledTasks(this.now())
+      .filter((task) => !this.deletedTasks.has(task.id))
+      .map((task) => ({ ...task, title: this.renamedTasks.get(task.id) ?? task.title }));
   }
 
   async deleteScheduledTask(id: string): Promise<void> {
     this.deletedTasks.add(id);
+  }
+
+  async renameScheduledTask(id: string, title: string): Promise<void> {
+    this.renamedTasks.set(id, title);
   }
 
   async dispatch(command: Command): Promise<unknown> {
@@ -100,6 +107,9 @@ export class DemoPort implements T3Port {
         break;
       case "thread.model-selection.set":
         thread.modelSelection = command.modelSelection as RawThread["modelSelection"];
+        break;
+      case "thread.metadata.update":
+        thread.title = String(command.title);
         break;
       case "thread.runtime-mode.set":
         thread.runtimeMode = String(command.runtimeMode);

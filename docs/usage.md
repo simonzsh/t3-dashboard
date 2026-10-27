@@ -89,6 +89,7 @@ La colonne de droite de l'onglet Agents liste les tâches planifiées de T3 Code
 - Une routine tourne à chaque passage. La ligne montre le projet, la cadence, le prochain passage et l'état du dernier passage. Une tâche en pause affiche « paused ».
 - Un rappel est une tâche dont le titre commence par « Reminder: » ou « Rappel : ». La ligne montre la date du rappel. Le préfixe n'est pas affiché.
 - Un clic sur une ligne ouvre le fil de la tâche.
+- Chaque ligne montre l'icône du projet. Pour renommer une tâche, cliquez sur l'icône crayon de sa ligne, changez le titre, puis appuyez sur `Entrée`. Le fil lié est renommé aussi. Le préfixe d'un rappel est gardé. Une tâche webhook ne peut pas être renommée.
 - Pour supprimer une tâche, cliquez sur l'icône corbeille de sa ligne, puis sur « Delete ». La tâche est supprimée dans T3 Code. Cette action est définitive.
 - Si T3 Code est trop ancien pour lister les tâches, la colonne montre l'erreur. La grille des agents marche toujours.
 

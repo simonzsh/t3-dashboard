@@ -84,6 +84,19 @@ test("the demo Linear board and automations need no network", async () => {
   assert.ok(!left.some((task) => task.id === reminder.id));
 });
 
+test("demo rename changes the task title and the bound thread, in memory", async () => {
+  const port = new DemoPort(() => NOW);
+  const store = syncedStore(port);
+  await Bun.sleep(0);
+  const automations = createAutomations({ port, store, dedicated: { read: () => new Set(), add() {} }, createThread: async () => "x" });
+  const reminder = (await automations.list()).automations.find((automation) => automation.kind === "reminder")!;
+  await automations.rename(reminder.id, "Ping the team");
+  const renamed = (await automations.list()).automations.find((automation) => automation.id === reminder.id)!;
+  assert.equal(renamed.kind, "reminder");
+  assert.equal(renamed.title, "Ping the team");
+  assert.equal(store.thread(reminder.threadId!)?.title, "Ping the team");
+});
+
 test("demo search is case-insensitive and gives one row per thread, the user's message first", async () => {
   const port = new DemoPort(() => NOW);
   const matches = await port.searchThreads("RATE LIMIT");

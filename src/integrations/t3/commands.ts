@@ -46,6 +46,8 @@ export function messageCommand(threadId: string, text: string, message: Outgoing
   };
 }
 
+export const renameThreadCommand = (threadId: string, title: string): UnsentCommand => ({ type: "thread.metadata.update", threadId, title });
+
 // T3 resolves a provider switch itself when the instance changes (serverResolvedCommandContext).
 export const modelSelectionCommand = (threadId: string, modelSelection: ModelSelection): UnsentCommand => ({ type: "thread.model-selection.set", threadId, modelSelection });
 

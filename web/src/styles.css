@@ -433,8 +433,18 @@ ol.install-steps { padding-left: 18px; }
 button.auto-row { cursor: pointer; }
 /* The delete button is a sibling of the row button, at its top right, so it never nests in it. */
 .auto-item { position: relative; }
-.auto-item .auto-row { padding-right: 44px; }
-.auto-delete { position: absolute; top: 8px; right: 8px; }
+.auto-item .auto-row { padding-right: 58px; }
+.auto-delete, .auto-rename { position: absolute; top: 7px; }
+.auto-delete { right: 6px; }
+.auto-rename { right: 30px; }
+.auto-item .icon-button.sm { min-width: 22px; height: 22px; border-radius: var(--radius-sm); }
+.auto-item .icon-button.sm svg { width: 14px; height: 14px; }
+.auto-sub { display: flex; align-items: center; gap: 6px; min-width: 0; white-space: nowrap; }
+.auto-sub-text { overflow: hidden; text-overflow: ellipsis; }
+.auto-next { white-space: nowrap; }
+/* The project line spans the card, under the buttons' column too, so the schedule is not cut. */
+.auto-row.auto-grid { display: grid; grid-template-columns: minmax(0, 1fr) auto; column-gap: 12px; row-gap: 2px; }
+.auto-grid .auto-sub { grid-column: 1 / -1; margin-right: -46px; }
 button.auto-row:hover { transform: translateY(-1px); }
 .auto-row.waiting { border-color: var(--warn); background: color-mix(in srgb, var(--warn-bg) 55%, var(--surface-1)); }
 .auto-row.running { border-color: color-mix(in srgb, var(--work) 45%, var(--line)); overflow: hidden; }

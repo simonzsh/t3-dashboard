@@ -19,6 +19,7 @@ export const RPC = {
   searchThreads: "orchestration.searchThreads",
   listScheduledTasks: "scheduledTasks.list",
   deleteScheduledTask: "scheduledTasks.delete",
+  upsertScheduledTask: "scheduledTasks.upsert",
 } as const;
 
 export type Validation = "ok" | "rejected" | "unreachable";
@@ -52,6 +53,8 @@ export interface T3ClientOptions {
 
 // Safe to send twice: a retry after a lost connection cannot repeat a side effect.
 const IDEMPOTENT = new Set<string>([RPC.getConfig, RPC.searchThreads, RPC.createAssetUrl, RPC.ensureScratch, RPC.listScheduledTasks]);
+
+const UPSERT_FIELDS = ["prompt", "enabled", "schedule", "projectId", "threadId", "workspaceStrategy", "modelSelection", "runtimeMode", "interactionMode"];
 
 interface SharedSocket {
   conn: Promise<RpcConnection>;
@@ -94,6 +97,16 @@ export class T3Client implements T3Port {
   // Not in IDEMPOTENT: a retry after the delete went through would fail on an unknown id.
   async deleteScheduledTask(id: string): Promise<void> {
     read(DeletedScheduledTask, await this.call(RPC.deleteScheduledTask, { id }), "scheduledTasks.delete");
+  }
+
+  // The upsert replaces the whole task, so every field comes from T3's raw answer: the reduced schema would drop some.
+  async renameScheduledTask(id: string, title: string): Promise<void> {
+    const answer = await this.call(RPC.listScheduledTasks, {});
+    read(ScheduledTasksResponse, answer, "scheduledTasks.list");
+    const task = (answer as { tasks: Record<string, unknown>[] }).tasks.find((entry) => entry.id === id);
+    if (!task) throw new IntegrationError("T3 has no scheduled task with this id", { system: "t3", kind: "refused" });
+    const keep = Object.fromEntries(UPSERT_FIELDS.map((key) => [key, task[key]]));
+    await this.call(RPC.upsertScheduledTask, { ...keep, id, requireExisting: true, title });
   }
 
   async searchThreads(query: string, limit?: number): Promise<RawSearchMatch[]> {

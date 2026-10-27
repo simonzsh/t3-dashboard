@@ -120,7 +120,7 @@ export function AgentsView({ state, now, deskIds, onOpen, onToggleDesk, onSettle
       </div>
       <div className={`agents-layout${available ? "" : " wide"}`}>
         {agents}
-        {available && <AutomationsColumn result={automations} error={automationsError} threads={state.threads} setup={setup} now={now} onOpen={onOpen} onDeleted={() => void onAutomationsStale()} />}
+        {available && <AutomationsColumn result={automations} error={automationsError} threads={state.threads} projects={state.projects} setup={setup} now={now} onOpen={onOpen} onDeleted={() => void onAutomationsStale()} onRenamed={() => void onAutomationsStale()} />}
       </div>
     </div>
   );

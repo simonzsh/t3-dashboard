@@ -276,6 +276,8 @@ export interface T3Port {
   getConfig(): Promise<RawConfig>;
   listScheduledTasks(): Promise<RawScheduledTask[]>;
   deleteScheduledTask(id: string): Promise<void>;
+  /** Sets the title of a scheduled task and leaves every other field as T3 has it. */
+  renameScheduledTask(id: string, title: string): Promise<void>;
   /** Message matches in T3, best first. */
   searchThreads(query: string, limit?: number): Promise<RawSearchMatch[]>;
   persistAttachments(threadId: string, messageId: string, images: ImageUpload[]): Promise<AttachmentRef[]>;

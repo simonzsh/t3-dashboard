@@ -68,6 +68,7 @@ export function createApi(fetchImpl: Fetch) {
   return {
     getAutomations: () => call<AutomationsResult>("/api/automations"),
     requestAutomation: (b: AutomationRequestBody) => call<CreateThreadResult>("/api/automations", b),
+    renameAutomation: (id: string, title: string) => call<OkResult>(`/api/automations/${encodeURIComponent(id)}/rename`, { title }),
     deleteAutomation: (id: string) => call<OkResult>(`/api/automations/${encodeURIComponent(id)}/delete`, {}),
     getBoard: (refresh = false) => call<BoardResult>(refresh ? "/api/board?refresh=1" : "/api/board"),
     assignIssue: (b: AssignIssueBody) => call<CreateThreadResult>("/api/board/assign", b),

@@ -1,6 +1,7 @@
 import type { Automation, AutomationRequestBody, AutomationRunStatus, AutomationsResult } from "../../shared/api.ts";
 import { IntegrationError } from "../integrations/errors.ts";
 import type { RawScheduledTask, RawThread, T3Port } from "../integrations/t3/schemas.ts";
+import { renameThreadCommand } from "../integrations/t3/commands.ts";
 import type { Actions } from "./actions.ts";
 import { DomainError } from "./errors.ts";
 import { scheduleLabel } from "./scheduleLabel.ts";
@@ -79,12 +80,13 @@ function titleFromRequest(text: string): string {
 }
 
 export interface AutomationsOptions {
-  port: Pick<T3Port, "listScheduledTasks" | "deleteScheduledTask">;
+  port: Pick<T3Port, "listScheduledTasks" | "deleteScheduledTask" | "renameScheduledTask" | "dispatch">;
   store: Pick<ShellStore, "project" | "rawThreads">;
   /** The threads the Agents page created for a scheduled task. */
   dedicated: { read(): ReadonlySet<string>; add(threadId: string): void };
   createThread: Actions["createThread"];
   warn?: (message: string) => void;
+  newId?: () => string;
 }
 
 export interface Automations {
@@ -93,6 +95,8 @@ export interface Automations {
   request(body: AutomationRequestBody): Promise<string>;
   /** Deletes the T3 scheduled task. */
   remove(id: string): Promise<void>;
+  /** Renames the T3 task, keeping a "Reminder:" prefix, and the thread it is bound to. */
+  rename(id: string, title: string): Promise<void>;
 }
 
 async function viaT3<T>(work: Promise<T>): Promise<T> {
@@ -107,6 +111,7 @@ async function viaT3<T>(work: Promise<T>): Promise<T> {
 export function createAutomations(options: AutomationsOptions): Automations {
   const { port, store, dedicated, createThread } = options;
   const warn = options.warn ?? console.warn;
+  const newId = options.newId ?? (() => crypto.randomUUID());
 
   return {
     async list() {
@@ -115,6 +120,18 @@ export function createAutomations(options: AutomationsOptions): Automations {
     },
 
     remove: (id) => viaT3(port.deleteScheduledTask(id)),
+
+    async rename(id, title) {
+      const name = title.trim();
+      if (name === "") throw new DomainError("invalid", "Write a title");
+      const task = (await viaT3(port.listScheduledTasks())).find((entry) => entry.id === id);
+      if (!task) throw new DomainError("not-found", "This automation no longer exists");
+      // A webhook task has another upsert schedule shape, which this rename does not build.
+      if (task.schedule?.type === "webhook") throw new DomainError("conflict", "A webhook automation cannot be renamed here");
+      const prefix = REMINDER_PREFIX.exec(task.title ?? "")?.[0] ?? "";
+      await viaT3(port.renameScheduledTask(id, `${prefix}${name}`));
+      if (task.threadId) await viaT3(port.dispatch({ ...renameThreadCommand(task.threadId, name), commandId: newId() }));
+    },
 
     async request({ text, projectId, modelSelection, runtimeMode }) {
       const request = text.trim();
