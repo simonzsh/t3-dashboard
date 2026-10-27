@@ -65,6 +65,18 @@ export function createApi(fetchImpl: Fetch) {
       return detail;
     }
   }
+  // A finished run's diff never changes: one call per run.
+  const diffs = new Map<string, Promise<{ diff: string }>>();
+  function getRunDiff(id: string, ordinal: number): Promise<{ diff: string }> {
+    const key = `${id}:${ordinal}`;
+    let diff = diffs.get(key);
+    if (!diff) {
+      diff = call<{ diff: string }>(`${t(id)}/runs/${ordinal}/diff`);
+      diffs.set(key, diff);
+      diff.catch(() => diffs.delete(key));
+    }
+    return diff;
+  }
   return {
     getAutomations: () => call<AutomationsResult>("/api/automations"),
     requestAutomation: (b: AutomationRequestBody) => call<CreateThreadResult>("/api/automations", b),
@@ -83,6 +95,7 @@ export function createApi(fetchImpl: Fetch) {
     searchThreads: (query: string, limit?: number) =>
       call<ThreadSearchResult>(`/api/search?q=${encodeURIComponent(query)}${limit ? `&limit=${limit}` : ""}`),
     getThread,
+    getRunDiff,
     createThread: (b: CreateThreadBody) => call<CreateThreadResult>("/api/threads", b),
     sendMessage: (id: string, b: SendMessageBody) => call<OkResult>(`${t(id)}/messages`, b),
     settle: (id: string) => call<OkResult>(`${t(id)}/settle`, {}),

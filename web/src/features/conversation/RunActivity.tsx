@@ -2,32 +2,12 @@ import { useEffect, useRef, useState } from "react";
 import type { ActivityItem, RunActivity } from "../../../../shared/api.ts";
 import { STEP_LABELS, duration } from "../../lib/format.ts";
 import { Button, Icon, Pressable, type IconName } from "../../ui/index.ts";
+import { RunChanges } from "./RunChanges.tsx";
 
 // Collapsed, a live run shows only its latest steps.
 const PREVIEW_ITEMS = 4;
 
 const ICONS: Record<ActivityItem["kind"], IconName> = { thinking: "thinking", command: "terminal", tool: "wrench", file: "edit", subagent: "bot" };
-
-function DiffRow({ item }: { item: ActivityItem }) {
-  const [open, setOpen] = useState(false);
-  return (
-    <details className="activity-diff" onToggle={(e) => setOpen(e.currentTarget.open)}>
-      <summary>
-        <span className="activity-text" data-tooltip={item.text} data-tooltip-clipped>
-          {item.text}
-        </span>
-        <span className={`chevron${open ? " open" : ""}`} aria-hidden="true" />
-      </summary>
-      <pre>
-        {item.diff!.split("\n").map((line, i) => (
-          <span key={i} className={line.startsWith("+") ? "add" : line.startsWith("-") ? "del" : undefined}>
-            {line}
-          </span>
-        ))}
-      </pre>
-    </details>
-  );
-}
 
 function Row({ item, onShowSubagents }: { item: ActivityItem; onShowSubagents: () => void }) {
   return (
@@ -37,8 +17,6 @@ function Row({ item, onShowSubagents }: { item: ActivityItem; onShowSubagents: (
         <Button variant="link" className="activity-text" onClick={onShowSubagents}>
           {item.text}
         </Button>
-      ) : item.diff ? (
-        <DiffRow item={item} />
       ) : (
         <span className="activity-text" data-tooltip={item.text} data-tooltip-clipped>
           {item.text}
@@ -50,13 +28,14 @@ function Row({ item, onShowSubagents }: { item: ActivityItem; onShowSubagents: (
 }
 
 interface Props {
+  threadId: string;
   activity: RunActivity;
   /** The thread says a run is active: the activity may still be the previous run's. */
   running: boolean;
   onShowSubagents: () => void;
 }
 
-export function RunActivityView({ activity, running, onShowSubagents }: Props) {
+export function RunActivityView({ threadId, activity, running, onShowSubagents }: Props) {
   const live = running && activity.completedAt === null;
   const [open, setOpen] = useState(false);
   const [now, setNow] = useState(() => Date.now());
@@ -91,6 +70,9 @@ export function RunActivityView({ activity, running, onShowSubagents }: Props) {
             <Row key={item.id} item={item} onShowSubagents={onShowSubagents} />
           ))}
         </ul>
+      )}
+      {!live && activity.ordinal !== null && activity.changes.length > 0 && (
+        <RunChanges key={activity.runId} threadId={threadId} ordinal={activity.ordinal} changes={activity.changes} />
       )}
     </div>
   );

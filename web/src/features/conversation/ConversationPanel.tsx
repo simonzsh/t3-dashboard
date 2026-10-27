@@ -287,7 +287,7 @@ export function ConversationPanel({ threadId, thread, providers }: Props) {
           {!detail && !loadError && <Loader />}
           {detail && <Timeline detail={detail} threadId={threadId} />}
           {detail && pending.map((p) => <PendingBubble key={p.id} message={p} />)}
-          {detail?.activity && <RunActivityView activity={detail.activity} running={running} onShowSubagents={() => setRevealSubagents((n) => n + 1)} />}
+          {detail?.activity && <RunActivityView threadId={threadId} activity={detail.activity} running={running} onShowSubagents={() => setRevealSubagents((n) => n + 1)} />}
           {detail && detail.pendingRequests.length > 0 && (
             <div className="requests">
               {detail.pendingRequests.map((r) => (
