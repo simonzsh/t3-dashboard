@@ -13,7 +13,7 @@ import { matchesEtag } from "./etag.ts";
 import { servePwa } from "./pwa.ts";
 import type { Site } from "./site.ts";
 import type { SseHub } from "./sse.ts";
-import { isObject, isText, validAssign, validAutomationRequest, validCreate, validRename, validImages, validMessage, validRespond, validSearch, validSettings } from "./validate.ts";
+import { isObject, isText, validAssign, validAutomationRequest, validCreate, validImages, validMessage, validRename, validRespond, validSearch, validSettings } from "./validate.ts";
 
 export interface SetupControl {
   /** Resolves the token again. */
