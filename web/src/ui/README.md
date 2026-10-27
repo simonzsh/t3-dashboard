@@ -1,46 +1,46 @@
-# Composants de base
+# Base components
 
-Ce dossier contient les composants de base du dashboard. Les écrans de `web/src/features/` les utilisent. Importez-les depuis `ui/index.ts`.
+This folder contains the base components of the dashboard. The screens in `web/src/features/` use them. Import them from `ui/index.ts`.
 
-## Règles
+## Rules
 
-- Hors de `ui/`, n'écrivez pas de `<button>`, `<input>`, `<textarea>` ou `<select>` bruts. Un test (`web/test/uiRules.test.ts`) bloque ces éléments. Les liens `<a>` restent permis.
-- Dans une rangée de boutons, mettez Annuler à gauche et l'action principale à droite. Le `Dialog` applique cet ordre.
-- La couleur d'accent marque l'action principale, le focus et la sélection. N'utilisez pas d'autre couleur pour ces rôles.
-- Le style des composants vient de `styles.css`. Les jetons sont en haut du fichier : `--focus-ring`, `--radius-*`, `--control-sm` (28 px) et `--control-md` (32 px).
-- Une info-bulle seulement sur une icône dont le sens n'est pas évident, ou sur un texte coupé. Pas sur un bouton à texte, un onglet, un sélecteur ou une carte.
-- N'utilisez pas l'attribut natif `title` pour une info-bulle : un test le bloque. Écrivez `tooltip` et `shortcut` (ou `data-tooltip`). Le nom accessible reste `aria-label`.
-- Chaque élément qui peut avoir le focus reçoit l'anneau d'accent. Ne remettez pas `outline: none` sans un autre signe visible du focus.
+- Outside `ui/`, do not write raw `<button>`, `<input>`, `<textarea>` or `<select>` elements. A test (`web/test/uiRules.test.ts`) blocks these elements. `<a>` links are still permitted.
+- In a row of buttons, put Cancel on the left and the primary action on the right. The `Dialog` applies this order.
+- The accent color marks the primary action, the focus and the selection. Do not use a different color for these roles.
+- The component style comes from `styles.css`. The tokens are at the top of the file: `--focus-ring`, `--radius-*`, `--control-sm` (28 px) and `--control-md` (32 px).
+- Put a tooltip only on an icon with an unclear meaning, or on truncated text. Do not put one on a text button, a tab, a selector or a card.
+- Do not use the native `title` attribute for a tooltip: a test blocks it. Write `tooltip` and `shortcut` (or `data-tooltip`). The accessible name stays `aria-label`.
+- Each element that can get the focus gets the accent ring. Do not set `outline: none` again without a different visible focus sign.
 
-## Composants
+## Components
 
-| Composant | Utilisation |
+| Component | Use |
 | --- | --- |
-| `Button` | Bouton avec un texte. Variantes : `primary` (une seule par rangée), `secondary` (par défaut), `ghost`, `danger`, `link`. Tailles : `sm`, `md`. `kbd` montre un raccourci. `loading` désactive le bouton ; un texte remplace alors le libellé. |
-| `IconButton` | Bouton avec une icône seule. `label` est obligatoire : il donne le nom accessible. Ajoutez `tooltip` seulement si l'icône ne parle pas d'elle-même (contrôles de fenêtre, joindre, envoyer). Mêmes variantes et tailles que `Button`. |
-| `Pressable` | Surface cliquable avec son propre style : carte, ligne, onglet, pastille. Pas de variante, pas de hauteur fixe. Utilisez `Button` ou `IconButton` pour un bouton normal. |
-| `TextInput`, `TextArea` | Champ de texte. Le remplissage automatique est désactivé. |
-| `SecretInput` | Champ masqué pour une clé ou un jeton. C'est un champ texte, pas un champ mot de passe : les gestionnaires de mots de passe ne s'ouvrent pas. |
-| `Choice` | Case à cocher ou bouton radio (`type="checkbox"` ou `type="radio"`). |
-| `FileInput` | Champ de fichier caché. Un bouton l'ouvre avec `ref.current.click()`. |
-| `Dialog` | Fenêtre modale : titre, croix en haut à droite, Échap et clic dehors pour fermer. `onCancel` et `primary` ajoutent la rangée d'actions. |
-| `Badge` | Étiquette d'état : `waiting`, `running`, `done`, `error`, `neutral`. |
-| `Dropdown` | Menu de choix. Utilisez-le à la place de `<select>`. Un champ de filtre apparaît pour les longues listes. |
-| `Popover` | Panneau fixé à côté d'un élément. Échap et clic dehors le ferment. |
-| `Segmented` | Choix unique entre quelques options visibles (par exemple le thème). |
-| `Kbd` | Raccourci clavier. |
-| `TooltipLayer` | Info-bulle du dashboard, montée une seule fois dans `App`. Elle s'affiche tout de suite au survol et au focus clavier d'un élément qui porte `data-tooltip` (et `data-shortcut` pour le raccourci, dans un cadre). Elle se ferme au départ du pointeur, au clic, au scroll et avec Échap. Elle n'existe pas sur écran tactile. `Button`, `IconButton` et `Pressable` posent ces attributs avec `tooltip` et `shortcut`. Sur un autre élément, écrivez `data-tooltip`. |
-| `Loader` | Chargement : le logo animé, centré dans la zone. Utilisez-le à la place d'un texte « Loading… ». |
-| `Icon` | Icône Lucide par son nom. |
+| `Button` | Button with text. Variants: `primary` (only one in each row), `secondary` (default), `ghost`, `danger`, `link`. Sizes: `sm`, `md`. `kbd` shows a shortcut. `loading` disables the button; a text then replaces the label. |
+| `IconButton` | Button with only an icon. `label` is mandatory: it gives the accessible name. Add `tooltip` only if the icon is not clear by itself (window controls, attach, send). Same variants and sizes as `Button`. |
+| `Pressable` | Clickable surface with its own style: card, row, tab, pill. No variant, no fixed height. Use `Button` or `IconButton` for a normal button. |
+| `TextInput`, `TextArea` | Text field. Autofill is disabled. |
+| `SecretInput` | Masked field for a key or a token. It is a text field, not a password field: password managers do not open. |
+| `Choice` | Checkbox or radio button (`type="checkbox"` or `type="radio"`). |
+| `FileInput` | Hidden file field. A button opens it with `ref.current.click()`. |
+| `Dialog` | Modal window: title, close cross at the top right, Escape and outside click to close. `onCancel` and `primary` add the action row. |
+| `Badge` | Status label: `waiting`, `running`, `done`, `error`, `neutral`. |
+| `Dropdown` | Choice menu. Use it in place of `<select>`. A filter field appears for long lists. |
+| `Popover` | Panel attached next to an element. Escape and outside click close it. |
+| `Segmented` | Single choice between some visible options (for example the theme). |
+| `Kbd` | Keyboard shortcut. |
+| `TooltipLayer` | Dashboard tooltip, mounted one time in `App`. It shows immediately on hover and on keyboard focus of an element with `data-tooltip` (and `data-shortcut` for the shortcut, in a frame). It closes when the pointer leaves, on click, on scroll and with Escape. It does not exist on a touch screen. `Button`, `IconButton` and `Pressable` set these attributes with `tooltip` and `shortcut`. On a different element, write `data-tooltip`. |
+| `Loader` | Loading state: the animated logo, centered in the area. Use it in place of a "Loading…" text. |
+| `Icon` | Lucide icon by its name. |
 
 ## Animations
 
-Les animations utilisent la Web Animations API (`element.animate`), sans librairie. Elles durent de 160 à 320 ms. Avec `prefers-reduced-motion: reduce`, aucune animation ne joue. Elles ne bloquent pas les clics et ne changent pas la mise en page.
+The animations use the Web Animations API (`element.animate`), without a library. They last 160 to 320 ms. With `prefers-reduced-motion: reduce`, no animation plays. They do not block clicks and do not change the layout.
 
-| Outil | Utilisation |
+| Tool | Use |
 | --- | --- |
-| `fly(source, cible)` | Une copie légère de `source` (son cadre et sa première ligne) vole jusqu'à `cible` et rétrécit. La cible fait ensuite un petit rebond. Exemple : le bouton + d'une carte agent vers l'onglet Desk. |
-| `useFlip(racine, clé, { item, origin })` | Anime les éléments `[item]` de `racine` à chaque changement de `clé` (technique FLIP). Un élément gardé glisse vers sa nouvelle place. Un nouvel élément apparaît en fondu. Un élément retiré disparaît en fondu, ou vole vers l'élément `[origin]` de même id s'il existe (une pastille du dock). Il revient depuis cette pastille. Les animations s'arrêtent au démontage. |
-| `Dialog`, `Popover` | Ils ont leur animation d'ouverture. N'en ajoutez pas dans un dialogue ou un menu. |
+| `fly(source, target)` | A light copy of `source` (its frame and its first line) flies to `target` and shrinks. The target then bounces a little. Example: the + button of an agent card to the Desk tab. |
+| `useFlip(root, key, { item, origin })` | Animates the `[item]` elements of `root` at each change of `key` (FLIP technique). A kept element slides to its new position. A new element fades in. A removed element fades out, or flies to the `[origin]` element with the same id if it exists (a dock pill). It comes back from this pill. The animations stop at unmount. |
+| `Dialog`, `Popover` | They have their own open animation. Do not add one in a dialog or a menu. |
 
-Les calculs purs (écart FLIP, cible, plan) sont dans `flip.ts` et ont des tests unitaires.
+The pure calculations (FLIP offset, target, plan) are in `flip.ts` and have unit tests.

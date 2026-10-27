@@ -1,153 +1,153 @@
-# Utilisation
+# Usage
 
-[Retour au README](../README.md)
+[Back to the README](../README.md)
 
-Le dashboard a trois onglets : Agents, Desk et Board. Les boutons New Agent et New Automation et les réglages (Settings) sont dans l'en-tête.
+The dashboard has three tabs: Agents, Desk and Board. The header contains the New Agent and New Automation buttons and the settings (Settings).
 
 ## Agents
 
-L'onglet Agents montre une carte par session T3 Code.
+The Agents tab shows one card for each T3 Code session.
 
-- Les cartes sont groupées par projet T3. Chaque groupe montre l'icône et le nom du projet.
-- Dans un groupe, les agents épinglés dans T3 Code viennent en premier, avec une petite épingle. Ensuite, l'ordre est : en attente, au travail, fini, inactif.
-- Les groupes suivent l'ordre alphabétique des projets. Cet ordre ne change jamais. Un point jaune près du nom signale un agent en attente dans le groupe.
-- Une carte montre le fournisseur (Claude ou Codex), le titre, l'état et l'heure de la dernière activité. Si l'agent attend une approbation ou une réponse, la carte le dit.
-- Un agent terminé (« settled » dans T3 Code) va dans une section repliée sous son groupe. Il disparaît après 3 jours sans activité.
-- Les sessions archivées ou supprimées, les sous-agents et les fils des tâches planifiées (voir [Automatisations](#automatisations)) n'apparaissent pas.
-- Un clic sur une carte ouvre la conversation sur le Desk. Maj + clic l'ajoute au Desk sans changer d'onglet.
-- Le bouton « Add to Desk » ajoute la carte au Desk. Un deuxième clic la retire.
-- Le lien « Open in T3 Code » ouvre la session dans T3 Code.
-- Les boutons sont en bas à droite de la carte, après l'état et l'heure : T3 (icône seule), Settle, puis Add to Desk.
-- Le bouton « Settle » (icône de boîte) range un agent terminé dans « Recently settled », comme T3 Code. Il n'existe pas pour un agent qui travaille ou qui attend.
-- Les cartes de « Recently settled » sont grisées : on les distingue des autres d'un coup d'œil.
-- Dans « Recently settled », le bouton « Unsettle » remet l'agent dans la liste.
+- The cards are grouped by T3 project. Each group shows the icon and the name of the project.
+- In a group, the agents pinned in T3 Code come first, with a small pin. Then the order is: waiting, working, finished, idle.
+- The groups follow the alphabetical order of the projects. This order never changes. A yellow dot near the name shows that an agent in the group is waiting.
+- A card shows the provider (Claude or Codex), the title, the status and the time of the last activity. If the agent waits for an approval or an answer, the card tells you.
+- A finished agent ("settled" in T3 Code) goes into a collapsed section below its group. It disappears after 3 days without activity.
+- Archived or deleted sessions, sub-agents and the threads of scheduled tasks (see [Automations](#automations)) do not appear.
+- Click a card to open the conversation on the Desk. Shift + click adds it to the Desk and keeps the current tab.
+- The "Add to Desk" button adds the card to the Desk. A second click removes it.
+- The "Open in T3 Code" link opens the session in T3 Code.
+- The buttons are at the bottom right of the card, after the status and the time: T3 (icon only), Settle, then Add to Desk.
+- The "Settle" button (box icon) moves a finished agent to "Recently settled", as T3 Code does. It does not exist for an agent that works or waits.
+- The cards in "Recently settled" are grayed out. You can see the difference from the other cards immediately.
+- In "Recently settled", the "Unsettle" button puts the agent back in the list.
 
-Les cartes changent d'état en direct, sans recharger la page.
+The cards change status live, without a page reload.
 
 ## Desk
 
-Le Desk montre plusieurs conversations côte à côte, dans une grille.
+The Desk shows many conversations side by side, in a grid.
 
-- Six fenêtres restent visibles au plus. Quand vous ouvrez une septième fenêtre, la plus ancienne se réduit dans le dock.
-- Un clic dans le dock rouvre la fenêtre.
-- Tirez les séparateurs pour changer la taille des colonnes et des lignes. Le navigateur garde ces tailles pour chaque nombre de fenêtres.
-- Chaque fenêtre a trois boutons : plein écran, réduire, fermer.
-- Le navigateur garde les fenêtres ouvertes d'une visite à l'autre.
-- Dans Settings, choisissez un fond pour le Desk : un dégradé ou votre propre image.
+- At most six windows stay visible. When you open a seventh window, the oldest window goes into the dock.
+- Click a window in the dock to open it again.
+- Drag the dividers to change the size of the columns and rows. The browser keeps these sizes for each number of windows.
+- Each window has three buttons: full screen, minimize, close.
+- The browser keeps the open windows from one visit to the next.
+- In Settings, select a background for the Desk: a gradient or your own image.
 
 ### Conversation
 
-Chaque fenêtre du Desk contient une conversation.
+Each Desk window contains a conversation.
 
-- Écrivez un message et envoyez-le avec `Entrée`. Pendant un run, le message oriente le run en cours (« Steer »).
-- Joignez des images : PNG, JPEG, GIF ou WebP. La limite est de 10 images, 10 Mo par image et 18 Mo au total.
-- Changez le modèle, l'effort de raisonnement et le mode d'accès (« Supervised », « Auto-accept edits », « Auto », « Full access »).
-- Arrêtez un run avec le bouton « Stop ».
-- Répondez à une approbation : « Accept », « Accept for session » ou « Decline ». Le dashboard ne propose pas « Toujours accepter ».
-- Répondez à une question de l'agent, ou cliquez sur « Dismiss ».
-- Suivez les étapes du run : réflexion, commandes, outils, fichiers et sous-agents.
-- Voyez les images et les vidéos que l'agent cite dans ses messages.
-- Voyez les pages de l'outil `html_render` de T3 Code. Le dashboard les affiche dans un cadre isolé (sandbox), avec les couleurs du thème.
+- Write a message and send it with `Enter`. During a run, the message steers the current run ("Steer").
+- Attach images: PNG, JPEG, GIF or WebP. The limit is 10 images, 10 MB for each image and 18 MB in total.
+- Change the model, the reasoning effort and the access mode ("Supervised", "Auto-accept edits", "Auto", "Full access").
+- Stop a run with the "Stop" button.
+- Answer an approval: "Accept", "Accept for session" or "Decline". The dashboard does not offer "Always accept".
+- Answer a question from the agent, or click "Dismiss".
+- Follow the steps of the run: reasoning, commands, tools, files and sub-agents.
+- See the images and videos that the agent refers to in its messages.
+- See the pages from the T3 Code `html_render` tool. The dashboard shows them in an isolated frame (sandbox), with the theme colors.
 
 ## New Agent
 
-Le bouton New Agent (touche `N`) lance un nouvel agent.
+The New Agent button (key `N`) starts a new agent.
 
-1. Choisissez un projet T3, ou laissez « No project ». Sans projet, la session va dans le projet « No project » de T3 Code.
-2. Écrivez la tâche. La première ligne devient le titre de la session.
-3. Si vous le voulez, changez le modèle, le mode d'accès ou joignez des images.
-4. Envoyez. La conversation s'ouvre sur le Desk.
+1. Select a T3 project, or keep "No project". Without a project, the session goes into the "No project" project of T3 Code.
+2. Write the task. The first line becomes the title of the session.
+3. If necessary, change the model or the access mode, or attach images.
+4. Send. The conversation opens on the Desk.
 
-- Le modèle proposé est le modèle par défaut du projet. Sinon, c'est le modèle par défaut de T3 Code.
-- Les modèles favoris de T3 Code sont en haut de la liste.
-- Le navigateur retient le dernier projet choisi.
+- The proposed model is the default model of the project. If there is none, it is the default model of T3 Code.
+- The favorite models of T3 Code are at the top of the list.
+- The browser keeps the last project that you selected.
 
 ## Board
 
-L'onglet Board montre les tickets Linear qui vous sont assignés. Il demande une clé API Linear : voir [install.md](install.md#linear).
+The Board tab shows the Linear tickets that are assigned to you. It needs a Linear API key: see [install.md](install.md#linear).
 
-- Une colonne par statut Linear. Dans une colonne, les tickets sont groupés par projet Linear. Les tickets sans projet vont dans « No project ».
-- Dans un groupe, les tickets sont triés par priorité, puis par date de mise à jour.
-- Un clic sur un ticket l'ouvre dans Linear.
-- Le bouton « Refresh » relit les tickets tout de suite.
+- There is one column for each Linear status. In a column, the tickets are grouped by Linear project. The tickets without a project go into "No project".
+- In a group, the tickets are sorted by priority, then by update date.
+- Click a ticket to open it in Linear.
+- The "Refresh" button reads the tickets again immediately.
 
-### Confier un ticket à un agent
+### Give a ticket to an agent
 
-1. Cliquez sur le bouton « Assign to an agent » du ticket. La fenêtre New Agent s'ouvre avec le ticket.
-2. Choisissez le projet T3. Le navigateur retient le dernier projet choisi pour chaque équipe Linear et le présélectionne.
-3. Choisissez le modèle et le mode d'accès.
-4. Si vous le voulez, ajoutez des instructions ou des images.
-5. Envoyez. La session porte le numéro et le titre du ticket. Elle s'ajoute au Desk, et le Board reste affiché.
-6. Cliquez sur « View on Desk » pour voir la conversation.
+1. Click the "Assign to an agent" button of the ticket. The New Agent window opens with the ticket.
+2. Select the T3 project. The browser keeps the last project for each Linear team and selects it first.
+3. Select the model and the access mode.
+4. If necessary, add instructions or images.
+5. Send. The session has the number and the title of the ticket. It goes onto the Desk, and the Board stays visible.
+6. Click "View on Desk" to see the conversation.
 
-Le souvenir du projet reste dans le `localStorage` du navigateur, pas sur le serveur.
+The browser keeps the project selection in its `localStorage`, not on the server.
 
-## Automatisations
+## Automations
 
-La colonne de droite de l'onglet Agents liste les tâches planifiées de T3 Code. Elle apparaît quand T3 Code est connecté. Elle se met à jour toutes les 30 s tant que l'onglet est ouvert.
+The right column of the Agents tab lists the scheduled tasks of T3 Code. It appears when T3 Code is connected. It updates every 30 s while the tab is open.
 
-- Une routine tourne à chaque passage. La ligne montre le projet, la cadence, le prochain passage et l'état du dernier passage. Une tâche en pause affiche « paused ».
-- Un rappel est une tâche dont le titre commence par « Reminder: » ou « Rappel : ». La ligne montre la date du rappel. Le préfixe n'est pas affiché.
-- Après son passage, un rappel se met en pause. La ligne affiche alors « Finished » avec l'heure du passage. Les rappels terminés sont en bas de la liste, le plus récent en premier.
-- Un clic sur une ligne ouvre le fil de la tâche.
-- Chaque ligne montre l'icône du projet. Pour renommer une tâche, cliquez sur l'icône crayon de sa ligne, changez le titre, puis appuyez sur `Entrée`. Le fil lié est renommé aussi. Le préfixe d'un rappel est gardé. Une tâche webhook ne peut pas être renommée.
-- Pour supprimer une tâche, cliquez sur l'icône corbeille de sa ligne, puis sur « Delete ». La tâche est supprimée dans T3 Code. Cette action est définitive.
-- Si T3 Code est trop ancien pour lister les tâches, la colonne montre l'erreur. La grille des agents marche toujours.
+- A routine runs at each occurrence. The row shows the project, the frequency, the next run and the status of the last run. A paused task shows "paused".
+- A reminder is a task with a title that starts with "Reminder: " or "Rappel : ". The row shows the date of the reminder. The prefix is not shown.
+- After its run, a reminder pauses. The row then shows "Finished" with the time of the run. Finished reminders are at the bottom of the list, the most recent first.
+- Click a row to open the thread of the task.
+- Each row shows the project icon. To rename a task, click the pencil icon on its row, change the title, then push `Enter`. The dashboard also renames the linked thread. It keeps the prefix of a reminder. You cannot rename a webhook task.
+- To delete a task, click the trash icon on its row, then click "Delete". T3 Code deletes the task. You cannot undo this action.
+- If T3 Code is too old to list the tasks, the column shows the error. The agent grid continues to work.
 
-### Créer un rappel ou une routine
+### Create a reminder or a routine
 
-1. Ouvrez une nouvelle automatisation. Cliquez sur « New Automation » dans l'en-tête, à droite de New Agent, ou appuyez sur `⇧` + `N`. Une fenêtre s'ouvre.
-2. Écrivez la demande dans la zone de texte. Exemple : « Chaque jour ouvré à 9 h, résume mes tickets Linear ». Elle peut avoir plusieurs lignes.
-3. Choisissez un projet, ou laissez « No project ». Le dashboard garde ce choix pour la fois suivante.
-4. Cliquez sur « Create » dans la fenêtre.
+1. Open a new automation. Click "New Automation" in the header, to the right of New Agent, or push `⇧` + `N`. A window opens.
+2. Write the request in the text box. Example: "Every weekday at 9 AM, summarize my Linear tickets". It can have many lines.
+3. Select a project, or keep "No project". The dashboard keeps this selection for the next time.
+4. Click "Create" in the window.
 
-Le dashboard crée un fil avec le modèle par défaut du projet. Ce fil demande à l'agent de créer la tâche avec l'outil `schedule_task` de T3 Code. La fenêtre se ferme. En cas d'erreur, elle reste ouverte et montre l'erreur.
+The dashboard creates a thread with the default model of the project. This thread tells the agent to create the task with the T3 Code `schedule_task` tool. The window closes. If an error occurs, the window stays open and shows the error.
 
-- Une demande ponctuelle devient un rappel. L'agent met le préfixe « Reminder: » au titre. À la fin, il met la tâche en pause. Il ne la supprime pas.
-- Une demande répétée devient une routine.
-- Le fil créé par la fenêtre n'est pas dans la grille tant que l'agent prépare la tâche. Il apparaît en haut de la colonne, sur une ligne « running » ou « waiting for your reply ». Un clic sur la ligne ouvre le fil.
-- Quand la tâche existe, la ligne devient celle de la tâche. Le fil s'ouvre depuis cette ligne.
-- Si le fil est inactif et sans tâche (création échouée, ou tâche supprimée), il revient dans la grille avec le résultat.
-- Le dashboard garde la liste de ces fils dans `~/.config/t3-dashboard/automation-threads.json`.
+- A one-time request becomes a reminder. The agent adds the "Reminder: " prefix to the title. At the end, it pauses the task. It does not delete it.
+- A repeated request becomes a routine.
+- While the agent prepares the task, the thread from the window is not in the grid. It appears at the top of the column, on a "running" or "waiting for your reply" row. Click the row to open the thread.
+- When the task exists, the row becomes the row of the task. You open the thread from this row.
+- If the thread is idle and has no task (failed creation, or deleted task), it goes back into the grid with the result.
+- The dashboard keeps the list of these threads in `~/.config/t3-dashboard/automation-threads.json`.
 
-### Depuis une conversation
+### From a conversation
 
-Vous pouvez aussi demander une tâche dans une conversation normale. L'agent la lie à cette conversation. Elle reste dans la grille. Pour un rappel unique, écrivez : « Crée un rappel : le titre commence par "Reminder: ", et mets la tâche en pause après le passage ».
+You can also ask for a task in a normal conversation. The agent links the task to this conversation. The conversation stays in the grid. For a one-time reminder, write: "Create a reminder: the title starts with "Reminder: ", and pause the task after its run".
 
-### Fils des tâches sans conversation liée
+### Threads of tasks without a linked conversation
 
-Une tâche sans fil lié crée un nouveau fil à chaque passage. Le dashboard cache ces fils de la grille. Il les reconnaît par le projet, le titre, l'origine et la date de création de la tâche. Le fil du dernier passage s'ouvre depuis la ligne de la tâche.
+A task without a linked thread creates a new thread at each run. The dashboard hides these threads from the grid. It identifies them by the project, the title, the origin and the creation date of the task. You open the thread of the last run from the row of the task.
 
-### Limites de T3 Code
+### T3 Code limits
 
-- L'intervalle minimum est de 1 minute.
-- Une heure fixe suit l'heure locale du serveur T3 Code. T3 Code n'a pas de fuseau horaire par tâche.
-- Si l'agent ne met pas en pause la tâche d'un rappel, le rappel se répète.
+- The minimum interval is 1 minute.
+- A fixed time follows the local time of the T3 Code server. T3 Code has no time zone for each task.
+- If the agent does not pause the task of a reminder, the reminder repeats.
 
 ## Settings
 
-Ouvrez Settings avec le bouton de l'en-tête ou la touche `,`. Une barre latérale à gauche liste les onglets ; un seul onglet est visible à la fois.
+Open Settings with the header button or the `,` key. A sidebar on the left lists the tabs. Only one tab is visible at a time.
 
-- Appearance : thème « System », « Light » ou « Dark », et fond du Desk.
-- Connections : état de la clé Linear, changement ou retrait de la clé.
-- App : comment installer le dashboard comme application (Dock, Launchpad, menu Démarrer, écran d'accueil). Les étapes suivent le navigateur et l'appareil : Safari, Chrome, Edge, iPhone et iPad, Android. Dia et Firefox n'installent pas d'app web.
-- Updates : version installée, recherche et installation d'une mise à jour. Voir [install.md](install.md#mises-à-jour).
+- Appearance: "System", "Light" or "Dark" theme, and Desk background.
+- Connections: status of the Linear key, change or removal of the key.
+- App: how to install the dashboard as an application (Dock, Launchpad, Start menu, home screen). The steps change with the browser and the device: Safari, Chrome, Edge, iPhone and iPad, Android. Dia and Firefox do not install web apps.
+- Updates: installed version, check for and installation of an update. See [install.md](install.md#updates).
 
-## Raccourcis clavier
+## Keyboard shortcuts
 
-Les raccourcis ne marchent pas pendant la saisie dans un champ ni quand une fenêtre de dialogue est ouverte. `Ctrl` + `K` fait exception : il marche aussi pendant la saisie. Il ne marche pas quand une autre fenêtre de dialogue est ouverte.
+The shortcuts do not work while you type in a field or while a dialog is open. `Ctrl` + `K` is an exception: it also works while you type. It does not work when a different dialog is open.
 
-| Touche | Action |
+| Key | Action |
 | --- | --- |
-| `1`, `2`, `3` | Ouvre Agents, Desk ou Board. |
-| `Ctrl` + `K` ou `⌘` + `K` | Ouvre ou ferme le switcher « Jump to » : il cherche une conversation par titre, projet ou message. Sans texte, il propose les agents qui attendent une réponse, puis vos conversations récentes. `↑` `↓` choisissent, `Entrée` ouvre dans le Desk. |
-| `N` | Ouvre New Agent. |
-| `⇧` + `N` | Ouvre une nouvelle automatisation (New Automation). |
-| `,` | Ouvre Settings. |
-| `X` | Desk : ferme la fenêtre active. |
-| `F` | Desk : met la fenêtre active en plein écran, ou l'en sort. |
-| `M` | Desk : réduit la fenêtre active. |
-| `Échap` | Desk : sort du plein écran. |
-| `Alt` + `1` à `6` | Desk : active la fenêtre 1 à 6 et place le curseur dans son champ de message. |
+| `1`, `2`, `3` | Opens Agents, Desk or Board. |
+| `Ctrl` + `K` or `⌘` + `K` | Opens or closes the "Jump to" switcher. It finds a conversation by title, project or message. Without text, it shows the agents that wait for an answer, then your recent conversations. `↑` `↓` select, `Enter` opens in the Desk. |
+| `N` | Opens New Agent. |
+| `⇧` + `N` | Opens a new automation (New Automation). |
+| `,` | Opens Settings. |
+| `X` | Desk: closes the active window. |
+| `F` | Desk: puts the active window in full screen, or takes it out of full screen. |
+| `M` | Desk: minimizes the active window. |
+| `Esc` | Desk: exits full screen. |
+| `Alt` + `1` to `6` | Desk: activates window 1 to 6 and puts the cursor in its message field. |
 
-Une infobulle donne le nom de chaque bouton et son raccourci. Les animations s'arrêtent si le système demande moins de mouvement (`prefers-reduced-motion`).
+A tooltip gives the name of each button and its shortcut. The animations stop if the system asks for reduced motion (`prefers-reduced-motion`).
