@@ -40,7 +40,8 @@ export function RunChanges({ threadId, ordinal, changes }: Props) {
   // The diff of all files comes in one call; the api caches it, so a second row does not fetch again.
   const toggle = (path: string) => {
     setOpen(open === path ? null : path);
-    if (diff.state !== "idle") return;
+    // An error row retries on the next click; the api dropped the failed call from its cache.
+    if (diff.state === "loading" || diff.state === "ready") return;
     setDiff({ state: "loading" });
     api.getRunDiff(threadId, ordinal).then(
       ({ diff: text }) => setDiff({ state: "ready", text }),
