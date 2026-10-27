@@ -86,6 +86,24 @@ test("getConfig uses the server.getConfig tag", async () => {
   await done;
 });
 
+test("listScheduledTasks sends an empty payload and returns the tasks", async () => {
+  const { client } = setup();
+  const done = client.listScheduledTasks();
+  const socket = await nextSocket();
+  assert.equal(socket.sent[0]!.tag, "scheduledTasks.list");
+  assert.deepEqual(socket.sent[0]!.payload, {});
+  socket.receive({ _tag: "Exit", requestId: "1", exit: { _tag: "Success", value: { tasks: [{ id: "task-1", title: "Digest" }] } } });
+  assert.deepEqual(await done, [{ id: "task-1", title: "Digest" }]);
+});
+
+test("listScheduledTasks rejects an answer without a task list", async () => {
+  const { client } = setup();
+  const done = client.listScheduledTasks();
+  const socket = await nextSocket();
+  socket.receive({ _tag: "Exit", requestId: "1", exit: { _tag: "Success", value: { tasks: [{ title: "no id" }] } } });
+  await assert.rejects(done, IntegrationError);
+});
+
 test("persistAttachments sends the images and returns T3's references", async () => {
   const { client } = setup();
   const image = { type: "image" as const, name: "a.png", mimeType: "image/png", sizeBytes: 3, dataUrl: "data:image/png;base64,AAAA" };

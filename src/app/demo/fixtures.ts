@@ -1,8 +1,5 @@
-import { Cron } from "croner";
-import type { AutomationsResult } from "../../../shared/api.ts";
-import { cronLabel } from "../../domain/cronLabel.ts";
 import type { LinearIssueNode } from "../../integrations/linear/schemas.ts";
-import type { RawConfig, RawProject, RawProjection, RawSubagent, RawThread, RawTurnItem } from "../../integrations/t3/schemas.ts";
+import type { RawConfig, RawProject, RawProjection, RawScheduledTask, RawSubagent, RawThread, RawTurnItem } from "../../integrations/t3/schemas.ts";
 
 // Invented data for `bun run demo`: a small team building "Atlas", no real names.
 // Times are minutes before `now`, so the page always reads "2 min ago", "yesterday"...
@@ -389,23 +386,74 @@ export function demoIssues(now: Date): LinearIssueNode[] {
   });
 }
 
-const ROUTINES = [
-  { id: "inbox-triage", title: "Morning inbox triage", cron: "0 8 * * 1-5", model: "claude-sonnet-5", threadId: null },
-  { id: "weekly-digest", title: "Weekly product digest", cron: "0 17 * * 5", model: "claude-sonnet-5", threadId: "demo-digest" },
-  { id: "dependency-check", title: "Dependency update check", cron: "30 9 * * 1", model: "gpt-5.5-codex", threadId: null },
-  { id: "error-report", title: "Nightly error report", cron: "0 23 * * *", model: "claude-haiku-4-5", threadId: null },
-];
+const hoursFrom = (now: Date, hours: number) => new Date(now.getTime() + hours * 3_600_000).toISOString();
 
-export function demoAutomations(now: Date): AutomationsResult {
-  const timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
-  const routines = ROUTINES.map(({ cron, ...routine }) => ({
-    ...routine,
-    brain: "Assistant",
-    kind: "routine" as const,
-    schedule: { kind: "cron" as const, cron, timeZone, label: cronLabel(cron) },
-    nextRunAt: new Cron(cron, { timezone: timeZone }).nextRun(now)?.toISOString() ?? null,
-  }));
-  const at = new Date(now.getTime() + 26 * 3_600_000).toISOString();
-  const reminder = { id: "launch-follow-up", brain: "Assistant", kind: "reminder" as const, title: "Follow up on the 2.4 launch", schedule: { kind: "once" as const, at }, nextRunAt: at, threadId: null, model: null };
-  return { automations: [...routines, reminder], brains: [{ name: "Assistant", ok: true, error: null, problems: 0 }] };
+/** Scheduled tasks as T3 lists them: one bound to a dedicated thread, one unbound, one reminder on a normal conversation. */
+export function demoScheduledTasks(now: Date): RawScheduledTask[] {
+  const common = { enabled: true, createdBy: "agent", creationSource: "tool", createdAt: hoursFrom(now, -72) };
+  return [
+    {
+      ...common,
+      id: "inbox-triage",
+      title: "Morning inbox triage",
+      prompt: "Triage the inbox and list what needs an answer today.",
+      schedule: { type: "fixed_time", timeOfDay: "08:00", weekdays: [1, 2, 3, 4, 5] },
+      projectId: "demo-assistant",
+      threadId: null,
+      modelSelection: SONNET,
+      nextRunAt: hoursFrom(now, 14),
+      lastRunAt: hoursFrom(now, -10),
+      lastRunStatus: "succeeded",
+    },
+    {
+      ...common,
+      id: "weekly-digest",
+      title: "Weekly product digest",
+      prompt: "Write this week's product digest.",
+      schedule: { type: "fixed_time", timeOfDay: "17:00", weekdays: [5] },
+      projectId: "demo-assistant",
+      threadId: "demo-digest",
+      modelSelection: SONNET,
+      nextRunAt: hoursFrom(now, 60),
+      lastRunAt: hoursFrom(now, -100),
+      lastRunStatus: "succeeded",
+    },
+    {
+      ...common,
+      id: "dependency-check",
+      title: "Dependency update check",
+      prompt: "Check for dependency updates and list the risky ones.",
+      schedule: { type: "interval", everyMs: 6 * 3_600_000 },
+      projectId: "demo-atlas-api",
+      threadId: null,
+      modelSelection: CODEX,
+      nextRunAt: hoursFrom(now, 3),
+      lastRunAt: hoursFrom(now, -3),
+      lastRunStatus: "failed",
+      lastRunError: "Could not reach the package registry.",
+    },
+    {
+      ...common,
+      id: "error-report",
+      title: "Nightly error report",
+      prompt: "Summarize last night's errors.",
+      schedule: { type: "fixed_time", timeOfDay: "23:00" },
+      projectId: "demo-atlas-api",
+      threadId: null,
+      modelSelection: { instanceId: "claudeAgent", model: "claude-haiku-4-5" },
+      nextRunAt: hoursFrom(now, 9),
+      lastRunStatus: "never",
+    },
+    {
+      ...common,
+      id: "launch-follow-up",
+      title: "Reminder: Follow up on the 2.4 launch",
+      prompt: "Remind me to follow up on the 2.4 launch. Then delete this scheduled task.",
+      schedule: { type: "fixed_time", timeOfDay: "10:00" },
+      projectId: "demo-docs",
+      threadId: "demo-release-notes",
+      modelSelection: null,
+      nextRunAt: hoursFrom(now, 26),
+    },
+  ];
 }

@@ -1,4 +1,4 @@
-import type { AssetResource, Command, ImageUpload, RawConfig, RawProjection, RawSearchMatch, ShellItem, T3Port } from "../../src/integrations/t3/schemas.ts";
+import type { AssetResource, Command, ImageUpload, RawConfig, RawProjection, RawScheduledTask, RawSearchMatch, ShellItem, T3Port } from "../../src/integrations/t3/schemas.ts";
 
 /** In-memory T3: records commands, uploads and shell subscriptions; each answer can be swapped. */
 export class FakePort implements T3Port {
@@ -12,6 +12,8 @@ export class FakePort implements T3Port {
   assetType = "image/png";
   searchCalls: Array<{ query: string; limit?: number }> = [];
   searchResult: RawSearchMatch[] = [];
+  scheduledTasks: RawScheduledTask[] = [];
+  scheduledTasksError: Error | null = null;
   dispatchError: Error | null = null;
   projectionError: Error | null = null;
   projectionCalls = 0;
@@ -27,6 +29,11 @@ export class FakePort implements T3Port {
     if (this.dispatchError) throw this.dispatchError;
     this.commands.push(command);
     return { sequence: 1 };
+  }
+
+  async listScheduledTasks() {
+    if (this.scheduledTasksError) throw this.scheduledTasksError;
+    return this.scheduledTasks;
   }
 
   async searchThreads(query: string, limit?: number) {

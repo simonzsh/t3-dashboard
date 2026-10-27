@@ -1,8 +1,8 @@
 import { describe, issues, parse, type Schema } from "../contract.ts";
 import { IntegrationError } from "../errors.ts";
 import { RpcConnection } from "./rpc.ts";
-import { AssetUrl, PersistedAttachments, ScratchProject, ProjectionResponse, RawConfig, SearchThreadsResponse, ShellItem, WebSocketTicket } from "./schemas.ts";
-import type { AssetResource, AttachmentRef, Command, ImageUpload, RawProjection, RawSearchMatch, T3Port } from "./schemas.ts";
+import { AssetUrl, PersistedAttachments, ScratchProject, ProjectionResponse, RawConfig, SearchThreadsResponse, ScheduledTasksResponse, ShellItem, WebSocketTicket } from "./schemas.ts";
+import type { AssetResource, AttachmentRef, Command, ImageUpload, RawProjection, RawScheduledTask, RawSearchMatch, T3Port } from "./schemas.ts";
 
 export const ORCHESTRATION_PROTOCOL = "2";
 // Images go up as data URLs of up to 10 MB each: give T3 time to write them.
@@ -17,6 +17,7 @@ export const RPC = {
   dispatch: "orchestration.dispatchCommand",
   subscribeShell: "orchestration.subscribeShell",
   searchThreads: "orchestration.searchThreads",
+  listScheduledTasks: "scheduledTasks.list",
 } as const;
 
 export type Validation = "ok" | "rejected" | "unreachable";
@@ -49,7 +50,7 @@ export interface T3ClientOptions {
 }
 
 // Safe to send twice: a retry after a lost connection cannot repeat a side effect.
-const IDEMPOTENT = new Set<string>([RPC.getConfig, RPC.searchThreads, RPC.createAssetUrl, RPC.ensureScratch]);
+const IDEMPOTENT = new Set<string>([RPC.getConfig, RPC.searchThreads, RPC.createAssetUrl, RPC.ensureScratch, RPC.listScheduledTasks]);
 
 interface SharedSocket {
   conn: Promise<RpcConnection>;
@@ -83,6 +84,10 @@ export class T3Client implements T3Port {
 
   async getConfig(): Promise<RawConfig> {
     return read(RawConfig, await this.call(RPC.getConfig, {}), "server.getConfig");
+  }
+
+  async listScheduledTasks(): Promise<RawScheduledTask[]> {
+    return read(ScheduledTasksResponse, await this.call(RPC.listScheduledTasks, {}), "scheduledTasks.list").tasks;
   }
 
   async searchThreads(query: string, limit?: number): Promise<RawSearchMatch[]> {

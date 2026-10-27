@@ -1,7 +1,7 @@
 import type { FetchLike } from "../../integrations/linear/client.ts";
-import type { AttachmentRef, Command, ImageUpload, RawConfig, RawProjection, RawSearchMatch, RawThread, ShellItem, T3Port } from "../../integrations/t3/schemas.ts";
+import type { AttachmentRef, Command, ImageUpload, RawConfig, RawProjection, RawScheduledTask, RawSearchMatch, RawThread, ShellItem, T3Port } from "../../integrations/t3/schemas.ts";
 import { searchProjections } from "./search.ts";
-import { demoFixtures, demoIssues, SCRATCH_PROJECT_ID } from "./fixtures.ts";
+import { demoFixtures, demoIssues, demoScheduledTasks, SCRATCH_PROJECT_ID } from "./fixtures.ts";
 
 type Listener = (items: ShellItem[]) => void;
 
@@ -34,6 +34,10 @@ export class DemoPort implements T3Port {
 
   async getConfig(): Promise<RawConfig> {
     return this.config;
+  }
+
+  async listScheduledTasks(): Promise<RawScheduledTask[]> {
+    return demoScheduledTasks(this.now());
   }
 
   async dispatch(command: Command): Promise<unknown> {
