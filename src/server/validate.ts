@@ -51,6 +51,11 @@ export function validSearch(params: URLSearchParams): { query: string; limit: nu
   return { query, limit };
 }
 
+export function validRunOrdinal(raw: string): number {
+  if (!/^[1-9]\d{0,8}$/.test(raw)) throw new HttpError(400, "The run ordinal must be a positive integer");
+  return Number(raw);
+}
+
 export function validSettings(body: Record<string, unknown>): ThreadSettingsBody {
   const modelSelection = "modelSelection" in body ? validSelection(body.modelSelection) : undefined;
   const runtimeMode = body.runtimeMode;

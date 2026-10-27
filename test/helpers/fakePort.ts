@@ -10,6 +10,9 @@ export class FakePort implements T3Port {
   ranges: Array<string | undefined> = [];
   assetFileName = "image.png";
   assetType = "image/png";
+  diffCalls: Array<{ threadId: string; runOrdinal: number }> = [];
+  diff = "";
+  diffError: Error | null = null;
   searchCalls: Array<{ query: string; limit?: number }> = [];
   searchResult: RawSearchMatch[] = [];
   scheduledTasks: RawScheduledTask[] = [];
@@ -41,6 +44,12 @@ export class FakePort implements T3Port {
   async deleteScheduledTask(id: string) {
     if (this.deleteError) throw this.deleteError;
     this.deletedTasks.push(id);
+  }
+
+  async turnDiff(threadId: string, runOrdinal: number) {
+    this.diffCalls.push({ threadId, runOrdinal });
+    if (this.diffError) throw this.diffError;
+    return this.diff;
   }
 
   async searchThreads(query: string, limit?: number) {

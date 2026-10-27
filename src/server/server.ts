@@ -13,7 +13,7 @@ import { matchesEtag } from "./etag.ts";
 import { servePwa } from "./pwa.ts";
 import type { Site } from "./site.ts";
 import type { SseHub } from "./sse.ts";
-import { isObject, isText, validAssign, validAutomationRequest, validCreate, validImages, validMessage, validRespond, validSearch, validSettings } from "./validate.ts";
+import { isObject, isText, validAssign, validAutomationRequest, validCreate, validImages, validMessage, validRespond, validRunOrdinal, validSearch, validSettings } from "./validate.ts";
 
 export interface SetupControl {
   /** Resolves the token again. */
@@ -186,6 +186,7 @@ export function createDashboardServer(options: DashboardServerOptions): Dashboar
     },
     { method: "GET", path: "/api/threads/:id", handle: async ({ req, params }) => threadResponse(req, await actions.threadDetail(params.id!)) },
     { method: "GET", path: "/api/threads/:id/attachments/:attachmentId", handle: ({ req, params }) => asset(req, params.id!, { attachmentId: params.attachmentId! }) },
+    { method: "GET", path: "/api/threads/:id/runs/:ordinal/diff", handle: async ({ params }) => json(200, await actions.runDiff(params.id!, validRunOrdinal(params.ordinal!))) },
     {
       method: "GET",
       path: "/api/threads/:id/media",

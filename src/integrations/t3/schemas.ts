@@ -116,6 +116,8 @@ export const SearchThreadsResponse = s.object({
 });
 export type RawSearchMatch = Infer<typeof SearchThreadsResponse>["matches"][number];
 
+export const TurnDiffResponse = s.object({ diff: s.optional(s.string()) });
+
 export const RawMessage = s.object({
   id: s.string(),
   role: s.union(s.literal("user"), s.union(s.literal("assistant"), s.literal("system"))),
@@ -162,7 +164,8 @@ export const RawTurnItem = s.object({
   input: s.optional(s.unknown()),
   toolName: text(),
   fileName: text(),
-  diffStr: text(),
+  checkpointId: text(),
+  files: s.optional(s.nullable(s.array(s.object({ path: s.string(), kind: text(), additions: s.optional(s.nullable(s.number())), deletions: s.optional(s.nullable(s.number())) })))),
   exitCode: s.optional(s.nullable(s.number())),
   outputIndicatesFailure: s.optional(s.nullable(s.boolean())),
   startedAt: text(),
@@ -191,7 +194,7 @@ const TurnItemEntry = s.union(s.object({ item: RawTurnItem }), RawTurnItem);
 
 export const RawProjection = s.object({
   messages: s.optional(s.array(RawMessage)),
-  runs: s.optional(s.array(s.object({ id: s.string(), status: s.optional(s.string()), startedAt: text(), createdAt: text(), completedAt: text() }))),
+  runs: s.optional(s.array(s.object({ id: s.string(), ordinal: s.optional(s.number()), status: s.optional(s.string()), startedAt: text(), createdAt: text(), completedAt: text() }))),
   runtimeRequests: s.optional(s.array(RawRuntimeRequest)),
   turnItems: s.optional(s.array(TurnItemEntry)),
   visibleTurnItems: s.optional(s.array(TurnItemEntry)),
@@ -275,6 +278,8 @@ export interface T3Port {
   threadProjection(threadId: string): Promise<RawProjection>;
   dispatch(command: Command): Promise<unknown>;
   getConfig(): Promise<RawConfig>;
+  /** The unified git diff of one completed run (turn N-1 to N); T3 refuses a run without a ready checkpoint. */
+  turnDiff(threadId: string, runOrdinal: number): Promise<string>;
   listScheduledTasks(): Promise<RawScheduledTask[]>;
   deleteScheduledTask(id: string): Promise<void>;
   /** Message matches in T3, best first. */

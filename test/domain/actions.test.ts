@@ -37,7 +37,7 @@ function stopHarness(projections: Record<string, RawProjection>, config: RawConf
 
 const delegated = { id: "sub-1", runId: "run-1", status: "running", origin: "app_owned", childThreadId: "child-1" };
 
-function harness({ searchResult = [] as ReturnType<typeof searchMatch>[], searchError = null as Error | null, board = { configured: true, ok: true, error: null, issues: [issue] } as BoardResult, dispatchError = null as Error | null } = {}) {
+function harness({ searchResult = [] as ReturnType<typeof searchMatch>[], searchError = null as Error | null, board = { configured: true, ok: true, error: null, issues: [issue] } as BoardResult, dispatchError = null as Error | null, diffError = null as Error | null } = {}) {
   const commands: Command[] = [];
   const port: T3Port = {
     threadProjection: async () => ({}),
@@ -48,6 +48,10 @@ function harness({ searchResult = [] as ReturnType<typeof searchMatch>[], search
     getConfig: async () => ({}),
     listScheduledTasks: async () => [],
     deleteScheduledTask: async () => {},
+    turnDiff: async (threadId, ordinal) => {
+      if (diffError) throw diffError;
+      return `diff of ${threadId} run ${ordinal}`;
+    },
     searchThreads: async () => {
       if (searchError) throw searchError;
       return searchResult;
@@ -123,6 +127,18 @@ test("search drops matches of threads the dashboard does not list and keeps T3's
 test("a T3 search failure comes back as a T3 integration error", async () => {
   const { actions } = harness({ searchError: new Error("search down") });
   await assert.rejects(actions.searchThreads("hit"), (error: unknown) => error instanceof IntegrationError && error.system === "t3" && error.message === "search down");
+});
+
+test("runDiff returns the diff T3 builds for the run", async () => {
+  const { actions } = harness();
+  assert.deepEqual(await actions.runDiff("thread-1", 3), { diff: "diff of thread-1 run 3" });
+});
+
+test("runDiff turns a T3 refusal into a conflict and keeps an unreachable T3 an integration error", async () => {
+  const refused = harness({ diffError: new IntegrationError("T3 refused the request: no checkpoint", { system: "t3", kind: "refused" }) });
+  await assert.rejects(refused.actions.runDiff("thread-1", 3), rejectsWith("conflict"));
+  const down = harness({ diffError: new Error("socket closed") });
+  await assert.rejects(down.actions.runDiff("thread-1", 3), (error: unknown) => error instanceof IntegrationError && error.kind === "unreachable");
 });
 
 test("stopSubagent of a native subagent sends only subagent.stop", async () => {

@@ -1,7 +1,7 @@
 import { describe, issues, parse, type Schema } from "../contract.ts";
 import { IntegrationError } from "../errors.ts";
 import { RpcConnection } from "./rpc.ts";
-import { AssetUrl, PersistedAttachments, ScratchProject, ProjectionResponse, RawConfig, SearchThreadsResponse, DeletedScheduledTask, ScheduledTasksResponse, ShellItem, WebSocketTicket } from "./schemas.ts";
+import { AssetUrl, PersistedAttachments, ScratchProject, ProjectionResponse, RawConfig, SearchThreadsResponse, DeletedScheduledTask, ScheduledTasksResponse, ShellItem, TurnDiffResponse, WebSocketTicket } from "./schemas.ts";
 import type { AssetResource, AttachmentRef, Command, ImageUpload, RawProjection, RawScheduledTask, RawSearchMatch, T3Port } from "./schemas.ts";
 
 export const ORCHESTRATION_PROTOCOL = "2";
@@ -19,6 +19,7 @@ export const RPC = {
   searchThreads: "orchestration.searchThreads",
   listScheduledTasks: "scheduledTasks.list",
   deleteScheduledTask: "scheduledTasks.delete",
+  getTurnDiff: "orchestration.getTurnDiff",
 } as const;
 
 export type Validation = "ok" | "rejected" | "unreachable";
@@ -51,7 +52,7 @@ export interface T3ClientOptions {
 }
 
 // Safe to send twice: a retry after a lost connection cannot repeat a side effect.
-const IDEMPOTENT = new Set<string>([RPC.getConfig, RPC.searchThreads, RPC.createAssetUrl, RPC.ensureScratch, RPC.listScheduledTasks]);
+const IDEMPOTENT = new Set<string>([RPC.getConfig, RPC.searchThreads, RPC.createAssetUrl, RPC.ensureScratch, RPC.listScheduledTasks, RPC.getTurnDiff]);
 
 interface SharedSocket {
   conn: Promise<RpcConnection>;
@@ -94,6 +95,11 @@ export class T3Client implements T3Port {
   // Not in IDEMPOTENT: a retry after the delete went through would fail on an unknown id.
   async deleteScheduledTask(id: string): Promise<void> {
     read(DeletedScheduledTask, await this.call(RPC.deleteScheduledTask, { id }), "scheduledTasks.delete");
+  }
+
+  async turnDiff(threadId: string, runOrdinal: number): Promise<string> {
+    const payload = { threadId, fromTurnCount: runOrdinal - 1, toTurnCount: runOrdinal };
+    return read(TurnDiffResponse, await this.call(RPC.getTurnDiff, payload), "orchestration.getTurnDiff").diff ?? "";
   }
 
   async searchThreads(query: string, limit?: number): Promise<RawSearchMatch[]> {
