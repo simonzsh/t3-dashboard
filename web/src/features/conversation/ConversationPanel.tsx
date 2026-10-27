@@ -114,7 +114,15 @@ export function ConversationPanel({ threadId, thread, providers }: Props) {
   // Bumped on every thread change and cleanup: a late response from an older effect is dropped.
   const epoch = useRef(0);
 
+  const unmounted = useRef(false);
+  // Reset on mount too: StrictMode runs the cleanup once before the real mount.
+  useEffect(() => {
+    unmounted.current = false;
+    return () => void (unmounted.current = true);
+  }, []);
+
   async function loadOnce() {
+    if (unmounted.current) return;
     const mine = epoch.current;
     try {
       const next = await api.getThread(threadId);
@@ -172,9 +180,10 @@ export function ConversationPanel({ threadId, thread, providers }: Props) {
   useEffect(
     () =>
       documentPage.onChange(() => {
-        if (documentPage.hidden() || !(staleWhileHidden.current || polling.current)) return;
+        if (documentPage.hidden() || !staleWhileHidden.current) return;
         staleWhileHidden.current = false;
-        void load();
+        // An active poll catches up by itself: a second load here would only double the request.
+        if (!polling.current) void load();
       }),
     [],
   );

@@ -16,18 +16,22 @@ export const documentPage: PageVisibility = {
 };
 
 // The next call starts one delay after the previous one ends, so slow answers never pile up.
-// A hidden page makes no call: the loop sleeps until the page shows again.
+// A hidden page makes no call: the loop sleeps, and calls at once when the page shows again.
 export function startPoll(fn: () => Promise<unknown>, ms: number, page: PageVisibility = documentPage): () => void {
   let stopped = false;
   let timer: ReturnType<typeof setTimeout> | undefined;
   let inCall = false;
+  let skipped = false;
   const schedule = () => {
     timer = setTimeout(() => void tick(), ms);
   };
   // A failed call must not end the loop.
   const tick = async () => {
     timer = undefined;
-    if (page.hidden()) return;
+    if (page.hidden()) {
+      skipped = true;
+      return;
+    }
     inCall = true;
     try {
       await fn();
@@ -39,7 +43,9 @@ export function startPoll(fn: () => Promise<unknown>, ms: number, page: PageVisi
     }
   };
   const removeListener = page.onChange(() => {
-    if (!stopped && !page.hidden() && timer === undefined && !inCall) schedule();
+    if (stopped || page.hidden() || !skipped) return;
+    skipped = false;
+    void tick();
   });
   schedule();
   return () => {

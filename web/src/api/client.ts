@@ -19,6 +19,8 @@ import type {
 type Fetch = (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>;
 
 const THREAD_CACHE_MAX = 50;
+// Thread loads share one flight: a request that never answers would freeze the window.
+const THREAD_TIMEOUT_MS = 30_000;
 
 export function createApi(fetchImpl: Fetch) {
   async function call<T>(path: string, body?: unknown): Promise<T> {
@@ -39,7 +41,8 @@ export function createApi(fetchImpl: Fetch) {
     const path = t(id);
     for (let attempt = 0; ; attempt++) {
       const known = threads.get(id);
-      const res = await fetchImpl(path, known ? { headers: { "if-none-match": known.etag } } : {});
+      const signal = AbortSignal.timeout(THREAD_TIMEOUT_MS);
+      const res = await fetchImpl(path, known ? { headers: { "if-none-match": known.etag }, signal } : { signal });
       if (res.status === 304 && known) return known.detail;
       // A 304 we cannot match is retried once without the header.
       if (res.status === 304 && attempt === 0) {

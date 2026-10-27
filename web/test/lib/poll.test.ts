@@ -64,16 +64,26 @@ function fakePage(hidden: boolean) {
   };
 }
 
-test("a hidden page skips the call and stops the loop until it is visible again", async () => {
+test("a hidden page skips the call and stops the loop, then catches up at once when visible", async () => {
   const fake = fakePage(true);
   let calls = 0;
   const stop = startPoll(async () => void calls++, 5, fake.page);
   await wait(30);
   assert.equal(calls, 0);
   fake.set(false);
-  assert.equal(calls, 0, "no immediate call");
+  assert.equal(calls, 1, "immediate catch-up call");
   await wait(30);
-  assert.ok(calls >= 1, `calls: ${calls}`);
+  assert.ok(calls >= 2, `calls: ${calls}`);
+  stop();
+});
+
+test("showing the page before a tick was skipped adds no extra call", async () => {
+  const fake = fakePage(false);
+  let calls = 0;
+  const stop = startPoll(async () => void calls++, 50, fake.page);
+  fake.set(true);
+  fake.set(false);
+  assert.equal(calls, 0);
   stop();
 });
 
