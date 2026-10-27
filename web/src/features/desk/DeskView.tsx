@@ -131,7 +131,7 @@ export function DeskView({ desk, dispatch, threads, projects, background, t3Envi
       >
         <span className={`state-dot ${thread ? threadState(thread) : "idle"}`} aria-hidden="true" />
         {thread && <ProviderIcon provider={thread.provider} />}
-        <span className="desk-chip-title">{threadTitle(thread)}</span>
+        <span className="desk-chip-title" data-tooltip={threadTitle(thread)} data-tooltip-clipped>{threadTitle(thread)}</span>
       </Pressable>
     );
     if (!closable) return button;
