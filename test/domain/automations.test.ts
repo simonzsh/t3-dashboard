@@ -1,171 +1,183 @@
 import assert from "node:assert/strict";
-import { mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
-import { join } from "node:path";
 import { test } from "bun:test";
-import { readAutomations } from "../../src/domain/automations.ts";
+import type { AutomationRequestBody } from "../../shared/api.ts";
+import { automationPrompt, createAutomations, toAutomations } from "../../src/domain/automations.ts";
+import { DomainError } from "../../src/domain/errors.ts";
+import { IntegrationError } from "../../src/integrations/errors.ts";
+import type { RawScheduledTask, RawThread } from "../../src/integrations/t3/schemas.ts";
+import { FakePort } from "../helpers/fakePort.ts";
 
-const now = new Date("2026-03-20T12:00:00.000Z");
+const task = (extra: Partial<RawScheduledTask> = {}): RawScheduledTask => ({
+  id: "task-1",
+  title: "Inbox triage",
+  prompt: "Triage",
+  enabled: true,
+  schedule: { type: "interval", everyMs: 900_000 },
+  projectId: "project-1",
+  threadId: null,
+  createdAt: "2026-03-20T09:00:00.000Z",
+  creationSource: "mcp",
+  ...extra,
+});
 
-interface Setup {
-  jobs?: Record<string, string>;
-  threads?: unknown;
-  runs?: unknown;
-  projectId?: string;
-}
+const thread = (id: string, extra: Partial<RawThread> = {}): RawThread => ({ id, projectId: "project-1", title: "Inbox triage", creationSource: "mcp", createdAt: "2026-03-20T10:00:00.000Z", ...extra });
 
-// Builds a config dir with one brain "alpha" whose workspace is <root>/ws-name/brain.
-function build(setup: Setup) {
-  const root = mkdtempSync(join(tmpdir(), "t3-dashboard-auto-"));
-  const workspace = join(root, "ws-name", "brain");
-  mkdirSync(join(workspace, "jobs"), { recursive: true });
-  mkdirSync(join(workspace, "state"));
-  for (const [file, content] of Object.entries(setup.jobs ?? {})) writeFileSync(join(workspace, "jobs", file), content);
-  if (setup.threads !== undefined) writeFileSync(join(workspace, "state", "routine-threads.json"), JSON.stringify(setup.threads));
-  if (setup.runs !== undefined) writeFileSync(join(workspace, "state", "runs.json"), JSON.stringify(setup.runs));
-  const configDir = join(root, "config");
-  mkdirSync(configDir);
-  writeFileSync(join(configDir, "alpha.json"), JSON.stringify({ workspace, projectId: setup.projectId ?? "project-1", token: "secret-token-value" }));
-  return { root, workspace, configDir };
-}
+const titles: Record<string, string> = { "project-1": "Project A" };
+const convert = (tasks: RawScheduledTask[], threads: RawThread[] = [], dedicated: string[] = []) => toAutomations(tasks, threads, new Set(dedicated), (id) => titles[id] ?? null);
 
-const read = (configDir: string, titles: Record<string, string> = {}) => readAutomations({ configDir, now: () => now, projectTitle: (id) => titles[id] ?? null });
-
-const routine = (extra = "") => `prompt: |\n  Check the inbox\n  and report\nschedule:\n  cron: "*/20 8-19 * * *"\n  timeZone: Europe/Paris\ntarget:\n  newThread: Inbox watch\n${extra}createdAt: 2026-03-01T00:00:00Z\n`;
-
-test("a cron job becomes a routine with a French label, next run, thread and model", () => {
-  const { configDir } = build({
-    jobs: { "inbox.yaml": routine("engine:\n  model: model-x\n") },
-    threads: { inbox: { threadId: "thread-1", engine: { model: "model-y" } } },
-    runs: { inbox: "2026-03-20T11:40:00.000Z" },
+test("a task becomes a routine with its project, schedule label, state and model", () => {
+  const [routine] = convert([task({ modelSelection: { instanceId: "claudeAgent", model: "model-x" }, nextRunAt: "2026-03-21T08:00:00.000Z", lastRunAt: "2026-03-20T12:00:00.000Z", lastRunStatus: "succeeded" })]).automations;
+  assert.deepEqual(routine, {
+    id: "task-1",
+    kind: "routine",
+    title: "Inbox triage",
+    projectId: "project-1",
+    project: "Project A",
+    scheduleLabel: "Every 15 min",
+    enabled: true,
+    nextRunAt: "2026-03-21T08:00:00.000Z",
+    lastRunAt: "2026-03-20T12:00:00.000Z",
+    lastRunStatus: "succeeded",
+    lastRunError: null,
+    threadId: null,
+    model: "model-x",
   });
-  const result = read(configDir, { "project-1": "Brain A" });
-  assert.deepEqual(result.brains, [{ name: "Brain A", ok: true, error: null, problems: 0 }]);
-  assert.deepEqual(result.automations, [
+});
+
+test("a Reminder or Rappel prefix makes a reminder and leaves the title", () => {
+  const items = convert([task({ id: "a", title: "Reminder: Call Sam" }), task({ id: "b", title: "  rappel : Appeler Sam" }), task({ id: "c", title: "Reminders digest" })]).automations;
+  assert.deepEqual(items.map((item) => [item.kind, item.title]), [["reminder", "Call Sam"], ["reminder", "Appeler Sam"], ["routine", "Reminders digest"]]);
+});
+
+test("an unknown project is No project, a webhook is a routine labelled Webhook", () => {
+  const [item] = convert([task({ projectId: "gone", schedule: { type: "webhook" } })]).automations;
+  assert.equal(item!.project, "No project");
+  assert.equal(item!.scheduleLabel, "Webhook");
+  assert.equal(item!.kind, "routine");
+  assert.equal(convert([task({ projectId: null })]).automations[0]!.project, "No project");
+});
+
+test("run status maps to running, succeeded or failed; never and unknown give null", () => {
+  const status = (lastRunStatus: string | undefined) => convert([task({ lastRunStatus })]).automations[0]!.lastRunStatus;
+  assert.deepEqual(["running", "succeeded", "failed", "never", "weird", undefined].map(status), ["running", "succeeded", "failed", null, null, null]);
+  assert.equal(convert([task({ lastRunStatus: "failed", lastRunError: "Boom" })]).automations[0]!.lastRunError, "Boom");
+});
+
+test("a dedicated thread is hidden only while a task is bound to it", () => {
+  const bound = convert([task({ threadId: "t-dedicated" })], [], ["t-dedicated"]);
+  assert.deepEqual(bound.hiddenThreadIds, ["t-dedicated"]);
+  assert.equal(bound.automations[0]!.threadId, "t-dedicated");
+  assert.deepEqual(convert([], [], ["t-dedicated"]).hiddenThreadIds, []);
+  assert.deepEqual(convert([task({ threadId: "t-other" })], [], ["t-dedicated"]).hiddenThreadIds, []);
+});
+
+test("a normal conversation bound to a task stays visible", () => {
+  const result = convert([task({ threadId: "t-chat" })], [thread("t-chat")]);
+  assert.deepEqual(result.hiddenThreadIds, []);
+  assert.equal(result.automations[0]!.threadId, "t-chat");
+});
+
+test("run threads of an unbound task are hidden and the newest is the row thread", () => {
+  const threads = [
+    thread("run-old", { createdAt: "2026-03-20T10:00:00.000Z" }),
+    thread("run-new", { createdAt: "2026-03-20T12:00:00.000Z" }),
+    thread("before", { createdAt: "2026-03-19T10:00:00.000Z" }),
+    thread("other-title", { title: "Something else" }),
+    thread("other-project", { projectId: "project-2" }),
+    thread("by-user", { creationSource: "server" }),
+  ];
+  const result = convert([task()], threads);
+  assert.deepEqual(result.hiddenThreadIds.sort(), ["run-new", "run-old"]);
+  assert.equal(result.automations[0]!.threadId, "run-new");
+});
+
+test("a bound task never matches run threads", () => {
+  const result = convert([task({ threadId: "t-chat" })], [thread("t-chat"), thread("lookalike")]);
+  assert.deepEqual(result.hiddenThreadIds, []);
+});
+
+test("automationPrompt carries the trimmed request and the reminder rules", () => {
+  const prompt = automationPrompt("  Remind me at 5pm  ");
+  assert.match(prompt, /schedule_task/);
+  assert.match(prompt, /bindToCurrentThread: true/);
+  assert.match(prompt, /"Reminder: "/);
+  assert.match(prompt, /\n\nRemind me at 5pm\n\n/);
+});
+
+function harness(overrides: { dedicatedAdd?: (id: string) => void } = {}) {
+  const port = new FakePort();
+  const created: Array<{ create: unknown; images: unknown }> = [];
+  const added: string[] = [];
+  const warnings: string[] = [];
+  const automations = createAutomations({
+    port,
+    store: { project: (id) => (id === "project-1" ? { id, title: "Project A", defaultModelSelection: null, icon: null } : undefined), rawThreads: () => [thread("run-1")] },
+    dedicated: { read: () => new Set(["t-dedicated"]), add: overrides.dedicatedAdd ?? ((id) => void added.push(id)) },
+    createThread: async (create, images) => {
+      created.push({ create, images });
+      return "new-thread";
+    },
+    warn: (message) => warnings.push(message),
+  });
+  return { automations, port, created, added, warnings };
+}
+
+const body = (extra: Partial<AutomationRequestBody> = {}): AutomationRequestBody => ({ text: "  Remind me at 5pm\nabout the launch ", projectId: "project-1", modelSelection: { instanceId: "claudeAgent", model: "m" }, runtimeMode: "full-access", ...extra });
+
+test("request creates a thread with the instruction, records it and returns its id", async () => {
+  const { automations, created, added } = harness();
+  assert.equal(await automations.request(body()), "new-thread");
+  assert.deepEqual(created, [
     {
-      id: "inbox",
-      brain: "Brain A",
-      kind: "routine",
-      title: "Inbox watch",
-      schedule: { kind: "cron", cron: "*/20 8-19 * * *", timeZone: "Europe/Paris", label: "every 20 min, 08:00–19:00" },
-      nextRunAt: "2026-03-20T12:20:00.000Z",
-      threadId: "thread-1",
-      model: "model-x",
+      create: { projectId: "project-1", title: "Remind me at 5pm", text: automationPrompt("Remind me at 5pm\nabout the launch"), modelSelection: { instanceId: "claudeAgent", model: "m" }, runtimeMode: "full-access" },
+      images: [],
     },
   ]);
+  assert.deepEqual(added, ["new-thread"]);
 });
 
-test("next run follows the time zone of the schedule", () => {
-  const { configDir } = build({ jobs: { "daily.yaml": "prompt: Go\nschedule:\n  cron: 0 9 * * *\n  timeZone: America/New_York\n" } });
-  // 09:00 in New York is 13:00 UTC in March after the US change to summer time.
-  assert.equal(read(configDir).automations[0]?.nextRunAt, "2026-03-20T13:00:00.000Z");
+test("request cuts a long first line to a 60-character title", async () => {
+  const { automations, created } = harness();
+  await automations.request(body({ text: "x".repeat(100) }));
+  assert.equal((created[0]!.create as { title: string }).title.length, 60);
 });
 
-test("the model falls back to the routine thread engine, then to null", () => {
-  const { configDir } = build({
-    jobs: { "a.yaml": routine(), "b.yaml": routine() },
-    threads: { a: { threadId: "thread-1", engine: { model: "model-y" } } },
-  });
-  const byId = Object.fromEntries(read(configDir).automations.map((a) => [a.id, a]));
-  assert.equal(byId.a?.model, "model-y");
-  assert.equal(byId.b?.model, null);
-  assert.equal(byId.b?.threadId, null);
+test("request keeps an empty project id so T3's No project is used", async () => {
+  const { automations, created } = harness();
+  await automations.request(body({ projectId: "" }));
+  assert.equal((created[0]!.create as { projectId: string }).projectId, "");
 });
 
-test("the title is the first prompt line cut at 80 characters when there is no newThread", () => {
-  const long = "x".repeat(100);
-  const { configDir } = build({
-    jobs: { "a.yaml": `prompt: |\n  ${long}\n  second line\nschedule:\n  cron: "0 9 * * *"\n  timeZone: UTC\n` },
-  });
-  assert.equal(read(configDir).automations[0]?.title, "x".repeat(80));
+test("request rejects an empty text", async () => {
+  const { automations, created } = harness();
+  await assert.rejects(automations.request(body({ text: "  \n " })), (error) => error instanceof DomainError && error.code === "invalid");
+  assert.equal(created.length, 0);
 });
 
-test("an at job is a reminder with its target thread, and a reminder with no brain title uses the parent folder name", () => {
-  const { configDir } = build({
-    jobs: { "call.yaml": "prompt: Call back\nschedule:\n  at: 2026-03-21T09:00:00Z\ntarget:\n  thread: thread-7\n" },
-    threads: { call: { threadId: "ignored" } },
-  });
-  const [item] = read(configDir).automations;
-  assert.deepEqual(item, {
-    id: "call",
-    brain: "ws-name",
-    kind: "reminder",
-    title: "Call back",
-    schedule: { kind: "once", at: "2026-03-21T09:00:00Z" },
-    nextRunAt: "2026-03-21T09:00:00Z",
-    threadId: "thread-7",
-    model: null,
-  });
-});
-
-test("a reminder already run, or past by more than 24 hours, is removed", () => {
-  const job = (at: string) => `prompt: R\nschedule:\n  at: ${at}\n`;
-  const { configDir } = build({
-    jobs: {
-      "ran.yaml": job("2026-03-20T13:00:00Z"),
-      "old.yaml": job("2026-03-19T11:59:00Z"),
-      "recent.yaml": job("2026-03-19T12:01:00Z"),
-      "dateonly.yaml": job("2026-03-22"),
-      "later.yaml": job("2026-03-22T10:00:00Z"),
-    },
-    runs: { ran: "2026-03-20T11:00:00Z" },
-  });
-  assert.deepEqual(read(configDir).automations.map((a) => a.id), ["later", "recent"]);
-});
-
-test("unreadable, invalid or incomplete job files are ignored and counted", () => {
-  const { configDir } = build({
-    jobs: {
-      "ok.yaml": routine(),
-      "broken.yaml": "prompt: [unclosed",
-      "nosched.yaml": "prompt: x\n",
-      "badcron.yaml": "prompt: x\nschedule:\n  cron: nope\n  timeZone: UTC\n",
-      "badzone.yaml": "prompt: x\nschedule:\n  cron: 0 9 * * *\n  timeZone: Mars/Base\n",
-      "baddate.yaml": "prompt: x\nschedule:\n  at: soon\n",
-      "readme.txt": "ignored, not a yaml file",
+test("request still succeeds when the state file cannot be written", async () => {
+  const { automations, warnings } = harness({
+    dedicatedAdd: () => {
+      throw new Error("disk full");
     },
   });
-  const result = read(configDir);
-  assert.deepEqual(result.automations.map((a) => a.id), ["ok"]);
-  assert.equal(result.brains[0]?.problems, 5);
-  assert.equal(result.brains[0]?.ok, true);
+  assert.equal(await automations.request(body()), "new-thread");
+  assert.equal(warnings.length, 1);
+  assert.match(warnings[0]!, /disk full/);
 });
 
-test("missing or broken state files do not hide the jobs", () => {
-  const { configDir, workspace } = build({ jobs: { "a.yaml": routine() } });
-  writeFileSync(join(workspace, "state", "runs.json"), "{not json");
-  const result = read(configDir);
-  assert.equal(result.automations.length, 1);
+test("list converts the tasks of T3 with the live threads and the dedicated set", async () => {
+  const { automations, port } = harness();
+  port.scheduledTasks = [task({ threadId: "t-dedicated" }), task({ id: "task-2", threadId: null })];
+  const result = await automations.list();
+  assert.deepEqual(result.automations.map((item) => [item.id, item.threadId]), [["task-1", "t-dedicated"], ["task-2", "run-1"]]);
+  assert.deepEqual(result.hiddenThreadIds.sort(), ["run-1", "t-dedicated"]);
 });
 
-test("a brain without a jobs folder is ok with no automation", () => {
-  const { configDir, workspace } = build({});
-  rmSync(join(workspace, "jobs"), { recursive: true });
-  const result = read(configDir);
-  assert.deepEqual(result.brains, [{ name: "ws-name", ok: true, error: null, problems: 0 }]);
-  assert.deepEqual(result.automations, []);
-});
-
-test("a brain with a missing workspace folder, or an unreadable config, is reported with ok false", () => {
-  const { configDir, root } = build({});
-  writeFileSync(join(configDir, "gone.json"), JSON.stringify({ workspace: join(root, "absent", "brain"), projectId: "p", token: "secret-token-value" }));
-  writeFileSync(join(configDir, "broken.json"), "{secret-token-value");
-  const brains = read(configDir).brains;
-  const byName = Object.fromEntries(brains.map((b) => [b.name, b]));
-  assert.equal(byName.absent?.ok, false);
-  assert.equal(byName.broken?.ok, false);
-  assert.equal(byName["ws-name"]?.ok, true);
-  assert.ok(!JSON.stringify(brains).includes("secret-token-value"));
-});
-
-test("reading never writes: files and folders are unchanged, and the token never appears in the result", () => {
-  const { configDir, workspace } = build({ jobs: { "a.yaml": routine() }, threads: { a: { threadId: "thread-1" } }, runs: { a: "2026-03-20T11:00:00Z" } });
-  const snapshot = () =>
-    [join(workspace, "jobs"), join(workspace, "state"), configDir].flatMap((dir) =>
-      readdirSync(dir).map((name) => `${name}:${statSync(join(dir, name)).mtimeMs}:${readFileSync(join(dir, name), "utf8")}`),
-    );
-  const before = snapshot();
-  const result = read(configDir);
-  assert.deepEqual(snapshot(), before);
-  assert.ok(!JSON.stringify(result).includes("secret-token-value"));
+test("list turns a plain port error into a T3 error and keeps an integration error", async () => {
+  const { automations, port } = harness();
+  port.scheduledTasksError = new Error("socket closed");
+  await assert.rejects(automations.list(), (error) => error instanceof IntegrationError && error.system === "t3" && error.kind === "unreachable");
+  const original = new IntegrationError("old T3", { system: "t3", kind: "protocol" });
+  port.scheduledTasksError = original;
+  await assert.rejects(automations.list(), (error) => error === original);
 });

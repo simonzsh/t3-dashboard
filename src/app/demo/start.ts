@@ -46,7 +46,7 @@ export async function startDemo(env: Record<string, string | undefined>): Promis
       hub.broadcast({ type: "modelDefaults", data: defaults });
     },
   });
-  const getState = () => store.state(live.connection(), providers, true, DEMO_ENVIRONMENT_ID, modelDefaults);
+  const getState = () => store.state(live.connection(), providers, DEMO_ENVIRONMENT_ID, modelDefaults);
 
   // The Linear key lives in memory, so the settings tab can connect and disconnect.
   const files = new Map([["linear.json", JSON.stringify({ apiKey: "lin_api_demo0000" })]]);

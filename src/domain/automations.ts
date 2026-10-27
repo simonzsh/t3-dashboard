@@ -1,89 +1,119 @@
-import { basename, dirname } from "node:path";
-import { Cron } from "croner";
-import type { Automation, AutomationsResult, BrainStatus } from "../../shared/api.ts";
-import { cronLabel } from "./cronLabel.ts";
-import { loadBrains, readWorkspace, type Brain, type Workspace } from "../integrations/t3-agent/files.ts";
-import type { Job } from "../integrations/t3-agent/schemas.ts";
+import type { Automation, AutomationRequestBody, AutomationRunStatus, AutomationsResult } from "../../shared/api.ts";
+import { IntegrationError } from "../integrations/errors.ts";
+import type { RawScheduledTask, RawThread, T3Port } from "../integrations/t3/schemas.ts";
+import type { Actions } from "./actions.ts";
+import { DomainError } from "./errors.ts";
+import { scheduleLabel } from "./scheduleLabel.ts";
+import type { ShellStore } from "./shellStore.ts";
+
+const REMINDER_PREFIX = /^\s*(?:reminder|rappel)\s*:\s*/i;
+const TITLE_MAX = 60;
+const RUN_STATUSES = new Set<string>(["running", "succeeded", "failed"] satisfies AutomationRunStatus[]);
+
+const stamp = (iso: string | null | undefined): number => (iso ? Date.parse(iso) : NaN);
+
+// T3 puts no task id on a run thread: the project, title, origin and creation time tie it to its task.
+function runThreads(task: RawScheduledTask, threads: RawThread[]): RawThread[] {
+  const since = stamp(task.createdAt);
+  return threads
+    .filter((thread) => thread.projectId === task.projectId && thread.title === task.title && thread.creationSource === task.creationSource && stamp(thread.createdAt) >= since)
+    .sort((a, b) => stamp(b.createdAt) - stamp(a.createdAt));
+}
+
+/** The tasks of T3 as rows, plus the threads the Agents grid leaves out. */
+export function toAutomations(tasks: RawScheduledTask[], threads: RawThread[], dedicated: ReadonlySet<string>, projectTitle: (id: string) => string | null): AutomationsResult {
+  const hidden = new Set<string>();
+  const automations = tasks.map((task): Automation => {
+    let threadId = task.threadId ?? null;
+    if (threadId === null) {
+      const runs = runThreads(task, threads);
+      for (const run of runs) hidden.add(run.id);
+      threadId = runs[0]?.id ?? null;
+    } else if (dedicated.has(threadId)) {
+      hidden.add(threadId);
+    }
+    const title = task.title ?? "";
+    const reminder = REMINDER_PREFIX.test(title);
+    return {
+      id: task.id,
+      kind: reminder ? "reminder" : "routine",
+      title: reminder ? title.replace(REMINDER_PREFIX, "") : title,
+      projectId: task.projectId ?? "",
+      project: (task.projectId && projectTitle(task.projectId)) || "No project",
+      scheduleLabel: scheduleLabel(task.schedule),
+      enabled: task.enabled !== false,
+      nextRunAt: task.nextRunAt ?? null,
+      lastRunAt: task.lastRunAt ?? null,
+      lastRunStatus: task.lastRunStatus && RUN_STATUSES.has(task.lastRunStatus) ? (task.lastRunStatus as AutomationRunStatus) : null,
+      lastRunError: task.lastRunError ?? null,
+      threadId,
+      model: task.modelSelection?.model ?? null,
+    };
+  });
+  return { automations, hiddenThreadIds: [...hidden] };
+}
+
+/** The message that asks an agent to create the scheduled task; French like the rest of the agent prompts. */
+export function automationPrompt(request: string): string {
+  return `Crée une tâche planifiée T3 Code avec l'outil schedule_task pour cette demande :
+
+${request.trim()}
+
+Règles :
+- Lie la tâche à ce fil (bindToCurrentThread: true) : chaque passage revient ici.
+- Demande ponctuelle (une seule fois) = rappel : le titre commence par "Reminder: ", schedule fixed_time ou interval pour l'heure voulue, et le prompt de la tâche finit par « Ensuite, supprime cette tâche planifiée avec delete_scheduled_task (id <id>). » Après la création, mets le vrai id dans le prompt avec update_scheduled_task.
+- Sinon c'est une routine : titre court, sans préfixe "Reminder:".
+- Le prompt de la tâche se suffit à lui-même : il dit quoi faire à chaque passage.
+- Réponds en une ligne : la cadence et le prochain passage (nextRunAt).`;
+}
+
+function titleFromRequest(text: string): string {
+  const line = text.split("\n").map((l) => l.trim()).find((l) => l !== "") ?? "";
+  return line.length > TITLE_MAX ? `${line.slice(0, TITLE_MAX - 1).trimEnd()}…` : line;
+}
 
 export interface AutomationsOptions {
-  configDir: string;
-  now: () => Date;
-  projectTitle: (projectId: string) => string | null;
+  port: Pick<T3Port, "listScheduledTasks">;
+  store: Pick<ShellStore, "project" | "rawThreads">;
+  /** The threads the Agents page created for a scheduled task. */
+  dedicated: { read(): ReadonlySet<string>; add(threadId: string): void };
+  createThread: Actions["createThread"];
+  warn?: (message: string) => void;
 }
 
-const MAX_TITLE = 80;
-// t3-agent keeps a due reminder up to 24 h while its thread is busy (REMINDER_WAIT_LIMIT_HOURS).
-const PAST_REMINDER_MS = 24 * 3_600_000;
-
-const text = (value: string | undefined): string | null => (value !== undefined && value.trim() !== "" ? value : null);
-
-function toAutomation(id: string, job: Job, brain: string, state: Workspace, now: Date): Automation | null {
-  const { schedule = {}, target = {}, engine = {} } = job;
-  const threadEntry = state.threads[id] ?? {};
-  const lastRunAt = text(state.runs[id]);
-  const title = text(target.newThread) ?? text(job.prompt)?.trim().split("\n")[0]?.trim().slice(0, MAX_TITLE) ?? id;
-  const model = text(engine.model) ?? text(threadEntry.engine?.model);
-  const common = { id, brain, title, model };
-
-  const cron = text(schedule.cron);
-  if (cron) {
-    const timeZone = text(schedule.timeZone) ?? Intl.DateTimeFormat().resolvedOptions().timeZone;
-    // Invalid schedules throw: the caller counts the job as a problem. A null result is a past reminder.
-    const next = new Cron(cron, { timezone: timeZone }).nextRun(now);
-    return {
-      ...common,
-      kind: "routine",
-      schedule: { kind: "cron", cron, timeZone, label: cronLabel(cron) },
-      nextRunAt: next?.toISOString() ?? null,
-      threadId: text(threadEntry.threadId),
-    };
-  }
-
-  const at = text(schedule.at);
-  const atMs = at ? Date.parse(at) : NaN;
-  // Like t3-agent, a date without a time is not a valid moment.
-  if (!at || !at.includes("T") || Number.isNaN(atMs)) throw new Error("Invalid schedule");
-  if (lastRunAt || atMs < now.getTime() - PAST_REMINDER_MS) return null;
-  return { ...common, kind: "reminder", schedule: { kind: "once", at }, nextRunAt: at, threadId: text(target.thread) };
+export interface Automations {
+  list(): Promise<AutomationsResult>;
+  /** Starts a thread that asks an agent to schedule the request; returns its id. */
+  request(body: AutomationRequestBody): Promise<string>;
 }
 
-function readBrain(brain: Brain, options: AutomationsOptions): { status: BrainStatus; automations: Automation[] } {
-  const { workspace } = brain;
-  const fallback = workspace ? basename(dirname(workspace)) : brain.name;
-  const name = (brain.projectId && options.projectTitle(brain.projectId)) || fallback;
-  const files = workspace ? readWorkspace(workspace) : null;
-  if (!files) {
-    return { status: { name, ok: false, error: brain.error ?? "Brain folder not found", problems: 0 }, automations: [] };
-  }
-  const now = options.now();
-  let problems = 0;
-  const automations: Automation[] = [];
-  for (const { id, job } of files.jobs) {
-    if (!job) {
-      problems++;
-      continue;
-    }
-    try {
-      const item = toAutomation(id, job, name, files, now);
-      if (item) automations.push(item);
-    } catch {
-      problems++;
-    }
-  }
-  return { status: { name, ok: true, error: null, problems }, automations };
-}
+export function createAutomations(options: AutomationsOptions): Automations {
+  const { port, store, dedicated, createThread } = options;
+  const warn = options.warn ?? console.warn;
 
-export function readAutomations(options: AutomationsOptions): AutomationsResult {
-  const results = loadBrains(options.configDir).map((brain) => {
-    try {
-      return readBrain(brain, options);
-    } catch {
-      // One unreadable brain folder must not hide the others.
-      return { status: { name: brain.name, ok: false, error: "Brain folder unreadable", problems: 0 }, automations: [] };
-    }
-  });
   return {
-    automations: results.flatMap((result) => result.automations),
-    brains: results.map((result) => result.status),
+    async list() {
+      let tasks: RawScheduledTask[];
+      try {
+        tasks = await port.listScheduledTasks();
+      } catch (error) {
+        if (error instanceof IntegrationError) throw error;
+        throw new IntegrationError((error as Error).message, { system: "t3", kind: "unreachable" });
+      }
+      return toAutomations(tasks, store.rawThreads(), dedicated.read(), (id) => store.project(id)?.title || null);
+    },
+
+    async request({ text, projectId, modelSelection, runtimeMode }) {
+      const request = text.trim();
+      if (request === "") throw new DomainError("invalid", "Write what to schedule");
+      const threadId = await createThread({ projectId, title: titleFromRequest(request), text: automationPrompt(request), modelSelection, ...(runtimeMode && { runtimeMode }) }, []);
+      try {
+        dedicated.add(threadId);
+      } catch (error) {
+        // The thread exists: only the grid rule is lost, so the request still succeeds.
+        warn(`Could not record the automation thread: ${(error as Error).message}`);
+      }
+      return threadId;
+    },
   };
 }

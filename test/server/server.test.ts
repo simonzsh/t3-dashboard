@@ -89,7 +89,7 @@ async function start(startOptions: StartOptions = {}) {
     onThreads: (diff) => hub.broadcast({ type: "threads", data: diff }),
     onProjects: (diff) => hub.broadcast({ type: "projects", data: diff }),
   });
-  const getState = (): DashboardState => store.state(connection, [], true);
+  const getState = (): DashboardState => store.state(connection, []);
   store.beginSync();
   store.apply([
     {

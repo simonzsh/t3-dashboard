@@ -1,26 +1,30 @@
-// t3-agent routines and reminders.
+// T3 Code scheduled tasks, as the Agents page shows them.
 
-export type AutomationSchedule = { kind: "cron"; cron: string; timeZone: string; label: string } | { kind: "once"; at: string };
+export type AutomationRunStatus = "running" | "succeeded" | "failed";
 
 export interface Automation {
+  /** The T3 scheduled task id. */
   id: string;
-  brain: string;
   kind: "routine" | "reminder";
+  /** Without the "Reminder:" prefix. */
   title: string;
-  schedule: AutomationSchedule;
+  projectId: string;
+  /** "No project" when T3 has none. */
+  project: string;
+  /** "Every 15 min", "Weekdays 9:00", "Webhook"... */
+  scheduleLabel: string;
+  enabled: boolean;
   nextRunAt: string | null;
+  lastRunAt: string | null;
+  lastRunStatus: AutomationRunStatus | null;
+  lastRunError: string | null;
+  /** The bound thread, else the newest run thread, else null. */
   threadId: string | null;
   model: string | null;
 }
 
-export interface BrainStatus {
-  name: string;
-  ok: boolean;
-  error: string | null;
-  problems: number;
-}
-
 export interface AutomationsResult {
   automations: Automation[];
-  brains: BrainStatus[];
+  /** Threads the Agents grid leaves out: dedicated bound threads and runs of unbound tasks. */
+  hiddenThreadIds: string[];
 }

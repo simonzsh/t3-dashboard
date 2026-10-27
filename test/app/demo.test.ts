@@ -32,7 +32,7 @@ test("the demo shell fills the store with threads in every state", async () => {
   const port = new DemoPort(() => NOW);
   const store = syncedStore(port);
   await Bun.sleep(0);
-  const state = store.state({ t3: "live", serverVersion: null, protocolMismatch: false, error: null, setup: null }, [], true);
+  const state = store.state({ t3: "live", serverVersion: null, protocolMismatch: false, error: null, setup: null }, []);
   assert.equal(state.projects.length, demoFixtures(NOW).projects.length);
   assert.ok(state.threads.length >= 8);
   const statuses = new Set(state.threads.map(agentStatus));
@@ -45,7 +45,7 @@ test("demo thread details show messages, activity, subagents and requests", asyn
   const store = syncedStore(port);
   await Bun.sleep(0);
   const actions = createActions({ port, store, board: { get: async () => ({ configured: true, ok: true, error: null, issues: [] }) } });
-  const details = await Promise.all(store.state({ t3: "live", serverVersion: null, protocolMismatch: false, error: null, setup: null }, [], true).threads.map((thread) => actions.threadDetail(thread.id)));
+  const details = await Promise.all(store.state({ t3: "live", serverVersion: null, protocolMismatch: false, error: null, setup: null }, []).threads.map((thread) => actions.threadDetail(thread.id)));
   assert.ok(details.every((detail) => detail.messages.length > 0));
   assert.ok(details.some((detail) => (detail.activity?.items.length ?? 0) > 0 && detail.subagents.length >= 2));
   assert.deepEqual(details.flatMap((detail) => detail.pendingRequests.map((request) => request.category)).sort(), ["approval", "user-input"]);
@@ -112,7 +112,7 @@ test("stopping the running demo subagent turns it failed", async () => {
   const store = syncedStore(port);
   await Bun.sleep(0);
   const actions = createActions({ port, store, board: { get: async () => ({ configured: true, ok: true, error: null, issues: [] }) } });
-  const threadId = store.state({ t3: "live", serverVersion: null, protocolMismatch: false, error: null, setup: null }, [], true).threads.find((thread) => thread.title.includes("heckout"))!.id;
+  const threadId = store.state({ t3: "live", serverVersion: null, protocolMismatch: false, error: null, setup: null }, []).threads.find((thread) => thread.title.includes("heckout"))!.id;
   const before = (await actions.threadDetail(threadId)).subagents.find((s) => s.stop === "subagent")!;
   await actions.stopSubagent(threadId, before.id);
   const after = (await actions.threadDetail(threadId)).subagents.find((s) => s.id === before.id)!;

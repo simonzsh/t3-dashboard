@@ -16,6 +16,15 @@ export interface CreateThreadBody {
   attachments?: ImageAttachment[];
 }
 
+export interface AutomationRequestBody {
+  /** 1 to 2000 characters once trimmed. */
+  text: string;
+  /** Empty: T3's "No project". */
+  projectId: string;
+  modelSelection: ModelSelection;
+  runtimeMode?: RuntimeMode;
+}
+
 export interface ImageAttachment {
   name: string;
   mimeType: string;

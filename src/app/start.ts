@@ -101,7 +101,7 @@ export async function start({ port, log, env }: StartOptions): Promise<void> {
     },
   });
   const brainsDir = agentConfigDir(env, home);
-  const getState = () => store.state(live.connection(), providers, loadBrains(brainsDir).length > 0, readEnvironmentId(environmentId, readText), modelDefaults);
+  const getState = () => store.state(live.connection(), providers, readEnvironmentId(environmentId, readText), modelDefaults);
 
   const linearPath = linearFile(env, home);
   const board = new LinearBoard({

@@ -54,7 +54,7 @@ export class ShellStore {
     this.flush();
   }
 
-  state(connection: ConnectionStatus, providers: DashboardProvider[], automationsAvailable: boolean, t3EnvironmentId: string | null = null, modelDefaults: ModelDefaults = NO_MODEL_DEFAULTS): DashboardState {
+  state(connection: ConnectionStatus, providers: DashboardProvider[], t3EnvironmentId: string | null = null, modelDefaults: ModelDefaults = NO_MODEL_DEFAULTS): DashboardState {
     const threads = [...this.derived.values()].sort((a, b) => Date.parse(b.lastActivityAt) - Date.parse(a.lastActivityAt));
     return {
       connection,
@@ -62,9 +62,13 @@ export class ShellStore {
       providers,
       modelDefaults,
       threads,
-      automationsAvailable,
       t3EnvironmentId,
     };
+  }
+
+  /** Live threads as T3 sent them, for matching scheduled tasks. */
+  rawThreads(): RawThread[] {
+    return [...this.live.threads.values()];
   }
 
   backgroundTasks(id: string): RawBackgroundTask[] {
