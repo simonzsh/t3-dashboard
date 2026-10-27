@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import type { DashboardModel, DashboardProvider, ImageAttachment, ModelSelection, RuntimeMode, ThreadSettingsBody } from "../../../../shared/api.ts";
 import { IMAGE_TYPES } from "../../../../shared/limits.ts";
-import { RUNTIME_MODE_LABELS, acceptImages, currentEffort, findModel, selectEffort, selectModel } from "./composer.ts";
+import { RUNTIME_MODE_LABELS, acceptImages, currentEffort, findModel, isSendKey, selectEffort, selectModel } from "./composer.ts";
 import type { DropdownOption } from "../../lib/dropdown.ts";
 import { Dropdown, FileInput, Icon, IconButton, Pressable, TextArea } from "../../ui/index.ts";
 import { ProviderIcon } from "../../lib/ProviderIcon.tsx";
@@ -163,8 +163,7 @@ export function Composer({ providers, selection, runtimeMode, running, stoppable
           onChange={(e) => onDraft(e.target.value)}
           enterKeyHint={touch ? "enter" : "send"}
           onKeyDown={(e) => {
-            // Touch keyboards have no Shift+Enter: there Enter adds a line and the button sends.
-            if (e.key === "Enter" && !e.shiftKey && !touch && !e.nativeEvent.isComposing) {
+            if (isSendKey({ key: e.key, shiftKey: e.shiftKey, isComposing: e.nativeEvent.isComposing }, touch)) {
               e.preventDefault();
               void submit();
             }

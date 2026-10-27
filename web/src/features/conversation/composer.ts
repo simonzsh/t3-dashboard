@@ -11,6 +11,11 @@ export const RUNTIME_MODE_LABELS: Record<RuntimeMode, { label: string; descripti
   "full-access": { label: "Full access", description: "Allow commands and edits without prompts." },
 };
 
+// Touch keyboards have no Shift+Enter: there Enter adds a line and the button sends.
+export function isSendKey(e: { key: string; shiftKey: boolean; isComposing: boolean }, touch: boolean): boolean {
+  return e.key === "Enter" && !e.shiftKey && !touch && !e.isComposing;
+}
+
 export function findModel(providers: DashboardProvider[], selection: ModelSelection | null): { provider: DashboardProvider; model: DashboardModel } | null {
   const provider = selection ? providers.find((p) => p.instanceId === selection.instanceId) : undefined;
   const model = provider?.models.find((m) => m.slug === selection?.model);

@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { test } from "bun:test";
 import type { DashboardProvider } from "../../../../shared/api.ts";
 import { MAX_IMAGE_BYTES, MAX_IMAGES } from "../../../../shared/limits.ts";
-import { MAX_TOTAL_BYTES, acceptImages, currentEffort, findModel, selectEffort, selectModel } from "../../../src/features/conversation/composer.ts";
+import { MAX_TOTAL_BYTES, acceptImages, currentEffort, findModel, isSendKey, selectEffort, selectModel } from "../../../src/features/conversation/composer.ts";
 
 const effort = (optionId: string, ids: string[], defaultLevel: string | null) => ({ optionId, levels: ids.map((id) => ({ id, label: id.toUpperCase() })), defaultLevel });
 const providers: DashboardProvider[] = [
@@ -62,4 +62,13 @@ test("acceptImages takes PNG, JPEG, GIF and WebP up to the limits", () => {
   const heavy = acceptImages([{ size: MAX_TOTAL_BYTES - 5 }], [file("a.png", "image/png", 4), file("b.png", "image/png", 4)]);
   assert.deepEqual(heavy.accepted.map((f) => f.name), ["a.png"]);
   assert.ok(heavy.error);
+});
+
+test("isSendKey: Enter sends, Shift+Enter, composition and touch keyboards do not", () => {
+  const key = { key: "Enter", shiftKey: false, isComposing: false };
+  assert.equal(isSendKey(key, false), true);
+  assert.equal(isSendKey({ ...key, shiftKey: true }, false), false);
+  assert.equal(isSendKey({ ...key, isComposing: true }, false), false);
+  assert.equal(isSendKey(key, true), false);
+  assert.equal(isSendKey({ ...key, key: "a" }, false), false);
 });
