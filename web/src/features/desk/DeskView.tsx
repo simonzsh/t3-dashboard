@@ -1,12 +1,13 @@
-import { useEffect, useMemo, useRef, type Dispatch, type MouseEvent, type ReactNode } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, type Dispatch, type MouseEvent, type ReactNode, type TouchEvent } from "react";
 import { Cell, Grid, Gridline, useGridRef, type GridLayout } from "react-resizable-panels";
 import type { DashboardProject, DashboardProvider, DashboardThread } from "../../../../shared/api.ts";
 import { threadState } from "../../../../shared/status.ts";
 import { threadTitle } from "../../lib/threads.ts";
 import type { DeskBackground } from "./deskBackground.ts";
-import { cellOf, deskLayout, equalSizes, gridWindows, sizesFor, type DeskAction, type DeskState, type DeskWindow as Win } from "./desk.ts";
-import { Icon, IconButton, Kbd, Pressable, useFlip } from "../../ui/index.ts";
+import { cellOf, deskLayout, equalSizes, gridWindows, sizesFor, stepId, type DeskAction, type DeskState, type DeskWindow as Win } from "./desk.ts";
+import { enter, Icon, IconButton, Kbd, Pressable, useFlip } from "../../ui/index.ts";
 import { useMediaQuery } from "../../lib/useMediaQuery.ts";
+import { swipeDirection } from "../../lib/swipe.ts";
 import { DeskWindow } from "./DeskWindow.tsx";
 import { ProviderIcon } from "../../lib/ProviderIcon.tsx";
 
@@ -72,6 +73,51 @@ function DeskGrid({ windows, desk, dispatch, render }: { windows: Win[]; desk: D
   );
 }
 
+/** A drag that starts in text or in a block that scrolls sideways (code, tables) is not a window swipe. */
+function startsInHorizontalScroll(target: EventTarget | null, boundary: Element): boolean {
+  for (let el = target instanceof Element ? target : null; el && el !== boundary; el = el.parentElement) {
+    if (el.matches("textarea, input, [contenteditable]")) return true;
+    if (el.scrollWidth > el.clientWidth && /auto|scroll/.test(getComputedStyle(el).overflowX)) return true;
+  }
+  return false;
+}
+
+/** On a phone, a horizontal swipe moves to the next or previous window; the new one slides in from its side. */
+function useWindowSwipe(enabled: boolean, windows: readonly Win[], activeId: string, dispatch: Dispatch<DeskAction>) {
+  const area = useRef<HTMLDivElement>(null);
+  const start = useRef<{ x: number; y: number } | null>(null);
+  const shown = useRef(activeId);
+  const from = useRef<1 | -1>(1);
+  useLayoutEffect(() => {
+    if (shown.current === activeId) return;
+    shown.current = activeId;
+    const el = area.current?.firstElementChild;
+    if (el) enter(el, { x: from.current * 32, duration: 200 });
+  }, [activeId]);
+  if (!enabled) return { area, swipe: {} };
+  const swipe = {
+    onTouchStart: (e: TouchEvent<HTMLDivElement>) => {
+      const t = e.touches[0];
+      start.current = e.touches.length === 1 && t && !startsInHorizontalScroll(e.target, e.currentTarget) ? { x: t.clientX, y: t.clientY } : null;
+    },
+    onTouchEnd: (e: TouchEvent<HTMLDivElement>) => {
+      const origin = start.current;
+      const t = e.changedTouches[0];
+      start.current = null;
+      if (!origin || !t) return;
+      const dir = swipeDirection(t.clientX - origin.x, t.clientY - origin.y);
+      if (!dir) return;
+      // Swiping left pulls the next window in from the right.
+      const step = dir === "left" ? 1 : -1;
+      const id = stepId(windows, activeId, step);
+      if (!id) return;
+      from.current = step;
+      dispatch({ type: "restore", id });
+    },
+  };
+  return { area, swipe };
+}
+
 export function DeskView({ desk, dispatch, threads, projects, background, t3EnvironmentId, providers }: Props) {
   const narrow = useMediaQuery("(max-width: 899px)");
   const byId = useMemo(() => new Map(threads.map((t) => [t.id, t])), [threads]);
@@ -82,6 +128,9 @@ export function DeskView({ desk, dispatch, threads, projects, background, t3Envi
   const visible = gridWindows(desk);
   // Windows slide, open, close and fly to the dock when the grid changes; the narrow view swaps tabs without motion.
   useFlip(root, `${narrow}|${visible.map((w) => w.id).join(",")}|${desk.maximizedId}`, { item: "data-desk-window", origin: "data-desk-chip", enabled: !narrow });
+
+  const activeId = (desk.windows.find((w) => w.id === desk.focusedId) ?? desk.windows[0])?.id ?? "";
+  const { area, swipe } = useWindowSwipe(narrow, desk.windows, activeId, dispatch);
 
   const bgClass = background.kind === "preset" ? ` desk-bg-${background.id} has-bg` : background.kind === "image" ? " has-bg" : "";
   const bgStyle = background.kind === "image" ? { backgroundImage: `url("${background.dataUrl}")` } : undefined;
@@ -147,13 +196,15 @@ export function DeskView({ desk, dispatch, threads, projects, background, t3Envi
   };
 
   if (narrow) {
-    const active = desk.windows.find((w) => w.id === desk.focusedId) ?? desk.windows[0]!;
+    const active = desk.windows.find((w) => w.id === activeId)!;
     return (
       <div ref={root} className={`desk compact${bgClass}`} style={bgStyle}>
         <nav className="desk-tabs" aria-label="Desk windows">
           {desk.windows.map((w) => chip(w, w.id === active.id))}
         </nav>
-        <div className="desk-area">{renderWindow(active, true)}</div>
+        <div ref={area} className="desk-area" {...swipe}>
+          {renderWindow(active, true)}
+        </div>
       </div>
     );
   }

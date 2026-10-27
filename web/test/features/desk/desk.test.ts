@@ -14,6 +14,7 @@ import {
   parseDesk,
   saveDesk,
   sizesFor,
+  stepId,
   type DeskState,
 } from "../../../src/features/desk/desk.ts";
 import { memoryStore } from "../../fixtures.ts";
@@ -204,4 +205,13 @@ test("neighborId wraps left and right and moves by rows up and down", () => {
   assert.equal(neighborId(at("c"), "down"), null);
   assert.equal(neighborId(at("a"), "up"), null);
   assert.equal(neighborId(EMPTY_DESK, "right"), null);
+});
+
+test("stepId moves along the opening order and stops at both ends", () => {
+  const s = open(EMPTY_DESK, "a", "b", "c");
+  assert.equal(stepId(s.windows, "b", 1), "c");
+  assert.equal(stepId(s.windows, "b", -1), "a");
+  assert.equal(stepId(s.windows, "c", 1), null);
+  assert.equal(stepId(s.windows, "a", -1), null);
+  assert.equal(stepId(s.windows, "x", 1), null);
 });
