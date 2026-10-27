@@ -75,9 +75,9 @@ function exit(source: Element, from: Rect): Animation | null {
 }
 
 /** Fades the element in from a slight offset or scale: dialogs, menus, new windows. */
-export function enter(el: Element, { y = 0, scale = 1, duration = BASE, spring = false }: { y?: number; scale?: number; duration?: number; spring?: boolean } = {}): Animation | null {
+export function enter(el: Element, { x = 0, y = 0, scale = 1, duration = BASE, spring = false }: { x?: number; y?: number; scale?: number; duration?: number; spring?: boolean } = {}): Animation | null {
   if (reducedMotion()) return null;
-  const from = { opacity: 0, translate: `0 ${y}px`, scale: `${scale}` };
+  const from = { opacity: 0, translate: `${x}px ${y}px`, scale: `${scale}` };
   const rest = { opacity: 1, translate: "0 0", scale: "1" };
   // The spring overshoots once, then settles: a visible bounce, not a wobble.
   const frames = spring
