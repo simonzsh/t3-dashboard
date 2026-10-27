@@ -555,6 +555,8 @@ button.auto-row:hover { transform: translateY(-1px); }
   .tabs { flex: 1; min-width: 0; gap: 2px; }
   .tabs button { flex: 1; justify-content: center; padding: 9px 6px; font-size: 13px; }
   .topbar h1, .conn-label { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+  /* 40px actions: an easy target for the thumb. */
+  .topbar-right .icon-button { min-width: 40px; height: 40px; }
   .topbar-right > button.primary { padding: 0; }
   .topbar-right button.update-pill { padding: 0; }
   .kanban { flex: none; flex-direction: column; overflow-x: visible; }
