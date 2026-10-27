@@ -1,12 +1,15 @@
 import type { Automation, AutomationsResult, DashboardProject, DashboardProvider, DashboardThread, ModelDefaults } from "../../../../shared/api.ts";
+import { useState } from "react";
 import { lastRunState, nextLabel, reminderDate, splitAutomations } from "./automations.ts";
-import { Loader, Pressable } from "../../ui/index.ts";
-import { AutomationRequest } from "./AutomationRequest.tsx";
+import { Button, Loader, Pressable } from "../../ui/index.ts";
+import { AutomationDialog } from "./AutomationDialog.tsx";
 
 interface Props {
   result: AutomationsResult | null;
   error: string | null;
   threads: DashboardThread[];
+  /** Threads whose agent is still setting a task up. */
+  setup: DashboardThread[];
   now: Date;
   projects: DashboardProject[];
   providers: DashboardProvider[];
@@ -48,7 +51,25 @@ function Row({ a, thread, now, onOpen }: { a: Automation; thread: DashboardThrea
   );
 }
 
-export function AutomationsColumn({ result, error, threads, now, projects, providers, defaults, onOpen, onSent }: Props) {
+function SetupRow({ thread, onOpen }: { thread: DashboardThread; onOpen: (id: string, addOnly: boolean) => void }) {
+  const waiting = thread.pending !== null;
+  return (
+    <li>
+      <Pressable className="auto-row" onClick={(e) => onOpen(thread.id, e.shiftKey)}>
+        <span className="auto-main">
+          <span className="auto-title">{thread.title}</span>
+          <span className="auto-sub">Setting up</span>
+        </span>
+        <span className="auto-side">
+          <span className={`auto-state ${waiting ? "waiting" : "running"}`}>{waiting ? "● waiting for your reply" : "● running"}</span>
+        </span>
+      </Pressable>
+    </li>
+  );
+}
+
+export function AutomationsColumn({ result, error, threads, setup, now, projects, providers, defaults, onOpen, onSent }: Props) {
+  const [creating, setCreating] = useState(false);
   const byId = new Map(threads.map((t) => [t.id, t]));
   const { routines, reminders } = splitAutomations(result?.automations ?? []);
   const section = (title: string, rows: Automation[], empty: string) => (
@@ -69,8 +90,20 @@ export function AutomationsColumn({ result, error, threads, now, projects, provi
   );
   return (
     <aside className="automations" aria-label="Automations">
-      <h2 className="auto-heading">Automations</h2>
-      <AutomationRequest projects={projects} providers={providers} defaults={defaults} onOpen={onOpen} onSent={onSent} />
+      <div className="auto-head">
+        <h2 className="auto-heading">Automations</h2>
+        <Button size="sm" onClick={() => setCreating(true)}>
+          Create
+        </Button>
+      </div>
+      {creating && <AutomationDialog projects={projects} providers={providers} defaults={defaults} onClose={() => setCreating(false)} onSent={onSent} />}
+      {setup.length > 0 && (
+        <ul className="auto-list">
+          {setup.map((t) => (
+            <SetupRow key={t.id} thread={t} onOpen={onOpen} />
+          ))}
+        </ul>
+      )}
       {error && <p className="notice error-notice">{error}</p>}
       {!result && !error ? (
         <Loader />

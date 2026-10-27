@@ -2,7 +2,7 @@ import { useMemo, useState, type ReactNode } from "react";
 import type { AutomationsResult, DashboardState } from "../../../../shared/api.ts";
 import { agentStatus } from "../../../../shared/status.ts";
 import { groupAgents } from "../../lib/threads.ts";
-import { excludeRoutineThreads } from "./automations.ts";
+import { excludeRoutineThreads, setupThreads } from "./automations.ts";
 import { AgentCard } from "./AgentCard.tsx";
 import { AutomationsColumn } from "./AutomationsColumn.tsx";
 import { ProjectIcon } from "../../lib/ProjectIcon.tsx";
@@ -39,9 +39,10 @@ function RecentlySettled({ count, children }: { count: number; children: ReactNo
 export function AgentsView({ state, now, deskIds, onOpen, onToggleDesk, onSettle, onSwitcher, automations, automationsError, onAutomationSent }: Props) {
   const scrolled = useScrolled();
   const hiddenIds = automations?.hiddenThreadIds;
+  const setup = useMemo(() => setupThreads(state.threads, automations?.setupThreadIds ?? []), [state.threads, automations?.setupThreadIds]);
   const groups = useMemo(
-    () => groupAgents(excludeRoutineThreads(state.threads, hiddenIds ?? []), state.projects, now),
-    [state.threads, state.projects, hiddenIds, now],
+    () => groupAgents(excludeRoutineThreads(state.threads, [...(hiddenIds ?? []), ...setup.map((t) => t.id)]), state.projects, now),
+    [state.threads, state.projects, hiddenIds, setup, now],
   );
   // Before the first automations answer, routine threads would flash in the grid.
   const available = state.connection.t3 === "live";
@@ -100,7 +101,7 @@ export function AgentsView({ state, now, deskIds, onOpen, onToggleDesk, onSettle
       </div>
       <div className={`agents-layout${available ? "" : " wide"}`}>
         {agents}
-        {available && <AutomationsColumn result={automations} error={automationsError} threads={state.threads} now={now} projects={state.projects} providers={state.providers} defaults={state.modelDefaults} onOpen={onOpen} onSent={onAutomationSent} />}
+        {available && <AutomationsColumn result={automations} error={automationsError} threads={state.threads} setup={setup} now={now} projects={state.projects} providers={state.providers} defaults={state.modelDefaults} onOpen={onOpen} onSent={onAutomationSent} />}
       </div>
     </div>
   );

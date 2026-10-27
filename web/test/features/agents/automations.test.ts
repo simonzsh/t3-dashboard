@@ -95,7 +95,7 @@ test("setupThreads keeps the setup threads that are active or waiting, in the gi
     thread("t-chat"),
     thread("t-run", { status: "running" }),
     thread("t-idle"),
-    thread("t-ask", { pending: { kind: "approval" } as DashboardThread["pending"] }),
+    thread("t-ask", { pending: { category: "approval" } }),
   ];
   assert.deepEqual(setupThreads(threads, ["t-idle", "t-run", "t-ask", "t-gone"]).map((t) => t.id), ["t-run", "t-ask"]);
   assert.deepEqual(setupThreads(threads, []), []);

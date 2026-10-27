@@ -93,15 +93,18 @@ La colonne de droite de l'onglet Agents liste les tâches planifiées de T3 Code
 
 ### Créer un rappel ou une routine
 
-1. Écrivez la demande dans le champ « New reminder or routine… » en haut de la colonne. Exemple : « Chaque jour ouvré à 9 h, résume mes tickets Linear ».
-2. Choisissez un projet, ou laissez « No project ». Le dashboard garde ce choix pour la fois suivante.
-3. Appuyez sur Entrée, ou cliquez sur « Add ».
+1. Cliquez sur « Create » dans l'en-tête de la colonne. Une fenêtre s'ouvre.
+2. Écrivez la demande dans la zone de texte. Exemple : « Chaque jour ouvré à 9 h, résume mes tickets Linear ». Elle peut avoir plusieurs lignes.
+3. Choisissez un projet, ou laissez « No project ». Le dashboard garde ce choix pour la fois suivante.
+4. Cliquez sur « Create » dans la fenêtre.
 
-Le dashboard crée un fil avec le modèle par défaut du projet. Ce fil demande à l'agent de créer la tâche avec l'outil `schedule_task` de T3 Code. La ligne apparaît dans la colonne après la création. Le bouton « Open » ouvre le fil.
+Le dashboard crée un fil avec le modèle par défaut du projet. Ce fil demande à l'agent de créer la tâche avec l'outil `schedule_task` de T3 Code. La fenêtre se ferme. En cas d'erreur, elle reste ouverte et montre l'erreur.
 
 - Une demande ponctuelle devient un rappel. L'agent met le préfixe « Reminder: » au titre. À la fin, il supprime la tâche.
 - Une demande répétée devient une routine.
-- Le fil créé par le champ reste dans la grille tant que l'agent prépare la tâche. Quand la tâche existe, le fil sort de la grille et s'ouvre depuis la colonne. Quand un rappel a passé et que sa tâche est supprimée, le fil revient dans la grille avec le résultat.
+- Le fil créé par la fenêtre n'est pas dans la grille tant que l'agent prépare la tâche. Il apparaît en haut de la colonne, sur une ligne « running » ou « waiting for your reply ». Un clic sur la ligne ouvre le fil.
+- Quand la tâche existe, la ligne devient celle de la tâche. Le fil s'ouvre depuis cette ligne.
+- Si le fil est inactif et sans tâche (création échouée, ou rappel passé et tâche supprimée), il revient dans la grille avec le résultat.
 - Le dashboard garde la liste de ces fils dans `~/.config/t3-dashboard/automation-threads.json`.
 
 ### Depuis une conversation

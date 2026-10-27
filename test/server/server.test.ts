@@ -42,7 +42,7 @@ interface StartOptions {
 const LINEAR_FILE = "/cfg/linear.json";
 
 async function start(startOptions: StartOptions = {}) {
-  const { site = { serve: async () => null }, linearKey = "", linearFetch, automations = { list: async () => ({ automations: [], hiddenThreadIds: [] }), request: async () => "thread-x" } } = startOptions;
+  const { site = { serve: async () => null }, linearKey = "", linearFetch, automations = { list: async () => ({ automations: [], hiddenThreadIds: [], setupThreadIds: [] }), request: async () => "thread-x" } } = startOptions;
   const linearCalls: string[] = [];
   const files: Record<string, string> = startOptions.linear === undefined ? {} : { [LINEAR_FILE]: JSON.stringify(startOptions.linear) };
   const readFile = (path: string) => {
@@ -640,7 +640,7 @@ test("assign answers 502 when Linear fails and when T3 fails", async () => {
 
 test("GET /api/automations returns the automations listed at each call", async () => {
   let calls = 0;
-  const result: AutomationsResult = { automations: [], hiddenThreadIds: ["thread-1"] };
+  const result: AutomationsResult = { automations: [], hiddenThreadIds: ["thread-1"], setupThreadIds: ["thread-2"] };
   const { server } = await start({ automations: { list: async () => (calls++, result), request: async () => "" } });
   const first = await call(server, "GET", "/api/automations");
   assert.equal(first.status, 200);
@@ -661,7 +661,7 @@ test("an automations failure gives 502", async () => {
 
 test("POST /api/automations passes the request on and returns the thread id", async () => {
   const requests: unknown[] = [];
-  const { server } = await start({ automations: { list: async () => ({ automations: [], hiddenThreadIds: [] }), request: async (body) => (requests.push(body), "thread-9") } });
+  const { server } = await start({ automations: { list: async () => ({ automations: [], hiddenThreadIds: [], setupThreadIds: [] }), request: async (body) => (requests.push(body), "thread-9") } });
   const reply = await post(server, "/api/automations", { text: " Remind me ", projectId: " project-1 ", modelSelection: model, runtimeMode: "auto" });
   assert.equal(reply.status, 200);
   assert.deepEqual(reply.json, { ok: true, threadId: "thread-9" });
@@ -670,7 +670,7 @@ test("POST /api/automations passes the request on and returns the thread id", as
 
 test("POST /api/automations validates its body", async () => {
   const requests: unknown[] = [];
-  const { server } = await start({ automations: { list: async () => ({ automations: [], hiddenThreadIds: [] }), request: async (body) => (requests.push(body), "x") } });
+  const { server } = await start({ automations: { list: async () => ({ automations: [], hiddenThreadIds: [], setupThreadIds: [] }), request: async (body) => (requests.push(body), "x") } });
   const bad = [
     { projectId: "", modelSelection: model },
     { text: "  ", projectId: "", modelSelection: model },
