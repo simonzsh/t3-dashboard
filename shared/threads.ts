@@ -112,7 +112,8 @@ export interface UserInputQuestion {
 
 export type PendingRequestDetail =
   | { category: "approval"; requestId: string; requestKind: string; prompt: string | null; reason: string | null; resumable: boolean }
-  | { category: "user-input"; requestId: string; questions: UserInputQuestion[]; resumable: boolean }
+  // dismissable: T3 drops the question without an answer only when a message can answer it.
+  | { category: "user-input"; requestId: string; questions: UserInputQuestion[]; dismissable: boolean; resumable: boolean }
   | { category: "other"; requestId: string; requestKind: string; resumable: boolean };
 
 export interface SubagentInfo {

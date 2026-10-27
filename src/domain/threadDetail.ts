@@ -22,7 +22,7 @@ function pendingDetail(request: RawRuntimeRequest, items: RawTurnItem[]): Pendin
       allowCustomAnswer: question.allowCustomAnswer ?? false,
       required: question.required ?? false,
     }));
-    return { category: "user-input", ...base, questions };
+    return { category: "user-input", ...base, questions, dismissable: request.kind === "user_input" && request.responseCapability?.type === "message" };
   }
   return { category: "other", ...base, requestKind: request.kind ?? "" };
 }
