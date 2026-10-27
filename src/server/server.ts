@@ -92,6 +92,22 @@ async function readJson(req: Request, maxBytes = MAX_BODY_BYTES): Promise<Record
 const json = (status: number, body: unknown, headers: Record<string, string> = {}) =>
   new Response(JSON.stringify(body), { status, headers: { "content-type": "application/json; charset=utf-8", ...headers } });
 
+/** True when an if-none-match list holds the tag, compared weakly. */
+function matchesEtag(header: string | null, etag: string): boolean {
+  if (!header) return false;
+  const bare = (tag: string) => tag.trim().replace(/^W\//, "");
+  return header === "*" || header.split(",").some((tag) => bare(tag) === bare(etag));
+}
+
+// A weak etag of the exact body lets the client poll without downloading an unchanged thread.
+function threadResponse(req: Request, detail: unknown): Response {
+  const body = JSON.stringify(detail);
+  const etag = `W/"${Bun.hash(body).toString(36)}"`;
+  const headers = { etag, "cache-control": "no-cache" };
+  if (matchesEtag(req.headers.get("if-none-match"), etag)) return new Response(null, { status: 304, headers });
+  return new Response(body, { headers: { "content-type": "application/json; charset=utf-8", ...headers } });
+}
+
 export interface DashboardHandler {
   fetch(req: Request, server?: Server<undefined>): Promise<Response>;
 }
@@ -173,7 +189,7 @@ export function createDashboardServer(options: DashboardServerOptions): Dashboar
         return json(200, await actions.searchThreads(query, limit));
       },
     },
-    { method: "GET", path: "/api/threads/:id", handle: async ({ params }) => json(200, await actions.threadDetail(params.id!)) },
+    { method: "GET", path: "/api/threads/:id", handle: async ({ req, params }) => threadResponse(req, await actions.threadDetail(params.id!)) },
     { method: "GET", path: "/api/threads/:id/attachments/:attachmentId", handle: ({ req, params }) => asset(req, params.id!, { attachmentId: params.attachmentId! }) },
     {
       method: "GET",

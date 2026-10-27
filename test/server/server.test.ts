@@ -395,6 +395,31 @@ test("GET /api/threads/:id joins the projection and the store thread", async () 
   assert.equal((await call(server, "GET", "/api/threads/nope")).json.thread, null);
 });
 
+test("GET /api/threads/:id answers 304 to a matching if-none-match and a new etag once the thread changes", async () => {
+  const { server, port } = await start();
+  port.projection = { messages: [{ id: "m1", role: "user", text: "Hello" }], visibleTurnItems: [{ item: { messageId: "m1" } }] };
+  const first = await call(server, "GET", "/api/threads/run-1");
+  const etag = first.headers.etag!;
+  assert.match(etag, /^W\/"[0-9a-z]+"$/);
+  assert.equal(first.headers["cache-control"], "no-cache");
+  const same = await call(server, "GET", "/api/threads/run-1", { headers: { "if-none-match": etag } });
+  assert.deepEqual([same.status, same.text, same.headers.etag, same.headers["cache-control"]], [304, "", etag, "no-cache"]);
+  const listed = await call(server, "GET", "/api/threads/run-1", { headers: { "if-none-match": `"x", ${etag}` } });
+  assert.equal(listed.status, 304);
+  port.projection = { messages: [{ id: "m1", role: "user", text: "Hello" }, { id: "m2", role: "assistant", text: "Hi" }], visibleTurnItems: [{ item: { messageId: "m1" } }, { item: { messageId: "m2" } }] };
+  const changed = await call(server, "GET", "/api/threads/run-1", { headers: { "if-none-match": etag } });
+  assert.equal(changed.status, 200);
+  assert.notEqual(changed.headers.etag, etag);
+  assert.equal(changed.json.messages.length, 2);
+});
+
+test("GET /api/threads/:id errors carry no etag", async () => {
+  const { server, port } = await start();
+  port.projectionError = new Error("T3 answered 500");
+  const reply = await call(server, "GET", "/api/threads/idle-1", { headers: { "if-none-match": "*" } });
+  assert.deepEqual([reply.status, reply.headers.etag], [502, undefined]);
+});
+
 test("GET /api/threads/:id shows the shell's pending background tasks as running subagents", async () => {
   const { server, store } = await start();
   store.apply([{ kind: "thread.updated", thread: { id: "idle-1", projectId: "project-1", status: "completed", pendingBackgroundTasks: [{ taskId: "t1", description: "Explore" }] } }]);
