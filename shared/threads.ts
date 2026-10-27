@@ -136,17 +136,27 @@ export interface ActivityItem {
   text: string;
   /** Tool input summary; null for other kinds. */
   detail: string | null;
-  /** Changed lines of a file item, "+" and "-" prefixed; truncated. Null for other kinds or when T3 sent none. */
-  diff: string | null;
   status: "running" | "done" | "failed";
+}
+
+/** A file a finished run changed, as its T3 checkpoint lists it. */
+export interface RunChange {
+  path: string;
+  kind: string;
+  additions: number;
+  deletions: number;
 }
 
 /** What the active run (or the latest one) did, oldest first. */
 export interface RunActivity {
   runId: string;
+  /** The run's number in its thread: GET /api/threads/:id/runs/:ordinal/diff takes it. */
+  ordinal: number | null;
   startedAt: string | null;
   completedAt: string | null;
   items: ActivityItem[];
+  /** Files the run changed; empty while it runs. */
+  changes: RunChange[];
 }
 
 export interface ThreadDetail {

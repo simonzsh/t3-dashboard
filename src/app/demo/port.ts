@@ -1,7 +1,8 @@
 import type { FetchLike } from "../../integrations/linear/client.ts";
 import type { AttachmentRef, Command, ImageUpload, RawConfig, RawProjection, RawScheduledTask, RawSearchMatch, RawThread, ShellItem, T3Port } from "../../integrations/t3/schemas.ts";
 import { searchProjections } from "./search.ts";
-import { demoFixtures, demoIssues, demoScheduledTasks, SCRATCH_PROJECT_ID } from "./fixtures.ts";
+import { IntegrationError } from "../../integrations/errors.ts";
+import { DEMO_DIFF, demoFixtures, demoIssues, demoScheduledTasks, SCRATCH_PROJECT_ID } from "./fixtures.ts";
 
 type Listener = (items: ShellItem[]) => void;
 
@@ -27,6 +28,11 @@ export class DemoPort implements T3Port {
     const projection = this.projections.get(threadId);
     if (!projection) throw new Error("Unknown demo thread");
     return projection;
+  }
+
+  async turnDiff(threadId: string, runOrdinal: number): Promise<string> {
+    if (threadId === "demo-deep-links" && runOrdinal === 1) return DEMO_DIFF;
+    throw new IntegrationError("No checkpoint for this run", { system: "t3", kind: "refused" });
   }
 
   async searchThreads(query: string, limit?: number): Promise<RawSearchMatch[]> {

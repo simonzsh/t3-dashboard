@@ -16,6 +16,34 @@ const PROJECTS: RawProject[] = [
   { id: SCRATCH_PROJECT_ID, title: "No project" },
 ];
 
+export const DEMO_CHANGES = [
+  { path: "src/notifications/router.ts", kind: "modified", additions: 4, deletions: 1 },
+  { path: "src/notifications/routes.ts", kind: "added", additions: 3, deletions: 0 },
+];
+
+/** The unified diff of the demo checkpoint: it matches DEMO_CHANGES. */
+export const DEMO_DIFF = `diff --git a/src/notifications/router.ts b/src/notifications/router.ts
+index 3f2a1c4..9b8d0e7 100644
+--- a/src/notifications/router.ts
++++ b/src/notifications/router.ts
+@@ -10,5 +10,8 @@ export function openFromNotification(payload: Payload) {
+   const { screen } = payload;
+-  navigate("home");
++  const route = routeFor(screen);
++  if (!route) return navigate("home");
++  afterLogin(() => navigate(route));
+ }
+diff --git a/src/notifications/routes.ts b/src/notifications/routes.ts
+new file mode 100644
+index 0000000..c41d2a9
+--- /dev/null
++++ b/src/notifications/routes.ts
+@@ -0,0 +1,3 @@
++const ROUTES: Record<string, string> = { order: "/orders", profile: "/me" };
++
++export const routeFor = (screen: string) => ROUTES[screen];
+`;
+
 const CLAUDE = { instanceId: "claudeAgent", model: "claude-opus-5-5" };
 const SONNET = { instanceId: "claudeAgent", model: "claude-sonnet-5" };
 const CODEX = { instanceId: "codex", model: "gpt-5.5-codex" };
@@ -61,10 +89,10 @@ const SPECS: ThreadSpec[] = [
     activity: [
       { id: "a1", type: "reasoning", runId: "run-checkout-2", text: "Read the summary component and its tests before changing the layout.", at: 6, done: 6 },
       { id: "a2", type: "command_execution", runId: "run-checkout-2", input: 'rg -n "OrderSummary" web/src', exitCode: 0, at: 6, done: 6 },
-      { id: "a3", type: "file_change", runId: "run-checkout-2", fileName: "web/src/checkout/OrderSummary.tsx", diffStr: JSON.stringify({ oldString: "<Row label=\"Shipping\" />\n<Row label=\"Taxes\" />", newString: "<Fees>\n  <Row label=\"Shipping\" />\n  <Row label=\"Taxes\" />\n</Fees>" }), at: 5, done: 5 },
+      { id: "a3", type: "file_change", runId: "run-checkout-2", fileName: "web/src/checkout/OrderSummary.tsx", at: 5, done: 5 },
       { id: "a4", type: "subagent", runId: "run-checkout-2", title: "Audit price formatting helpers", at: 5, done: 3 },
       { id: "a5", type: "subagent", runId: "run-checkout-2", title: "Check mobile breakpoints", status: "running", at: 4 },
-      { id: "a6", type: "file_change", runId: "run-checkout-2", fileName: "web/src/checkout/summary.css", diffStr: JSON.stringify({ oldString: ".summary-total { font-size: 16px; }", newString: ".summary-total { font-size: 22px; text-align: right; }" }), at: 3, done: 3 },
+      { id: "a6", type: "file_change", runId: "run-checkout-2", fileName: "web/src/checkout/summary.css", at: 3, done: 3 },
       { id: "a7", type: "command_execution", runId: "run-checkout-2", input: "bun test web/src/checkout", exitCode: 0, at: 2, done: 2 },
       { id: "a8", type: "dynamic_tool", runId: "run-checkout-2", toolName: "mcp__browser__preview_open", input: { url: "http://localhost:5173/checkout" }, at: 2, done: 1 },
       { id: "a9", type: "reasoning", runId: "run-checkout-2", text: "Compare the new layout with the design spec.", status: "running", at: 1 },
@@ -246,6 +274,10 @@ const SPECS: ThreadSpec[] = [
       ["assistant", 1650, "Done: each notification now carries a route, and the app opens it after login. Tested on iOS and Android simulators."],
     ],
     runs: [{ id: "run-links-1", status: "completed", started: 1695, completed: 1650 }],
+    activity: [
+      { id: "l1", type: "command_execution", runId: "run-links-1", input: "bun test src/notifications", exitCode: 0, at: 1660, done: 1660 },
+      { id: "l2", type: "checkpoint", runId: "run-links-1", files: DEMO_CHANGES, at: 1650, done: 1650 },
+    ],
     thread: { settledOverride: "settled", settledAt: LAST },
   },
   {
@@ -267,7 +299,7 @@ function buildThread(spec: ThreadSpec, at: (minutes: number) => string): { threa
   const messages = spec.messages.map(([role, minutes, text], index) => ({ id: `${spec.id}-m${index}`, role, text, createdAt: at(minutes) }));
   const last = messages.at(-1)!;
   const lastUser = messages.findLast((message) => message.role === "user");
-  const runs = (spec.runs ?? []).map((run) => ({ id: run.id, status: run.status, startedAt: at(run.started), completedAt: run.completed === undefined ? null : at(run.completed) }));
+  const runs = (spec.runs ?? []).map((run, index) => ({ id: run.id, ordinal: index + 1, status: run.status, startedAt: at(run.started), completedAt: run.completed === undefined ? null : at(run.completed) }));
   const latestRun = runs.at(-1);
   const activity = (spec.activity ?? []).map(({ at: started, done, ...item }, index) => ({ ...item, ordinal: index + 1, status: item.status ?? (done === undefined ? "running" : "completed"), startedAt: at(started), completedAt: done === undefined ? null : at(done) }));
   const subagents = (spec.subagents ?? []).map(({ at: started, done, ...raw }) => ({ ...raw, startedAt: at(started), completedAt: done === undefined ? null : at(done) }));

@@ -1,4 +1,4 @@
-import type { ActivityItem, ChatMessage, DashboardThread, HtmlRender, RunActivity, PendingRequestDetail, SubagentInfo, ThreadDetail } from "../../shared/api.ts";
+import type { ActivityItem, ChatMessage, DashboardThread, HtmlRender, RunActivity, RunChange, PendingRequestDetail, SubagentInfo, ThreadDetail } from "../../shared/api.ts";
 import { FAILED_STATUSES } from "../../shared/status.ts";
 import { isRuntimeMode } from "../../shared/limits.ts";
 import type { RawBackgroundTask, RawProjection, RawRuntimeRequest, RawSubagent, RawTurnItem } from "../integrations/t3/schemas.ts";
@@ -106,24 +106,6 @@ function toolSummary(input: unknown): string | null {
   return typeof value === "string" ? truncate(value.trim(), ACTIVITY_CHARS) : null;
 }
 
-const DIFF_LINES = 40;
-
-// T3 sends the file change as JSON: an edit has oldString and newString, a new file has its content.
-function fileDiff(diffStr: string | null | undefined): string | null {
-  if (!diffStr) return null;
-  let change: { oldString?: unknown; newString?: unknown; content?: unknown };
-  try {
-    change = JSON.parse(diffStr);
-  } catch {
-    return null;
-  }
-  const lines = (prefix: string, value: unknown) => (typeof value === "string" && value ? value.split("\n").map((line) => prefix + line) : []);
-  const all = [...lines("-", change.oldString), ...lines("+", change.newString ?? change.content)];
-  if (all.length === 0) return null;
-  const shown = all.slice(0, DIFF_LINES).map((line) => truncate(line, ACTIVITY_CHARS));
-  return all.length > DIFF_LINES ? [...shown, `… ${all.length - DIFF_LINES} more lines`].join("\n") : shown.join("\n");
-}
-
 function activityStatus(item: RawTurnItem): ActivityItem["status"] {
   if (FAILED_STATUSES.has(item.status ?? "") || item.outputIndicatesFailure || (item.exitCode ?? 0) !== 0) return "failed";
   if (item.status === "completed" || item.completedAt) return "done";
@@ -139,7 +121,12 @@ function toActivity(item: RawTurnItem, kind: ActivityItem["kind"]): ActivityItem
     file: () => item.fileName ?? "",
     subagent: () => item.title?.trim() || item.prompt?.trim() || "Subagent",
   }[kind]();
-  return { id: item.id!, kind, text: truncate(raw, ACTIVITY_CHARS), detail: kind === "tool" ? toolSummary(item.input) : null, diff: kind === "file" ? fileDiff(item.diffStr) : null, status: activityStatus(item) };
+  return { id: item.id!, kind, text: truncate(raw, ACTIVITY_CHARS), detail: kind === "tool" ? toolSummary(item.input) : null, status: activityStatus(item) };
+}
+
+function changesOf(runId: string, items: RawTurnItem[]): RunChange[] {
+  const files = items.find((item) => item.type === "checkpoint" && item.runId === runId)?.files ?? [];
+  return files.map((file) => ({ path: file.path, kind: file.kind ?? "modified", additions: file.additions ?? 0, deletions: file.deletions ?? 0 }));
 }
 
 function activityOf(projection: RawProjection, items: RawTurnItem[]): RunActivity | null {
@@ -152,7 +139,7 @@ function activityOf(projection: RawProjection, items: RawTurnItem[]): RunActivit
     .sort((a, b) => (a.ordinal ?? 0) - (b.ordinal ?? 0))
     .slice(-ACTIVITY_ITEMS)
     .map((item) => toActivity(item, ACTIVITY_KINDS[item.type!]!));
-  return { runId: run.id, startedAt: run.startedAt ?? null, completedAt: run.completedAt ?? null, items: activity };
+  return { runId: run.id, ordinal: run.ordinal ?? null, startedAt: run.startedAt ?? null, completedAt: run.completedAt ?? null, items: activity, changes: run.completedAt ? changesOf(run.id, items) : [] };
 }
 
 const MAX_RENDER_HEIGHT = 4000;

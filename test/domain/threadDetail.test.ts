@@ -289,9 +289,9 @@ test("activity: the thread's active run, else the latest run, with its times", (
     { id: "r2", status: "completed", startedAt: "2026-03-01T11:00:00Z", completedAt: "2026-03-01T11:12:00Z" },
   ];
   const active = toThreadDetail("t", { runs, thread: { id: "t", activeRunId: "r1" } }, undefined).activity;
-  assert.deepEqual(active, { runId: "r1", startedAt: "2026-03-01T10:00:00Z", completedAt: null, items: [] });
+  assert.deepEqual(active, { runId: "r1", ordinal: null, startedAt: "2026-03-01T10:00:00Z", completedAt: null, items: [], changes: [] });
   const latest = toThreadDetail("t", { runs }, undefined).activity;
-  assert.deepEqual(latest, { runId: "r2", startedAt: "2026-03-01T11:00:00Z", completedAt: "2026-03-01T11:12:00Z", items: [] });
+  assert.deepEqual(latest, { runId: "r2", ordinal: null, startedAt: "2026-03-01T11:00:00Z", completedAt: "2026-03-01T11:12:00Z", items: [], changes: [] });
 });
 
 const item = (id: string, type: string, ordinal: number, extra: Record<string, unknown> = {}) => ({ id, type, runId: "r1", ordinal, status: "completed", completedAt: "2026-03-01T10:05:00Z", ...extra });
@@ -313,30 +313,38 @@ test("activity: maps each work item of the run in ordinal order and skips messag
     ],
   }, undefined);
   assert.deepEqual(detail.activity!.items, [
-    { id: "think", kind: "thinking", text: "Check the tests first", detail: null, diff: null, status: "done" },
-    { id: "cmd", kind: "command", text: "bun test", detail: null, diff: null, status: "done" },
-    { id: "edit", kind: "file", text: "/repo/src/a.ts", detail: null, diff: null, status: "done" },
-    { id: "tool", kind: "tool", text: "preview_open", detail: "http://localhost:3000", diff: null, status: "done" },
-    { id: "sub", kind: "subagent", text: "Explore", detail: null, diff: null, status: "running" },
+    { id: "think", kind: "thinking", text: "Check the tests first", detail: null, status: "done" },
+    { id: "cmd", kind: "command", text: "bun test", detail: null, status: "done" },
+    { id: "edit", kind: "file", text: "/repo/src/a.ts", detail: null, status: "done" },
+    { id: "tool", kind: "tool", text: "preview_open", detail: "http://localhost:3000", status: "done" },
+    { id: "sub", kind: "subagent", text: "Explore", detail: null, status: "running" },
   ]);
 });
 
-test("activity: a file change carries the changed lines, cut after 40", () => {
-  const edit = JSON.stringify({ type: "update", filePath: "/r/a.ts", oldString: "a\nb", newString: "a\nc", originalFile: "x".repeat(5000) });
-  const created = JSON.stringify({ type: "create", filePath: "/r/b.ts", content: Array.from({ length: 50 }, (_, i) => `l${i}`).join("\n") });
-  const detail = toThreadDetail("t", {
-    ...activityRun,
-    turnItems: [
-      item("edit", "file_change", 1, { fileName: "/r/a.ts", diffStr: edit }),
-      item("new", "file_change", 2, { fileName: "/r/b.ts", diffStr: created }),
-      item("bad", "file_change", 3, { fileName: "/r/c.ts", diffStr: "nope" }),
-    ],
-  }, undefined);
-  const [a, b, c] = detail.activity!.items;
-  assert.equal(a!.diff, "-a\n-b\n+a\n+c");
-  assert.equal(b!.diff!.split("\n").length, 41);
-  assert.ok(b!.diff!.endsWith("… 10 more lines"));
-  assert.equal(c!.diff, null);
+const finished = { runs: [{ id: "r1", ordinal: 4, status: "completed", startedAt: "2026-03-01T10:00:00Z", completedAt: "2026-03-01T10:09:00Z" }] };
+
+test("activity: a finished run lists the files of its checkpoint with the run ordinal", () => {
+  const files = [
+    { path: "src/a.ts", kind: "modified", additions: 3, deletions: 1 },
+    { path: "src/b.ts", kind: "added", additions: 10, deletions: null },
+  ];
+  const detail = toThreadDetail("t", { ...finished, turnItems: [item("cp", "checkpoint", 9, { files })] }, undefined);
+  assert.equal(detail.activity!.ordinal, 4);
+  assert.deepEqual(detail.activity!.changes, [
+    { path: "src/a.ts", kind: "modified", additions: 3, deletions: 1 },
+    { path: "src/b.ts", kind: "added", additions: 10, deletions: 0 },
+  ]);
+  assert.deepEqual(detail.activity!.items, []);
+});
+
+test("activity: no changes without files, for another run's checkpoint, or while the run is live", () => {
+  const files = [{ path: "a.ts", kind: "modified", additions: 1, deletions: 0 }];
+  const none = toThreadDetail("t", { ...finished, turnItems: [item("cp", "checkpoint", 9, { files: [] })] }, undefined);
+  assert.deepEqual(none.activity!.changes, []);
+  const other = toThreadDetail("t", { ...finished, turnItems: [item("cp", "checkpoint", 9, { files, runId: "r0" })] }, undefined);
+  assert.deepEqual(other.activity!.changes, []);
+  const live = toThreadDetail("t", { ...activityRun, turnItems: [item("cp", "checkpoint", 9, { files })] }, undefined);
+  assert.deepEqual(live.activity!.changes, []);
 });
 
 test("activity: failures, live items, fallbacks and truncation", () => {
