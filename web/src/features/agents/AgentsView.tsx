@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode, type TouchEvent } from "react";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import type { AutomationsResult, DashboardState } from "../../../../shared/api.ts";
 import { agentStatus } from "../../../../shared/status.ts";
 import { groupAgents } from "../../lib/threads.ts";
@@ -8,8 +8,8 @@ import { AutomationsColumn } from "./AutomationsColumn.tsx";
 import { ProjectIcon } from "../../lib/ProjectIcon.tsx";
 import { useMediaQuery } from "../../lib/useMediaQuery.ts";
 import { useScrolled } from "../../lib/useScrolled.ts";
-import { swipeDirection } from "../../lib/swipe.ts";
-import { enter, Icon, Kbd, Loader, Pressable, TextInput } from "../../ui/index.ts";
+import { usePanes } from "../../lib/usePanes.ts";
+import { Icon, Kbd, Loader, Pressable, TextInput } from "../../ui/index.ts";
 
 interface Props {
   state: DashboardState;
@@ -32,44 +32,7 @@ const PANES: ReadonlyArray<{ id: Pane; label: string }> = [
   { id: "agents", label: "Agents" },
   { id: "automations", label: "Automations" },
 ];
-
-/** On a phone, one pane at a time: a horizontal swipe or the dots switch it, and the new pane slides in from its side. */
-function usePanes(enabled: boolean) {
-  const [pane, setPane] = useState<Pane>("agents");
-  const layout = useRef<HTMLDivElement>(null);
-  const start = useRef<{ x: number; y: number } | null>(null);
-  const shown = useRef(pane);
-  useLayoutEffect(() => {
-    if (shown.current === pane) return;
-    shown.current = pane;
-    const el = layout.current?.firstElementChild;
-    if (el) enter(el, { x: pane === "automations" ? 32 : -32, duration: 200 });
-  }, [pane]);
-  const show = (next: Pane) => {
-    if (next === pane) return;
-    // The page scrolls on a phone: the new pane starts at its top, not halfway down.
-    if (window.scrollY > 0) window.scrollTo({ top: 0 });
-    setPane(next);
-  };
-  const swipe = enabled
-    ? {
-        onTouchStart: (e: TouchEvent) => {
-          const t = e.touches[0];
-          start.current = e.touches.length === 1 && t ? { x: t.clientX, y: t.clientY } : null;
-        },
-        onTouchEnd: (e: TouchEvent) => {
-          const from = start.current;
-          const t = e.changedTouches[0];
-          start.current = null;
-          if (!from || !t) return;
-          const dir = swipeDirection(t.clientX - from.x, t.clientY - from.y);
-          if (dir === "left") show("automations");
-          if (dir === "right") show("agents");
-        },
-      }
-    : {};
-  return { pane: enabled ? pane : null, show, layout, swipe };
-}
+const PANE_IDS = PANES.map((p) => p.id);
 
 // Collapsed by default: settled threads need no attention.
 function RecentlySettled({ count, children }: { count: number; children: ReactNode }) {
@@ -114,7 +77,7 @@ export function AgentsView({ state, now, deskIds, onOpen, onToggleDesk, onSettle
   const available = state.connection.t3 === "live";
   const loading = available && automations === null && automationsError === null;
   const phone = useMediaQuery(PHONE);
-  const { pane, show, layout, swipe } = usePanes(phone && available);
+  const { pane, show, layout, swipe } = usePanes(PANE_IDS, phone && available);
   const agents = loading ? (
     <Loader />
   ) : groups.length === 0 ? (

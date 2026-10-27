@@ -546,7 +546,7 @@ button.auto-row:hover { transform: translateY(-1px); }
   .pane-dots button { display: grid; place-items: center; width: 24px; height: 24px; padding: 0; border: 0; background: none; }
   .pane-dots button::before { content: ""; width: 8px; height: 8px; border-radius: 999px; background: var(--line); transition: width 0.16s, background-color 0.16s; }
   .pane-dots button.active::before { width: 16px; background: var(--accent); }
-  .app:not(.desk-mode) .agents-page:has(.pane-dots) { padding-bottom: 48px; }
+  .app:not(.desk-mode) :is(.agents-page, .board):has(.pane-dots) { padding-bottom: 48px; }
   .switcher-meta { display: none; }
   /* One line: short title, small tabs, icon actions. The insets keep it clear of the iPhone notch in landscape. */
   .topbar { gap: 8px; padding: max(8px, env(safe-area-inset-top)) max(12px, env(safe-area-inset-right)) 8px max(12px, env(safe-area-inset-left)); }

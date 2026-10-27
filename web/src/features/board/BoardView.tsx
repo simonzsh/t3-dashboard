@@ -3,11 +3,13 @@ import type { BoardResult, DashboardProject, DashboardProvider, ModelDefaults } 
 import { useApi } from "../../api/ApiContext.tsx";
 import { boardColumns } from "./board.ts";
 import { boardNeedsKey, linearConnected } from "../settings/linearSettings.ts";
-import { Icon, IconButton, Loader } from "../../ui/index.ts";
+import { Icon, IconButton, Loader, Pressable } from "../../ui/index.ts";
 import { AssignMenu } from "./AssignMenu.tsx";
 import { LinearSetupCard } from "./LinearSetupCard.tsx";
 import { PriorityIcon } from "./PriorityIcon.tsx";
 import { useAction } from "../../lib/useAction.ts";
+import { useMediaQuery } from "../../lib/useMediaQuery.ts";
+import { usePanes } from "../../lib/usePanes.ts";
 
 interface Props {
   projects: DashboardProject[];
@@ -31,11 +33,15 @@ export function BoardView({ projects, providers, modelDefaults, version, onAssig
   }, [load, version]);
 
   const columns = useMemo(() => boardColumns(board?.issues ?? []), [board]);
+  const phone = useMediaQuery("(max-width: 700px)");
+  const columnNames = useMemo(() => columns.map((c) => c.name), [columns]);
+  const { pane, show, layout, swipe } = usePanes(columnNames, phone && columns.length > 1);
+  const shown = pane ? columns.filter((c) => c.name === pane) : columns;
   const needsKey = board !== null && boardNeedsKey(board);
   const linearError = board && !needsKey && !board.ok ? board.error : null;
 
   return (
-    <div className="board">
+    <div className="board" {...swipe}>
       <div className="toolbar">
         {board && linearConnected(board) && (
           <span className="linear-source">
@@ -61,8 +67,8 @@ export function BoardView({ projects, providers, modelDefaults, version, onAssig
         </div>
       )}
       {columns.length > 0 && (
-        <div className="kanban">
-          {columns.map((col) => (
+        <div ref={layout} className="kanban">
+          {shown.map((col) => (
             <section className="column" key={col.name}>
               <h2 className="column-head">
                 <span className="dot" style={{ background: col.color }} />
@@ -92,6 +98,13 @@ export function BoardView({ projects, providers, modelDefaults, version, onAssig
             </section>
           ))}
         </div>
+      )}
+      {pane && (
+        <nav className="pane-dots" aria-label="Columns">
+          {columns.map((c) => (
+            <Pressable key={c.name} className={c.name === pane ? "active" : ""} aria-label={c.name} aria-current={c.name === pane ? "page" : undefined} onClick={() => show(c.name)} />
+          ))}
+        </nav>
       )}
     </div>
   );
