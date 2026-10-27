@@ -56,7 +56,7 @@ Ces actions écrivent dans le vrai T3 Code. Faites-les une fois après une mise 
 7. Déléguer une tâche depuis une conversation, puis cliquer sur « Stop » à côté de sa ligne. Vérifier dans T3 Code que la tâche et son fil enfant sont arrêtés, et que le bouton disparaît.
 8. Lancer une commande shell en arrière-plan depuis une conversation, puis laisser le run finir. Vérifier que le bouton « Stop » du composer reste visible. Cliquer dessus, ou sur le bouton de la ligne de la tâche. Vérifier dans T3 Code que la tâche est arrêtée. Le dashboard arrête alors toutes les tâches de fond de la conversation.
 9. Dans l'onglet Agents, vérifier que la colonne « Automations » liste les tâches planifiées de T3 Code (`scheduledTasks.list`). Un T3 trop ancien affiche une erreur dans la colonne, et la grille marche toujours.
-10. Écrire « Reminder: dans 2 minutes, dis bonjour » dans le champ de la colonne, puis envoyer. Vérifier que l'agent crée la tâche avec `schedule_task`, que le fil sort de la grille, puis que le rappel revient dans la grille après son passage.
+10. Écrire « Reminder: dans 2 minutes, dis bonjour » dans le champ de la colonne, puis envoyer. Vérifier que l'agent crée la tâche avec `schedule_task`, et que le fil sort de la grille. Après le passage, vérifier que la tâche est en pause et que la ligne du rappel affiche « Finished ».
 
 ## Architecture
 

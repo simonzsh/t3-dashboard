@@ -1,5 +1,5 @@
 import type { Automation, AutomationsResult, DashboardProject, DashboardThread } from "../../../../shared/api.ts";
-import { lastRunState, nextLabel, reminderDate, splitAutomations } from "./automations.ts";
+import { isFinishedReminder, lastRunState, nextLabel, reminderDate, splitAutomations } from "./automations.ts";
 import { agentStatus } from "../../../../shared/status.ts";
 import { useState } from "react";
 import { Badge, Icon, IconButton, Loader, Pressable } from "../../ui/index.ts";
@@ -33,13 +33,15 @@ interface RowProps {
 
 function Row({ a, thread, project, now, onOpen, onRename, onDelete }: RowProps) {
   const last = lastRunState(a, thread);
-  const when = a.kind === "reminder" ? (a.nextRunAt ? reminderDate(a.nextRunAt) : "") : a.scheduleLabel;
+  const finished = isFinishedReminder(a);
+  const reminderAt = finished ? a.lastRunAt : a.nextRunAt;
+  const when = a.kind === "reminder" ? (reminderAt ? reminderDate(reminderAt) : "") : a.scheduleLabel;
   const sub = [a.project, when].filter(Boolean).join(" · ");
   const body = (
     <>
       <span className="auto-title">{a.title}</span>
       <span className="auto-side">
-        <span className="auto-next">{a.enabled ? nextLabel(a.nextRunAt, now) : "paused"}</span>
+        {!finished && <span className="auto-next">{a.enabled ? nextLabel(a.nextRunAt, now) : "paused"}</span>}
         {last?.kind === "waiting" && <Badge variant="waiting">Waiting</Badge>}
         {last?.kind === "running" && (
           <Badge variant="running">
