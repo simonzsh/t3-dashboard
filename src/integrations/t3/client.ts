@@ -173,14 +173,14 @@ export class T3Client implements T3Port {
     } catch (error) {
       if (error instanceof IntegrationError && error.kind === "refused") throw error;
       if (this.shared === entry) this.shared = null;
-      if (!conn.isClosed) {
-        // Timeout: the socket may be stuck.
-        conn.close();
-        throw error;
-      }
+      // Timeout: the socket may be stuck, new calls take a fresh one.
+      if (!conn.isClosed) throw error;
       // A command cut mid-flight may have reached T3: never send it twice.
       if (conn.isOpen && !IDEMPOTENT.has(tag)) throw error;
       return this.oneShot(tag, payload, timeoutMs);
+    } finally {
+      // A retired socket closes once its last request settles, so a timeout never fails the others.
+      if (this.shared !== entry && !conn.isClosed && !conn.busy) conn.close();
     }
   }
 

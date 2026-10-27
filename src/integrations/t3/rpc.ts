@@ -63,6 +63,10 @@ export class RpcConnection {
     return this.done;
   }
 
+  get busy(): boolean {
+    return this.pending.size > 0 || this.streams.size > 0;
+  }
+
   request(tag: string, payload: unknown, timeoutMs = 10_000): Promise<unknown> {
     if (this.done) return Promise.reject(unreachable("T3 WebSocket closed"));
     const id = this.newId();

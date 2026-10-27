@@ -115,7 +115,10 @@ export function createActions(options: ActionsOptions): Actions {
     if (cachedEntry && Date.now() - cachedEntry.at < CITED_TTL_MS) {
       if ((await cachedEntry.paths).has(path)) return true;
       // The thread may have cited the path since: check once with a fresh projection.
-      if (cited.get(threadId) === cachedEntry) cited.delete(threadId);
+      const latest = cited.get(threadId);
+      // Concurrent misses share the first refetch.
+      if (latest && latest !== cachedEntry) return (await latest.paths).has(path);
+      cited.delete(threadId);
     }
     return (await fetchCited(threadId).paths).has(path);
   }

@@ -847,6 +847,17 @@ test("media: images of one thread share a single projection fetch, and a new cit
   assert.equal(port.projectionCalls, 3);
 });
 
+test("media: concurrent misses for new citations share one refetch", async () => {
+  const { server, port } = await start();
+  port.projection = { messages: [{ id: "m", role: "assistant", text: "![a](/tmp/a.png)" }] };
+  const get = (path: string) => call(server, "GET", `/api/threads/t7/media?path=${encodeURIComponent(path)}`);
+  assert.equal((await get("/tmp/a.png")).status, 200);
+  port.projection = { messages: [{ id: "m", role: "assistant", text: "![b](/tmp/b.png) ![c](/tmp/c.png) ![d](/tmp/d.png)" }] };
+  const statuses = await Promise.all(["/tmp/b.png", "/tmp/c.png", "/tmp/d.png"].map(get));
+  assert.deepEqual(statuses.map((reply) => reply.status), [200, 200, 200]);
+  assert.equal(port.projectionCalls, 2);
+});
+
 test("media: a failed projection fetch is not cached", async () => {
   const { server, port } = await start();
   port.projection = { messages: [{ id: "m", role: "assistant", text: "![a](/tmp/a.png)" }] };

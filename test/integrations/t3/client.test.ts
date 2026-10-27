@@ -359,6 +359,18 @@ test("a timeout closes the socket and the next call opens a new one", async () =
   assert.equal(tickets(calls), 2);
 });
 
+test("a timeout leaves other pending calls on the socket, which closes once they settle", async () => {
+  const { client } = setup();
+  const other = client.getConfig();
+  const socket = await nextSocket();
+  const stuck = (client as unknown as { call(tag: string, payload: unknown, ms: number): Promise<unknown> }).call("server.getConfig", {}, 5);
+  await assert.rejects(stuck, /did not answer/);
+  assert.equal(socket.closed, false);
+  socket.receive(ok("1"));
+  await other;
+  assert.equal(socket.closed, true);
+});
+
 test("a new token opens a new socket with a new ticket", async () => {
   let token = "one";
   const calls: Call[] = [];
