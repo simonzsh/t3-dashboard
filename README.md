@@ -6,17 +6,17 @@ t3-dashboard is a web dashboard on top of T3 Code. It shows all your Claude and 
 
 | Agents | Desk |
 | --- | --- |
-| ![Agents](docs/screenshots/agents.png) | ![Desk](docs/screenshots/desk.png) |
+| <picture><source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/agents-dark.png"><img alt="Agents" src="docs/screenshots/agents.png"></picture> | <picture><source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/desk-dark.png"><img alt="Desk" src="docs/screenshots/desk.png"></picture> |
 
 | Board | New Agent |
 | --- | --- |
-| ![Board](docs/screenshots/board.png) | ![New Agent](docs/screenshots/new-agent.png) |
+| <picture><source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/board-dark.png"><img alt="Board" src="docs/screenshots/board.png"></picture> | <picture><source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/new-agent-dark.png"><img alt="New Agent" src="docs/screenshots/new-agent.png"></picture> |
 
 | Jump to a conversation |
 | --- |
-| ![Jump to](docs/screenshots/search.png) |
+| <picture><source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/search-dark.png"><img alt="Jump to" src="docs/screenshots/search.png"></picture> |
 
-The screenshots come from the demo mode: the projects, agents and conversations are invented.
+The screenshots come from the demo mode: the projects, agents and conversations are invented. GitHub shows the light or dark variant to match your color scheme.
 
 ## What you can do
 
