@@ -112,7 +112,7 @@ The dashboard creates a thread with the default model of the project. This threa
 
 ### From a conversation
 
-You can also ask for a task in a normal conversation. The agent links the task to this conversation. The conversation stays in the grid. For a one-time reminder, write: "Create a reminder: the title starts with "Reminder: ", and pause the task after its run".
+You can also ask for a task in a normal conversation. By default, `schedule_task` links the task to this conversation, and each run posts in it. The conversation stays in the grid. To open a new thread at each run, ask the agent to use `bindToCurrentThread: false` (see the next section). For a one-time reminder, write: "Create a reminder: the title starts with "Reminder: ", and pause the task after its run".
 
 ### Threads of tasks without a linked conversation
 
