@@ -128,7 +128,7 @@ button.primary kbd { color: var(--on-accent); border-color: color-mix(in srgb, v
 kbd { font: 11px/1 var(--font-mono); padding: 2px 5px; border-radius: 4px; border: 1px solid var(--line); color: var(--text-secondary); opacity: 0.8; }
 .banner { padding: 8px 24px; background: var(--warn-bg); color: var(--warn-text); border-bottom: 1px solid var(--line); }
 .banner-line { display: flex; align-items: center; gap: 8px; }
-.banner .loader.inline line { stroke: var(--warn); }
+.banner .loader.inline rect { fill: var(--warn); }
 .error-banner { position: fixed; z-index: 70; top: calc(var(--topbar-h, 0px) + 8px); left: 50%; translate: -50% 0; width: min(640px, calc(100vw - 24px)); display: flex; flex-direction: column; gap: 6px; }
 .notice-scope { position: relative; flex: 1; min-height: 0; min-width: 0; display: flex; flex-direction: column; }
 .error-banner.local { position: absolute; z-index: 4; top: 8px; width: calc(100% - 16px); }
@@ -138,12 +138,14 @@ kbd { font: 11px/1 var(--font-mono); padding: 2px 5px; border-radius: 4px; borde
 .error-banner-line button { flex: none; color: inherit; }
 .empty { color: var(--text-secondary); margin: 0; }
 .loader { flex: 1; display: grid; place-items: center; min-height: 96px; }
-.loader svg { width: 36px; height: 36px; animation: loader-breathe 1.6s ease-in-out infinite; }
-.loader line { stroke: var(--accent); stroke-width: 2.4; stroke-linecap: round; }
+.loader svg { width: 32px; height: 32px; overflow: visible; }
+.loader rect { fill: var(--accent); transform-box: fill-box; transform-origin: center; animation: loader-wave 1.4s ease-in-out infinite; }
+.loader .wave-1 { animation-delay: 0.18s; }
+.loader .wave-2 { animation-delay: 0.36s; }
 .loader.inline { flex: none; display: inline-grid; min-height: 0; }
 .loader.inline svg { width: 16px; height: 16px; }
-.loader.inline line { stroke: currentColor; }
-@keyframes loader-breathe { 0%, 100% { transform: scale(0.82); opacity: 0.55; } 50% { transform: scale(1); opacity: 1; } }
+.loader.inline rect { fill: currentColor; }
+@keyframes loader-wave { 0%, 60%, 100% { opacity: 0.35; transform: scale(0.82); } 30% { opacity: 1; transform: scale(1); } }
 /* The page never scrolls: main fills the window and each view scrolls its own areas. */
 main { flex: 1; min-height: 0; overflow: hidden; padding: 24px; display: flex; flex-direction: column; gap: 28px; }
 .project-icon { flex: none; width: 16px; height: 16px; }
@@ -648,7 +650,7 @@ button.auto-row:hover { transform: translateY(-1px); }
 /* After every animated rule, so it wins on equal specificity. */
 @media (prefers-reduced-motion: reduce) {
   .pulse, .agent.working::after, .auto-row.running::after, .desk-window.state-running .desk-window-head::after, .streaming, .subagent.running .subagent-dot, .activity-item.running .icon, .spinning { animation: none; }
-  .loader svg { animation: none; }
+  .loader rect { animation: none; }
   .agent, .auto-row { transition: none; }
 }
 .queue { display: flex; flex-direction: column; gap: 10px; }
