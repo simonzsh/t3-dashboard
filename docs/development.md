@@ -21,7 +21,7 @@ bun run build   # single binary in dist/t3-dashboard
 
 ## Demo mode
 
-`bun run demo` starts the dashboard with made-up data: projects, agents, conversations, Linear tickets and routines. It does not contact T3 Code or Linear. The screenshots in `docs/screenshots/` come from this mode. Start it again to make new screenshots after a change to the interface.
+`bun run demo` starts the dashboard with made-up data: projects, agents, conversations, Linear tickets and routines. It does not contact T3 Code or Linear. The screenshots in `docs/screenshots/` come from this mode. Start it again to make new screenshots after a change to the interface. Each screenshot has a light file (`agents.png`) and a dark file (`agents-dark.png`), at 1280x800 with a device scale of 2.
 
 ## Publish a release
 
