@@ -1,15 +1,8 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
-  <rect width="512" height="512" fill="#1e1f22"/>
-  <g stroke="#5865f2" stroke-width="34" stroke-linecap="round">
-    <line x1="256" y1="125" x2="256" y2="202" transform="rotate(0 256 256)"/>
-    <line x1="256" y1="125" x2="256" y2="202" transform="rotate(32 256 256)"/>
-    <line x1="256" y1="125" x2="256" y2="202" transform="rotate(70 256 256)"/>
-    <line x1="256" y1="125" x2="256" y2="202" transform="rotate(105 256 256)"/>
-    <line x1="256" y1="125" x2="256" y2="202" transform="rotate(140 256 256)"/>
-    <line x1="256" y1="125" x2="256" y2="202" transform="rotate(180 256 256)"/>
-    <line x1="256" y1="125" x2="256" y2="202" transform="rotate(215 256 256)"/>
-    <line x1="256" y1="125" x2="256" y2="202" transform="rotate(250 256 256)"/>
-    <line x1="256" y1="125" x2="256" y2="202" transform="rotate(290 256 256)"/>
-    <line x1="256" y1="125" x2="256" y2="202" transform="rotate(325 256 256)"/>
-  </g>
+  <style>.bg { fill: #ffffff; } @media (prefers-color-scheme: dark) { .bg { fill: #000000; } }</style>
+  <rect class="bg" width="512" height="512"/>
+  <rect x="112" y="112" width="128" height="128" rx="30" fill="#5865f2"/>
+  <rect x="272" y="112" width="128" height="128" rx="30" fill="#5865f2" opacity="0.35"/>
+  <rect x="112" y="272" width="128" height="128" rx="30" fill="#5865f2" opacity="0.35"/>
+  <rect x="272" y="272" width="128" height="128" rx="30" fill="#5865f2" opacity="0.65"/>
 </svg>
