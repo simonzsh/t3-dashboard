@@ -2,60 +2,68 @@ import { writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { deflateSync } from "node:zlib";
 
-// Draws the star: writes the SVG source, the PNGs of the web app manifest and the web favicons.
+// Draws the Desk logo: four windows, one active. Writes the SVG source, the PNGs of the web app manifest and the web favicons.
 const OUT = join(import.meta.dir, "..", "src", "server", "pwa");
 const WEB = join(import.meta.dir, "..", "web");
-const BACKGROUND = "#1e1f22";
-const RAY = "#5865f2";
-const ANGLES = [0, 32, 70, 105, 140, 180, 215, 250, 290, 325];
-// On a 512 canvas: rays run from radius INNER to OUTER with round ends of WIDTH.
-const [INNER, OUTER, WIDTH] = [54, 131, 34];
-// A maskable icon keeps its art inside the central 80% circle: the OS crops the rest.
-const MASKABLE_SCALE = 0.9;
+const LIGHT = "#ffffff";
+const DARK = "#000000";
+const ACCENT = "#5865f2";
+// On a 512 canvas: the top-left window is the active one, the others are faded.
+const TILES = [
+  { x: 112, y: 112, opacity: 1 },
+  { x: 272, y: 112, opacity: 0.35 },
+  { x: 112, y: 272, opacity: 0.35 },
+  { x: 272, y: 272, opacity: 0.65 },
+];
+const [SIZE, RADIUS] = [128, 30];
+// macOS and iOS show the whole square: the logo fills most of it.
+const ICON_SCALE = 1.25;
+// A maskable icon keeps its art inside the central 80% circle: Android crops the rest.
+const MASKABLE_SCALE = 1;
 
 const hex = (color: string) => [1, 3, 5].map((i) => parseInt(color.slice(i, i + 2), 16));
 
+// The background follows the color scheme of the browser or the OS.
 function svg(): string {
-  const rays = ANGLES.map((angle) => `    <line x1="256" y1="${256 - OUTER}" x2="256" y2="${256 - INNER}" transform="rotate(${angle} 256 256)"/>`);
+  const tiles = TILES.map(({ x, y, opacity }) => `  <rect x="${x}" y="${y}" width="${SIZE}" height="${SIZE}" rx="${RADIUS}" fill="${ACCENT}"${opacity < 1 ? ` opacity="${opacity}"` : ""}/>`);
   return [
     '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">',
-    `  <rect width="512" height="512" fill="${BACKGROUND}"/>`,
-    `  <g stroke="${RAY}" stroke-width="${WIDTH}" stroke-linecap="round">`,
-    ...rays,
+    `  <style>.bg { fill: ${LIGHT}; } @media (prefers-color-scheme: dark) { .bg { fill: ${DARK}; } }</style>`,
+    '  <rect class="bg" width="512" height="512"/>',
+    `  <g transform="translate(256 256) scale(${ICON_SCALE}) translate(-256 -256)">`,
+    ...tiles.map((tile) => `  ${tile}`),
     "  </g>",
     "</svg>",
     "",
   ].join("\n");
 }
 
-/** Distance from a point to a segment. */
-function distance(px: number, py: number, ax: number, ay: number, bx: number, by: number): number {
-  const t = Math.max(0, Math.min(1, ((px - ax) * (bx - ax) + (py - ay) * (by - ay)) / ((bx - ax) ** 2 + (by - ay) ** 2)));
-  return Math.hypot(px - (ax + t * (bx - ax)), py - (ay + t * (by - ay)));
+/** True when the point is inside the rounded square. */
+function inside(px: number, py: number, x: number, y: number, size: number, radius: number): boolean {
+  const dx = Math.max(x + radius - px, 0, px - (x + size - radius));
+  const dy = Math.max(y + radius - py, 0, py - (y + size - radius));
+  return px >= x && px <= x + size && py >= y && py <= y + size && dx * dx + dy * dy <= radius * radius;
 }
 
-function raster(size: number, scale: number): Buffer {
+function raster(size: number, scale: number, background: string): Buffer {
   const k = size / 512;
-  const segments = ANGLES.map((angle) => {
-    const rad = (angle * Math.PI) / 180;
-    const at = (r: number) => [256 + Math.sin(rad) * r * scale, 256 - Math.cos(rad) * r * scale] as const;
-    return [at(INNER), at(OUTER)] as const;
-  });
-  const [bg, ray] = [hex(BACKGROUND), hex(RAY)];
+  const at = (v: number) => 256 + (v - 256) * scale;
+  const [bg, accent] = [hex(background), hex(ACCENT)];
   const rows: Buffer[] = [];
   const SUB = 4;
   for (let y = 0; y < size; y++) {
     const row = Buffer.alloc(1 + size * 3);
     for (let x = 0; x < size; x++) {
-      let covered = 0;
+      let mix = 0;
       for (let sy = 0; sy < SUB; sy++)
         for (let sx = 0; sx < SUB; sx++) {
           const px = (x + (sx + 0.5) / SUB) / k;
           const py = (y + (sy + 0.5) / SUB) / k;
-          if (segments.some(([a, b]) => distance(px, py, a[0], a[1], b[0], b[1]) <= (WIDTH * scale) / 2)) covered++;
+          const tile = TILES.find((t) => inside(px, py, at(t.x), at(t.y), SIZE * scale, RADIUS * scale));
+          if (tile) mix += tile.opacity;
         }
-      const mix = covered / (SUB * SUB);
-      for (let c = 0; c < 3; c++) row[1 + x * 3 + c] = Math.round(bg[c]! + (ray[c]! - bg[c]!) * mix);
+      mix /= SUB * SUB;
+      for (let c = 0; c < 3; c++) row[1 + x * 3 + c] = Math.round(bg[c]! + (accent[c]! - bg[c]!) * mix);
     }
     rows.push(row);
   }
@@ -88,8 +96,10 @@ function png(size: number, raw: Buffer): Buffer {
 }
 
 writeFileSync(join(OUT, "icon.svg"), svg());
-writeFileSync(join(OUT, "icon-192.png"), raster(192, 1));
-writeFileSync(join(OUT, "icon-512.png"), raster(512, 1));
-writeFileSync(join(OUT, "icon-maskable-512.png"), raster(512, MASKABLE_SCALE));
-writeFileSync(join(WEB, "favicon-32.png"), raster(32, 1));
-writeFileSync(join(WEB, "apple-touch-icon.png"), raster(180, 1));
+// Installed app icons (Dock, home screen) cannot follow the color scheme: they use the light background.
+writeFileSync(join(OUT, "icon-192.png"), raster(192, ICON_SCALE, LIGHT));
+writeFileSync(join(OUT, "icon-512.png"), raster(512, ICON_SCALE, LIGHT));
+writeFileSync(join(OUT, "icon-maskable-512.png"), raster(512, MASKABLE_SCALE, LIGHT));
+writeFileSync(join(WEB, "apple-touch-icon.png"), raster(180, ICON_SCALE, LIGHT));
+writeFileSync(join(WEB, "favicon-32.png"), raster(32, ICON_SCALE, LIGHT));
+writeFileSync(join(WEB, "favicon-dark-32.png"), raster(32, ICON_SCALE, DARK));
