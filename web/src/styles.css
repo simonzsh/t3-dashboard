@@ -512,7 +512,7 @@ button.auto-row:hover { transform: translateY(-1px); }
 .desk-window.focused.state-done .desk-window-head { background: color-mix(in srgb, var(--done-text) 16%, var(--done-bg)); }
 .desk-window.focused .dw-title { color: var(--text-primary); font-weight: 600; }
 .desk-window-head .provider-icon { width: 16px; height: 16px; margin: 0; }
-.dw-title { min-width: 0; flex: 0 1 auto; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 600; }
+.dw-title { min-width: 0; flex: 1 1 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 600; }
 .dw-project { flex: 0 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--text-secondary); font-size: 12px; }
 .dw-state.waiting { box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--warn) 50%, transparent); }
 .dw-state.running { box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--work) 50%, transparent); }
