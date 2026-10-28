@@ -1,6 +1,6 @@
 import { test } from "bun:test";
 import assert from "node:assert/strict";
-import { STEP_LABELS, duration, errorMessage, formatMessageTime, relativeTime } from "../../src/lib/format.ts";
+import { STEP_LABELS, duration, errorMessage, failure, formatMessageTime, relativeTime } from "../../src/lib/format.ts";
 
 const now = new Date("2026-03-01T12:00:00Z");
 
@@ -23,6 +23,17 @@ test("errorMessage gives the message of an Error, or the value as text", () => {
   assert.equal(errorMessage(new Error("boom")), "boom");
   assert.equal(errorMessage("plain"), "plain");
   assert.equal(errorMessage(404), "404");
+});
+
+test("errorMessage explains network failures and timeouts", () => {
+  assert.match(errorMessage(new TypeError("Failed to fetch")), /Cannot reach the dashboard server/);
+  assert.match(errorMessage(new TypeError("Load failed")), /Cannot reach the dashboard server/);
+  assert.match(errorMessage(new DOMException("x", "TimeoutError")), /took too long/);
+  assert.match(errorMessage(new Error("  ")), /Something went wrong/);
+});
+
+test("failure says what failed, then why", () => {
+  assert.equal(failure("send the message", new Error("T3 refused")), "Could not send the message. T3 refused");
 });
 
 test("STEP_LABELS names each step status", () => {

@@ -23,7 +23,7 @@ interface Props {
 
 function AgentCardView({ card, now, onDesk, t3EnvironmentId, onOpen, onToggleDesk, onSettle }: Props) {
   const { thread: t, status } = card;
-  const { busy, error, run } = useAction();
+  const { busy, error, run } = useAction("update the agent");
   // T3 refuses to settle a thread that runs or waits; unsettling is always allowed.
   const canSettle = !t.settled && (status === "finished" || status === "idle");
   // A settled card that is not active looks greyed, so it stands out from live ones in an opened list.

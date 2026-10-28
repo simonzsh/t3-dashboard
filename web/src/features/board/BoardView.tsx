@@ -7,6 +7,7 @@ import { Icon, IconButton, Loader, Pressable } from "../../ui/index.ts";
 import { AssignMenu } from "./AssignMenu.tsx";
 import { LinearSetupCard } from "./LinearSetupCard.tsx";
 import { PriorityIcon } from "./PriorityIcon.tsx";
+import { useNotify } from "../../lib/notices.tsx";
 import { useAction } from "../../lib/useAction.ts";
 import { useMediaQuery } from "../../lib/useMediaQuery.ts";
 import { usePanes } from "../../lib/usePanes.ts";
@@ -24,7 +25,7 @@ interface Props {
 export function BoardView({ projects, providers, modelDefaults, version, onAssigned, onShowDesk }: Props) {
   const api = useApi();
   const [board, setBoard] = useState<BoardResult | null>(null);
-  const { busy: loading, error, run } = useAction();
+  const { busy: loading, error, run } = useAction("load the board");
 
   const load = useCallback((refresh: boolean) => run(async () => setBoard(await api.getBoard(refresh))), []);
 
@@ -39,6 +40,10 @@ export function BoardView({ projects, providers, modelDefaults, version, onAssig
   const shown = pane ? columns.filter((c) => c.name === pane) : columns;
   const needsKey = board !== null && boardNeedsKey(board);
   const linearError = board && !needsKey && !board.ok ? board.error : null;
+  const notify = useNotify();
+  useEffect(() => {
+    if (linearError) notify(`Linear returned an error: ${linearError}`);
+  }, [linearError]);
 
   return (
     <div className="board" {...swipe}>
@@ -52,13 +57,8 @@ export function BoardView({ projects, providers, modelDefaults, version, onAssig
           <Icon name="refresh" className={`icon${loading ? " spinning" : ""}`} />
         </IconButton>
       </div>
-      {error && <p className="notice error-notice">{error}</p>}
-      {linearError && (
-        <p className="notice">
-          <strong>Linear</strong> : {linearError}
-        </p>
-      )}
       {!board && !error && <Loader />}
+      {!board && error && <p className="empty">The board could not be loaded.</p>}
       {board && needsKey && <LinearSetupCard refused={board.configured} onConnected={() => void load(true)} />}
       {board && !needsKey && columns.length === 0 && !linearError && (
         <div className="empty-state">

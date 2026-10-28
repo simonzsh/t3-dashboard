@@ -11,8 +11,8 @@ export function SetupScreen({ setup }: { setup: SetupInfo }) {
   const copy = setupCopy(setup);
   const [token, setToken] = useState("");
   const [copied, setCopied] = useState(false);
-  const retry = useAction();
-  const paste = useAction();
+  const retry = useAction("retry the connection");
+  const paste = useAction("save the token");
 
   async function copyCommand(command: string) {
     await navigator.clipboard.writeText(command).catch(() => undefined);
@@ -60,12 +60,10 @@ export function SetupScreen({ setup }: { setup: SetupInfo }) {
             </Button>
           </form>
         )}
-        {paste.error && <span className="error">{paste.error}</span>}
         <div className="buttons">
           <Button loading={retry.busy && "Retrying…"} onClick={() => void retry.run(() => api.retrySetup())}>
             Retry
           </Button>
-          {retry.error && <span className="error">{retry.error}</span>}
         </div>
       </section>
     </div>

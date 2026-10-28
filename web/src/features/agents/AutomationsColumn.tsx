@@ -133,7 +133,6 @@ export function AutomationsColumn({ result, error, threads, projects, setup, now
           ))}
         </ul>
       )}
-      {error && <p className="notice error-notice">{error}</p>}
       {!result && !error ? (
         <Loader />
       ) : (

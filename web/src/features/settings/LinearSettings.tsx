@@ -5,7 +5,8 @@ import { KEY_PATH, KEY_URL, maskedKey } from "./linearSettings.ts";
 import { Icon, IconButton, Loader } from "../../ui/index.ts";
 import { LinearKeyForm } from "./LinearKeyForm.tsx";
 import { useAction } from "../../lib/useAction.ts";
-import { errorMessage } from "../../lib/format.ts";
+import { failure } from "../../lib/format.ts";
+import { useNotify } from "../../lib/notices.tsx";
 
 interface Props {
   onChange: () => void;
@@ -15,11 +16,15 @@ export function LinearSettings({ onChange }: Props) {
   const api = useApi();
   const [settings, setSettings] = useState<SettingsResult | null>(null);
   const [changing, setChanging] = useState(false);
-  const [loadError, setLoadError] = useState<string | null>(null);
-  const action = useAction();
+  const [loadError, setLoadError] = useState(false);
+  const notify = useNotify();
+  const action = useAction("disconnect Linear");
 
   useEffect(() => {
-    api.getSettings().then(setSettings, (e: unknown) => setLoadError(errorMessage(e)));
+    api.getSettings().then(setSettings, (e: unknown) => {
+      setLoadError(true);
+      notify(failure("load the Linear settings", e));
+    });
   }, []);
 
   function saved(next: SettingsResult) {
@@ -28,7 +33,7 @@ export function LinearSettings({ onChange }: Props) {
     onChange();
   }
 
-  if (!settings) return loadError ? <p className="empty">{loadError}</p> : <Loader />;
+  if (!settings) return loadError ? <p className="empty">The Linear settings could not be loaded.</p> : <Loader />;
   const { linear } = settings;
 
   return (
@@ -79,7 +84,6 @@ export function LinearSettings({ onChange }: Props) {
           <LinearKeyForm button={linear.connected ? "Save key" : "Connect"} onSaved={saved} />
         </div>
       )}
-      {action.error && <span className="error">{action.error}</span>}
     </>
   );
 }

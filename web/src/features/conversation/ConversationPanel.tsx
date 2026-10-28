@@ -13,7 +13,8 @@ import { SubagentStrip } from "./SubagentStrip.tsx";
 import { useStickToBottom } from "./useStickToBottom.ts";
 import { documentPage, usePoll } from "../../lib/usePoll.ts";
 import { singleFlight } from "../../lib/singleFlight.ts";
-import { errorMessage, formatMessageTime } from "../../lib/format.ts";
+import { useNotify } from "../../lib/notices.tsx";
+import { failure, formatMessageTime } from "../../lib/format.ts";
 import { useDocumentTheme } from "../../lib/useDocumentTheme.ts";
 import { timeline } from "./timeline.ts";
 import { LIVE_RELOAD_MS, SEND_POLL_WINDOW_MS, pollDelay } from "./reload.ts";
@@ -99,6 +100,11 @@ export function ConversationPanel({ threadId, thread, providers }: Props) {
   const api = useApi();
   const [detail, setDetail] = useState<ThreadDetail | null>(() => detailCache.get(threadId) ?? null);
   const [loadError, setLoadError] = useState<string | null>(null);
+  const notify = useNotify();
+  // Once per distinct error: the poll keeps failing the same way while the server is down.
+  useEffect(() => {
+    if (loadError) notify(loadError);
+  }, [loadError]);
   const [text, setText] = useState(() => drafts.get(threadId) ?? "");
   const [pending, setPending] = useState<PendingMessage[]>([]);
   const [sentAt, setSentAt] = useState(0);
@@ -137,7 +143,7 @@ export function ConversationPanel({ threadId, thread, providers }: Props) {
       setLoadError(null);
     } catch (e) {
       if (mine !== epoch.current) return;
-      setLoadError(errorMessage(e));
+      setLoadError(failure("load the conversation", e));
     }
   }
 
@@ -282,7 +288,7 @@ export function ConversationPanel({ threadId, thread, providers }: Props) {
             setAtBottom(stick.current);
           }}
         >
-          {loadError && <p className="error">{loadError}</p>}
+          {!detail && loadError && <p className="empty">This conversation could not be loaded.</p>}
           {detail && detail.messages.length === 0 && detail.renders.length === 0 && <p className="empty">No messages</p>}
           {!detail && !loadError && <Loader />}
           {detail && <Timeline detail={detail} threadId={threadId} />}

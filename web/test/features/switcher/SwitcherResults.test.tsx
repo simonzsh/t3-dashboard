@@ -27,10 +27,10 @@ test("the selected row is marked for assistive tech", () => {
   assert.match(out, /id="switcher-option-t1"[^>]*aria-selected="false"/);
 });
 
-test("an error keeps the rows and adds one line", () => {
+test("an error keeps the rows and adds no inline text: the banner shows it", () => {
   const out = render({ error: "boom" });
   assert.match(out, /First/);
-  assert.match(out, /Message search failed: boom/);
+  assert.doesNotMatch(out, /boom/);
 });
 
 test("no rows after a search says so; before any search it stays quiet", () => {

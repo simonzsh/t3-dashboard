@@ -1,19 +1,26 @@
 import { useState } from "react";
-import { errorMessage } from "./format.ts";
+import { useNotify } from "./notices.tsx";
+import { failure } from "./format.ts";
 
-// Runs an async action and keeps its error next to the button that started it.
-// Several buttons can share the error line, each with its own busy flag: pass `setCallBusy`.
-export function useAction() {
+// Runs an async action. A failure goes to the error banner; `error` stays for styling the button.
+// Several buttons can share one hook, each with its own busy flag: pass `setCallBusy`.
+// `what` completes "Could not …" in the message, e.g. "send the message".
+export function useAction(what?: string) {
+  const notify = useNotify();
   const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setErrorState] = useState<string | null>(null);
+  const setError = (message: string | null) => {
+    setErrorState(message);
+    if (message) notify(message);
+  };
   async function run(fn: () => unknown, setCallBusy: (busy: boolean) => void = setBusy): Promise<boolean> {
     setCallBusy(true);
-    setError(null);
+    setErrorState(null);
     try {
       await fn();
       return true;
     } catch (e) {
-      setError(errorMessage(e));
+      setError(what ? failure(what, e) : failure("complete this action", e));
       return false;
     } finally {
       setCallBusy(false);

@@ -16,6 +16,7 @@ const ICONS = {
   arrowUp: ["M12 19V5", "m5 12 7-7 7 7"],
   arrowUpRight: ["M7 7h10v10", "M7 17 17 7"],
   arrowDown: ["M12 5v14", "m19 12-7 7-7-7"],
+  alert: ["M22 12a10 10 0 1 1-20 0 10 10 0 0 1 20 0Z", "M12 8v4", "M12 16h.01"],
   x: ["M18 6 6 18", "m6 6 12 12"],
   check: ["M20 6 9 17l-5-5"],
   archive: ["M21 8v13H3V8", "M1 3h22v5H1z", "M10 12h4"],

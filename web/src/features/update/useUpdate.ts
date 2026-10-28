@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import type { UpdateStatus } from "../../../../shared/api.ts";
 import { useApi } from "../../api/ApiContext.tsx";
 import { waitForRestart } from "./updateFlow.ts";
-import { errorMessage } from "../../lib/format.ts";
+import { failure } from "../../lib/format.ts";
 import { useAction } from "../../lib/useAction.ts";
 import { usePoll } from "../../lib/usePoll.ts";
 
@@ -21,7 +21,7 @@ export function useUpdate(): UpdateControl {
   const api = useApi();
   const [status, setStatus] = useState<UpdateStatus | null>(null);
   const [updating, setUpdating] = useState(false);
-  const { busy: checking, error, setError, run } = useAction();
+  const { busy: checking, error, setError, run } = useAction("check for updates");
 
   // The server checks once a day: the page only reads the answer.
   const load = () => api.getUpdate().then(setStatus, () => {});
@@ -47,7 +47,7 @@ export function useUpdate(): UpdateControl {
       if (outcome.kind === "restarted") return location.reload();
       setError(outcome.message);
     } catch (e) {
-      setError(errorMessage(e));
+      setError(failure("update the dashboard", e));
     }
     setUpdating(false);
   }, [status]);

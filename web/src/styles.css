@@ -129,6 +129,11 @@ kbd { font: 11px/1 var(--font-mono); padding: 2px 5px; border-radius: 4px; borde
 .banner { padding: 8px 24px; background: var(--warn-bg); color: var(--warn-text); border-bottom: 1px solid var(--line); }
 .banner-line { display: flex; align-items: center; gap: 8px; }
 .banner .loader.inline line { stroke: var(--warn); }
+.error-banner { position: fixed; z-index: 70; top: max(12px, env(safe-area-inset-top)); left: 50%; translate: -50% 0; width: min(640px, calc(100vw - 24px)); display: flex; flex-direction: column; gap: 6px; }
+.error-banner-line { display: flex; align-items: center; gap: 10px; padding: 8px 8px 8px 12px; border-radius: var(--radius-md); background: var(--danger); color: #fff; box-shadow: var(--shadow); font-size: 13px; line-height: 1.4; }
+.error-banner-line .icon { flex: none; width: 16px; height: 16px; }
+.error-banner-text { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+.error-banner-line button { flex: none; color: inherit; }
 .empty { color: var(--text-secondary); margin: 0; }
 .loader { flex: 1; display: grid; place-items: center; min-height: 96px; }
 .loader svg { width: 36px; height: 36px; animation: loader-breathe 1.6s ease-in-out infinite; }
@@ -194,7 +199,6 @@ main { flex: 1; min-height: 0; overflow: hidden; padding: 24px; display: flex; f
 .spinning { animation: spin 0.9s linear infinite; }
 @keyframes spin { to { transform: rotate(360deg); } }
 .notice { margin: 0; padding: 10px 14px; border-radius: 10px; background: var(--warn-bg); color: var(--warn-text); }
-.error-notice { background: var(--err-bg); color: var(--err-text); }
 .kanban { flex: 1; min-height: 0; display: flex; gap: 14px; align-items: flex-start; overflow-x: auto; padding-bottom: 8px; }
 .column { flex: 1 1 0; min-width: 260px; max-height: 100%; display: flex; flex-direction: column; border-radius: 14px; background: var(--surface-0); border: 1px solid var(--line); }
 .column-head { display: flex; align-items: center; gap: 8px; margin: 0; padding: 12px 14px; font-size: 13px; }
@@ -288,7 +292,6 @@ main { flex: 1; min-height: 0; overflow: hidden; padding: 24px; display: flex; f
 .subagent-side { display: flex; align-items: center; gap: 8px; }
 .subagent-stop { color: var(--text-secondary); }
 .subagent-stop:hover:not(:disabled) { color: var(--danger); }
-.subagent-error { display: block; padding: 0 12px 8px; }
 .subagent-time { color: var(--text-secondary); font-variant-numeric: tabular-nums; }
 .activity { display: flex; flex-direction: column; gap: 8px; font-size: 13px; color: var(--text-secondary); }
 .activity-head { align-self: flex-start; display: inline-flex; align-items: center; gap: 8px; padding: 0; border: 0; background: none; color: var(--text-secondary); font-variant-numeric: tabular-nums; }
@@ -642,4 +645,3 @@ button.auto-row:hover { transform: translateY(-1px); }
 .msg.pending { opacity: 0.6; }
 .msg.pending small { opacity: 0.85; }
 .about-note { color: var(--text-secondary); font-size: 12px; white-space: nowrap; }
-.about-note.error { color: var(--danger); white-space: normal; }

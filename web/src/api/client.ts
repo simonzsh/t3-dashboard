@@ -17,6 +17,16 @@ import type {
   UpdateStatus,
 } from "../../../shared/api.ts";
 
+// The server sends its own message when it has one; these cover the rest.
+export function httpErrorMessage(status: number): string {
+  if (status === 401 || status === 403) return "The dashboard refused this request. Reload the page and try again.";
+  if (status === 404) return "This item no longer exists. It may have been deleted.";
+  if (status === 408 || status === 504) return "The server took too long to answer. Try again in a moment.";
+  if (status === 429) return "Too many requests. Wait a few seconds and try again.";
+  if (status >= 500) return "The dashboard server hit an error. Try again; if it keeps failing, check the server logs.";
+  return `The request failed (HTTP ${status}). Try again.`;
+}
+
 type Fetch = (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>;
 
 const THREAD_CACHE_MAX = 50;
@@ -31,7 +41,7 @@ export function createApi(fetchImpl: Fetch) {
     const data: unknown = await res.json().catch(() => null);
     if (!res.ok) {
       const msg = (data as { error?: unknown } | null)?.error;
-      throw new Error(typeof msg === "string" ? msg : `Error ${res.status}`);
+      throw new Error(typeof msg === "string" && msg ? msg : httpErrorMessage(res.status));
     }
     return data as T;
   }
@@ -53,7 +63,7 @@ export function createApi(fetchImpl: Fetch) {
       const data: unknown = await res.json().catch(() => null);
       if (!res.ok) {
         const msg = (data as { error?: unknown } | null)?.error;
-        throw new Error(typeof msg === "string" ? msg : `Error ${res.status}`);
+        throw new Error(typeof msg === "string" && msg ? msg : httpErrorMessage(res.status));
       }
       const detail = data as ThreadDetail;
       const etag = res.headers.get("etag");

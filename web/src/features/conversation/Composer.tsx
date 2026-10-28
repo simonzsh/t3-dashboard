@@ -56,7 +56,7 @@ export function Composer({ providers, selection, runtimeMode, running, stoppable
   const [modeOverride, setModeOverride] = useState<RuntimeMode | null>(null);
   const [images, setImages] = useState<Pending[]>([]);
   // One error line: each attempt replaces it, so an older error never hides a newer one.
-  const { error, setError, run: attempt } = useAction();
+  const { setError, run: attempt } = useAction("send your request");
   const [sending, setSending] = useState(false);
   const [stopping, setStopping] = useState(false);
   const touch = useMediaQuery("(pointer: coarse)");
@@ -241,7 +241,6 @@ export function Composer({ providers, selection, runtimeMode, running, stoppable
           </div>
         </div>
       </div>
-      {error && <span className="error">{error}</span>}
     </form>
   );
 }

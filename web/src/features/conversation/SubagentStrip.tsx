@@ -19,7 +19,7 @@ export function SubagentStrip({ subagents, reveal = 0, onStop }: { subagents: Su
   const [open, setOpen] = useState(false);
   const [now, setNow] = useState(() => Date.now());
   const head = useRef<HTMLButtonElement>(null);
-  const action = useAction();
+  const action = useAction("stop the subagent");
   const [stopping, setStopping] = useState<string | null>(null);
 
   useEffect(() => {
@@ -78,7 +78,6 @@ export function SubagentStrip({ subagents, reveal = 0, onStop }: { subagents: Su
           })}
         </ul>
       )}
-      {open && action.error && <span className="error subagent-error">{action.error}</span>}
     </div>
   );
 }
