@@ -128,7 +128,7 @@ const MAX_ORIGIN = 100;
 export function validDesk(body: Record<string, unknown>): DeskUpdate {
   const desk = normalizeDesk(body.desk);
   if (!desk || !isText(body.origin) || body.origin.length > MAX_ORIGIN) {
-    throw new HttpError(400, `desk (windows and history lists) and origin (1 to ${MAX_ORIGIN} characters) are required`);
+    throw new HttpError(400, `desk (an ids list) and origin (1 to ${MAX_ORIGIN} characters) are required`);
   }
   return { desk, origin: body.origin };
 }

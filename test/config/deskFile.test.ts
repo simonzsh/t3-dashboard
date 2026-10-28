@@ -11,20 +11,24 @@ test("the desk file sits in the config directory", () => {
   assert.equal(deskFile({ T3_DASHBOARD_CONFIG_DIR: "/cfg" }, "/home/me"), "/cfg/desk.json");
 });
 
-test("reads the windows and the history, and drops what is not valid", () => {
-  const raw = JSON.stringify({ windows: [{ id: "a", minimized: true }, { id: "a" }, { id: 2 }, { id: "b" }], history: ["b", 3, "b", "a"] });
-  assert.deepEqual(readDesk(FILE, files({ [FILE]: raw })), { windows: [{ id: "a", minimized: true }, { id: "b", minimized: false }], history: ["b", "a"] });
+test("reads the ids on the desk, and drops what is not valid", () => {
+  assert.deepEqual(readDesk(FILE, files({ [FILE]: JSON.stringify({ ids: ["a", "a", 2, "b"] }) })), { ids: ["a", "b"] });
+});
+
+test("a v0.5.7 file keeps only the ids of its windows", () => {
+  const raw = JSON.stringify({ windows: [{ id: "a", minimized: true }, { id: "a" }, { id: 2 }, { id: "b" }], history: ["b", "a"] });
+  assert.deepEqual(readDesk(FILE, files({ [FILE]: raw })), { ids: ["a", "b"] });
 });
 
 test("a missing file, invalid JSON or a wrong shape gives null", () => {
   assert.equal(readDesk(FILE, files({})), null);
   assert.equal(readDesk(FILE, files({ [FILE]: "{oops" })), null);
   assert.equal(readDesk(FILE, files({ [FILE]: "null" })), null);
-  assert.equal(readDesk(FILE, files({ [FILE]: JSON.stringify({ windows: [] }) })), null);
+  assert.equal(readDesk(FILE, files({ [FILE]: JSON.stringify({ ids: "a" }) })), null);
 });
 
 test("what deskText writes reads back the same, pretty-printed with a final newline", () => {
-  const desk = { windows: [{ id: "a", minimized: false }], history: ["a"] };
+  const desk = { ids: ["a"] };
   const text = deskText(desk);
   assert.ok(text.endsWith("}\n"));
   assert.ok(text.includes("\n  "));

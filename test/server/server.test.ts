@@ -1065,14 +1065,14 @@ test("stopping a subagent sends subagent.stop, 404 when unknown", async () => {
 test("GET /api/desk is null until a desk is saved, then returns it", async () => {
   const fresh = await start();
   assert.deepEqual((await call(fresh.server, "GET", "/api/desk")).json, { desk: null });
-  const saved = { windows: [{ id: "idle-1", minimized: true }], history: ["idle-1", "run-1"] };
+  const saved = { ids: ["idle-1", "run-1"] };
   const known = await start({ desk: saved });
   assert.deepEqual((await call(known.server, "GET", "/api/desk")).json, { desk: saved });
 });
 
 test("POST /api/desk stores the desk, serves it back and broadcasts it with its origin", async () => {
   const { server, savedDesks, events } = await start();
-  const desk = { windows: [{ id: "a", minimized: false }, { id: "b", minimized: true }], history: ["b", "a"] };
+  const desk = { ids: ["a", "b"] };
   const reply = await post(server, "/api/desk", { desk, origin: "tab-1" });
   assert.deepEqual(reply.json, { ok: true });
   assert.deepEqual(savedDesks, [desk]);
@@ -1080,20 +1080,20 @@ test("POST /api/desk stores the desk, serves it back and broadcasts it with its 
   assert.deepEqual(events, [{ type: "desk", data: { desk, origin: "tab-1" } }]);
 });
 
-test("POST /api/desk drops duplicates, keeps minimized windows, and minimizes visible ones past the grid", async () => {
+test("POST /api/desk keeps unique string ids, up to 100, and stores no window state", async () => {
   const { server, savedDesks } = await start();
-  const windows = ["a", "a", 7, "b", "c", "d", "e", "f", "g", "h"].map((id) => ({ id, minimized: id === "b" }));
-  const history = Array.from({ length: 30 }, (_, i) => `t${i % 25}`);
-  await post(server, "/api/desk", { desk: { windows, history: [...history, 4] }, origin: "tab-1" });
-  assert.deepEqual(savedDesks[0]!.windows.map((w) => w.id), ["a", "b", "c", "d", "e", "f", "g", "h"]);
-  assert.deepEqual(savedDesks[0]!.windows.filter((w) => w.minimized).map((w) => w.id), ["b", "h"]);
-  assert.deepEqual(savedDesks[0]!.history, Array.from({ length: 20 }, (_, i) => `t${i}`));
+  await post(server, "/api/desk", { desk: { ids: ["a", "a", 7, "b", ...Array.from({ length: 120 }, (_, i) => `t${i}`)] }, origin: "tab-1" });
+  assert.deepEqual(savedDesks[0]!.ids.slice(0, 3), ["a", "b", "t0"]);
+  assert.equal(savedDesks[0]!.ids.length, 100);
+  // An old client still sends windows with their state: only the ids are kept.
+  await post(server, "/api/desk", { desk: { windows: [{ id: "a", minimized: true }], history: ["a"] }, origin: "tab-2" });
+  assert.deepEqual(savedDesks[1], { ids: ["a"] });
 });
 
 test("POST /api/desk refuses a body without a desk or an origin, and saves nothing", async () => {
   const { server, savedDesks, events } = await start();
-  const desk = { windows: [], history: [] };
-  const bad = [{}, { desk }, { origin: "x" }, { desk: { windows: [] }, origin: "x" }, { desk: { windows: "a", history: [] }, origin: "x" }, { desk, origin: "" }, { desk, origin: 3 }, { desk: [], origin: "x" }];
+  const desk = { ids: [] };
+  const bad = [{}, { desk }, { origin: "x" }, { desk: {}, origin: "x" }, { desk: { ids: "a" }, origin: "x" }, { desk, origin: "" }, { desk, origin: 3 }, { desk: [], origin: "x" }];
   for (const body of bad) assert.equal((await post(server, "/api/desk", body)).status, 400, JSON.stringify(body));
   assert.deepEqual(savedDesks, []);
   assert.deepEqual(events, []);
