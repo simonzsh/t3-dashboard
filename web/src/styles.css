@@ -1,37 +1,37 @@
-/* Discord-style light and dark themes with a blurple accent; data-theme is set on <html> before first paint. */
+/* Clean light theme and Discord-style dark theme, both with a blurple accent; data-theme is set on <html> before first paint. */
 :root, :root[data-theme="light"] {
   color-scheme: light;
-  --surface-0: #f2f3f5;
+  --surface-0: #f6f7f9;
   --surface-1: #ffffff;
-  --header-bg: #e3e5e8;
-  --line: #d4d7dc;
-  --text-primary: #313338;
-  --text-secondary: #5c5e66;
-  --accent: #4752c4;
+  --header-bg: #ffffff;
+  --line: #e4e6eb;
+  --text-primary: #1c1d21;
+  --text-secondary: #6b6f78;
+  --accent: #4e5ae8;
   --on-accent: #ffffff;
-  --shadow: 0 1px 2px rgb(0 0 0 / 0.08), 0 4px 14px rgb(0 0 0 / 0.06);
-  --backdrop: rgb(0 0 0 / 0.45);
-  --ok: #248046;
-  --danger: #da373c;
-  --warn: #b57a00;
-  --warn-bg: #fbecc4;
-  --warn-text: #6b4a00;
-  --work: #0b72b8;
-  --work-bg: #dcecf7;
-  --work-text: #0a4f80;
-  --done-bg: #dcefe2;
-  --done-text: #1a6137;
-  --err-bg: #fbdcdd;
-  --err-text: #9c2024;
-  --desk-bg-ocean: linear-gradient(150deg, #dcebf7 0%, #9cc3e6 100%);
-  --desk-bg-forest: linear-gradient(150deg, #e3f0df 0%, #9fc896 100%);
-  --desk-bg-lagoon: linear-gradient(150deg, #d9f2ee 0%, #86cfc3 100%);
-  --desk-bg-lavender: linear-gradient(150deg, #ece4f7 0%, #b9a3e0 100%);
-  --desk-bg-sunset: linear-gradient(135deg, #ffe2c4 0%, #f6a6a0 100%);
-  --desk-bg-rose: linear-gradient(150deg, #fbe4ec 0%, #eba7c0 100%);
-  --desk-bg-aurora: linear-gradient(135deg, #cfe0ff 0%, #e3c6f2 100%);
-  --desk-bg-sand: linear-gradient(135deg, #f2f3f5 0%, #c9cdd4 100%);
-  --desk-bg-graphite: linear-gradient(150deg, #ebebee 0%, #bfc1c8 100%);
+  --shadow: 0 1px 2px rgb(16 24 40 / 0.04), 0 2px 8px rgb(16 24 40 / 0.06);
+  --backdrop: rgb(16 24 40 / 0.4);
+  --ok: #1f9d55;
+  --danger: #e5484d;
+  --warn: #c98a00;
+  --warn-bg: #fff4d6;
+  --warn-text: #8a5a00;
+  --work: #1a73e8;
+  --work-bg: #e7f1fd;
+  --work-text: #0b5cab;
+  --done-bg: #e3f6ea;
+  --done-text: #17663a;
+  --err-bg: #fde8e8;
+  --err-text: #b42318;
+  --desk-bg-ocean: linear-gradient(150deg, #e6f1fb 0%, #a9cdef 100%);
+  --desk-bg-forest: linear-gradient(150deg, #eaf5e7 0%, #acd2a3 100%);
+  --desk-bg-lagoon: linear-gradient(150deg, #e2f6f3 0%, #92d6cb 100%);
+  --desk-bg-lavender: linear-gradient(150deg, #f1ebfa 0%, #c4b0e8 100%);
+  --desk-bg-sunset: linear-gradient(135deg, #ffe9d2 0%, #f8b3ad 100%);
+  --desk-bg-rose: linear-gradient(150deg, #fdebf1 0%, #f0b5ca 100%);
+  --desk-bg-aurora: linear-gradient(135deg, #d9e7ff 0%, #ebd3f7 100%);
+  --desk-bg-sand: linear-gradient(135deg, #f6f7f9 0%, #d3d7de 100%);
+  --desk-bg-graphite: linear-gradient(150deg, #f1f1f4 0%, #c8cad1 100%);
 }
 :root[data-theme="dark"] {
   color-scheme: dark;
@@ -660,3 +660,20 @@ button.auto-row:hover { transform: translateY(-1px); }
 .msg.pending { opacity: 0.6; }
 .msg.pending small { opacity: 0.85; }
 .about-note { color: var(--text-secondary); font-size: 12px; white-space: nowrap; }
+/* Light-only polish: tokens alone leave the light theme flat. Every rule is scoped so dark stays untouched. */
+:root:not([data-theme="dark"]) .topbar { background: rgb(255 255 255 / 0.78); backdrop-filter: saturate(1.6) blur(14px); -webkit-backdrop-filter: saturate(1.6) blur(14px); border-bottom-color: color-mix(in srgb, var(--line) 80%, transparent); }
+:root:not([data-theme="dark"]) .tabs { background: #eceef2; border-color: transparent; }
+:root:not([data-theme="dark"]) .tabs button.active { box-shadow: 0 1px 2px rgb(16 24 40 / 0.08), 0 1px 6px rgb(16 24 40 / 0.06); }
+:root:not([data-theme="dark"]) kbd { background: var(--surface-0); border-color: transparent; opacity: 1; }
+:root:not([data-theme="dark"]) button.primary kbd { background: transparent; border-color: color-mix(in srgb, var(--on-accent) 45%, transparent); }
+:root:not([data-theme="dark"]) button.primary { box-shadow: 0 1px 2px rgb(78 90 232 / 0.3); }
+:root:not([data-theme="dark"]) button.ghost:hover:not(:disabled) { background: #eef0f4; }
+:root:not([data-theme="dark"]) .agent, :root:not([data-theme="dark"]) .card { border-color: var(--line); transition: transform 0.15s, box-shadow 0.15s, border-color 0.15s; }
+:root:not([data-theme="dark"]) .agent:hover:not(:disabled), :root:not([data-theme="dark"]) .card:hover { box-shadow: 0 2px 4px rgb(16 24 40 / 0.05), 0 8px 20px rgb(16 24 40 / 0.08); }
+:root:not([data-theme="dark"]) .card { box-shadow: var(--shadow); }
+:root:not([data-theme="dark"]) .column { background: #f0f2f5; border-color: transparent; }
+:root:not([data-theme="dark"]) .composer-card, :root:not([data-theme="dark"]) .dialog, :root:not([data-theme="dark"]) .automations { border-color: var(--line); background: #fff; }
+:root:not([data-theme="dark"]) .dialog, :root:not([data-theme="dark"]) .menu, :root:not([data-theme="dark"]) .dropdown-menu { box-shadow: 0 4px 6px rgb(16 24 40 / 0.04), 0 16px 40px rgb(16 24 40 / 0.14); }
+:root:not([data-theme="dark"]) .desk-window { background: var(--surface-1); border-color: color-mix(in srgb, var(--line) 80%, transparent); box-shadow: 0 1px 3px rgb(16 24 40 / 0.06), 0 6px 20px rgb(16 24 40 / 0.07); }
+:root:not([data-theme="dark"]) .desk.has-bg .desk-window { box-shadow: 0 2px 6px rgb(16 24 40 / 0.1), 0 12px 32px rgb(16 24 40 / 0.14); }
+:root:not([data-theme="dark"]) .msg.user .bubble { background: color-mix(in srgb, var(--accent) 9%, var(--surface-1)); border-color: color-mix(in srgb, var(--accent) 18%, var(--line)); }
