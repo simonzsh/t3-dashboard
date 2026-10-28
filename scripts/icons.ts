@@ -16,8 +16,10 @@ const TILES = [
   { x: 272, y: 272, opacity: 0.65 },
 ];
 const [SIZE, RADIUS] = [128, 30];
-// A maskable icon keeps its art inside the central 80% circle: the OS crops the rest.
-const MASKABLE_SCALE = 0.85;
+// macOS and iOS show the whole square: the logo fills most of it.
+const ICON_SCALE = 1.25;
+// A maskable icon keeps its art inside the central 80% circle: Android crops the rest.
+const MASKABLE_SCALE = 1;
 
 const hex = (color: string) => [1, 3, 5].map((i) => parseInt(color.slice(i, i + 2), 16));
 
@@ -28,7 +30,9 @@ function svg(): string {
     '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">',
     `  <style>.bg { fill: ${LIGHT}; } @media (prefers-color-scheme: dark) { .bg { fill: ${DARK}; } }</style>`,
     '  <rect class="bg" width="512" height="512"/>',
-    ...tiles,
+    `  <g transform="translate(256 256) scale(${ICON_SCALE}) translate(-256 -256)">`,
+    ...tiles.map((tile) => `  ${tile}`),
+    "  </g>",
     "</svg>",
     "",
   ].join("\n");
@@ -92,10 +96,10 @@ function png(size: number, raw: Buffer): Buffer {
 }
 
 writeFileSync(join(OUT, "icon.svg"), svg());
-// Installed app icons cannot follow the color scheme: they use the dark background.
-writeFileSync(join(OUT, "icon-192.png"), raster(192, 1, DARK));
-writeFileSync(join(OUT, "icon-512.png"), raster(512, 1, DARK));
-writeFileSync(join(OUT, "icon-maskable-512.png"), raster(512, MASKABLE_SCALE, DARK));
-writeFileSync(join(WEB, "apple-touch-icon.png"), raster(180, 1, DARK));
-writeFileSync(join(WEB, "favicon-32.png"), raster(32, 1, LIGHT));
-writeFileSync(join(WEB, "favicon-dark-32.png"), raster(32, 1, DARK));
+// Installed app icons (Dock, home screen) cannot follow the color scheme: they use the light background.
+writeFileSync(join(OUT, "icon-192.png"), raster(192, ICON_SCALE, LIGHT));
+writeFileSync(join(OUT, "icon-512.png"), raster(512, ICON_SCALE, LIGHT));
+writeFileSync(join(OUT, "icon-maskable-512.png"), raster(512, MASKABLE_SCALE, LIGHT));
+writeFileSync(join(WEB, "apple-touch-icon.png"), raster(180, ICON_SCALE, LIGHT));
+writeFileSync(join(WEB, "favicon-32.png"), raster(32, ICON_SCALE, LIGHT));
+writeFileSync(join(WEB, "favicon-dark-32.png"), raster(32, ICON_SCALE, DARK));

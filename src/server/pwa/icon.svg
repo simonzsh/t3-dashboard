@@ -1,8 +1,10 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
   <style>.bg { fill: #ffffff; } @media (prefers-color-scheme: dark) { .bg { fill: #000000; } }</style>
   <rect class="bg" width="512" height="512"/>
-  <rect x="112" y="112" width="128" height="128" rx="30" fill="#5865f2"/>
-  <rect x="272" y="112" width="128" height="128" rx="30" fill="#5865f2" opacity="0.35"/>
-  <rect x="112" y="272" width="128" height="128" rx="30" fill="#5865f2" opacity="0.35"/>
-  <rect x="272" y="272" width="128" height="128" rx="30" fill="#5865f2" opacity="0.65"/>
+  <g transform="translate(256 256) scale(1.25) translate(-256 -256)">
+    <rect x="112" y="112" width="128" height="128" rx="30" fill="#5865f2"/>
+    <rect x="272" y="112" width="128" height="128" rx="30" fill="#5865f2" opacity="0.35"/>
+    <rect x="112" y="272" width="128" height="128" rx="30" fill="#5865f2" opacity="0.35"/>
+    <rect x="272" y="272" width="128" height="128" rx="30" fill="#5865f2" opacity="0.65"/>
+  </g>
 </svg>
