@@ -660,20 +660,17 @@ button.auto-row:hover { transform: translateY(-1px); }
 .msg.pending { opacity: 0.6; }
 .msg.pending small { opacity: 0.85; }
 .about-note { color: var(--text-secondary); font-size: 12px; white-space: nowrap; }
-/* Light-only polish: tokens alone leave the light theme flat. Every rule is scoped so dark stays untouched. */
-:root:not([data-theme="dark"]) .topbar { background: rgb(255 255 255 / 0.78); backdrop-filter: saturate(1.6) blur(14px); -webkit-backdrop-filter: saturate(1.6) blur(14px); border-bottom-color: color-mix(in srgb, var(--line) 80%, transparent); }
-:root:not([data-theme="dark"]) .tabs { background: #eceef2; border-color: transparent; }
-:root:not([data-theme="dark"]) .tabs button.active { box-shadow: 0 1px 2px rgb(16 24 40 / 0.08), 0 1px 6px rgb(16 24 40 / 0.06); }
-:root:not([data-theme="dark"]) kbd { background: var(--surface-0); border-color: transparent; opacity: 1; }
-:root:not([data-theme="dark"]) button.primary kbd { background: transparent; border-color: color-mix(in srgb, var(--on-accent) 45%, transparent); }
-:root:not([data-theme="dark"]) button.primary { box-shadow: 0 1px 2px rgb(78 90 232 / 0.3); }
-:root:not([data-theme="dark"]) button.ghost:hover:not(:disabled) { background: #eef0f4; }
-:root:not([data-theme="dark"]) .agent, :root:not([data-theme="dark"]) .card { border-color: var(--line); transition: transform 0.15s, box-shadow 0.15s, border-color 0.15s; }
-:root:not([data-theme="dark"]) .agent:hover:not(:disabled), :root:not([data-theme="dark"]) .card:hover { box-shadow: 0 2px 4px rgb(16 24 40 / 0.05), 0 8px 20px rgb(16 24 40 / 0.08); }
-:root:not([data-theme="dark"]) .card { box-shadow: var(--shadow); }
-:root:not([data-theme="dark"]) .column { background: #f0f2f5; border-color: transparent; }
-:root:not([data-theme="dark"]) .composer-card, :root:not([data-theme="dark"]) .dialog, :root:not([data-theme="dark"]) .automations { border-color: var(--line); background: #fff; }
-:root:not([data-theme="dark"]) .dialog, :root:not([data-theme="dark"]) .menu, :root:not([data-theme="dark"]) .dropdown-menu { box-shadow: 0 4px 6px rgb(16 24 40 / 0.04), 0 16px 40px rgb(16 24 40 / 0.14); }
-:root:not([data-theme="dark"]) .desk-window { background: var(--surface-1); border-color: color-mix(in srgb, var(--line) 80%, transparent); box-shadow: 0 1px 3px rgb(16 24 40 / 0.06), 0 6px 20px rgb(16 24 40 / 0.07); }
-:root:not([data-theme="dark"]) .desk.has-bg .desk-window { box-shadow: 0 2px 6px rgb(16 24 40 / 0.1), 0 12px 32px rgb(16 24 40 / 0.14); }
-:root:not([data-theme="dark"]) .msg.user .bubble { background: color-mix(in srgb, var(--accent) 9%, var(--surface-1)); border-color: color-mix(in srgb, var(--accent) 18%, var(--line)); }
+/* Light-only polish, scoped so dark stays untouched. :where() keeps the base specificity: hover, focus and state rules still win, as in dark. */
+:where(:root:not([data-theme="dark"])) .topbar { background: rgb(255 255 255 / 0.78); backdrop-filter: saturate(1.6) blur(14px); -webkit-backdrop-filter: saturate(1.6) blur(14px); border-bottom-color: color-mix(in srgb, var(--line) 80%, transparent); }
+:where(:root:not([data-theme="dark"])) .tabs { background: #eceef2; border-color: transparent; }
+:where(:root:not([data-theme="dark"])) .tabs button.active { box-shadow: 0 1px 2px rgb(16 24 40 / 0.08), 0 1px 6px rgb(16 24 40 / 0.06); }
+:where(:root:not([data-theme="dark"])) kbd { background: var(--surface-0); border-color: transparent; opacity: 1; }
+:where(:root:not([data-theme="dark"])) button.primary kbd { background: transparent; border-color: color-mix(in srgb, var(--on-accent) 45%, transparent); }
+:where(:root:not([data-theme="dark"])) button.primary { box-shadow: 0 1px 2px rgb(78 90 232 / 0.3); }
+:where(:root:not([data-theme="dark"])) button.ghost:hover:not(:disabled) { background: #eef0f4; }
+:where(:root:not([data-theme="dark"])) .column { background: #f0f2f5; border-color: transparent; }
+:where(:root:not([data-theme="dark"])) .composer-card, :where(:root:not([data-theme="dark"])) .dialog, :where(:root:not([data-theme="dark"])) .automations { border-color: var(--line); background: #fff; }
+:where(:root:not([data-theme="dark"])) .dialog, :where(:root:not([data-theme="dark"])) .menu, :where(:root:not([data-theme="dark"])) .dropdown-menu { box-shadow: 0 4px 6px rgb(16 24 40 / 0.04), 0 16px 40px rgb(16 24 40 / 0.14); }
+:where(:root:not([data-theme="dark"])) .desk-window { background: var(--surface-1); border-color: color-mix(in srgb, var(--line) 80%, transparent); box-shadow: 0 1px 3px rgb(16 24 40 / 0.06), 0 6px 20px rgb(16 24 40 / 0.07); }
+:where(:root:not([data-theme="dark"])) .desk.has-bg .desk-window { box-shadow: 0 2px 6px rgb(16 24 40 / 0.1), 0 12px 32px rgb(16 24 40 / 0.14); }
+:where(:root:not([data-theme="dark"])) .msg.user .bubble { background: color-mix(in srgb, var(--accent) 9%, var(--surface-1)); border-color: color-mix(in srgb, var(--accent) 18%, var(--line)); }
