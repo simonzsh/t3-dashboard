@@ -215,3 +215,19 @@ test("stepId moves along the opening order and stops at both ends", () => {
   assert.equal(stepId(s.windows, "a", -1), null);
   assert.equal(stepId(s.windows, "x", 1), null);
 });
+
+test("swap exchanges two windows' cells, focuses the dragged one and keeps the grid sizes", () => {
+  let s = open(EMPTY_DESK, "a", "b", "c");
+  const sizes = { columns: { c0: 50, c1: 25, c2: 25 }, rows: { r0: 100 } };
+  s = deskReducer(s, { type: "setSizes", count: 3, sizes });
+  s = deskReducer(s, { type: "swap", id: "a", with: "c" });
+  assert.deepEqual(ids(s), ["c", "b", "a"]);
+  assert.equal(s.focusedId, "a");
+  assert.deepEqual(sizesFor(s, 3), sizes);
+});
+
+test("swap ignores an unknown or identical window", () => {
+  const s = open(EMPTY_DESK, "a", "b");
+  assert.equal(deskReducer(s, { type: "swap", id: "a", with: "zz" }), s);
+  assert.equal(deskReducer(s, { type: "swap", id: "a", with: "a" }), s);
+});

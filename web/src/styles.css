@@ -511,6 +511,13 @@ button.auto-row:hover { transform: translateY(-1px); }
 .desk-window.focused.state-error .desk-window-head { background: color-mix(in srgb, var(--err-text) 16%, var(--err-bg)); }
 .desk-window.focused.state-done .desk-window-head { background: color-mix(in srgb, var(--done-text) 16%, var(--done-bg)); }
 .desk-window.focused .dw-title { color: var(--text-primary); font-weight: 600; }
+/* Drag a window by its header onto another one to swap their cells. */
+.desk:not(.compact) .desk-window-head { cursor: grab; user-select: none; }
+.desk:not(.compact) .desk-window.maximized .desk-window-head { cursor: default; }
+.desk-dragging, .desk-dragging * { cursor: grabbing !important; }
+.desk-window.dragging { opacity: 0.45; }
+.desk-window.drop-target { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent); }
+.desk-drag-ghost { position: fixed; left: 0; top: 0; z-index: 50; pointer-events: none; max-width: 360px; border: 1px solid var(--line); border-radius: 10px; box-shadow: var(--shadow); opacity: 0.95; }
 .desk-window-head .provider-icon { width: 16px; height: 16px; margin: 0; }
 .dw-title { min-width: 0; flex: 0 1 auto; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 600; }
 .dw-project { flex: 0 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--text-secondary); font-size: 12px; }

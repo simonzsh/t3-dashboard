@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useMemo, useRef, type Dispatch, type MouseEvent, type ReactNode, type TouchEvent } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, type Dispatch, type MouseEvent, type PointerEvent, type ReactNode, type TouchEvent } from "react";
 import { Cell, Grid, Gridline, useGridRef, type GridLayout } from "react-resizable-panels";
 import type { DashboardProject, DashboardProvider, DashboardThread } from "../../../../shared/api.ts";
 import { threadState } from "../../../../shared/status.ts";
@@ -118,6 +118,66 @@ function useWindowSwipe(enabled: boolean, windows: readonly Win[], activeId: str
   return { area, swipe };
 }
 
+// Below this distance a press on the header stays a click.
+const DRAG_START_PX = 5;
+
+/** Dragging a window by its header onto another window swaps their cells; a copy of the header follows the pointer. */
+function useWindowDrag(enabled: boolean, dispatch: Dispatch<DeskAction>) {
+  const stop = useRef<() => void>(() => {});
+  useEffect(() => () => stop.current(), []);
+  if (!enabled) return {};
+  return {
+    onPointerDown: (e: PointerEvent<HTMLDivElement>) => {
+      const target = e.target instanceof Element ? e.target : null;
+      const head = target?.closest(".desk-window-head");
+      const win = head?.closest<HTMLElement>("[data-desk-window]");
+      if (e.button !== 0 || !e.isPrimary || !head || !win || win.classList.contains("maximized") || target?.closest("button, a")) return;
+      const startX = e.clientX;
+      const startY = e.clientY;
+      const offset = head.getBoundingClientRect();
+      let ghost: HTMLElement | null = null;
+      let over: Element | null = null;
+      const move = (ev: globalThis.PointerEvent) => {
+        if (!ghost) {
+          if (Math.hypot(ev.clientX - startX, ev.clientY - startY) < DRAG_START_PX) return;
+          ghost = head.cloneNode(true) as HTMLElement;
+          ghost.classList.add("desk-drag-ghost");
+          ghost.style.width = `${offset.width}px`;
+          document.body.append(ghost);
+          win.classList.add("dragging");
+          document.documentElement.classList.add("desk-dragging");
+        }
+        ghost.style.transform = `translate(${offset.left + ev.clientX - startX}px, ${offset.top + ev.clientY - startY}px)`;
+        const hit = document.elementFromPoint(ev.clientX, ev.clientY)?.closest("[data-desk-window]") ?? null;
+        const next = hit && hit !== win ? hit : null;
+        if (next === over) return;
+        over?.classList.remove("drop-target");
+        next?.classList.add("drop-target");
+        over = next;
+      };
+      const cleanup = () => {
+        window.removeEventListener("pointermove", move);
+        window.removeEventListener("pointerup", drop);
+        window.removeEventListener("pointercancel", cleanup);
+        ghost?.remove();
+        over?.classList.remove("drop-target");
+        win.classList.remove("dragging");
+        document.documentElement.classList.remove("desk-dragging");
+        stop.current = () => {};
+      };
+      const drop = () => {
+        const into = over?.getAttribute("data-desk-window");
+        cleanup();
+        if (into) dispatch({ type: "swap", id: win.getAttribute("data-desk-window")!, with: into });
+      };
+      window.addEventListener("pointermove", move);
+      window.addEventListener("pointerup", drop);
+      window.addEventListener("pointercancel", cleanup);
+      stop.current = cleanup;
+    },
+  };
+}
+
 export function DeskView({ desk, dispatch, threads, projects, background, t3EnvironmentId, providers }: Props) {
   const narrow = useMediaQuery("(max-width: 899px)");
   const byId = useMemo(() => new Map(threads.map((t) => [t.id, t])), [threads]);
@@ -131,6 +191,7 @@ export function DeskView({ desk, dispatch, threads, projects, background, t3Envi
 
   const activeId = (desk.windows.find((w) => w.id === desk.focusedId) ?? desk.windows[0])?.id ?? "";
   const { area, swipe } = useWindowSwipe(narrow, desk.windows, activeId, dispatch);
+  const drag = useWindowDrag(!narrow && visible.length > 1 && !desk.maximizedId, dispatch);
 
   // Keeps the open tab centered in the bar, whether a swipe or a tap changed it.
   const tabs = useRef<HTMLElement>(null);
@@ -223,7 +284,7 @@ export function DeskView({ desk, dispatch, threads, projects, background, t3Envi
   const minimized = desk.windows.filter((w) => w.minimized);
   return (
     <div ref={root} className={`desk${bgClass}`} style={bgStyle}>
-      <div className="desk-area">
+      <div className="desk-area" {...drag}>
         {visible.length > 0 ? (
           <DeskGrid windows={visible} desk={desk} dispatch={dispatch} render={(w) => renderWindow(w)} />
         ) : (
