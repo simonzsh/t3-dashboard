@@ -3,9 +3,10 @@ import type { ChatMessage, DashboardProvider, HtmlRender, DashboardThread, Image
 import { runActive } from "../../../../shared/status.ts";
 import { useApi } from "../../api/ApiContext.tsx";
 import { Icon, IconButton, Loader } from "../../ui/index.ts";
-import { attachmentUrl, mediaUrl } from "../../api/client.ts";
-import { renderMarkdown } from "../../lib/markdown.tsx";
-import { type PendingMessage, countSame, isSettled, pendingLabel } from "./pending.ts";
+import { attachmentUrl } from "../../api/client.ts";
+import { type PendingMessage, countSame, isSettled, pendingLabel, sentMessages } from "./pending.ts";
+import { MarkdownText } from "./MarkdownText.tsx";
+import { QueuedMessages } from "./QueuedMessages.tsx";
 import { Composer } from "./Composer.tsx";
 import { PendingRequestView } from "./PendingRequestView.tsx";
 import { RunActivityView } from "./RunActivity.tsx";
@@ -27,11 +28,6 @@ const NEAR_BOTTOM_PX = 40;
 // A scroll this soon after a wheel, touch, key or pointer input counts as the user's own.
 const USER_SCROLL_MS = 150;
 const MAX_REAIMS = 3;
-
-// Streaming re-renders the whole list: parse a message again only when its text changes.
-const MarkdownText = memo(function MarkdownText({ text, threadId, breaks }: { text: string; threadId: string; breaks?: boolean }) {
-  return renderMarkdown(text, { localMedia: (path) => mediaUrl(threadId, path), breaks });
-});
 
 const Message = memo(function Message({ message: m, threadId }: { message: ChatMessage; threadId: string }) {
   const time = formatMessageTime(m.createdAt);
@@ -146,7 +142,7 @@ function Conversation({ threadId, thread, providers }: Props) {
       setDetail(next);
       setPending((list) => {
         const now = Date.now();
-        const rest = list.filter((p) => !isSettled(p, next.messages, now));
+        const rest = list.filter((p) => !isSettled(p, sentMessages(next), now));
         return rest.length === list.length ? list : rest;
       });
       setLoadError(null);
@@ -222,14 +218,14 @@ function Conversation({ threadId, thread, providers }: Props) {
     drafts.set(threadId, value);
   }
 
-  // While a run is active the message steers it instead of waiting in the queue.
   async function send(body: string, attachments: ImageAttachment[]): Promise<void> {
-    const entry: PendingMessage = { id: crypto.randomUUID(), text: body, images: attachments.length, sentAt: Date.now(), baseline: countSame(detail?.messages ?? [], body) };
+    const entry: PendingMessage = { id: crypto.randomUUID(), text: body, images: attachments.length, sentAt: Date.now(), baseline: countSame(detail ? sentMessages(detail) : [], body) };
     setPending((list) => [...list, entry]);
     stick.current = true;
     setAtBottom(true);
     try {
-      await api.sendMessage(threadId, { text: body, ...(running && { mode: "steer" as const }), ...(attachments.length && { attachments }) });
+      // No mode: a message sent during a run waits in T3's queue.
+      await api.sendMessage(threadId, { text: body, ...(attachments.length && { attachments }) });
     } catch (e) {
       setPending((list) => list.filter((p) => p.id !== entry.id));
       throw e;
@@ -301,7 +297,7 @@ function Conversation({ threadId, thread, providers }: Props) {
           {detail && detail.messages.length === 0 && detail.renders.length === 0 && <p className="empty">No messages</p>}
           {!detail && !loadError && <Loader />}
           {detail && <Timeline detail={detail} threadId={threadId} />}
-          {detail && pending.map((p) => <PendingBubble key={p.id} message={p} />)}
+          {detail && !running && pending.map((p) => <PendingBubble key={p.id} message={p} />)}
           {detail?.activity && <RunActivityView activity={detail.activity} running={running} onShowSubagents={() => setRevealSubagents((n) => n + 1)} />}
           {detail && detail.pendingRequests.length > 0 && (
             <div className="requests">
@@ -310,6 +306,9 @@ function Conversation({ threadId, thread, providers }: Props) {
               ))}
             </div>
           )}
+          {detail && <QueuedMessages threadId={threadId} queue={detail.queue} held={detail.queueHeld} running={running} onChanged={() => void load()} />}
+          {/* Sent during a run: it waits below the queue, as T3 shows it. */}
+          {detail && running && pending.map((p) => <PendingBubble key={p.id} message={p} />)}
         </div>
         {!atBottom && (
           <IconButton

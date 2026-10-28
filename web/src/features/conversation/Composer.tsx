@@ -28,7 +28,7 @@ interface Props {
   providers: DashboardProvider[];
   selection: ModelSelection | null;
   runtimeMode: RuntimeMode | null;
-  /** A run is active: Send steers it and Stop appears. */
+  /** A run is active: a sent message is queued and Stop appears. */
   running: boolean;
   /** Stop also shows with no active run, for pending background tasks. */
   stoppable?: boolean;
@@ -179,7 +179,7 @@ export function Composer({ providers, selection, runtimeMode, running, stoppable
             else onDraft(insertText(e.currentTarget, text));
           }}
           autoFocus={autoFocus}
-          placeholder={placeholder ?? (running ? "Steer the agent…" : "Send a message to the agent…")}
+          placeholder={placeholder ?? (running ? "Queue a message for the agent…" : "Send a message to the agent…")}
           aria-label="Message"
         />
         <div className="composer-toolbar">
@@ -235,7 +235,7 @@ export function Composer({ providers, selection, runtimeMode, running, stoppable
                 <Icon name="stop" />
               </IconButton>
             )}
-            <IconButton type="submit" label={running ? "Steer" : "Send"} tooltip={running ? "Send now (steers the run)" : "Send"} shortcut={running ? undefined : "Enter"} variant="primary" className="composer-round send" disabled={!canSend}>
+            <IconButton type="submit" label={running ? "Queue" : "Send"} tooltip={running ? "Queue it: sent when the turn ends" : "Send"} shortcut={running ? undefined : "Enter"} variant="primary" className="composer-round send" disabled={!canSend}>
               <Icon name="arrowUp" />
             </IconButton>
           </div>

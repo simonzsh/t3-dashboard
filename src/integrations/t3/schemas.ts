@@ -123,7 +123,10 @@ export const RawMessage = s.object({
   streaming: s.optional(s.boolean()),
   createdAt: s.optional(s.string()),
   attachments: s.optional(s.nullable(s.array(s.object({ type: s.string(), id: s.string(), name: text() })))),
+  context: s.optional(s.nullable(s.object({ guest: s.optional(s.nullable(s.object({ text: text() }))) }))),
 });
+
+export type RawMessage = Infer<typeof RawMessage>;
 
 export const RawRuntimeRequest = s.object({
   id: s.string(),
@@ -148,6 +151,7 @@ export const RawTurnItem = s.object({
   type: s.optional(s.string()),
   requestId: s.optional(s.string()),
   requestKind: s.optional(s.string()),
+  inputIntent: text(),
   prompt: text(),
   reason: text(),
   questions: s.optional(s.array(RawQuestion)),
@@ -190,7 +194,21 @@ const TurnItemEntry = s.union(s.object({ item: RawTurnItem }), RawTurnItem);
 
 export const RawProjection = s.object({
   messages: s.optional(s.array(RawMessage)),
-  runs: s.optional(s.array(s.object({ id: s.string(), status: s.optional(s.string()), startedAt: text(), createdAt: text(), completedAt: text() }))),
+  runs: s.optional(
+    s.array(
+      s.object({
+        id: s.string(),
+        status: s.optional(s.string()),
+        startedAt: text(),
+        createdAt: text(),
+        completedAt: text(),
+        userMessageId: text(),
+        ordinal: s.optional(s.number()),
+        queuePosition: s.optional(s.nullable(s.number())),
+        queueHeld: s.optional(s.nullable(s.boolean())),
+      }),
+    ),
+  ),
   runtimeRequests: s.optional(s.array(RawRuntimeRequest)),
   turnItems: s.optional(s.array(TurnItemEntry)),
   visibleTurnItems: s.optional(s.array(TurnItemEntry)),

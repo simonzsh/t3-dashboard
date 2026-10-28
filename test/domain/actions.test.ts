@@ -165,3 +165,37 @@ test("stopSubagent refuses an unknown, finished or run-less subagent and sends n
   await assert.rejects(actions.stopSubagent("thread-1", "no-run"), rejectsWith("conflict"));
   assert.deepEqual(commands, []);
 });
+
+const queuedProjection: RawProjection = { runs: [{ id: "run-1", status: "running" }, { id: "q1", status: "queued", userMessageId: "m" }, { id: "done", status: "completed" }] };
+
+test("sending a queued message steers the run the shell reports", async () => {
+  const { actions, commands } = stopHarness({ "thread-1": queuedProjection });
+  await actions.sendQueued("thread-1", "q1");
+  assert.deepEqual(commands.map((c) => [c.type, c.queuedRunId, c.targetRunId]), [["queued-message.promote-to-steer", "q1", "run-1"]]);
+});
+
+test("sending a queued message starts it when no run is active", async () => {
+  const { actions, commands } = stopHarness({ "thread-1": { runs: [{ id: "q1", status: "queued" }, { id: "old", status: "completed" }] } });
+  await actions.sendQueued("thread-1", "q1");
+  assert.deepEqual(commands.map((c) => [c.type, c.runId]), [["queued-run.start", "q1"]]);
+});
+
+test("a run that is not queued is a conflict and sends no command", async () => {
+  const { actions, commands } = stopHarness({ "thread-1": queuedProjection });
+  for (const run of ["run-1", "done", "unknown"]) {
+    await assert.rejects(actions.sendQueued("thread-1", run), rejectsWith("conflict"));
+    await assert.rejects(actions.editQueued("thread-1", run, "x"), rejectsWith("conflict"));
+    await assert.rejects(actions.cancelQueued("thread-1", run), rejectsWith("conflict"));
+  }
+  assert.deepEqual(commands, []);
+});
+
+test("editing and removing a queued message send one command each, without attachments", async () => {
+  const { actions, commands } = stopHarness({ "thread-1": queuedProjection });
+  await actions.editQueued("thread-1", "q1", "new text");
+  await actions.cancelQueued("thread-1", "q1");
+  assert.deepEqual(commands, [
+    { type: "queued-run.edit", threadId: "thread-1", runId: "q1", text: "new text", commandId: "id-1" },
+    { type: "queued-run.cancel", threadId: "thread-1", runId: "q1", commandId: "id-2" },
+  ]);
+});

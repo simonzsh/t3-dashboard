@@ -13,7 +13,7 @@ import { matchesEtag } from "./etag.ts";
 import { servePwa } from "./pwa.ts";
 import type { Site } from "./site.ts";
 import type { SseHub } from "./sse.ts";
-import { isObject, isText, validAssign, validAutomationRequest, validCreate, validImages, validMessage, validRename, validRespond, validSearch, validSettings } from "./validate.ts";
+import { isObject, isText, validAssign, validAutomationRequest, validCreate, validImages, validMessage, validQueuedEdit, validRename, validRespond, validSearch, validSettings } from "./validate.ts";
 
 export interface SetupControl {
   /** Resolves the token again. */
@@ -258,6 +258,9 @@ export function createDashboardServer(options: DashboardServerOptions): Dashboar
     { method: "POST", path: "/api/threads/:id/settle", handle: ({ params }) => done(actions.settle(params.id!)) },
     { method: "POST", path: "/api/threads/:id/unsettle", handle: ({ params }) => done(actions.unsettle(params.id!)) },
     { method: "POST", path: "/api/threads/:id/interrupt", handle: ({ params }) => done(actions.interrupt(params.id!)) },
+    { method: "POST", path: "/api/threads/:id/queue/:runId/send", handle: ({ params }) => done(actions.sendQueued(params.id!, params.runId!)) },
+    { method: "POST", path: "/api/threads/:id/queue/:runId/edit", handle: ({ params, body }) => done(actions.editQueued(params.id!, params.runId!, validQueuedEdit(body))) },
+    { method: "POST", path: "/api/threads/:id/queue/:runId/cancel", handle: ({ params }) => done(actions.cancelQueued(params.id!, params.runId!)) },
     { method: "POST", path: "/api/threads/:id/subagents/:subagentId/stop", handle: ({ params }) => done(actions.stopSubagent(params.id!, params.subagentId!)) },
     {
       method: "POST",

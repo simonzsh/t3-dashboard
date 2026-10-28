@@ -1,7 +1,7 @@
-import type { ActivityItem, ChatMessage, DashboardThread, HtmlRender, RunActivity, PendingRequestDetail, SubagentInfo, ThreadDetail } from "../../shared/api.ts";
+import type { ActivityItem, ChatAttachment, ChatMessage, DashboardThread, HtmlRender, RunActivity, PendingRequestDetail, QueuedMessage, SubagentInfo, ThreadDetail } from "../../shared/api.ts";
 import { FAILED_STATUSES } from "../../shared/status.ts";
 import { isRuntimeMode } from "../../shared/limits.ts";
-import type { RawBackgroundTask, RawProjection, RawRuntimeRequest, RawSubagent, RawTurnItem } from "../integrations/t3/schemas.ts";
+import type { RawBackgroundTask, RawMessage, RawProjection, RawRuntimeRequest, RawSubagent, RawTurnItem } from "../integrations/t3/schemas.ts";
 
 // Turn items arrive wrapped as `{item}` in some payloads and bare in others.
 const unwrap = (element: { item?: RawTurnItem } | RawTurnItem): RawTurnItem => ("item" in element && element.item ? element.item : (element as RawTurnItem));
@@ -58,7 +58,8 @@ function latestRunId(projection: RawProjection): string | undefined {
   const stamp = (run: { startedAt?: string | null; createdAt?: string | null }) => run.startedAt ?? run.createdAt ?? "";
   const pick = <T extends { id?: string }>(items: T[], at: (item: T) => string, id: (item: T) => string | null | undefined) =>
     items.reduce<{ id?: string | null; at: string } | undefined>((best, item) => (id(item) && (!best || at(item) >= best.at) ? { id: id(item), at: at(item) } : best), undefined)?.id ?? undefined;
-  const runs = projection.runs ?? [];
+  // A queued run has not started: it must not pass for the latest run.
+  const runs = (projection.runs ?? []).filter((run) => run.status !== "queued");
   if (runs.length) return pick(runs, stamp, (run) => run.id);
   return pick(projection.subagents ?? [], (raw) => raw.startedAt ?? "", (raw) => raw.runId);
 }
@@ -153,26 +154,48 @@ function rendersOf(items: RawTurnItem[]): HtmlRender[] {
   return [...byId.values()].sort((a, b) => a.createdAt.localeCompare(b.createdAt));
 }
 
+const toAttachments = (message: RawMessage): ChatAttachment[] => (message.attachments ?? []).filter((file) => file.type === "image").map((file) => ({ id: file.id, name: file.name ?? "image" }));
+
+// T3's own order: queuePosition (else ordinal), then ordinal.
+function queuedRunsOf(projection: RawProjection) {
+  const rank = (run: { queuePosition?: number | null; ordinal?: number }) => run.queuePosition ?? run.ordinal ?? 0;
+  return (projection.runs ?? []).filter((run) => run.status === "queued").sort((a, b) => rank(a) - rank(b) || (a.ordinal ?? 0) - (b.ordinal ?? 0));
+}
+
 /** `tasks` are the shell thread's pending background tasks: they say which subagents still run. */
 export function toThreadDetail(threadId: string, projection: RawProjection, thread: DashboardThread | undefined, tasks: RawBackgroundTask[] = []): ThreadDetail {
   const visible = new Set((projection.visibleTurnItems ?? []).map((element) => unwrap(element).messageId));
+  const items = [...(projection.turnItems ?? []), ...(projection.visibleTurnItems ?? [])].map(unwrap);
+  const queuedRuns = queuedRunsOf(projection);
+  // A queued message shows in the queue, not the conversation. Like T3 Code, a removed one stays hidden.
+  const cancelled = new Set((projection.runs ?? []).filter((run) => run.status === "cancelled").map((run) => run.id));
+  const hidden = new Set<string | null | undefined>([
+    ...queuedRuns.map((run) => run.userMessageId),
+    ...items.filter((item) => item.type === "user_message" && item.inputIntent === "queued_turn" && item.runId && cancelled.has(item.runId)).map((item) => item.messageId),
+  ]);
   const messages: ChatMessage[] = (projection.messages ?? [])
-    .filter((message) => visible.has(message.id))
+    .filter((message) => visible.has(message.id) && !hidden.has(message.id))
     .map((message) => ({
       id: message.id,
       role: message.role,
       text: message.text ?? "",
       createdAt: message.createdAt ?? "",
       streaming: message.streaming ?? false,
-      attachments: (message.attachments ?? []).filter((file) => file.type === "image").map((file) => ({ id: file.id, name: file.name ?? "image" })),
+      attachments: toAttachments(message),
     }));
-  const items = [...(projection.turnItems ?? []), ...(projection.visibleTurnItems ?? [])].map(unwrap);
+  const queue = queuedRuns.flatMap((run): QueuedMessage[] => {
+    const message = (projection.messages ?? []).find((candidate) => candidate.id === run.userMessageId);
+    if (!run.userMessageId || !message) return [];
+    return [{ runId: run.id, messageId: message.id, text: message.context?.guest?.text ?? message.text ?? "Queued message", attachments: toAttachments(message), createdAt: message.createdAt ?? run.createdAt ?? "" }];
+  });
   const pendingRequests = (projection.runtimeRequests ?? []).filter((request) => request.status === "pending").map((request) => pendingDetail(request, items));
   const runtimeMode = projection.thread?.runtimeMode;
   return {
     threadId,
     thread: thread ?? null,
     messages,
+    queue,
+    queueHeld: queuedRuns.some((run) => run.queueHeld === true),
     renders: rendersOf(items),
     pendingRequests,
     subagents: subagentsOf(projection, tasks),

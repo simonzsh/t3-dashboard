@@ -4,8 +4,12 @@ import { ACTIVE_STATUSES, RUNNING_RUN_STATUSES } from "../../shared/status.ts";
 import { IntegrationError } from "../integrations/errors.ts";
 import {
   approvalCommand,
+  cancelQueuedCommand,
   createThreadCommands,
   dismissCommand,
+  editQueuedCommand,
+  promoteQueuedCommand,
+  startQueuedCommand,
   settleCommand,
   unsettleCommand,
   interruptCommand,
@@ -19,7 +23,7 @@ import {
   type OutgoingMessage,
   type UnsentCommand,
 } from "../integrations/t3/commands.ts";
-import type { AssetResource, ImageUpload, T3Port } from "../integrations/t3/schemas.ts";
+import type { AssetResource, ImageUpload, RawProjection, T3Port } from "../integrations/t3/schemas.ts";
 import { DomainError } from "./errors.ts";
 import type { LinearBoard } from "./linearBoard.ts";
 import type { ShellStore } from "./shellStore.ts";
@@ -44,6 +48,10 @@ export interface Actions {
   sendMessage(threadId: string, body: Omit<SendMessageBody, "attachments">, images: ImageUpload[]): Promise<void>;
   changeSettings(threadId: string, settings: ThreadSettingsBody): Promise<void>;
   interrupt(threadId: string): Promise<void>;
+  /** Steers the active run with a queued message, or starts it when no run is active. */
+  sendQueued(threadId: string, runId: string): Promise<void>;
+  editQueued(threadId: string, runId: string, text: string): Promise<void>;
+  cancelQueued(threadId: string, runId: string): Promise<void>;
   /** Stops a running subagent the way T3 Code does; a delegated task also loses its own thread. */
   stopSubagent(threadId: string, subagentId: string): Promise<void>;
   respond(threadId: string, requestId: string, answer: RespondBody): Promise<void>;
@@ -124,11 +132,18 @@ export function createActions(options: ActionsOptions): Actions {
   }
 
   // The shell can lag behind a run start: the projection then knows the run first.
-  async function activeRunId(threadId: string): Promise<string | null> {
+  async function activeRunId(threadId: string, known?: RawProjection): Promise<string | null> {
     const runId = store.thread(threadId)?.activeRunId;
     if (runId) return runId;
-    const { runs = [] } = await t3(port.threadProjection(threadId));
+    const { runs = [] } = known ?? (await t3(port.threadProjection(threadId)));
     return runs.findLast((run) => RUNNING_RUN_STATUSES.has(run.status ?? ""))?.id ?? null;
+  }
+
+  // T3 refuses queue writes once the run left the queue; fail early with a clear message.
+  async function queuedRun(threadId: string, runId: string): Promise<RawProjection> {
+    const projection = await t3(port.threadProjection(threadId));
+    if (projection.runs?.find((run) => run.id === runId)?.status !== "queued") throw new DomainError("conflict", "This message is no longer queued");
+    return projection;
   }
 
   const canStopThread = async () => (await t3(port.getConfig())).environment?.capabilities?.threadStop === true;
@@ -199,6 +214,23 @@ export function createActions(options: ActionsOptions): Actions {
       const lastRunId = store.backgroundTasks(threadId).length ? (await t3(port.threadProjection(threadId))).runs?.at(-1)?.id : undefined;
       if (!lastRunId) throw new DomainError("conflict", "No active run to interrupt");
       await send(interruptCommand(threadId, lastRunId));
+    },
+
+    // The server picks the command: the button label can be one reload late.
+    async sendQueued(threadId, runId) {
+      const projection = await queuedRun(threadId, runId);
+      const target = await activeRunId(threadId, projection);
+      await send(target ? promoteQueuedCommand(threadId, runId, target) : startQueuedCommand(threadId, runId));
+    },
+
+    async editQueued(threadId, runId, text) {
+      await queuedRun(threadId, runId);
+      await send(editQueuedCommand(threadId, runId, text));
+    },
+
+    async cancelQueued(threadId, runId) {
+      await queuedRun(threadId, runId);
+      await send(cancelQueuedCommand(threadId, runId));
     },
 
     async stopSubagent(threadId, subagentId) {
