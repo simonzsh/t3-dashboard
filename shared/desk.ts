@@ -1,7 +1,9 @@
 // The part of the Desk that every device shares; focus, maximize and sizes stay per device.
 
-/** Windows on the Desk, visible or minimized. */
+/** Windows shown in the grid at once; the others wait minimized in the dock. */
 export const DESK_LIMIT = 6;
+/** Windows on the Desk, minimized ones included: only a bound against a runaway body. */
+export const DESK_WINDOWS_MAX = 100;
 export const HISTORY_LIMIT = 20;
 
 export interface SharedDesk {
@@ -23,11 +25,15 @@ export function normalizeDesk(value: unknown): SharedDesk | null {
   const { windows, history } = value as { windows?: unknown; history?: unknown };
   if (!Array.isArray(windows) || !Array.isArray(history)) return null;
   const kept: SharedDesk["windows"] = [];
+  let visible = 0;
   for (const w of windows) {
     const { id, minimized } = (typeof w === "object" && w !== null ? w : {}) as { id?: unknown; minimized?: unknown };
     if (typeof id !== "string" || kept.some((x) => x.id === id)) continue;
-    kept.push({ id, minimized: minimized === true });
-    if (kept.length === DESK_LIMIT) break;
+    // Minimized windows stay in the dock; a visible one past the grid limit joins them.
+    const shown = minimized !== true && visible < DESK_LIMIT;
+    if (shown) visible++;
+    kept.push({ id, minimized: !shown });
+    if (kept.length === DESK_WINDOWS_MAX) break;
   }
   const ids = [...new Set(history.filter((v): v is string => typeof v === "string"))].slice(0, HISTORY_LIMIT);
   return { windows: kept, history: ids };

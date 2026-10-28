@@ -1080,13 +1080,13 @@ test("POST /api/desk stores the desk, serves it back and broadcasts it with its 
   assert.deepEqual(events, [{ type: "desk", data: { desk, origin: "tab-1" } }]);
 });
 
-test("POST /api/desk drops duplicates and surplus, and keeps ids that are strings", async () => {
+test("POST /api/desk drops duplicates, keeps minimized windows, and minimizes visible ones past the grid", async () => {
   const { server, savedDesks } = await start();
-  const windows = ["a", "a", 7, "b", "c", "d", "e", "f", "g"].map((id) => ({ id, minimized: id === "b" }));
+  const windows = ["a", "a", 7, "b", "c", "d", "e", "f", "g", "h"].map((id) => ({ id, minimized: id === "b" }));
   const history = Array.from({ length: 30 }, (_, i) => `t${i % 25}`);
   await post(server, "/api/desk", { desk: { windows, history: [...history, 4] }, origin: "tab-1" });
-  assert.deepEqual(savedDesks[0]!.windows.map((w) => w.id), ["a", "b", "c", "d", "e", "f"]);
-  assert.equal(savedDesks[0]!.windows[1]!.minimized, true);
+  assert.deepEqual(savedDesks[0]!.windows.map((w) => w.id), ["a", "b", "c", "d", "e", "f", "g", "h"]);
+  assert.deepEqual(savedDesks[0]!.windows.filter((w) => w.minimized).map((w) => w.id), ["b", "h"]);
   assert.deepEqual(savedDesks[0]!.history, Array.from({ length: 20 }, (_, i) => `t${i}`));
 });
 
