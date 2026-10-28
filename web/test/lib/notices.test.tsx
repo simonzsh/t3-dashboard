@@ -14,3 +14,8 @@ test("each notice is an alert line with a dismiss button", () => {
   assert.match(out, /Offline/);
   assert.equal(out.match(/aria-label="Dismiss"/g)?.length, 2);
 });
+
+test("a local banner carries the local class", () => {
+  const out = renderToStaticMarkup(<ErrorBanner local notices={[{ id: 1, message: "x" }]} onDismiss={() => {}} />);
+  assert.match(out, /class="error-banner local"/);
+});

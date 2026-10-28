@@ -13,7 +13,7 @@ import { SubagentStrip } from "./SubagentStrip.tsx";
 import { useStickToBottom } from "./useStickToBottom.ts";
 import { documentPage, usePoll } from "../../lib/usePoll.ts";
 import { singleFlight } from "../../lib/singleFlight.ts";
-import { useNotify } from "../../lib/notices.tsx";
+import { NoticeProvider, useNotify } from "../../lib/notices.tsx";
 import { failure, formatMessageTime } from "../../lib/format.ts";
 import { useDocumentTheme } from "../../lib/useDocumentTheme.ts";
 import { timeline } from "./timeline.ts";
@@ -96,7 +96,16 @@ interface Props {
   providers: DashboardProvider[];
 }
 
-export function ConversationPanel({ threadId, thread, providers }: Props) {
+// Its errors show in a banner inside the conversation, not over the whole dashboard.
+export function ConversationPanel(props: Props) {
+  return (
+    <NoticeProvider local>
+      <Conversation {...props} />
+    </NoticeProvider>
+  );
+}
+
+function Conversation({ threadId, thread, providers }: Props) {
   const api = useApi();
   const [detail, setDetail] = useState<ThreadDetail | null>(() => detailCache.get(threadId) ?? null);
   const [loadError, setLoadError] = useState<string | null>(null);

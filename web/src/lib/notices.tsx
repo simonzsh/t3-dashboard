@@ -13,7 +13,8 @@ const NoticeContext = createContext<(message: string) => void>(() => {});
 /** Shows an error in the red banner at the top of the dashboard. */
 export const useNotify = (): ((message: string) => void) => useContext(NoticeContext);
 
-export function NoticeProvider({ children }: { children: ReactNode }) {
+/** `local`: the banner sits at the top of this subtree (a conversation), not of the page. */
+export function NoticeProvider({ children, local = false }: { children: ReactNode; local?: boolean }) {
   const [notices, setNotices] = useState<Notice[]>([]);
   const nextId = useRef(0);
   // The same message twice is one line: a poll that keeps failing must not stack banners.
@@ -23,16 +24,25 @@ export function NoticeProvider({ children }: { children: ReactNode }) {
   const dismiss = (id: number) => setNotices((current) => current.filter((n) => n.id !== id));
   return (
     <NoticeContext.Provider value={notify}>
-      {children}
-      <ErrorBanner notices={notices} onDismiss={dismiss} />
+      {local ? (
+        <div className="notice-scope">
+          {children}
+          <ErrorBanner notices={notices} onDismiss={dismiss} local />
+        </div>
+      ) : (
+        <>
+          {children}
+          <ErrorBanner notices={notices} onDismiss={dismiss} />
+        </>
+      )}
     </NoticeContext.Provider>
   );
 }
 
-export function ErrorBanner({ notices, onDismiss }: { notices: Notice[]; onDismiss: (id: number) => void }) {
+export function ErrorBanner({ notices, onDismiss, local = false }: { notices: Notice[]; onDismiss: (id: number) => void; local?: boolean }) {
   if (notices.length === 0) return null;
   return (
-    <div className="error-banner" role="alert">
+    <div className={`error-banner${local ? " local" : ""}`} role="alert">
       {notices.map((n) => (
         <div key={n.id} className="error-banner-line">
           <Icon name="alert" />
