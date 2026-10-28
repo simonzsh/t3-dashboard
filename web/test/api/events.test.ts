@@ -53,3 +53,10 @@ test("input state is not mutated", () => {
   applyEvent(s, { type: "threads", data: { upserted: [thread("thread-2")], removed: ["thread-1"] } });
   assert.deepEqual(s, copy);
 });
+
+test("a desk event leaves the dashboard state alone", () => {
+  const s = baseState([thread("thread-1")]);
+  const desk = { windows: [{ id: "thread-1", minimized: false }], history: [] };
+  assert.equal(applyEvent(s, { type: "desk", data: { desk, origin: "tab" } }), s);
+  assert.equal(applyEvent(null, { type: "desk", data: { desk, origin: "tab" } }), null);
+});

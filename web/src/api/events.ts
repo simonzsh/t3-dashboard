@@ -1,5 +1,5 @@
 import { useEffect, useReducer, useState } from "react";
-import type { DashboardEvent, DashboardState, Diff } from "../../../shared/api.ts";
+import type { DashboardEvent, DashboardState, DeskUpdate, Diff } from "../../../shared/api.ts";
 import { DASHBOARD_EVENT_TYPES } from "../../../shared/events.ts";
 
 function applyDiff<T extends { id: string }>(list: T[], diff: Diff<T>): T[] {
@@ -24,19 +24,23 @@ export function applyEvent(state: DashboardState | null, event: DashboardEvent):
       return { ...state, modelDefaults: event.data };
     case "connection":
       return { ...state, connection: event.data };
+    case "desk":
+      return state;
   }
 }
 
-export function useDashboard(): { state: DashboardState | null; sseDown: boolean } {
+export function useDashboard(): { state: DashboardState | null; sseDown: boolean; remoteDesk: DeskUpdate | null } {
   const [state, dispatch] = useReducer(applyEvent, null);
   const [sseDown, setSseDown] = useState(false);
+  const [remoteDesk, setRemoteDesk] = useState<DeskUpdate | null>(null);
 
   useEffect(() => {
     const es = new EventSource("/api/events");
     for (const type of DASHBOARD_EVENT_TYPES) {
       es.addEventListener(type, (e) => {
         const event = { type, data: JSON.parse((e as MessageEvent<string>).data) } as DashboardEvent;
-        dispatch(event);
+        if (event.type === "desk") setRemoteDesk(event.data);
+        else dispatch(event);
         setSseDown(false);
       });
     }
@@ -45,5 +49,5 @@ export function useDashboard(): { state: DashboardState | null; sseDown: boolean
     return () => es.close();
   }, []);
 
-  return { state, sseDown };
+  return { state, sseDown, remoteDesk };
 }

@@ -32,7 +32,7 @@ The Desk shows many conversations side by side, in a grid.
 - Click a window in the dock to open it again.
 - Drag the dividers to change the size of the columns and rows. The browser keeps these sizes for each number of windows.
 - Each window has three buttons: full screen, minimize, close.
-- The browser keeps the open windows from one visit to the next.
+- The server keeps the open windows, their order and the Jump to history in `~/.config/t3-dashboard/desk.json`. Every device shows the same windows, and a change appears on the other open tabs at once. Each device keeps its own focused window, full screen window and sizes.
 - In Settings, select a background for the Desk: a gradient or your own image.
 
 ### Conversation

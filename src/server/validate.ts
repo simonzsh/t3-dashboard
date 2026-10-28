@@ -1,4 +1,5 @@
 import type { ApprovalDecision, AssignIssueBody, AutomationRequestBody, CreateThreadBody, ModelSelection, RespondBody, SendMessageBody, ThreadSettingsBody, UserInputAnswers } from "../../shared/api.ts";
+import { normalizeDesk, type DeskUpdate } from "../../shared/desk.ts";
 import { IMAGE_TYPES, MAX_IMAGE_BYTES, MAX_IMAGES, isRuntimeMode } from "../../shared/limits.ts";
 import type { ImageUpload } from "../domain/actions.ts";
 import { HttpError } from "./httpError.ts";
@@ -120,4 +121,14 @@ export function validMessage(body: Record<string, unknown>): { message: Omit<Sen
   const images = validImages(body.attachments);
   if (body.text.trim() === "" && images.length === 0) throw new HttpError(400, "text or an image is required");
   return { message: { text: body.text, ...(body.mode && { mode: body.mode }) }, images };
+}
+
+const MAX_ORIGIN = 100;
+
+export function validDesk(body: Record<string, unknown>): DeskUpdate {
+  const desk = normalizeDesk(body.desk);
+  if (!desk || !isText(body.origin) || body.origin.length > MAX_ORIGIN) {
+    throw new HttpError(400, `desk (windows and history lists) and origin (1 to ${MAX_ORIGIN} characters) are required`);
+  }
+  return { desk, origin: body.origin };
 }

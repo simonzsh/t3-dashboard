@@ -16,6 +16,7 @@ import { useAutomations } from "./features/agents/useAutomations.ts";
 import { api } from "./api/client.ts";
 import { useDashboard } from "./api/events.ts";
 import { useDesk } from "./features/desk/useDesk.ts";
+import { useDeskSync } from "./features/desk/useDeskSync.ts";
 import { useDeskBackground } from "./features/desk/useDeskBackground.ts";
 import { useMediaQuery } from "./lib/useMediaQuery.ts";
 import { useShortcuts } from "./lib/useShortcuts.ts";
@@ -36,11 +37,19 @@ function focusComposer(threadId: string) {
 }
 
 export function App() {
-  const { state, sseDown } = useDashboard();
+  const { state, sseDown, remoteDesk } = useDashboard();
   const [tab, setTab] = useTab();
   const automations = useAutomations(tab === "agents" && state?.connection.t3 === "live");
-  const [desk, dispatchDesk] = useDesk(state?.connection.t3 === "live" ? state.threads : null);
-  const [openHistory, recordOpened] = useOpenHistory();
+  const [desk, dispatchDesk] = useDesk();
+  const [openHistory, recordOpened, replaceHistory] = useOpenHistory();
+  useDeskSync({
+    desk,
+    dispatch: dispatchDesk,
+    history: openHistory,
+    replaceHistory,
+    threads: state?.connection.t3 === "live" ? state.threads : null,
+    remote: remoteDesk,
+  });
   const [creating, setCreating] = useState(false);
   const [creatingAutomation, setCreatingAutomation] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
