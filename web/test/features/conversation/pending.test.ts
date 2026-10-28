@@ -34,7 +34,7 @@ test("the label counts images", () => {
 });
 
 test("a pending message settles when its text shows up in the queue", () => {
-  const detail = { messages: [], queue: [{ runId: "q1", messageId: "m", text: "hello", attachments: [], createdAt: "" }] };
+  const detail = { messages: [], queue: [{ runId: "q1", messageId: "m", text: "hello", attachments: [], createdAt: "", editable: true }] };
   assert.equal(countSame(sentMessages(detail), "hello"), 1);
   assert.equal(isSettled(pending, sentMessages(detail), SENT + 2000), true);
 });

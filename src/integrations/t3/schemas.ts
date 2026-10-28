@@ -124,6 +124,8 @@ export const RawMessage = s.object({
   createdAt: s.optional(s.string()),
   attachments: s.optional(s.nullable(s.array(s.object({ type: s.string(), id: s.string(), name: text() })))),
   context: s.optional(s.nullable(s.object({ guest: s.optional(s.nullable(s.object({ text: text() }))) }))),
+  delegatedCompletion: s.optional(s.unknown()),
+  notification: s.optional(s.unknown()),
 });
 
 export type RawMessage = Infer<typeof RawMessage>;
@@ -201,6 +203,7 @@ export const RawProjection = s.object({
         status: s.optional(s.string()),
         startedAt: text(),
         createdAt: text(),
+        requestedAt: text(),
         completedAt: text(),
         userMessageId: text(),
         ordinal: s.optional(s.number()),

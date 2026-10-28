@@ -86,9 +86,11 @@ function QueuedItem({ threadId, item, running, onChanged }: { threadId: string; 
         </div>
       ) : (
         <div className="queued-actions">
-          <IconButton label="Edit queued message" size="sm" variant="ghost" disabled={busy} onClick={startEdit}>
-            <Icon name="pencil" />
-          </IconButton>
+          {item.editable && (
+            <IconButton label="Edit queued message" size="sm" variant="ghost" disabled={busy} onClick={startEdit}>
+              <Icon name="pencil" />
+            </IconButton>
+          )}
           <Button
             size="sm"
             variant="ghost"

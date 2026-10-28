@@ -58,8 +58,8 @@ function latestRunId(projection: RawProjection): string | undefined {
   const stamp = (run: { startedAt?: string | null; createdAt?: string | null }) => run.startedAt ?? run.createdAt ?? "";
   const pick = <T extends { id?: string }>(items: T[], at: (item: T) => string, id: (item: T) => string | null | undefined) =>
     items.reduce<{ id?: string | null; at: string } | undefined>((best, item) => (id(item) && (!best || at(item) >= best.at) ? { id: id(item), at: at(item) } : best), undefined)?.id ?? undefined;
-  // A queued run has not started: it must not pass for the latest run.
-  const runs = (projection.runs ?? []).filter((run) => run.status !== "queued");
+  // A queued run, or one removed from the queue, never started: it must not pass for the latest run.
+  const runs = (projection.runs ?? []).filter((run) => run.status !== "queued" && !(run.status === "cancelled" && !run.startedAt));
   if (runs.length) return pick(runs, stamp, (run) => run.id);
   return pick(projection.subagents ?? [], (raw) => raw.startedAt ?? "", (raw) => raw.runId);
 }
@@ -156,10 +156,12 @@ function rendersOf(items: RawTurnItem[]): HtmlRender[] {
 
 const toAttachments = (message: RawMessage): ChatAttachment[] => (message.attachments ?? []).filter((file) => file.type === "image").map((file) => ({ id: file.id, name: file.name ?? "image" }));
 
-// T3's own order: queuePosition (else ordinal), then ordinal.
+// T3's own order: queuePosition (else ordinal), then ordinal. Like T3, skip the runs it queues for a delegated
+// completion or a notification: they are not the user's messages.
 function queuedRunsOf(projection: RawProjection) {
   const rank = (run: { queuePosition?: number | null; ordinal?: number }) => run.queuePosition ?? run.ordinal ?? 0;
-  return (projection.runs ?? []).filter((run) => run.status === "queued").sort((a, b) => rank(a) - rank(b) || (a.ordinal ?? 0) - (b.ordinal ?? 0));
+  const system = new Set((projection.messages ?? []).filter((message) => message.delegatedCompletion || message.notification).map((message) => message.id));
+  return (projection.runs ?? []).filter((run) => run.status === "queued" && !system.has(run.userMessageId ?? "")).sort((a, b) => rank(a) - rank(b) || (a.ordinal ?? 0) - (b.ordinal ?? 0));
 }
 
 /** `tasks` are the shell thread's pending background tasks: they say which subagents still run. */
@@ -186,7 +188,7 @@ export function toThreadDetail(threadId: string, projection: RawProjection, thre
   const queue = queuedRuns.flatMap((run): QueuedMessage[] => {
     const message = (projection.messages ?? []).find((candidate) => candidate.id === run.userMessageId);
     if (!run.userMessageId || !message) return [];
-    return [{ runId: run.id, messageId: message.id, text: message.context?.guest?.text ?? message.text ?? "Queued message", attachments: toAttachments(message), createdAt: message.createdAt ?? run.createdAt ?? "" }];
+    return [{ runId: run.id, messageId: message.id, text: message.context?.guest?.text ?? message.text ?? "Queued message", attachments: toAttachments(message), createdAt: message.createdAt ?? run.requestedAt ?? run.createdAt ?? "", editable: !message.context?.guest }];
   });
   const pendingRequests = (projection.runtimeRequests ?? []).filter((request) => request.status === "pending").map((request) => pendingDetail(request, items));
   const runtimeMode = projection.thread?.runtimeMode;

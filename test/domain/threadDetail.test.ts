@@ -433,3 +433,16 @@ test("a queued run does not take over the activity of the latest run", () => {
   assert.equal(detail.activity?.runId, "r1");
   assert.equal(detail.activity?.items.length, 1);
 });
+
+test("like T3, the queue skips delegated completions and notifications, and a guest message is not editable", () => {
+  const projection = queuedProjection();
+  projection.messages![1] = { ...projection.messages![1]!, notification: { kind: "x" } };
+  const detail = toThreadDetail("t", projection, undefined);
+  assert.deepEqual(detail.queue.map((item) => [item.runId, item.editable]), [["r-first", false]]);
+});
+
+test("a run removed from the queue before it started does not take over the activity", () => {
+  const projection = queuedProjection({ turnItems: [{ id: "a1", type: "reasoning", runId: "r1", text: "thinking", ordinal: 1 }] });
+  projection.runs![1] = { ...projection.runs![1]!, status: "cancelled", createdAt: "2026-03-02T10:00:00Z" };
+  assert.equal(toThreadDetail("t", projection, undefined).activity?.runId, "r1");
+});

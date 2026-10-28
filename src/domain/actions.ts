@@ -219,7 +219,8 @@ export function createActions(options: ActionsOptions): Actions {
     // The server picks the command: the button label can be one reload late.
     async sendQueued(threadId, runId) {
       const projection = await queuedRun(threadId, runId);
-      const target = await activeRunId(threadId, projection);
+      // The fresh projection first: after a Stop, the shell can still name the stopped run.
+      const target = projection.runs?.findLast((run) => RUNNING_RUN_STATUSES.has(run.status ?? ""))?.id ?? (await activeRunId(threadId, projection));
       await send(target ? promoteQueuedCommand(threadId, runId, target) : startQueuedCommand(threadId, runId));
     },
 

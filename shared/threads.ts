@@ -92,6 +92,8 @@ export interface QueuedMessage {
   text: string;
   attachments: ChatAttachment[];
   createdAt: string;
+  /** T3 cannot edit a message a guest sent. */
+  editable: boolean;
 }
 
 /** A page the agent showed with html_render; the same route serves it, sandboxed. */
