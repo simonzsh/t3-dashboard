@@ -1,6 +1,7 @@
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import { App } from "./App.tsx";
+import { NoticeProvider } from "./lib/notices.tsx";
 import "./styles.css";
 
 // Added here, not in index.html: the bundler would try to resolve and hash a manifest link.
@@ -10,6 +11,8 @@ void navigator.serviceWorker?.register("/sw.js").catch(() => {});
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
-    <App />
+    <NoticeProvider>
+      <App />
+    </NoticeProvider>
   </StrictMode>,
 );

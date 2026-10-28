@@ -38,11 +38,7 @@ export function UpdateSettings({ update, onUpdate }: Props) {
               {`Update to v${status.latest}`}
             </Button>
           )}
-          {update.error ? (
-            <span className="error about-note">{update.error}</span>
-          ) : (
-            checked && !canUpdate && <small className="about-note">{status.reason && status.current !== "dev" ? status.reason : versionNote(status)}</small>
-          )}
+          {checked && !canUpdate && <small className="about-note">{status.reason && status.current !== "dev" ? status.reason : versionNote(status)}</small>}
         </span>
       </div>
     </>

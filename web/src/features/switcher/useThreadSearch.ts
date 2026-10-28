@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import type { ThreadSearchMatch } from "../../../../shared/api.ts";
 import { useApi } from "../../api/ApiContext.tsx";
-import { errorMessage } from "../../lib/format.ts";
+import { failure } from "../../lib/format.ts";
 import { useDebouncedValue } from "../../lib/useDebouncedValue.ts";
 import { shouldSearchContent } from "./switcher.ts";
 
@@ -26,7 +26,7 @@ export function useThreadSearch(query: string): Search {
     api
       .searchThreads(q)
       .then((r) => !stale && setResult({ q, matches: r.matches, error: null }))
-      .catch((e: unknown) => !stale && setResult({ q, matches: [], error: errorMessage(e) }));
+      .catch((e: unknown) => !stale && setResult({ q, matches: [], error: failure("search the messages", e) }));
     return () => {
       stale = true;
     };

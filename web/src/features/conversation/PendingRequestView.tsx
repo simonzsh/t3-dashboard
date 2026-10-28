@@ -14,7 +14,7 @@ const DECISIONS: Array<[ApprovalDecision, string]> = [
 
 export function PendingRequestView({ threadId, request }: { threadId: string; request: PendingRequestDetail }) {
   const api = useApi();
-  const action = useAction();
+  const action = useAction("answer the agent");
   const [drafts, setDrafts] = useState<Drafts>({});
   const locked = !request.resumable;
 
@@ -97,7 +97,6 @@ export function PendingRequestView({ threadId, request }: { threadId: string; re
       )}
       {request.category === "other" && <span>Request of type “{request.requestKind}”: handle it in T3 Code.</span>}
       {locked && <small>Session ended, cannot reply</small>}
-      {action.error && <span className="error">{action.error}</span>}
     </div>
   );
 }

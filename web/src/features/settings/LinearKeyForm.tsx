@@ -13,7 +13,7 @@ interface Props {
 export function LinearKeyForm({ button, onSaved }: Props) {
   const api = useApi();
   const [key, setKey] = useState("");
-  const { busy, error, run } = useAction();
+  const { busy, run } = useAction("connect Linear");
   return (
     <form
       className="key-form"
@@ -33,7 +33,6 @@ export function LinearKeyForm({ button, onSaved }: Props) {
           {button}
         </Button>
       </div>
-      {error && <span className="error">{error}</span>}
     </form>
   );
 }

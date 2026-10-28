@@ -3,6 +3,7 @@ import type { DashboardProject, DashboardThread } from "../../../../shared/api.t
 import { Dialog, Icon, TextInput } from "../../ui/index.ts";
 import { mergeResults, moveSelection, suggestThreads, titleMatches } from "./switcher.ts";
 import { optionId, SwitcherResults } from "./SwitcherResults.tsx";
+import { useNotify } from "../../lib/notices.tsx";
 import { useThreadSearch } from "./useThreadSearch.ts";
 
 interface Props {
@@ -21,6 +22,10 @@ export function Switcher({ threads, projects, now, history, onDesk, initialQuery
   const [query, setQuery] = useState(initialQuery);
   const [index, setIndex] = useState(0);
   const content = useThreadSearch(query);
+  const notify = useNotify();
+  useEffect(() => {
+    if (content.error) notify(content.error);
+  }, [content.error]);
   const suggesting = query.trim() === "";
   const rows = suggesting ? suggestThreads(threads, projects, history, onDesk) : mergeResults(titleMatches(threads, projects, query), content.matches, threads, projects);
   const selectedIndex = Math.min(index, rows.length - 1);

@@ -34,7 +34,7 @@ const LABELS: Record<ThemeSetting, string> = { system: "System", light: "Light",
 
 export function SettingsDialog({ theme, onThemeChange, background, onBackgroundChange, onLinearChange, update, onUpdate, onClose }: Props) {
   const fileInput = useRef<HTMLInputElement>(null);
-  const { busy, error, setError, run } = useAction();
+  const { busy, setError, run } = useAction();
   const [section, setSection] = useState<SectionId>("appearance");
   const presetId = background.kind === "preset" ? background.id : background.kind === "none" ? "none" : null;
 
@@ -81,7 +81,6 @@ export function SettingsDialog({ theme, onThemeChange, background, onBackgroundC
                 }}
               />
             </div>
-            {error && <span className="error">{error}</span>}
           </div>
         </div>
       </>

@@ -68,7 +68,7 @@ test("non-2xx throws with the server message", async () => {
 
 test("non-2xx without JSON error body still throws", async () => {
   const fetch = (async () => new Response("boom", { status: 500 })) as unknown as typeof globalThis.fetch;
-  await assert.rejects(() => createApi(fetch).getHealth(), /500/);
+  await assert.rejects(() => createApi(fetch).getHealth(), /server hit an error/);
 });
 
 test("getBoard reads the cache by default and forces a refresh on demand", async () => {

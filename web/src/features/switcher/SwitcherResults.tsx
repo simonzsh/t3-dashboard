@@ -60,7 +60,6 @@ export function SwitcherResults({ rows, selected, now, loading, error, label, se
         </div>
       )}
       {loading && <Loader />}
-      {error && <p className="switcher-note">Message search failed: {error}</p>}
       {!loading && !error && searched && rows.length === 0 && <p className="switcher-note">No conversations found.</p>}
     </div>
   );

@@ -1,5 +1,5 @@
 import type { ModelDefaults } from "../../shared/api.ts";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { AgentsView } from "./features/agents/AgentsView.tsx";
 import { BoardView } from "./features/board/BoardView.tsx";
 import { ConnectionBanner } from "./features/setup/ConnectionBanner.tsx";
@@ -53,6 +53,22 @@ export function App() {
   const [deskBackground, setDeskBackground] = useDeskBackground();
   const [now, setNow] = useState(() => new Date());
   const compact = useMediaQuery(COMPACT_HEADER);
+
+  // The error banner starts under the header, whatever its height (one line on a phone).
+  const header = useRef<HTMLElement>(null);
+  const hasHeader = !state?.connection.setup;
+  useLayoutEffect(() => {
+    const el = header.current;
+    if (!el) return;
+    const set = () => document.documentElement.style.setProperty("--topbar-h", `${el.offsetHeight}px`);
+    set();
+    const observer = new ResizeObserver(set);
+    observer.observe(el);
+    return () => {
+      observer.disconnect();
+      document.documentElement.style.removeProperty("--topbar-h");
+    };
+  }, [hasHeader]);
 
   // Relative times and the 24 h window need a clock that moves.
   useEffect(() => {
@@ -126,7 +142,7 @@ export function App() {
   return (
     <div className={`app${tab === "desk" ? " desk-mode" : ""}`}>
       <TooltipLayer />
-      <header className="topbar">
+      <header className="topbar" ref={header}>
         <div className="topbar-left">
           <h1>
             T3<span className="title-rest"> Dashboard</span>

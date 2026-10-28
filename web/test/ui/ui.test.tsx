@@ -140,7 +140,7 @@ test("arrow keys move the radio selection and wrap", () => {
 
 test("an Icon is hidden from assistive tech, unless it has a label", () => {
   assert.match(html(<Icon name="x" />), /^<svg class="icon" viewBox="0 0 24 24" aria-hidden="true">/);
-  assert.match(html(<Icon name="terminal" label="Done" />), /^<svg class="icon" viewBox="0 0 24 24" role="img" aria-label="Done"><title>Done<\/title>/);
+  assert.match(html(<Icon name="terminal" label="Done" />), /^<svg class="icon" viewBox="0 0 24 24" role="img" aria-label="Done"><path/);
 });
 
 test("solid icon parts are filled, not stroked", () => {

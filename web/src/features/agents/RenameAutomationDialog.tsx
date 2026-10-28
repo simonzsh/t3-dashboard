@@ -1,7 +1,8 @@
 import { useState } from "react";
 import type { Automation } from "../../../../shared/api.ts";
 import { useApi } from "../../api/ApiContext.tsx";
-import { errorMessage } from "../../lib/format.ts";
+import { failure } from "../../lib/format.ts";
+import { useNotify } from "../../lib/notices.tsx";
 import { Dialog, TextInput } from "../../ui/index.ts";
 
 interface Props {
@@ -14,18 +15,17 @@ export function RenameAutomationDialog({ automation, onRenamed, onClose }: Props
   const api = useApi();
   const [title, setTitle] = useState(automation.title);
   const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const notify = useNotify();
   const disabled = busy || title.trim() === "";
 
   async function submit() {
     if (disabled) return;
     setBusy(true);
-    setError(null);
     try {
       await api.renameAutomation(automation.id, title.trim());
       onRenamed();
     } catch (e) {
-      setError(errorMessage(e));
+      notify(failure("rename the automation", e));
       setBusy(false);
     }
   }
@@ -45,7 +45,6 @@ export function RenameAutomationDialog({ automation, onRenamed, onClose }: Props
           }
         }}
       />
-      {error && <p className="notice error-notice">{error}</p>}
     </Dialog>
   );
 }
