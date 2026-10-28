@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useLayoutEffect, useRef, useState } from "react";
 import type { QueuedMessage } from "../../../../shared/api.ts";
 import { useApi } from "../../api/ApiContext.tsx";
 import { attachmentUrl } from "../../api/client.ts";
@@ -38,9 +38,21 @@ function QueuedItem({ threadId, item, running, onChanged }: { threadId: string; 
   const { busy, run } = useAction("update the queued message");
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(item.text);
+  const bubble = useRef<HTMLDivElement>(null);
+  const textarea = useRef<HTMLTextAreaElement>(null);
+  const [width, setWidth] = useState<number>();
+
+  // The edit box takes the bubble's size: a one-line message gets a one-line box. CSS caps the height.
+  useLayoutEffect(() => {
+    const el = textarea.current;
+    if (!el) return;
+    el.style.height = "";
+    el.style.height = `${el.scrollHeight + el.offsetHeight - el.clientHeight}px`;
+  }, [editing, draft]);
 
   const act = (fn: () => Promise<unknown>) => run(fn).finally(onChanged);
   const startEdit = () => {
+    setWidth(bubble.current?.offsetWidth);
     setDraft(item.text);
     setEditing(true);
   };
@@ -59,9 +71,10 @@ function QueuedItem({ threadId, item, running, onChanged }: { threadId: string; 
           ))}
         </div>
       )}
-      <div className={editing ? "bubble md editing" : "bubble md"}>
+      <div ref={bubble} className={editing ? "bubble md editing" : "bubble md"} style={editing && width ? { width } : undefined}>
         {editing ? (
           <TextArea
+            ref={textarea}
             value={draft}
             onChange={(e) => setDraft(e.target.value)}
             onKeyDown={(e) => {
@@ -69,7 +82,7 @@ function QueuedItem({ threadId, item, running, onChanged }: { threadId: string; 
             }}
             aria-label="Queued message"
             autoFocus
-            rows={3}
+            rows={1}
           />
         ) : (
           <MarkdownText text={item.text} threadId={threadId} breaks />
@@ -94,14 +107,14 @@ function QueuedItem({ threadId, item, running, onChanged }: { threadId: string; 
             disabled={busy}
             onClick={() => void act(() => api.sendQueued(threadId, item.runId))}
           >
-            <Icon name="send" />
+            <Icon name="enter" />
           </IconButton>
           {item.editable && (
-            <IconButton label="Edit queued message" size="sm" variant="ghost" disabled={busy} onClick={startEdit}>
+            <IconButton label="Edit queued message" tooltip="Edit" size="sm" variant="ghost" disabled={busy} onClick={startEdit}>
               <Icon name="pencil" />
             </IconButton>
           )}
-          <IconButton label="Remove from queue" size="sm" variant="ghost" disabled={busy} onClick={() => void act(() => api.cancelQueued(threadId, item.runId))}>
+          <IconButton label="Remove from queue" tooltip="Remove from queue" size="sm" variant="ghost" disabled={busy} onClick={() => void act(() => api.cancelQueued(threadId, item.runId))}>
             <Icon name="trash" />
           </IconButton>
         </div>
