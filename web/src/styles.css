@@ -514,7 +514,7 @@ button.auto-row:hover { transform: translateY(-1px); }
 /* Drag a window by its header onto another one to swap their cells. */
 .desk:not(.compact) .desk-window-head { cursor: grab; user-select: none; }
 .desk:not(.compact) .desk-window.maximized .desk-window-head { cursor: default; }
-.desk-dragging, .desk-dragging * { cursor: grabbing !important; }
+.desk-dragging, .desk-dragging * { cursor: grabbing !important; user-select: none !important; }
 .desk-window.dragging { opacity: 0.45; }
 .desk-window.drop-target { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent); }
 .desk-drag-ghost { position: fixed; left: 0; top: 0; z-index: 50; pointer-events: none; max-width: 360px; border: 1px solid var(--line); border-radius: 10px; box-shadow: var(--shadow); opacity: 0.95; }

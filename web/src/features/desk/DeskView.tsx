@@ -137,6 +137,8 @@ function useWindowDrag(enabled: boolean, dispatch: Dispatch<DeskAction>) {
       const offset = head.getBoundingClientRect();
       let ghost: HTMLElement | null = null;
       let over: Element | null = null;
+      // The pointer crosses the conversations while it drags: no text selection until the button is released.
+      const noSelect = (ev: Event) => ev.preventDefault();
       const move = (ev: globalThis.PointerEvent) => {
         if (!ghost) {
           if (Math.hypot(ev.clientX - startX, ev.clientY - startY) < DRAG_START_PX) return;
@@ -144,6 +146,7 @@ function useWindowDrag(enabled: boolean, dispatch: Dispatch<DeskAction>) {
           ghost.classList.add("desk-drag-ghost");
           ghost.style.width = `${offset.width}px`;
           document.body.append(ghost);
+          window.getSelection()?.removeAllRanges();
           win.classList.add("dragging");
           document.documentElement.classList.add("desk-dragging");
         }
@@ -159,6 +162,7 @@ function useWindowDrag(enabled: boolean, dispatch: Dispatch<DeskAction>) {
         window.removeEventListener("pointermove", move);
         window.removeEventListener("pointerup", drop);
         window.removeEventListener("pointercancel", cleanup);
+        document.removeEventListener("selectstart", noSelect);
         ghost?.remove();
         over?.classList.remove("drop-target");
         win.classList.remove("dragging");
@@ -173,6 +177,7 @@ function useWindowDrag(enabled: boolean, dispatch: Dispatch<DeskAction>) {
       window.addEventListener("pointermove", move);
       window.addEventListener("pointerup", drop);
       window.addEventListener("pointercancel", cleanup);
+      document.addEventListener("selectstart", noSelect);
       stop.current = cleanup;
     },
   };
