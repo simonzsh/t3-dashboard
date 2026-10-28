@@ -1,6 +1,7 @@
+import { HISTORY_LIMIT } from "../../../../shared/desk.ts";
 import type { Store } from "../../lib/storage.ts";
 
-export const HISTORY_LIMIT = 20;
+export { HISTORY_LIMIT };
 const KEY = "t3-dashboard-switcher-history";
 
 export const recordOpened = (ids: readonly string[], id: string): string[] => [id, ...ids.filter((x) => x !== id)].slice(0, HISTORY_LIMIT);

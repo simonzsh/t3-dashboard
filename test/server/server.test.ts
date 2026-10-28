@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { afterEach, test } from "bun:test";
-import type { AutomationsResult, ConnectionStatus, DashboardState } from "../../shared/api.ts";
+import type { AutomationsResult, ConnectionStatus, DashboardEvent, DashboardState } from "../../shared/api.ts";
 import { LinearClient } from "../../src/integrations/linear/client.ts";
 import { createActions } from "../../src/domain/actions.ts";
 import type { Automations } from "../../src/domain/automations.ts";
@@ -8,6 +8,8 @@ import { IntegrationError } from "../../src/integrations/errors.ts";
 import { DomainError } from "../../src/domain/errors.ts";
 import { LinearBoard } from "../../src/domain/linearBoard.ts";
 import { readLinearKey } from "../../src/config/linearFile.ts";
+import { DeskStore } from "../../src/domain/deskStore.ts";
+import type { SharedDesk } from "../../shared/desk.ts";
 import { createSettings } from "../../src/domain/settings.ts";
 import { createDashboardServer } from "../../src/server/server.ts";
 import type { DashboardHandler } from "../../src/server/server.ts";
@@ -38,6 +40,7 @@ interface StartOptions {
   pasteResult?: "ok" | "rejected" | "unreachable" | "locked";
   update?: { unavailable?: string | null; tag?: string };
   allowedHosts?: string[];
+  desk?: SharedDesk | null;
 }
 
 const LINEAR_FILE = "/cfg/linear.json";
@@ -108,9 +111,15 @@ async function start(startOptions: StartOptions = {}) {
     },
     { kind: "synchronized" },
   ]);
+  const savedDesks: SharedDesk[] = [];
+  const desk = new DeskStore(startOptions.desk ?? null, (value) => void savedDesks.push(value));
+  const events: DashboardEvent[] = [];
+  const broadcast = hub.broadcast.bind(hub);
+  hub.broadcast = (event) => (events.push(event), broadcast(event));
   const actions = createActions({ port, store, board, newId: () => `id-${++counter}` });
   const server: DashboardHandler = createDashboardServer({
     actions,
+    desk,
     hub,
     board,
     automations,
@@ -123,7 +132,7 @@ async function start(startOptions: StartOptions = {}) {
     allowedHosts: startOptions.allowedHosts,
   });
   running.push(async () => hub.close());
-  return { port, store, hub, server, linearCalls, files, setupCalls, updateRuns };
+  return { port, store, hub, server, savedDesks, events, linearCalls, files, setupCalls, updateRuns };
 }
 
 interface Reply {
@@ -507,6 +516,7 @@ test("every POST route refuses a body that is not JSON", async () => {
   const { server, port } = await start();
   const posts = [
     "/api/board/assign",
+    "/api/desk",
     "/api/setup/retry",
     "/api/setup/token",
     "/api/update/check",
@@ -1050,4 +1060,41 @@ test("stopping a subagent sends subagent.stop, 404 when unknown", async () => {
   assert.deepEqual((await post(server, "/api/threads/run-1/subagents/sub%201/stop")).json, { ok: true });
   assert.deepEqual(port.commands, [{ type: "subagent.stop", commandId: "id-1", threadId: "run-1", runId: "run-a", subagentId: "sub 1" }]);
   assert.equal((await post(server, "/api/threads/run-1/subagents/other/stop")).status, 404);
+});
+
+test("GET /api/desk is null until a desk is saved, then returns it", async () => {
+  const fresh = await start();
+  assert.deepEqual((await call(fresh.server, "GET", "/api/desk")).json, { desk: null });
+  const saved = { windows: [{ id: "idle-1", minimized: true }], history: ["idle-1", "run-1"] };
+  const known = await start({ desk: saved });
+  assert.deepEqual((await call(known.server, "GET", "/api/desk")).json, { desk: saved });
+});
+
+test("POST /api/desk stores the desk, serves it back and broadcasts it with its origin", async () => {
+  const { server, savedDesks, events } = await start();
+  const desk = { windows: [{ id: "a", minimized: false }, { id: "b", minimized: true }], history: ["b", "a"] };
+  const reply = await post(server, "/api/desk", { desk, origin: "tab-1" });
+  assert.deepEqual(reply.json, { ok: true });
+  assert.deepEqual(savedDesks, [desk]);
+  assert.deepEqual((await call(server, "GET", "/api/desk")).json, { desk });
+  assert.deepEqual(events, [{ type: "desk", data: { desk, origin: "tab-1" } }]);
+});
+
+test("POST /api/desk drops duplicates, keeps minimized windows, and minimizes visible ones past the grid", async () => {
+  const { server, savedDesks } = await start();
+  const windows = ["a", "a", 7, "b", "c", "d", "e", "f", "g", "h"].map((id) => ({ id, minimized: id === "b" }));
+  const history = Array.from({ length: 30 }, (_, i) => `t${i % 25}`);
+  await post(server, "/api/desk", { desk: { windows, history: [...history, 4] }, origin: "tab-1" });
+  assert.deepEqual(savedDesks[0]!.windows.map((w) => w.id), ["a", "b", "c", "d", "e", "f", "g", "h"]);
+  assert.deepEqual(savedDesks[0]!.windows.filter((w) => w.minimized).map((w) => w.id), ["b", "h"]);
+  assert.deepEqual(savedDesks[0]!.history, Array.from({ length: 20 }, (_, i) => `t${i}`));
+});
+
+test("POST /api/desk refuses a body without a desk or an origin, and saves nothing", async () => {
+  const { server, savedDesks, events } = await start();
+  const desk = { windows: [], history: [] };
+  const bad = [{}, { desk }, { origin: "x" }, { desk: { windows: [] }, origin: "x" }, { desk: { windows: "a", history: [] }, origin: "x" }, { desk, origin: "" }, { desk, origin: 3 }, { desk: [], origin: "x" }];
+  for (const body of bad) assert.equal((await post(server, "/api/desk", body)).status, 400, JSON.stringify(body));
+  assert.deepEqual(savedDesks, []);
+  assert.deepEqual(events, []);
 });

@@ -231,3 +231,24 @@ test("swap ignores an unknown or identical window", () => {
   assert.equal(deskReducer(s, { type: "swap", id: "a", with: "zz" }), s);
   assert.equal(deskReducer(s, { type: "swap", id: "a", with: "a" }), s);
 });
+
+test("sync replaces the windows and keeps focus and maximize while they still show", () => {
+  let s = open(EMPTY_DESK, "a", "b", "c");
+  s = deskReducer(s, { type: "maximize", id: "b" });
+  const synced = deskReducer(s, { type: "sync", windows: [{ id: "c", minimized: false }, { id: "b", minimized: false }] });
+  assert.deepEqual(ids(synced), ["c", "b"]);
+  assert.equal(synced.focusedId, "b");
+  assert.equal(synced.maximizedId, "b");
+});
+
+test("sync moves focus and maximize off a window that is gone or minimized", () => {
+  let s = open(EMPTY_DESK, "a", "b");
+  s = deskReducer(s, { type: "maximize", id: "b" });
+  const gone = deskReducer(s, { type: "sync", windows: [{ id: "a", minimized: false }] });
+  assert.equal(gone.maximizedId, null);
+  assert.equal(gone.focusedId, "a");
+  const minimized = deskReducer(s, { type: "sync", windows: [{ id: "a", minimized: false }, { id: "b", minimized: true }] });
+  assert.equal(minimized.maximizedId, null);
+  assert.equal(minimized.focusedId, "a");
+  assert.deepEqual(deskReducer(s, { type: "sync", windows: [] }), { ...EMPTY_DESK, sizes: {} });
+});

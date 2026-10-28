@@ -27,3 +27,6 @@ export const pidFile = inStateDir("dashboard.pid");
 
 /** Threads the Agents page created for a scheduled task. */
 export const automationThreadsFile = (env: Env, homedir: string): string => join(configDir(env, homedir), "automation-threads.json");
+
+/** The Desk windows and the switcher history, shared by every device. */
+export const deskFile = (env: Env, homedir: string): string => join(configDir(env, homedir), "desk.json");

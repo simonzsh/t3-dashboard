@@ -8,3 +8,4 @@ export type * from "./linear.ts";
 export type * from "./settings.ts";
 export type * from "./automations.ts";
 export type * from "./search.ts";
+export type * from "./desk.ts";

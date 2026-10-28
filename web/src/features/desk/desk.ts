@@ -1,7 +1,7 @@
+import { DESK_LIMIT } from "../../../../shared/desk.ts";
 import type { Store } from "../../lib/storage.ts";
 
-/** Windows shown in the grid at once; the others wait minimized in the dock. */
-export const DESK_LIMIT = 6;
+export { DESK_LIMIT };
 export const DESK_KEY = "t3-dashboard-desk";
 
 export type TrackSizes = Record<string, number>;
@@ -34,6 +34,7 @@ export type DeskAction =
   | { type: "maximize"; id: string }
   | { type: "unmaximize" }
   | { type: "swap"; id: string; with: string }
+  | { type: "sync"; windows: readonly DeskWindow[] }
   | { type: "prune"; existing: ReadonlySet<string> }
   | { type: "setSizes"; count: number; sizes: DeskSizes };
 
@@ -156,6 +157,9 @@ function reduce(state: DeskState, action: DeskAction): DeskState {
       [windows[a], windows[b]] = [windows[b]!, windows[a]!];
       return settle({ ...state, windows, focusedId: action.id });
     }
+    case "sync":
+      // The windows come from another device: focus and maximize stay ours when they still show.
+      return settle({ ...state, windows: action.windows.map((w) => ({ ...w })) });
     case "prune":
       return settle({ ...state, windows: state.windows.filter((w) => action.existing.has(w.id)) });
     case "setSizes":

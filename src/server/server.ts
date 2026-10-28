@@ -2,6 +2,7 @@ import type { Server } from "bun";
 import type { ConnectionStatus, DashboardState } from "../../shared/api.ts";
 import { MAX_MESSAGE_BODY_BYTES } from "../../shared/limits.ts";
 import type { Actions, AssetRequest } from "../domain/actions.ts";
+import type { DeskStore } from "../domain/deskStore.ts";
 import type { Automations } from "../domain/automations.ts";
 import type { LinearBoard } from "../domain/linearBoard.ts";
 import type { Settings } from "../domain/settings.ts";
@@ -13,7 +14,7 @@ import { matchesEtag } from "./etag.ts";
 import { servePwa } from "./pwa.ts";
 import type { Site } from "./site.ts";
 import type { SseHub } from "./sse.ts";
-import { isObject, isText, validAssign, validAutomationRequest, validCreate, validImages, validMessage, validQueuedEdit, validRename, validRespond, validSearch, validSettings } from "./validate.ts";
+import { isObject, isText, validAssign, validAutomationRequest, validDesk, validCreate, validImages, validMessage, validQueuedEdit, validRename, validRespond, validSearch, validSettings } from "./validate.ts";
 
 export interface SetupControl {
   /** Resolves the token again. */
@@ -27,6 +28,7 @@ export interface DashboardServerOptions {
   actions: Actions;
   board: Pick<LinearBoard, "get">;
   automations: Pick<Automations, "list" | "request" | "remove" | "rename">;
+  desk: Pick<DeskStore, "get" | "set">;
   hub: SseHub;
   getState: () => DashboardState;
   connection: () => ConnectionStatus;
@@ -135,7 +137,7 @@ function matchRoute(pattern: string[], segments: string[]): Record<string, strin
 }
 
 export function createDashboardServer(options: DashboardServerOptions): DashboardHandler {
-  const { actions, hub, board, automations, getState, connection, site, settings, setup, updates } = options;
+  const { actions, desk, hub, board, automations, getState, connection, site, settings, setup, updates } = options;
   const allowedHosts = new Set([...LOCAL_HOSTS, ...(options.allowedHosts ?? [])]);
   const ok = (extra: Record<string, unknown> = {}) => json(200, { ok: true, ...extra });
   const done = async (work: Promise<unknown>) => (await work, ok());
@@ -167,6 +169,7 @@ export function createDashboardServer(options: DashboardServerOptions): Dashboar
     { method: "GET", path: "/api/board", handle: async ({ req }) => json(200, await board.get(new URL(req.url).searchParams.get("refresh") === "1")) },
     { method: "GET", path: "/api/automations", handle: async () => json(200, await automations.list()) },
     { method: "GET", path: "/api/settings", handle: () => json(200, settings.get()) },
+    { method: "GET", path: "/api/desk", handle: () => json(200, { desk: desk.get() }) },
     { method: "GET", path: "/api/update", handle: () => json(200, updates.status()) },
     {
       method: "GET",
@@ -221,6 +224,16 @@ export function createDashboardServer(options: DashboardServerOptions): Dashboar
         if (result === "unreachable") throw new HttpError(502, "T3 Code is unreachable.");
         setup.wake();
         return json(200, connection());
+      },
+    },
+    {
+      method: "POST",
+      path: "/api/desk",
+      handle: ({ body }) => {
+        const update = validDesk(body);
+        desk.set(update.desk);
+        hub.broadcast({ type: "desk", data: update });
+        return ok();
       },
     },
     { method: "POST", path: "/api/update/check", handle: async () => json(200, await updates.check()) },
