@@ -11,7 +11,6 @@ export function ProviderIcon({ provider }: { provider: string }) {
   const label = kind === "claude" ? "Claude" : kind === "codex" ? "Codex" : provider;
   return (
     <svg className={`provider-icon ${kind}`} viewBox="0 0 24 24" role="img" aria-label={label}>
-      <title>{label}</title>
       {kind === "claude" && <path d={CLAUDE_PATH} fill="#d97757" />}
       {kind === "codex" && <path d={OPENAI_PATH} fill="currentColor" />}
       {kind === "other" && <circle cx="12" cy="12" r="5" fill="none" stroke="currentColor" strokeWidth="2" />}
