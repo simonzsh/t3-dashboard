@@ -40,7 +40,7 @@ The Desk shows many conversations side by side, in a grid.
 Each Desk window contains a conversation.
 
 - Write a message and send it with `Enter`. During a run, the message waits in the "Up next" list (dashed border). T3 Code sends it when the turn ends.
-- For each queued message: click "Steer" to send it into the current run now, the pencil to edit it, or the bin to remove it. After a Stop, T3 Code holds the queue and "Steer" becomes "Send now".
+- Under each queued message, three icons: send, edit, remove. During a run, the send icon steers: the message goes into the current run now. After a Stop, T3 Code holds the queue, and the send icon starts a turn with this message.
 - Attach images: PNG, JPEG, GIF or WebP. The limit is 10 images, 10 MB for each image and 18 MB in total.
 - Change the model, the reasoning effort and the access mode ("Supervised", "Auto-accept edits", "Auto", "Full access").
 - Stop a run with the "Stop" button.

@@ -86,20 +86,21 @@ function QueuedItem({ threadId, item, running, onChanged }: { threadId: string; 
         </div>
       ) : (
         <div className="queued-actions">
+          <IconButton
+            label={running ? "Steer: send it into the running turn" : "Send now"}
+            tooltip={running ? "Steer: send it into the running turn" : "Send now: start a turn with this message"}
+            size="sm"
+            variant="ghost"
+            disabled={busy}
+            onClick={() => void act(() => api.sendQueued(threadId, item.runId))}
+          >
+            <Icon name="send" />
+          </IconButton>
           {item.editable && (
             <IconButton label="Edit queued message" size="sm" variant="ghost" disabled={busy} onClick={startEdit}>
               <Icon name="pencil" />
             </IconButton>
           )}
-          <Button
-            size="sm"
-            variant="ghost"
-            disabled={busy}
-            tooltip={running ? "Send as a steer instead" : "Start a turn with this message"}
-            onClick={() => void act(() => api.sendQueued(threadId, item.runId))}
-          >
-            {running ? "Steer" : "Send now"}
-          </Button>
           <IconButton label="Remove from queue" size="sm" variant="ghost" disabled={busy} onClick={() => void act(() => api.cancelQueued(threadId, item.runId))}>
             <Icon name="trash" />
           </IconButton>
