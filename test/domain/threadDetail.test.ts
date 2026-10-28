@@ -446,3 +446,23 @@ test("a run removed from the queue before it started does not take over the acti
   projection.runs![1] = { ...projection.runs![1]!, status: "cancelled", createdAt: "2026-03-02T10:00:00Z" };
   assert.equal(toThreadDetail("t", projection, undefined).activity?.runId, "r1");
 });
+
+test("a sent queued message takes its item's place and time, after the replies written while it waited", () => {
+  const detail = toThreadDetail(
+    "t",
+    {
+      messages: [
+        { id: "u1", role: "user", text: "start", createdAt: "2026-03-01T10:00:00Z" },
+        { id: "q", role: "user", text: "queued", createdAt: "2026-03-01T10:00:05Z" },
+        { id: "a1", role: "assistant", text: "reply", createdAt: "2026-03-01T10:00:10Z" },
+      ],
+      visibleTurnItems: [
+        { item: { type: "user_message", messageId: "u1", startedAt: "2026-03-01T10:00:00Z" } },
+        { item: { type: "assistant_message", messageId: "a1", startedAt: "2026-03-01T10:00:10Z" } },
+        { item: { type: "user_message", messageId: "q", inputIntent: "queued_turn", startedAt: "2026-03-01T10:00:20Z" } },
+      ],
+    },
+    undefined,
+  );
+  assert.deepEqual(detail.messages.map((message) => [message.id, message.createdAt]), [["u1", "2026-03-01T10:00:00Z"], ["a1", "2026-03-01T10:00:10Z"], ["q", "2026-03-01T10:00:20Z"]]);
+});

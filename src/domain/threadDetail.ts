@@ -166,7 +166,12 @@ function queuedRunsOf(projection: RawProjection) {
 
 /** `tasks` are the shell thread's pending background tasks: they say which subagents still run. */
 export function toThreadDetail(threadId: string, projection: RawProjection, thread: DashboardThread | undefined, tasks: RawBackgroundTask[] = []): ThreadDetail {
-  const visible = new Set((projection.visibleTurnItems ?? []).map((element) => unwrap(element).messageId));
+  // Like T3 Code: a message keeps its visible item's place and time. A queued message was sent when its item
+  // started, not when it was queued, so it shows after the replies written while it waited.
+  const visible = new Map<string | undefined, { index: number; at: string | undefined }>();
+  (projection.visibleTurnItems ?? []).map(unwrap).forEach((item, index) => {
+    if (!visible.has(item.messageId)) visible.set(item.messageId, { index, at: item.startedAt ?? undefined });
+  });
   const items = [...(projection.turnItems ?? []), ...(projection.visibleTurnItems ?? [])].map(unwrap);
   const queuedRuns = queuedRunsOf(projection);
   // A queued message shows in the queue, not the conversation. Like T3 Code, a removed one stays hidden.
@@ -177,11 +182,12 @@ export function toThreadDetail(threadId: string, projection: RawProjection, thre
   ]);
   const messages: ChatMessage[] = (projection.messages ?? [])
     .filter((message) => visible.has(message.id) && !hidden.has(message.id))
+    .sort((a, b) => visible.get(a.id)!.index - visible.get(b.id)!.index)
     .map((message) => ({
       id: message.id,
       role: message.role,
       text: message.text ?? "",
-      createdAt: message.createdAt ?? "",
+      createdAt: visible.get(message.id)!.at ?? message.createdAt ?? "",
       streaming: message.streaming ?? false,
       attachments: toAttachments(message),
     }));
