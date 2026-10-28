@@ -33,6 +33,7 @@ export type DeskAction =
   | { type: "restore"; id: string }
   | { type: "maximize"; id: string }
   | { type: "unmaximize" }
+  | { type: "swap"; id: string; with: string }
   | { type: "prune"; existing: ReadonlySet<string> }
   | { type: "setSizes"; count: number; sizes: DeskSizes };
 
@@ -146,6 +147,15 @@ function reduce(state: DeskState, action: DeskAction): DeskState {
     }
     case "unmaximize":
       return { ...state, maximizedId: null };
+    case "swap": {
+      // Grid cells follow the opening order: swapping two entries swaps their cells.
+      const a = state.windows.findIndex((w) => w.id === action.id);
+      const b = state.windows.findIndex((w) => w.id === action.with);
+      if (a < 0 || b < 0 || a === b) return state;
+      const windows = [...state.windows];
+      [windows[a], windows[b]] = [windows[b]!, windows[a]!];
+      return settle({ ...state, windows, focusedId: action.id });
+    }
     case "prune":
       return settle({ ...state, windows: state.windows.filter((w) => action.existing.has(w.id)) });
     case "setSizes":
