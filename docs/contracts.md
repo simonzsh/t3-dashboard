@@ -23,7 +23,7 @@ The schemas are in `src/integrations/*/schemas.ts`. The script uses the same sch
 
 ### T3 write commands
 
-The script never runs a write command: `thread.create`, `message.dispatch`, `run.interrupt`, `subagent.stop`, `thread.stop`, `runtime-request.respond`, `thread.user-input.dismiss`, `thread.model-selection.set`, `thread.runtime-mode.set` and image upload. It does a static comparison:
+The script never runs a write command: `thread.create`, `message.dispatch`, `run.interrupt`, `subagent.stop`, `thread.stop`, `queued-message.promote-to-steer`, `queued-run.start`, `queued-run.edit`, `queued-run.cancel`, `runtime-request.respond`, `thread.user-input.dismiss`, `thread.model-selection.set`, `thread.runtime-mode.set` and image upload. It does a static comparison:
 
 1. It reads the T3 version in `server-runtime.json`.
 2. It reads the `~/.t3/runtime/versions/<version>/client/assets/*.js` files as text. It does not import or run this code.

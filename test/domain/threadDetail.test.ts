@@ -375,3 +375,74 @@ test("lists html_render pages once, oldest first", () => {
     { id: "b", attachmentId: "t-b-html", title: "b", height: 320, createdAt: "2026-03-01T10:00:05Z" },
   ]);
 });
+
+const queuedProjection = (extra: Partial<RawProjection> = {}): RawProjection => ({
+  messages: [
+    { id: "m1", role: "user", text: "Start", createdAt: "2026-03-01T10:00:00Z" },
+    { id: "q-late", role: "user", text: "second", createdAt: "2026-03-01T10:00:02Z" },
+    { id: "q-first", role: "user", text: "first", createdAt: "2026-03-01T10:00:03Z", context: { guest: { text: "guest text" } } },
+  ],
+  visibleTurnItems: [{ item: { type: "user_message", messageId: "m1", runId: "r1" } }],
+  runs: [
+    { id: "r1", status: "running", startedAt: "2026-03-01T10:00:00Z" },
+    { id: "r-late", status: "queued", userMessageId: "q-late", ordinal: 2, createdAt: "2026-03-01T10:00:02Z" },
+    { id: "r-first", status: "queued", userMessageId: "q-first", ordinal: 3, queuePosition: 1, createdAt: "2026-03-01T10:00:03Z" },
+  ],
+  ...extra,
+});
+
+test("queued runs form the queue in T3 order, with the guest text first, and stay out of the messages", () => {
+  const detail = toThreadDetail("t", queuedProjection({ visibleTurnItems: [{ item: { type: "user_message", messageId: "m1" } }, { item: { type: "user_message", messageId: "q-late" } }] }), undefined);
+  assert.deepEqual(detail.queue.map((item) => [item.runId, item.messageId, item.text]), [["r-first", "q-first", "guest text"], ["r-late", "q-late", "second"]]);
+  assert.deepEqual(detail.messages.map((message) => message.id), ["m1"]);
+  assert.equal(detail.queueHeld, false);
+});
+
+test("the queue works when T3 lists no visible item for the queued message", () => {
+  const detail = toThreadDetail("t", queuedProjection(), undefined);
+  assert.equal(detail.queue.length, 2);
+  assert.deepEqual(detail.messages.map((message) => message.id), ["m1"]);
+});
+
+test("a cancelled queued_turn message stays hidden, a promoted one shows", () => {
+  const projection = queuedProjection({
+    runs: [
+      { id: "r1", status: "running", startedAt: "2026-03-01T10:00:00Z" },
+      { id: "r-late", status: "cancelled", userMessageId: "q-late" },
+      { id: "r-first", status: "running", userMessageId: "q-first" },
+    ],
+    visibleTurnItems: [
+      { item: { type: "user_message", messageId: "m1" } },
+      { item: { type: "user_message", messageId: "q-late", runId: "r-late", inputIntent: "queued_turn" } },
+      { item: { type: "user_message", messageId: "q-first", runId: "r1", inputIntent: "promoted_queued_to_steer" } },
+    ],
+  });
+  const detail = toThreadDetail("t", projection, undefined);
+  assert.deepEqual(detail.messages.map((message) => message.id), ["m1", "q-first"]);
+  assert.deepEqual(detail.queue, []);
+});
+
+test("queueHeld is true when a queued run is held", () => {
+  const projection = queuedProjection();
+  projection.runs![1] = { ...projection.runs![1]!, queueHeld: true };
+  assert.equal(toThreadDetail("t", projection, undefined).queueHeld, true);
+});
+
+test("a queued run does not take over the activity of the latest run", () => {
+  const detail = toThreadDetail("t", queuedProjection({ turnItems: [{ id: "a1", type: "reasoning", runId: "r1", text: "thinking", ordinal: 1 }] }), undefined);
+  assert.equal(detail.activity?.runId, "r1");
+  assert.equal(detail.activity?.items.length, 1);
+});
+
+test("like T3, the queue skips delegated completions and notifications, and a guest message is not editable", () => {
+  const projection = queuedProjection();
+  projection.messages![1] = { ...projection.messages![1]!, notification: { kind: "x" } };
+  const detail = toThreadDetail("t", projection, undefined);
+  assert.deepEqual(detail.queue.map((item) => [item.runId, item.editable]), [["r-first", false]]);
+});
+
+test("a run removed from the queue before it started does not take over the activity", () => {
+  const projection = queuedProjection({ turnItems: [{ id: "a1", type: "reasoning", runId: "r1", text: "thinking", ordinal: 1 }] });
+  projection.runs![1] = { ...projection.runs![1]!, status: "cancelled", createdAt: "2026-03-02T10:00:00Z" };
+  assert.equal(toThreadDetail("t", projection, undefined).activity?.runId, "r1");
+});

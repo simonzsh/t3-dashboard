@@ -48,7 +48,7 @@ bun run contracts   # reads T3 Code, Linear and GitHub, writes nothing
 These actions write to the real T3 Code. Do them once after each T3 update.
 
 1. Create an agent with New Agent.
-2. Send a message on an idle thread, then during a run (`steer`).
+2. Send a message on an idle thread. During a run, queue a message: make sure that it appears in "Up next" and that T3 Code sends it when the turn ends. Queue another one, then edit it, send it with the send icon and remove it. Stop a run with a queued message, then click the send icon.
 3. Stop a run.
 4. Answer an approval with each of the 3 buttons.
 5. Answer a question, then click "Dismiss".

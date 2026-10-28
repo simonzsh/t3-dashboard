@@ -64,6 +64,49 @@ test("a message sent in the demo lands in its thread", async () => {
   assert.deepEqual(detail.messages.map((message) => message.text), ["Hello", "Second message"]);
 });
 
+async function runningDemo() {
+  const port = new DemoPort(() => NOW);
+  const store = syncedStore(port);
+  await Bun.sleep(0);
+  const actions = createActions({ port, store, board: { get: async () => ({ configured: true, ok: true, error: null, issues: [] }) } });
+  const threadId = store.state({ t3: "live", serverVersion: null, protocolMismatch: false, error: null, setup: null }, []).threads.find((thread) => thread.title.includes("heckout"))!.id;
+  return { actions, threadId };
+}
+
+test("a message sent during a demo run waits in the queue until Steer", async () => {
+  const { actions, threadId } = await runningDemo();
+  await actions.sendMessage(threadId, { text: "Later" }, []);
+  let detail = await actions.threadDetail(threadId);
+  assert.deepEqual(detail.queue.map((item) => item.text), ["Later"]);
+  assert.equal(detail.messages.some((message) => message.text === "Later"), false);
+  await actions.editQueued(threadId, detail.queue[0]!.runId, "Later, edited");
+  await actions.sendQueued(threadId, detail.queue[0]!.runId);
+  detail = await actions.threadDetail(threadId);
+  assert.deepEqual(detail.queue, []);
+  assert.equal(detail.messages.at(-1)?.text, "Later, edited");
+});
+
+test("a removed demo queued message is in neither the queue nor the conversation", async () => {
+  const { actions, threadId } = await runningDemo();
+  await actions.sendMessage(threadId, { text: "Oops" }, []);
+  await actions.cancelQueued(threadId, (await actions.threadDetail(threadId)).queue[0]!.runId);
+  const detail = await actions.threadDetail(threadId);
+  assert.deepEqual(detail.queue, []);
+  assert.equal(detail.messages.some((message) => message.text === "Oops"), false);
+});
+
+test("after a Stop the demo queue is held and Send now starts the message", async () => {
+  const { actions, threadId } = await runningDemo();
+  await actions.sendMessage(threadId, { text: "Next" }, []);
+  await actions.interrupt(threadId);
+  let detail = await actions.threadDetail(threadId);
+  assert.equal(detail.queueHeld, true);
+  await actions.sendQueued(threadId, detail.queue[0]!.runId);
+  detail = await actions.threadDetail(threadId);
+  assert.deepEqual([detail.queue.length, detail.queueHeld, detail.messages.at(-1)?.text], [0, false, "Next"]);
+  assert.equal(detail.thread?.status, "running");
+});
+
 test("the demo Linear board and automations need no network", async () => {
   const issuesList = await new LinearClient(demoLinearFetch(NOW)).assignedIssues("demo");
   assert.ok(new Set(issuesList.map((issue) => issue.state.name)).size >= 4);

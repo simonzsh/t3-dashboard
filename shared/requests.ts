@@ -38,6 +38,10 @@ export interface SendMessageBody {
   attachments?: ImageAttachment[];
 }
 
+export interface EditQueuedBody {
+  text: string;
+}
+
 export interface ThreadSettingsBody {
   modelSelection?: ModelSelection;
   runtimeMode?: RuntimeMode;

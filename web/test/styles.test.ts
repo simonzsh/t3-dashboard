@@ -51,3 +51,7 @@ test("textareas cannot be resized by hand and stop growing at a max height", () 
     assert.match(rule(selector), /max-height: min\(40vh, 260px\);/);
   }
 });
+
+test("a queued message has a dashed bubble", () => {
+  assert.match(rule(".msg.user.queued .bubble"), /border-style: dashed;/);
+});

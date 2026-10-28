@@ -109,6 +109,11 @@ export function validRespond(body: Record<string, unknown>): RespondBody {
   return { answers: answers as UserInputAnswers };
 }
 
+export function validQueuedEdit(body: Record<string, unknown>): string {
+  if (typeof body.text !== "string" || body.text.trim() === "") throw new HttpError(400, "text is required");
+  return body.text;
+}
+
 export function validMessage(body: Record<string, unknown>): { message: Omit<SendMessageBody, "attachments">; images: ImageUpload[] } {
   if (typeof body.text !== "string") throw new HttpError(400, "text is required");
   if (body.mode !== undefined && body.mode !== "queue" && body.mode !== "steer") throw new HttpError(400, "mode must be queue or steer");

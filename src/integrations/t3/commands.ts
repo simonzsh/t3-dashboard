@@ -56,6 +56,17 @@ export const runtimeModeCommand = (threadId: string, runtimeMode: RuntimeMode): 
 // holdQueue keeps queued messages from starting a new run right after the stop.
 export const interruptCommand = (threadId: string, runId: string): UnsentCommand => ({ type: "run.interrupt", threadId, runId, holdQueue: true });
 
+// T3 names the queued run `queuedRunId` here and `runId` in the other queue commands.
+export const promoteQueuedCommand = (threadId: string, queuedRunId: string, targetRunId: string): UnsentCommand => ({ type: "queued-message.promote-to-steer", threadId, queuedRunId, targetRunId });
+
+// "Send now" while no run is active.
+export const startQueuedCommand = (threadId: string, runId: string): UnsentCommand => ({ type: "queued-run.start", threadId, runId });
+
+// No `attachments` key: T3 then keeps the stored ones, like its own client.
+export const editQueuedCommand = (threadId: string, runId: string, text: string): UnsentCommand => ({ type: "queued-run.edit", threadId, runId, text });
+
+export const cancelQueuedCommand = (threadId: string, runId: string): UnsentCommand => ({ type: "queued-run.cancel", threadId, runId });
+
 export const subagentStopCommand = (threadId: string, runId: string, subagentId: string): UnsentCommand => ({ type: "subagent.stop", threadId, runId, subagentId });
 
 // Stops a delegated task's own thread, whatever its run: only T3 builds with the threadStop capability know it.

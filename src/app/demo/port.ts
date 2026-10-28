@@ -1,3 +1,4 @@
+import { RUNNING_RUN_STATUSES } from "../../../shared/status.ts";
 import type { FetchLike } from "../../integrations/linear/client.ts";
 import type { AttachmentRef, Command, ImageUpload, RawConfig, RawProjection, RawScheduledTask, RawSearchMatch, RawThread, ShellItem, T3Port } from "../../integrations/t3/schemas.ts";
 import { searchProjections } from "./search.ts";
@@ -76,8 +77,15 @@ export class DemoPort implements T3Port {
     switch (command.type) {
       case "message.dispatch": {
         const message = { id: String(command.messageId), role: "user" as const, text: String(command.text), createdAt: at };
+        const runs = projection.runs ?? [];
+        const queued = (command.dispatchMode as { type?: string } | undefined)?.type === "queue_after_active" && (thread.activeRunId || runs.some((run) => RUNNING_RUN_STATUSES.has(run.status ?? "")));
+        // The demo never completes a run, so a queued message never starts by itself.
+        if (queued) projection.runs = [...runs, { id: `${message.id}-run`, status: "queued", userMessageId: message.id, ordinal: runs.length + 1, createdAt: at }];
         projection.messages = [...(projection.messages ?? []), message];
-        projection.visibleTurnItems = [...(projection.visibleTurnItems ?? []), { id: `${message.id}-item`, messageId: message.id }];
+        projection.visibleTurnItems = [
+          ...(projection.visibleTurnItems ?? []),
+          { id: `${message.id}-item`, type: "user_message", messageId: message.id, ...(queued && { runId: `${message.id}-run`, inputIntent: "queued_turn" }) },
+        ];
         Object.assign(thread, { latestUserMessageAt: at, latestVisibleMessage: { role: "user", text: message.text, updatedAt: at }, settledOverride: null });
         break;
       }
@@ -86,8 +94,36 @@ export class DemoPort implements T3Port {
         projection.runtimeRequests = (projection.runtimeRequests ?? []).map((request) => (request.id === command.requestId ? { ...request, status: "resolved" } : request));
         thread.pendingRuntimeRequest = null;
         break;
+      case "queued-message.promote-to-steer": {
+        const run = this.queuedRun(projection, command);
+        projection.runs = (projection.runs ?? []).filter((candidate) => candidate !== run);
+        projection.visibleTurnItems = (projection.visibleTurnItems ?? []).map((entry) =>
+          "messageId" in entry && entry.messageId === run.userMessageId ? { ...entry, runId: String(command.targetRunId), inputIntent: "promoted_queued_to_steer" } : entry,
+        );
+        break;
+      }
+      case "queued-run.cancel": {
+        const run = this.queuedRun(projection, command);
+        this.updateRun(projection, run.id, { status: "cancelled", completedAt: at });
+        break;
+      }
+      case "queued-run.edit": {
+        const run = this.queuedRun(projection, command);
+        projection.messages = (projection.messages ?? []).map((message) => (message.id === run.userMessageId ? { ...message, text: String(command.text) } : message));
+        break;
+      }
+      case "queued-run.start": {
+        const run = this.queuedRun(projection, command);
+        this.updateRun(projection, run.id, { status: "running", startedAt: at, queueHeld: false });
+        Object.assign(thread, { status: "running", activeRunId: run.id, activityRunStartedAt: at });
+        break;
+      }
       case "run.interrupt":
         Object.assign(thread, { status: "interrupted", activeRunId: null, activityRunStartedAt: null, latestRunCompletedAt: at, pendingRuntimeRequest: null });
+        // holdQueue: queued messages wait for "Send now".
+        projection.runs = (projection.runs ?? []).map((run) =>
+          run.id === command.runId ? { ...run, status: "interrupted", completedAt: at } : run.status === "queued" ? { ...run, queueHeld: true } : run,
+        );
         // Stopping the turn drops its pending questions, as in T3.
         projection.runtimeRequests = (projection.runtimeRequests ?? []).map((request) => (request.status === "pending" ? { ...request, status: "cancelled" } : request));
         break;
@@ -139,6 +175,16 @@ export class DemoPort implements T3Port {
     const threads = [...this.projections.values()].map((projection) => projection.thread!);
     queueMicrotask(() => onItems([{ kind: "snapshot", snapshot: { projects: this.projects, threads } }, { kind: "synchronized" }]));
     return { cancel: () => void this.listeners.delete(onItems) };
+  }
+
+  private queuedRun(projection: RawProjection, command: Command): NonNullable<RawProjection["runs"]>[number] {
+    const run = projection.runs?.find((candidate) => candidate.id === (command.runId ?? command.queuedRunId));
+    if (run?.status !== "queued") throw new Error("This message is no longer queued");
+    return run;
+  }
+
+  private updateRun(projection: RawProjection, runId: string, patch: Partial<NonNullable<RawProjection["runs"]>[number]>): void {
+    projection.runs = (projection.runs ?? []).map((run) => (run.id === runId ? { ...run, ...patch } : run));
   }
 
   private publish(thread: RawThread): void {

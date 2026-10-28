@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "bun:test";
 import type { ChatMessage } from "../../../../shared/api.ts";
-import { PENDING_MAX_MS, isSettled, pendingLabel } from "../../../src/features/conversation/pending.ts";
+import { PENDING_MAX_MS, countSame, isSettled, pendingLabel, sentMessages } from "../../../src/features/conversation/pending.ts";
 
 const SENT = Date.parse("2026-01-01T10:00:00.000Z");
 const msg = (role: ChatMessage["role"], text: string, createdAt: string): ChatMessage => ({ id: `${role}-${createdAt}`, role, text, createdAt, streaming: false, attachments: [] });
@@ -31,4 +31,10 @@ test("the label counts images", () => {
   assert.equal(pendingLabel(0), "Sending…");
   assert.equal(pendingLabel(1), "Sending… · 1 image");
   assert.equal(pendingLabel(3), "Sending… · 3 images");
+});
+
+test("a pending message settles when its text shows up in the queue", () => {
+  const detail = { messages: [], queue: [{ runId: "q1", messageId: "m", text: "hello", attachments: [], createdAt: "", editable: true }] };
+  assert.equal(countSame(sentMessages(detail), "hello"), 1);
+  assert.equal(isSettled(pending, sentMessages(detail), SENT + 2000), true);
 });

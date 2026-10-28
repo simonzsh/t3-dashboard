@@ -2,6 +2,10 @@ import assert from "node:assert/strict";
 import { test } from "bun:test";
 import {
   approvalCommand,
+  cancelQueuedCommand,
+  editQueuedCommand,
+  promoteQueuedCommand,
+  startQueuedCommand,
   createThreadCommands,
   dismissCommand,
   settleCommand,
@@ -131,4 +135,16 @@ test("no builder produces acceptAlways", () => {
     dismissCommand("t", "r"),
   ];
   assert.ok(!JSON.stringify(all).includes("acceptAlways"));
+});
+
+test("queue commands use T3's field names: queuedRunId only for the promotion", () => {
+  assert.deepEqual(promoteQueuedCommand("t", "q1", "r1"), { type: "queued-message.promote-to-steer", threadId: "t", queuedRunId: "q1", targetRunId: "r1" });
+  assert.deepEqual(startQueuedCommand("t", "q1"), { type: "queued-run.start", threadId: "t", runId: "q1" });
+  assert.deepEqual(cancelQueuedCommand("t", "q1"), { type: "queued-run.cancel", threadId: "t", runId: "q1" });
+});
+
+test("editing a queued message sends the text and no attachments key", () => {
+  const command = editQueuedCommand("t", "q1", "new");
+  assert.deepEqual(command, { type: "queued-run.edit", threadId: "t", runId: "q1", text: "new" });
+  assert.equal("attachments" in command, false);
 });

@@ -338,6 +338,28 @@ test("interrupt falls back to the last active run of the projection, else 409", 
   assert.equal(port.commands.length, 1);
 });
 
+test("queue routes send the matching T3 command", async () => {
+  const { server, port } = await start();
+  port.projection = { runs: [{ id: "run-a", status: "running" }, { id: "q1", status: "queued" }] };
+  assert.deepEqual((await post(server, "/api/threads/run-1/queue/q1/send")).json, { ok: true });
+  await post(server, "/api/threads/run-1/queue/q1/edit", { text: "new" });
+  await post(server, "/api/threads/run-1/queue/q1/cancel");
+  assert.deepEqual(port.commands.map((c) => [c.type, c.queuedRunId, c.targetRunId, c.runId, c.text]), [
+    ["queued-message.promote-to-steer", "q1", "run-a", undefined, undefined],
+    ["queued-run.edit", undefined, undefined, "q1", "new"],
+    ["queued-run.cancel", undefined, undefined, "q1", undefined],
+  ]);
+});
+
+test("queue routes: a blank edit is 400, a run that left the queue is 409, and nothing is sent", async () => {
+  const { server, port } = await start();
+  port.projection = { runs: [{ id: "q1", status: "queued" }, { id: "r1", status: "running" }] };
+  for (const body of [{ text: "  " }, { text: 3 }, {}]) assert.equal((await post(server, "/api/threads/run-1/queue/q1/edit", body)).status, 400);
+  for (const action of ["send", "cancel"]) assert.equal((await post(server, `/api/threads/run-1/queue/r1/${action}`)).status, 409);
+  assert.equal((await post(server, "/api/threads/run-1/queue/r1/edit", { text: "x" })).status, 409);
+  assert.deepEqual(port.commands, []);
+});
+
 test("every response forbids framing and sniffing", async () => {
   const { server } = await start({ site: { serve: async () => new Response("<html></html>", { headers: { "content-type": "text/html" } }) } });
   for (const reply of [await call(server, "GET", "/api/health"), await call(server, "GET", "/"), await post(server, "/api/threads/x/nope")]) {

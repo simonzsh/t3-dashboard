@@ -41,6 +41,9 @@ test("action routes hit the right URL with a JSON body", async () => {
   await api.dismiss("t 1", "r/1");
   await api.settle("t 1");
   await api.unsettle("t 1");
+  await api.sendQueued("t 1", "q/1");
+  await api.editQueued("t 1", "q/1", "new");
+  await api.cancelQueued("t 1", "q/1");
   assert.deepEqual(calls.map((c) => c.url), [
     "/api/threads/t%201/messages",
     "/api/threads/t%201/interrupt",
@@ -50,6 +53,9 @@ test("action routes hit the right URL with a JSON body", async () => {
     "/api/threads/t%201/requests/r%2F1/dismiss",
     "/api/threads/t%201/settle",
     "/api/threads/t%201/unsettle",
+    "/api/threads/t%201/queue/q%2F1/send",
+    "/api/threads/t%201/queue/q%2F1/edit",
+    "/api/threads/t%201/queue/q%2F1/cancel",
   ]);
   for (const c of calls) {
     assert.equal(c.init?.method, "POST");
@@ -59,6 +65,7 @@ test("action routes hit the right URL with a JSON body", async () => {
   assert.deepEqual(JSON.parse(String(calls[1]?.init?.body)), {});
   assert.deepEqual(JSON.parse(String(calls[3]?.init?.body)), { runtimeMode: "auto" });
   assert.deepEqual(JSON.parse(String(calls[4]?.init?.body)), { decision: "accept" });
+  assert.deepEqual(JSON.parse(String(calls[9]?.init?.body)), { text: "new" });
 });
 
 test("non-2xx throws with the server message", async () => {

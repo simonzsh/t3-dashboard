@@ -644,6 +644,12 @@ button.auto-row:hover { transform: translateY(-1px); }
   .loader svg { animation: none; }
   .agent, .auto-row { transition: none; }
 }
+.queue { display: flex; flex-direction: column; gap: 10px; }
+.queue-head { font-size: 12px; color: var(--text-secondary); text-align: right; }
+.queue ol { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 12px; }
+.msg.user.queued .bubble { border-style: dashed; border-color: color-mix(in srgb, var(--text-secondary) 45%, var(--line)); background: transparent; color: var(--text-secondary); }
+.msg.user.queued .bubble.editing { min-width: min(85%, 280px); border-color: color-mix(in srgb, var(--accent) 60%, var(--line)); color: var(--text-primary); }
+.queued-actions { display: flex; align-items: center; gap: 2px; font-size: 12px; color: var(--text-secondary); }
 .msg.pending { opacity: 0.6; }
 .msg.pending small { opacity: 0.85; }
 .about-note { color: var(--text-secondary); font-size: 12px; white-space: nowrap; }

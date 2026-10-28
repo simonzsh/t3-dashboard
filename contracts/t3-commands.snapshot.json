@@ -32,6 +32,30 @@
     "usageLimitContinuationOfRunId": "optional",
     "usageLimitRecoveryRequestId": "optional"
   },
+  "queued-message.promote-to-steer": {
+    "commandId": "required",
+    "queuedRunId": "required",
+    "targetRunId": "required",
+    "threadId": "required"
+  },
+  "queued-run.cancel": {
+    "commandId": "required",
+    "runId": "required",
+    "threadId": "required"
+  },
+  "queued-run.edit": {
+    "attachments": "optional",
+    "commandId": "required",
+    "context": "optional",
+    "runId": "required",
+    "text": "required",
+    "threadId": "required"
+  },
+  "queued-run.start": {
+    "commandId": "required",
+    "runId": "required",
+    "threadId": "required"
+  },
   "run.interrupt": {
     "commandId": "required",
     "holdQueue": "optional",

@@ -85,6 +85,17 @@ export interface ChatMessage {
   attachments: ChatAttachment[];
 }
 
+/** A message T3 holds until the active turn ends (a run with status "queued"). */
+export interface QueuedMessage {
+  runId: string;
+  messageId: string;
+  text: string;
+  attachments: ChatAttachment[];
+  createdAt: string;
+  /** T3 cannot edit a message a guest sent. */
+  editable: boolean;
+}
+
 /** A page the agent showed with html_render; the same route serves it, sandboxed. */
 export interface HtmlRender {
   id: string;
@@ -151,6 +162,10 @@ export interface ThreadDetail {
   threadId: string;
   thread: DashboardThread | null;
   messages: ChatMessage[];
+  /** In T3's queue order. These messages are never in `messages`. */
+  queue: QueuedMessage[];
+  /** After a Stop, T3 holds the queue: nothing starts until "Send now". */
+  queueHeld: boolean;
   renders: HtmlRender[];
   pendingRequests: PendingRequestDetail[];
   subagents: SubagentInfo[];
