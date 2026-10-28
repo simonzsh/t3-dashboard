@@ -164,8 +164,9 @@ test("parseDesk repairs inconsistent data", () => {
     sizes: { "4": { columns: { c0: 50, c1: 50 }, rows: { r0: 60, r1: 40 } } },
   });
   const s = parseDesk(raw);
-  assert.deepEqual(ids(s), ["a", "b", "c", "d", "e", "f"]);
-  assert.equal(s.windows[1]!.minimized, false);
+  // Minimized windows are kept; visible ones past the grid limit go to the dock.
+  assert.deepEqual(ids(s), ["a", "b", "c", "d", "e", "f", "g", "h"]);
+  assert.deepEqual(s.windows.filter((w) => w.minimized).map((w) => w.id), ["g", "h"]);
   assert.equal(s.focusedId, "f");
   assert.equal(s.maximizedId, "a");
   assert.deepEqual(s.sizes, {});
@@ -232,23 +233,33 @@ test("swap ignores an unknown or identical window", () => {
   assert.equal(deskReducer(s, { type: "swap", id: "a", with: "a" }), s);
 });
 
-test("sync replaces the windows and keeps focus and maximize while they still show", () => {
+test("sync keeps the order and the minimized state of the windows this device already has", () => {
   let s = open(EMPTY_DESK, "a", "b", "c");
-  s = deskReducer(s, { type: "maximize", id: "b" });
-  const synced = deskReducer(s, { type: "sync", windows: [{ id: "c", minimized: false }, { id: "b", minimized: false }] });
-  assert.deepEqual(ids(synced), ["c", "b"]);
-  assert.equal(synced.focusedId, "b");
-  assert.equal(synced.maximizedId, "b");
+  s = deskReducer(s, { type: "minimize", id: "a" });
+  s = deskReducer(s, { type: "maximize", id: "c" });
+  const synced = deskReducer(s, { type: "sync", ids: ["c", "b", "a"] });
+  assert.deepEqual(synced.windows, s.windows);
+  assert.equal(synced.focusedId, "c");
+  assert.equal(synced.maximizedId, "c");
 });
 
-test("sync moves focus and maximize off a window that is gone or minimized", () => {
+test("sync drops removed windows and adds new ones at the end, in the dock once the grid is full", () => {
+  let s = open(EMPTY_DESK, "a", "b", "c", "d", "e");
+  s = deskReducer(s, { type: "focus", id: "b" });
+  const synced = deskReducer(s, { type: "sync", ids: ["b", "c", "d", "e", "x", "y"] });
+  assert.deepEqual(ids(synced), ["b", "c", "d", "e", "x", "y"]);
+  assert.deepEqual(synced.windows.filter((w) => w.minimized).map((w) => w.id), []);
+  assert.equal(synced.focusedId, "b");
+  const full = deskReducer(synced, { type: "sync", ids: ["b", "c", "d", "e", "x", "y", "z"] });
+  assert.deepEqual(full.windows.filter((w) => w.minimized).map((w) => w.id), ["z"]);
+  assert.equal(full.focusedId, "b");
+});
+
+test("sync moves focus and maximize off a window that is gone", () => {
   let s = open(EMPTY_DESK, "a", "b");
   s = deskReducer(s, { type: "maximize", id: "b" });
-  const gone = deskReducer(s, { type: "sync", windows: [{ id: "a", minimized: false }] });
+  const gone = deskReducer(s, { type: "sync", ids: ["a"] });
   assert.equal(gone.maximizedId, null);
   assert.equal(gone.focusedId, "a");
-  const minimized = deskReducer(s, { type: "sync", windows: [{ id: "a", minimized: false }, { id: "b", minimized: true }] });
-  assert.equal(minimized.maximizedId, null);
-  assert.equal(minimized.focusedId, "a");
-  assert.deepEqual(deskReducer(s, { type: "sync", windows: [] }), { ...EMPTY_DESK, sizes: {} });
+  assert.deepEqual(deskReducer(s, { type: "sync", ids: [] }), { ...EMPTY_DESK, sizes: {} });
 });

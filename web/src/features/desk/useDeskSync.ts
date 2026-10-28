@@ -7,13 +7,12 @@ import type { DeskAction, DeskState } from "./desk.ts";
 const ORIGIN = crypto.randomUUID();
 const SAVE_DELAY_MS = 200;
 
-const keyOf = (desk: SharedDesk) => JSON.stringify(desk);
+// Sorted: a change of order alone stays on this device.
+const keyOf = (desk: SharedDesk) => JSON.stringify([...desk.ids].sort());
 
 interface Options {
   desk: DeskState;
   dispatch: Dispatch<DeskAction>;
-  history: readonly string[];
-  replaceHistory: (ids: readonly string[]) => void;
   /** null until a live state is known, so an offline start does not empty the desk. */
   threads: ReadonlyArray<{ id: string }> | null;
   /** The last `desk` event from the server. */
@@ -22,8 +21,8 @@ interface Options {
   connects: number;
 }
 
-/** Keeps the windows and the history on the server, so every device shows the same Desk. */
-export function useDeskSync({ desk, dispatch, history, replaceHistory, threads, remote, connects }: Options): void {
+/** Keeps on the server which windows are on the Desk, so every device shows the same conversations. */
+export function useDeskSync({ desk, dispatch, threads, remote, connects }: Options): void {
   const api = useApi();
   const [loaded, setLoaded] = useState(false);
   // The state the server holds as far as we know: what we load, receive or send.
@@ -32,8 +31,7 @@ export function useDeskSync({ desk, dispatch, history, replaceHistory, threads, 
 
   const apply = (shared: SharedDesk) => {
     known.current = keyOf(shared);
-    dispatch({ type: "sync", windows: shared.windows });
-    replaceHistory(shared.history);
+    dispatch({ type: "sync", ids: shared.ids });
   };
 
   // A failed load keeps the local desk and never saves: it could overwrite a newer one.
@@ -47,7 +45,7 @@ export function useDeskSync({ desk, dispatch, history, replaceHistory, threads, 
         // No saved desk: the save effect below pushes this browser's one, unless it is empty,
         // so a new browser does not win over the one that holds the real desk.
         if (saved) apply(saved);
-        else known.current = keyOf({ windows: [], history: [] });
+        else known.current = keyOf({ ids: [] });
         setLoaded(true);
       },
       () => {},
@@ -61,7 +59,7 @@ export function useDeskSync({ desk, dispatch, history, replaceHistory, threads, 
     if (loaded && remote && remote.origin !== ORIGIN) apply(remote.desk);
   }, [remote]);
 
-  const shared: SharedDesk = { windows: desk.windows, history: [...history] };
+  const shared: SharedDesk = { ids: desk.windows.map((w) => w.id) };
   const key = keyOf(shared);
   useEffect(() => {
     if (!loaded || key === known.current) return;

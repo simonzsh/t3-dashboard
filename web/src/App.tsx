@@ -41,12 +41,10 @@ export function App() {
   const [tab, setTab] = useTab();
   const automations = useAutomations(tab === "agents" && state?.connection.t3 === "live");
   const [desk, dispatchDesk] = useDesk();
-  const [openHistory, recordOpened, replaceHistory] = useOpenHistory();
+  const [openHistory, recordOpened] = useOpenHistory();
   useDeskSync({
     desk,
     dispatch: dispatchDesk,
-    history: openHistory,
-    replaceHistory,
     threads: state?.connection.t3 === "live" ? state.threads : null,
     remote: remoteDesk,
     connects,

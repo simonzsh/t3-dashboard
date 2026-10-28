@@ -1,4 +1,4 @@
-import { DESK_LIMIT } from "../../../../shared/desk.ts";
+import { DESK_LIMIT, DESK_WINDOWS_MAX } from "../../../../shared/desk.ts";
 import type { Store } from "../../lib/storage.ts";
 
 export { DESK_LIMIT };
@@ -34,7 +34,7 @@ export type DeskAction =
   | { type: "maximize"; id: string }
   | { type: "unmaximize" }
   | { type: "swap"; id: string; with: string }
-  | { type: "sync"; windows: readonly DeskWindow[] }
+  | { type: "sync"; ids: readonly string[] }
   | { type: "prune"; existing: ReadonlySet<string> }
   | { type: "setSizes"; count: number; sizes: DeskSizes };
 
@@ -157,9 +157,19 @@ function reduce(state: DeskState, action: DeskAction): DeskState {
       [windows[a], windows[b]] = [windows[b]!, windows[a]!];
       return settle({ ...state, windows, focusedId: action.id });
     }
-    case "sync":
-      // The windows come from another device: focus and maximize stay ours when they still show.
-      return settle({ ...state, windows: action.windows.map((w) => ({ ...w })) });
+    case "sync": {
+      // Another device changed which windows are on the Desk: ours keep their place and state,
+      // a new one joins the grid if there is room, else the dock. It never takes the focus.
+      const ids = new Set(action.ids);
+      const windows = state.windows.filter((w) => ids.has(w.id));
+      let visible = windows.filter((w) => !w.minimized).length;
+      for (const id of ids) {
+        if (windows.some((w) => w.id === id)) continue;
+        windows.push({ id, minimized: visible >= DESK_LIMIT });
+        visible++;
+      }
+      return settle({ ...state, windows });
+    }
     case "prune":
       return settle({ ...state, windows: state.windows.filter((w) => action.existing.has(w.id)) });
     case "setSizes":
@@ -179,10 +189,14 @@ export function parseDesk(raw: string | null): DeskState {
   }
   if (!isObject(data)) return EMPTY_DESK;
   const windows: DeskWindow[] = [];
+  let visible = 0;
   for (const w of Array.isArray(data.windows) ? data.windows : []) {
     if (!isObject(w) || typeof w.id !== "string" || windows.some((x) => x.id === w.id)) continue;
-    windows.push({ id: w.id, minimized: w.minimized === true });
-    if (windows.length === DESK_LIMIT) break;
+    // A visible window past the grid limit goes to the dock.
+    const shown = w.minimized !== true && visible < DESK_LIMIT;
+    if (shown) visible++;
+    windows.push({ id: w.id, minimized: !shown });
+    if (windows.length === DESK_WINDOWS_MAX) break;
   }
   const idOrNull = (v: unknown) => (typeof v === "string" ? v : null);
   return settle({ windows, focusedId: idOrNull(data.focusedId), maximizedId: idOrNull(data.maximizedId), sizes: {} });
