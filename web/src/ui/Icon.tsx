@@ -69,7 +69,6 @@ export function Icon({ name, className = "icon", strokeWidth = 2, label }: IconP
   const a11y = label ? { role: "img", "aria-label": label } : { "aria-hidden": true };
   return (
     <svg className={className} viewBox="0 0 24 24" {...a11y}>
-      {label && <title>{label}</title>}
       {(ICONS[name] as Part[]).map((part) =>
         typeof part === "string" ? (
           <path key={part} d={part} fill="none" stroke="currentColor" strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" />
