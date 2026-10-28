@@ -18,11 +18,10 @@ interface Props {
 
 export function QueuedMessages({ threadId, queue, held, running, onChanged }: Props) {
   if (queue.length === 0) return null;
-  const count = `${queue.length} queued`;
   return (
     <section className="queue" aria-label={`Up next: ${queue.length} queued message${queue.length === 1 ? "" : "s"}`}>
       <div className="queue-head">
-        Up next · {count}
+        Up next · {queue.length} queued
         {held && " · paused"}
       </div>
       <ol>
@@ -107,4 +106,3 @@ function QueuedItem({ threadId, item, running, onChanged }: { threadId: string; 
     </li>
   );
 }
-
