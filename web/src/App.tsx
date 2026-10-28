@@ -37,7 +37,7 @@ function focusComposer(threadId: string) {
 }
 
 export function App() {
-  const { state, sseDown, remoteDesk } = useDashboard();
+  const { state, sseDown, remoteDesk, connects } = useDashboard();
   const [tab, setTab] = useTab();
   const automations = useAutomations(tab === "agents" && state?.connection.t3 === "live");
   const [desk, dispatchDesk] = useDesk();
@@ -49,6 +49,7 @@ export function App() {
     replaceHistory,
     threads: state?.connection.t3 === "live" ? state.threads : null,
     remote: remoteDesk,
+    connects,
   });
   const [creating, setCreating] = useState(false);
   const [creatingAutomation, setCreatingAutomation] = useState(false);

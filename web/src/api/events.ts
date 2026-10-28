@@ -29,10 +29,12 @@ export function applyEvent(state: DashboardState | null, event: DashboardEvent):
   }
 }
 
-export function useDashboard(): { state: DashboardState | null; sseDown: boolean; remoteDesk: DeskUpdate | null } {
+export function useDashboard(): { state: DashboardState | null; sseDown: boolean; remoteDesk: DeskUpdate | null; connects: number } {
   const [state, dispatch] = useReducer(applyEvent, null);
   const [sseDown, setSseDown] = useState(false);
   const [remoteDesk, setRemoteDesk] = useState<DeskUpdate | null>(null);
+  // Each connection starts with `state`: a count tells a reconnect, after which missed `desk` events are lost.
+  const [connects, setConnects] = useState(0);
 
   useEffect(() => {
     const es = new EventSource("/api/events");
@@ -41,6 +43,7 @@ export function useDashboard(): { state: DashboardState | null; sseDown: boolean
         const event = { type, data: JSON.parse((e as MessageEvent<string>).data) } as DashboardEvent;
         if (event.type === "desk") setRemoteDesk(event.data);
         else dispatch(event);
+        if (event.type === "state") setConnects((n) => n + 1);
         setSseDown(false);
       });
     }
@@ -49,5 +52,5 @@ export function useDashboard(): { state: DashboardState | null; sseDown: boolean
     return () => es.close();
   }, []);
 
-  return { state, sseDown, remoteDesk };
+  return { state, sseDown, remoteDesk, connects };
 }

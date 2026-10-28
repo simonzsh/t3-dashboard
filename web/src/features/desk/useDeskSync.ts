@@ -18,10 +18,12 @@ interface Options {
   threads: ReadonlyArray<{ id: string }> | null;
   /** The last `desk` event from the server. */
   remote: DeskUpdate | null;
+  /** SSE connections so far: a reconnect loads the desk again. */
+  connects: number;
 }
 
 /** Keeps the windows and the history on the server, so every device shows the same Desk. */
-export function useDeskSync({ desk, dispatch, history, replaceHistory, threads, remote }: Options): void {
+export function useDeskSync({ desk, dispatch, history, replaceHistory, threads, remote, connects }: Options): void {
   const api = useApi();
   const [loaded, setLoaded] = useState(false);
   // The state the server holds as far as we know: what we load, receive or send.
@@ -35,6 +37,8 @@ export function useDeskSync({ desk, dispatch, history, replaceHistory, threads, 
   };
 
   // A failed load keeps the local desk and never saves: it could overwrite a newer one.
+  // The first connection follows the mount load, so only later ones load again.
+  const reconnects = Math.max(connects - 1, 0);
   useEffect(() => {
     let cancelled = false;
     api.getDesk().then(
@@ -49,7 +53,7 @@ export function useDeskSync({ desk, dispatch, history, replaceHistory, threads, 
     return () => {
       cancelled = true;
     };
-  }, [api]);
+  }, [api, reconnects]);
 
   useEffect(() => {
     if (loaded && remote && remote.origin !== ORIGIN) apply(remote.desk);
