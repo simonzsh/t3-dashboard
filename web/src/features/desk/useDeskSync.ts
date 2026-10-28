@@ -44,8 +44,10 @@ export function useDeskSync({ desk, dispatch, history, replaceHistory, threads, 
     api.getDesk().then(
       ({ desk: saved }) => {
         if (cancelled) return;
-        // No saved desk: the save effect below pushes this browser's one.
+        // No saved desk: the save effect below pushes this browser's one, unless it is empty,
+        // so a new browser does not win over the one that holds the real desk.
         if (saved) apply(saved);
+        else known.current = keyOf({ windows: [], history: [] });
         setLoaded(true);
       },
       () => {},
