@@ -16,6 +16,8 @@
     "delegatedCompletion": "optional",
     "deliveryIntent": "optional: auto | restart | steer",
     "dispatchMode": "required: defer_start | queue_after_active | restart_active | start_immediately | steer_active",
+    "guestMessageId": "optional",
+    "idleCompaction": "optional: beforeCacheExpires | onReturn",
     "manualContinuationOfRunId": "optional",
     "messageId": "required",
     "modelSelection": "optional",
@@ -42,6 +44,7 @@
     "attachmentsByQuestionId": "optional",
     "commandId": "required",
     "decision": "optional: accept | acceptAlways | acceptForSession | cancel | decline",
+    "feedback": "optional",
     "requestId": "required",
     "threadId": "required"
   },
@@ -96,6 +99,7 @@
   "thread.stop": {
     "commandId": "required",
     "reason": "optional",
+    "stopDelegatedTasks": "optional",
     "threadId": "required"
   },
   "thread.unsettle": {
