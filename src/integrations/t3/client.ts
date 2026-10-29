@@ -109,7 +109,7 @@ export class T3Client implements T3Port {
     await this.call(RPC.upsertScheduledTask, { ...keep, id, requireExisting: true, title });
   }
 
-  // T3 envoie un instantané initial, puis garde le flux ouvert pour les changements.
+  // T3 sends an initial snapshot, then keeps the stream open for changes.
   private async scheduledTasksSnapshot(): Promise<unknown> {
     const connection = await (await this.sharedSocket()).conn;
     return new Promise((resolve, reject) => {

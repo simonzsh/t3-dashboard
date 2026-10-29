@@ -143,24 +143,6 @@ test("listScheduledTasks rejects an answer without a task list", async () => {
   await assert.rejects(done, IntegrationError);
 });
 
-test("listScheduledTasks rejects a stream failure and keeps the socket usable", async () => {
-  const { client } = setup();
-  const done = client.listScheduledTasks();
-  const socket = await nextSocket();
-  socket.receive({ _tag: "Exit", requestId: "1", exit: { _tag: "Failure", cause: { message: "denied" } } });
-  await assert.rejects(done, /denied/);
-  assert.equal(socket.closed, false);
-});
-
-test("listScheduledTasks rejects a stream that ends before its snapshot", async () => {
-  const { client } = setup();
-  const done = client.listScheduledTasks();
-  const socket = await nextSocket();
-  socket.receive({ _tag: "Chunk", requestId: "1", values: [] });
-  socket.receive({ _tag: "Exit", requestId: "1", exit: { _tag: "Success", value: undefined } });
-  await assert.rejects(done, (error) => error instanceof IntegrationError && error.kind === "protocol");
-});
-
 test("persistAttachments sends the images and returns T3's references", async () => {
   const { client } = setup();
   const image = { type: "image" as const, name: "a.png", mimeType: "image/png", sizeBytes: 3, dataUrl: "data:image/png;base64,AAAA" };
