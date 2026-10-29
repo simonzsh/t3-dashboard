@@ -17,7 +17,7 @@ export const RPC = {
   dispatch: "orchestration.dispatchCommand",
   subscribeShell: "orchestration.subscribeShell",
   searchThreads: "orchestration.searchThreads",
-  listScheduledTasks: "scheduledTasks.list",
+  subscribeScheduledTasks: "scheduledTasks.subscribe",
   deleteScheduledTask: "scheduledTasks.delete",
   upsertScheduledTask: "scheduledTasks.upsert",
 } as const;
@@ -52,7 +52,7 @@ export interface T3ClientOptions {
 }
 
 // Safe to send twice: a retry after a lost connection cannot repeat a side effect.
-const IDEMPOTENT = new Set<string>([RPC.getConfig, RPC.searchThreads, RPC.createAssetUrl, RPC.ensureScratch, RPC.listScheduledTasks]);
+const IDEMPOTENT = new Set<string>([RPC.getConfig, RPC.searchThreads, RPC.createAssetUrl, RPC.ensureScratch]);
 
 const UPSERT_FIELDS = ["prompt", "enabled", "schedule", "projectId", "threadId", "workspaceStrategy", "modelSelection", "runtimeMode", "interactionMode"];
 
@@ -91,7 +91,7 @@ export class T3Client implements T3Port {
   }
 
   async listScheduledTasks(): Promise<RawScheduledTask[]> {
-    return read(ScheduledTasksResponse, await this.call(RPC.listScheduledTasks, {}), "scheduledTasks.list").tasks;
+    return read(ScheduledTasksResponse, await this.scheduledTasksSnapshot(), RPC.subscribeScheduledTasks).tasks;
   }
 
   // Not in IDEMPOTENT: a retry after the delete went through would fail on an unknown id.
@@ -101,12 +101,32 @@ export class T3Client implements T3Port {
 
   // The upsert replaces the whole task, so every field comes from T3's raw answer: the reduced schema would drop some.
   async renameScheduledTask(id: string, title: string): Promise<void> {
-    const answer = await this.call(RPC.listScheduledTasks, {});
-    read(ScheduledTasksResponse, answer, "scheduledTasks.list");
+    const answer = await this.scheduledTasksSnapshot();
+    read(ScheduledTasksResponse, answer, RPC.subscribeScheduledTasks);
     const task = (answer as { tasks: Record<string, unknown>[] }).tasks.find((entry) => entry.id === id);
     if (!task) throw new IntegrationError("T3 has no scheduled task with this id", { system: "t3", kind: "refused" });
     const keep = Object.fromEntries(UPSERT_FIELDS.map((key) => [key, task[key]]));
     await this.call(RPC.upsertScheduledTask, { ...keep, id, requireExisting: true, title });
+  }
+
+  // T3 envoie un instantané initial, puis garde le flux ouvert pour les changements.
+  private async scheduledTasksSnapshot(): Promise<unknown> {
+    const connection = await (await this.sharedSocket()).conn;
+    return new Promise((resolve, reject) => {
+      const timer = setTimeout(() => {
+        stream.cancel();
+        reject(new IntegrationError("T3 did not send a scheduled tasks snapshot within 10000 ms", { system: "t3", kind: "unreachable" }));
+      }, 10_000);
+      const stream = connection.stream(RPC.subscribeScheduledTasks, {}, (values) => {
+        if (values.length === 0) return;
+        clearTimeout(timer);
+        stream.cancel();
+        resolve(values[0]);
+      }, (error) => {
+        clearTimeout(timer);
+        reject(error ?? new IntegrationError("T3 ended the scheduled tasks stream before its snapshot", { system: "t3", kind: "protocol" }));
+      });
+    });
   }
 
   async searchThreads(query: string, limit?: number): Promise<RawSearchMatch[]> {

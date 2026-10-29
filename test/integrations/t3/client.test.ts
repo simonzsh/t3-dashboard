@@ -90,10 +90,12 @@ test("listScheduledTasks sends an empty payload and returns the tasks", async ()
   const { client } = setup();
   const done = client.listScheduledTasks();
   const socket = await nextSocket();
-  assert.equal(socket.sent[0]!.tag, "scheduledTasks.list");
+  assert.equal(socket.sent[0]!.tag, "scheduledTasks.subscribe");
   assert.deepEqual(socket.sent[0]!.payload, {});
-  socket.receive({ _tag: "Exit", requestId: "1", exit: { _tag: "Success", value: { tasks: [{ id: "task-1", title: "Digest" }] } } });
+  socket.receive({ _tag: "Chunk", requestId: "1", values: [{ tasks: [{ id: "task-1", title: "Digest" }] }] });
   assert.deepEqual(await done, [{ id: "task-1", title: "Digest" }]);
+  assert.ok(socket.sent.some((frame) => frame._tag === "Interrupt" && frame.requestId === "1"));
+  assert.equal(socket.closed, false);
 });
 
 test("deleteScheduledTask sends the id and is not retried on a dropped socket", async () => {
@@ -110,14 +112,15 @@ test("renameScheduledTask upserts the raw task with only the title changed", asy
   const { client } = setup();
   const done = client.renameScheduledTask("task-1", "Reminder: New");
   const socket = await nextSocket();
-  assert.equal(socket.sent[0]!.tag, "scheduledTasks.list");
+  assert.equal(socket.sent[0]!.tag, "scheduledTasks.subscribe");
   const schedule = { type: "interval", everyMs: 900_000, step: { unit: "future-field" } };
   const raw = { id: "task-1", title: "Reminder: Old", prompt: "Do it", enabled: false, schedule, projectId: "p1", threadId: null, workspaceStrategy: { kind: "local", extra: 1 }, modelSelection: { instanceId: "i", model: "m", options: [{ id: "o", value: 2 }] }, runtimeMode: "full-access", interactionMode: "plan", runCount: 4 };
-  socket.receive({ _tag: "Exit", requestId: "1", exit: { _tag: "Success", value: { tasks: [{ id: "other", title: "x" }, raw] } } });
+  socket.receive({ _tag: "Chunk", requestId: "1", values: [{ tasks: [{ id: "other", title: "x" }, raw] }] });
   await tick();
-  assert.equal(socket.sent[1]!.tag, "scheduledTasks.upsert");
+  const upsert = socket.sent.find((frame) => frame.tag === "scheduledTasks.upsert")!;
+  assert.ok(upsert);
   const { runCount, title, ...rest } = raw;
-  assert.deepEqual(socket.sent[1]!.payload, { ...rest, title: "Reminder: New", requireExisting: true });
+  assert.deepEqual(upsert.payload, { ...rest, title: "Reminder: New", requireExisting: true });
   assert.equal(runCount, 4);
   socket.receive({ _tag: "Exit", requestId: "2", exit: { _tag: "Success", value: {} } });
   await done;
@@ -127,17 +130,35 @@ test("renameScheduledTask refuses an unknown task without upserting", async () =
   const { client } = setup();
   const done = client.renameScheduledTask("gone", "x");
   const socket = await nextSocket();
-  socket.receive({ _tag: "Exit", requestId: "1", exit: { _tag: "Success", value: { tasks: [{ id: "task-1" }] } } });
+  socket.receive({ _tag: "Chunk", requestId: "1", values: [{ tasks: [{ id: "task-1" }] }] });
   await assert.rejects(done, IntegrationError);
-  assert.equal(socket.sent.length, 1);
+  assert.equal(socket.sent.filter((frame) => frame._tag === "Request").length, 1);
 });
 
 test("listScheduledTasks rejects an answer without a task list", async () => {
   const { client } = setup();
   const done = client.listScheduledTasks();
   const socket = await nextSocket();
-  socket.receive({ _tag: "Exit", requestId: "1", exit: { _tag: "Success", value: { tasks: [{ title: "no id" }] } } });
+  socket.receive({ _tag: "Chunk", requestId: "1", values: [{ tasks: [{ title: "no id" }] }] });
   await assert.rejects(done, IntegrationError);
+});
+
+test("listScheduledTasks rejects a stream failure and keeps the socket usable", async () => {
+  const { client } = setup();
+  const done = client.listScheduledTasks();
+  const socket = await nextSocket();
+  socket.receive({ _tag: "Exit", requestId: "1", exit: { _tag: "Failure", cause: { message: "denied" } } });
+  await assert.rejects(done, /denied/);
+  assert.equal(socket.closed, false);
+});
+
+test("listScheduledTasks rejects a stream that ends before its snapshot", async () => {
+  const { client } = setup();
+  const done = client.listScheduledTasks();
+  const socket = await nextSocket();
+  socket.receive({ _tag: "Chunk", requestId: "1", values: [] });
+  socket.receive({ _tag: "Exit", requestId: "1", exit: { _tag: "Success", value: undefined } });
+  await assert.rejects(done, (error) => error instanceof IntegrationError && error.kind === "protocol");
 });
 
 test("persistAttachments sends the images and returns T3's references", async () => {
