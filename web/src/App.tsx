@@ -29,7 +29,7 @@ import { updateLabel } from "./features/update/updateFlow.ts";
 
 const NO_DEFAULTS: ModelDefaults = { selection: null, runtimeMode: null };
 
-// Same breakpoint as the one-line header in styles.css.
+// Same breakpoint as the mobile bottom bar in styles.css.
 const COMPACT_HEADER = "(max-width: 700px)";
 
 function focusComposer(threadId: string) {
