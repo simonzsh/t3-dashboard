@@ -24,9 +24,12 @@ interface Props {
 const MIN_COLUMN_PX = 220;
 const MIN_ROW_PX = 160;
 
-function DeskGrid({ windows, desk, dispatch, render }: { windows: Win[]; desk: DeskState; dispatch: Dispatch<DeskAction>; render: (w: Win) => ReactNode }) {
+export function DeskGrid({ windows, desk, dispatch, render }: { windows: Win[]; desk: DeskState; dispatch: Dispatch<DeskAction>; render: (w: Win) => ReactNode }) {
   const count = windows.length;
   const { columns, rows } = deskLayout(count);
+  // Un déplacement dans le DOM remet le défilement à zéro. Seules les coordonnées doivent changer.
+  const cells = windows.map((window, index) => ({ window, ...cellOf(index, columns) }))
+    .sort((a, b) => a.window.id.localeCompare(b.window.id));
   const gridRef = useGridRef();
   const sizes = sizesFor(desk, count);
   const columnTracks = useMemo(() => Array.from({ length: columns }, (_, i) => ({ id: `c${i}`, minSize: MIN_COLUMN_PX })), [columns]);
@@ -60,9 +63,9 @@ function DeskGrid({ windows, desk, dispatch, render }: { windows: Win[]; desk: D
       }}
       onDoubleClick={resetOnDoubleClick}
     >
-      {windows.map((w, i) => (
-        <Cell key={w.id} className="desk-cell" style={{ overflow: "visible" }} {...cellOf(i, columns)}>
-          {render(w)}
+      {cells.map(({ window, row, column }) => (
+        <Cell key={window.id} className="desk-cell" style={{ overflow: "visible" }} row={row} column={column}>
+          {render(window)}
         </Cell>
       ))}
       {Array.from({ length: columns - 1 }, (_, i) => (
