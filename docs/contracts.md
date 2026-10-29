@@ -12,7 +12,7 @@
 | `t3` | `POST /api/auth/websocket-ticket` gives `{ ticket }`. This ticket has a short lifetime, as in normal use. |
 | `t3` | `server.getConfig` passes the `RawConfig` schema. The orchestration protocol is `2`. Each runtime mode is known. |
 | `t3` | `orchestration.subscribeShell`: the script reads the stream until `synchronized`, then stops it. Each item passes the `ShellItem` schema. Each thread status is known. |
-| `t3` | `scheduledTasks.list`: the response passes the `ScheduledTasksResponse` schema. A T3 version without this method gives "could not run". |
+| `t3` | `scheduledTasks.subscribe`: the first snapshot passes the `ScheduledTasksResponse` schema. A T3 version without this method gives "could not run". |
 | `t3` | `GET /api/orchestration/threads/{id}` for 3 threads maximum. Each response passes the `ProjectionResponse` schema. |
 | `t3` | The 8 RPC tags of the dashboard exist in the T3 web client. |
 | `t3` | The write commands (see below). |
