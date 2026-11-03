@@ -1,7 +1,7 @@
 import { test } from "bun:test";
 import assert from "node:assert/strict";
 import type { ChatMessage, HtmlRender, StepKind, TurnStep } from "../../../../shared/api.ts";
-import { timeline, type Entry } from "../../../src/features/conversation/timeline.ts";
+import { awaitingStep, timeline, type Entry } from "../../../src/features/conversation/timeline.ts";
 
 const message = (id: string, createdAt: string): ChatMessage => ({ id, role: "assistant", text: id, createdAt, streaming: false, attachments: [], rewindable: false });
 const render = (id: string, createdAt: string): HtmlRender => ({ id, attachmentId: id, title: id, height: 100, createdAt });
@@ -75,4 +75,19 @@ test("a step without a time stays after the step before it", () => {
     }),
     ["m", "work(a,b)"],
   );
+});
+
+const user = (id: string, createdAt: string): ChatMessage => ({ ...message(id, createdAt), role: "user" });
+const entriesOf = (messages: ChatMessage[], steps: TurnStep[] = []) => timeline({ messages, renders: [], steps });
+
+test("awaitingStep: a running thread whose last entry is the user's message has no step yet", () => {
+  assert.equal(awaitingStep(entriesOf([user("u", "2026-01-01T10:00:00Z")]), true), true);
+  assert.equal(awaitingStep(entriesOf([user("u", "2026-01-01T10:00:00Z")]), false), false);
+});
+
+test("awaitingStep: a step, a reply or an empty thread ends the wait", () => {
+  const u = user("u", "2026-01-01T10:00:00Z");
+  assert.equal(awaitingStep(entriesOf([u], [step("a", "command", "2026-01-01T10:00:05Z")]), true), false);
+  assert.equal(awaitingStep(entriesOf([u, message("m", "2026-01-01T10:00:09Z")]), true), false);
+  assert.equal(awaitingStep([], true), false);
 });

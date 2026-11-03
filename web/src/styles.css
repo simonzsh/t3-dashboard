@@ -249,6 +249,14 @@ main { flex: 1; min-height: 0; overflow: hidden; padding: 24px; display: flex; f
 .msg { display: flex; flex-direction: column; gap: 4px; min-width: 0; overflow-wrap: anywhere; }
 .msg small { display: flex; align-items: center; gap: 6px; font-size: 11px; color: var(--text-secondary); opacity: 0; transition: opacity 0.15s; }
 .msg:hover small, .msg:focus-within small, .msg:last-child small { opacity: 0.85; }
+/* No hover on touch: the actions stay reachable. */
+@media (hover: none) { .msg small { opacity: 0.85; } }
+.msg-actions { display: inline-flex; align-items: center; gap: 2px; }
+.msg-actions .icon-button.sm { min-width: 22px; height: 22px; border-radius: var(--radius-sm); }
+.msg-actions .icon-button.sm svg { width: 14px; height: 14px; }
+.msg-copied { color: var(--text-secondary); }
+.working-row { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--text-secondary); }
+.rewind-files { display: flex; align-items: center; gap: 8px; font-size: 13px; }
 .msg.user { align-items: flex-end; }
 .msg.user .bubble { max-width: min(85%, 640px); padding: 8px 13px; border-radius: 16px 16px 4px 16px; overflow-wrap: anywhere; background: color-mix(in srgb, var(--accent) 13%, var(--surface-1)); border: 1px solid color-mix(in srgb, var(--accent) 24%, var(--line)); color: var(--text-primary); }
 .msg.system { align-items: center; }

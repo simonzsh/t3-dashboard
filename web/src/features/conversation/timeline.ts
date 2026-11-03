@@ -31,3 +31,9 @@ export function timeline(detail: Pick<ThreadDetail, "messages" | "renders" | "st
   }
   return out;
 }
+
+// A run is active but nothing answers the last user message yet: the timeline shows a "Working…" row.
+export function awaitingStep(entries: Entry[], running: boolean): boolean {
+  const last = entries.at(-1);
+  return running && last?.kind === "message" && last.message.role === "user";
+}

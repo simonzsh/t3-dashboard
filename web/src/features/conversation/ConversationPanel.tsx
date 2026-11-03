@@ -1,4 +1,4 @@
-import { memo, useEffect, useRef, useState } from "react";
+import { memo, useEffect, useMemo, useRef, useState } from "react";
 import type { ChatMessage, DashboardProvider, HtmlRender, DashboardThread, ThreadDetail, ThreadSettingsBody, TurnStep, UploadedAttachment } from "../../../../shared/api.ts";
 import { runActive } from "../../../../shared/status.ts";
 import { useApi } from "../../api/ApiContext.tsx";
@@ -8,6 +8,9 @@ import { type PendingMessage, countSame, isSettled, pendingLabel, sentMessages }
 import { MarkdownText } from "./MarkdownText.tsx";
 import { QueuedMessages } from "./QueuedMessages.tsx";
 import { Composer } from "./Composer.tsx";
+import { MessageActions } from "./MessageActions.tsx";
+import { RewindDialog } from "./RewindDialog.tsx";
+import { attachmentFiles, mergeDraft } from "./rewind.ts";
 import { PendingRequestView } from "./PendingRequestView.tsx";
 import { WorkGroup } from "./Steps.tsx";
 import { NoticeRow, PlanCard, SubagentBlock, TodoCard } from "./TimelineBlocks.tsx";
@@ -17,7 +20,7 @@ import { singleFlight } from "../../lib/singleFlight.ts";
 import { NoticeProvider, useNotify } from "../../lib/notices.tsx";
 import { failure, formatBytes, formatMessageTime } from "../../lib/format.ts";
 import { useDocumentTheme } from "../../lib/useDocumentTheme.ts";
-import { timeline } from "./timeline.ts";
+import { awaitingStep, timeline } from "./timeline.ts";
 import { LIVE_RELOAD_MS, SEND_POLL_WINDOW_MS, pollDelay } from "./reload.ts";
 
 const ROLE_LABELS: Record<string, string> = { user: "You", assistant: "Agent", system: "System" };
@@ -29,7 +32,12 @@ const NEAR_BOTTOM_PX = 40;
 const USER_SCROLL_MS = 150;
 const MAX_REAIMS = 3;
 
-const Message = memo(function Message({ message: m, threadId }: { message: ChatMessage; threadId: string }) {
+interface MessageEditing {
+  onEdit: (message: ChatMessage) => void;
+  disabled: boolean;
+}
+
+const Message = memo(function Message({ message: m, threadId, editing }: { message: ChatMessage; threadId: string; editing: MessageEditing }) {
   const time = formatMessageTime(m.createdAt);
   const images = m.attachments.filter((file) => file.kind === "image");
   const files = m.attachments.filter((file) => file.kind === "file");
@@ -63,6 +71,7 @@ const Message = memo(function Message({ message: m, threadId }: { message: ChatM
       <small>
         {ROLE_LABELS[m.role] ?? m.role} · {time}
         {m.streaming && <span className="streaming" role="img" aria-label="Running" />}
+        <MessageActions message={m} onEdit={editing.onEdit} editDisabled={editing.disabled} />
       </small>
     </div>
   );
@@ -79,14 +88,14 @@ const RenderFrame = memo(function RenderFrame({ render, threadId }: { render: Ht
 });
 
 // A fragment, so each message stays a direct child of .messages. A keystroke does not render the list.
-const Timeline = memo(function Timeline({ detail, threadId, running, onOpenThread, onChanged }: { detail: ThreadDetail; threadId: string; running: boolean; onOpenThread?: (id: string) => void; onChanged: () => void }) {
+const Timeline = memo(function Timeline({ detail, threadId, running, editing, onOpenThread, onChanged }: { detail: ThreadDetail; threadId: string; running: boolean; editing: MessageEditing; onOpenThread?: (id: string) => void; onChanged: () => void }) {
   const entries = timeline(detail);
   return (
     <>
       {entries.map((entry, i) => {
         switch (entry.kind) {
           case "message":
-            return <Message key={entry.message.id} message={entry.message} threadId={threadId} />;
+            return <Message key={entry.message.id} message={entry.message} threadId={threadId} editing={editing} />;
           case "render":
             return <RenderFrame key={entry.render.id} render={entry.render} threadId={threadId} />;
           case "work":
@@ -96,6 +105,12 @@ const Timeline = memo(function Timeline({ detail, threadId, running, onOpenThrea
             return <StandaloneStep key={entry.step.id} step={entry.step} threadId={threadId} onOpenThread={onOpenThread} onChanged={onChanged} />;
         }
       })}
+      {awaitingStep(entries, running) && (
+        <div className="working-row">
+          <Loader inline label="Working" />
+          Working…
+        </div>
+      )}
     </>
   );
 });
@@ -159,6 +174,8 @@ function Conversation({ threadId, thread, providers, onOpenThread }: Props) {
   const smoothing = useRef(false);
   const reaims = useRef(0);
   const [atBottom, setAtBottom] = useState(true);
+  const [editing, setEditing] = useState<ChatMessage | null>(null);
+  const [restore, setRestore] = useState<{ key: number; files: File[] }>({ key: 0, files: [] });
 
   // Bumped on every thread change and cleanup: a late response from an older effect is dropped.
   const epoch = useRef(0);
@@ -224,6 +241,8 @@ function Conversation({ threadId, thread, providers, onOpenThread }: Props) {
   const delay = pollDelay({ running, sentAt, background, now: Date.now() });
   usePoll(load, delay);
 
+  const messageEditing = useMemo(() => ({ onEdit: setEditing, disabled: running }), [running]);
+
   const polling = useRef(false);
   polling.current = delay !== null;
   useEffect(
@@ -271,6 +290,18 @@ function Conversation({ threadId, thread, providers, onOpenThread }: Props) {
     setDraft("");
     setSentAt(Date.now());
     void load();
+  }
+
+  // Files are read first: a failed read must not leave the thread rewound with the attachments lost.
+  async function editFromHere(message: ChatMessage, restoreFiles: boolean): Promise<void> {
+    const files = await attachmentFiles(threadId, message.attachments);
+    try {
+      await api.rewind(threadId, { messageId: message.id, restoreFiles });
+    } finally {
+      void load();
+    }
+    setDraft(mergeDraft(text, message.text));
+    setRestore((last) => ({ key: last.key + 1, files }));
   }
 
   // Reloads after a failure too: the thread values then replace the picks that failed.
@@ -325,7 +356,7 @@ function Conversation({ threadId, thread, providers, onOpenThread }: Props) {
           {!detail && loadError && <p className="empty">This conversation could not be loaded.</p>}
           {detail && detail.messages.length === 0 && detail.renders.length === 0 && detail.steps.length === 0 && <p className="empty">No messages</p>}
           {!detail && !loadError && <Loader />}
-          {detail && <Timeline detail={detail} threadId={threadId} running={running} onOpenThread={onOpenThread} onChanged={load} />}
+          {detail && <Timeline detail={detail} threadId={threadId} running={running} editing={messageEditing} onOpenThread={onOpenThread} onChanged={load} />}
           {detail && !running && pending.map((p) => <PendingBubble key={p.id} message={p} />)}
           {detail && detail.pendingRequests.length > 0 && (
             <div className="requests">
@@ -365,7 +396,10 @@ function Conversation({ threadId, thread, providers, onOpenThread }: Props) {
         searchFiles={(q) => api.searchFiles(threadId, q, 20).then((r) => r.entries)}
         onStop={() => api.interrupt(threadId)}
         onSettings={updateSettings}
+        restore={restore}
+        focusKey={restore.key || undefined}
       />
+      {editing && <RewindDialog message={editing} onClose={() => setEditing(null)} onConfirm={editFromHere} />}
     </div>
   );
 }

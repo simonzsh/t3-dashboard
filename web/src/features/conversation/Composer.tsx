@@ -54,11 +54,13 @@ interface Props {
   allowEmpty?: boolean;
   /** Hides the attach button and ignores pasted or dropped files, for a parent that cannot send them. */
   noImages?: boolean;
+  /** A new `key` adds these files to the message, e.g. the attachments of a message sent back for editing. */
+  restore?: { key: number; files: File[] };
   /** Typing @ lists matching files of the thread's folder. Without it, no popup. */
   searchFiles?: (query: string) => Promise<FileEntry[]>;
 }
 
-export function Composer({ providers, selection, runtimeMode, running, stoppable = running, draft, onDraft, onSend, onStop, onSettings, placeholder, autoFocus = false, focusKey, errorResetKey, allowEmpty = false, noImages = false, searchFiles }: Props) {
+export function Composer({ providers, selection, runtimeMode, running, stoppable = running, draft, onDraft, onSend, onStop, onSettings, placeholder, autoFocus = false, focusKey, errorResetKey, allowEmpty = false, noImages = false, restore, searchFiles }: Props) {
   const api = useApi();
   // Picks show at once, until new values come in the props or the change fails.
   // Each field has its own override: a model reload never drops a pending mode pick, and the reverse.
@@ -140,6 +142,10 @@ export function Composer({ providers, selection, runtimeMode, running, stoppable
     textarea.current?.setSelectionRange(nextCaret.current, nextCaret.current);
     nextCaret.current = null;
   }, [draft]);
+
+  useEffect(() => {
+    if (restore?.files.length) addFiles(restore.files);
+  }, [restore?.key]);
 
   useEffect(() => () => filesRef.current.forEach((f) => f.preview && URL.revokeObjectURL(f.preview)), []);
 
