@@ -57,6 +57,7 @@ These actions write to the real T3 Code. Do them once after each T3 update.
 8. Start a background shell command from a conversation, then let the run finish. Make sure that the composer "Stop" button stays visible. Click it, or the button on the task row. In T3 Code, make sure that the task is stopped. The dashboard then stops all background tasks of the conversation.
 9. In the Agents tab, make sure that the "Automations" column lists the T3 Code scheduled tasks (`scheduledTasks.subscribe`). An old T3 version shows an error in the column, and the grid continues to work.
 10. Type "Reminder: in 2 minutes, say hello" in the column field, then send it. Make sure that the agent creates the task with `schedule_task`, and that the thread leaves the grid. After the run, make sure that the task is paused and that the reminder row shows "Finished".
+11. Run a task with commands, a file change, a to-do list and a subagent. Make sure that the steps form a group that closes after the run. Open a command and a file change: make sure that the output, the exit code and the diff show. Open the subagent block: make sure that its steps and result show, and that "Open thread" opens the child thread (T3 Code may refuse a message to it).
 
 ## Architecture
 

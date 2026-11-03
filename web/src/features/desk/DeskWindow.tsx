@@ -78,7 +78,7 @@ function DeskWindowView({ id, thread, projectTitle, missing, focused, maximized,
           <Button onClick={onClose}>Close</Button>
         </div>
       ) : (
-        <ConversationPanel threadId={id} thread={thread} providers={providers} />
+        <ConversationPanel threadId={id} thread={thread} providers={providers} onOpenThread={(child) => dispatch({ type: "open", id: child })} />
       )}
     </section>
   );

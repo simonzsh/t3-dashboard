@@ -1,5 +1,5 @@
 import { memo, useEffect, useRef, useState } from "react";
-import type { ChatMessage, DashboardProvider, HtmlRender, DashboardThread, ImageAttachment, SubagentInfo, ThreadDetail, ThreadSettingsBody } from "../../../../shared/api.ts";
+import type { ChatMessage, DashboardProvider, HtmlRender, DashboardThread, ImageAttachment, ThreadDetail, ThreadSettingsBody, TurnStep } from "../../../../shared/api.ts";
 import { runActive } from "../../../../shared/status.ts";
 import { useApi } from "../../api/ApiContext.tsx";
 import { Icon, IconButton, Loader } from "../../ui/index.ts";
@@ -9,13 +9,13 @@ import { MarkdownText } from "./MarkdownText.tsx";
 import { QueuedMessages } from "./QueuedMessages.tsx";
 import { Composer } from "./Composer.tsx";
 import { PendingRequestView } from "./PendingRequestView.tsx";
-import { RunActivityView } from "./RunActivity.tsx";
-import { SubagentStrip } from "./SubagentStrip.tsx";
+import { WorkGroup } from "./Steps.tsx";
+import { NoticeRow, PlanCard, SubagentBlock, TodoCard } from "./TimelineBlocks.tsx";
 import { useStickToBottom } from "./useStickToBottom.ts";
 import { documentPage, usePoll } from "../../lib/usePoll.ts";
 import { singleFlight } from "../../lib/singleFlight.ts";
 import { NoticeProvider, useNotify } from "../../lib/notices.tsx";
-import { failure, formatMessageTime } from "../../lib/format.ts";
+import { failure, formatBytes, formatMessageTime } from "../../lib/format.ts";
 import { useDocumentTheme } from "../../lib/useDocumentTheme.ts";
 import { timeline } from "./timeline.ts";
 import { LIVE_RELOAD_MS, SEND_POLL_WINDOW_MS, pollDelay } from "./reload.ts";
@@ -31,13 +31,26 @@ const MAX_REAIMS = 3;
 
 const Message = memo(function Message({ message: m, threadId }: { message: ChatMessage; threadId: string }) {
   const time = formatMessageTime(m.createdAt);
+  const images = m.attachments.filter((file) => file.kind === "image");
+  const files = m.attachments.filter((file) => file.kind === "file");
   return (
     <div className={`msg ${m.role}`}>
-      {m.attachments.length > 0 && (
+      {images.length > 0 && (
         <div className="msg-images">
-          {m.attachments.map((file) => (
+          {images.map((file) => (
             <a key={file.id} href={attachmentUrl(threadId, file.id)} target="_blank" rel="noreferrer">
               <img src={attachmentUrl(threadId, file.id)} alt={file.name} loading="lazy" />
+            </a>
+          ))}
+        </div>
+      )}
+      {files.length > 0 && (
+        <div className="msg-files">
+          {files.map((file) => (
+            <a key={file.id} className="msg-file" href={attachmentUrl(threadId, file.id)} download={file.name}>
+              <Icon name="paperclip" />
+              <span className="msg-file-name">{file.name}</span>
+              {file.sizeBytes !== null && <span className="msg-file-size">{formatBytes(file.sizeBytes)}</span>}
             </a>
           ))}
         </div>
@@ -66,15 +79,39 @@ const RenderFrame = memo(function RenderFrame({ render, threadId }: { render: Ht
 });
 
 // A fragment, so each message stays a direct child of .messages. A keystroke does not render the list.
-const Timeline = memo(function Timeline({ detail, threadId }: { detail: ThreadDetail; threadId: string }) {
+const Timeline = memo(function Timeline({ detail, threadId, running, onOpenThread, onChanged }: { detail: ThreadDetail; threadId: string; running: boolean; onOpenThread?: (id: string) => void; onChanged: () => void }) {
+  const entries = timeline(detail);
   return (
     <>
-      {timeline(detail).map((entry) =>
-        entry.kind === "message" ? <Message key={entry.message.id} message={entry.message} threadId={threadId} /> : <RenderFrame key={entry.render.id} render={entry.render} threadId={threadId} />,
-      )}
+      {entries.map((entry, i) => {
+        switch (entry.kind) {
+          case "message":
+            return <Message key={entry.message.id} message={entry.message} threadId={threadId} />;
+          case "render":
+            return <RenderFrame key={entry.render.id} render={entry.render} threadId={threadId} />;
+          case "work":
+            // Keyed by its first step: the group keeps its open state while later steps join it.
+            return <WorkGroup key={entry.steps[0]!.id} steps={entry.steps} threadId={threadId} live={running && i === entries.length - 1} />;
+          case "step":
+            return <StandaloneStep key={entry.step.id} step={entry.step} threadId={threadId} onOpenThread={onOpenThread} onChanged={onChanged} />;
+        }
+      })}
     </>
   );
 });
+
+function StandaloneStep({ step, threadId, onOpenThread, onChanged }: { step: TurnStep; threadId: string; onOpenThread?: (id: string) => void; onChanged: () => void }) {
+  switch (step.kind) {
+    case "todo":
+      return <TodoCard step={step} />;
+    case "plan":
+      return <PlanCard step={step} threadId={threadId} />;
+    case "subagent":
+      return <SubagentBlock step={step} threadId={threadId} onOpenThread={onOpenThread} onChanged={onChanged} />;
+    default:
+      return <NoticeRow step={step} />;
+  }
+}
 
 function PendingBubble({ message: p }: { message: PendingMessage }) {
   return (
@@ -90,6 +127,8 @@ interface Props {
   /** Live state of the thread: a new object each time the server sends it again. */
   thread: DashboardThread | null;
   providers: DashboardProvider[];
+  /** Opens another thread, such as a subagent's. */
+  onOpenThread?: (id: string) => void;
 }
 
 // Its errors show in a banner inside the conversation, not over the whole dashboard.
@@ -101,7 +140,7 @@ export function ConversationPanel(props: Props) {
   );
 }
 
-function Conversation({ threadId, thread, providers }: Props) {
+function Conversation({ threadId, thread, providers, onOpenThread }: Props) {
   const api = useApi();
   const [detail, setDetail] = useState<ThreadDetail | null>(() => detailCache.get(threadId) ?? null);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -113,7 +152,6 @@ function Conversation({ threadId, thread, providers }: Props) {
   const [text, setText] = useState(() => drafts.get(threadId) ?? "");
   const [pending, setPending] = useState<PendingMessage[]>([]);
   const [sentAt, setSentAt] = useState(0);
-  const [revealSubagents] = useState(0);
   const scroller = useRef<HTMLDivElement>(null);
   const stick = useRef(true);
   const lastTop = useRef(0);
@@ -244,15 +282,6 @@ function Conversation({ threadId, thread, providers }: Props) {
     }
   }
 
-  // The subagent state changes in T3 after the stop: reload even when it fails.
-  async function stopSubagent(subagent: SubagentInfo): Promise<void> {
-    try {
-      await (subagent.stop === "thread" ? api.interrupt(threadId) : api.stopSubagent(threadId, subagent.id));
-    } finally {
-      void load();
-    }
-  }
-
   return (
     <div className="conversation">
       <div className="messages-frame">
@@ -294,11 +323,10 @@ function Conversation({ threadId, thread, providers }: Props) {
           }}
         >
           {!detail && loadError && <p className="empty">This conversation could not be loaded.</p>}
-          {detail && detail.messages.length === 0 && detail.renders.length === 0 && <p className="empty">No messages</p>}
+          {detail && detail.messages.length === 0 && detail.renders.length === 0 && detail.steps.length === 0 && <p className="empty">No messages</p>}
           {!detail && !loadError && <Loader />}
-          {detail && <Timeline detail={detail} threadId={threadId} />}
+          {detail && <Timeline detail={detail} threadId={threadId} running={running} onOpenThread={onOpenThread} onChanged={() => void load()} />}
           {detail && !running && pending.map((p) => <PendingBubble key={p.id} message={p} />)}
-          {detail?.activity && <RunActivityView activity={detail.activity} running={running} />}
           {detail && detail.pendingRequests.length > 0 && (
             <div className="requests">
               {detail.pendingRequests.map((r) => (
@@ -325,7 +353,6 @@ function Conversation({ threadId, thread, providers }: Props) {
           </IconButton>
         )}
       </div>
-      {detail && <SubagentStrip key={threadId} subagents={detail.subagents} reveal={revealSubagents} onStop={stopSubagent} />}
       <Composer
         providers={providers}
         selection={detail?.modelSelection ?? null}

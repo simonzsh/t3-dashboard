@@ -46,7 +46,11 @@ Each Desk window contains a conversation.
 - Stop a run with the "Stop" button.
 - Answer an approval: "Accept", "Accept for session" or "Decline". The dashboard does not offer "Always accept".
 - Answer a question from the agent, or click "Dismiss".
-- Follow the steps of the run: reasoning, commands, tools, files and sub-agents.
+- Follow the steps of the run in the conversation. Consecutive steps (reasoning, commands, tools, file changes, searches) form one group. The group of the active run shows its last 4 steps under "Working for …". Other groups are closed: click one to see its steps.
+- Click a command to see its output and exit code. Click a file change to see its diff. Click a tool or a search to see its input and results. A note says when T3 Code cut a long text.
+- A to-do list, a proposed plan and a notice (checkpoint, compaction, error) have their own block.
+- A subagent has its own block with its status and time. Click it to see its result and its steps. "Open thread" opens its thread on the Desk. The stop icon stops a running subagent.
+- Files that you sent show under the message as chips: click one to download it.
 - See the images and videos that the agent refers to in its messages.
 - See the pages from the T3 Code `html_render` tool. The dashboard shows them in an isolated frame (sandbox), with the theme colors.
 
