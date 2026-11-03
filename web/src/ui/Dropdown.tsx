@@ -12,8 +12,10 @@ interface Props {
   icon?: ReactNode;
   placeholder?: string;
   disabled?: boolean;
-  /** Shows a filter field; by default only long lists get one. */
+  /** Shows a search field in place of the trigger; by default only long lists get one. */
   filterable?: boolean;
+  /** Placeholder of the search field, e.g. "Search projects…". */
+  searchPlaceholder?: string;
   /** Extra classes on the root, e.g. "field" for a form control or "secondary" in the composer. */
   className?: string;
   /** Opens the menu on mount, e.g. when the choice is the first step of a dialog. */
@@ -22,7 +24,7 @@ interface Props {
   onPicked?: () => void;
 }
 
-export function Dropdown({ label, value, options, onPick, icon, placeholder, disabled = false, filterable, className = "", defaultOpen = false, onPicked }: Props) {
+export function Dropdown({ label, value, options, onPick, icon, placeholder, disabled = false, filterable, searchPlaceholder = "Search…", className = "", defaultOpen = false, onPicked }: Props) {
   const [open, setOpen] = useState(defaultOpen);
   const [query, setQuery] = useState("");
   const [active, setActive] = useState(() => (defaultOpen ? options.findIndex((o) => o.id === value) : -1));
@@ -32,6 +34,7 @@ export function Dropdown({ label, value, options, onPick, icon, placeholder, dis
   const id = useId();
   const current = options.find((o) => o.id === value);
   const withFilter = showsFilter(options.length, filterable);
+  const searching = open && withFilter;
   const shown = filterOptions(options, query);
 
   useEffect(() => {
@@ -84,7 +87,7 @@ export function Dropdown({ label, value, options, onPick, icon, placeholder, dis
   }
 
   return (
-    <div className={`dropdown ${className}`.trim()} onKeyDown={onKeyDown}>
+    <div className={`dropdown ${className}${searching ? " searching" : ""}`.trim()} onKeyDown={onKeyDown}>
       <button
         ref={trigger}
         type="button"
@@ -100,29 +103,31 @@ export function Dropdown({ label, value, options, onPick, icon, placeholder, dis
         <span className={`dropdown-value${current ? "" : " placeholder"}`}>{current?.label ?? value ?? placeholder ?? label}</span>
         <Icon name="chevron" className="icon chevron-down" />
       </button>
+      {searching && (
+        <TextInput
+          ref={filter}
+          className="dropdown-search"
+          role="combobox"
+          aria-expanded
+          placeholder={searchPlaceholder}
+          aria-label={searchPlaceholder.replace(/…$/, "")}
+          aria-controls={`${id}-list`}
+          aria-activedescendant={active >= 0 ? `${id}-${active}` : undefined}
+          value={query}
+          onChange={(e) => {
+            setQuery(e.target.value);
+            setActive(filterOptions(options, e.target.value).length > 0 ? 0 : -1);
+          }}
+        />
+      )}
       {open && (
         <Popover
-          anchor={trigger}
+          anchor={searching ? filter : trigger}
           className="dropdown-menu"
           minWidth={className.includes("field") ? 0 : 210}
           matchWidth
           onClose={(reason) => close(reason === "escape")}
         >
-          {withFilter && (
-            <TextInput
-              ref={filter}
-              className="dropdown-filter"
-              placeholder="Filter…"
-              aria-label={`Filter ${label}`}
-              aria-controls={`${id}-list`}
-              aria-activedescendant={active >= 0 ? `${id}-${active}` : undefined}
-              value={query}
-              onChange={(e) => {
-                setQuery(e.target.value);
-                setActive(filterOptions(options, e.target.value).length > 0 ? 0 : -1);
-              }}
-            />
-          )}
           <div
             ref={list}
             id={`${id}-list`}

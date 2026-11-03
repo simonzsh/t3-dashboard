@@ -194,6 +194,7 @@ export function Composer({ providers, selection, runtimeMode, running, stoppable
               icon={localSelection ? <ProviderIcon provider={localSelection.instanceId} /> : null}
               value={selectedModelId}
               options={modelOptions}
+              searchPlaceholder="Search models…"
               disabled={!localSelection}
               onPick={(id) => {
                 const [instanceId, slug] = id.split("\u0000");

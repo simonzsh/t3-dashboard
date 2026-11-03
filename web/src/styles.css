@@ -343,7 +343,10 @@ main { flex: 1; min-height: 0; overflow: hidden; padding: 24px; display: flex; f
 .dropdown.field .dropdown-value { flex: 1; text-align: left; }
 .dropdown-value.placeholder { color: var(--text-secondary); }
 .dropdown-menu { display: flex; flex-direction: column; gap: 4px; padding: 4px; border-radius: 12px; border: 1px solid var(--line); background: var(--surface-1); box-shadow: var(--shadow); }
-.dropdown-filter { padding: 5px 8px; font-size: 13px; }
+/* The search field covers the trigger, which keeps its place in the layout. */
+input.dropdown-search { position: absolute; inset: 0 auto 0 0; z-index: 1; width: max(100%, 210px); height: 100%; padding: 0 8px; font-size: 13px; }
+.dropdown.field input.dropdown-search { width: 100%; padding: 0 10px; font-size: inherit; }
+.dropdown.searching .dropdown-trigger { opacity: 0; }
 .dropdown-list { max-height: 300px; overflow: auto; outline: none; }
 .dropdown-group { padding: 6px 8px 2px; font-size: 11px; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; color: var(--text-secondary); }
 .dropdown-option { display: flex; align-items: center; gap: 8px; padding: 6px 8px; border-radius: 8px; font-size: 13px; cursor: pointer; }

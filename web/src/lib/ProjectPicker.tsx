@@ -26,6 +26,7 @@ export function ProjectPicker({ label, projects, value, onPick, allowNone = fals
       value={value || null}
       options={projectOptions(projects).map((o) => ({ ...o, icon: <ProjectIcon icon={icons.get(o.id) ?? null} /> }))}
       filterable
+      searchPlaceholder="Search projects…"
       disabled={!allowNone && projects.length === 0}
       onPick={onPick}
       defaultOpen={defaultOpen}
