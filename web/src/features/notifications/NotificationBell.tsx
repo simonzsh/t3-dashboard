@@ -68,8 +68,7 @@ export function NotificationBell({ entries, count, now, onOpen, open, onOpenChan
         ref={button}
         className="notif-bell"
         label={count > 0 ? `Notifications, ${count} unread` : "Notifications"}
-        tooltip="Notifications"
-        shortcut="B"
+        kbd="B"
         aria-expanded={open}
         onClick={() => onOpenChange(!open)}
       >
