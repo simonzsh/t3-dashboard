@@ -1,6 +1,6 @@
 import type { ConnectionStatus, DashboardProject, DashboardProvider, DashboardState, DashboardThread, Diff, ModelDefaults } from "../../shared/api.ts";
 import { NO_MODEL_DEFAULTS } from "./providers.ts";
-import { isHidden, toDashboardThread } from "./classify.ts";
+import { isHidden, isSubagentThread, toDashboardThread } from "./classify.ts";
 import { DiffBatch } from "./diffBatch.ts";
 import { toProjectIcon } from "./projectIcon.ts";
 import type { RawBackgroundTask, RawProject, RawSnapshot, RawThread, ShellItem } from "../integrations/t3/schemas.ts";
@@ -17,9 +17,11 @@ const toProject = (raw: RawProject): DashboardProject => ({ id: raw.id, title: r
 interface Maps {
   threads: Map<string, RawThread>;
   projects: Map<string, RawProject>;
+  // Hidden subagent threads are not kept, but their window still needs the parent's folder.
+  parents: Map<string, string>;
 }
 
-const emptyMaps = (): Maps => ({ threads: new Map(), projects: new Map() });
+const emptyMaps = (): Maps => ({ threads: new Map(), projects: new Map(), parents: new Map() });
 
 /** Mirror of the T3 shell: syncs from snapshots, then follows live items and emits diffs. */
 export class ShellStore {
@@ -77,7 +79,7 @@ export class ShellStore {
 
   /** Where the agent works: the thread's worktree, else its project's root. Null when T3 names none. */
   workspaceOf(threadId: string): string | null {
-    const raw = this.live.threads.get(threadId);
+    const raw = this.live.threads.get(threadId) ?? this.live.threads.get(this.live.parents.get(threadId) ?? "");
     if (!raw) return null;
     return raw.worktreePath || (raw.projectId ? this.live.projects.get(raw.projectId)?.workspaceRoot : null) || null;
   }
@@ -106,8 +108,10 @@ export class ShellStore {
 
   private merge(maps: Maps, snapshot: RawSnapshot | undefined): void {
     for (const thread of snapshot?.threads ?? []) {
-      if (isHidden(thread)) maps.threads.delete(thread.id);
-      else maps.threads.set(thread.id, thread);
+      if (isHidden(thread)) {
+        maps.threads.delete(thread.id);
+        if (isSubagentThread(thread) && thread.lineage?.parentThreadId) maps.parents.set(thread.id, thread.lineage.parentThreadId);
+      } else maps.threads.set(thread.id, thread);
     }
     for (const project of snapshot?.projects ?? []) maps.projects.set(project.id, project);
   }
@@ -146,7 +150,11 @@ export class ShellStore {
   }
 
   private upsertThread(raw: RawThread, location?: string): void {
-    if (isHidden(raw, location)) return this.removeThread(raw.id);
+    if (isHidden(raw, location)) {
+      this.removeThread(raw.id);
+      if (isSubagentThread(raw) && raw.lineage?.parentThreadId) this.live.parents.set(raw.id, raw.lineage.parentThreadId);
+      return;
+    }
     this.live.threads.set(raw.id, raw);
     const thread = toDashboardThread(raw, this.options.now());
     this.derived.set(raw.id, thread);
@@ -154,6 +162,7 @@ export class ShellStore {
   }
 
   private removeThread(id: string): void {
+    this.live.parents.delete(id);
     if (!this.live.threads.delete(id)) return;
     this.derived.delete(id);
     this.threadDiff.remove(id);

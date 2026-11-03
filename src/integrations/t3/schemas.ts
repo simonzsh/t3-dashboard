@@ -27,7 +27,7 @@ export const RawThread = s.object({
   providerInstanceId: text(),
   modelSelection: s.optional(s.nullable(ModelSelection)),
   runtimeMode: text(),
-  lineage: s.optional(s.nullable(s.object({ relationshipToParent: text() }))),
+  lineage: s.optional(s.nullable(s.object({ relationshipToParent: text(), parentThreadId: text() }))),
   creationSource: text(),
   status: text(),
   activeRunId: text(),
