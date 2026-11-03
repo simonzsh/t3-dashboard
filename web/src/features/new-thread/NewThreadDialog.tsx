@@ -74,7 +74,7 @@ export function NewThreadDialog({ projects, providers, defaults, onClose, onCrea
           projects={projects}
           value={projectId}
           allowNone
-          defaultOpen={!issue}
+          defaultOpen
           onPicked={() => setPicks((n) => n + 1)}
           onPick={(id) => {
             setProjectId(id);
@@ -94,7 +94,6 @@ export function NewThreadDialog({ projects, providers, defaults, onClose, onCrea
         errorResetKey={projectId}
         placeholder={issue ? "Add instructions for the agent (optional)…" : "Describe the task: the first line becomes the title…"}
         allowEmpty={issue !== undefined}
-        autoFocus={issue !== undefined}
         focusKey={picks || undefined}
       />
     </Dialog>
