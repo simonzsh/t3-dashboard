@@ -1,4 +1,4 @@
-import { useLayoutEffect, useRef, useState } from "react";
+import { useLayoutEffect, useRef } from "react";
 import { relativeTime } from "../../lib/format.ts";
 import { ProviderIcon } from "../../lib/ProviderIcon.tsx";
 import { threadTitle } from "../../lib/threads.ts";
@@ -59,17 +59,19 @@ export function NotificationToasts({ toasts, onOpen, onDismiss }: { toasts: Noti
   );
 }
 
-// `onShow`: the menu lists every toast, so the caller clears them instead of covering the menu.
-export function NotificationBell({ entries, count, now, onOpen, onShow }: ListProps & { count: number; onShow?: () => void }) {
-  const [open, setOpen] = useState(false);
+// Open state lives in the caller, so a shortcut can toggle the menu too.
+export function NotificationBell({ entries, count, now, onOpen, open, onOpenChange }: ListProps & { count: number; open: boolean; onOpenChange: (open: boolean) => void }) {
   const button = useRef<HTMLButtonElement>(null);
   return (
     <>
-      <IconButton ref={button} className="notif-bell" label={count > 0 ? `Notifications, ${count} unread` : "Notifications"} aria-expanded={open}
-        onClick={() => {
-          if (!open) onShow?.();
-          setOpen(!open);
-        }}
+      <IconButton
+        ref={button}
+        className="notif-bell"
+        label={count > 0 ? `Notifications, ${count} unread` : "Notifications"}
+        tooltip="Notifications"
+        shortcut="B"
+        aria-expanded={open}
+        onClick={() => onOpenChange(!open)}
       >
         <Icon name="bell" strokeWidth={1.8} />
         {count > 0 && <span className="notif-count">{badgeText(count)}</span>}
@@ -81,7 +83,7 @@ export function NotificationBell({ entries, count, now, onOpen, onShow }: ListPr
           className="notif-menu"
           role="dialog"
           onClose={(reason) => {
-            setOpen(false);
+            onOpenChange(false);
             if (reason === "escape") button.current?.focus();
           }}
         >
@@ -89,7 +91,7 @@ export function NotificationBell({ entries, count, now, onOpen, onShow }: ListPr
             entries={entries}
             now={now}
             onOpen={(id) => {
-              setOpen(false);
+              onOpenChange(false);
               onOpen(id);
             }}
           />

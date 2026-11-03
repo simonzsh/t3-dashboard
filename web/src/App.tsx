@@ -58,6 +58,12 @@ export function App() {
   const [creating, setCreating] = useState(false);
   const [creatingAutomation, setCreatingAutomation] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [bellOpen, setBellOpen] = useState(false);
+  // The menu lists every toast: clear them rather than cover the menu.
+  const showBell = (open: boolean) => {
+    if (open) notify.clearToasts();
+    setBellOpen(open);
+  };
   const [confirmingUpdate, setConfirmingUpdate] = useState(false);
   // null: closed; a string: open, seeded with that query.
   const [switcherQuery, setSwitcherQuery] = useState<string | null>(null);
@@ -113,6 +119,7 @@ export function App() {
     (action) => {
       if (action === "agents" || action === "board" || action === "desk") setTab(action);
       else if (action === "settings") setSettingsOpen(true);
+      else if (action === "notifications") showBell(!bellOpen);
       else if (action === "switcher") {
         if (state && !creating && !creatingAutomation && !settingsOpen && !confirmingUpdate) setSwitcherQuery((open) => (open === null ? "" : null));
       } else if (action === "new-agent") {
@@ -206,7 +213,7 @@ export function App() {
                 New Automation
               </Button>
             ))}
-          <NotificationBell entries={notify.entries} count={notify.count} now={now} onOpen={(id) => openOnDesk(id, true)} onShow={notify.clearToasts} />
+          <NotificationBell entries={notify.entries} count={notify.count} now={now} onOpen={(id) => openOnDesk(id, true)} open={bellOpen} onOpenChange={showBell} />
           <IconButton label="Settings" kbd="," onClick={() => setSettingsOpen(true)}>
             <Icon name="settings" strokeWidth={1.8} />
           </IconButton>

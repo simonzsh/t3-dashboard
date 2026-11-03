@@ -31,7 +31,7 @@ test("an empty list says nothing needs the user", () => {
 });
 
 test("the bell names the unread count and caps the badge", () => {
-  const props = { entries, now, onOpen: noop };
+  const props = { entries, now, onOpen: noop, open: false, onOpenChange: noop };
   const some = renderToStaticMarkup(<NotificationBell {...props} count={3} />);
   assert.match(some, /aria-label="Notifications, 3 unread"/);
   assert.match(some, /<span class="notif-count">3<\/span>/);
