@@ -454,6 +454,12 @@ test("toStepDetail: full texts and search results", () => {
   assert.deepEqual(results, [{ title: "T", url: "https://x.test", snippet: "S" }, { title: "a.ts", url: null, snippet: "code" }]);
 });
 
+test("toStepDetail: a subagent without its own result takes the projection's", () => {
+  const projection = { subagents: [{ id: "sa", result: "from projection" }] };
+  assert.equal(toStepDetail({ id: "s", type: "subagent", subagentId: "sa" }, projection).text, "from projection");
+  assert.equal(toStepDetail({ id: "s", type: "subagent", subagentId: "sa", result: "own" }, projection).text, "own");
+});
+
 test("toStepDetail: caps every text and says so", () => {
   const command = toStepDetail({ id: "c", type: "command_execution", input: "i".repeat(25_000), output: `${"a".repeat(10)}${"z".repeat(64_000)}` });
   assert.equal(command.input!.length, 20_000);

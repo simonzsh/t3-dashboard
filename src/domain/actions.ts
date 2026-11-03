@@ -183,7 +183,9 @@ export function createActions(options: ActionsOptions): Actions {
     async stepDetail(threadId, itemId) {
       const item = await t3(port.turnItem(threadId, itemId));
       if (!item) throw new DomainError("not-found", "No such step in this thread");
-      return toStepDetail(item);
+      // Projection subagents hold the result when the item has none.
+      const needsProjection = item.type === "subagent" && !item.result?.trim();
+      return toStepDetail(item, needsProjection ? await t3(port.threadProjection(threadId)) : undefined);
     },
 
     async searchFiles(threadId, query, limit) {

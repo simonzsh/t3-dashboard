@@ -234,6 +234,13 @@ test("stepDetail gives the cut-down detail of the T3 item, not-found when T3 has
   await assert.rejects(actions.stepDetail("t1", "nope"), rejectsWith("not-found"));
 });
 
+test("stepDetail of a subagent without a result reads it from the projection", async () => {
+  const { actions, port } = fakeHarness();
+  port.turnItems.s1 = { id: "s1", type: "subagent", subagentId: "sa" };
+  port.projection = { subagents: [{ id: "sa", result: "full result" }] };
+  assert.equal((await actions.stepDetail("t1", "s1")).text, "full result");
+});
+
 test("uploadAttachment sends the bytes to T3 and answers the ref message.dispatch takes", async () => {
   const { actions, port } = fakeHarness();
   const bytes = new Uint8Array([1, 2, 3]);

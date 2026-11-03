@@ -170,6 +170,8 @@ function noticeText(item: RawTurnItem): { text: string; detail: string | null } 
   }
 }
 
+const subagentIdOf = (item: RawTurnItem) => item.subagentId ?? item.nodeId ?? item.id!;
+
 function toStep(item: RawTurnItem, kind: StepKind, projection: RawProjection): TurnStep {
   const base = { id: item.id!, runId: item.runId ?? null, kind, startedAt: item.startedAt ?? "", completedAt: item.completedAt ?? null, exitCode: item.exitCode ?? null, text: "", detail: null as string | null, expandable: false };
   const status = stepStatus(item);
@@ -198,7 +200,7 @@ function toStep(item: RawTurnItem, kind: StepKind, projection: RawProjection): T
     case "plan":
       return { ...base, status: status === "failed" ? status : "done", text: "Proposed plan", markdown: truncate(item.markdown ?? "", MAX_PLAN_CHARS) };
     case "subagent": {
-      const subagentId = item.subagentId ?? item.nodeId ?? item.id!;
+      const subagentId = subagentIdOf(item);
       const raw = (projection.subagents ?? []).find((candidate) => candidate.id === subagentId);
       const state = raw ? subagentStatus(raw) : status;
       const result = item.result?.trim() || raw?.result?.trim();
@@ -273,8 +275,8 @@ function diffOf(item: RawTurnItem): string | null {
   return [`--- ${item.oldStr == null ? "/dev/null" : `a/${name}`}`, `+++ b/${name}`, `@@ -${before.length ? 1 : 0},${before.length} +${after.length ? 1 : 0},${after.length} @@`, ...before.map((line) => `-${line}`), ...after.map((line) => `+${line}`)].join("\n");
 }
 
-/** The full item behind a TurnStep, with every text capped. */
-export function toStepDetail(item: RawTurnItem): StepDetail {
+/** The full item behind a TurnStep, with every text capped. A subagent without a result takes the projection's. */
+export function toStepDetail(item: RawTurnItem, projection?: RawProjection): StepDetail {
   const kind = STEP_KINDS[item.type ?? ""] ?? "tool";
   let truncated = false;
   const cap = (value: string | null, max: number, pick: typeof head) => {
@@ -285,7 +287,8 @@ export function toStepDetail(item: RawTurnItem): StepDetail {
   };
   const input = kind === "command" ? (typeof item.input === "string" ? item.input : null) : kind === "tool" && item.input != null ? pretty(item.input) : null;
   const output = kind === "command" ? commandOutput(item.output) : kind === "tool" ? toolOutput(item.output) : null;
-  const full = { thinking: item.text, subagent: item.result, plan: item.markdown }[kind as "thinking" | "subagent" | "plan"];
+  const projected = kind === "subagent" && !item.result?.trim() ? projection?.subagents?.find((candidate) => candidate.id === subagentIdOf(item))?.result : undefined;
+  const full = { thinking: item.text, subagent: item.result?.trim() ? item.result : projected, plan: item.markdown }[kind as "thinking" | "subagent" | "plan"];
   const results = (item.results ?? []).slice(0, MAX_RESULTS).map((result) => ({ title: result.title ?? result.fileName ?? result.url ?? "", url: result.url ?? null, snippet: result.snippet ?? result.preview ?? null }));
   truncated ||= (item.results?.length ?? 0) > MAX_RESULTS;
   return {
