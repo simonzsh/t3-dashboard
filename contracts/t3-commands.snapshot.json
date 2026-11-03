@@ -1,4 +1,11 @@
 {
+  "checkpoint.rollback": {
+    "checkpointId": "required",
+    "commandId": "required",
+    "restoreFiles": "optional",
+    "scopeId": "required",
+    "threadId": "required"
+  },
   "image upload": {
     "dataUrl": "required",
     "id": "optional",

@@ -10,6 +10,7 @@ import {
   dismissCommand,
   settleCommand,
   unsettleCommand,
+  rollbackCommand,
   interruptCommand,
   messageCommand,
   modelSelectionCommand,
@@ -121,6 +122,11 @@ test("settleCommand", () => {
 
 test("unsettleCommand", () => {
   assert.deepEqual(unsettleCommand("thread-1"), { type: "thread.unsettle", threadId: "thread-1", reason: "user" });
+});
+
+test("rollbackCommand names the checkpoint and whether files return", () => {
+  assert.deepEqual(rollbackCommand("thread-1", { scopeId: "scope-1", checkpointId: "cp-1" }, true), { type: "checkpoint.rollback", threadId: "thread-1", scopeId: "scope-1", checkpointId: "cp-1", restoreFiles: true });
+  assert.equal(rollbackCommand("thread-1", { scopeId: "scope-1", checkpointId: "cp-1" }, false).restoreFiles, false);
 });
 
 test("renameThreadCommand sets the thread title only", () => {
