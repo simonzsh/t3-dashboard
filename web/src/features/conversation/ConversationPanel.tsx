@@ -132,7 +132,7 @@ function PendingBubble({ message: p }: { message: PendingMessage }) {
   return (
     <div className="msg user pending">
       <div className="bubble">{p.text}</div>
-      <small>{pendingLabel(p.images)}</small>
+      <small>{pendingLabel(p.attachments)}</small>
     </div>
   );
 }
@@ -276,7 +276,7 @@ function Conversation({ threadId, thread, providers, onOpenThread }: Props) {
   }
 
   async function send(body: string, uploads: UploadedAttachment[]): Promise<void> {
-    const entry: PendingMessage = { id: crypto.randomUUID(), text: body, images: uploads.length, sentAt: Date.now(), baseline: countSame(detail ? sentMessages(detail) : [], body) };
+    const entry: PendingMessage = { id: crypto.randomUUID(), text: body, attachments: uploads.length, sentAt: Date.now(), baseline: countSame(detail ? sentMessages(detail) : [], body) };
     setPending((list) => [...list, entry]);
     stick.current = true;
     setAtBottom(true);
@@ -300,7 +300,8 @@ function Conversation({ threadId, thread, providers, onOpenThread }: Props) {
     } finally {
       void load();
     }
-    setDraft(mergeDraft(text, message.text));
+    // The draft may have changed while the rewind ran: merge into the latest one.
+    setDraft(mergeDraft(drafts.get(threadId) ?? "", message.text));
     setRestore((last) => ({ key: last.key + 1, files }));
   }
 
