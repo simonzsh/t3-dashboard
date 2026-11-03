@@ -1,5 +1,5 @@
 import { useEffect, useReducer, useState } from "react";
-import type { DashboardEvent, DashboardState, DeskUpdate, Diff } from "../../../shared/api.ts";
+import type { DashboardEvent, DashboardState, DeskUpdate, Diff, SeenState } from "../../../shared/api.ts";
 import { DASHBOARD_EVENT_TYPES } from "../../../shared/events.ts";
 
 function applyDiff<T extends { id: string }>(list: T[], diff: Diff<T>): T[] {
@@ -25,15 +25,17 @@ export function applyEvent(state: DashboardState | null, event: DashboardEvent):
     case "connection":
       return { ...state, connection: event.data };
     case "desk":
+    case "seen":
       return state;
   }
 }
 
-export function useDashboard(): { state: DashboardState | null; sseDown: boolean; remoteDesk: DeskUpdate | null; connects: number } {
+export function useDashboard(): { state: DashboardState | null; sseDown: boolean; remoteDesk: DeskUpdate | null; remoteSeen: SeenState | null; connects: number } {
   const [state, dispatch] = useReducer(applyEvent, null);
   const [sseDown, setSseDown] = useState(false);
   const [remoteDesk, setRemoteDesk] = useState<DeskUpdate | null>(null);
-  // A reconnect may have missed `desk` events: the count lets the desk load again.
+  const [remoteSeen, setRemoteSeen] = useState<SeenState | null>(null);
+  // A reconnect may have missed `desk` or `seen` events: the count lets them load again.
   const [connects, setConnects] = useState(0);
 
   useEffect(() => {
@@ -42,6 +44,7 @@ export function useDashboard(): { state: DashboardState | null; sseDown: boolean
       es.addEventListener(type, (e) => {
         const event = { type, data: JSON.parse((e as MessageEvent<string>).data) } as DashboardEvent;
         if (event.type === "desk") setRemoteDesk(event.data);
+        else if (event.type === "seen") setRemoteSeen(event.data);
         else dispatch(event);
         setSseDown(false);
       });
@@ -52,5 +55,5 @@ export function useDashboard(): { state: DashboardState | null; sseDown: boolean
     return () => es.close();
   }, []);
 
-  return { state, sseDown, remoteDesk, connects };
+  return { state, sseDown, remoteDesk, remoteSeen, connects };
 }

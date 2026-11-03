@@ -10,6 +10,8 @@ import { LinearBoard } from "../../src/domain/linearBoard.ts";
 import { readLinearKey } from "../../src/config/linearFile.ts";
 import { DeskStore } from "../../src/domain/deskStore.ts";
 import type { SharedDesk } from "../../shared/desk.ts";
+import type { SeenState } from "../../shared/seen.ts";
+import { SeenStore } from "../../src/domain/seenStore.ts";
 import { createSettings } from "../../src/domain/settings.ts";
 import { createDashboardServer } from "../../src/server/server.ts";
 import type { DashboardHandler } from "../../src/server/server.ts";
@@ -41,6 +43,7 @@ interface StartOptions {
   update?: { unavailable?: string | null; tag?: string };
   allowedHosts?: string[];
   desk?: SharedDesk | null;
+  seen?: SeenState | null;
 }
 
 const LINEAR_FILE = "/cfg/linear.json";
@@ -113,6 +116,8 @@ async function start(startOptions: StartOptions = {}) {
   ]);
   const savedDesks: SharedDesk[] = [];
   const desk = new DeskStore(startOptions.desk ?? null, (value) => void savedDesks.push(value));
+  const savedSeen: SeenState[] = [];
+  const seen = new SeenStore(startOptions.seen ?? null, (value) => void savedSeen.push(value));
   const events: DashboardEvent[] = [];
   const broadcast = hub.broadcast.bind(hub);
   hub.broadcast = (event) => (events.push(event), broadcast(event));
@@ -120,6 +125,7 @@ async function start(startOptions: StartOptions = {}) {
   const server: DashboardHandler = createDashboardServer({
     actions,
     desk,
+    seen,
     hub,
     board,
     automations,
@@ -132,7 +138,7 @@ async function start(startOptions: StartOptions = {}) {
     allowedHosts: startOptions.allowedHosts,
   });
   running.push(async () => hub.close());
-  return { port, store, hub, server, savedDesks, events, linearCalls, files, setupCalls, updateRuns };
+  return { port, store, hub, server, savedDesks, savedSeen, events, linearCalls, files, setupCalls, updateRuns };
 }
 
 interface Reply {
@@ -517,6 +523,7 @@ test("every POST route refuses a body that is not JSON", async () => {
   const posts = [
     "/api/board/assign",
     "/api/desk",
+    "/api/seen",
     "/api/setup/retry",
     "/api/setup/token",
     "/api/update/check",
@@ -1096,5 +1103,46 @@ test("POST /api/desk refuses a body without a desk or an origin, and saves nothi
   const bad = [{}, { desk }, { origin: "x" }, { desk: {}, origin: "x" }, { desk: { ids: "a" }, origin: "x" }, { desk, origin: "" }, { desk, origin: 3 }, { desk: [], origin: "x" }];
   for (const body of bad) assert.equal((await post(server, "/api/desk", body)).status, 400, JSON.stringify(body));
   assert.deepEqual(savedDesks, []);
+  assert.deepEqual(events, []);
+});
+
+test("GET /api/seen is null until a baseline is set, then returns the state", async () => {
+  assert.deepEqual((await call((await start()).server, "GET", "/api/seen")).json, { seen: null });
+  const saved = { since: "2026-01-01T00:00:00Z", seen: { a: "2026-01-02T00:00:00Z" } };
+  assert.deepEqual((await call((await start({ seen: saved })).server, "GET", "/api/seen")).json, { seen: saved });
+});
+
+test("POST /api/seen sets the baseline once, saves it and broadcasts the full state", async () => {
+  const { server, savedSeen, events } = await start();
+  assert.deepEqual((await post(server, "/api/seen", { since: "2026-01-01T00:00:00Z" })).json, { ok: true, seen: { since: "2026-01-01T00:00:00Z", seen: {} } });
+  // A later baseline changes nothing, but the answer still carries the current state.
+  assert.deepEqual((await post(server, "/api/seen", { since: "2026-06-01T00:00:00Z" })).json, { ok: true, seen: { since: "2026-01-01T00:00:00Z", seen: {} } });
+  const state = { since: "2026-01-01T00:00:00Z", seen: {} };
+  assert.deepEqual(savedSeen, [state]);
+  assert.deepEqual(events, [{ type: "seen", data: state }]);
+  assert.deepEqual((await call(server, "GET", "/api/seen")).json, { seen: state });
+});
+
+test("POST /api/seen marks a thread forward only, and stays silent when nothing changes", async () => {
+  const { server, savedSeen, events } = await start({ seen: { since: "2026-01-01T00:00:00Z", seen: {} } });
+  await post(server, "/api/seen", { id: "a", at: "2026-01-05T00:00:00Z" });
+  await post(server, "/api/seen", { id: "a", at: "2026-01-03T00:00:00Z" });
+  await post(server, "/api/seen", { id: "b", at: "2025-12-01T00:00:00Z" });
+  assert.deepEqual(savedSeen, [{ since: "2026-01-01T00:00:00Z", seen: { a: "2026-01-05T00:00:00Z" } }]);
+  assert.equal(events.length, 1);
+});
+
+test("POST /api/seen ignores a mark while there is no baseline", async () => {
+  const { server, savedSeen, events } = await start();
+  assert.deepEqual((await post(server, "/api/seen", { id: "a", at: "2026-01-05T00:00:00Z" })).json, { ok: true, seen: null });
+  assert.deepEqual(savedSeen, []);
+  assert.deepEqual(events, []);
+});
+
+test("POST /api/seen refuses a body that is neither a mark nor a baseline", async () => {
+  const { server, savedSeen, events } = await start();
+  const bad = [{}, { id: "a" }, { at: "x" }, { id: "", at: "x" }, { id: 1, at: "x" }, { id: "a".repeat(201), at: "x" }, { since: "" }, { since: 3 }, { since: "x".repeat(65) }, { since: "~" }, { since: "2026-13-45T00:00:00Z" }, { id: "a", at: "~" }];
+  for (const body of bad) assert.equal((await post(server, "/api/seen", body)).status, 400, JSON.stringify(body));
+  assert.deepEqual(savedSeen, []);
   assert.deepEqual(events, []);
 });

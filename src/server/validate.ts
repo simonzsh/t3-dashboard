@@ -1,5 +1,6 @@
 import type { ApprovalDecision, AssignIssueBody, AutomationRequestBody, CreateThreadBody, ModelSelection, RespondBody, SendMessageBody, ThreadSettingsBody, UserInputAnswers } from "../../shared/api.ts";
 import { normalizeDesk, type DeskUpdate } from "../../shared/desk.ts";
+import { isSeenId, isSeenTime, type SeenChange } from "../../shared/seen.ts";
 import { IMAGE_TYPES, MAX_IMAGE_BYTES, MAX_IMAGES, isRuntimeMode } from "../../shared/limits.ts";
 import type { ImageUpload } from "../domain/actions.ts";
 import { HttpError } from "./httpError.ts";
@@ -131,4 +132,10 @@ export function validDesk(body: Record<string, unknown>): DeskUpdate {
     throw new HttpError(400, `desk (an ids list) and origin (1 to ${MAX_ORIGIN} characters) are required`);
   }
   return { desk, origin: body.origin };
+}
+
+export function validSeen(body: Record<string, unknown>): SeenChange {
+  if (isSeenId(body.id) && isSeenTime(body.at)) return { id: body.id, at: body.at };
+  if (isSeenTime(body.since)) return { since: body.since };
+  throw new HttpError(400, "id and at (a mark), or since (the baseline), are required");
 }

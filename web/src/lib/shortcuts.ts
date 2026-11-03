@@ -7,6 +7,7 @@ export type ShortcutAction =
   | "new-agent"
   | "new-automation"
   | "settings"
+  | "notifications"
   | "switcher"
   | "close-window"
   | "toggle-fullscreen"
@@ -29,7 +30,7 @@ export interface KeyInfo {
   target: { tagName: string; isContentEditable: boolean } | null;
 }
 
-const KEYS: Record<string, ShortcutAction> = { "1": "agents", "2": "desk", "3": "board", n: "new-agent", ",": "settings" };
+const KEYS: Record<string, ShortcutAction> = { "1": "agents", "2": "desk", "3": "board", n: "new-agent", ",": "settings", b: "notifications" };
 const DESK_KEYS: Record<string, ShortcutAction> = {
   x: "close-window",
   f: "toggle-fullscreen",

@@ -10,6 +10,7 @@ test("plain keys map to actions", () => {
   assert.equal(matchShortcut(press("n"), false), "new-agent");
   assert.equal(matchShortcut(press("N"), false), "new-agent");
   assert.equal(matchShortcut(press(","), false), "settings");
+  assert.equal(matchShortcut(press("b"), false), "notifications");
   assert.equal(matchShortcut(press("x"), false), null);
 });
 
