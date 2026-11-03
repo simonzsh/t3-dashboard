@@ -1,5 +1,6 @@
 import { useLayoutEffect, useRef, useState } from "react";
 import { relativeTime } from "../../lib/format.ts";
+import { ProviderIcon } from "../../lib/ProviderIcon.tsx";
 import { threadTitle } from "../../lib/threads.ts";
 import { Badge, enter, Icon, IconButton, Popover, Pressable } from "../../ui/index.ts";
 import { badgeText, type NotifyEntry } from "./notifications.ts";
@@ -17,6 +18,7 @@ export function NotificationList({ entries, now, onOpen }: ListProps) {
       {entries.length === 0 && <p className="notif-empty">Nothing needs you right now</p>}
       {entries.map(({ thread, tone, label, unseen }) => (
         <Pressable key={thread.id} className="notif-row" onClick={() => onOpen(thread.id)}>
+          <ProviderIcon provider={thread.provider} />
           <span className="notif-title">{threadTitle(thread)}</span>
           <Badge variant={tone}>{label}</Badge>
           <span className="notif-age">{relativeTime(thread.lastActivityAt, now)}</span>
@@ -36,6 +38,7 @@ function Toast({ entry, onOpen, onDismiss }: { entry: NotifyEntry; onOpen: (id: 
   return (
     <div className="notif-toast" ref={box}>
       <Pressable className="notif-toast-body" onClick={() => onOpen(id)}>
+        <ProviderIcon provider={entry.thread.provider} />
         <span className="notif-title">{threadTitle(entry.thread)}</span>
         <Badge variant={entry.tone}>{entry.label}</Badge>
       </Pressable>

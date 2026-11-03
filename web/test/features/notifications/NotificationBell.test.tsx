@@ -23,6 +23,7 @@ test("the list shows title, status label and age; only unseen rows have a dot", 
   assert.match(out, /Finished/);
   assert.match(out, /2 h ago/);
   assert.equal(out.match(/notif-dot/g)?.length, 1);
+  assert.equal(out.match(/class="provider-icon/g)?.length, 2);
 });
 
 test("an empty list says nothing needs the user", () => {
