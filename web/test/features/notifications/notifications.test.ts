@@ -100,7 +100,7 @@ test("loadSeen: bad JSON or blocked storage gives a fresh state", () => {
   assert.deepEqual(loadSeen(null, [finished("a", 3)]), { since: at(3), seen: {} });
   const throwing = { getItem: () => { throw new Error("blocked"); }, setItem: () => { throw new Error("full"); } };
   assert.doesNotThrow(() => saveSeen(throwing, fresh));
-  assert.equal(loadSeen(throwing, []).seen && Object.keys(loadSeen(throwing, []).seen).length, 0);
+  assert.deepEqual(loadSeen(throwing, []).seen, {});
 });
 
 test("saveSeen drops marks the baseline already hides and keeps the 200 newest", () => {
