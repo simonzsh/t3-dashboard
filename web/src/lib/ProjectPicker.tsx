@@ -11,9 +11,12 @@ interface Props {
   onPick: (projectId: string) => void;
   /** No choice is valid: the placeholder then reads "No project". */
   allowNone?: boolean;
+  defaultOpen?: boolean;
+  /** Called after every pick: the owner moves the focus to its next field. */
+  onPicked?: () => void;
 }
 
-export function ProjectPicker({ label, projects, value, onPick, allowNone = false }: Props) {
+export function ProjectPicker({ label, projects, value, onPick, allowNone = false, defaultOpen, onPicked }: Props) {
   const icons = new Map(projects.map((p) => [p.id, p.icon]));
   return (
     <Dropdown
@@ -25,6 +28,8 @@ export function ProjectPicker({ label, projects, value, onPick, allowNone = fals
       filterable
       disabled={!allowNone && projects.length === 0}
       onPick={onPick}
+      defaultOpen={defaultOpen}
+      onPicked={onPicked}
     />
   );
 }

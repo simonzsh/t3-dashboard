@@ -43,9 +43,23 @@ export function Popover({ anchor, onClose, align = "start", minWidth = 0, matchW
       el.style.visibility = "visible";
     };
     place();
+    // Follow an anchor that still moves, e.g. in a dialog that animates in, until it stays still.
+    let frame = 0;
+    let last = "";
+    let still = 0;
+    const follow = () => {
+      const a = anchor.current?.getBoundingClientRect();
+      const key = a ? `${a.left},${a.top},${a.width}` : "";
+      if (key === last) still++;
+      else [last, still] = [key, 0];
+      if (still === 0) place();
+      if (still < 3) frame = requestAnimationFrame(follow);
+    };
+    frame = requestAnimationFrame(follow);
     window.addEventListener("scroll", place, true);
     window.addEventListener("resize", place);
     return () => {
+      cancelAnimationFrame(frame);
       window.removeEventListener("scroll", place, true);
       window.removeEventListener("resize", place);
     };

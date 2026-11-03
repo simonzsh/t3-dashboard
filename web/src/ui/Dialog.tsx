@@ -39,12 +39,18 @@ export function Dialog({ title, label, onClose, onCancel, cancelLabel = "Cancel"
     return () => anims.forEach((anim) => anim?.cancel());
   }, []);
 
+  // Read before the children's effects: a menu that opens on mount takes the focus there.
+  const previous = useRef<HTMLElement | null>(null);
+  useLayoutEffect(() => {
+    previous.current = document.activeElement as HTMLElement | null;
+  }, []);
+
   // Focus the autoFocus element or the first focusable one; give focus back on unmount.
   useEffect(() => {
-    const previous = document.activeElement as HTMLElement | null;
     const root = box.current;
-    if (root && !root.contains(document.activeElement)) root.querySelector<HTMLElement>(FOCUSABLE)?.focus();
-    return () => previous?.focus?.();
+    const active = document.activeElement;
+    if (root && !root.contains(active) && !active?.closest(".popover")) root.querySelector<HTMLElement>(FOCUSABLE)?.focus();
+    return () => previous.current?.focus?.();
   }, []);
 
   function trapTab(e: KeyboardEvent<HTMLDivElement>) {

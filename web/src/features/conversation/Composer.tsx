@@ -41,6 +41,8 @@ interface Props {
   onSettings: (change: ThreadSettingsBody) => Promise<void> | void;
   placeholder?: string;
   autoFocus?: boolean;
+  /** A new value focuses the message, e.g. once the parent's previous field is filled. */
+  focusKey?: unknown;
   /** A new value clears the error line: the parent fixed its cause outside the Composer. */
   errorResetKey?: unknown;
   /** Send works with an empty message, e.g. when the parent adds its own text. */
@@ -49,7 +51,7 @@ interface Props {
   noImages?: boolean;
 }
 
-export function Composer({ providers, selection, runtimeMode, running, stoppable = running, draft, onDraft, onSend, onStop, onSettings, placeholder, autoFocus = false, errorResetKey, allowEmpty = false, noImages = false }: Props) {
+export function Composer({ providers, selection, runtimeMode, running, stoppable = running, draft, onDraft, onSend, onStop, onSettings, placeholder, autoFocus = false, focusKey, errorResetKey, allowEmpty = false, noImages = false }: Props) {
   // Picks show at once, until new values come in the props or the change fails.
   // Each field has its own override: a model reload never drops a pending mode pick, and the reverse.
   const [selectionOverride, setSelectionOverride] = useState<ModelSelection | null>(null);
@@ -69,6 +71,9 @@ export function Composer({ providers, selection, runtimeMode, running, stoppable
   const localSelection = selectionOverride ?? selection;
   const localMode = modeOverride ?? runtimeMode;
   useEffect(() => setError(null), [errorResetKey]);
+  useEffect(() => {
+    if (focusKey !== undefined) textarea.current?.focus();
+  }, [focusKey]);
 
   // Grows with the text up to the CSS max height; measured again when the window resizes,
   // since a size taken while the window was narrow or hidden would stick.

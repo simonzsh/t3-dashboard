@@ -30,6 +30,8 @@ export function NewThreadDialog({ projects, providers, defaults, onClose, onCrea
   const [selection, setSelection] = useState<ModelSelection | null>(() => presetSelection(projects.find((p) => p.id === projectId), providers, defaults.selection));
   const [mode, setMode] = useState<RuntimeMode>(defaults.runtimeMode ?? DEFAULT_MODE);
   const [draft, setDraft] = useState("");
+  // Each project pick moves the focus to the message.
+  const [picks, setPicks] = useState(0);
 
   // Providers can arrive after the dialog opens: pick a preset once the choice is no longer valid.
   useEffect(() => {
@@ -72,6 +74,8 @@ export function NewThreadDialog({ projects, providers, defaults, onClose, onCrea
           projects={projects}
           value={projectId}
           allowNone
+          defaultOpen={!issue}
+          onPicked={() => setPicks((n) => n + 1)}
           onPick={(id) => {
             setProjectId(id);
             setSelection(presetSelection(projects.find((p) => p.id === id), providers, defaults.selection));
@@ -90,7 +94,8 @@ export function NewThreadDialog({ projects, providers, defaults, onClose, onCrea
         errorResetKey={projectId}
         placeholder={issue ? "Add instructions for the agent (optional)…" : "Describe the task: the first line becomes the title…"}
         allowEmpty={issue !== undefined}
-        autoFocus
+        autoFocus={issue !== undefined}
+        focusKey={picks || undefined}
       />
     </Dialog>
   );

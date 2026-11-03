@@ -16,12 +16,16 @@ interface Props {
   filterable?: boolean;
   /** Extra classes on the root, e.g. "field" for a form control or "secondary" in the composer. */
   className?: string;
+  /** Opens the menu on mount, e.g. when the choice is the first step of a dialog. */
+  defaultOpen?: boolean;
+  /** Called after every pick, the current option too; the owner then moves the focus. */
+  onPicked?: () => void;
 }
 
-export function Dropdown({ label, value, options, onPick, icon, placeholder, disabled = false, filterable, className = "" }: Props) {
-  const [open, setOpen] = useState(false);
+export function Dropdown({ label, value, options, onPick, icon, placeholder, disabled = false, filterable, className = "", defaultOpen = false, onPicked }: Props) {
+  const [open, setOpen] = useState(defaultOpen);
   const [query, setQuery] = useState("");
-  const [active, setActive] = useState(-1);
+  const [active, setActive] = useState(() => (defaultOpen ? options.findIndex((o) => o.id === value) : -1));
   const trigger = useRef<HTMLButtonElement>(null);
   const list = useRef<HTMLDivElement>(null);
   const filter = useRef<HTMLInputElement>(null);
@@ -50,8 +54,9 @@ export function Dropdown({ label, value, options, onPick, icon, placeholder, dis
   }
 
   function pick(option: DropdownOption) {
-    close(true);
+    close(!onPicked);
     if (option.id !== value) onPick(option.id);
+    onPicked?.();
   }
 
   // Escape is handled by the Popover, which stops it from reaching a dialog or the Desk.
