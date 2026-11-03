@@ -41,9 +41,9 @@ test("prune keeps the newest marks; dropped ones move the baseline up so they st
 });
 
 test("normalizeSeen keeps bounded strings and refuses what is not a state", () => {
-  assert.deepEqual(normalizeSeen({ since: at(5), seen: { a: at(9), b: 3, ["x".repeat(201)]: at(9), c: "y".repeat(65), d: at(2) } }), { since: at(5), seen: { a: at(9) } });
+  assert.deepEqual(normalizeSeen({ since: at(5), seen: { a: at(9), b: 3, ["x".repeat(201)]: at(9), c: "y".repeat(65), d: at(2), e: "~" } }), { since: at(5), seen: { a: at(9) } });
   assert.deepEqual(normalizeSeen({ since: at(5) }), { since: at(5), seen: {} });
-  for (const bad of [null, 42, "x", [], {}, { since: "" }, { since: 3 }, { since: "x".repeat(65) }]) assert.equal(normalizeSeen(bad), null, JSON.stringify(bad));
+  for (const bad of [null, 42, "x", [], {}, { since: "" }, { since: 3 }, { since: "x".repeat(65) }, { since: "~" }, { since: "2026-99-99T00:00:00Z" }]) assert.equal(normalizeSeen(bad), null, JSON.stringify(bad));
 });
 
 test("joinSeen folds a server state into the local one without losing a mark", () => {

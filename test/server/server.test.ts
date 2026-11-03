@@ -1114,8 +1114,9 @@ test("GET /api/seen is null until a baseline is set, then returns the state", as
 
 test("POST /api/seen sets the baseline once, saves it and broadcasts the full state", async () => {
   const { server, savedSeen, events } = await start();
-  assert.deepEqual((await post(server, "/api/seen", { since: "2026-01-01T00:00:00Z" })).json, { ok: true });
-  await post(server, "/api/seen", { since: "2026-06-01T00:00:00Z" });
+  assert.deepEqual((await post(server, "/api/seen", { since: "2026-01-01T00:00:00Z" })).json, { ok: true, seen: { since: "2026-01-01T00:00:00Z", seen: {} } });
+  // A later baseline changes nothing, but the answer still carries the current state.
+  assert.deepEqual((await post(server, "/api/seen", { since: "2026-06-01T00:00:00Z" })).json, { ok: true, seen: { since: "2026-01-01T00:00:00Z", seen: {} } });
   const state = { since: "2026-01-01T00:00:00Z", seen: {} };
   assert.deepEqual(savedSeen, [state]);
   assert.deepEqual(events, [{ type: "seen", data: state }]);
@@ -1133,14 +1134,14 @@ test("POST /api/seen marks a thread forward only, and stays silent when nothing 
 
 test("POST /api/seen ignores a mark while there is no baseline", async () => {
   const { server, savedSeen, events } = await start();
-  assert.equal((await post(server, "/api/seen", { id: "a", at: "2026-01-05T00:00:00Z" })).status, 200);
+  assert.deepEqual((await post(server, "/api/seen", { id: "a", at: "2026-01-05T00:00:00Z" })).json, { ok: true, seen: null });
   assert.deepEqual(savedSeen, []);
   assert.deepEqual(events, []);
 });
 
 test("POST /api/seen refuses a body that is neither a mark nor a baseline", async () => {
   const { server, savedSeen, events } = await start();
-  const bad = [{}, { id: "a" }, { at: "x" }, { id: "", at: "x" }, { id: 1, at: "x" }, { id: "a".repeat(201), at: "x" }, { since: "" }, { since: 3 }, { since: "x".repeat(65) }];
+  const bad = [{}, { id: "a" }, { at: "x" }, { id: "", at: "x" }, { id: 1, at: "x" }, { id: "a".repeat(201), at: "x" }, { since: "" }, { since: 3 }, { since: "x".repeat(65) }, { since: "~" }, { since: "2026-13-45T00:00:00Z" }, { id: "a", at: "~" }];
   for (const body of bad) assert.equal((await post(server, "/api/seen", body)).status, 400, JSON.stringify(body));
   assert.deepEqual(savedSeen, []);
   assert.deepEqual(events, []);

@@ -24,6 +24,8 @@ export function useNotifications({ threads, quiet, remote, connects }: Options) 
   const api = useApi();
   const [seen, setSeen] = useState<SeenState | null>(null);
   const [loaded, setLoaded] = useState(false);
+  // The last load found no state on the server (first use, or the file was lost).
+  const [empty, setEmpty] = useState(false);
   const [toasts, setToasts] = useState<NotifyEntry[]>([]);
   const previous = useRef<Map<string, AgentStatus> | null>(null);
   const baselineSent = useRef(false);
@@ -39,6 +41,8 @@ export function useNotifications({ threads, quiet, remote, connects }: Options) 
       ({ seen: saved }) => {
         if (cancelled) return;
         if (saved) setSeen((prev) => joinSeen(prev, saved));
+        baselineSent.current = false;
+        setEmpty(!saved);
         setLoaded(true);
       },
       () => {},
@@ -52,14 +56,19 @@ export function useNotifications({ threads, quiet, remote, connects }: Options) 
     if (remote) setSeen((prev) => joinSeen(prev, remote));
   }, [remote]);
 
-  // The server holds none yet: the first device with live threads sets the baseline. Its echo fills `seen`.
+  // The server holds none: set the baseline, from our own state if we have one, else from the live threads.
   useEffect(() => {
-    if (!loaded || seen || !threads || baselineSent.current) return;
+    if (!loaded || !empty || baselineSent.current) return;
+    const since = seen?.since ?? (threads ? baselineOf(threads) : null);
+    if (!since) return;
     baselineSent.current = true;
-    api.markSeen({ since: baselineOf(threads) }).catch(() => {
-      baselineSent.current = false;
-    });
-  }, [api, loaded, seen, threads]);
+    api.markSeen({ since }).then(
+      (reply) => reply.seen && setSeen((prev) => joinSeen(prev, reply.seen!)),
+      () => {
+        baselineSent.current = false;
+      },
+    );
+  }, [api, loaded, empty, seen, threads]);
 
   const dismiss = useCallback((id: string) => {
     clearTimeout(timers.current.get(id));
@@ -74,7 +83,7 @@ export function useNotifications({ threads, quiet, remote, connects }: Options) 
       // Without a baseline every finished thread counts as seen already: nothing to mark.
       if (current && mergeSeen(current, change) !== current) {
         setSeen((prev) => (prev ? mergeSeen(prev, change) : prev));
-        api.markSeen(change).catch(() => {});
+        api.markSeen(change).then((reply) => reply.seen && setSeen((prev) => joinSeen(prev, reply.seen!)), () => {});
       }
       dismiss(id);
     },

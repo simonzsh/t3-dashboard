@@ -12,14 +12,21 @@ export interface SeenState {
   seen: Record<string, string>;
 }
 
+/** What POST /api/seen answers: the state after the change, so a device that missed the event catches up. */
+export interface SeenResult {
+  ok: true;
+  seen: SeenState | null;
+}
+
 /** A mark for one thread, or the baseline (kept only when none exists yet). */
 export type SeenChange = { id: string; at: string } | { since: string };
 
 const isSeenText = (value: unknown, max: number): value is string => typeof value === "string" && value !== "" && value.length <= max;
 export const isSeenId = (value: unknown): value is string => isSeenText(value, MAX_ID);
-export const isSeenTime = (value: unknown): value is string => isSeenText(value, MAX_TIME);
+// ISO-8601 only: a stray baseline such as "~" would sort after every real time and hide all threads.
+export const isSeenTime = (value: unknown): value is string => isSeenText(value, MAX_TIME) && /^\d{4}-\d{2}-\d{2}T/.test(value) && !Number.isNaN(Date.parse(value));
 
-const later = (a: string, b: string) => (a.localeCompare(b) >= 0 ? a : b);
+export const later = (a: string, b: string) => (a.localeCompare(b) >= 0 ? a : b);
 
 /** Drops marks the baseline hides and keeps the newest ones. Dropped marks move the baseline up, so they stay seen. */
 export function prune({ since, seen }: SeenState): SeenState {

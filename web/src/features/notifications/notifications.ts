@@ -1,4 +1,4 @@
-import type { SeenState } from "../../../../shared/seen.ts";
+import { later, type SeenState } from "../../../../shared/seen.ts";
 import { agentStatus, threadState, type AgentStatus } from "../../../../shared/status.ts";
 import type { DashboardThread } from "../../../../shared/threads.ts";
 import type { BadgeVariant } from "../../ui/index.ts";
@@ -16,7 +16,6 @@ export interface NotifyEntry {
 }
 
 const newest = (a: DashboardThread, b: DashboardThread) => b.lastActivityAt.localeCompare(a.lastActivityAt);
-const later = (a: string, b: string) => (a.localeCompare(b) >= 0 ? a : b);
 
 function waitingLabel(t: DashboardThread): string {
   if (t.pending?.category === "approval") return "Needs approval";

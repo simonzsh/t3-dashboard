@@ -245,7 +245,7 @@ export function createDashboardServer(options: DashboardServerOptions): Dashboar
       handle: ({ body }) => {
         const next = seen.apply(validSeen(body));
         if (next) hub.broadcast({ type: "seen", data: next });
-        return ok();
+        return ok({ seen: seen.get() });
       },
     },
     { method: "POST", path: "/api/update/check", handle: async () => json(200, await updates.check()) },
