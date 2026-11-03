@@ -69,9 +69,12 @@ export function Composer({ providers, selection, runtimeMode, running, stoppable
   const [files, setFiles] = useState<Attached[]>([]);
   const filesRef = useRef(files);
   filesRef.current = files;
+  // Keys of the files a message took: they belong to T3 now.
+  const sentKeys = useRef(new Set<string>());
   const [dropping, setDropping] = useState(false);
   const [caret, setCaret] = useState(0);
-  const [entries, setEntries] = useState<FileEntry[]>([]);
+  // The results carry the query they answer: a slower or older answer never shows for a newer mention.
+  const [results, setResults] = useState<{ query: string; entries: FileEntry[] }>({ query: "", entries: [] });
   const [active, setActive] = useState(0);
   // The start of the mention that Escape closed: the popup stays shut for that one.
   const [dismissed, setDismissed] = useState<number | null>(null);
@@ -120,6 +123,7 @@ export function Composer({ providers, selection, runtimeMode, running, stoppable
 
   const mention = searchFiles ? mentionAt(draft, caret) : null;
   const query = useDebouncedValue(mention ? mention.query : null, 150);
+  const entries = mention !== null && results.query === mention.query ? results.entries : [];
   const showMentions = mention !== null && query !== null && dismissed !== mention.start && entries.length > 0;
 
   useEffect(() => {
@@ -128,9 +132,9 @@ export function Composer({ providers, selection, runtimeMode, running, stoppable
 
   useEffect(() => {
     setActive(0);
-    if (!searchFiles || query === null) return setEntries([]);
+    if (!searchFiles || query === null) return setResults({ query: "", entries: [] });
     let live = true;
-    searchFiles(query).then((found) => live && setEntries(found), () => live && setEntries([]));
+    searchFiles(query).then((found) => live && setResults({ query, entries: found }), () => live && setResults({ query, entries: [] }));
     return () => {
       live = false;
     };
@@ -147,7 +151,15 @@ export function Composer({ providers, selection, runtimeMode, running, stoppable
     if (restore?.files.length) addFiles(restore.files);
   }, [restore?.key]);
 
-  useEffect(() => () => filesRef.current.forEach((f) => f.preview && URL.revokeObjectURL(f.preview)), []);
+  // Closing the composer with files never sent frees them in T3.
+  useEffect(
+    () => () =>
+      filesRef.current.forEach((f) => {
+        if (f.preview) URL.revokeObjectURL(f.preview);
+        if (f.attachment && !sentKeys.current.has(f.key)) void api.deleteAttachment(f.attachment.id).catch(() => {});
+      }),
+    [],
+  );
 
   function pickMention(entry: FileEntry) {
     if (!mention) return;
@@ -200,6 +212,7 @@ export function Composer({ providers, selection, runtimeMode, running, stoppable
     if (!canSend) return;
     const uploads = files.map((f) => f.attachment!);
     if (await attempt(() => onSend(draft.trim(), uploads), setSending)) {
+      files.forEach((f) => sentKeys.current.add(f.key));
       files.forEach((f) => f.preview && URL.revokeObjectURL(f.preview));
       setFiles([]);
     }
@@ -234,16 +247,18 @@ export function Composer({ providers, selection, runtimeMode, running, stoppable
         ref={card}
         className={`composer-card${dropping ? " dropping" : ""}`}
         onDragOver={(e) => {
-          if (noImages || !e.dataTransfer.types.includes("Files")) return;
+          if (!e.dataTransfer.types.includes("Files")) return;
+          // Always cancelled: a dropped file must not make the browser leave the page.
           e.preventDefault();
-          setDropping(true);
+          if (!noImages) setDropping(true);
         }}
         onDragLeave={(e) => {
           if (!e.currentTarget.contains(e.relatedTarget as Node | null)) setDropping(false);
         }}
         onDrop={(e) => {
-          if (noImages || !e.dataTransfer.types.includes("Files")) return;
+          if (!e.dataTransfer.types.includes("Files")) return;
           e.preventDefault();
+          if (noImages) return;
           setDropping(false);
           addFiles([...e.dataTransfer.files]);
         }}
