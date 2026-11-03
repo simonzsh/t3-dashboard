@@ -1,5 +1,5 @@
 import type { ChatAttachment, ChatMessage, DashboardThread, HtmlRender, RunActivity, PendingRequestDetail, QueuedMessage, StepDetail, StepKind, StepStatus, SubagentInfo, ThreadDetail, TodoEntry, TurnStep } from "../../shared/api.ts";
-import { FAILED_STATUSES } from "../../shared/status.ts";
+import { FAILED_STATUSES, RUNNING_RUN_STATUSES } from "../../shared/status.ts";
 import { isRuntimeMode } from "../../shared/limits.ts";
 import type { RawBackgroundTask, RawMessage, RawProjection, RawRuntimeRequest, RawSubagent, RawTurnItem, TurnItemEntry } from "../integrations/t3/schemas.ts";
 
@@ -335,6 +335,25 @@ function queuedRunsOf(projection: RawProjection) {
   return (projection.runs ?? []).filter((run) => run.status === "queued" && !system.has(run.userMessageId ?? "")).sort((a, b) => rank(a) - rank(b) || (a.ordinal ?? 0) - (b.ordinal ?? 0));
 }
 
+export interface RewindPoint {
+  scopeId: string;
+  checkpointId: string;
+}
+
+// Like T3 Code: "before this message" is the checkpoint of the run before it, or the start checkpoint for the first run.
+export function rewindPoints(projection: RawProjection): Map<string, RewindPoint> {
+  const ready = (projection.checkpoints ?? []).filter((checkpoint) => checkpoint.status === "ready");
+  const runs = (projection.runs ?? []).filter((run) => run.status !== "queued" && !(run.status === "cancelled" && !run.startedAt)).sort((a, b) => (a.ordinal ?? 0) - (b.ordinal ?? 0));
+  const points = new Map<string, RewindPoint>();
+  runs.forEach((run, index) => {
+    if (!run.userMessageId || RUNNING_RUN_STATUSES.has(run.status ?? "")) return;
+    const previous = runs[index - 1];
+    const found = previous ? ready.find((checkpoint) => checkpoint.runId === previous.id) : ready.find((checkpoint) => checkpoint.ordinalWithinScope === 0 && !checkpoint.runId);
+    if (found) points.set(run.userMessageId, { scopeId: found.scopeId, checkpointId: found.id });
+  });
+  return points;
+}
+
 /** `tasks` are the shell thread's pending background tasks: they say which subagents still run. */
 export function toThreadDetail(threadId: string, projection: RawProjection, thread: DashboardThread | undefined, tasks: RawBackgroundTask[] = []): ThreadDetail {
   // Like T3 Code: a message keeps its visible item's place and time. A queued message was sent when its item
@@ -345,6 +364,7 @@ export function toThreadDetail(threadId: string, projection: RawProjection, thre
   });
   const items = [...(projection.turnItems ?? []), ...(projection.visibleTurnItems ?? [])].map(unwrap);
   const queuedRuns = queuedRunsOf(projection);
+  const rewind = rewindPoints(projection);
   // A queued message shows in the queue, not the conversation. Like T3 Code, a removed one stays hidden.
   const cancelled = new Set((projection.runs ?? []).filter((run) => run.status === "cancelled").map((run) => run.id));
   const hidden = new Set<string | null | undefined>([
@@ -361,6 +381,7 @@ export function toThreadDetail(threadId: string, projection: RawProjection, thre
       createdAt: visible.get(message.id)!.at ?? message.createdAt ?? "",
       streaming: message.streaming ?? false,
       attachments: toAttachments(message),
+      rewindable: message.role === "user" && rewind.has(message.id),
     }));
   const queue = queuedRuns.flatMap((run): QueuedMessage[] => {
     const message = (projection.messages ?? []).find((candidate) => candidate.id === run.userMessageId);

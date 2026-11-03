@@ -249,6 +249,9 @@ export const RawProjection = s.object({
   turnItems: s.optional(s.array(TurnItemEntry)),
   visibleTurnItems: s.optional(s.array(TurnItemEntry)),
   subagents: s.optional(s.array(RawSubagent)),
+  checkpoints: s.optional(
+    s.array(s.object({ id: s.string(), scopeId: s.string(), runId: text(), status: text(), ordinalWithinScope: s.optional(s.number()), appRunOrdinal: s.optional(s.nullable(s.number())) })),
+  ),
   thread: s.optional(RawThread),
 });
 export type RawProjection = Infer<typeof RawProjection>;

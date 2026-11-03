@@ -237,3 +237,16 @@ test("interrupting the idle demo thread stops its background task", async () => 
   await Bun.sleep(0);
   assert.deepEqual((await actions.threadDetail(threadId)).subagents, []);
 });
+
+test("Edit from here in the demo removes the message and what followed", async () => {
+  const port = new DemoPort(() => NOW);
+  const store = syncedStore(port);
+  await Bun.sleep(0);
+  const actions = createActions({ port, store, board: { get: async () => ({ configured: true, ok: true, error: null, issues: [] }) } });
+  const id = store.state({ t3: "live", serverVersion: null, protocolMismatch: false, error: null, setup: null }, []).threads.find((thread) => thread.title.includes("dark mode"))!.id;
+  const before = await actions.threadDetail(id);
+  const first = before.messages.find((message) => message.role === "user")!;
+  assert.equal(first.rewindable, true);
+  await actions.rewind(id, first.id, false);
+  assert.deepEqual((await actions.threadDetail(id)).messages, []);
+});

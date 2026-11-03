@@ -78,6 +78,13 @@ export interface EditQueuedBody {
   text: string;
 }
 
+/** POST /api/threads/:id/rewind: back to before this user message. */
+export interface RewindBody {
+  messageId: string;
+  /** Also undo the agent's file edits. */
+  restoreFiles: boolean;
+}
+
 export interface ThreadSettingsBody {
   modelSelection?: ModelSelection;
   runtimeMode?: RuntimeMode;

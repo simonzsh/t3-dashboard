@@ -308,7 +308,10 @@ function buildThread(spec: ThreadSpec, at: (minutes: number) => string): { threa
   const messages = spec.messages.map(([role, minutes, text], index) => ({ id: `${spec.id}-m${index}`, role, text, createdAt: at(minutes) }));
   const last = messages.at(-1)!;
   const lastUser = messages.findLast((message) => message.role === "user");
-  const runs = (spec.runs ?? []).map((run) => ({ id: run.id, status: run.status, startedAt: at(run.started), completedAt: run.completed === undefined ? null : at(run.completed) }));
+  const userMessages = messages.filter((message) => message.role === "user");
+  const runs = (spec.runs ?? []).map((run, index) => ({ id: run.id, ordinal: index + 1, userMessageId: userMessages[index]?.id, status: run.status, startedAt: at(run.started), completedAt: run.completed === undefined ? null : at(run.completed) }));
+  // The start checkpoint, then one per finished run: "Edit from here" rewinds to one of them.
+  const checkpoints = [{ id: `${spec.id}-cp0`, scopeId: `${spec.id}-scope`, runId: null, status: "ready", ordinalWithinScope: 0, appRunOrdinal: null }, ...runs.filter((run) => run.completedAt).map((run) => ({ id: `${spec.id}-cp${run.ordinal}`, scopeId: `${spec.id}-scope`, runId: run.id, status: "ready", ordinalWithinScope: run.ordinal, appRunOrdinal: run.ordinal }))];
   const latestRun = runs.at(-1);
   const activity = (spec.activity ?? []).map(({ at: started, done, ...item }, index) => ({ ...item, threadId: spec.id, ordinal: index + 1, status: item.status ?? (done === undefined ? "running" : "completed"), startedAt: at(started), completedAt: done === undefined ? null : at(done) }));
   const subagents = (spec.subagents ?? []).map(({ at: started, done, ...raw }) => ({ ...raw, startedAt: at(started), completedAt: done === undefined ? null : at(done) }));
@@ -337,6 +340,7 @@ function buildThread(spec: ThreadSpec, at: (minutes: number) => string): { threa
     thread,
     messages,
     runs,
+    checkpoints,
     visibleTurnItems: messages.map((message) => ({ id: `${message.id}-item`, messageId: message.id })),
     turnItems: [...activity, ...(request ? [request.item] : [])],
     subagents,

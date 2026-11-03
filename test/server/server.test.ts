@@ -428,6 +428,19 @@ test("settle", async () => {
   assert.deepEqual(port.commands[0], { type: "thread.settle", commandId: "id-1", threadId: "run-1" });
 });
 
+test("rewind sends the checkpoint rollback and validates the body", async () => {
+  const { server, port } = await start();
+  port.projection = {
+    messages: [{ id: "u1", role: "user", text: "x" }],
+    runs: [{ id: "r1", ordinal: 1, status: "completed", userMessageId: "u1" }],
+    checkpoints: [{ id: "c0", scopeId: "s", runId: null, status: "ready", ordinalWithinScope: 0, appRunOrdinal: null }],
+  };
+  for (const body of [{}, { messageId: "", restoreFiles: false }, { messageId: "u1" }, { messageId: "u1", restoreFiles: "yes" }]) assert.equal((await post(server, "/api/threads/idle-1/rewind", body)).status, 400, JSON.stringify(body));
+  assert.equal((await post(server, "/api/threads/idle-1/rewind", { messageId: "u1", restoreFiles: true })).status, 200);
+  assert.deepEqual(port.commands, [{ type: "checkpoint.rollback", commandId: "id-1", threadId: "idle-1", scopeId: "s", checkpointId: "c0", restoreFiles: true }]);
+  assert.equal((await post(server, "/api/threads/idle-1/rewind", { messageId: "nope", restoreFiles: false })).status, 409);
+});
+
 test("unsettle", async () => {
   const { server, port } = await start();
   assert.equal((await post(server, "/api/threads/run-1/unsettle")).status, 200);

@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "bun:test";
-import { toStepDetail, toThreadDetail } from "../../src/domain/threadDetail.ts";
+import { rewindPoints, toStepDetail, toThreadDetail } from "../../src/domain/threadDetail.ts";
 import type { RawProjection } from "../../src/integrations/t3/schemas.ts";
 
 const projection: RawProjection = {
@@ -15,8 +15,8 @@ const projection: RawProjection = {
 test("keeps visible messages in their original order and defaults streaming to false", () => {
   const detail = toThreadDetail("thread-1", projection, undefined);
   assert.deepEqual(detail.messages, [
-    { id: "m1", role: "user", text: "Hello", createdAt: "2026-03-01T10:00:00Z", streaming: false, attachments: [] },
-    { id: "m2", role: "assistant", text: "Hi there", createdAt: "2026-03-01T10:00:02Z", streaming: true, attachments: [] },
+    { id: "m1", role: "user", text: "Hello", createdAt: "2026-03-01T10:00:00Z", streaming: false, attachments: [], rewindable: false },
+    { id: "m2", role: "assistant", text: "Hi there", createdAt: "2026-03-01T10:00:02Z", streaming: true, attachments: [], rewindable: false },
   ]);
   assert.equal(detail.threadId, "thread-1");
   assert.equal(detail.thread, null);
@@ -568,4 +568,43 @@ test("a sent queued message takes its item's place and time, after the replies w
     undefined,
   );
   assert.deepEqual(detail.messages.map((message) => [message.id, message.createdAt]), [["u1", "2026-03-01T10:00:00Z"], ["a1", "2026-03-01T10:00:10Z"], ["q", "2026-03-01T10:00:20Z"]]);
+});
+
+const checkpoint = (id: string, ordinal: number, runId: string | null, status = "ready") => ({ id, scopeId: "scope", runId, status, ordinalWithinScope: ordinal, appRunOrdinal: runId ? ordinal : null });
+const rewindProjection = (extra: Partial<RawProjection> = {}): RawProjection => ({
+  messages: [
+    { id: "u1", role: "user", text: "first" },
+    { id: "a1", role: "assistant", text: "ok" },
+    { id: "u2", role: "user", text: "second" },
+    { id: "a2", role: "assistant", text: "ok" },
+  ],
+  visibleTurnItems: ["u1", "a1", "u2", "a2"].map((messageId) => ({ item: { type: "message", messageId } })),
+  runs: [
+    { id: "r1", ordinal: 1, status: "completed", userMessageId: "u1", startedAt: "2026-03-01T10:00:00Z" },
+    { id: "r2", ordinal: 2, status: "completed", userMessageId: "u2", startedAt: "2026-03-01T10:05:00Z" },
+  ],
+  checkpoints: [checkpoint("c0", 0, null), checkpoint("c1", 1, "r1"), checkpoint("c2", 2, "r2")],
+  ...extra,
+});
+const rewindable = (projection: RawProjection) => toThreadDetail("t", projection, undefined).messages.map((message) => [message.id, message.rewindable]);
+
+test("a user message is rewindable once the checkpoint before its run is ready", () => {
+  assert.deepEqual(rewindable(rewindProjection()), [["u1", true], ["a1", false], ["u2", true], ["a2", false]]);
+});
+
+test("rewind points: the first message returns to the start checkpoint, the next to the run before", () => {
+  const points = rewindPoints(rewindProjection());
+  assert.deepEqual([...points], [["u1", { scopeId: "scope", checkpointId: "c0" }], ["u2", { scopeId: "scope", checkpointId: "c1" }]]);
+});
+
+test("a message is not rewindable without its checkpoint, or while its run is active", () => {
+  assert.deepEqual(rewindable(rewindProjection({ checkpoints: [checkpoint("c0", 0, null, "preparing"), checkpoint("c1", 1, "r1")] })), [["u1", false], ["a1", false], ["u2", true], ["a2", false]]);
+  assert.deepEqual(rewindable(rewindProjection({ checkpoints: [] })), [["u1", false], ["a1", false], ["u2", false], ["a2", false]]);
+  const running = rewindProjection({ runs: [{ id: "r1", ordinal: 1, status: "completed", userMessageId: "u1" }, { id: "r2", ordinal: 2, status: "running", userMessageId: "u2" }] });
+  assert.deepEqual(rewindable(running).filter(([, flag]) => flag), [["u1", true]]);
+});
+
+test("a queued run does not count as the run before a message", () => {
+  const queued = rewindProjection({ runs: [{ id: "r1", ordinal: 1, status: "completed", userMessageId: "u1" }, { id: "rq", ordinal: 2, status: "queued", userMessageId: "uq" }, { id: "r2", ordinal: 3, status: "completed", userMessageId: "u2" }] });
+  assert.equal(rewindPoints(queued).get("u2")?.checkpointId, "c1");
 });

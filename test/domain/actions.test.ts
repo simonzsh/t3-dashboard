@@ -254,3 +254,26 @@ test("a message dispatches the persisted images, then the uploads", async () => 
   assert.deepEqual(port.commands[2]!.attachments, [upload]);
   assert.deepEqual(port.uploads.length, 1);
 });
+
+const rewindable: RawProjection = {
+  messages: [{ id: "u1", role: "user", text: "first" }],
+  runs: [{ id: "r1", ordinal: 1, status: "completed", userMessageId: "u1" }],
+  checkpoints: [{ id: "c0", scopeId: "scope", runId: null, status: "ready", ordinalWithinScope: 0, appRunOrdinal: null }],
+};
+
+test("rewind sends the checkpoint before the message, with the revert files choice", async () => {
+  const { actions, commands } = stopHarness({ t: rewindable });
+  await actions.rewind("t", "u1", true);
+  await actions.rewind("t", "u1", false);
+  assert.deepEqual(commands, [
+    { type: "checkpoint.rollback", threadId: "t", scopeId: "scope", checkpointId: "c0", restoreFiles: true, commandId: "id-1" },
+    { type: "checkpoint.rollback", threadId: "t", scopeId: "scope", checkpointId: "c0", restoreFiles: false, commandId: "id-2" },
+  ]);
+});
+
+test("rewind refuses a message with no rewind point, and a thread with a running run", async () => {
+  const { actions, commands } = stopHarness({ t: rewindable, busy: { ...rewindable, runs: [{ id: "r1", ordinal: 1, status: "completed", userMessageId: "u1" }, { id: "r2", ordinal: 2, status: "running", userMessageId: "u2" }] } });
+  await assert.rejects(actions.rewind("t", "unknown", false), rejectsWith("conflict"));
+  await assert.rejects(actions.rewind("busy", "u1", false), rejectsWith("conflict"));
+  assert.deepEqual(commands, []);
+});

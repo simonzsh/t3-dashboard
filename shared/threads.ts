@@ -86,6 +86,8 @@ export interface ChatMessage {
   createdAt: string;
   streaming: boolean;
   attachments: ChatAttachment[];
+  /** A user message the thread can rewind to before: its run ended and the checkpoint before it is ready. */
+  rewindable: boolean;
 }
 
 /** A message T3 holds until the active turn ends (a run with status "queued"). */

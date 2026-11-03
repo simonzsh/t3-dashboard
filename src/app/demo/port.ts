@@ -154,6 +154,18 @@ export class DemoPort implements T3Port {
           raw.id === command.subagentId ? { ...raw, status: "interrupted", progress: null, completedAt: at } : raw,
         );
         break;
+      case "checkpoint.rollback": {
+        // Keep what came before the first run after the checkpoint: its message and everything after go.
+        const kept = (projection.checkpoints ?? []).find((checkpoint) => checkpoint.id === command.checkpointId)?.appRunOrdinal ?? 0;
+        const dropped = (projection.runs ?? []).filter((run) => (run.ordinal ?? 0) > kept);
+        const cut = (projection.messages ?? []).findIndex((message) => message.id === dropped[0]?.userMessageId);
+        const gone = new Set((cut < 0 ? [] : projection.messages!.slice(cut)).map((message) => message.id));
+        projection.messages = (projection.messages ?? []).filter((message) => !gone.has(message.id));
+        projection.visibleTurnItems = (projection.visibleTurnItems ?? []).filter((entry) => !("messageId" in entry && gone.has(entry.messageId ?? "")));
+        projection.runs = (projection.runs ?? []).filter((run) => !dropped.includes(run));
+        projection.checkpoints = (projection.checkpoints ?? []).filter((checkpoint) => (checkpoint.appRunOrdinal ?? 0) <= kept);
+        break;
+      }
       case "thread.settle":
         Object.assign(thread, { settledOverride: "settled", settledAt: at });
         break;

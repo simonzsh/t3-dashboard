@@ -11,6 +11,7 @@ import {
   promoteQueuedCommand,
   startQueuedCommand,
   settleCommand,
+  rollbackCommand,
   unsettleCommand,
   interruptCommand,
   messageCommand,
@@ -27,7 +28,7 @@ import type { AssetResource, FileUpload, ImageUpload, RawProjection, T3Port } fr
 import { DomainError } from "./errors.ts";
 import type { LinearBoard } from "./linearBoard.ts";
 import type { ShellStore } from "./shellStore.ts";
-import { subagentStatus, toStepDetail, toThreadDetail } from "./threadDetail.ts";
+import { rewindPoints, subagentStatus, toStepDetail, toThreadDetail } from "./threadDetail.ts";
 
 export type { FileUpload, ImageUpload };
 
@@ -63,6 +64,8 @@ export interface Actions {
   stopSubagent(threadId: string, subagentId: string): Promise<void>;
   respond(threadId: string, requestId: string, answer: RespondBody): Promise<void>;
   dismiss(threadId: string, requestId: string): Promise<void>;
+  /** Rewinds the thread to before a user message; `restoreFiles` also undoes the agent's file edits. */
+  rewind(threadId: string, messageId: string, restoreFiles: boolean): Promise<void>;
   settle(threadId: string): Promise<void>;
   unsettle(threadId: string): Promise<void>;
   assign(body: Omit<AssignIssueBody, "attachments">, images: ImageUpload[]): Promise<string>;
@@ -284,6 +287,14 @@ export function createActions(options: ActionsOptions): Actions {
 
     async dismiss(threadId, requestId) {
       await send(dismissCommand(threadId, requestId));
+    },
+
+    async rewind(threadId, messageId, restoreFiles) {
+      const projection = await t3(port.threadProjection(threadId));
+      if (store.thread(threadId)?.activeRunId || (projection.runs ?? []).some((run) => RUNNING_RUN_STATUSES.has(run.status ?? ""))) throw new DomainError("conflict", "Stop the run before editing from here");
+      const point = rewindPoints(projection).get(messageId);
+      if (!point) throw new DomainError("conflict", "This message cannot be rewound");
+      await send(rollbackCommand(threadId, point, restoreFiles));
     },
 
     async settle(threadId) {

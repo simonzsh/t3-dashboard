@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import type { ChatMessage, HtmlRender, StepKind, TurnStep } from "../../../../shared/api.ts";
 import { timeline, type Entry } from "../../../src/features/conversation/timeline.ts";
 
-const message = (id: string, createdAt: string): ChatMessage => ({ id, role: "assistant", text: id, createdAt, streaming: false, attachments: [] });
+const message = (id: string, createdAt: string): ChatMessage => ({ id, role: "assistant", text: id, createdAt, streaming: false, attachments: [], rewindable: false });
 const render = (id: string, createdAt: string): HtmlRender => ({ id, attachmentId: id, title: id, height: 100, createdAt });
 const step = (id: string, kind: StepKind, startedAt: string): TurnStep => ({ id, runId: "run", kind, status: "done", startedAt, completedAt: null, text: id, detail: null, expandable: false, exitCode: null });
 

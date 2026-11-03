@@ -1,4 +1,4 @@
-import type { ApprovalDecision, AssignIssueBody, AutomationRequestBody, CreateThreadBody, ModelSelection, RespondBody, SendMessageBody, ThreadSettingsBody, UploadedAttachment, UserInputAnswers } from "../../shared/api.ts";
+import type { ApprovalDecision, AssignIssueBody, AutomationRequestBody, CreateThreadBody, ModelSelection, RespondBody, RewindBody, SendMessageBody, ThreadSettingsBody, UploadedAttachment, UserInputAnswers } from "../../shared/api.ts";
 import { normalizeDesk, type DeskUpdate } from "../../shared/desk.ts";
 import { IMAGE_TYPES, MAX_ATTACHMENTS, MAX_FILE_BYTES, MAX_IMAGE_BYTES, MAX_IMAGES, isRuntimeMode } from "../../shared/limits.ts";
 import type { FileUpload, ImageUpload } from "../domain/actions.ts";
@@ -180,6 +180,12 @@ export function validRespond(body: Record<string, unknown>): RespondBody {
 export function validQueuedEdit(body: Record<string, unknown>): string {
   if (typeof body.text !== "string" || body.text.trim() === "") throw new HttpError(400, "text is required");
   return body.text;
+}
+
+export function validRewind(body: Record<string, unknown>): RewindBody {
+  if (typeof body.messageId !== "string" || body.messageId === "" || body.messageId.length > 512) throw new HttpError(400, "messageId is required");
+  if (typeof body.restoreFiles !== "boolean") throw new HttpError(400, "restoreFiles must be true or false");
+  return { messageId: body.messageId, restoreFiles: body.restoreFiles };
 }
 
 export function validMessage(body: Record<string, unknown>): { message: Omit<SendMessageBody, "attachments" | "uploads">; images: ImageUpload[]; uploads: UploadedAttachment[] } {
