@@ -1,5 +1,6 @@
-import { useEffect, useId, useLayoutEffect, useRef, type KeyboardEvent, type ReactNode } from "react";
+import { useEffect, useId, useLayoutEffect, useRef, useState, type KeyboardEvent, type ReactNode } from "react";
 import { Button } from "./Button.tsx";
+import { DialogReady } from "./dialogReady.ts";
 import { Icon } from "./Icon.tsx";
 import { IconButton } from "./IconButton.tsx";
 import { enter } from "./motion.ts";
@@ -32,24 +33,23 @@ export function Dialog({ title, label, onClose, onCancel, cancelLabel = "Cancel"
   const titleId = useId();
   const box = useRef<HTMLDivElement>(null);
   const backdrop = useRef<HTMLDivElement>(null);
+  // Children wait for the end of the open animation, e.g. a menu that opens by itself.
+  const [ready, setReady] = useState(false);
+  // Read during the first render: a child with autoFocus takes the focus before any effect.
+  const previous = useRef(typeof document === "undefined" ? null : (document.activeElement as HTMLElement | null));
 
   // Before the first paint, so the dialog never shows at full size first.
   useLayoutEffect(() => {
     const anims = [backdrop.current && enter(backdrop.current), box.current && enter(box.current, { y: 16, scale: 0.85, duration: 420, spring: true })];
+    if (anims[1]) anims[1].finished.then(() => setReady(true), () => {});
+    else setReady(true);
     return () => anims.forEach((anim) => anim?.cancel());
-  }, []);
-
-  // Read before the children's effects: a menu that opens on mount takes the focus there.
-  const previous = useRef<HTMLElement | null>(null);
-  useLayoutEffect(() => {
-    previous.current = document.activeElement as HTMLElement | null;
   }, []);
 
   // Focus the autoFocus element or the first focusable one; give focus back on unmount.
   useEffect(() => {
     const root = box.current;
-    const active = document.activeElement;
-    if (root && !root.contains(active) && !active?.closest(".popover")) root.querySelector<HTMLElement>(FOCUSABLE)?.focus();
+    if (root && !root.contains(document.activeElement)) root.querySelector<HTMLElement>(FOCUSABLE)?.focus();
     return () => previous.current?.focus?.();
   }, []);
 
@@ -86,7 +86,7 @@ export function Dialog({ title, label, onClose, onCancel, cancelLabel = "Cancel"
             <Icon name="x" />
           </IconButton>
         </div>
-        {children}
+        <DialogReady.Provider value={ready}>{children}</DialogReady.Provider>
         {(onCancel || primary) && (
           <div className="buttons dialog-actions">
             {onCancel && <Button onClick={onCancel}>{cancelLabel}</Button>}
