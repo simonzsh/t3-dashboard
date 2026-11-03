@@ -257,7 +257,6 @@ main { flex: 1; min-height: 0; overflow: hidden; padding: 24px; display: flex; f
 .msg-copied { color: var(--text-secondary); }
 .steps-omitted { font-size: 12px; color: var(--text-secondary); text-align: center; }
 .working-row { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--text-secondary); }
-.rewind-files { display: flex; align-items: center; gap: 8px; font-size: 13px; }
 .msg.user { align-items: flex-end; }
 .msg.user .bubble { max-width: min(85%, 640px); padding: 8px 13px; border-radius: 16px 16px 4px 16px; overflow-wrap: anywhere; background: color-mix(in srgb, var(--accent) 13%, var(--surface-1)); border: 1px solid color-mix(in srgb, var(--accent) 24%, var(--line)); color: var(--text-primary); }
 .msg.system { align-items: center; }

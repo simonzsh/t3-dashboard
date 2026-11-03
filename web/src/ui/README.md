@@ -23,7 +23,7 @@ This folder contains the base components of the dashboard. The screens in `web/s
 | `SecretInput` | Masked field for a key or a token. It is a text field, not a password field: password managers do not open. |
 | `Choice` | Checkbox or radio button (`type="checkbox"` or `type="radio"`). |
 | `FileInput` | Hidden file field. A button opens it with `ref.current.click()`. |
-| `Dialog` | Modal window: title, close cross at the top right, Escape and outside click to close. `onCancel` and `primary` add the action row. |
+| `Dialog` | Modal window: title, close cross at the top right, Escape and outside click to close. `onCancel`, `secondary` and `primary` add the action row. |
 | `Badge` | Status label: `waiting`, `running`, `done`, `error`, `neutral`. |
 | `Dropdown` | Choice menu. Use it in place of `<select>`. A filter field appears for long lists. |
 | `Popover` | Panel attached next to an element. Escape and outside click close it. |

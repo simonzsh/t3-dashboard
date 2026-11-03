@@ -50,10 +50,10 @@ Each Desk window contains a conversation.
 - Follow the steps of the run in the conversation. Consecutive steps (reasoning, commands, tools, file changes, searches) form one group. The group of the active run shows its last 4 steps under "Working for …". Other groups are closed: click one to see its steps.
 - Click a command to see its output and exit code. Click a file change to see its diff. Click a tool or a search to see its input and results. A note says when T3 Code cut a long text.
 - A to-do list, a proposed plan and a notice (checkpoint, compaction, error) have their own block.
-- A subagent has its own block with its status and time. Click it to see its result and its steps. "Open thread" opens its thread on the Desk. The stop icon stops a running subagent.
+- A subagent has its own block with its status and time. Click it to see its result and its steps. "Open thread" opens its thread in a Desk window. The window takes its name from the thread, follows a running subagent, and stays on the Desk after a reload. `@` search there uses the folder of the parent thread. The stop icon stops a running subagent.
 - Between your message and the first step, a "Working…" row shows while the run is active.
 - Point at a message (or tab to it) to see a row of icons under it. On a touch screen, the row always shows. The copy icon copies the text of the message (Markdown) and shows "Copied".
-- The "Edit from here" icon (your messages only) opens a dialog. Confirm to rewind the conversation to before this message: your text and attachments return to the composer. Tick "Revert files too" to also undo the file edits of the agent. The icon is disabled during a run. A message with no ready checkpoint before it has no icon.
+- The "Edit from here" icon (your messages only) opens a dialog. Choose "Revert files too" to rewind the conversation to before this message and also undo the file edits of the agent, or "Revert and keep changes" to rewind the conversation only: your files stay as they are. In both cases your text and attachments return to the composer. The icon is disabled during a run. A message with no ready checkpoint before it has no icon.
 - Files that you sent show under the message as chips: click one to download it.
 - See the images and videos that the agent refers to in its messages.
 - See the pages from the T3 Code `html_render` tool. The dashboard shows them in an isolated frame (sandbox), with the theme colors.
@@ -64,13 +64,15 @@ The web page uses these routes of the dashboard server.
 
 | Route | Use |
 | --- | --- |
-| `GET /api/threads/:id` | The conversation: messages, queue, `steps` (the latest 400 steps of every run) and `stepsOmitted`. |
+| `GET /api/threads/:id` | The conversation: messages, queue, `steps` (the latest 400 steps of every run) and `stepsOmitted`. The timeline shows "N earlier steps not shown" when steps are left out. |
 | `GET /api/threads/:id/items/:itemId` | The full detail of one step: command output, diff, tool input and output, full text. Long texts are cut. |
 | `GET /api/threads/:id/files?q=&limit=` | Files and folders for an `@` mention. The search folder is the worktree of the thread, or else the project root. |
 | `POST /api/attachments` | Upload one file (`name`, `mimeType`, `dataUrl`). An image of 10 MB or less goes as an image, any other file of 50 MB or less as a file. |
 | `POST /api/attachments/:attachmentId/delete` | Remove an uploaded file that was not sent. |
 | `POST /api/threads/:id/rewind` | Rewind to before a user message: `{ messageId, restoreFiles }`. Sends the T3 command `checkpoint.rollback` with the checkpoint of the run before the message. `409` during a run or without a ready checkpoint. A message has `rewindable: true` when it can be rewound. |
-| `POST /api/threads/:id/messages`, `POST /api/threads` | Send `uploads` (the answers of `POST /api/attachments`) with the message. A message takes up to 100 attachments. |
+| `POST /api/threads/:id/messages`, `POST /api/threads` | Send `uploads` (the answers of `POST /api/attachments`) with the message. A message takes up to 100 attachments. `POST /api/board/assign` takes `uploads` too. |
+
+`GET /api/threads/:id/attachments/:attachmentId` serves an attachment. A `.html` file is a rendered, themed page, unless the URL has `?raw=1`: file chips and "Edit from here" use `?raw=1`, so a file that you send is never shown as a page.
 
 ## New Agent
 
@@ -78,7 +80,7 @@ The New Agent button (key `N`) starts a new agent.
 
 1. Select a T3 project, or keep "No project". Without a project, the session goes into the "No project" project of T3 Code.
 2. Write the task. The first line becomes the title of the session.
-3. If necessary, change the model or the access mode, or attach files. This does not apply to an assigned issue, and `@` search does not work here.
+3. If necessary, change the model or the access mode, or attach files. `@` search does not work here: the thread does not exist yet.
 4. Send. The conversation opens on the Desk.
 
 - The proposed model is the default model of the project. If there is none, it is the default model of T3 Code.
@@ -99,7 +101,7 @@ The Board tab shows the Linear tickets that are assigned to you. It needs a Line
 1. Click the "Assign to an agent" button of the ticket. The New Agent window opens with the ticket.
 2. Select the T3 project. The browser keeps the last project for each Linear team and selects it first.
 3. Select the model and the access mode.
-4. If necessary, add instructions or images.
+4. If necessary, add instructions or files.
 5. Send. The session has the number and the title of the ticket. It goes onto the Desk, and the Board stays visible.
 6. Click "View on Desk" to see the conversation.
 
