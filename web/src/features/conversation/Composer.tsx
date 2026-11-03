@@ -1,19 +1,24 @@
-import { useEffect, useRef, useState } from "react";
-import type { DashboardModel, DashboardProvider, ImageAttachment, ModelSelection, RuntimeMode, ThreadSettingsBody } from "../../../../shared/api.ts";
-import { IMAGE_TYPES } from "../../../../shared/limits.ts";
-import { RUNTIME_MODE_LABELS, acceptImages, currentEffort, findModel, isSendKey, selectEffort, selectModel } from "./composer.ts";
-import type { DropdownOption } from "../../lib/dropdown.ts";
-import { Dropdown, FileInput, Icon, IconButton, Pressable, TextArea } from "../../ui/index.ts";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import type { DashboardModel, DashboardProvider, FileEntry, ModelSelection, RuntimeMode, ThreadSettingsBody, UploadedAttachment } from "../../../../shared/api.ts";
+import { RUNTIME_MODE_LABELS, acceptFiles, applyMention, attachmentType, currentEffort, findModel, isSendKey, mentionAt, selectEffort, selectModel } from "./composer.ts";
+import { moveActive, type DropdownOption } from "../../lib/dropdown.ts";
+import { useApi } from "../../api/ApiContext.tsx";
+import { Dropdown, FileInput, Icon, IconButton, Loader, Popover, Pressable, TextArea } from "../../ui/index.ts";
 import { ProviderIcon } from "../../lib/ProviderIcon.tsx";
 import { errorMessage } from "../../lib/format.ts";
 import { useAction } from "../../lib/useAction.ts";
+import { useDebouncedValue } from "../../lib/useDebouncedValue.ts";
 import { useMediaQuery } from "../../lib/useMediaQuery.ts";
 import { insertText } from "../../lib/paste.ts";
 
-interface Pending {
+interface Attached {
   key: string;
   file: File;
-  dataUrl: string;
+  /** Object URL of an image, for the chip. */
+  preview: string | null;
+  state: "uploading" | "ready" | "failed";
+  attachment?: UploadedAttachment;
+  error?: string;
 }
 
 const readDataUrl = (file: File) =>
@@ -35,7 +40,7 @@ interface Props {
   draft: string;
   onDraft: (text: string) => void;
   /** Each callback throws on failure: the Composer shows the error. */
-  onSend: (text: string, attachments: ImageAttachment[]) => Promise<void>;
+  onSend: (text: string, uploads: UploadedAttachment[]) => Promise<void>;
   /** Without it, no Stop button. */
   onStop?: () => Promise<unknown>;
   onSettings: (change: ThreadSettingsBody) => Promise<void> | void;
@@ -47,16 +52,28 @@ interface Props {
   errorResetKey?: unknown;
   /** Send works with an empty message, e.g. when the parent adds its own text. */
   allowEmpty?: boolean;
-  /** Hides the attach button and ignores pasted images, for a parent that cannot send them. */
+  /** Hides the attach button and ignores pasted or dropped files, for a parent that cannot send them. */
   noImages?: boolean;
+  /** Typing @ lists matching files of the thread's folder. Without it, no popup. */
+  searchFiles?: (query: string) => Promise<FileEntry[]>;
 }
 
-export function Composer({ providers, selection, runtimeMode, running, stoppable = running, draft, onDraft, onSend, onStop, onSettings, placeholder, autoFocus = false, focusKey, errorResetKey, allowEmpty = false, noImages = false }: Props) {
+export function Composer({ providers, selection, runtimeMode, running, stoppable = running, draft, onDraft, onSend, onStop, onSettings, placeholder, autoFocus = false, focusKey, errorResetKey, allowEmpty = false, noImages = false, searchFiles }: Props) {
+  const api = useApi();
   // Picks show at once, until new values come in the props or the change fails.
   // Each field has its own override: a model reload never drops a pending mode pick, and the reverse.
   const [selectionOverride, setSelectionOverride] = useState<ModelSelection | null>(null);
   const [modeOverride, setModeOverride] = useState<RuntimeMode | null>(null);
-  const [images, setImages] = useState<Pending[]>([]);
+  const [files, setFiles] = useState<Attached[]>([]);
+  const filesRef = useRef(files);
+  filesRef.current = files;
+  const [dropping, setDropping] = useState(false);
+  const [caret, setCaret] = useState(0);
+  const [entries, setEntries] = useState<FileEntry[]>([]);
+  const [active, setActive] = useState(0);
+  // The start of the mention that Escape closed: the popup stays shut for that one.
+  const [dismissed, setDismissed] = useState<number | null>(null);
+  const nextCaret = useRef<number | null>(null);
   // One error line: each attempt replaces it, so an older error never hides a newer one.
   const { setError, run: attempt } = useAction("send your request");
   const [sending, setSending] = useState(false);
@@ -64,6 +81,7 @@ export function Composer({ providers, selection, runtimeMode, running, stoppable
   const touch = useMediaQuery("(pointer: coarse)");
   const fileInput = useRef<HTMLInputElement>(null);
   const textarea = useRef<HTMLTextAreaElement>(null);
+  const card = useRef<HTMLDivElement>(null);
 
   // Each reload gives a new selection object: compare the values.
   useEffect(() => setSelectionOverride(null), [JSON.stringify(selection)]);
@@ -95,7 +113,44 @@ export function Composer({ providers, selection, runtimeMode, running, stoppable
   const found = findModel(providers, localSelection);
   const effort = found ? currentEffort(localSelection, found.model) : null;
   const modes = found?.provider.runtimeModes ?? (Object.keys(RUNTIME_MODE_LABELS) as RuntimeMode[]);
-  const canSend = (allowEmpty || draft.trim() !== "" || images.length > 0) && !sending;
+  const settled = files.every((f) => f.state === "ready");
+  const canSend = (allowEmpty || draft.trim() !== "" || files.length > 0) && settled && !sending;
+
+  const mention = searchFiles ? mentionAt(draft, caret) : null;
+  const query = useDebouncedValue(mention ? mention.query : null, 150);
+  const showMentions = mention !== null && query !== null && dismissed !== mention.start && entries.length > 0;
+
+  useEffect(() => {
+    if (!mention) setDismissed(null);
+  }, [mention === null]);
+
+  useEffect(() => {
+    setActive(0);
+    if (!searchFiles || query === null) return setEntries([]);
+    let live = true;
+    searchFiles(query).then((found) => live && setEntries(found), () => live && setEntries([]));
+    return () => {
+      live = false;
+    };
+  }, [query]);
+
+  // The draft is the parent's: the caret moves once the new text is in the field.
+  useLayoutEffect(() => {
+    if (nextCaret.current === null) return;
+    textarea.current?.setSelectionRange(nextCaret.current, nextCaret.current);
+    nextCaret.current = null;
+  }, [draft]);
+
+  useEffect(() => () => filesRef.current.forEach((f) => f.preview && URL.revokeObjectURL(f.preview)), []);
+
+  function pickMention(entry: FileEntry) {
+    if (!mention) return;
+    const next = applyMention(draft, mention, entry.path);
+    nextCaret.current = next.caret;
+    setCaret(next.caret);
+    onDraft(next.text);
+    textarea.current?.focus();
+  }
 
   async function changeSelection(next: ModelSelection) {
     setSelectionOverride(next);
@@ -107,21 +162,41 @@ export function Composer({ providers, selection, runtimeMode, running, stoppable
     if (!(await attempt(() => onSettings({ runtimeMode: next })))) setModeOverride(null);
   }
 
-  async function addFiles(files: File[]) {
-    const { accepted, error: refused } = acceptImages(images.map((p) => p.file), files);
-    setError(refused);
+  const patch = (key: string, change: Partial<Attached>) => setFiles((current) => current.map((f) => (f.key === key ? { ...f, ...change } : f)));
+
+  async function upload(key: string, file: File) {
+    patch(key, { state: "uploading", error: undefined });
     try {
-      const read = await Promise.all(accepted.map(async (file) => ({ key: crypto.randomUUID(), file, dataUrl: await readDataUrl(file) })));
-      setImages((current) => [...current, ...read]);
+      const { attachment } = await api.uploadAttachment({ name: file.name, mimeType: file.type || "application/octet-stream", dataUrl: await readDataUrl(file) });
+      // Removed while it uploaded: T3 keeps no use for it.
+      if (filesRef.current.some((f) => f.key === key)) patch(key, { state: "ready", attachment });
+      else void api.deleteAttachment(attachment.id).catch(() => {});
     } catch (e) {
-      setError(errorMessage(e));
+      patch(key, { state: "failed", error: errorMessage(e) });
     }
+  }
+
+  function addFiles(picked: File[]) {
+    const { accepted, error: refused } = acceptFiles(files.map((f) => f.file), picked);
+    setError(refused);
+    const added = accepted.map((file): Attached => ({ key: crypto.randomUUID(), file, preview: attachmentType(file) === "image" ? URL.createObjectURL(file) : null, state: "uploading" }));
+    setFiles((current) => [...current, ...added]);
+    for (const { key, file } of added) void upload(key, file);
+  }
+
+  function removeFile(item: Attached) {
+    setFiles((current) => current.filter((f) => f.key !== item.key));
+    if (item.preview) URL.revokeObjectURL(item.preview);
+    if (item.attachment) void api.deleteAttachment(item.attachment.id).catch(() => {});
   }
 
   async function submit() {
     if (!canSend) return;
-    const attachments = images.map((p) => ({ name: p.file.name, mimeType: p.file.type, dataUrl: p.dataUrl }));
-    if (await attempt(() => onSend(draft.trim(), attachments), setSending)) setImages([]);
+    const uploads = files.map((f) => f.attachment!);
+    if (await attempt(() => onSend(draft.trim(), uploads), setSending)) {
+      files.forEach((f) => f.preview && URL.revokeObjectURL(f.preview));
+      setFiles([]);
+    }
   }
 
   const option = (p: DashboardProvider, m: DashboardModel, group: string): DropdownOption => ({
@@ -149,14 +224,37 @@ export function Composer({ providers, selection, runtimeMode, running, stoppable
         void submit();
       }}
     >
-      <div className="composer-card">
-        {images.length > 0 && (
-          <ul className="composer-files" aria-label="Attached images">
-            {images.map((p) => (
-              <li key={p.key} className="file-chip">
-                <img src={p.dataUrl} alt="" />
-                <span data-tooltip={p.file.name} data-tooltip-clipped>{p.file.name}</span>
-                <Pressable aria-label={`Remove ${p.file.name}`} onClick={() => setImages((current) => current.filter((x) => x.key !== p.key))}>
+      <div
+        ref={card}
+        className={`composer-card${dropping ? " dropping" : ""}`}
+        onDragOver={(e) => {
+          if (noImages || !e.dataTransfer.types.includes("Files")) return;
+          e.preventDefault();
+          setDropping(true);
+        }}
+        onDragLeave={(e) => {
+          if (!e.currentTarget.contains(e.relatedTarget as Node | null)) setDropping(false);
+        }}
+        onDrop={(e) => {
+          if (noImages || !e.dataTransfer.types.includes("Files")) return;
+          e.preventDefault();
+          setDropping(false);
+          addFiles([...e.dataTransfer.files]);
+        }}
+      >
+        {files.length > 0 && (
+          <ul className="composer-files" aria-label="Attachments">
+            {files.map((f) => (
+              <li key={f.key} className={`file-chip ${f.state}`}>
+                {f.preview ? <img src={f.preview} alt="" /> : <Icon name="paperclip" />}
+                <span data-tooltip={f.error ?? f.file.name} data-tooltip-clipped>{f.state === "failed" ? `${f.file.name}: failed` : f.file.name}</span>
+                {f.state === "uploading" && <Loader inline label="Uploading" />}
+                {f.state === "failed" && (
+                  <Pressable aria-label={`Retry ${f.file.name}`} tooltip="Retry" onClick={() => void upload(f.key, f.file)}>
+                    <Icon name="refresh" />
+                  </Pressable>
+                )}
+                <Pressable aria-label={`Remove ${f.file.name}`} onClick={() => removeFile(f)}>
                   <Icon name="x" />
                 </Pressable>
               </li>
@@ -167,26 +265,61 @@ export function Composer({ providers, selection, runtimeMode, running, stoppable
           ref={textarea}
           rows={2}
           value={draft}
-          onChange={(e) => onDraft(e.target.value)}
+          onChange={(e) => {
+            onDraft(e.target.value);
+            setCaret(e.target.selectionStart);
+          }}
+          onSelect={(e) => setCaret(e.currentTarget.selectionStart)}
           enterKeyHint={touch ? "enter" : "send"}
           onKeyDown={(e) => {
+            if (showMentions && !e.nativeEvent.isComposing) {
+              if (e.key === "ArrowDown" || e.key === "ArrowUp") {
+                e.preventDefault();
+                return setActive(moveActive(entries.length, active, e.key === "ArrowDown" ? 1 : -1));
+              }
+              if ((e.key === "Enter" && !e.shiftKey) || e.key === "Tab") {
+                e.preventDefault();
+                return pickMention(entries[active]!);
+              }
+            }
             if (isSendKey({ key: e.key, shiftKey: e.shiftKey, isComposing: e.nativeEvent.isComposing }, touch)) {
               e.preventDefault();
               void submit();
             }
           }}
           onPaste={(e) => {
-            const files = [...e.clipboardData.files].filter((f) => f.type.startsWith("image/"));
+            const pasted = [...e.clipboardData.files];
             const text = e.clipboardData.getData("text/plain");
-            if (files.length === 0 && text === "") return;
+            if (pasted.length === 0 && text === "") return;
             e.preventDefault();
-            if (files.length > 0 && !noImages) void addFiles(files);
+            if (pasted.length > 0 && !noImages) addFiles(pasted);
             else onDraft(insertText(e.currentTarget, text));
           }}
           autoFocus={autoFocus}
           placeholder={placeholder ?? (running ? "Queue a message for the agent…" : "Send a message to the agent…")}
           aria-label="Message"
         />
+        {showMentions && (
+          <Popover anchor={card} className="mention-menu" role="listbox" matchWidth onClose={() => setDismissed(mention.start)}>
+            {entries.map((entry, i) => {
+              const slash = entry.path.lastIndexOf("/");
+              return (
+                <Pressable
+                  key={entry.path}
+                  role="option"
+                  aria-selected={i === active}
+                  className={`mention-option${i === active ? " active" : ""}`}
+                  onMouseDown={(e) => e.preventDefault()}
+                  onMouseEnter={() => setActive(i)}
+                  onClick={() => pickMention(entry)}
+                >
+                  <span className="mention-name">{entry.path.slice(slash + 1)}{entry.kind === "directory" && "/"}</span>
+                  {slash > 0 && <small className="mention-dir">{entry.path.slice(0, slash)}</small>}
+                </Pressable>
+              );
+            })}
+          </Popover>
+        )}
         <div className="composer-toolbar">
           <div className="composer-pickers">
             <Dropdown
@@ -230,8 +363,8 @@ export function Composer({ providers, selection, runtimeMode, running, stoppable
           <div className="composer-actions">
             {!noImages && (
               <>
-                <FileInput ref={fileInput} accept={IMAGE_TYPES.join(",")} multiple onFiles={(files) => void addFiles(files)} />
-                <IconButton label="Attach images" tooltip="Attach images" variant="ghost" className="composer-icon" onClick={() => fileInput.current?.click()}>
+                <FileInput ref={fileInput} multiple onFiles={addFiles} />
+                <IconButton label="Attach files" tooltip="Attach files" variant="ghost" className="composer-icon" onClick={() => fileInput.current?.click()}>
                   <Icon name="paperclip" />
                 </IconButton>
               </>

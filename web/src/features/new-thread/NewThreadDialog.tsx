@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import type { DashboardProject, DashboardProvider, ImageAttachment, LinearIssue, ModelDefaults, ModelSelection, RuntimeMode, ThreadSettingsBody } from "../../../../shared/api.ts";
+import type { DashboardProject, DashboardProvider, LinearIssue, ModelDefaults, ModelSelection, RuntimeMode, ThreadSettingsBody, UploadedAttachment } from "../../../../shared/api.ts";
 import { useApi } from "../../api/ApiContext.tsx";
 import { browserStorage } from "../../lib/storage.ts";
 import { loadAssignProject, saveAssignProject } from "../../lib/assignProject.ts";
@@ -38,9 +38,9 @@ export function NewThreadDialog({ projects, providers, defaults, onClose, onCrea
     if (!findModel(providers, selection)) setSelection(presetSelection(projects.find((p) => p.id === projectId), providers, defaults.selection));
   }, [providers]);
 
-  async function send(text: string, attachments: ImageAttachment[]): Promise<void> {
+  async function send(text: string, uploads: UploadedAttachment[]): Promise<void> {
     if (!selection) throw new Error("No model is available.");
-    const extra = { runtimeMode: mode, ...(attachments.length > 0 && { attachments }) };
+    const extra = { runtimeMode: mode, ...(uploads.length > 0 && { uploads }) };
     if (issue) {
       const { threadId } = await api.assignIssue({ issueId: issue.id, projectId, text, modelSelection: selection, ...extra });
       saveAssignProject(browserStorage(), issue.team.key, projectId);
@@ -94,6 +94,7 @@ export function NewThreadDialog({ projects, providers, defaults, onClose, onCrea
         errorResetKey={projectId}
         placeholder={issue ? "Add instructions for the agent (optional)…" : "Describe the task: the first line becomes the title…"}
         allowEmpty={issue !== undefined}
+        noImages={issue !== undefined}
         focusKey={picks || undefined}
       />
     </Dialog>

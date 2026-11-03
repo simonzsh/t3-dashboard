@@ -1,8 +1,8 @@
 import assert from "node:assert/strict";
 import { test } from "bun:test";
 import type { DashboardProvider } from "../../../../shared/api.ts";
-import { MAX_IMAGE_BYTES, MAX_IMAGES } from "../../../../shared/limits.ts";
-import { MAX_TOTAL_BYTES, acceptImages, currentEffort, findModel, isSendKey, selectEffort, selectModel } from "../../../src/features/conversation/composer.ts";
+import { MAX_ATTACHMENTS, MAX_FILE_BYTES, MAX_IMAGE_BYTES } from "../../../../shared/limits.ts";
+import { acceptFiles, applyMention, attachmentType, currentEffort, findModel, isSendKey, mentionAt, selectEffort, selectModel } from "../../../src/features/conversation/composer.ts";
 
 const effort = (optionId: string, ids: string[], defaultLevel: string | null) => ({ optionId, levels: ids.map((id) => ({ id, label: id.toUpperCase() })), defaultLevel });
 const providers: DashboardProvider[] = [
@@ -49,19 +49,58 @@ test("selectModel keeps the effort only when the new model accepts it", () => {
 });
 
 const file = (name: string, type: string, size: number) => ({ name, type, size });
+const names = (r: { accepted: Array<{ name: string }> }) => r.accepted.map((f) => f.name);
 
-test("acceptImages takes PNG, JPEG, GIF and WebP up to the limits", () => {
-  const ok = acceptImages([], [file("a.png", "image/png", 10), file("b.webp", "image/webp", 10)]);
-  assert.deepEqual([ok.accepted.map((f) => f.name), ok.error], [["a.png", "b.webp"], null]);
-  const mixed = acceptImages([], [file("a.pdf", "application/pdf", 10), file("b.jpg", "image/jpeg", MAX_IMAGE_BYTES + 1), file("c.gif", "image/gif", 5)]);
-  assert.deepEqual(mixed.accepted.map((f) => f.name), ["c.gif"]);
-  assert.ok(mixed.error);
-  const full = acceptImages(Array.from({ length: MAX_IMAGES - 1 }, () => ({ size: 1 })), [file("a.png", "image/png", 1), file("b.png", "image/png", 1)]);
-  assert.deepEqual(full.accepted.map((f) => f.name), ["a.png"]);
-  assert.ok(full.error);
-  const heavy = acceptImages([{ size: MAX_TOTAL_BYTES - 5 }], [file("a.png", "image/png", 4), file("b.png", "image/png", 4)]);
-  assert.deepEqual(heavy.accepted.map((f) => f.name), ["a.png"]);
-  assert.ok(heavy.error);
+test("attachmentType sends an image type as an image and anything else as a file", () => {
+  assert.equal(attachmentType({ type: "image/png" }), "image");
+  assert.equal(attachmentType({ type: "image/webp" }), "image");
+  assert.equal(attachmentType({ type: "image/svg+xml" }), "file");
+  assert.equal(attachmentType({ type: "application/pdf" }), "file");
+  assert.equal(attachmentType({ type: "" }), "file");
+});
+
+test("acceptFiles takes images and other files up to the T3 limits", () => {
+  const ok = acceptFiles([], [file("a.png", "image/png", 10), file("b.pdf", "application/pdf", MAX_FILE_BYTES), file("c", "", 1)]);
+  assert.deepEqual([names(ok), ok.error], [["a.png", "b.pdf", "c"], null]);
+});
+
+test("acceptFiles refuses an empty file, a big image and a big file, and says which", () => {
+  const empty = acceptFiles([], [file("e.txt", "text/plain", 0)]);
+  assert.deepEqual([names(empty), empty.error], [[], "e.txt: the file is empty."]);
+  const image = acceptFiles([], [file("b.jpg", "image/jpeg", MAX_IMAGE_BYTES + 1), file("ok.jpg", "image/jpeg", MAX_IMAGE_BYTES)]);
+  assert.deepEqual([names(image), image.error], [["ok.jpg"], "b.jpg: images must be 10 MB or less."]);
+  const big = acceptFiles([], [file("v.mov", "video/quicktime", MAX_FILE_BYTES + 1)]);
+  assert.deepEqual([names(big), big.error], [[], "v.mov: files must be 50 MB or less."]);
+});
+
+test("acceptFiles counts what is already attached", () => {
+  const full = acceptFiles(Array.from({ length: MAX_ATTACHMENTS - 1 }, () => file("x", "text/plain", 1)), [file("a.txt", "text/plain", 1), file("b.txt", "text/plain", 1)]);
+  assert.deepEqual([names(full), full.error], [["a.txt"], `Up to ${MAX_ATTACHMENTS} files per message.`]);
+  const existing = Array.from({ length: 8 }, () => file("i.png", "image/png", MAX_IMAGE_BYTES));
+  const heavy = acceptFiles(existing, [file("a.png", "image/png", MAX_IMAGE_BYTES), file("p.pdf", "application/pdf", MAX_IMAGE_BYTES)]);
+  assert.deepEqual([names(heavy), heavy.error], [["p.pdf"], "Images can total up to 80 MB per message."]);
+});
+
+test("mentionAt finds an @ word at the start or after whitespace", () => {
+  assert.deepEqual(mentionAt("@src", 4), { start: 0, query: "src" });
+  assert.deepEqual(mentionAt("look at @src/ap", 15), { start: 8, query: "src/ap" });
+  assert.deepEqual(mentionAt("a\n@", 3), { start: 2, query: "" });
+  assert.deepEqual(mentionAt("see @src and more", 8), { start: 4, query: "src" });
+});
+
+test("mentionAt ignores an @ inside a word, an email and a finished mention", () => {
+  assert.equal(mentionAt("mail me@example.com", 19), null);
+  assert.equal(mentionAt("word@", 5), null);
+  assert.equal(mentionAt("@src ", 5), null);
+  assert.equal(mentionAt("no mention", 10), null);
+  assert.equal(mentionAt("", 0), null);
+});
+
+test("applyMention swaps the typed word for @path and a space, with the caret after it", () => {
+  const typed = "look at @sr and more";
+  const mention = mentionAt(typed, 11)!;
+  assert.deepEqual(applyMention(typed, mention, "src/app.ts"), { text: "look at @src/app.ts and more", caret: 20 });
+  assert.deepEqual(applyMention("@", { start: 0, query: "" }, "a b.txt"), { text: "@a b.txt ", caret: 9 });
 });
 
 test("isSendKey: Enter sends, Shift+Enter, composition and touch keyboards do not", () => {

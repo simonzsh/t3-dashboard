@@ -1,5 +1,5 @@
 import { memo, useEffect, useRef, useState } from "react";
-import type { ChatMessage, DashboardProvider, HtmlRender, DashboardThread, ImageAttachment, ThreadDetail, ThreadSettingsBody, TurnStep } from "../../../../shared/api.ts";
+import type { ChatMessage, DashboardProvider, HtmlRender, DashboardThread, ThreadDetail, ThreadSettingsBody, TurnStep, UploadedAttachment } from "../../../../shared/api.ts";
 import { runActive } from "../../../../shared/status.ts";
 import { useApi } from "../../api/ApiContext.tsx";
 import { Icon, IconButton, Loader } from "../../ui/index.ts";
@@ -256,14 +256,14 @@ function Conversation({ threadId, thread, providers, onOpenThread }: Props) {
     drafts.set(threadId, value);
   }
 
-  async function send(body: string, attachments: ImageAttachment[]): Promise<void> {
-    const entry: PendingMessage = { id: crypto.randomUUID(), text: body, images: attachments.length, sentAt: Date.now(), baseline: countSame(detail ? sentMessages(detail) : [], body) };
+  async function send(body: string, uploads: UploadedAttachment[]): Promise<void> {
+    const entry: PendingMessage = { id: crypto.randomUUID(), text: body, images: uploads.length, sentAt: Date.now(), baseline: countSame(detail ? sentMessages(detail) : [], body) };
     setPending((list) => [...list, entry]);
     stick.current = true;
     setAtBottom(true);
     try {
       // No mode: a message sent during a run waits in T3's queue.
-      await api.sendMessage(threadId, { text: body, ...(attachments.length && { attachments }) });
+      await api.sendMessage(threadId, { text: body, ...(uploads.length && { uploads }) });
     } catch (e) {
       setPending((list) => list.filter((p) => p.id !== entry.id));
       throw e;
@@ -362,6 +362,7 @@ function Conversation({ threadId, thread, providers, onOpenThread }: Props) {
         draft={text}
         onDraft={setDraft}
         onSend={send}
+        searchFiles={(q) => api.searchFiles(threadId, q, 20).then((r) => r.entries)}
         onStop={() => api.interrupt(threadId)}
         onSettings={updateSettings}
       />
