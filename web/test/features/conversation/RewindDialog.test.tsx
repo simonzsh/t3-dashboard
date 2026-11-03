@@ -1,9 +1,10 @@
 import { test } from "bun:test";
 import assert from "node:assert/strict";
 import { renderToStaticMarkup } from "react-dom/server";
+import type { ChatMessage } from "../../../../shared/api.ts";
 import { RewindDialog } from "../../../src/features/conversation/RewindDialog.tsx";
 
-const message = { id: "m", role: "user", text: "hi", createdAt: "", streaming: false, attachments: [], rewindable: true } as const;
+const message: ChatMessage = { id: "m", role: "user", text: "hi", createdAt: "", streaming: false, attachments: [], rewindable: true };
 
 test("the dialog offers Cancel, Revert and keep changes, and Revert files too, with no checkbox", () => {
   const html = renderToStaticMarkup(<RewindDialog message={message} onClose={() => {}} onConfirm={async () => {}} />);
