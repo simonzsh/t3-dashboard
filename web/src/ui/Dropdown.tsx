@@ -40,7 +40,10 @@ export function Dropdown({ label, value, options, onPick, icon, placeholder, dis
   const shown = filterOptions(options, query);
 
   useEffect(() => {
-    if (open) (withFilter ? filter.current : list.current)?.focus({ preventScroll: true });
+    if (!open) return;
+    // On a touch screen, a compact menu does not focus its search: no keyboard pops up.
+    const focusSearch = withFilter && (inPlace || !matchMedia("(pointer: coarse)").matches);
+    (focusSearch ? filter.current : list.current)?.focus({ preventScroll: true });
   }, [open]);
 
   useEffect(() => {
