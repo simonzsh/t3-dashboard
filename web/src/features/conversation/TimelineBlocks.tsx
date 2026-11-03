@@ -5,7 +5,7 @@ import { STEP_LABELS, duration, failure } from "../../lib/format.ts";
 import { useAction } from "../../lib/useAction.ts";
 import { Button, Icon, IconButton, Loader, Pressable } from "../../ui/index.ts";
 import { MarkdownText } from "./MarkdownText.tsx";
-import { StepRow, useStepDetail } from "./Steps.tsx";
+import { StepRow, useStepDetail, useTicker } from "./Steps.tsx";
 import { STEP_ICONS } from "./steps.ts";
 
 const CHILD_REFRESH_MS = 5000;
@@ -74,15 +74,9 @@ export function SubagentBlock({ step, threadId, onOpenThread, onChanged }: Subag
   const sub = step.subagent;
   const running = step.status === "running";
   const [open, setOpen] = useState(false);
-  const [now, setNow] = useState(() => Date.now());
+  const now = useTicker(running);
   const [stopping, setStopping] = useState(false);
   const action = useAction("stop the subagent");
-
-  useEffect(() => {
-    if (!running) return;
-    const id = setInterval(() => setNow(Date.now()), 1000);
-    return () => clearInterval(id);
-  }, [running]);
 
   if (!sub) return null;
   const end = step.completedAt ? Date.parse(step.completedAt) : now;

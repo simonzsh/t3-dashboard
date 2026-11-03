@@ -1,7 +1,7 @@
 import { test } from "bun:test";
 import assert from "node:assert/strict";
 import type { TurnStep } from "../../../../shared/api.ts";
-import { diffLines, groupLabel } from "../../../src/features/conversation/steps.ts";
+import { diffLines, groupLabel, remember } from "../../../src/features/conversation/steps.ts";
 
 const step = (startedAt: string, completedAt: string | null): TurnStep => ({ id: startedAt, runId: null, kind: "command", status: "done", startedAt, completedAt, text: "", detail: null, expandable: false, exitCode: null });
 
@@ -40,4 +40,10 @@ test("groupLabel counts steps and shows the time they took", () => {
 test("groupLabel leaves the time out when a step has no time", () => {
   assert.equal(groupLabel([step("", null), step("", null)]), "2 steps");
   assert.equal(groupLabel([step("2026-01-01T10:00:00Z", null)]), "1 step");
+});
+
+test("remember drops the oldest entry past the cap and keeps a rewritten key fresh", () => {
+  const cache = new Map<string, number>();
+  for (const [key, value] of [["a", 1], ["b", 2], ["a", 3], ["c", 4]] as const) remember(cache, key, value, 2);
+  assert.deepEqual([...cache], [["a", 3], ["c", 4]]);
 });

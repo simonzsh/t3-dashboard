@@ -53,3 +53,10 @@ export function diffLines(diff: string): DiffLine[] {
     return { type: "ctx", text };
   });
 }
+
+/** Stores a value in a Map used as an LRU cache: the oldest entry leaves once `max` is passed. */
+export function remember<V>(cache: Map<string, V>, key: string, value: V, max: number): void {
+  cache.delete(key);
+  cache.set(key, value);
+  if (cache.size > max) cache.delete(cache.keys().next().value!);
+}

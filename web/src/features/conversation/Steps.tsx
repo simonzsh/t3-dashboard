@@ -4,14 +4,15 @@ import { useApi } from "../../api/ApiContext.tsx";
 import { duration, failure } from "../../lib/format.ts";
 import { safeHref } from "../../lib/markdown.tsx";
 import { Icon, Loader, Pressable } from "../../ui/index.ts";
-import { STEP_ICONS, diffLines, groupLabel } from "./steps.ts";
+import { STEP_ICONS, diffLines, groupLabel, remember } from "./steps.ts";
 
 const LIVE_VISIBLE = 4;
 const DETAIL_REFRESH_MS = 3000;
-// A finished step never changes: expanding it again costs nothing.
+// A finished step never changes: expanding it again costs nothing. Capped, oldest out first.
+const DETAIL_CACHE_MAX = 200;
 const detailCache = new Map<string, StepDetail>();
 
-function useTicker(active: boolean): number {
+export function useTicker(active: boolean): number {
   const [now, setNow] = useState(() => Date.now());
   useEffect(() => {
     if (!active) return;
@@ -99,7 +100,7 @@ export function useStepDetail(threadId: string, step: TurnStep, enabled = true):
     const load = () =>
       api.getStepDetail(threadId, step.id).then(
         (detail) => {
-          if (!running) detailCache.set(key, detail);
+          if (!running) remember(detailCache, key, detail, DETAIL_CACHE_MAX);
           if (alive) setState({ key, detail, error: null });
         },
         (e) => {
