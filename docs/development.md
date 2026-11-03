@@ -58,6 +58,7 @@ These actions write to the real T3 Code. Do them once after each T3 update.
 9. In the Agents tab, make sure that the "Automations" column lists the T3 Code scheduled tasks (`scheduledTasks.subscribe`). An old T3 version shows an error in the column, and the grid continues to work.
 10. Type "Reminder: in 2 minutes, say hello" in the column field, then send it. Make sure that the agent creates the task with `schedule_task`, and that the thread leaves the grid. After the run, make sure that the task is paused and that the reminder row shows "Finished".
 11. Run a task with commands, a file change, a to-do list and a subagent. Make sure that the steps form a group that closes after the run. Open a command and a file change: make sure that the output, the exit code and the diff show. Open the subagent block: make sure that its steps and result show, and that "Open thread" opens the child thread (T3 Code may refuse a message to it).
+12. In a conversation, drop a PDF and a PNG on the composer, paste an image, and attach a file with the paperclip. Make sure that each chip goes from "uploading" to ready, that the arrow stays disabled until then, and that removing a chip deletes the upload. Send, then make sure that the agent receives the files. Type `@` and a part of a file name: make sure that the list opens, that the arrow keys, `Enter`, `Tab` and `Escape` work, and that `a@b.com` opens nothing.
 
 ## Architecture
 

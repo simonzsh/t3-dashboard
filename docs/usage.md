@@ -41,7 +41,8 @@ Each Desk window contains a conversation.
 
 - Write a message and send it with `Enter`. During a run, the message waits in the "Up next" list (dashed border). T3 Code sends it when the turn ends.
 - Under each queued message, three icons: send (Enter arrow), edit, remove. During a run, the send icon steers: the message goes into the current run now. After a Stop, T3 Code holds the queue, and the send icon starts a turn with this message.
-- Attach images: PNG, JPEG, GIF or WebP. The limit is 10 images, 10 MB for each image and 18 MB in total.
+- Attach files with the paperclip, by drag and drop on the composer, or by paste. A chip shows each upload ("uploading", ready or "failed" with a retry button). Send waits for all uploads. The limits are those of T3 Code: 100 files, 10 MB for each image (PNG, JPEG, GIF or WebP), 50 MB for each other file and 80 MB of images in all.
+- Type `@` after a space to search the files of the conversation folder. Use the arrow keys and `Enter` or `Tab` to insert `@path`. `Escape` closes the list.
 - Change the model, the reasoning effort and the access mode ("Supervised", "Auto-accept edits", "Auto", "Full access").
 - Stop a run with the "Stop" button.
 - Answer an approval: "Accept", "Accept for session" or "Decline". The dashboard does not offer "Always accept".
@@ -73,7 +74,7 @@ The New Agent button (key `N`) starts a new agent.
 
 1. Select a T3 project, or keep "No project". Without a project, the session goes into the "No project" project of T3 Code.
 2. Write the task. The first line becomes the title of the session.
-3. If necessary, change the model or the access mode, or attach images.
+3. If necessary, change the model or the access mode, or attach files. This does not apply to an assigned issue, and `@` search does not work here.
 4. Send. The conversation opens on the Desk.
 
 - The proposed model is the default model of the project. If there is none, it is the default model of T3 Code.
