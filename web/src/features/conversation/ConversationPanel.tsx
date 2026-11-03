@@ -325,7 +325,7 @@ function Conversation({ threadId, thread, providers, onOpenThread }: Props) {
           {!detail && loadError && <p className="empty">This conversation could not be loaded.</p>}
           {detail && detail.messages.length === 0 && detail.renders.length === 0 && detail.steps.length === 0 && <p className="empty">No messages</p>}
           {!detail && !loadError && <Loader />}
-          {detail && <Timeline detail={detail} threadId={threadId} running={running} onOpenThread={onOpenThread} onChanged={() => void load()} />}
+          {detail && <Timeline detail={detail} threadId={threadId} running={running} onOpenThread={onOpenThread} onChanged={load} />}
           {detail && !running && pending.map((p) => <PendingBubble key={p.id} message={p} />)}
           {detail && detail.pendingRequests.length > 0 && (
             <div className="requests">
