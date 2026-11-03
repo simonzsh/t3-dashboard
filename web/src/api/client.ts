@@ -131,6 +131,8 @@ export type Api = ReturnType<typeof createApi>;
 const threadPath = (id: string) => `/api/threads/${encodeURIComponent(id)}`;
 export const attachmentUrl = (threadId: string, attachmentId: string, theme?: string) =>
   `${threadPath(threadId)}/attachments/${encodeURIComponent(attachmentId)}${theme ? `?theme=${theme}` : ""}`;
+/** The file as it was sent, never themed as a page. */
+export const rawAttachmentUrl = (threadId: string, attachmentId: string) => `${attachmentUrl(threadId, attachmentId)}?raw=1`;
 export const mediaUrl = (threadId: string, path: string) => `${threadPath(threadId)}/media?path=${encodeURIComponent(path)}`;
 
 export const api = createApi((input, init) => globalThis.fetch(input, init));

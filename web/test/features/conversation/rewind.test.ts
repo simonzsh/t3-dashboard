@@ -16,7 +16,7 @@ test("attachmentFiles downloads each attachment as a File with its name and type
   const urls: string[] = [];
   const get = async (url: string) => (urls.push(url), new Response("abc", { headers: { "content-type": "application/octet-stream" } }));
   const files = await attachmentFiles("t 1", [attachment("a/1", "a.txt", "text/plain"), attachment("b", "b.bin", null)], get);
-  assert.deepEqual(urls, ["/api/threads/t%201/attachments/a%2F1", "/api/threads/t%201/attachments/b"]);
+  assert.deepEqual(urls, ["/api/threads/t%201/attachments/a%2F1?raw=1", "/api/threads/t%201/attachments/b?raw=1"]);
   assert.deepEqual(files.map((file) => [file.name, file.type.split(";")[0], file.size]), [["a.txt", "text/plain", 3], ["b.bin", "application/octet-stream", 3]]);
 });
 

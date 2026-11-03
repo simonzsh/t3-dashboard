@@ -142,11 +142,12 @@ export function createDashboardServer(options: DashboardServerOptions): Dashboar
   const ok = (extra: Record<string, unknown> = {}) => json(200, { ok: true, ...extra });
   const done = async (work: Promise<unknown>) => (await work, ok());
 
-  // Images keep T3's type; a page is served sandboxed, so its scripts get an opaque origin and cannot call /api.
+  // Images keep T3's type; a rendered page is served sandboxed, so its scripts get an opaque origin and cannot call /api.
   async function asset(req: Request, threadId: string, request: AssetRequest): Promise<Response> {
     const { response, html } = await actions.asset(threadId, request, req.headers.get("range") ?? undefined);
     const headers: Record<string, string> = { "cache-control": "private, max-age=3600" };
-    if (!html) {
+    // ?raw=1 asks for the bytes: a user's .html file is a download, not a page to render.
+    if (!html || new URL(req.url).searchParams.get("raw") === "1") {
       // Never pass through a type the browser could run (html, svg) on the dashboard origin.
       const type = response.headers.get("content-type") ?? "";
       if (MEDIA_TYPE.test(type)) headers["content-type"] = type;

@@ -3,7 +3,7 @@ import type { ChatMessage, DashboardProvider, HtmlRender, DashboardThread, Threa
 import { runActive } from "../../../../shared/status.ts";
 import { useApi } from "../../api/ApiContext.tsx";
 import { Icon, IconButton, Loader } from "../../ui/index.ts";
-import { attachmentUrl } from "../../api/client.ts";
+import { attachmentUrl, rawAttachmentUrl } from "../../api/client.ts";
 import { type PendingMessage, countSame, isSettled, pendingLabel, sentMessages } from "./pending.ts";
 import { MarkdownText } from "./MarkdownText.tsx";
 import { QueuedMessages } from "./QueuedMessages.tsx";
@@ -55,7 +55,7 @@ const Message = memo(function Message({ message: m, threadId, editing }: { messa
       {files.length > 0 && (
         <div className="msg-files">
           {files.map((file) => (
-            <a key={file.id} className="msg-file" href={attachmentUrl(threadId, file.id)} download={file.name}>
+            <a key={file.id} className="msg-file" href={rawAttachmentUrl(threadId, file.id)} download={file.name}>
               <Icon name="paperclip" />
               <span className="msg-file-name">{file.name}</span>
               {file.sizeBytes !== null && <span className="msg-file-size">{formatBytes(file.sizeBytes)}</span>}

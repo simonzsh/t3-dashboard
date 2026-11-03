@@ -936,6 +936,16 @@ test("attachments: a page is themed and sandboxed, and only the dashboard may fr
   assert.match(reply.text, /bytes$/);
 });
 
+test("attachments: ?raw=1 serves a .html file as a download, not a themed page", async () => {
+  const { server, port } = await start();
+  port.assetFileName = "t1-notes-html.html";
+  port.assetType = "text/html";
+  const reply = await call(server, "GET", "/api/threads/t1/attachments/t1-notes-html?raw=1");
+  assert.equal(reply.headers["content-type"], "application/octet-stream");
+  assert.equal(reply.headers["content-disposition"], "attachment");
+  assert.equal(reply.text, "bytes");
+});
+
 test("media: only an absolute image path that a message of the thread shows", async () => {
   const { server, port } = await start();
   port.projection = { messages: [{ id: "m", role: "assistant", text: "Done: ![shot](/tmp/out/shot.png)" }] };
