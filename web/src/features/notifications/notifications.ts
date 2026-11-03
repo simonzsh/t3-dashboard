@@ -1,11 +1,9 @@
+import type { SeenState } from "../../../../shared/seen.ts";
 import { agentStatus, threadState, type AgentStatus } from "../../../../shared/status.ts";
 import type { DashboardThread } from "../../../../shared/threads.ts";
-import type { Store } from "../../lib/storage.ts";
 import type { BadgeVariant } from "../../ui/index.ts";
 
 export const NOTIFY_LIMIT = 20;
-const SEEN_CAP = 200;
-const KEY = "t3-dashboard-notifications-seen";
 
 export type NotifyKind = "waiting" | "finished";
 
@@ -15,12 +13,6 @@ export interface NotifyEntry {
   tone: BadgeVariant;
   label: string;
   unseen: boolean;
-}
-
-/** `since`: the baseline of the first visit. `seen`: thread id -> its lastActivityAt when it was opened. */
-export interface SeenState {
-  since: string;
-  seen: Record<string, string>;
 }
 
 const newest = (a: DashboardThread, b: DashboardThread) => b.lastActivityAt.localeCompare(a.lastActivityAt);
@@ -58,7 +50,8 @@ export function unseenCount(threads: DashboardThread[], seen: SeenState): number
 
 export const badgeText = (n: number): string => (n > 9 ? "9+" : String(n));
 
-export const markSeen = (seen: SeenState, id: string, at: string): SeenState => ({ ...seen, seen: { ...seen.seen, [id]: at } });
+// The T3 clock, not the browser's, so a device with a skewed clock hides nothing and shows nothing extra.
+export const baselineOf = (threads: DashboardThread[]): string => threads.map((t) => t.lastActivityAt).reduce(later, "") || new Date().toISOString();
 
 export const statusMap = (threads: DashboardThread[]): Map<string, AgentStatus> => new Map(threads.map((t) => [t.id, agentStatus(t)]));
 
@@ -74,40 +67,4 @@ export function transitions(prev: Map<string, AgentStatus> | null, threads: Dash
     else if (now === "finished" && (before === "working" || before === "waiting")) out.push(entryOf(t, "finished", null));
   }
   return out;
-}
-
-// Anything unexpected in storage gives a fresh state, never an exception.
-export function loadSeen(storage: Store | null, threads: DashboardThread[] | null): SeenState {
-  try {
-    const data: unknown = JSON.parse(storage?.getItem(KEY) ?? "null");
-    if (data && typeof data === "object" && typeof (data as SeenState).since === "string" && (data as SeenState).since) {
-      const marks = (data as SeenState).seen;
-      const seen = Object.fromEntries(Object.entries(marks && typeof marks === "object" ? marks : {}).filter(([, v]) => typeof v === "string"));
-      return { since: (data as SeenState).since, seen };
-    }
-  } catch {
-    // Fall through to a fresh baseline.
-  }
-  // An empty `since` waits for live threads, so the baseline uses the T3 clock, not the browser's.
-  if (!threads) return { since: "", seen: {} };
-  const fresh = { since: threads.map((t) => t.lastActivityAt).reduce(later, "") || new Date().toISOString(), seen: {} };
-  saveSeen(storage, fresh);
-  return fresh;
-}
-
-/** Drops marks the baseline hides and keeps the newest ones. Dropped marks move the baseline up, so they stay seen. */
-export function prune({ since, seen }: SeenState): SeenState {
-  const kept = Object.entries(seen)
-    .filter(([, at]) => at.localeCompare(since) > 0)
-    .sort(([, a], [, b]) => b.localeCompare(a));
-  const dropped = kept[SEEN_CAP]?.[1];
-  return { since: dropped ? later(since, dropped) : since, seen: Object.fromEntries(kept.slice(0, SEEN_CAP)) };
-}
-
-export function saveSeen(storage: Store | null, seen: SeenState): void {
-  try {
-    storage?.setItem(KEY, JSON.stringify(prune(seen)));
-  } catch {
-    // Storage full or blocked: the marks only live for this session.
-  }
 }

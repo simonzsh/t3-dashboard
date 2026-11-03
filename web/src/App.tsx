@@ -39,7 +39,7 @@ function focusComposer(threadId: string) {
 }
 
 export function App() {
-  const { state, sseDown, remoteDesk, connects } = useDashboard();
+  const { state, sseDown, remoteDesk, remoteSeen, connects } = useDashboard();
   const [tab, setTab] = useTab();
   const automations = useAutomations(tab === "agents" && state?.connection.t3 === "live");
   const [desk, dispatchDesk] = useDesk();
@@ -54,7 +54,12 @@ export function App() {
   // The focused desk window on the visible Desk tab is already in front of the user: no toast for it.
   const watching = useRef<(id: string) => boolean>(() => false);
   watching.current = (id) => tab === "desk" && desk.focusedId === id;
-  const notify = useNotifications(state?.connection.t3 === "live" ? state.threads : null, useCallback((id: string) => watching.current(id), []));
+  const notify = useNotifications({
+    threads: state?.connection.t3 === "live" ? state.threads : null,
+    quiet: useCallback((id: string) => watching.current(id), []),
+    remote: remoteSeen,
+    connects,
+  });
   const [creating, setCreating] = useState(false);
   const [creatingAutomation, setCreatingAutomation] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);

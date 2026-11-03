@@ -1,14 +1,15 @@
 import { test } from "bun:test";
 import assert from "node:assert/strict";
-import { badgeText, loadSeen, markSeen, notifyEntries, NOTIFY_LIMIT, saveSeen, statusMap, transitions, unseenCount, type SeenState } from "../../../src/features/notifications/notifications.ts";
-import { memoryStore, thread } from "../../fixtures.ts";
+import { mergeSeen, type SeenState } from "../../../../shared/seen.ts";
+import { badgeText, baselineOf, notifyEntries, NOTIFY_LIMIT, statusMap, transitions, unseenCount } from "../../../src/features/notifications/notifications.ts";
+import { thread } from "../../fixtures.ts";
 
-const KEY = "t3-dashboard-notifications-seen";
 const at = (minute: number) => `2026-01-10T10:${String(minute).padStart(2, "0")}:00.000Z`;
 const finished = (id: string, minute: number, over = {}) => thread(id, { status: "completed", lastActivityAt: at(minute), ...over });
 const waiting = (id: string, minute: number, category: "approval" | "user-input" | "other" = "approval") => thread(id, { status: "waiting", pending: { category }, lastActivityAt: at(minute) });
 const running = (id: string) => thread(id, { status: "running", activeRunId: "run-1" });
 const fresh: SeenState = { since: "", seen: {} };
+const markSeen = (state: SeenState, id: string, when: string) => mergeSeen(state, { id, at: when })!;
 
 test("waiting threads come first, then finished ones, newest first; working and idle are left out", () => {
   const entries = notifyEntries([finished("f-new", 30), waiting("w-old", 1), running("r"), thread("i"), finished("f-old", 5), waiting("w-new", 2)], fresh);
@@ -85,43 +86,7 @@ test("transitions: no toast for a status that did not change, an old finish or a
   assert.deepEqual(transitions(prev, [finished("f", 9), waiting("w", 9), finished("i", 3), finished("new", 4)]), []);
 });
 
-test("loadSeen: first use starts at the newest activity and is stored once", () => {
-  const store = memoryStore();
-  const seen = loadSeen(store, [finished("a", 3), finished("b", 8)]);
-  assert.deepEqual(seen, { since: at(8), seen: {} });
-  assert.equal(JSON.parse(store.data.get(KEY)!).since, at(8));
-  assert.equal(loadSeen(store, [finished("c", 50)]).since, at(8));
-});
-
-test("loadSeen: without live threads the baseline waits and nothing is stored", () => {
-  const store = memoryStore();
-  assert.deepEqual(loadSeen(store, null), { since: "", seen: {} });
-  assert.equal(store.data.get(KEY), undefined);
-  assert.equal(loadSeen(store, [finished("a", 4)]).since, at(4));
-});
-
-test("loadSeen: bad JSON or blocked storage gives a fresh state", () => {
-  for (const bad of ["{oops", "42", '{"since":3}']) {
-    assert.deepEqual(loadSeen(memoryStore({ [KEY]: bad }), [finished("a", 3)]).seen, {});
-  }
-  assert.deepEqual(loadSeen(null, [finished("a", 3)]), { since: at(3), seen: {} });
-  const throwing = { getItem: () => { throw new Error("blocked"); }, setItem: () => { throw new Error("full"); } };
-  assert.doesNotThrow(() => saveSeen(throwing, fresh));
-  assert.deepEqual(loadSeen(throwing, []).seen, {});
-});
-
-test("saveSeen drops marks the baseline already hides and keeps the 200 newest", () => {
-  const store = memoryStore();
-  const seen: Record<string, string> = { stale: at(1) };
-  for (let i = 0; i < 250; i++) seen[`t${i}`] = new Date(Date.UTC(2026, 0, 11, 0, 0, i)).toISOString();
-  saveSeen(store, { since: at(5), seen });
-  const saved = JSON.parse(store.data.get(KEY)!);
-  const ids = Object.keys(saved.seen);
-  assert.equal(ids.length, 200);
-  assert.ok(!ids.includes("stale"));
-  assert.ok(ids.includes("t249"));
-  assert.ok(!ids.includes("t0"));
-  // The newest dropped mark becomes the baseline, so dropped threads stay seen after a reload.
-  assert.equal(saved.since, seen.t49);
-  assert.equal(unseenCount([finished("t0", 0, { lastActivityAt: seen.t0 })], saved), 0);
+test("baselineOf is the newest activity, or now when there is none", () => {
+  assert.equal(baselineOf([finished("a", 3), finished("b", 8), finished("c", 1)]), at(8));
+  assert.ok(Math.abs(Date.parse(baselineOf([])) - Date.now()) < 5000);
 });
