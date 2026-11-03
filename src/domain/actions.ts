@@ -68,7 +68,7 @@ export interface Actions {
   rewind(threadId: string, messageId: string, restoreFiles: boolean): Promise<void>;
   settle(threadId: string): Promise<void>;
   unsettle(threadId: string): Promise<void>;
-  assign(body: Omit<AssignIssueBody, "attachments">, images: ImageUpload[]): Promise<string>;
+  assign(body: Omit<AssignIssueBody, "attachments" | "uploads">, images: ImageUpload[], uploads?: UploadedAttachment[]): Promise<string>;
   /** An image or page of the thread, fetched from T3. */
   asset(threadId: string, request: AssetRequest, range?: string): Promise<{ response: Response; html: boolean }>;
 }
@@ -307,7 +307,7 @@ export function createActions(options: ActionsOptions): Actions {
       await send(unsettleCommand(threadId));
     },
 
-    async assign(body, images) {
+    async assign(body, images, uploads) {
       const issue = await findIssue(body.issueId);
       let projectId: string;
       if (body.projectId) {
@@ -321,7 +321,7 @@ export function createActions(options: ActionsOptions): Actions {
       const text = instructions ? `${instructions}\n\n${reference}` : `Handle Linear issue ${issue.identifier}: ${issue.url}`;
       const create = { projectId, title: `${issue.identifier} ${issue.title}`, text, modelSelection: body.modelSelection, ...(body.runtimeMode && { runtimeMode: body.runtimeMode }) };
       const threadId = newId();
-      await send(...createThreadCommands(threadId, create, await outgoing(threadId, images)));
+      await send(...createThreadCommands(threadId, create, await outgoing(threadId, images, uploads)));
       return threadId;
     },
   };

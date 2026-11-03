@@ -83,7 +83,7 @@ export function decodeDataUrl(mimeType: string, dataUrl: unknown): { base64: str
   return { base64, sizeBytes: Math.floor((base64.length * 3) / 4) - (base64.endsWith("==") ? 2 : base64.endsWith("=") ? 1 : 0) };
 }
 
-export function validImages(value: unknown): ImageUpload[] {
+function validImages(value: unknown): ImageUpload[] {
   if (value === undefined) return [];
   const error = new HttpError(400, `attachments must be up to ${MAX_IMAGES} PNG, JPEG, GIF or WebP images of 10 MB or less`);
   if (!Array.isArray(value) || value.length > MAX_IMAGES) throw error;
@@ -152,7 +152,7 @@ export function validItemId(itemId: string): string {
   return itemId;
 }
 
-export function validAssign(body: Record<string, unknown>): Omit<AssignIssueBody, "attachments"> {
+export function validAssign(body: Record<string, unknown>): Omit<AssignIssueBody, "attachments" | "uploads"> {
   const modelSelection = validSelection(body.modelSelection);
   const projectId = body.projectId ?? "";
   const text = body.text ?? "";

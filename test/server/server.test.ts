@@ -1197,6 +1197,13 @@ test("POST /api/threads takes uploads", async () => {
   assert.equal((await post(server, "/api/threads", { projectId: "project-1", title: "t", text: "x", modelSelection: model, uploads: [{ ...upload, id: "" }] })).status, 400);
 });
 
+test("POST /api/board/assign takes uploads", async () => {
+  const { server, port } = await start({ linearKey: "key-1" });
+  assert.equal((await post(server, "/api/board/assign", { ...assignBody, uploads: [upload] })).status, 200);
+  assert.deepEqual(port.commands[1]!.attachments, [upload]);
+  assert.equal((await post(server, "/api/board/assign", { ...assignBody, uploads: [{ ...upload, id: "" }] })).status, 400);
+});
+
 test("GET /api/threads/:id/items/:itemId answers the step detail, 404 when T3 has no such item", async () => {
   const { server, port } = await start();
   port.turnItems["item-1"] = { id: "item-1", type: "command_execution", input: "ls", output: "a\nb", exitCode: 0 };

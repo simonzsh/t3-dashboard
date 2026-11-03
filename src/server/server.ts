@@ -14,7 +14,7 @@ import { matchesEtag } from "./etag.ts";
 import { servePwa } from "./pwa.ts";
 import type { Site } from "./site.ts";
 import type { SseHub } from "./sse.ts";
-import { isObject, isText, validAssign, validAttachments, validAutomationRequest, validDesk, validCreate, validFileSearch, validImages, validItemId, validMessage, validQueuedEdit, validRename, validRespond, validRewind, validSearch, validSettings, validUpload } from "./validate.ts";
+import { isObject, isText, validAssign, validAttachments, validAutomationRequest, validDesk, validCreate, validFileSearch, validItemId, validMessage, validQueuedEdit, validRename, validRespond, validRewind, validSearch, validSettings, validUpload } from "./validate.ts";
 
 export interface SetupControl {
   /** Resolves the token again. */
@@ -211,7 +211,11 @@ export function createDashboardServer(options: DashboardServerOptions): Dashboar
       method: "POST",
       path: "/api/board/assign",
       maxBytes: MAX_MESSAGE_BODY_BYTES,
-      handle: async ({ body }) => ok({ threadId: await actions.assign(validAssign(body), validImages(body.attachments)) }),
+      handle: async ({ body }) => {
+        const assign = validAssign(body);
+        const { images, uploads } = validAttachments(body);
+        return ok({ threadId: await actions.assign(assign, images, uploads) });
+      },
     },
     {
       method: "POST",
