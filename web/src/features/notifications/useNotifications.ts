@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { AgentStatus } from "../../../../shared/status.ts";
 import type { DashboardThread } from "../../../../shared/threads.ts";
 import { browserStorage } from "../../lib/storage.ts";
-import { loadSeen, markSeen as mark, notifyEntries, saveSeen, statusMap, transitions, unseenCount, type NotifyEntry, type SeenState } from "./notifications.ts";
+import { loadSeen, markSeen as mark, notifyEntries, prune, saveSeen, statusMap, transitions, unseenCount, type NotifyEntry, type SeenState } from "./notifications.ts";
 
 const MAX_TOASTS = 3;
 const TOAST_MS = 6000;
@@ -29,7 +29,7 @@ export function useNotifications(threads: DashboardThread[] | null, quiet: (id: 
     (id: string) => {
       const at = latest.current.threads?.find((t) => t.id === id)?.lastActivityAt ?? new Date().toISOString();
       setSeen((prev) => {
-        const next = mark(prev, id, at);
+        const next = prune(mark(prev, id, at));
         saveSeen(browserStorage(), next);
         return next;
       });
@@ -40,6 +40,7 @@ export function useNotifications(threads: DashboardThread[] | null, quiet: (id: 
 
   useEffect(() => {
     if (!threads) return;
+    if (!seen.since) setSeen(loadSeen(browserStorage(), threads));
     const fresh = transitions(previous.current, threads);
     previous.current = statusMap(threads);
     for (const entry of fresh) {
@@ -52,14 +53,21 @@ export function useNotifications(threads: DashboardThread[] | null, quiet: (id: 
       timers.current.set(id, setTimeout(() => dismiss(id), TOAST_MS));
       setToasts((list) => [entry, ...list.filter((t) => t.thread.id !== id)].slice(0, MAX_TOASTS));
     }
-  }, [threads, markSeen, dismiss]);
+  }, [threads, seen.since, markSeen, dismiss]);
 
   useEffect(() => {
     const pending = timers.current;
     return () => pending.forEach(clearTimeout);
   }, []);
 
-  const entries = useMemo(() => notifyEntries(threads ?? [], seen), [threads, seen]);
-  const count = useMemo(() => unseenCount(threads ?? [], seen), [threads, seen]);
-  return { entries, count, toasts, dismiss, markSeen };
+  // Until the baseline exists, finished threads count as seen: no full badge on a first visit.
+  const ready = seen.since ? seen : { since: "9999", seen: {} };
+  const entries = useMemo(() => notifyEntries(threads ?? [], ready), [threads, ready]);
+  const count = useMemo(() => unseenCount(threads ?? [], ready), [threads, ready]);
+  const clearToasts = useCallback(() => {
+    timers.current.forEach(clearTimeout);
+    timers.current.clear();
+    setToasts([]);
+  }, []);
+  return { entries, count, toasts, dismiss, markSeen, clearToasts };
 }

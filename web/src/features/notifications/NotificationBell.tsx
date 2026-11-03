@@ -56,12 +56,18 @@ export function NotificationToasts({ toasts, onOpen, onDismiss }: { toasts: Noti
   );
 }
 
-export function NotificationBell({ entries, count, now, onOpen }: ListProps & { count: number }) {
+// `onShow`: the menu lists every toast, so the caller clears them instead of covering the menu.
+export function NotificationBell({ entries, count, now, onOpen, onShow }: ListProps & { count: number; onShow?: () => void }) {
   const [open, setOpen] = useState(false);
   const button = useRef<HTMLButtonElement>(null);
   return (
     <>
-      <IconButton ref={button} className="notif-bell" label={count > 0 ? `Notifications, ${count} unread` : "Notifications"} aria-expanded={open} onClick={() => setOpen((v) => !v)}>
+      <IconButton ref={button} className="notif-bell" label={count > 0 ? `Notifications, ${count} unread` : "Notifications"} aria-expanded={open}
+        onClick={() => {
+          if (!open) onShow?.();
+          setOpen(!open);
+        }}
+      >
         <Icon name="bell" strokeWidth={1.8} />
         {count > 0 && <span className="notif-count">{badgeText(count)}</span>}
       </IconButton>

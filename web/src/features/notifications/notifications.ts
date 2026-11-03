@@ -80,7 +80,7 @@ export function transitions(prev: Map<string, AgentStatus> | null, threads: Dash
 export function loadSeen(storage: Store | null, threads: DashboardThread[] | null): SeenState {
   try {
     const data: unknown = JSON.parse(storage?.getItem(KEY) ?? "null");
-    if (data && typeof data === "object" && typeof (data as SeenState).since === "string") {
+    if (data && typeof data === "object" && typeof (data as SeenState).since === "string" && (data as SeenState).since) {
       const marks = (data as SeenState).seen;
       const seen = Object.fromEntries(Object.entries(marks && typeof marks === "object" ? marks : {}).filter(([, v]) => typeof v === "string"));
       return { since: (data as SeenState).since, seen };
@@ -88,19 +88,25 @@ export function loadSeen(storage: Store | null, threads: DashboardThread[] | nul
   } catch {
     // Fall through to a fresh baseline.
   }
-  const latest = (threads ?? []).map((t) => t.lastActivityAt).reduce((a, b) => later(a, b), "");
-  const fresh = { since: latest || new Date().toISOString(), seen: {} };
+  // An empty `since` waits for live threads, so the baseline uses the T3 clock, not the browser's.
+  if (!threads) return { since: "", seen: {} };
+  const fresh = { since: threads.map((t) => t.lastActivityAt).reduce(later, "") || new Date().toISOString(), seen: {} };
   saveSeen(storage, fresh);
   return fresh;
 }
 
-export function saveSeen(storage: Store | null, { since, seen }: SeenState): void {
+/** Drops marks the baseline hides and keeps the newest ones. Dropped marks move the baseline up, so they stay seen. */
+export function prune({ since, seen }: SeenState): SeenState {
   const kept = Object.entries(seen)
     .filter(([, at]) => at.localeCompare(since) > 0)
-    .sort(([, a], [, b]) => b.localeCompare(a))
-    .slice(0, SEEN_CAP);
+    .sort(([, a], [, b]) => b.localeCompare(a));
+  const dropped = kept[SEEN_CAP]?.[1];
+  return { since: dropped ? later(since, dropped) : since, seen: Object.fromEntries(kept.slice(0, SEEN_CAP)) };
+}
+
+export function saveSeen(storage: Store | null, seen: SeenState): void {
   try {
-    storage?.setItem(KEY, JSON.stringify({ since, seen: Object.fromEntries(kept) }));
+    storage?.setItem(KEY, JSON.stringify(prune(seen)));
   } catch {
     // Storage full or blocked: the marks only live for this session.
   }

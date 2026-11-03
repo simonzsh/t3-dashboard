@@ -206,7 +206,7 @@ export function App() {
                 New Automation
               </Button>
             ))}
-          <NotificationBell entries={notify.entries} count={notify.count} now={now} onOpen={(id) => openOnDesk(id, true)} />
+          <NotificationBell entries={notify.entries} count={notify.count} now={now} onOpen={(id) => openOnDesk(id, true)} onShow={notify.clearToasts} />
           <IconButton label="Settings" kbd="," onClick={() => setSettingsOpen(true)}>
             <Icon name="settings" strokeWidth={1.8} />
           </IconButton>

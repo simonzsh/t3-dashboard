@@ -93,6 +93,13 @@ test("loadSeen: first use starts at the newest activity and is stored once", () 
   assert.equal(loadSeen(store, [finished("c", 50)]).since, at(8));
 });
 
+test("loadSeen: without live threads the baseline waits and nothing is stored", () => {
+  const store = memoryStore();
+  assert.deepEqual(loadSeen(store, null), { since: "", seen: {} });
+  assert.equal(store.data.get(KEY), undefined);
+  assert.equal(loadSeen(store, [finished("a", 4)]).since, at(4));
+});
+
 test("loadSeen: bad JSON or blocked storage gives a fresh state", () => {
   for (const bad of ["{oops", "42", '{"since":3}']) {
     assert.deepEqual(loadSeen(memoryStore({ [KEY]: bad }), [finished("a", 3)]).seen, {});
@@ -114,4 +121,7 @@ test("saveSeen drops marks the baseline already hides and keeps the 200 newest",
   assert.ok(!ids.includes("stale"));
   assert.ok(ids.includes("t249"));
   assert.ok(!ids.includes("t0"));
+  // The newest dropped mark becomes the baseline, so dropped threads stay seen after a reload.
+  assert.equal(saved.since, seen.t49);
+  assert.equal(unseenCount([finished("t0", 0, { lastActivityAt: seen.t0 })], saved), 0);
 });
