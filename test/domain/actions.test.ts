@@ -5,6 +5,7 @@ import { createActions } from "../../src/domain/actions.ts";
 import { DomainError } from "../../src/domain/errors.ts";
 import type { ShellStore } from "../../src/domain/shellStore.ts";
 import { IntegrationError } from "../../src/integrations/errors.ts";
+import { FakePort } from "../helpers/fakePort.ts";
 import type { Command, RawBackgroundTask, RawConfig, RawProjection, T3Port } from "../../src/integrations/t3/schemas.ts";
 
 const issue = {
@@ -29,7 +30,7 @@ function stopHarness(projections: Record<string, RawProjection>, config: RawConf
     dispatch: async (command: Command) => void commands.push(command),
     getConfig: async () => config,
   } as unknown as T3Port;
-  const store = { thread: () => undefined, project: () => undefined, backgroundTasks: () => tasks };
+  const store = { thread: () => undefined, project: () => undefined, backgroundTasks: () => tasks, workspaceOf: () => null };
   let counter = 0;
   const actions = createActions({ port, store, board: { get: async () => ({ configured: true, ok: true, error: null, issues: [] }) }, newId: () => `id-${++counter}` });
   return { actions, commands, port };
@@ -56,12 +57,17 @@ function harness({ searchResult = [] as ReturnType<typeof searchMatch>[], search
     fetchAsset: async () => ({ response: new Response(""), fileName: "" }),
     ensureScratchProject: async () => "scratch-project",
     persistAttachments: async () => [],
+    turnItem: async () => null,
+    searchEntries: async () => ({ entries: [], truncated: false }),
+    uploadAttachment: async () => "file-1",
+    deleteAttachment: async () => {},
     subscribeShell: () => ({ cancel() {} }),
   };
   const store = {
     thread: (id: string) => (id.startsWith("known") ? ({ id } as ReturnType<ShellStore["thread"]>) : undefined),
     project: (id: string) => (id === "project-1" ? { id, title: "Project", defaultModelSelection: null, icon: null } : undefined),
     backgroundTasks: () => [],
+    workspaceOf: () => null,
   };
   let counter = 0;
   const actions = createActions({ port, store, board: { get: async () => board }, newId: () => `id-${++counter}` });
@@ -198,4 +204,53 @@ test("editing and removing a queued message send one command each, without attac
     { type: "queued-run.edit", threadId: "thread-1", runId: "q1", text: "new text", commandId: "id-1" },
     { type: "queued-run.cancel", threadId: "thread-1", runId: "q1", commandId: "id-2" },
   ]);
+});
+
+function fakeHarness(workspaces: Record<string, string | null> = {}) {
+  const port = new FakePort();
+  const store = { thread: () => undefined, project: () => undefined, backgroundTasks: () => [], workspaceOf: (id: string) => workspaces[id] ?? null };
+  let counter = 0;
+  const actions = createActions({ port, store, board: { get: async () => ({ configured: true, ok: true, error: null, issues: [] }) }, newId: () => `id-${++counter}` });
+  return { actions, port };
+}
+
+test("searchFiles searches the thread's folder and keeps path and kind", async () => {
+  const { actions, port } = fakeHarness({ t1: "/work/wt" });
+  port.entries = { entries: [{ path: "src", kind: "directory" }, { path: "a.ts", kind: "file" }], truncated: true };
+  assert.deepEqual(await actions.searchFiles("t1", "a", 20), { entries: [{ path: "src", kind: "directory" }, { path: "a.ts", kind: "file" }], truncated: true });
+  assert.deepEqual(port.entriesCalls, [{ cwd: "/work/wt", query: "a", limit: 20 }]);
+});
+
+test("searchFiles is empty, with no T3 call, when no folder is known", async () => {
+  const { actions, port } = fakeHarness();
+  assert.deepEqual(await actions.searchFiles("t1", "a", 20), { entries: [], truncated: false });
+  assert.deepEqual(port.entriesCalls, []);
+});
+
+test("stepDetail gives the cut-down detail of the T3 item, not-found when T3 has none", async () => {
+  const { actions, port } = fakeHarness();
+  port.turnItems.i1 = { id: "i1", type: "file_change", fileName: "a.ts", diffStr: "--- a\n+++ b" };
+  assert.equal((await actions.stepDetail("t1", "i1")).diff, "--- a\n+++ b");
+  await assert.rejects(actions.stepDetail("t1", "nope"), rejectsWith("not-found"));
+});
+
+test("uploadAttachment sends the bytes to T3 and answers the ref message.dispatch takes", async () => {
+  const { actions, port } = fakeHarness();
+  const bytes = new Uint8Array([1, 2, 3]);
+  const ref = await actions.uploadAttachment({ type: "file", name: "a.bin", mimeType: "application/octet-stream", sizeBytes: 3, bytes });
+  assert.deepEqual(ref, { type: "file", id: "file-1", name: "a.bin", mimeType: "application/octet-stream", sizeBytes: 3 });
+  assert.deepEqual(port.fileUploads, [{ type: "file", name: "a.bin", mimeType: "application/octet-stream", sizeBytes: 3, bytes }]);
+  await actions.deleteAttachment("file-1");
+  assert.deepEqual(port.deletedAttachments, ["file-1"]);
+});
+
+test("a message dispatches the persisted images, then the uploads", async () => {
+  const { actions, port } = fakeHarness();
+  const image = { type: "image" as const, name: "a.png", mimeType: "image/png", sizeBytes: 4, dataUrl: "data:image/png;base64,iVBORw==" };
+  const upload = { type: "file" as const, id: "att-1", name: "n.txt", mimeType: "text/plain", sizeBytes: 5 };
+  await actions.sendMessage("t1", { text: "x" }, [image], [upload]);
+  assert.deepEqual(port.commands[0]!.attachments, [{ type: "image", id: "stored-0", name: "a.png", mimeType: "image/png", sizeBytes: 4 }, upload]);
+  await actions.createThread({ projectId: "p", title: "t", text: "x", modelSelection: { instanceId: "i", model: "m" } }, [], [upload]);
+  assert.deepEqual(port.commands[2]!.attachments, [upload]);
+  assert.deepEqual(port.uploads.length, 1);
 });

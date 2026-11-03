@@ -70,10 +70,13 @@ export interface DashboardProvider {
   runtimeModes: RuntimeMode[];
 }
 
-/** An image the user sent with a message; GET /api/threads/:id/attachments/:attachmentId serves it. */
+/** A file or image the user sent; GET /api/threads/:id/attachments/:attachmentId serves it. */
 export interface ChatAttachment {
   id: string;
   name: string;
+  kind: "image" | "file";
+  mimeType: string | null;
+  sizeBytes: number | null;
 }
 
 export interface ChatMessage {
@@ -140,22 +143,74 @@ export interface SubagentInfo {
   stop: "subagent" | "thread" | null;
 }
 
-export interface ActivityItem {
-  id: string;
-  kind: "thinking" | "command" | "tool" | "file" | "subagent";
-  /** Thinking text, command, tool name, file path or subagent title; truncated. */
+export type StepKind = "thinking" | "command" | "tool" | "file" | "search" | "web" | "todo" | "plan" | "subagent" | "notice";
+export type StepStatus = "running" | "done" | "failed";
+
+export interface TodoEntry {
   text: string;
-  /** Tool input summary; null for other kinds. */
-  detail: string | null;
-  status: "running" | "done" | "failed";
+  status: "pending" | "running" | "completed";
 }
 
-/** What the active run (or the latest one) did, oldest first. */
+export interface SubagentStep {
+  /** For POST /api/threads/:id/subagents/:subagentId/stop. */
+  subagentId: string;
+  /** GET /api/threads/:childThreadId shows its steps; the desk can open it. Null when T3 has none. */
+  childThreadId: string | null;
+  /** Last progress line while running; null once finished. */
+  progress: string | null;
+  /** Running with a run: Stop applies. */
+  stoppable: boolean;
+}
+
+/** One agent step in the timeline. Texts are cut; GET /api/threads/:id/items/:itemId gives the rest. */
+export interface TurnStep {
+  id: string;
+  runId: string | null;
+  kind: StepKind;
+  status: StepStatus;
+  /** "" when T3 gives no time. */
+  startedAt: string;
+  completedAt: string | null;
+  /** One line, at most 300 characters. */
+  text: string;
+  /** Second part, at most 300 characters. */
+  detail: string | null;
+  /** Expanding loads a StepDetail. */
+  expandable: boolean;
+  exitCode: number | null;
+  /** Kind "todo": at most 50 entries. */
+  todos?: TodoEntry[];
+  /** Kind "plan": markdown, at most 20 000 characters. */
+  markdown?: string;
+  /** Kind "subagent". */
+  subagent?: SubagentStep;
+  /** Kind "notice". */
+  notice?: "checkpoint" | "compaction" | "error" | "system" | "interrupt";
+}
+
+/** GET /api/threads/:id/items/:itemId */
+export interface StepDetail {
+  id: string;
+  kind: StepKind;
+  /** Command line, or tool input as pretty JSON; at most 20 000 characters. */
+  input: string | null;
+  /** Command output (stdout then stderr) or tool output text; the last 64 000 characters. */
+  output: string | null;
+  exitCode: number | null;
+  /** Unified diff; at most 200 000 characters. */
+  diff: string | null;
+  /** Full thinking text, subagent result or plan; at most 64 000 characters. */
+  text: string | null;
+  /** Search results; at most 50. */
+  results: Array<{ title: string; url: string | null; snippet: string | null }>;
+  truncated: boolean;
+}
+
+/** The active run (or the latest one): its time span. Its steps are in ThreadDetail.steps. */
 export interface RunActivity {
   runId: string;
   startedAt: string | null;
   completedAt: string | null;
-  items: ActivityItem[];
 }
 
 export interface ThreadDetail {
@@ -173,4 +228,8 @@ export interface ThreadDetail {
   modelSelection: ModelSelection | null;
   runtimeMode: RuntimeMode | null;
   activity: RunActivity | null;
+  /** Steps of every run, oldest first: the latest 400. */
+  steps: TurnStep[];
+  /** Older steps left out by the cap. */
+  stepsOmitted: number;
 }

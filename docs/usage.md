@@ -50,6 +50,19 @@ Each Desk window contains a conversation.
 - See the images and videos that the agent refers to in its messages.
 - See the pages from the T3 Code `html_render` tool. The dashboard shows them in an isolated frame (sandbox), with the theme colors.
 
+#### Conversation API
+
+The web page uses these routes of the dashboard server.
+
+| Route | Use |
+| --- | --- |
+| `GET /api/threads/:id` | The conversation: messages, queue, `steps` (the latest 400 steps of every run) and `stepsOmitted`. |
+| `GET /api/threads/:id/items/:itemId` | The full detail of one step: command output, diff, tool input and output, full text. Long texts are cut. |
+| `GET /api/threads/:id/files?q=&limit=` | Files and folders for an `@` mention. The search folder is the worktree of the thread, or else the project root. |
+| `POST /api/attachments` | Upload one file (`name`, `mimeType`, `dataUrl`). An image of 10 MB or less goes as an image, any other file of 50 MB or less as a file. |
+| `POST /api/attachments/:attachmentId/delete` | Remove an uploaded file that was not sent. |
+| `POST /api/threads/:id/messages`, `POST /api/threads` | Send `uploads` (the answers of `POST /api/attachments`) with the message. A message takes up to 100 attachments. |
+
 ## New Agent
 
 The New Agent button (key `N`) starts a new agent.

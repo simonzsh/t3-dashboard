@@ -1,6 +1,6 @@
 import type { Server } from "bun";
 import type { ConnectionStatus, DashboardState } from "../../shared/api.ts";
-import { MAX_MESSAGE_BODY_BYTES } from "../../shared/limits.ts";
+import { MAX_MESSAGE_BODY_BYTES, MAX_UPLOAD_BODY_BYTES } from "../../shared/limits.ts";
 import type { Actions, AssetRequest } from "../domain/actions.ts";
 import type { DeskStore } from "../domain/deskStore.ts";
 import type { Automations } from "../domain/automations.ts";
@@ -14,7 +14,7 @@ import { matchesEtag } from "./etag.ts";
 import { servePwa } from "./pwa.ts";
 import type { Site } from "./site.ts";
 import type { SseHub } from "./sse.ts";
-import { isObject, isText, validAssign, validAutomationRequest, validDesk, validCreate, validImages, validMessage, validQueuedEdit, validRename, validRespond, validSearch, validSettings } from "./validate.ts";
+import { isObject, isText, validAssign, validAttachments, validAutomationRequest, validDesk, validCreate, validFileSearch, validImages, validItemId, validMessage, validQueuedEdit, validRename, validRespond, validSearch, validSettings, validUpload } from "./validate.ts";
 
 export interface SetupControl {
   /** Resolves the token again. */
@@ -188,6 +188,15 @@ export function createDashboardServer(options: DashboardServerOptions): Dashboar
       },
     },
     { method: "GET", path: "/api/threads/:id", handle: async ({ req, params }) => threadResponse(req, await actions.threadDetail(params.id!)) },
+    { method: "GET", path: "/api/threads/:id/items/:itemId", handle: async ({ params }) => json(200, await actions.stepDetail(params.id!, validItemId(params.itemId!))) },
+    {
+      method: "GET",
+      path: "/api/threads/:id/files",
+      handle: async ({ req, params }) => {
+        const { query, limit } = validFileSearch(new URL(req.url).searchParams);
+        return json(200, await actions.searchFiles(params.id!, query, limit));
+      },
+    },
     { method: "GET", path: "/api/threads/:id/attachments/:attachmentId", handle: ({ req, params }) => asset(req, params.id!, { attachmentId: params.attachmentId! }) },
     {
       method: "GET",
@@ -255,15 +264,21 @@ export function createDashboardServer(options: DashboardServerOptions): Dashboar
       method: "POST",
       path: "/api/threads",
       maxBytes: MAX_MESSAGE_BODY_BYTES,
-      handle: async ({ body }) => ok({ threadId: await actions.createThread(validCreate(body), validImages(body.attachments)) }),
+      handle: async ({ body }) => {
+        const create = validCreate(body);
+        const { images, uploads } = validAttachments(body);
+        return ok({ threadId: await actions.createThread(create, images, uploads) });
+      },
     },
+    { method: "POST", path: "/api/attachments", maxBytes: MAX_UPLOAD_BODY_BYTES, handle: async ({ body }) => ok({ attachment: await actions.uploadAttachment(validUpload(body)) }) },
+    { method: "POST", path: "/api/attachments/:attachmentId/delete", handle: ({ params }) => done(actions.deleteAttachment(params.attachmentId!)) },
     {
       method: "POST",
       path: "/api/threads/:id/messages",
       maxBytes: MAX_MESSAGE_BODY_BYTES,
       handle: async ({ params, body }) => {
-        const { message, images } = validMessage(body);
-        await actions.sendMessage(params.id!, message, images);
+        const { message, images, uploads } = validMessage(body);
+        await actions.sendMessage(params.id!, message, images, uploads);
         return ok();
       },
     },

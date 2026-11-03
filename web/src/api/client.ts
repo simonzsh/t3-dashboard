@@ -12,12 +12,16 @@ import type {
   OkResult,
   RespondBody,
   EditQueuedBody,
+  FileSearchResult,
   SendMessageBody,
   SettingsResult,
+  StepDetail,
   ThreadSearchResult,
   ThreadDetail,
   ThreadSettingsBody,
   UpdateStatus,
+  UploadBody,
+  UploadResult,
 } from "../../../shared/api.ts";
 
 // The server sends its own message when it has one; these cover the rest.
@@ -99,6 +103,10 @@ export function createApi(fetchImpl: Fetch) {
     searchThreads: (query: string, limit?: number) =>
       call<ThreadSearchResult>(`/api/search?q=${encodeURIComponent(query)}${limit ? `&limit=${limit}` : ""}`),
     getThread,
+    getStepDetail: (id: string, itemId: string) => call<StepDetail>(`${t(id)}/items/${encodeURIComponent(itemId)}`),
+    searchFiles: (id: string, query: string, limit?: number) => call<FileSearchResult>(`${t(id)}/files?q=${encodeURIComponent(query)}${limit ? `&limit=${limit}` : ""}`),
+    uploadAttachment: (b: UploadBody) => call<UploadResult>("/api/attachments", b),
+    deleteAttachment: (attachmentId: string) => call<OkResult>(`/api/attachments/${encodeURIComponent(attachmentId)}/delete`, {}),
     createThread: (b: CreateThreadBody) => call<CreateThreadResult>("/api/threads", b),
     sendMessage: (id: string, b: SendMessageBody) => call<OkResult>(`${t(id)}/messages`, b),
     settle: (id: string) => call<OkResult>(`${t(id)}/settle`, {}),

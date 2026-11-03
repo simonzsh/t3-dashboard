@@ -113,7 +113,7 @@ function Conversation({ threadId, thread, providers }: Props) {
   const [text, setText] = useState(() => drafts.get(threadId) ?? "");
   const [pending, setPending] = useState<PendingMessage[]>([]);
   const [sentAt, setSentAt] = useState(0);
-  const [revealSubagents, setRevealSubagents] = useState(0);
+  const [revealSubagents] = useState(0);
   const scroller = useRef<HTMLDivElement>(null);
   const stick = useRef(true);
   const lastTop = useRef(0);
@@ -298,7 +298,7 @@ function Conversation({ threadId, thread, providers }: Props) {
           {!detail && !loadError && <Loader />}
           {detail && <Timeline detail={detail} threadId={threadId} />}
           {detail && !running && pending.map((p) => <PendingBubble key={p.id} message={p} />)}
-          {detail?.activity && <RunActivityView activity={detail.activity} running={running} onShowSubagents={() => setRevealSubagents((n) => n + 1)} />}
+          {detail?.activity && <RunActivityView activity={detail.activity} running={running} />}
           {detail && detail.pendingRequests.length > 0 && (
             <div className="requests">
               {detail.pendingRequests.map((r) => (

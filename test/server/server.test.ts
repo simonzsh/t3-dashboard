@@ -102,11 +102,11 @@ async function start(startOptions: StartOptions = {}) {
       kind: "snapshot",
       snapshot: {
         threads: [
-          { id: "idle-1", projectId: "project-1", title: "Thread 1", status: "idle", createdAt: "2026-03-01T00:00:00Z" },
+          { id: "idle-1", projectId: "project-1", title: "Thread 1", status: "idle", worktreePath: "/work/wt", createdAt: "2026-03-01T00:00:00Z" },
           { id: "run-1", projectId: "project-1", title: "Thread 2", status: "running", activeRunId: "run-a", createdAt: "2026-03-02T00:00:00Z" },
           { id: "run-2", projectId: "project-1", title: "Thread 3", status: "running", activeRunId: null, createdAt: "2026-03-03T00:00:00Z" },
         ],
-        projects: [{ id: "project-1", title: "Project A" }, { id: "project-2", title: "Project B" }],
+        projects: [{ id: "project-1", title: "Project A", workspaceRoot: "/work/root" }, { id: "project-2", title: "Project B" }],
       },
     },
     { kind: "synchronized" },
@@ -524,6 +524,8 @@ test("every POST route refuses a body that is not JSON", async () => {
     "/api/settings/linear/key",
     "/api/settings/linear/disconnect",
     "/api/threads",
+    "/api/attachments",
+    "/api/attachments/att-1/delete",
     "/api/automations",
     "/api/automations/task-1/delete",
     "/api/automations/task-1/rename",
@@ -1097,4 +1099,116 @@ test("POST /api/desk refuses a body without a desk or an origin, and saves nothi
   for (const body of bad) assert.equal((await post(server, "/api/desk", body)).status, 400, JSON.stringify(body));
   assert.deepEqual(savedDesks, []);
   assert.deepEqual(events, []);
+});
+
+// "hello" in base64.
+const textFile = { name: " notes.txt ", mimeType: "text/plain", dataUrl: "data:text/plain;base64,aGVsbG8=" };
+
+test("POST /api/attachments stores a file in T3 and answers its reference", async () => {
+  const { server, port } = await start();
+  const reply = await post(server, "/api/attachments", textFile);
+  assert.deepEqual(reply.json, { ok: true, attachment: { type: "file", id: "file-1", name: "notes.txt", mimeType: "text/plain", sizeBytes: 5 } });
+  assert.equal(new TextDecoder().decode(port.fileUploads[0]!.bytes), "hello");
+  const image = await post(server, "/api/attachments", png);
+  assert.deepEqual(image.json.attachment, { type: "image", id: "file-2", name: "shot.png", mimeType: "image/png", sizeBytes: 4 });
+});
+
+test("POST /api/attachments refuses a bad name, type, data URL or size before any T3 call", async () => {
+  const { server, port } = await start();
+  const big = (mimeType: string, bytes: number) => ({ name: "big", mimeType, dataUrl: `data:${mimeType};base64,${"A".repeat(Math.ceil((bytes + 1) / 3) * 4)}` });
+  const bad = [
+    {},
+    { ...textFile, name: "  " },
+    { ...textFile, name: "n".repeat(256) },
+    { ...textFile, mimeType: "text" },
+    { ...textFile, mimeType: `text/${"p".repeat(100)}` },
+    { ...textFile, dataUrl: "data:text/html;base64,aGVsbG8=" },
+    { ...textFile, dataUrl: "data:text/plain;base64,aGVsbG8" },
+    { ...textFile, dataUrl: "data:text/plain;base64," },
+    big("image/png", 10 * 1024 * 1024),
+    big("application/zip", 50 * 1024 * 1024),
+  ];
+  for (const body of bad) assert.equal((await post(server, "/api/attachments", body)).status, 400, JSON.stringify(body).slice(0, 80));
+  assert.deepEqual(port.fileUploads, []);
+});
+
+test("POST /api/attachments takes a file over 25 MB, up to 70 MB", async () => {
+  const { server } = await start();
+  const mimeType = "application/zip";
+  const body = { name: "a.zip", mimeType, dataUrl: `data:${mimeType};base64,${"A".repeat(40 * 1024 * 1024)}` };
+  assert.equal((await post(server, "/api/attachments", body)).status, 200);
+});
+
+test("POST /api/attachments/:id/delete removes the file in T3", async () => {
+  const { server, port } = await start();
+  assert.equal((await post(server, "/api/attachments/att%201/delete")).status, 200);
+  assert.deepEqual(port.deletedAttachments, ["att 1"]);
+});
+
+const upload = { type: "file", id: "att-1", name: "notes.txt", mimeType: "text/plain", sizeBytes: 5 };
+
+test("messages: uploads alone are enough and go after the persisted images", async () => {
+  const { server, port } = await start();
+  assert.equal((await post(server, "/api/threads/idle-1/messages", { text: "", uploads: [upload] })).status, 200);
+  assert.deepEqual(port.commands[0]!.attachments, [upload]);
+  assert.equal((await post(server, "/api/threads/idle-1/messages", { text: "x", attachments: [png], uploads: [upload] })).status, 200);
+  assert.deepEqual(port.commands[1]!.attachments, [{ type: "image", id: "stored-0", name: "shot.png", mimeType: "image/png", sizeBytes: 4 }, upload]);
+});
+
+test("messages: refuses bad upload refs and more than 100 attachments in total", async () => {
+  const { server, port } = await start();
+  const bad = [
+    "x",
+    [{ ...upload, type: "audio" }],
+    [{ ...upload, id: "" }],
+    [{ ...upload, id: "a/b" }],
+    [{ ...upload, id: "a\nb" }],
+    [{ ...upload, id: "i".repeat(257) }],
+    [{ ...upload, name: "" }],
+    [{ ...upload, mimeType: "m".repeat(101) }],
+    [{ ...upload, sizeBytes: 0 }],
+    [{ ...upload, sizeBytes: 1.5 }],
+    Array.from({ length: 101 }, () => upload),
+  ];
+  for (const uploads of bad) assert.equal((await post(server, "/api/threads/idle-1/messages", { text: "x", uploads })).status, 400, JSON.stringify(uploads).slice(0, 80));
+  assert.equal((await post(server, "/api/threads/idle-1/messages", { text: "x", attachments: [png], uploads: Array.from({ length: 100 }, () => upload) })).status, 400);
+  assert.equal((await post(server, "/api/threads/idle-1/messages", { text: "x", uploads: Array.from({ length: 100 }, () => upload) })).status, 200);
+  assert.deepEqual(port.uploads, []);
+});
+
+test("POST /api/threads takes uploads", async () => {
+  const { server, port } = await start();
+  const reply = await post(server, "/api/threads", { projectId: "project-1", title: "t", text: "x", modelSelection: model, uploads: [upload] });
+  assert.equal(reply.status, 200);
+  assert.deepEqual(port.commands[1]!.attachments, [upload]);
+  assert.equal((await post(server, "/api/threads", { projectId: "project-1", title: "t", text: "x", modelSelection: model, uploads: [{ ...upload, id: "" }] })).status, 400);
+});
+
+test("GET /api/threads/:id/items/:itemId answers the step detail, 404 when T3 has no such item", async () => {
+  const { server, port } = await start();
+  port.turnItems["item-1"] = { id: "item-1", type: "command_execution", input: "ls", output: "a\nb", exitCode: 0 };
+  const reply = await call(server, "GET", "/api/threads/run-1/items/item-1");
+  assert.deepEqual(reply.json, { id: "item-1", kind: "command", input: "ls", output: "a\nb", exitCode: 0, diff: null, text: null, results: [], truncated: false });
+  assert.deepEqual(port.turnItemCalls, [{ threadId: "run-1", itemId: "item-1" }]);
+  assert.equal((await call(server, "GET", "/api/threads/run-1/items/missing")).status, 404);
+  assert.equal((await call(server, "GET", `/api/threads/run-1/items/${"i".repeat(513)}`)).status, 400);
+});
+
+test("GET /api/threads/:id/files searches the worktree first, then the project root", async () => {
+  const { server, port } = await start();
+  port.entries = { entries: [{ path: "src/a.ts", kind: "file" }, { path: "src", kind: "directory" }], truncated: true };
+  const reply = await call(server, "GET", "/api/threads/idle-1/files?q=a");
+  assert.deepEqual(reply.json, { entries: port.entries.entries, truncated: true });
+  await call(server, "GET", "/api/threads/run-1/files?q=&limit=5");
+  assert.deepEqual(port.entriesCalls, [{ cwd: "/work/wt", query: "a", limit: 20 }, { cwd: "/work/root", query: "", limit: 5 }]);
+});
+
+test("GET /api/threads/:id/files is empty when T3 names no folder, and refuses a bad query", async () => {
+  const { server, port } = await start();
+  const reply = await call(server, "GET", "/api/threads/unknown/files?q=a");
+  assert.deepEqual(reply.json, { entries: [], truncated: false });
+  for (const query of [`q=${"q".repeat(257)}`, "q=a&limit=0", "q=a&limit=51", "q=a&limit=x", "q=a&limit="]) {
+    assert.equal((await call(server, "GET", `/api/threads/idle-1/files?${query}`)).status, 400, query);
+  }
+  assert.deepEqual(port.entriesCalls, []);
 });

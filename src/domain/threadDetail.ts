@@ -1,10 +1,12 @@
-import type { ActivityItem, ChatAttachment, ChatMessage, DashboardThread, HtmlRender, RunActivity, PendingRequestDetail, QueuedMessage, SubagentInfo, ThreadDetail } from "../../shared/api.ts";
+import type { ChatAttachment, ChatMessage, DashboardThread, HtmlRender, RunActivity, PendingRequestDetail, QueuedMessage, StepDetail, StepKind, StepStatus, SubagentInfo, ThreadDetail, TodoEntry, TurnStep } from "../../shared/api.ts";
 import { FAILED_STATUSES } from "../../shared/status.ts";
 import { isRuntimeMode } from "../../shared/limits.ts";
-import type { RawBackgroundTask, RawMessage, RawProjection, RawRuntimeRequest, RawSubagent, RawTurnItem } from "../integrations/t3/schemas.ts";
+import type { RawBackgroundTask, RawMessage, RawProjection, RawRuntimeRequest, RawSubagent, RawTurnItem, TurnItemEntry } from "../integrations/t3/schemas.ts";
 
 // Turn items arrive wrapped as `{item}` in some payloads and bare in others.
-const unwrap = (element: { item?: RawTurnItem } | RawTurnItem): RawTurnItem => ("item" in element && element.item ? element.item : (element as RawTurnItem));
+const entryOf = (element: TurnItemEntry): { item: RawTurnItem; visibility?: string | null } =>
+  "item" in element && element.item ? { item: element.item, visibility: element.visibility } : { item: element as RawTurnItem };
+const unwrap = (element: TurnItemEntry): RawTurnItem => entryOf(element).item;
 
 function pendingDetail(request: RawRuntimeRequest, items: RawTurnItem[]): PendingRequestDetail {
   const base = { requestId: request.id, resumable: request.responseCapability?.type !== "not_resumable" };
@@ -89,14 +91,40 @@ function subagentsOf(projection: RawProjection, tasks: RawBackgroundTask[]): Sub
 }
 
 // Texts are cut so a long run never sends megabytes to the browser.
-const ACTIVITY_CHARS = 300;
-const ACTIVITY_ITEMS = 200;
-const ACTIVITY_KINDS: Record<string, ActivityItem["kind"]> = {
+const STEP_CHARS = 300;
+const MAX_STEPS = 400;
+const MAX_TODOS = 50;
+const MAX_PLAN_CHARS = 20_000;
+const MAX_INPUT_CHARS = 20_000;
+const MAX_OUTPUT_CHARS = 64_000;
+const MAX_TEXT_CHARS = 64_000;
+const MAX_DIFF_CHARS = 200_000;
+const MAX_RESULTS = 50;
+
+const STEP_KINDS: Record<string, StepKind> = {
   reasoning: "thinking",
   command_execution: "command",
   dynamic_tool: "tool",
   file_change: "file",
+  file_search: "search",
+  web_search: "web",
+  todo_list: "todo",
+  proposed_plan: "plan",
   subagent: "subagent",
+  checkpoint: "notice",
+  compaction: "notice",
+  error: "notice",
+  system_notice: "notice",
+  run_interrupt_request: "notice",
+  run_interrupt_result: "notice",
+};
+const NOTICES: Record<string, NonNullable<TurnStep["notice"]>> = {
+  checkpoint: "checkpoint",
+  compaction: "compaction",
+  error: "error",
+  system_notice: "system",
+  run_interrupt_request: "interrupt",
+  run_interrupt_result: "interrupt",
 };
 const SUMMARY_KEYS = ["description", "summary", "query", "url", "skill", "command", "file_path", "path", "pattern", "expression", "title", "prompt"];
 
@@ -104,38 +132,180 @@ function toolSummary(input: unknown): string | null {
   if (!input || typeof input !== "object") return null;
   const record = input as Record<string, unknown>;
   const value = SUMMARY_KEYS.map((key) => record[key]).find((candidate) => typeof candidate === "string" && candidate.trim());
-  return typeof value === "string" ? truncate(value.trim(), ACTIVITY_CHARS) : null;
+  return typeof value === "string" ? truncate(value.trim(), STEP_CHARS) : null;
 }
 
-function activityStatus(item: RawTurnItem): ActivityItem["status"] {
+function stepStatus(item: RawTurnItem): StepStatus {
   if (FAILED_STATUSES.has(item.status ?? "") || item.outputIndicatesFailure || (item.exitCode ?? 0) !== 0) return "failed";
   if (item.status === "completed" || item.completedAt) return "done";
   return "running";
 }
 
-function toActivity(item: RawTurnItem, kind: ActivityItem["kind"]): ActivityItem {
-  const raw = {
-    thinking: () => item.text?.trim() || item.title || "Thinking",
-    command: () => (typeof item.input === "string" ? item.input : ""),
-    // MCP tools are named mcp__<server>__<tool>: the last part is enough.
-    tool: () => item.title || item.toolName?.split("__").at(-1) || "Tool",
-    file: () => item.fileName ?? "",
-    subagent: () => item.title?.trim() || item.prompt?.trim() || "Subagent",
-  }[kind]();
-  return { id: item.id!, kind, text: truncate(raw, ACTIVITY_CHARS), detail: kind === "tool" ? toolSummary(item.input) : null, status: activityStatus(item) };
+const count = (n: number, noun: string) => `${n} ${noun}${n === 1 ? "" : "s"}`;
+
+function todosOf(item: RawTurnItem): TodoEntry[] {
+  return (item.steps ?? []).slice(0, MAX_TODOS).map((step) => ({
+    text: truncate(step.text?.trim() ?? "", STEP_CHARS),
+    status: step.status === "completed" || step.status === "running" ? step.status : "pending",
+  }));
 }
 
-function activityOf(projection: RawProjection, items: RawTurnItem[]): RunActivity | null {
+function noticeText(item: RawTurnItem): { text: string; detail: string | null } {
+  const cut = (value: string | null | undefined) => (value?.trim() ? truncate(value.trim(), STEP_CHARS) : null);
+  switch (item.type) {
+    case "checkpoint": {
+      const files = item.filesTotal ?? item.files?.length;
+      return { text: "Checkpoint", detail: files ? count(files, "file") : null };
+    }
+    case "compaction": {
+      const tokens = item.beforeTokenCount != null && item.afterTokenCount != null ? `${item.beforeTokenCount} → ${item.afterTokenCount} tokens` : null;
+      return { text: "Context compacted", detail: cut(item.summary) ?? tokens };
+    }
+    case "error":
+      return { text: cut(item.failure?.message) ?? "Error", detail: null };
+    case "system_notice":
+      return { text: cut(item.message) ?? "Notice", detail: null };
+    default:
+      return { text: cut(item.message) ?? "Interrupted", detail: null };
+  }
+}
+
+function toStep(item: RawTurnItem, kind: StepKind, projection: RawProjection): TurnStep {
+  const base = { id: item.id!, runId: item.runId ?? null, kind, startedAt: item.startedAt ?? "", completedAt: item.completedAt ?? null, exitCode: item.exitCode ?? null, text: "", detail: null as string | null, expandable: false };
+  const status = stepStatus(item);
+  switch (kind) {
+    case "thinking": {
+      const full = item.text?.trim() || item.title || "Thinking";
+      return { ...base, status, text: truncate(full, STEP_CHARS), expandable: full.length > STEP_CHARS };
+    }
+    case "command":
+      return { ...base, status, text: truncate(typeof item.input === "string" ? item.input : "", STEP_CHARS), expandable: true };
+    case "tool":
+      // MCP tools are named mcp__<server>__<tool>: the last part is enough.
+      return { ...base, status, text: truncate(item.title || item.toolName?.split("__").at(-1) || "Tool", STEP_CHARS), detail: toolSummary(item.input), expandable: true };
+    case "file": {
+      const known = item.additions != null || item.deletions != null;
+      return { ...base, status, text: truncate(item.fileName ?? "", STEP_CHARS), detail: known ? `+${item.additions ?? 0} −${item.deletions ?? 0}` : null, expandable: true };
+    }
+    case "search":
+    case "web": {
+      const found = item.results?.length;
+      const text = kind === "search" ? (item.pattern ?? "") : (item.patterns ?? []).join(", ");
+      return { ...base, status, text: truncate(text || (kind === "search" ? "Search" : "Web search"), STEP_CHARS), detail: found === undefined ? null : count(found, "result"), expandable: Boolean(found) };
+    }
+    case "todo":
+      return { ...base, status, text: truncate(item.explanation?.trim() || "Plan", STEP_CHARS), todos: todosOf(item) };
+    case "plan":
+      return { ...base, status: status === "failed" ? status : "done", text: "Proposed plan", markdown: truncate(item.markdown ?? "", MAX_PLAN_CHARS) };
+    case "subagent": {
+      const subagentId = item.subagentId ?? item.nodeId ?? item.id!;
+      const raw = (projection.subagents ?? []).find((candidate) => candidate.id === subagentId);
+      const state = raw ? subagentStatus(raw) : status;
+      const result = item.result?.trim() || raw?.result?.trim();
+      return {
+        ...base,
+        status: state,
+        text: truncate(item.title?.trim() || item.prompt?.trim() || "Subagent", STEP_CHARS),
+        detail: state !== "running" && result ? truncate(result, RESULT_CHARS) : null,
+        expandable: Boolean(result),
+        subagent: { subagentId, childThreadId: item.childThreadId ?? raw?.childThreadId ?? null, progress: state === "running" ? (item.progress ?? raw?.progress ?? null) : null, stoppable: state === "running" && Boolean(raw?.runId) },
+      };
+    }
+    case "notice":
+      return { ...base, status: item.type === "error" ? "failed" : "done", ...noticeText(item), notice: NOTICES[item.type!] };
+  }
+}
+
+/** The latest steps of every run, oldest first. Items from a parent thread are not this thread's steps. */
+function stepsOf(threadId: string, projection: RawProjection): { steps: TurnStep[]; omitted: number } {
+  const entries = [...(projection.turnItems ?? []), ...(projection.visibleTurnItems ?? [])].map(entryOf);
+  const byId = new Map<string, RawTurnItem>();
+  for (const { item, visibility } of entries) {
+    if (!item.id || visibility === "inherited" || (item.threadId && item.threadId !== threadId) || !STEP_KINDS[item.type ?? ""]) continue;
+    byId.set(item.id, item);
+  }
+  const steps = [...byId.values()].sort((a, b) => (a.ordinal ?? 0) - (b.ordinal ?? 0)).map((item) => toStep(item, STEP_KINDS[item.type!]!, projection));
+  return { steps: steps.slice(-MAX_STEPS), omitted: Math.max(0, steps.length - MAX_STEPS) };
+}
+
+const head = (text: string, max: number) => ({ text: text.length > max ? text.slice(0, max) : text, cut: text.length > max });
+const tail = (text: string, max: number) => ({ text: text.length > max ? text.slice(-max) : text, cut: text.length > max });
+const pretty = (value: unknown) => (typeof value === "string" ? value : (JSON.stringify(value, null, 2) ?? ""));
+
+// A command answers its output as plain text, or as JSON {stdout, stderr, interrupted}.
+function commandOutput(output: unknown): string | null {
+  if (output == null) return null;
+  let value = output;
+  if (typeof output === "string" && output.startsWith("{")) {
+    try {
+      value = JSON.parse(output);
+    } catch {
+      return output;
+    }
+  }
+  if (typeof value === "object" && value !== null && ("stdout" in value || "stderr" in value)) {
+    const { stdout, stderr } = value as { stdout?: unknown; stderr?: unknown };
+    return [stdout, stderr].filter((part): part is string => typeof part === "string" && part !== "").join("\n");
+  }
+  return pretty(value);
+}
+
+// An MCP tool answers [{type: "text", text}] or {content: [...]}: show the text, not the envelope.
+function toolOutput(output: unknown): string | null {
+  if (output == null) return null;
+  const parts = Array.isArray(output) ? output : (output as { content?: unknown }).content;
+  if (Array.isArray(parts)) {
+    const texts = parts.flatMap((part) => (part?.type === "text" && typeof part.text === "string" ? [part.text] : []));
+    if (texts.length) return texts.join("\n");
+  }
+  return pretty(output);
+}
+
+const lines = (text: string) => (text === "" ? [] : text.split("\n"));
+
+// T3 sends a diff string when it has one; otherwise rebuild a simple one from the old and new texts.
+function diffOf(item: RawTurnItem): string | null {
+  if (item.diffStr) return item.diffStr;
+  if (item.oldStr == null && item.newStr == null) return null;
+  const before = lines(item.oldStr ?? "");
+  const after = lines(item.newStr ?? "");
+  const name = item.fileName ?? "file";
+  return [`--- ${item.oldStr == null ? "/dev/null" : `a/${name}`}`, `+++ b/${name}`, `@@ -${before.length ? 1 : 0},${before.length} +${after.length ? 1 : 0},${after.length} @@`, ...before.map((line) => `-${line}`), ...after.map((line) => `+${line}`)].join("\n");
+}
+
+/** The full item behind a TurnStep, with every text capped. */
+export function toStepDetail(item: RawTurnItem): StepDetail {
+  const kind = STEP_KINDS[item.type ?? ""] ?? "tool";
+  let truncated = false;
+  const cap = (value: string | null, max: number, pick: typeof head) => {
+    if (value === null) return null;
+    const { text, cut } = pick(value, max);
+    truncated ||= cut;
+    return text;
+  };
+  const input = kind === "command" ? (typeof item.input === "string" ? item.input : null) : kind === "tool" && item.input != null ? pretty(item.input) : null;
+  const output = kind === "command" ? commandOutput(item.output) : kind === "tool" ? toolOutput(item.output) : null;
+  const full = { thinking: item.text, subagent: item.result, plan: item.markdown }[kind as "thinking" | "subagent" | "plan"];
+  const results = (item.results ?? []).slice(0, MAX_RESULTS).map((result) => ({ title: result.title ?? result.fileName ?? result.url ?? "", url: result.url ?? null, snippet: result.snippet ?? result.preview ?? null }));
+  truncated ||= (item.results?.length ?? 0) > MAX_RESULTS;
+  return {
+    id: item.id ?? "",
+    kind,
+    input: cap(input, MAX_INPUT_CHARS, head),
+    output: cap(output, MAX_OUTPUT_CHARS, tail),
+    exitCode: item.exitCode ?? null,
+    diff: kind === "file" ? cap(diffOf(item), MAX_DIFF_CHARS, head) : null,
+    text: cap(full ?? null, MAX_TEXT_CHARS, head),
+    results,
+    truncated,
+  };
+}
+
+function activityOf(projection: RawProjection): RunActivity | null {
   const runId = projection.thread?.activeRunId ?? latestRunId(projection);
   const run = projection.runs?.find((candidate) => candidate.id === runId);
   if (!run) return null;
-  // turnItems and visibleTurnItems repeat the same items: keep one per id.
-  const ofRun = new Map(items.filter((item) => item.id && item.runId === run.id && ACTIVITY_KINDS[item.type ?? ""]).map((item) => [item.id, item]));
-  const activity = [...ofRun.values()]
-    .sort((a, b) => (a.ordinal ?? 0) - (b.ordinal ?? 0))
-    .slice(-ACTIVITY_ITEMS)
-    .map((item) => toActivity(item, ACTIVITY_KINDS[item.type!]!));
-  return { runId: run.id, startedAt: run.startedAt ?? null, completedAt: run.completedAt ?? null, items: activity };
+  return { runId: run.id, startedAt: run.startedAt ?? null, completedAt: run.completedAt ?? null };
 }
 
 const MAX_RENDER_HEIGHT = 4000;
@@ -154,7 +324,8 @@ function rendersOf(items: RawTurnItem[]): HtmlRender[] {
   return [...byId.values()].sort((a, b) => a.createdAt.localeCompare(b.createdAt));
 }
 
-const toAttachments = (message: RawMessage): ChatAttachment[] => (message.attachments ?? []).filter((file) => file.type === "image").map((file) => ({ id: file.id, name: file.name ?? "image" }));
+const toAttachments = (message: RawMessage): ChatAttachment[] =>
+  (message.attachments ?? []).flatMap((file) => (file.type === "image" || file.type === "file" ? [{ id: file.id, name: file.name ?? file.type, kind: file.type, mimeType: file.mimeType ?? null, sizeBytes: file.sizeBytes ?? null }] : []));
 
 // T3's own order: queuePosition (else ordinal), then ordinal. Like T3, skip the runs it queues for a delegated
 // completion or a notification: they are not the user's messages.
@@ -198,6 +369,7 @@ export function toThreadDetail(threadId: string, projection: RawProjection, thre
   });
   const pendingRequests = (projection.runtimeRequests ?? []).filter((request) => request.status === "pending").map((request) => pendingDetail(request, items));
   const runtimeMode = projection.thread?.runtimeMode;
+  const { steps, omitted } = stepsOf(threadId, projection);
   return {
     threadId,
     thread: thread ?? null,
@@ -209,6 +381,8 @@ export function toThreadDetail(threadId: string, projection: RawProjection, thre
     subagents: subagentsOf(projection, tasks),
     modelSelection: projection.thread?.modelSelection ?? null,
     runtimeMode: isRuntimeMode(runtimeMode) ? runtimeMode : null,
-    activity: activityOf(projection, items),
+    activity: activityOf(projection),
+    steps,
+    stepsOmitted: omitted,
   };
 }

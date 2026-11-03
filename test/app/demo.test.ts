@@ -48,7 +48,7 @@ test("demo thread details show messages, activity, subagents and requests", asyn
   const actions = createActions({ port, store, board: { get: async () => ({ configured: true, ok: true, error: null, issues: [] }) } });
   const details = await Promise.all(store.state({ t3: "live", serverVersion: null, protocolMismatch: false, error: null, setup: null }, []).threads.map((thread) => actions.threadDetail(thread.id)));
   assert.ok(details.every((detail) => detail.messages.length > 0));
-  assert.ok(details.some((detail) => (detail.activity?.items.length ?? 0) > 0 && detail.subagents.length >= 2));
+  assert.ok(details.some((detail) => detail.steps.length > 0 && detail.subagents.length >= 2));
   assert.deepEqual(details.flatMap((detail) => detail.pendingRequests.map((request) => request.category)).sort(), ["approval", "user-input"]);
 });
 
@@ -64,13 +64,50 @@ test("a message sent in the demo lands in its thread", async () => {
   assert.deepEqual(detail.messages.map((message) => message.text), ["Hello", "Second message"]);
 });
 
+test("the demo serves steps of every kind, each with its detail", async () => {
+  const { actions, threadId } = await runningDemo();
+  const { steps } = await actions.threadDetail(threadId);
+  const kinds = new Set(steps.map((step) => step.kind));
+  for (const kind of ["thinking", "command", "tool", "file", "todo", "plan", "subagent", "notice"]) assert.ok(kinds.has(kind as never), kind);
+  const command = steps.find((step) => step.id === "a7")!;
+  assert.equal(command.status, "done");
+  assert.match((await actions.stepDetail(threadId, "a7")).output!, /2 pass/);
+  assert.equal(steps.find((step) => step.id === "a7b")!.status, "failed");
+  assert.equal((await actions.stepDetail(threadId, "a7b")).exitCode, 2);
+  assert.match((await actions.stepDetail(threadId, "a3")).diff!, /^--- a\/web\/src\/checkout\/OrderSummary\.tsx/);
+  assert.match((await actions.stepDetail(threadId, "a6")).diff!, /^--- a\/web\/src\/checkout\/summary\.css/);
+  assert.equal((await actions.stepDetail(threadId, "a8")).output, "Opened http://localhost:5173/checkout (375 x 812)");
+  await assert.rejects(actions.stepDetail(threadId, "nope"));
+});
+
+test("the demo subagent step points to a child thread whose steps load but which the shell hides", async () => {
+  const { actions, threadId, store } = await runningDemo();
+  const sub = (await actions.threadDetail(threadId)).steps.find((step) => step.id === "a5")!.subagent!;
+  assert.deepEqual([sub.subagentId, sub.stoppable, sub.progress], ["sub-mobile", true, "Testing 375 px and 768 px widths"]);
+  assert.ok(sub.childThreadId);
+  assert.equal(store.thread(sub.childThreadId!), undefined);
+  const child = await actions.threadDetail(sub.childThreadId!);
+  assert.deepEqual(child.steps.map((step) => step.kind), ["thinking", "command", "command"]);
+});
+
+test("the demo searches files and stores uploads", async () => {
+  const { actions, threadId } = await runningDemo();
+  const found = await actions.searchFiles(threadId, "summary", 2);
+  assert.deepEqual(found.entries.map((entry) => entry.path), ["web/src/checkout/OrderSummary.tsx", "web/src/checkout/OrderSummary.test.tsx"]);
+  assert.equal(found.truncated, true);
+  const ref = await actions.uploadAttachment({ type: "file", name: "a.txt", mimeType: "text/plain", sizeBytes: 1, bytes: new Uint8Array([1]) });
+  await actions.sendMessage(threadId, { text: "see file", mode: "steer" }, [], [ref]);
+  const message = (await actions.threadDetail(threadId)).messages.at(-1)!;
+  assert.deepEqual(message.attachments, [{ id: ref.id, name: "a.txt", kind: "file", mimeType: "text/plain", sizeBytes: 1 }]);
+});
+
 async function runningDemo() {
   const port = new DemoPort(() => NOW);
   const store = syncedStore(port);
   await Bun.sleep(0);
   const actions = createActions({ port, store, board: { get: async () => ({ configured: true, ok: true, error: null, issues: [] }) } });
   const threadId = store.state({ t3: "live", serverVersion: null, protocolMismatch: false, error: null, setup: null }, []).threads.find((thread) => thread.title.includes("heckout"))!.id;
-  return { actions, threadId };
+  return { actions, threadId, store };
 }
 
 test("a message sent during a demo run waits in the queue until Steer", async () => {

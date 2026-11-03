@@ -1,12 +1,19 @@
-import type { ApprovalDecision, AssignIssueBody, AutomationRequestBody, CreateThreadBody, ModelSelection, RespondBody, SendMessageBody, ThreadSettingsBody, UserInputAnswers } from "../../shared/api.ts";
+import type { ApprovalDecision, AssignIssueBody, AutomationRequestBody, CreateThreadBody, ModelSelection, RespondBody, SendMessageBody, ThreadSettingsBody, UploadedAttachment, UserInputAnswers } from "../../shared/api.ts";
 import { normalizeDesk, type DeskUpdate } from "../../shared/desk.ts";
-import { IMAGE_TYPES, MAX_IMAGE_BYTES, MAX_IMAGES, isRuntimeMode } from "../../shared/limits.ts";
-import type { ImageUpload } from "../domain/actions.ts";
+import { IMAGE_TYPES, MAX_ATTACHMENTS, MAX_FILE_BYTES, MAX_IMAGE_BYTES, MAX_IMAGES, isRuntimeMode } from "../../shared/limits.ts";
+import type { FileUpload, ImageUpload } from "../domain/actions.ts";
 import { HttpError } from "./httpError.ts";
 
 // Request bodies are untrusted: each check returns a typed body or throws a 400.
 const MAX_SEARCH_LIMIT = 50;
 const BASE64 = /^[A-Za-z0-9+/]*={0,2}$/;
+const MIME_TYPE = /^[\w.+-]+\/[\w.+-]+$/;
+const MAX_NAME = 255;
+const MAX_MIME = 100;
+const MAX_ID = 256;
+const MAX_SEARCH_QUERY = 256;
+const MAX_FILE_SEARCH_LIMIT = 50;
+const DEFAULT_FILE_SEARCH_LIMIT = 20;
 const DECISIONS = new Set<string>(["accept", "acceptForSession", "decline"]);
 
 export const isObject = (value: unknown): value is Record<string, unknown> => typeof value === "object" && value !== null && !Array.isArray(value);
@@ -68,21 +75,81 @@ export function validSettings(body: Record<string, unknown>): ThreadSettingsBody
 }
 
 // The size comes from the data itself: a client could lie about it.
+export function decodeDataUrl(mimeType: string, dataUrl: unknown): { base64: string; sizeBytes: number } | null {
+  const prefix = `data:${mimeType};base64,`;
+  if (typeof dataUrl !== "string" || !dataUrl.startsWith(prefix)) return null;
+  const base64 = dataUrl.slice(prefix.length);
+  if (base64.length % 4 !== 0 || !BASE64.test(base64)) return null;
+  return { base64, sizeBytes: Math.floor((base64.length * 3) / 4) - (base64.endsWith("==") ? 2 : base64.endsWith("=") ? 1 : 0) };
+}
+
 export function validImages(value: unknown): ImageUpload[] {
   if (value === undefined) return [];
   const error = new HttpError(400, `attachments must be up to ${MAX_IMAGES} PNG, JPEG, GIF or WebP images of 10 MB or less`);
   if (!Array.isArray(value) || value.length > MAX_IMAGES) throw error;
   return value.map((entry) => {
     const name = isObject(entry) && typeof entry.name === "string" ? entry.name.trim() : "";
-    if (!isObject(entry) || name === "" || name.length > 255 || typeof entry.mimeType !== "string" || !IMAGE_TYPES.includes(entry.mimeType)) throw error;
-    const prefix = `data:${entry.mimeType};base64,`;
-    if (typeof entry.dataUrl !== "string" || !entry.dataUrl.startsWith(prefix)) throw error;
-    const data = entry.dataUrl.slice(prefix.length);
-    if (data.length % 4 !== 0 || !BASE64.test(data)) throw error;
-    const sizeBytes = Math.floor((data.length * 3) / 4) - (data.endsWith("==") ? 2 : data.endsWith("=") ? 1 : 0);
-    if (sizeBytes === 0 || sizeBytes > MAX_IMAGE_BYTES) throw error;
-    return { type: "image", name, mimeType: entry.mimeType, sizeBytes, dataUrl: entry.dataUrl };
+    if (!isObject(entry) || name === "" || name.length > MAX_NAME || typeof entry.mimeType !== "string" || !IMAGE_TYPES.includes(entry.mimeType)) throw error;
+    const decoded = decodeDataUrl(entry.mimeType, entry.dataUrl);
+    if (!decoded || decoded.sizeBytes === 0 || decoded.sizeBytes > MAX_IMAGE_BYTES) throw error;
+    return { type: "image", name, mimeType: entry.mimeType, sizeBytes: decoded.sizeBytes, dataUrl: entry.dataUrl as string };
   });
+}
+
+/** One file of POST /api/attachments: an image type goes as "image" (10 MB), anything else as "file" (50 MB). */
+export function validUpload(body: Record<string, unknown>): FileUpload {
+  const name = typeof body.name === "string" ? body.name.trim() : "";
+  const mimeType = body.mimeType;
+  if (name === "" || name.length > MAX_NAME) throw new HttpError(400, `name must be 1 to ${MAX_NAME} characters`);
+  if (typeof mimeType !== "string" || mimeType.length > MAX_MIME || !MIME_TYPE.test(mimeType)) throw new HttpError(400, "mimeType must look like type/subtype");
+  const decoded = decodeDataUrl(mimeType, body.dataUrl);
+  if (!decoded) throw new HttpError(400, `dataUrl must be data:${mimeType};base64, followed by valid base64`);
+  const type = IMAGE_TYPES.includes(mimeType) ? "image" : "file";
+  const max = type === "image" ? MAX_IMAGE_BYTES : MAX_FILE_BYTES;
+  if (decoded.sizeBytes === 0 || decoded.sizeBytes > max) throw new HttpError(400, `${type === "image" ? "An image" : "A file"} must be 1 byte to ${max / (1024 * 1024)} MB`);
+  return { type, name, mimeType, sizeBytes: decoded.sizeBytes, bytes: Buffer.from(decoded.base64, "base64") };
+}
+
+const hasControl = (value: string) => /[\0-\x1f\x7f]/.test(value);
+
+/** Refs of files already in T3: the id came from POST /api/attachments. */
+export function validUploads(value: unknown): UploadedAttachment[] {
+  if (value === undefined) return [];
+  const error = new HttpError(400, `uploads must be up to ${MAX_ATTACHMENTS} files, each with type, id, name, mimeType and sizeBytes`);
+  if (!Array.isArray(value) || value.length > MAX_ATTACHMENTS) throw error;
+  return value.map((entry) => {
+    if (!isObject(entry) || (entry.type !== "image" && entry.type !== "file")) throw error;
+    const { id, name, mimeType, sizeBytes } = entry;
+    const valid =
+      typeof id === "string" && id.length >= 1 && id.length <= MAX_ID && !id.includes("/") && !hasControl(id) &&
+      typeof name === "string" && name.length >= 1 && name.length <= MAX_NAME &&
+      typeof mimeType === "string" && mimeType.length <= MAX_MIME &&
+      typeof sizeBytes === "number" && Number.isInteger(sizeBytes) && sizeBytes >= 1;
+    if (!valid) throw error;
+    return { type: entry.type, id, name, mimeType, sizeBytes };
+  });
+}
+
+/** Images and uploads together share the attachment limit of one message. */
+export function validAttachments(body: Record<string, unknown>): { images: ImageUpload[]; uploads: UploadedAttachment[] } {
+  const images = validImages(body.attachments);
+  const uploads = validUploads(body.uploads);
+  if (images.length + uploads.length > MAX_ATTACHMENTS) throw new HttpError(400, `A message takes up to ${MAX_ATTACHMENTS} attachments`);
+  return { images, uploads };
+}
+
+export function validFileSearch(params: URLSearchParams): { query: string; limit: number } {
+  const query = params.get("q") ?? "";
+  if (query.length > MAX_SEARCH_QUERY) throw new HttpError(400, `q must be at most ${MAX_SEARCH_QUERY} characters`);
+  const raw = params.get("limit");
+  const limit = raw === null ? DEFAULT_FILE_SEARCH_LIMIT : Number(raw);
+  if (raw === "" || !Number.isInteger(limit) || limit < 1 || limit > MAX_FILE_SEARCH_LIMIT) throw new HttpError(400, `limit must be an integer from 1 to ${MAX_FILE_SEARCH_LIMIT}`);
+  return { query, limit };
+}
+
+export function validItemId(itemId: string): string {
+  if (itemId.length > 512) throw new HttpError(400, "itemId must be at most 512 characters");
+  return itemId;
 }
 
 export function validAssign(body: Record<string, unknown>): Omit<AssignIssueBody, "attachments"> {
@@ -115,12 +182,12 @@ export function validQueuedEdit(body: Record<string, unknown>): string {
   return body.text;
 }
 
-export function validMessage(body: Record<string, unknown>): { message: Omit<SendMessageBody, "attachments">; images: ImageUpload[] } {
+export function validMessage(body: Record<string, unknown>): { message: Omit<SendMessageBody, "attachments" | "uploads">; images: ImageUpload[]; uploads: UploadedAttachment[] } {
   if (typeof body.text !== "string") throw new HttpError(400, "text is required");
   if (body.mode !== undefined && body.mode !== "queue" && body.mode !== "steer") throw new HttpError(400, "mode must be queue or steer");
-  const images = validImages(body.attachments);
-  if (body.text.trim() === "" && images.length === 0) throw new HttpError(400, "text or an image is required");
-  return { message: { text: body.text, ...(body.mode && { mode: body.mode }) }, images };
+  const { images, uploads } = validAttachments(body);
+  if (body.text.trim() === "" && images.length + uploads.length === 0) throw new HttpError(400, "text or an attachment is required");
+  return { message: { text: body.text, ...(body.mode && { mode: body.mode }) }, images, uploads };
 }
 
 const MAX_ORIGIN = 100;
