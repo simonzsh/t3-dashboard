@@ -86,6 +86,19 @@ function live() {
   return ctx;
 }
 
+test("workspaceOf gives the worktree first, then the project root, else null", () => {
+  const { store } = setup();
+  store.beginSync();
+  store.apply([
+    snapshot(
+      [raw("wt", { worktreePath: "/work/wt" }), raw("root"), raw("lost", { projectId: "no-such-project" }), raw("no-folder", { projectId: "project-2" })],
+      [{ id: "project-1", title: "A", workspaceRoot: "/work/root" }, { id: "project-2", title: "B" }],
+    ),
+    { kind: "synchronized" },
+  ]);
+  assert.deepEqual(["wt", "root", "lost", "no-folder", "unknown"].map((id) => store.workspaceOf(id)), ["/work/wt", "/work/root", null, null, null]);
+});
+
 test("thread.updated upserts and emits one diff", () => {
   const { store, threads } = live();
   store.apply([{ kind: "thread.updated", thread: raw("thread-3"), location: "active" }]);

@@ -27,3 +27,25 @@ export function searchProjections(projections: Iterable<RawProjection>, query: s
   found.sort((a, b) => rank(a) - rank(b) || b.updatedAt.localeCompare(a.updatedAt));
   return found.slice(0, limit).map(({ updatedAt: _, ...match }) => match);
 }
+
+const DEMO_FILES: Array<{ path: string; kind: "file" | "directory" }> = [
+  { path: "web/src", kind: "directory" },
+  { path: "web/src/checkout", kind: "directory" },
+  { path: "web/src/checkout/OrderSummary.tsx", kind: "file" },
+  { path: "web/src/checkout/OrderSummary.test.tsx", kind: "file" },
+  { path: "web/src/checkout/summary.css", kind: "file" },
+  { path: "web/src/checkout/Fees.tsx", kind: "file" },
+  { path: "src/middleware", kind: "directory" },
+  { path: "src/middleware/rateLimit.ts", kind: "file" },
+  { path: "src/middleware/index.ts", kind: "file" },
+  { path: "docs/releases/2.4.md", kind: "file" },
+  { path: "package.json", kind: "file" },
+  { path: "README.md", kind: "file" },
+];
+
+/** Demo paths that contain the query, in list order. */
+export function searchEntries(query: string, limit: number): { entries: Array<{ path: string; kind: string }>; truncated: boolean } {
+  const needle = query.toLowerCase();
+  const found = DEMO_FILES.filter((entry) => entry.path.toLowerCase().includes(needle));
+  return { entries: found.slice(0, limit), truncated: found.length > limit };
+}

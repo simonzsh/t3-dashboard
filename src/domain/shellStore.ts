@@ -75,6 +75,13 @@ export class ShellStore {
     return this.live.threads.get(id)?.pendingBackgroundTasks ?? [];
   }
 
+  /** Where the agent works: the thread's worktree, else its project's root. Null when T3 names none. */
+  workspaceOf(threadId: string): string | null {
+    const raw = this.live.threads.get(threadId);
+    if (!raw) return null;
+    return raw.worktreePath || (raw.projectId ? this.live.projects.get(raw.projectId)?.workspaceRoot : null) || null;
+  }
+
   thread(id: string): DashboardThread | undefined {
     return this.derived.get(id);
   }

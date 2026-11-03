@@ -1,7 +1,7 @@
 import { RUNNING_RUN_STATUSES } from "../../../shared/status.ts";
 import type { FetchLike } from "../../integrations/linear/client.ts";
-import type { AttachmentRef, Command, ImageUpload, RawConfig, RawProjection, RawScheduledTask, RawSearchMatch, RawThread, ShellItem, T3Port } from "../../integrations/t3/schemas.ts";
-import { searchProjections } from "./search.ts";
+import type { AttachmentRef, Command, FileUpload, ImageUpload, RawConfig, RawProjection, RawScheduledTask, RawSearchMatch, RawThread, RawTurnItem, SearchEntriesResponse, ShellItem, T3Port } from "../../integrations/t3/schemas.ts";
+import { searchEntries, searchProjections } from "./search.ts";
 import { demoFixtures, demoIssues, demoScheduledTasks, SCRATCH_PROJECT_ID } from "./fixtures.ts";
 
 type Listener = (items: ShellItem[]) => void;
@@ -13,15 +13,18 @@ export class DemoPort implements T3Port {
   private readonly config: RawConfig;
   private readonly projections = new Map<string, RawProjection>();
   private readonly listeners = new Set<Listener>();
+  private readonly hidden: Set<string>;
   private readonly deletedTasks = new Set<string>();
   private readonly renamedTasks = new Map<string, string>();
   private sequence = 0;
+  private uploads = 0;
 
   constructor(now: () => Date) {
     this.now = now;
     const fixtures = demoFixtures(now());
     this.projects = fixtures.projects;
     this.config = fixtures.config;
+    this.hidden = new Set(fixtures.hiddenThreadIds);
     for (const [id, projection] of Object.entries(fixtures.projections)) this.projections.set(id, projection);
   }
 
@@ -34,6 +37,21 @@ export class DemoPort implements T3Port {
   async searchThreads(query: string, limit?: number): Promise<RawSearchMatch[]> {
     return searchProjections(this.projections.values(), query, limit);
   }
+
+  async turnItem(threadId: string, itemId: string): Promise<RawTurnItem | null> {
+    const { turnItems = [] } = await this.threadProjection(threadId);
+    return turnItems.map((entry) => ("item" in entry && entry.item ? entry.item : (entry as RawTurnItem))).find((item) => item.id === itemId) ?? null;
+  }
+
+  async searchEntries(_cwd: string, query: string, limit: number): Promise<SearchEntriesResponse> {
+    return searchEntries(query, limit);
+  }
+
+  async uploadAttachment(_upload: FileUpload): Promise<string> {
+    return `demo-upload-${++this.uploads}`;
+  }
+
+  async deleteAttachment(): Promise<void> {}
 
   async getConfig(): Promise<RawConfig> {
     return this.config;
@@ -76,7 +94,8 @@ export class DemoPort implements T3Port {
     const thread = { ...projection.thread!, updatedAt: at };
     switch (command.type) {
       case "message.dispatch": {
-        const message = { id: String(command.messageId), role: "user" as const, text: String(command.text), createdAt: at };
+        const attachments = (command.attachments as Array<{ type: string; id: string; name: string; mimeType: string; sizeBytes: number }> | undefined) ?? [];
+        const message = { id: String(command.messageId), role: "user" as const, text: String(command.text), createdAt: at, attachments };
         const runs = projection.runs ?? [];
         const queued = (command.dispatchMode as { type?: string } | undefined)?.type === "queue_after_active" && (thread.activeRunId || runs.some((run) => RUNNING_RUN_STATUSES.has(run.status ?? "")));
         // The demo never completes a run, so a queued message never starts by itself.
@@ -172,7 +191,7 @@ export class DemoPort implements T3Port {
   // Answers like T3 on connect: one snapshot, then "synchronized", then live updates.
   subscribeShell(onItems: Listener): { cancel(): void } {
     this.listeners.add(onItems);
-    const threads = [...this.projections.values()].map((projection) => projection.thread!);
+    const threads = [...this.projections.values()].map((projection) => projection.thread!).filter((thread) => !this.hidden.has(thread.id));
     queueMicrotask(() => onItems([{ kind: "snapshot", snapshot: { projects: this.projects, threads } }, { kind: "synchronized" }]));
     return { cancel: () => void this.listeners.delete(onItems) };
   }
