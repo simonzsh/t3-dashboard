@@ -35,10 +35,15 @@ export function Dropdown({ label, value, options, onPick, icon, placeholder, dis
   const current = options.find((o) => o.id === value);
   const withFilter = showsFilter(options.length, filterable);
   const searching = open && withFilter;
+  // A form field shows the search in its own place; a compact picker keeps it in the menu.
+  const inPlace = className.includes("field");
   const shown = filterOptions(options, query);
 
   useEffect(() => {
-    if (open) (withFilter ? filter.current : list.current)?.focus({ preventScroll: true });
+    if (!open) return;
+    // On a touch screen, a compact menu does not focus its search: no keyboard pops up.
+    const focusSearch = withFilter && (inPlace || !matchMedia("(pointer: coarse)").matches);
+    (focusSearch ? filter.current : list.current)?.focus({ preventScroll: true });
   }, [open]);
 
   useEffect(() => {
@@ -86,8 +91,26 @@ export function Dropdown({ label, value, options, onPick, icon, placeholder, dis
     }
   }
 
+  const search = (
+    <TextInput
+      ref={filter}
+      className={inPlace ? "dropdown-search" : "dropdown-filter"}
+      role="combobox"
+      aria-expanded
+      placeholder={searchPlaceholder}
+      aria-label={searchPlaceholder.replace(/…$/, "")}
+      aria-controls={`${id}-list`}
+      aria-activedescendant={active >= 0 ? `${id}-${active}` : undefined}
+      value={query}
+      onChange={(e) => {
+        setQuery(e.target.value);
+        setActive(filterOptions(options, e.target.value).length > 0 ? 0 : -1);
+      }}
+    />
+  );
+
   return (
-    <div className={`dropdown ${className}${searching ? " searching" : ""}`.trim()} onKeyDown={onKeyDown}>
+    <div className={`dropdown ${className}${searching && inPlace ? " searching" : ""}`.trim()} onKeyDown={onKeyDown}>
       <button
         ref={trigger}
         type="button"
@@ -103,31 +126,16 @@ export function Dropdown({ label, value, options, onPick, icon, placeholder, dis
         <span className={`dropdown-value${current ? "" : " placeholder"}`}>{current?.label ?? value ?? placeholder ?? label}</span>
         <Icon name="chevron" className="icon chevron-down" />
       </button>
-      {searching && (
-        <TextInput
-          ref={filter}
-          className="dropdown-search"
-          role="combobox"
-          aria-expanded
-          placeholder={searchPlaceholder}
-          aria-label={searchPlaceholder.replace(/…$/, "")}
-          aria-controls={`${id}-list`}
-          aria-activedescendant={active >= 0 ? `${id}-${active}` : undefined}
-          value={query}
-          onChange={(e) => {
-            setQuery(e.target.value);
-            setActive(filterOptions(options, e.target.value).length > 0 ? 0 : -1);
-          }}
-        />
-      )}
+      {searching && inPlace && search}
       {open && (
         <Popover
-          anchor={searching ? filter : trigger}
+          anchor={searching && inPlace ? filter : trigger}
           className="dropdown-menu"
-          minWidth={className.includes("field") ? 0 : 210}
+          minWidth={inPlace ? 0 : 210}
           matchWidth
           onClose={(reason) => close(reason === "escape")}
         >
+          {searching && !inPlace && search}
           <div
             ref={list}
             id={`${id}-list`}
