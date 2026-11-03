@@ -1,5 +1,6 @@
 import type { ConnectionStatus } from "./connection.ts";
 import type { DeskUpdate } from "./desk.ts";
+import type { SeenState } from "./seen.ts";
 import type { DashboardProject, DashboardProvider, DashboardThread, ModelDefaults } from "./threads.ts";
 
 // The server-sent events on /api/events.
@@ -26,8 +27,9 @@ export type DashboardEvent =
   | { type: "providers"; data: DashboardProvider[] }
   | { type: "modelDefaults"; data: ModelDefaults }
   | { type: "connection"; data: ConnectionStatus }
-  | { type: "desk"; data: DeskUpdate };
+  | { type: "desk"; data: DeskUpdate }
+  | { type: "seen"; data: SeenState };
 
 // A record, not a list: a new event type without an entry here fails the type check.
-const EVENT_TYPES: Record<DashboardEvent["type"], true> = { state: true, threads: true, projects: true, providers: true, modelDefaults: true, connection: true, desk: true };
+const EVENT_TYPES: Record<DashboardEvent["type"], true> = { state: true, threads: true, projects: true, providers: true, modelDefaults: true, connection: true, desk: true, seen: true };
 export const DASHBOARD_EVENT_TYPES = Object.keys(EVENT_TYPES) as DashboardEvent["type"][];

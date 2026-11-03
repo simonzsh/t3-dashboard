@@ -60,3 +60,10 @@ test("a desk event leaves the dashboard state alone", () => {
   assert.equal(applyEvent(s, { type: "desk", data: { desk, origin: "tab" } }), s);
   assert.equal(applyEvent(null, { type: "desk", data: { desk, origin: "tab" } }), null);
 });
+
+test("a seen event leaves the dashboard state alone", () => {
+  const s = baseState([thread("thread-1")]);
+  const data = { since: "2026-01-01T00:00:00Z", seen: {} };
+  assert.equal(applyEvent(s, { type: "seen", data }), s);
+  assert.equal(applyEvent(null, { type: "seen", data }), null);
+});
