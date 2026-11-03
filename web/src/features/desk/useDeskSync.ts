@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, type Dispatch } from "react";
 import type { DeskUpdate, SharedDesk } from "../../../../shared/api.ts";
 import { useApi } from "../../api/ApiContext.tsx";
-import type { DeskAction, DeskState } from "./desk.ts";
+import { windowsToKeep, type DeskAction, type DeskState } from "./desk.ts";
 
 // Tells our own echo from another device's change.
 const ORIGIN = crypto.randomUUID();
@@ -28,6 +28,8 @@ export function useDeskSync({ desk, dispatch, threads, remote, connects }: Optio
   // The state the server holds as far as we know: what we load, receive or send.
   const known = useRef<string | null>(null);
   const pruned = useRef(false);
+  const windows = useRef(desk.windows);
+  windows.current = desk.windows;
 
   const apply = (shared: SharedDesk) => {
     known.current = keyOf(shared);
@@ -73,6 +75,12 @@ export function useDeskSync({ desk, dispatch, threads, remote, connects }: Optio
   useEffect(() => {
     if (!loaded || !threads || pruned.current) return;
     pruned.current = true;
-    dispatch({ type: "prune", existing: new Set(threads.map((t) => t.id)) });
+    const live = new Set(threads.map((t) => t.id));
+    const asked = windows.current.map((w) => w.id);
+    void windowsToKeep(asked, live, async (id) => (await api.getThread(id)).subagentThread).then((kept) => {
+      // A window opened while the server answered is not in `asked`: it stays.
+      const opened = windows.current.map((w) => w.id).filter((id) => !asked.includes(id));
+      dispatch({ type: "prune", existing: new Set([...kept, ...opened]) });
+    });
   }, [loaded, threads, dispatch]);
 }

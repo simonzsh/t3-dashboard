@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useMemo, useRef, type Dispatch, type MouseEvent, type PointerEvent, type ReactNode, type TouchEvent } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type Dispatch, type MouseEvent, type PointerEvent, type ReactNode, type TouchEvent } from "react";
 import { Cell, Grid, Gridline, useGridRef, type GridLayout } from "react-resizable-panels";
 import type { DashboardProject, DashboardProvider, DashboardThread } from "../../../../shared/api.ts";
 import { threadState } from "../../../../shared/status.ts";
@@ -190,6 +190,9 @@ export function DeskView({ desk, dispatch, threads, projects, background, t3Envi
   const narrow = useMediaQuery("(max-width: 899px)");
   const byId = useMemo(() => new Map(threads.map((t) => [t.id, t])), [threads]);
   const projectTitles = useMemo(() => new Map(projects.map((p) => [p.id, p.title])), [projects]);
+  // Names of subagent threads, which the shell does not list.
+  const [childTitles, setChildTitles] = useState<Record<string, string>>({});
+  const setChildTitle = useCallback((id: string, title: string) => setChildTitles((titles) => (titles[id] === title ? titles : { ...titles, [id]: title })), []);
   const seen = useRef(new Set<string>());
   for (const w of desk.windows) if (byId.has(w.id)) seen.current.add(w.id);
   const root = useRef<HTMLDivElement>(null);
@@ -244,6 +247,8 @@ export function DeskView({ desk, dispatch, threads, projects, background, t3Envi
         compact={compact}
         t3EnvironmentId={t3EnvironmentId}
         providers={providers}
+        childTitle={childTitles[w.id]}
+        onTitle={setChildTitle}
         dispatch={dispatch}
       />
     );
@@ -251,6 +256,7 @@ export function DeskView({ desk, dispatch, threads, projects, background, t3Envi
 
   const chip = (w: Win, active: boolean, closable = false) => {
     const thread = byId.get(w.id);
+    const title = thread || !childTitles[w.id] ? threadTitle(thread) : childTitles[w.id];
     const button = (
       <Pressable
         key={w.id}
@@ -260,7 +266,7 @@ export function DeskView({ desk, dispatch, threads, projects, background, t3Envi
       >
         <span className={`state-dot ${thread ? threadState(thread) : "idle"}`} aria-hidden="true" />
         {thread && <ProviderIcon provider={thread.provider} />}
-        <span className="desk-chip-title" data-tooltip={threadTitle(thread)} data-tooltip-clipped>{threadTitle(thread)}</span>
+        <span className="desk-chip-title" data-tooltip={title} data-tooltip-clipped>{title}</span>
       </Pressable>
     );
     if (!closable) return button;

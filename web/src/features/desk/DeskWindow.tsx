@@ -21,17 +21,20 @@ interface Props {
   compact: boolean;
   t3EnvironmentId: string | null;
   providers: DashboardProvider[];
+  // A subagent thread has no shell entry: the window takes its name from the conversation.
+  childTitle?: string;
+  onTitle?: (id: string, title: string) => void;
   // Stable across renders, so a window rerenders only when its own props change.
   dispatch: Dispatch<DeskAction>;
 }
 
-function DeskWindowView({ id, thread, projectTitle, missing, focused, maximized, compact, t3EnvironmentId, providers, dispatch }: Props) {
+function DeskWindowView({ id, thread, projectTitle, missing, focused, maximized, compact, t3EnvironmentId, providers, childTitle, onTitle, dispatch }: Props) {
   const onFocus = () => dispatch({ type: "focus", id });
   const onClose = () => dispatch({ type: "close", id });
   const onMinimize = () => dispatch({ type: "minimize", id });
   const onToggleMaximize = () => dispatch({ type: "maximize", id });
   const state = thread ? threadState(thread) : null;
-  const title = threadTitle(thread);
+  const title = thread || !childTitle ? threadTitle(thread) : childTitle;
   return (
     <section
       className={`desk-window${state ? ` state-${state}` : ""}${focused ? " focused" : ""}${maximized ? " maximized" : ""}`}
@@ -78,7 +81,7 @@ function DeskWindowView({ id, thread, projectTitle, missing, focused, maximized,
           <Button onClick={onClose}>Close</Button>
         </div>
       ) : (
-        <ConversationPanel threadId={id} thread={thread} providers={providers} onOpenThread={(child) => dispatch({ type: "open", id: child })} />
+        <ConversationPanel threadId={id} thread={thread} providers={providers} onOpenThread={(child) => dispatch({ type: "open", id: child })} onTitle={(name) => onTitle?.(id, name)} />
       )}
     </section>
   );

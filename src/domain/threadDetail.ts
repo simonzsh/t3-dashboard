@@ -1,5 +1,6 @@
 import type { ChatAttachment, ChatMessage, DashboardThread, HtmlRender, RunActivity, PendingRequestDetail, QueuedMessage, StepDetail, StepKind, StepStatus, SubagentInfo, ThreadDetail, TodoEntry, TurnStep } from "../../shared/api.ts";
 import { FAILED_STATUSES, RUNNING_RUN_STATUSES } from "../../shared/status.ts";
+import { isSubagentThread } from "./classify.ts";
 import { isRuntimeMode } from "../../shared/limits.ts";
 import type { RawBackgroundTask, RawMessage, RawProjection, RawRuntimeRequest, RawSubagent, RawTurnItem, TurnItemEntry } from "../integrations/t3/schemas.ts";
 
@@ -394,8 +395,11 @@ export function toThreadDetail(threadId: string, projection: RawProjection, thre
   const pendingRequests = (projection.runtimeRequests ?? []).filter((request) => request.status === "pending").map((request) => pendingDetail(request, items));
   const runtimeMode = projection.thread?.runtimeMode;
   const { steps, omitted } = stepsOf(threadId, projection);
+  const own = projection.thread;
   return {
     threadId,
+    title: own?.title?.trim() || null,
+    subagentThread: own !== undefined && isSubagentThread(own) && !own.archivedAt && !own.deletedAt,
     thread: thread ?? null,
     messages,
     queue,

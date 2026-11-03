@@ -255,6 +255,7 @@ main { flex: 1; min-height: 0; overflow: hidden; padding: 24px; display: flex; f
 .msg-actions .icon-button.sm { min-width: 22px; height: 22px; border-radius: var(--radius-sm); }
 .msg-actions .icon-button.sm svg { width: 14px; height: 14px; }
 .msg-copied { color: var(--text-secondary); }
+.steps-omitted { font-size: 12px; color: var(--text-secondary); text-align: center; }
 .working-row { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--text-secondary); }
 .rewind-files { display: flex; align-items: center; gap: 8px; font-size: 13px; }
 .msg.user { align-items: flex-end; }

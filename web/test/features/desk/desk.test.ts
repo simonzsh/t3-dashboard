@@ -7,6 +7,7 @@ import {
   cellOf,
   deskLayout,
   deskReducer,
+  windowsToKeep,
   equalSizes,
   gridWindows,
   loadDesk,
@@ -126,6 +127,15 @@ test("prune drops ids that no longer exist", () => {
   assert.deepEqual(ids(s), ["a", "b"]);
   assert.equal(s.maximizedId, null);
   assert.equal(s.focusedId, "b");
+});
+
+test("windowsToKeep keeps live threads and subagent threads, drops the rest, even when the server fails", async () => {
+  const resolves = async (id: string) => {
+    if (id === "boom") throw new Error("404");
+    return id === "child";
+  };
+  const kept = await windowsToKeep(["live", "child", "archived", "boom"], new Set(["live"]), resolves);
+  assert.deepEqual([...kept].sort(), ["child", "live"]);
 });
 
 test("setSizes keeps one layout per window count", () => {

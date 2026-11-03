@@ -20,8 +20,9 @@ import { singleFlight } from "../../lib/singleFlight.ts";
 import { NoticeProvider, useNotify } from "../../lib/notices.tsx";
 import { failure, formatBytes, formatMessageTime } from "../../lib/format.ts";
 import { useDocumentTheme } from "../../lib/useDocumentTheme.ts";
+import { omittedLabel } from "./steps.ts";
 import { awaitingStep, timeline } from "./timeline.ts";
-import { LIVE_RELOAD_MS, SEND_POLL_WINDOW_MS, pollDelay } from "./reload.ts";
+import { LIVE_RELOAD_MS, SEND_POLL_WINDOW_MS, detailRunning, pollDelay } from "./reload.ts";
 
 const ROLE_LABELS: Record<string, string> = { user: "You", assistant: "Agent", system: "System" };
 // Windows remount when they move between grid, minimized bar and mobile view: keep what they showed.
@@ -92,6 +93,7 @@ const Timeline = memo(function Timeline({ detail, threadId, running, editing, on
   const entries = timeline(detail);
   return (
     <>
+      {detail.stepsOmitted > 0 && <div className="steps-omitted">{omittedLabel(detail.stepsOmitted)}</div>}
       {entries.map((entry, i) => {
         switch (entry.kind) {
           case "message":
@@ -144,6 +146,8 @@ interface Props {
   providers: DashboardProvider[];
   /** Opens another thread, such as a subagent's. */
   onOpenThread?: (id: string) => void;
+  /** The name of a thread the shell does not list, once the detail gives it. */
+  onTitle?: (title: string) => void;
 }
 
 // Its errors show in a banner inside the conversation, not over the whole dashboard.
@@ -155,7 +159,7 @@ export function ConversationPanel(props: Props) {
   );
 }
 
-function Conversation({ threadId, thread, providers, onOpenThread }: Props) {
+function Conversation({ threadId, thread, providers, onOpenThread, onTitle }: Props) {
   const api = useApi();
   const [detail, setDetail] = useState<ThreadDetail | null>(() => detailCache.get(threadId) ?? null);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -236,10 +240,16 @@ function Conversation({ threadId, thread, providers, onOpenThread }: Props) {
   }, [thread]);
 
   const t = thread ?? detail?.thread ?? null;
-  const running = t !== null && runActive(t);
+  // Not in the shell (a subagent's thread): only its detail says whether it runs.
+  const running = t !== null ? runActive(t) : detailRunning(detail);
   const background = Boolean(t?.pendingTasks) || (detail?.subagents.some((s) => s.status === "running") ?? false);
   const delay = pollDelay({ running, sentAt, background, now: Date.now() });
   usePoll(load, delay);
+
+  const title = thread ? null : (detail?.title ?? null);
+  useEffect(() => {
+    if (title) onTitle?.(title);
+  }, [title]);
 
   const messageEditing = useMemo(() => ({ onEdit: setEditing, disabled: running }), [running]);
 

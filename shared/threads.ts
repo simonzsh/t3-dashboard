@@ -217,6 +217,10 @@ export interface RunActivity {
 
 export interface ThreadDetail {
   threadId: string;
+  /** The thread's name in T3: it titles a window of a subagent thread, which the shell hides. */
+  title: string | null;
+  /** A provider's subagent thread: not in the shell, but a Desk window may show it. */
+  subagentThread: boolean;
   thread: DashboardThread | null;
   messages: ChatMessage[];
   /** In T3's queue order. These messages are never in `messages`. */

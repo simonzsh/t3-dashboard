@@ -27,6 +27,13 @@ test("passes the store thread through", () => {
   assert.equal(toThreadDetail("thread-1", projection, thread).thread, thread);
 });
 
+test("title and subagentThread come from the projection's own thread", () => {
+  const sub = { id: "c", title: " Child ", lineage: { relationshipToParent: "subagent" }, creationSource: "provider" };
+  assert.deepEqual([toThreadDetail("c", { thread: sub }, undefined).title, toThreadDetail("c", { thread: sub }, undefined).subagentThread], ["Child", true]);
+  assert.equal(toThreadDetail("c", { thread: { ...sub, archivedAt: "2026-03-01T10:00:00Z" } }, undefined).subagentThread, false);
+  assert.deepEqual([toThreadDetail("t", { thread: { id: "t", title: "Main" } }, undefined).subagentThread, toThreadDetail("t", {}, undefined).title], [false, null]);
+});
+
 test("an empty projection gives empty lists", () => {
   const detail = toThreadDetail("thread-1", {}, undefined);
   assert.deepEqual([detail.messages, detail.pendingRequests, detail.subagents], [[], [], []]);

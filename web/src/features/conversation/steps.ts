@@ -60,3 +60,5 @@ export function remember<V>(cache: Map<string, V>, key: string, value: V, max: n
   cache.set(key, value);
   if (cache.size > max) cache.delete(cache.keys().next().value!);
 }
+
+export const omittedLabel = (count: number): string => `${count} earlier ${count === 1 ? "step" : "steps"} not shown`;

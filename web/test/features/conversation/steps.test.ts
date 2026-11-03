@@ -1,7 +1,7 @@
 import { test } from "bun:test";
 import assert from "node:assert/strict";
 import type { TurnStep } from "../../../../shared/api.ts";
-import { diffLines, groupLabel, remember } from "../../../src/features/conversation/steps.ts";
+import { diffLines, groupLabel, omittedLabel, remember } from "../../../src/features/conversation/steps.ts";
 
 const step = (startedAt: string, completedAt: string | null): TurnStep => ({ id: startedAt, runId: null, kind: "command", status: "done", startedAt, completedAt, text: "", detail: null, expandable: false, exitCode: null });
 
@@ -46,4 +46,9 @@ test("remember drops the oldest entry past the cap and keeps a rewritten key fre
   const cache = new Map<string, number>();
   for (const [key, value] of [["a", 1], ["b", 2], ["a", 3], ["c", 4]] as const) remember(cache, key, value, 2);
   assert.deepEqual([...cache], [["a", 3], ["c", 4]]);
+});
+
+test("omittedLabel counts the steps left out", () => {
+  assert.equal(omittedLabel(1), "1 earlier step not shown");
+  assert.equal(omittedLabel(50), "50 earlier steps not shown");
 });
