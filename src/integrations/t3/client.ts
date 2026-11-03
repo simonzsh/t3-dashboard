@@ -1,12 +1,14 @@
 import { describe, issues, parse, type Schema } from "../contract.ts";
 import { IntegrationError } from "../errors.ts";
 import { RpcConnection } from "./rpc.ts";
-import { AssetUrl, PersistedAttachments, ScratchProject, ProjectionResponse, RawConfig, SearchThreadsResponse, DeletedScheduledTask, ScheduledTasksResponse, ShellItem, WebSocketTicket } from "./schemas.ts";
-import type { AssetResource, AttachmentRef, Command, ImageUpload, RawProjection, RawScheduledTask, RawSearchMatch, T3Port } from "./schemas.ts";
+import { AssetUrl, PersistedAttachments, ScratchProject, ProjectionResponse, RawConfig, SearchEntriesResponse, SearchThreadsResponse, DeletedScheduledTask, ScheduledTasksResponse, ShellItem, TurnItemResponse, UploadUrl, WebSocketTicket } from "./schemas.ts";
+import type { AssetResource, AttachmentRef, Command, FileUpload, ImageUpload, RawProjection, RawScheduledTask, RawSearchMatch, RawTurnItem, T3Port } from "./schemas.ts";
 
 export const ORCHESTRATION_PROTOCOL = "2";
 // Images go up as data URLs of up to 10 MB each: give T3 time to write them.
 const UPLOAD_TIMEOUT_MS = 60_000;
+// Files go up as raw bytes, up to 50 MB.
+const FILE_UPLOAD_TIMEOUT_MS = 120_000;
 
 /** The RPC tags the dashboard calls: the contract check looks for each one in the T3 client bundle. */
 export const RPC = {
@@ -17,6 +19,10 @@ export const RPC = {
   dispatch: "orchestration.dispatchCommand",
   subscribeShell: "orchestration.subscribeShell",
   searchThreads: "orchestration.searchThreads",
+  getTurnItem: "orchestration.getTurnItem",
+  searchEntries: "projects.searchEntries",
+  createUploadUrl: "attachments.createUploadUrl",
+  deleteAttachment: "attachments.delete",
   subscribeScheduledTasks: "scheduledTasks.subscribe",
   deleteScheduledTask: "scheduledTasks.delete",
   upsertScheduledTask: "scheduledTasks.upsert",
@@ -52,7 +58,7 @@ export interface T3ClientOptions {
 }
 
 // Safe to send twice: a retry after a lost connection cannot repeat a side effect.
-const IDEMPOTENT = new Set<string>([RPC.getConfig, RPC.searchThreads, RPC.createAssetUrl, RPC.ensureScratch]);
+const IDEMPOTENT = new Set<string>([RPC.getConfig, RPC.searchThreads, RPC.createAssetUrl, RPC.ensureScratch, RPC.getTurnItem, RPC.searchEntries]);
 
 const UPSERT_FIELDS = ["prompt", "enabled", "schedule", "projectId", "threadId", "workspaceStrategy", "modelSelection", "runtimeMode", "interactionMode"];
 
@@ -132,6 +138,31 @@ export class T3Client implements T3Port {
   async searchThreads(query: string, limit?: number): Promise<RawSearchMatch[]> {
     const payload = limit === undefined ? { query } : { query, limit };
     return read(SearchThreadsResponse, await this.call(RPC.searchThreads, payload), "orchestration.searchThreads").matches;
+  }
+
+  async turnItem(threadId: string, itemId: string): Promise<RawTurnItem | null> {
+    return read(TurnItemResponse, await this.call(RPC.getTurnItem, { threadId, itemId }), RPC.getTurnItem).item ?? null;
+  }
+
+  async searchEntries(cwd: string, query: string, limit: number): Promise<SearchEntriesResponse> {
+    return read(SearchEntriesResponse, await this.call(RPC.searchEntries, { cwd, query, limit }), RPC.searchEntries);
+  }
+
+  // T3 mints a short-lived URL; the bytes go there without the bearer token.
+  async uploadAttachment({ type, name, mimeType, sizeBytes, bytes }: FileUpload): Promise<string> {
+    const { attachmentId, relativeUrl } = read(UploadUrl, await this.call(RPC.createUploadUrl, { type, name, mimeType, sizeBytes }), RPC.createUploadUrl);
+    let response: Response;
+    try {
+      response = await this.fetchImpl(`${await this.baseUrl()}${relativeUrl}`, { method: "POST", headers: { "content-type": mimeType }, body: new Blob([bytes]), signal: AbortSignal.timeout(FILE_UPLOAD_TIMEOUT_MS) });
+    } catch (error) {
+      throw new IntegrationError((error as Error).message, { system: "t3", kind: "unreachable" });
+    }
+    if (!response.ok) throw new IntegrationError(`T3 answered ${response.status} for an upload`, { system: "t3", kind: "refused", status: response.status });
+    return attachmentId;
+  }
+
+  async deleteAttachment(attachmentId: string): Promise<void> {
+    await this.call(RPC.deleteAttachment, { attachmentId });
   }
 
   async persistAttachments(threadId: string, messageId: string, images: ImageUpload[]): Promise<AttachmentRef[]> {

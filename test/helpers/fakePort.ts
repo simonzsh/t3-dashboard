@@ -1,4 +1,4 @@
-import type { AssetResource, Command, ImageUpload, RawConfig, RawProjection, RawScheduledTask, RawSearchMatch, ShellItem, T3Port } from "../../src/integrations/t3/schemas.ts";
+import type { AssetResource, Command, FileUpload, ImageUpload, RawConfig, RawProjection, RawScheduledTask, RawSearchMatch, RawTurnItem, SearchEntriesResponse, ShellItem, T3Port } from "../../src/integrations/t3/schemas.ts";
 
 /** In-memory T3: records commands, uploads and shell subscriptions; each answer can be swapped. */
 export class FakePort implements T3Port {
@@ -12,6 +12,12 @@ export class FakePort implements T3Port {
   assetType = "image/png";
   searchCalls: Array<{ query: string; limit?: number }> = [];
   searchResult: RawSearchMatch[] = [];
+  turnItems: Record<string, RawTurnItem> = {};
+  turnItemCalls: Array<{ threadId: string; itemId: string }> = [];
+  entriesCalls: Array<{ cwd: string; query: string; limit: number }> = [];
+  entries: SearchEntriesResponse = { entries: [], truncated: false };
+  fileUploads: FileUpload[] = [];
+  deletedAttachments: string[] = [];
   scheduledTasks: RawScheduledTask[] = [];
   scheduledTasksError: Error | null = null;
   deletedTasks: string[] = [];
@@ -53,6 +59,25 @@ export class FakePort implements T3Port {
   async searchThreads(query: string, limit?: number) {
     this.searchCalls.push({ query, ...(limit !== undefined && { limit }) });
     return this.searchResult;
+  }
+
+  async turnItem(threadId: string, itemId: string) {
+    this.turnItemCalls.push({ threadId, itemId });
+    return this.turnItems[itemId] ?? null;
+  }
+
+  async searchEntries(cwd: string, query: string, limit: number) {
+    this.entriesCalls.push({ cwd, query, limit });
+    return this.entries;
+  }
+
+  async uploadAttachment(upload: FileUpload) {
+    this.fileUploads.push(upload);
+    return `file-${this.fileUploads.length}`;
+  }
+
+  async deleteAttachment(attachmentId: string) {
+    this.deletedAttachments.push(attachmentId);
   }
 
   getConfig() {

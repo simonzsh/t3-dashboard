@@ -22,6 +22,8 @@ export const RawThread = s.object({
   id: s.string(),
   projectId: s.optional(s.string()),
   title: text(),
+  worktreePath: text(),
+  branch: text(),
   providerInstanceId: text(),
   modelSelection: s.optional(s.nullable(ModelSelection)),
   runtimeMode: text(),
@@ -81,6 +83,7 @@ export const DeletedScheduledTask = s.object({ id: s.string() });
 export const RawProject = s.object({
   id: s.string(),
   title: text(),
+  workspaceRoot: text(),
   defaultModelSelection: s.optional(s.nullable(ModelSelection)),
   projectIcon: s.optional(s.nullable(s.object({ kind: text(), name: text(), color: text() }))),
 });
@@ -122,7 +125,7 @@ export const RawMessage = s.object({
   text: s.optional(s.string()),
   streaming: s.optional(s.boolean()),
   createdAt: s.optional(s.string()),
-  attachments: s.optional(s.nullable(s.array(s.object({ type: s.string(), id: s.string(), name: text() })))),
+  attachments: s.optional(s.nullable(s.array(s.object({ type: s.string(), id: s.string(), name: text(), mimeType: text(), sizeBytes: s.optional(s.nullable(s.number())) })))),
   context: s.optional(s.nullable(s.object({ guest: s.optional(s.nullable(s.object({ text: text() }))) }))),
   delegatedCompletion: s.optional(s.unknown()),
   notification: s.optional(s.unknown()),
@@ -172,6 +175,34 @@ export const RawTurnItem = s.object({
   outputIndicatesFailure: s.optional(s.nullable(s.boolean())),
   startedAt: text(),
   output: s.optional(s.unknown()),
+  threadId: text(),
+  nodeId: text(),
+  parentItemId: text(),
+  updatedAt: text(),
+  // The thread projection leaves a command's output out; getTurnItem has it.
+  outputOmitted: s.optional(s.nullable(s.boolean())),
+  subagentId: text(),
+  childThreadId: text(),
+  progress: text(),
+  result: text(),
+  diffStr: text(),
+  oldStr: text(),
+  newStr: text(),
+  additions: s.optional(s.nullable(s.number())),
+  deletions: s.optional(s.nullable(s.number())),
+  steps: s.optional(s.nullable(s.array(s.object({ id: text(), text: text(), status: text() })))),
+  explanation: text(),
+  markdown: text(),
+  pattern: text(),
+  patterns: s.optional(s.nullable(s.array(s.string()))),
+  results: s.optional(s.nullable(s.array(s.object({ fileName: text(), preview: text(), title: text(), url: text(), snippet: text() })))),
+  message: text(),
+  failure: s.optional(s.nullable(s.object({ class: text(), message: text() }))),
+  summary: text(),
+  files: s.optional(s.nullable(s.array(s.unknown()))),
+  filesTotal: s.optional(s.nullable(s.number())),
+  beforeTokenCount: s.optional(s.nullable(s.number())),
+  afterTokenCount: s.optional(s.nullable(s.number())),
 });
 export type RawTurnItem = Infer<typeof RawTurnItem>;
 
@@ -192,7 +223,9 @@ export const RawSubagent = s.object({
 export type RawSubagent = Infer<typeof RawSubagent>;
 
 // T3 sends a turn item bare or wrapped as `{item}`, depending on the list.
-const TurnItemEntry = s.union(s.object({ item: RawTurnItem }), RawTurnItem);
+// visibleTurnItems entries also say whether the item is local to the thread or inherited from a parent.
+const TurnItemEntry = s.union(s.object({ item: RawTurnItem, visibility: text() }), RawTurnItem);
+export type TurnItemEntry = Infer<typeof TurnItemEntry>;
 
 export const RawProjection = s.object({
   messages: s.optional(s.array(RawMessage)),
@@ -219,6 +252,14 @@ export const RawProjection = s.object({
   thread: s.optional(RawThread),
 });
 export type RawProjection = Infer<typeof RawProjection>;
+
+export const TurnItemResponse = s.object({ item: s.optional(s.nullable(RawTurnItem)) });
+
+export const SearchEntriesResponse = s.object({
+  entries: s.array(s.object({ path: s.string(), kind: s.string() })),
+  truncated: s.optional(s.nullable(s.boolean())),
+});
+export type SearchEntriesResponse = Infer<typeof SearchEntriesResponse>;
 
 export const ProjectionResponse = s.object({ projection: s.optional(RawProjection) });
 
@@ -281,6 +322,17 @@ export type AssetResource = { _tag: "attachment"; attachmentId: string } | { _ta
 export const AssetUrl = s.object({ relativeUrl: s.string() });
 export const ScratchProject = s.object({ projectId: s.string() });
 
+export const UploadUrl = s.object({ attachmentId: s.string(), relativeUrl: s.string() });
+
+/** A file that goes to T3 through attachments.createUploadUrl. */
+export interface FileUpload {
+  type: "image" | "file";
+  name: string;
+  mimeType: string;
+  sizeBytes: number;
+  bytes: Uint8Array<ArrayBuffer>;
+}
+
 export interface ImageUpload {
   type: "image";
   name: string;
@@ -302,6 +354,12 @@ export interface T3Port {
   /** Message matches in T3, best first. */
   searchThreads(query: string, limit?: number): Promise<RawSearchMatch[]>;
   persistAttachments(threadId: string, messageId: string, images: ImageUpload[]): Promise<AttachmentRef[]>;
+  /** The full turn item, or null when T3 has none with this id. */
+  turnItem(threadId: string, itemId: string): Promise<RawTurnItem | null>;
+  searchEntries(cwd: string, query: string, limit: number): Promise<SearchEntriesResponse>;
+  /** Sends the file to T3 and returns its attachment id. */
+  uploadAttachment(upload: FileUpload): Promise<string>;
+  deleteAttachment(attachmentId: string): Promise<void>;
   /** The id of T3's "No project" project, created if missing. */
   ensureScratchProject(): Promise<string>;
   /** Fetches an asset through a short-lived signed URL; the file name ends the URL. */

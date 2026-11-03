@@ -294,6 +294,76 @@ test("a search answer of the wrong shape is a protocol error", async () => {
   assert.match((await protocolError(done)).message, /matches\[0\]\.projectId should be string/);
 });
 
+const success = (value: unknown) => ({ _tag: "Exit", requestId: "1", exit: { _tag: "Success", value } });
+
+test("turnItem asks for the item and gives null when T3 has none", async () => {
+  const { client } = setup();
+  const done = client.turnItem("t1", "item-1");
+  const socket = await nextSocket();
+  assert.equal(socket.sent[0]!.tag, "orchestration.getTurnItem");
+  assert.deepEqual(socket.sent[0]!.payload, { threadId: "t1", itemId: "item-1" });
+  socket.receive(success({ item: { id: "item-1", type: "command_execution", output: "ok" } }));
+  assert.deepEqual(await done, { id: "item-1", type: "command_execution", output: "ok" });
+  const missing = client.turnItem("t1", "gone");
+  await tick();
+  socket.receive({ ...success({ item: null }), requestId: "2" });
+  assert.equal(await missing, null);
+});
+
+test("searchEntries sends the folder, query and limit", async () => {
+  const { client } = setup();
+  const done = client.searchEntries("/work/repo", "read", 20);
+  const socket = await nextSocket();
+  assert.equal(socket.sent[0]!.tag, "projects.searchEntries");
+  assert.deepEqual(socket.sent[0]!.payload, { cwd: "/work/repo", query: "read", limit: 20 });
+  socket.receive(success({ entries: [{ path: "README.md", kind: "file" }], truncated: false }));
+  assert.deepEqual(await done, { entries: [{ path: "README.md", kind: "file" }], truncated: false });
+});
+
+function uploadSetup(answer: () => Response) {
+  const posts: Array<{ url: string; headers: Record<string, string>; body: Blob }> = [];
+  const fakeFetch = (async (url: string, init: RequestInit) => {
+    if (url.endsWith("/api/auth/websocket-ticket")) return Response.json({ ticket: "ticket-1" });
+    posts.push({ url, headers: init.headers as Record<string, string>, body: init.body as Blob });
+    return answer();
+  }) as unknown as typeof fetch;
+  const client = new T3Client({ origin: async () => "http://127.0.0.1:3773/", token: () => "test-token", fetch: fakeFetch, WebSocket: FakeSocket as unknown as typeof WebSocket });
+  return { client, posts };
+}
+
+const upload = { type: "file" as const, name: "notes.txt", mimeType: "text/plain", sizeBytes: 5, bytes: new TextEncoder().encode("hello") as Uint8Array<ArrayBuffer> };
+
+test("uploadAttachment mints a URL, posts the raw bytes there without the token, and returns the id", async () => {
+  const { client, posts } = uploadSetup(() => new Response(null, { status: 204 }));
+  const done = client.uploadAttachment(upload);
+  const socket = await nextSocket();
+  assert.equal(socket.sent[0]!.tag, "attachments.createUploadUrl");
+  assert.deepEqual(socket.sent[0]!.payload, { type: "file", name: "notes.txt", mimeType: "text/plain", sizeBytes: 5 });
+  socket.receive(success({ attachmentId: "att-1", relativeUrl: "/api/attachments/upload/abc?sig=1", expiresAt: "2026-03-01T10:00:00Z" }));
+  assert.equal(await done, "att-1");
+  assert.equal(posts[0]!.url, "http://127.0.0.1:3773/api/attachments/upload/abc?sig=1");
+  assert.deepEqual(posts[0]!.headers, { "content-type": "text/plain" });
+  assert.equal(await posts[0]!.body.text(), "hello");
+});
+
+test("uploadAttachment fails with an IntegrationError when T3 refuses the bytes", async () => {
+  const { client } = uploadSetup(() => new Response("too big", { status: 413 }));
+  const done = client.uploadAttachment(upload);
+  const socket = await nextSocket();
+  socket.receive(success({ attachmentId: "att-1", relativeUrl: "/u" }));
+  await assert.rejects(done, (error: unknown) => error instanceof IntegrationError && error.kind === "refused");
+});
+
+test("deleteAttachment sends the id", async () => {
+  const { client } = setup();
+  const done = client.deleteAttachment("att-1");
+  const socket = await nextSocket();
+  assert.equal(socket.sent[0]!.tag, "attachments.delete");
+  assert.deepEqual(socket.sent[0]!.payload, { attachmentId: "att-1" });
+  socket.receive(success({}));
+  await done;
+});
+
 const ok = (id: string, value: unknown = {}) => ({ _tag: "Exit", requestId: id, exit: { _tag: "Success", value } });
 const tickets = (calls: Call[]) => calls.filter((call) => call.url.endsWith("/api/auth/websocket-ticket")).length;
 
