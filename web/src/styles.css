@@ -238,7 +238,8 @@ main { flex: 1; min-height: 0; overflow: hidden; padding: 24px; display: flex; f
 .menu .provider-icon { margin: 0; }
 /* Notification bell: badge, menu, toasts. */
 .notif-bell { position: relative; }
-.notif-count { position: absolute; top: -4px; right: -4px; min-width: 16px; height: 16px; padding: 0 4px; box-sizing: border-box; border-radius: 999px; background: var(--accent); color: var(--on-accent); font-size: 10px; font-weight: 700; line-height: 16px; text-align: center; pointer-events: none; }
+.notif-icon { position: relative; display: inline-flex; }
+.notif-count { position: absolute; top: -7px; right: -5px; min-width: 16px; height: 16px; padding: 0 4px; box-sizing: border-box; border-radius: 999px; background: var(--accent); color: var(--on-accent); font-size: 10px; font-weight: 700; line-height: 16px; text-align: center; pointer-events: none; }
 .notif-menu { width: min(360px, calc(100vw - 16px)); max-height: min(70vh, 480px); overflow-y: auto; display: flex; flex-direction: column; gap: 2px; padding: 4px; border-radius: 10px; background: var(--surface-1); border: 1px solid var(--line); box-shadow: var(--shadow); font-size: 12px; }
 .notif-heading { margin: 0; padding: 6px 8px; font-size: 12px; font-weight: 600; color: var(--text-secondary); }
 .notif-empty { margin: 0; padding: 12px 8px; color: var(--text-secondary); }

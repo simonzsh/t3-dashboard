@@ -72,8 +72,11 @@ export function NotificationBell({ entries, count, now, onOpen, open, onOpenChan
         aria-expanded={open}
         onClick={() => onOpenChange(!open)}
       >
-        <Icon name="bell" strokeWidth={1.8} />
-        {count > 0 && <span className="notif-count">{badgeText(count)}</span>}
+        {/* The badge hangs on the icon, not the button corner, so it never covers the shortcut. */}
+        <span className="notif-icon">
+          <Icon name="bell" strokeWidth={1.8} />
+          {count > 0 && <span className="notif-count">{badgeText(count)}</span>}
+        </span>
       </IconButton>
       {open && (
         <Popover
