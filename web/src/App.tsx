@@ -6,6 +6,8 @@ import { ConnectionBanner } from "./features/setup/ConnectionBanner.tsx";
 import { DeskView } from "./features/desk/DeskView.tsx";
 import { NewAutomationDialog } from "./features/new-thread/NewAutomationDialog.tsx";
 import { NewThreadDialog } from "./features/new-thread/NewThreadDialog.tsx";
+import { NotificationBell, NotificationToasts } from "./features/notifications/NotificationBell.tsx";
+import { useNotifications } from "./features/notifications/useNotifications.ts";
 import { Switcher } from "./features/switcher/Switcher.tsx";
 import { useOpenHistory } from "./features/switcher/useOpenHistory.ts";
 import { SettingsDialog } from "./features/settings/SettingsDialog.tsx";
@@ -49,6 +51,10 @@ export function App() {
     remote: remoteDesk,
     connects,
   });
+  // The focused desk window on the visible Desk tab is already in front of the user: no toast for it.
+  const watching = useRef<(id: string) => boolean>(() => false);
+  watching.current = (id) => tab === "desk" && desk.focusedId === id;
+  const notify = useNotifications(state?.connection.t3 === "live" ? state.threads : null, useCallback((id: string) => watching.current(id), []));
   const [creating, setCreating] = useState(false);
   const [creatingAutomation, setCreatingAutomation] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
@@ -87,6 +93,7 @@ export function App() {
   function openOnDesk(id: string, showDesk: boolean) {
     dispatchDesk({ type: "open", id });
     recordOpened(id);
+    notify.markSeen(id);
     if (showDesk) setTab("desk");
   }
 
@@ -199,12 +206,14 @@ export function App() {
                 New Automation
               </Button>
             ))}
+          <NotificationBell entries={notify.entries} count={notify.count} now={now} onOpen={(id) => openOnDesk(id, true)} />
           <IconButton label="Settings" kbd="," onClick={() => setSettingsOpen(true)}>
             <Icon name="settings" strokeWidth={1.8} />
           </IconButton>
         </div>
       </header>
       <ConnectionBanner connection={state?.connection ?? null} sseDown={sseDown} />
+      <NotificationToasts toasts={notify.toasts} onOpen={(id) => openOnDesk(id, true)} onDismiss={notify.dismiss} />
       <main>
         {tab === "agents" &&
           (state ? (
