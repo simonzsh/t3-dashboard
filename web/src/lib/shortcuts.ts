@@ -66,3 +66,9 @@ export function matchShortcut(e: KeyInfo, dialogOpen: boolean, onDesk = false): 
   if (e.target && (TYPING.has(e.target.tagName) || e.target.isContentEditable)) return null;
   return PLAIN_DESK_KEYS[key] ?? null;
 }
+
+/** A plain character typed outside any field: on the Desk it goes to the focused window's message field. */
+export function startsTyping(e: KeyInfo): boolean {
+  if (e.ctrlKey || e.metaKey || e.altKey || e.key.length !== 1 || e.key === " ") return false;
+  return !(e.target && (TYPING.has(e.target.tagName) || e.target.isContentEditable));
+}

@@ -1,6 +1,6 @@
 import { test } from "bun:test";
 import assert from "node:assert/strict";
-import { matchShortcut, type KeyInfo } from "../../src/lib/shortcuts.ts";
+import { matchShortcut, startsTyping, type KeyInfo } from "../../src/lib/shortcuts.ts";
 
 const press = (key: string, over: Partial<KeyInfo> = {}): KeyInfo => ({ key, ctrlKey: false, metaKey: false, altKey: false, target: null, ...over });
 const ctrl = (key: string, over: Partial<KeyInfo> = {}) => press(key, { ctrlKey: true, ...over });
@@ -74,4 +74,19 @@ test("Ctrl+K and Cmd+K open the switcher, even while typing or with a dialog ope
   }
   assert.equal(matchShortcut(press("k"), false), null);
   assert.equal(matchShortcut(ctrl("k", { altKey: true }), false), null);
+});
+
+test("startsTyping: a plain character outside a field, not a shortcut, space or a named key", () => {
+  const field = { tagName: "TEXTAREA", isContentEditable: false };
+  assert.equal(startsTyping(press("a")), true);
+  assert.equal(startsTyping(press("A", { shiftKey: true })), true);
+  assert.equal(startsTyping(press("é", { target: { tagName: "DIV", isContentEditable: false } })), true);
+  assert.equal(startsTyping(press(" ")), false);
+  assert.equal(startsTyping(press("Enter")), false);
+  assert.equal(startsTyping(press("ArrowLeft")), false);
+  assert.equal(startsTyping(ctrl("a")), false);
+  assert.equal(startsTyping(press("a", { metaKey: true })), false);
+  assert.equal(startsTyping(press("a", { altKey: true })), false);
+  assert.equal(startsTyping(press("a", { target: field })), false);
+  assert.equal(startsTyping(press("a", { target: { tagName: "DIV", isContentEditable: true } })), false);
 });

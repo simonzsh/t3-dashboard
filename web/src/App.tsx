@@ -21,7 +21,7 @@ import { useDeskBackground } from "./features/desk/useDeskBackground.ts";
 import { useMediaQuery } from "./lib/useMediaQuery.ts";
 import { useShortcuts } from "./lib/useShortcuts.ts";
 import { TABS } from "./lib/tabs.ts";
-import { ctrlLabel } from "./lib/shortcuts.ts";
+import { ctrlLabel, startsTyping } from "./lib/shortcuts.ts";
 import { useTab } from "./lib/useTab.ts";
 import { useTheme } from "./features/settings/useTheme.ts";
 import { useUpdate } from "./features/update/useUpdate.ts";
@@ -103,6 +103,7 @@ export function App() {
   const onToggleDesk = useCallback((id: string) => handlers.current.toggleOnDesk(id), []);
   const onSettle = useCallback((id: string, settle: boolean) => (settle ? api.settle(id) : api.unsettle(id)), []);
 
+  const blocked = creating || creatingAutomation || settingsOpen || confirmingUpdate || switcherQuery !== null;
   useShortcuts(
     (action) => {
       if (action === "agents" || action === "board" || action === "desk") setTab(action);
@@ -133,9 +134,27 @@ export function App() {
         focusComposer(target.id);
       }
     },
-    creating || creatingAutomation || settingsOpen || confirmingUpdate || switcherQuery !== null,
+    blocked,
     tab === "desk",
   );
+
+  // Shortcuts use Ctrl now, so plain typing on the Desk can go straight to the focused window's field.
+  useEffect(() => {
+    if (tab !== "desk" || blocked || !desk.focusedId) return;
+    const id = desk.focusedId;
+    const onKey = (e: KeyboardEvent) => {
+      const el = e.target instanceof HTMLElement ? e.target : null;
+      if (!startsTyping({ key: e.key, ctrlKey: e.ctrlKey, metaKey: e.metaKey, altKey: e.altKey, target: el })) return;
+      if (el?.closest('[role="dialog"], [role="menu"], [role="listbox"]')) return;
+      const field = document.querySelector<HTMLTextAreaElement>(`[data-desk-window="${CSS.escape(id)}"] textarea`);
+      if (!field || field.disabled) return;
+      // Focused during keydown: the browser then types this key into the field.
+      field.focus();
+      field.setSelectionRange(field.value.length, field.value.length);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [tab, blocked, desk.focusedId]);
 
   const live = !sseDown && state?.connection.t3 === "live";
   const deskIds = new Set(desk.windows.map((w) => w.id));

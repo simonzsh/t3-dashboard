@@ -190,6 +190,8 @@ The shortcuts use `Ctrl`, also on a Mac, and they work while you type in a field
 | `Esc` | Desk, outside a field: exits full screen. In the message field, it leaves the field. |
 | `←` `→` `↑` `↓` | Desk, outside a field: moves the focus to the next window. |
 
+On the Desk, typing a letter outside any field writes it in the message field of the active window: no click needed first.
+
 On Windows and Linux, the browser keeps `Ctrl` + `N`, `Ctrl` + `⇧` + `N` and `Ctrl` + `1` to `3` for itself: use the buttons there.
 
 A tooltip gives the name of each button and its shortcut. The animations stop if the system asks for reduced motion (`prefers-reduced-motion`).
