@@ -358,7 +358,6 @@ export function rewindPoints(projection: RawProjection): Map<string, RewindPoint
   return points;
 }
 
-/** `tasks` are the shell thread's pending background tasks: they say which subagents still run. */
 // Like T3 Code: the newest turn report, else what the active provider thread last kept.
 function contextUsageOf(projection: RawProjection): ContextUsage | null {
   let latest: { usedTokens: number; maxTokens?: number | null; updatedAt?: string | null } | null = null;
@@ -369,6 +368,7 @@ function contextUsageOf(projection: RawProjection): ContextUsage | null {
   return latest && { usedTokens: Math.max(0, latest.usedTokens), maxTokens: latest.maxTokens ?? null };
 }
 
+/** `tasks` are the shell thread's pending background tasks: they say which subagents still run. */
 export function toThreadDetail(threadId: string, projection: RawProjection, thread: DashboardThread | undefined, tasks: RawBackgroundTask[] = []): ThreadDetail {
   // Like T3 Code: a message keeps its visible item's place and time. A queued message was sent when its item
   // started, not when it was queued, so it shows after the replies written while it waited.
