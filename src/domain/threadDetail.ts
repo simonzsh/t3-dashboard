@@ -1,4 +1,4 @@
-import type { ChatAttachment, ChatMessage, ContextUsage, DashboardThread, HtmlRender, RunActivity, PendingRequestDetail, QueuedMessage, StepDetail, StepKind, StepStatus, SubagentInfo, ThreadDetail, TodoEntry, TurnStep } from "../../shared/api.ts";
+import type { ChatAttachment, ChatMessage, ContextUsage, DashboardThread, HtmlRender, RunActivity, PendingRequestDetail, QueuedMessage, StepDetail, StepKind, StepStatus, SubagentInfo, SubagentState, ThreadDetail, TodoEntry, TurnStep } from "../../shared/api.ts";
 import { FAILED_STATUSES, RUNNING_RUN_STATUSES } from "../../shared/status.ts";
 import { isSubagentThread } from "./classify.ts";
 import { isRuntimeMode } from "../../shared/limits.ts";
@@ -39,6 +39,13 @@ export function subagentStatus(raw: RawSubagent): SubagentInfo["status"] {
   if (raw.status === "running") return "running";
   if (FAILED_STATUSES.has(raw.status ?? "")) return "failed";
   return raw.completedAt ? "done" : "running";
+}
+
+const SUBAGENT_STATES: Record<string, SubagentState> = { pending: "queued", running: "running", waiting: "waiting", idle: "idle", completed: "completed", failed: "failed", cancelled: "stopped", interrupted: "stopped" };
+
+// An unknown status falls back to the coarse step status.
+function subagentState(rawStatus: string | null | undefined, coarse: StepStatus): SubagentState {
+  return SUBAGENT_STATES[rawStatus ?? ""] ?? (coarse === "done" ? "completed" : coarse);
 }
 
 function toSubagent(raw: RawSubagent): SubagentInfo {
@@ -204,6 +211,7 @@ function toStep(item: RawTurnItem, kind: StepKind, projection: RawProjection): T
       const subagentId = subagentIdOf(item);
       const raw = (projection.subagents ?? []).find((candidate) => candidate.id === subagentId);
       const state = raw ? subagentStatus(raw) : status;
+      const fine = subagentState(raw?.status ?? item.status, state);
       const result = item.result?.trim() || raw?.result?.trim();
       return {
         ...base,
@@ -211,7 +219,7 @@ function toStep(item: RawTurnItem, kind: StepKind, projection: RawProjection): T
         text: truncate(item.title?.trim() || item.prompt?.trim() || "Subagent", STEP_CHARS),
         detail: state !== "running" && result ? truncate(result, RESULT_CHARS) : null,
         expandable: Boolean(result),
-        subagent: { subagentId, childThreadId: item.childThreadId ?? raw?.childThreadId ?? null, progress: state === "running" ? (item.progress ?? raw?.progress ?? null) : null, stoppable: state === "running" && Boolean(raw?.runId) },
+        subagent: { subagentId, childThreadId: item.childThreadId ?? raw?.childThreadId ?? null, progress: state === "running" ? (item.progress ?? raw?.progress ?? null) : null, stoppable: state === "running" && Boolean(raw?.runId), state: fine, provider: item.providerInstanceId ?? item.driver ?? raw?.providerInstanceId ?? raw?.driver ?? null, turnId: item.providerTurnId ?? null },
       };
     }
     case "notice":

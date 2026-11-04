@@ -1,12 +1,14 @@
+import { sameGroup } from "./subagents.ts";
 import type { ChatMessage, HtmlRender, ThreadDetail, TurnStep, StepKind } from "../../../../shared/api.ts";
 
 export type Entry =
   | { kind: "message"; at: string; message: ChatMessage }
   | { kind: "render"; at: string; render: HtmlRender }
   | { kind: "work"; at: string; steps: TurnStep[] }
+  | { kind: "subagents"; at: string; steps: TurnStep[] }
   | { kind: "step"; at: string; step: TurnStep };
 
-// These steps fold into a work group; the others (plan, todo, subagent, notice) deserve their own block.
+// These steps fold into a work group; the others (plan, todo, notice) deserve their own block.
 const GROUPED: ReadonlySet<StepKind> = new Set(["thinking", "command", "tool", "file", "search", "web"]);
 
 // Pages and steps sit between messages by time; a stable sort keeps the order T3 gave.
@@ -21,11 +23,16 @@ export function timeline(detail: Pick<ThreadDetail, "messages" | "renders" | "st
 
   const out: Entry[] = [];
   for (const entry of entries) {
+    const previous = out.at(-1);
+    if (entry.kind === "step" && entry.step.kind === "subagent") {
+      if (previous?.kind === "subagents" && sameGroup(previous.steps[0]!, entry.step)) previous.steps.push(entry.step);
+      else out.push({ kind: "subagents", at: entry.at, steps: [entry.step] });
+      continue;
+    }
     if (entry.kind !== "step" || !GROUPED.has(entry.step.kind)) {
       out.push(entry);
       continue;
     }
-    const previous = out.at(-1);
     if (previous?.kind === "work") previous.steps.push(entry.step);
     else out.push({ kind: "work", at: entry.at, steps: [entry.step] });
   }

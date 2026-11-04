@@ -183,6 +183,9 @@ export const RawTurnItem = s.object({
   // The thread projection leaves a command's output out; getTurnItem has it.
   outputOmitted: s.optional(s.nullable(s.boolean())),
   subagentId: text(),
+  providerTurnId: text(),
+  driver: text(),
+  providerInstanceId: text(),
   childThreadId: text(),
   progress: text(),
   result: text(),
@@ -212,6 +215,8 @@ export const RawSubagent = s.object({
   runId: text(),
   childThreadId: text(),
   origin: text(),
+  driver: text(),
+  providerInstanceId: text(),
   nativeTaskRef: s.optional(s.nullable(s.object({ nativeId: text() }))),
   title: text(),
   prompt: text(),
