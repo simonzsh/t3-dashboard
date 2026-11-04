@@ -123,6 +123,8 @@ export function App() {
       }
       else if (action === "close-window" || action === "toggle-fullscreen" || action === "minimize-window") {
         const type = action === "close-window" ? "close" : action === "minimize-window" ? "minimize" : "maximize";
+        // A subagent window (not in the shell) only goes full screen or closes.
+        if (type === "minimize" && !state?.threads.some((t) => t.id === desk.focusedId)) return;
         if (desk.focusedId) dispatchDesk({ type, id: desk.focusedId });
       } else {
         const target = gridWindows(desk)[Number(action.slice("window-".length)) - 1];

@@ -66,9 +66,12 @@ function DeskWindowView({ id, thread, projectTitle, missing, focused, maximized,
               <IconButton variant="ghost" size="sm" label={maximized ? "Exit fullscreen" : "Fullscreen"} tooltip={maximized ? "Exit fullscreen" : "Fullscreen"} shortcut={maximized ? `${ctrlLabel("F")} / Esc` : ctrlLabel("F")} onClick={onToggleMaximize}>
                 <Icon name={maximized ? "exitFullscreen" : "fullscreen"} />
               </IconButton>
-              <IconButton variant="ghost" size="sm" label="Minimize" tooltip="Minimize" shortcut={ctrlLabel("M")} onClick={onMinimize}>
-                <Icon name="minimize" />
-              </IconButton>
+              {/* A subagent window only goes full screen or closes. */}
+              {thread && (
+                <IconButton variant="ghost" size="sm" label="Minimize" tooltip="Minimize" shortcut={ctrlLabel("M")} onClick={onMinimize}>
+                  <Icon name="minimize" />
+                </IconButton>
+              )}
             </>
           )}
           <IconButton variant="ghost" size="sm" label="Close" tooltip="Close" shortcut={ctrlLabel("X")} onClick={onClose}>
