@@ -548,15 +548,15 @@ ol.install-steps { padding-left: 18px; }
 .inbox-section > .inbox-list { margin-top: 8px; }
 .inbox-collapse-head { align-self: flex-start; display: inline-flex; align-items: center; gap: 8px; padding: 4px 6px; border: 0; background: none; color: var(--text-secondary); font-size: 12px; font-weight: 500; }
 .inbox-collapse-head:hover:not(:disabled) { color: var(--text-primary); }
-.inbox-item { display: flex; align-items: stretch; gap: 8px; }
-.inbox-row { position: relative; flex: 1; min-width: 0; display: flex; align-items: center; gap: 10px; padding: 10px 14px; border-radius: 12px; box-shadow: var(--shadow); text-align: left; transition: border-color 0.12s, box-shadow 0.12s; }
+/* The actions sit inside the row, on the right: the row keeps room for all three so every row lines up. */
+.inbox-item { position: relative; }
+.inbox-row { position: relative; width: 100%; min-width: 0; display: flex; align-items: center; gap: 10px; padding: 10px 116px 10px 14px; border-radius: 12px; box-shadow: var(--shadow); text-align: left; transition: border-color 0.12s, box-shadow 0.12s; }
 .inbox-row.on-desk { border-color: color-mix(in srgb, var(--accent) 55%, var(--line)); }
 /* One line: a long title must not make the row taller. */
 .inbox-title { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 600; }
 .inbox-time { flex: none; color: var(--text-secondary); font-size: 12px; white-space: nowrap; }
 .inbox-pin { width: 13px; height: 13px; flex: none; color: var(--text-secondary); }
-/* Fits the widest set (Open on Desk + Settle), so rows of every section end at the same edge. */
-.inbox-actions { flex: none; display: flex; align-items: center; justify-content: flex-end; gap: 4px; min-width: 166px; }
+.inbox-actions { position: absolute; top: 50%; right: 10px; transform: translateY(-50%); display: flex; align-items: center; gap: 4px; }
 .inbox-open-t3 { border-radius: var(--radius-md); }
 .inbox-open-t3:hover { color: var(--text-primary); background: var(--surface-0); }
 .project-tag { flex: none; display: inline-flex; align-items: center; gap: 5px; min-width: 0; max-width: 180px; color: var(--text-secondary); font-size: 12px; }

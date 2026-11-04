@@ -1,13 +1,12 @@
 import { useMemo } from "react";
 import type { AutomationsResult, DashboardState, DashboardThread } from "../../../../shared/api.ts";
 import type { SeenState } from "../../../../shared/seen.ts";
-import { threadState } from "../../../../shared/status.ts";
 import { useAction } from "../../lib/useAction.ts";
 import { useScrolled } from "../../lib/useScrolled.ts";
 import { Button, Icon, Kbd, Loader, TextInput } from "../../ui/index.ts";
 import { excludeRoutineThreads } from "../automations/automations.ts";
 import { useSetupRows } from "../automations/useSetupRows.ts";
-import { InboxRow, type RowActions } from "./InboxRow.tsx";
+import { InboxRow } from "./InboxRow.tsx";
 import { Collapsible, Section } from "./InboxSection.tsx";
 import { inboxSections, inboxSummary, nothingToDo, settleCandidates } from "./inbox.ts";
 import { TicketRow, UpNextSection } from "./TicketsSection.tsx";
@@ -60,22 +59,20 @@ export function InboxView({ state, now, deskIds, onOpen, onToggleDesk, onSettle,
   // Before the first automations answer, routine threads would flash in the lists.
   const loading = state.connection.t3 === "live" && ((automations === null && automationsError === null) || !seenReady);
 
-  const row = (t: DashboardThread, actions: RowActions) => (
+  const row = (t: DashboardThread) => (
     <InboxRow
       key={t.id}
       thread={t}
       project={projects.get(t.projectId)}
       now={now}
-      actions={actions}
       onDesk={deskIds.has(t.id)}
       t3EnvironmentId={state.t3EnvironmentId}
       onOpen={onOpen}
       onToggleDesk={onToggleDesk}
       onSettle={onSettle}
-      onMarkRead={onMarkRead}
     />
   );
-  const rows = (threads: DashboardThread[], actions: RowActions) => threads.map((t) => row(t, actions));
+  const rows = (threads: DashboardThread[]) => threads.map((t) => row(t));
   const summary = inboxSummary(sections.needsYou.length, sections.newResults.length, relaunch.length);
   const ticketProps = { projects: state.projects, providers: state.providers, modelDefaults: state.modelDefaults, onOpen, onStarted: tickets.markStarted };
 
@@ -109,7 +106,7 @@ export function InboxView({ state, now, deskIds, onOpen, onToggleDesk, onSettle,
             </div>
           )}
           <Section id="inbox-needs-head" title="Needs you" count={sections.needsYou.length} limit={NEEDS_LIMIT}>
-            {sections.needsYou.map((t) => row(t, threadState(t) === "waiting" ? "open" : "open-settle"))}
+            {rows(sections.needsYou)}
           </Section>
           <Section
             id="inbox-results-head"
@@ -123,10 +120,10 @@ export function InboxView({ state, now, deskIds, onOpen, onToggleDesk, onSettle,
               </Button>
             }
           >
-            {rows(sections.newResults, "result")}
+            {rows(sections.newResults)}
           </Section>
           <Section id="inbox-relaunch-head" title="To relaunch" count={relaunch.length}>
-            {relaunch.map(({ thread }) => row(thread, "open"))}
+            {relaunch.map(({ thread }) => row(thread))}
           </Section>
           <UpNextSection
             board={tickets.board}
@@ -138,7 +135,7 @@ export function InboxView({ state, now, deskIds, onOpen, onToggleDesk, onSettle,
             {...ticketProps}
           />
           <Collapsible title="Running" count={sections.running.length}>
-            {rows(sections.running, "desk")}
+            {rows(sections.running)}
           </Collapsible>
           <Collapsible title="Read and idle" count={sections.readIdle.length}>
             {stale.length > 0 && (
@@ -153,10 +150,10 @@ export function InboxView({ state, now, deskIds, onOpen, onToggleDesk, onSettle,
                 Settle all older than 3 days ({stale.length})
               </Button>
             )}
-            {rows(sections.readIdle, "desk-settle")}
+            {rows(sections.readIdle)}
           </Collapsible>
           <Collapsible title="Recently settled" count={sections.settled.length} className="inbox-settled-head">
-            {rows(sections.settled, "unsettle")}
+            {rows(sections.settled)}
           </Collapsible>
         </div>
       )}

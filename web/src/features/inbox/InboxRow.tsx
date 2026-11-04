@@ -9,26 +9,21 @@ import { ProjectTag } from "../../lib/ProjectTag.tsx";
 import { ProviderIcon } from "../../lib/ProviderIcon.tsx";
 import { StatusBadge } from "../../lib/StatusBadge.tsx";
 import { useAction } from "../../lib/useAction.ts";
-import { Button, Icon, IconButton, Pressable, fly } from "../../ui/index.ts";
-
-// "result": a new result, with a "Mark read" action.
-export type RowActions = "open" | "open-settle" | "desk-settle" | "result" | "desk" | "unsettle";
+import { Icon, IconButton, Pressable, fly } from "../../ui/index.ts";
 
 interface Props {
   thread: DashboardThread;
   project: DashboardProject | undefined;
   now: Date;
-  actions: RowActions;
   onDesk: boolean;
   t3EnvironmentId: string | null;
   // addOnly: put the agent on the Desk without leaving the current tab.
   onOpen: (id: string, addOnly: boolean) => void;
   onToggleDesk: (id: string) => void;
   onSettle: (id: string, settle: boolean) => Promise<unknown>;
-  onMarkRead: (id: string) => void;
 }
 
-function InboxRowView({ thread: t, project, now, actions, onDesk, t3EnvironmentId, onOpen, onToggleDesk, onSettle, onMarkRead }: Props) {
+function InboxRowView({ thread: t, project, now, onDesk, t3EnvironmentId, onOpen, onToggleDesk, onSettle }: Props) {
   const status = agentStatus(t);
   const { busy, error, run } = useAction("update the agent");
   const rowRef = useRef<HTMLButtonElement>(null);
@@ -39,9 +34,8 @@ function InboxRowView({ thread: t, project, now, actions, onDesk, t3EnvironmentI
   const flyToSettle = () => {
     if (rowRef.current) fly(rowRef.current, document.querySelector(t.settled ? ".inbox-finished-head" : ".inbox-settled-head"));
   };
-  const showOpen = actions === "open" || actions === "open-settle";
-  const showDesk = actions === "desk" || actions === "desk-settle" || actions === "result";
-  const settle = actions === "open-settle" || actions === "desk-settle" || actions === "result" || actions === "unsettle";
+  // T3 refuses to settle a thread that runs or waits; unsettling is always allowed.
+  const settle = t.settled || status === "finished" || status === "idle";
   return (
     <div className="inbox-item">
       <Pressable
@@ -63,16 +57,6 @@ function InboxRowView({ thread: t, project, now, actions, onDesk, t3EnvironmentI
       </Pressable>
       <div className="inbox-actions">
         <OpenInT3 environmentId={t3EnvironmentId} threadId={t.id} className="inbox-open-t3 sm" />
-        {showOpen && (
-          <Button size="sm" onClick={() => onOpen(t.id, false)}>
-            Open on Desk
-          </Button>
-        )}
-        {actions === "result" && (
-          <IconButton label="Mark read" size="sm" tooltip="Mark read" onClick={() => onMarkRead(t.id)}>
-            <Icon name="check" />
-          </IconButton>
-        )}
         {settle && (
           <IconButton
             label={t.settled ? "Unsettle" : "Settle"}
@@ -88,8 +72,7 @@ function InboxRowView({ thread: t, project, now, actions, onDesk, t3EnvironmentI
             <Icon name={t.settled ? "unarchive" : "archive"} />
           </IconButton>
         )}
-        {showDesk && (
-          <IconButton
+        <IconButton
             label="Add to Desk"
             size="sm"
             className={`desk-toggle${onDesk ? " on" : ""}`}
@@ -102,7 +85,6 @@ function InboxRowView({ thread: t, project, now, actions, onDesk, t3EnvironmentI
           >
             <Icon name={onDesk ? "check" : "plus"} />
           </IconButton>
-        )}
       </div>
     </div>
   );
