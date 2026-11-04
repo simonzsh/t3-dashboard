@@ -1,4 +1,4 @@
-import type { DashboardModel, DashboardProvider, ModelSelection, RuntimeMode } from "../../../../shared/api.ts";
+import type { DashboardModel, DashboardProvider, ModelSelection, RuntimeMode, SkillInfo, SlashCommand } from "../../../../shared/api.ts";
 import { IMAGE_TYPES, MAX_ATTACHMENTS, MAX_FILE_BYTES, MAX_IMAGE_BYTES, MAX_IMAGES_TOTAL_BYTES } from "../../../../shared/limits.ts";
 
 export const RUNTIME_MODE_LABELS: Record<RuntimeMode, { label: string; description: string }> = {
@@ -75,24 +75,99 @@ export function acceptFiles<F extends FileLike>(existing: FileLike[], files: F[]
   return { accepted, error };
 }
 
-export interface Mention {
+export type TriggerKind = "mention" | "command" | "skill";
+
+export interface Trigger {
+  kind: TriggerKind;
   start: number;
-  /** What follows the @, up to the caret. */
+  /** What follows the trigger character, up to the caret. */
   query: string;
 }
 
-/** The @ word the caret is in: it starts the text or follows whitespace, so an email is not one. */
-export function mentionAt(text: string, caret: number): Mention | null {
+// A price such as $5 is not a skill: a skill name has a letter.
+const SKILL_QUERY = /^(?:[\w:-]*[A-Za-z][\w:-]*)?$/;
+const COMMAND_QUERY = /^[\w:-]*$/;
+
+/**
+ * The word the caret is in, when it opens a menu. It starts the text or follows whitespace, so an email is not one.
+ * @ lists files and $ lists skills anywhere; / lists commands only at the start of the message, as in T3 Code.
+ */
+export function triggerAt(text: string, caret: number): Trigger | null {
   const start = Math.max(text.lastIndexOf(" ", caret - 1), text.lastIndexOf("\n", caret - 1), text.lastIndexOf("\t", caret - 1)) + 1;
   const word = text.slice(start, caret);
-  return word.startsWith("@") ? { start, query: word.slice(1) } : null;
+  const query = word.slice(1);
+  if (word.startsWith("@")) return { kind: "mention", start, query };
+  if (word.startsWith("/") && start === 0 && COMMAND_QUERY.test(query)) return { kind: "command", start, query };
+  if (word.startsWith("$") && SKILL_QUERY.test(query)) return { kind: "skill", start, query };
+  return null;
 }
 
-/** Puts `@path` in place of the typed word. The caret lands after the space that follows it. */
-export function applyMention(text: string, mention: Mention, path: string): { text: string; caret: number } {
-  const end = mention.start + 1 + mention.query.length;
-  const before = `${text.slice(0, mention.start)}@${path}`;
+/** Puts the replacement (`@path`, `/command`, `$skill`) in place of the typed word. The caret lands after the space that follows it. */
+export function applyTrigger(text: string, trigger: Trigger, replacement: string): { text: string; caret: number } {
+  const end = trigger.start + 1 + trigger.query.length;
+  const before = `${text.slice(0, trigger.start)}${replacement}`;
   const rest = text.slice(end);
   const spaced = /^\s/.test(rest) ? rest : ` ${rest}`;
   return { text: before + spaced, caret: before.length + 1 };
+}
+
+const BOUNDARY = /[:/_-]/;
+
+// Lower is better; null means no match. A name prefix beats a name part, which beats the other fields.
+function rank(query: string, name: string, others: Array<string | null | undefined>): number | null {
+  const q = query.trim().toLowerCase();
+  if (q === "") return 0;
+  const n = name.toLowerCase();
+  if (n.startsWith(q)) return 0;
+  if (n.split(BOUNDARY).some((part) => part.startsWith(q))) return 1;
+  if (n.includes(q)) return 2;
+  const at = others.findIndex((field) => field?.toLowerCase().includes(q));
+  return at === -1 ? null : 3 + at;
+}
+
+function ranked<T>(items: T[], score: (item: T) => number | null): T[] {
+  return items
+    .map((item, index) => ({ item, index, score: score(item) }))
+    .filter((entry): entry is { item: T; index: number; score: number } => entry.score !== null)
+    .sort((a, b) => a.score - b.score || a.index - b.index)
+    .map(({ item }) => item);
+}
+
+/** The commands that match what follows the /. `compact: false` hides /compact, which cannot run during a run. */
+export function filterCommands(commands: SlashCommand[], query: string, { compact = true } = {}): SlashCommand[] {
+  return ranked(
+    commands.filter((command) => compact || command.name !== "compact"),
+    (command) => rank(query, command.name, [command.description]),
+  );
+}
+
+export function filterSkills(skills: SkillInfo[], query: string): SkillInfo[] {
+  return ranked(skills, (skill) => rank(query, skill.name, [skill.displayName, skill.description]));
+}
+
+/** 950, 1.5k, 722k, 1.3M: the size T3 Code shows on its Compact button. */
+export function formatTokens(count: number): string {
+  if (count < 1000) return String(Math.round(count));
+  const short = (value: number, unit: string) => `${value.toFixed(1).replace(/\.0$/, "")}${unit}`;
+  if (count < 10_000) return short(count / 1000, "k");
+  const thousands = Math.round(count / 1000);
+  return thousands < 1000 ? `${thousands}k` : short(count / 1_000_000, "M");
+}
+
+/** Removes the typed word and the space after it: the command ran instead of going into the text. */
+export function dropTrigger(text: string, trigger: Trigger): { text: string; caret: number } {
+  const end = trigger.start + 1 + trigger.query.length;
+  const rest = text.slice(end).replace(/^ /, "");
+  return { text: text.slice(0, trigger.start) + rest, caret: trigger.start };
+}
+
+/** `hints` name the menus the composer has, e.g. "@ files". */
+export function composerPlaceholder(running: boolean, hints: string[]): string {
+  if (hints.length === 0) return running ? "Queue a message for the agent…" : "Send a message to the agent…";
+  return `${running ? "Queue a message for the agent" : "Ask anything"}. ${hints.join(", ")}`;
+}
+
+// A menu closes on its own Escape; an IME uses Escape to cancel its composition.
+export function escapeBlurs(e: { key: string; isComposing: boolean }, menuOpen: boolean): boolean {
+  return e.key === "Escape" && !menuOpen && !e.isComposing;
 }

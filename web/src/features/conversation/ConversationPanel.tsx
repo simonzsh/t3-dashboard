@@ -171,6 +171,7 @@ function Conversation({ threadId, thread, providers, onOpenThread, onTitle }: Pr
   const [text, setText] = useState(() => drafts.get(threadId) ?? "");
   const [pending, setPending] = useState<PendingMessage[]>([]);
   const [sentAt, setSentAt] = useState(0);
+  const frame = useRef<HTMLDivElement>(null);
   const scroller = useRef<HTMLDivElement>(null);
   const stick = useRef(true);
   const lastTop = useRef(0);
@@ -315,6 +316,15 @@ function Conversation({ threadId, thread, providers, onOpenThread, onTitle }: Pr
     setRestore((last) => ({ key: last.key + 1, files }));
   }
 
+  // T3 reads a lone /compact message as the command, not as chat text.
+  async function compact(): Promise<void> {
+    try {
+      await api.sendMessage(threadId, { text: "/compact" });
+    } finally {
+      void load();
+    }
+  }
+
   // Reloads after a failure too: the thread values then replace the picks that failed.
   async function updateSettings(change: ThreadSettingsBody): Promise<void> {
     try {
@@ -325,7 +335,8 @@ function Conversation({ threadId, thread, providers, onOpenThread, onTitle }: Pr
   }
 
   return (
-    <div className="conversation">
+    // tabIndex -1: Escape in the composer leaves the field here, so the dashboard shortcuts work again.
+    <div className="conversation" ref={frame} tabIndex={-1}>
       <div className="messages-frame">
         <div
           className="messages"
@@ -405,6 +416,10 @@ function Conversation({ threadId, thread, providers, onOpenThread, onTitle }: Pr
         onDraft={setDraft}
         onSend={send}
         searchFiles={(q) => api.searchFiles(threadId, q, 20).then((r) => r.entries)}
+        loadCommands={(provider) => api.getComposerCommands(threadId, provider)}
+        contextTokens={detail?.contextUsage?.usedTokens ?? null}
+        onCompact={compact}
+        onEscape={() => frame.current?.focus({ preventScroll: true })}
         onStop={() => api.interrupt(threadId)}
         onSettings={updateSettings}
         restore={restore}

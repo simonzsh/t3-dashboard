@@ -237,6 +237,7 @@ main { flex: 1; min-height: 0; overflow: hidden; padding: 24px; display: flex; f
 .menu button { display: flex; gap: 8px; align-items: center; border: 0; text-align: left; }
 .menu .provider-icon { margin: 0; }
 .conversation { flex: 1; min-height: 0; display: flex; flex-direction: column; }
+.conversation:focus { outline: none; }
 .messages-frame { flex: 1; min-height: 0; display: flex; flex-direction: column; position: relative; }
 .to-bottom { position: absolute; left: 50%; bottom: 12px; transform: translateX(-50%); z-index: 2; border-radius: 50%; background: var(--surface-1); box-shadow: var(--shadow); }
 .msg-images { display: flex; flex-wrap: wrap; gap: 6px; }
@@ -403,6 +404,9 @@ input.dropdown-search { position: absolute; inset: 0 auto 0 0; z-index: 1; width
 .dropdown-check { width: 14px; height: 14px; color: var(--accent); flex: none; }
 .dropdown-empty { padding: 6px 8px; font-size: 13px; color: var(--text-secondary); }
 .composer-actions { display: flex; align-items: center; gap: 6px; flex: none; margin-left: auto; }
+/* Compact: the context size is a quiet number next to the label. */
+.composer-compact { gap: 6px; color: var(--text-secondary); }
+.compact-tokens { font-variant-numeric: tabular-nums; color: var(--text-primary); }
 .composer-icon { border-radius: 50%; }
 .composer-icon .icon { width: 18px; height: 18px; }
 .composer-round { border-radius: 50%; }
@@ -738,5 +742,7 @@ button.auto-row:hover { transform: translateY(-1px); }
 .mention-option { display: flex; align-items: baseline; gap: 8px; width: 100%; padding: 6px 8px; border: 0; border-radius: 8px; background: none; font-size: 13px; text-align: left; }
 .mention-option.active { background: var(--surface-0); }
 .mention-name { flex: none; }
-.mention-dir { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--text-secondary); direction: rtl; text-align: left; }
+.mention-dir { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--text-secondary); text-align: left; }
+/* A path keeps its end visible when it is cut. */
+.mention-dir.path { direction: rtl; }
 :where(:root:not([data-theme="dark"])) .mention-menu { box-shadow: 0 4px 6px rgb(16 24 40 / 0.04), 0 16px 40px rgb(16 24 40 / 0.14); }

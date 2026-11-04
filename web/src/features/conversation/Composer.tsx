@@ -1,9 +1,9 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
-import type { DashboardModel, DashboardProvider, FileEntry, ModelSelection, RuntimeMode, ThreadSettingsBody, UploadedAttachment } from "../../../../shared/api.ts";
-import { RUNTIME_MODE_LABELS, acceptFiles, applyMention, attachmentType, currentEffort, findModel, isSendKey, mentionAt, selectEffort, selectModel } from "./composer.ts";
+import type { ComposerCommands, DashboardModel, DashboardProvider, FileEntry, ModelSelection, RuntimeMode, ThreadSettingsBody, UploadedAttachment } from "../../../../shared/api.ts";
+import { RUNTIME_MODE_LABELS, acceptFiles, applyTrigger, attachmentType, composerPlaceholder, currentEffort, dropTrigger, escapeBlurs, filterCommands, filterSkills, findModel, formatTokens, isSendKey, selectEffort, selectModel, triggerAt } from "./composer.ts";
 import { moveActive, type DropdownOption } from "../../lib/dropdown.ts";
 import { useApi } from "../../api/ApiContext.tsx";
-import { Dropdown, FileInput, Icon, IconButton, Loader, Popover, Pressable, TextArea } from "../../ui/index.ts";
+import { Button, Dropdown, FileInput, Icon, IconButton, Loader, Popover, Pressable, TextArea } from "../../ui/index.ts";
 import { ProviderIcon } from "../../lib/ProviderIcon.tsx";
 import { errorMessage } from "../../lib/format.ts";
 import { useAction } from "../../lib/useAction.ts";
@@ -28,6 +28,18 @@ const readDataUrl = (file: File) =>
     reader.onerror = () => reject(reader.error ?? new Error(`Could not read ${file.name}`));
     reader.readAsDataURL(file);
   });
+
+/** A row of the @, / or $ menu: `insert` replaces the typed word, or `run` acts in its place. */
+interface MenuItem {
+  id: string;
+  label: string;
+  detail: string | null;
+  insert: string;
+  run?: "compact";
+}
+
+// The provider lists change rarely: a menu refetches them only when they are this old.
+const COMMANDS_FRESH_MS = 60_000;
 
 interface Props {
   providers: DashboardProvider[];
@@ -58,9 +70,17 @@ interface Props {
   restore?: { key: number; files: File[] };
   /** Typing @ lists matching files of the thread's folder. Without it, no popup. */
   searchFiles?: (query: string) => Promise<FileEntry[]>;
+  /** Typing / at the start lists the provider's commands, and $ its skills. Without it, no menu and no Compact button. */
+  loadCommands?: (provider: string) => Promise<ComposerCommands>;
+  /** Tokens in the model's context: shown on the Compact button. */
+  contextTokens?: number | null;
+  /** Compacts the context; the Compact button and /compact call it. */
+  onCompact?: () => Promise<unknown>;
+  /** Escape in the field, with no menu open, blurs it and calls this: the parent takes the focus for its shortcuts. */
+  onEscape?: () => void;
 }
 
-export function Composer({ providers, selection, runtimeMode, running, stoppable = running, draft, onDraft, onSend, onStop, onSettings, placeholder, autoFocus = false, focusKey, errorResetKey, allowEmpty = false, noImages = false, restore, searchFiles }: Props) {
+export function Composer({ providers, selection, runtimeMode, running, stoppable = running, draft, onDraft, onSend, onStop, onSettings, placeholder, autoFocus = false, focusKey, errorResetKey, allowEmpty = false, noImages = false, restore, searchFiles, loadCommands, contextTokens = null, onCompact, onEscape }: Props) {
   const api = useApi();
   // Picks show at once, until new values come in the props or the change fails.
   // Each field has its own override: a model reload never drops a pending mode pick, and the reverse.
@@ -73,10 +93,12 @@ export function Composer({ providers, selection, runtimeMode, running, stoppable
   const sentKeys = useRef(new Set<string>());
   const [dropping, setDropping] = useState(false);
   const [caret, setCaret] = useState(0);
+  const [available, setAvailable] = useState<{ provider: string; at: number; value: ComposerCommands } | null>(null);
+  const [compacting, setCompacting] = useState(false);
   // The results carry the query they answer: a slower or older answer never shows for a newer mention.
   const [results, setResults] = useState<{ query: string; entries: FileEntry[] }>({ query: "", entries: [] });
   const [active, setActive] = useState(0);
-  // The start of the mention that Escape closed: the popup stays shut for that one.
+  // The start of the word that Escape closed: the popup stays shut for that one.
   const [dismissed, setDismissed] = useState<number | null>(null);
   const nextCaret = useRef<number | null>(null);
   // One error line: each attempt replaces it, so an older error never hides a newer one.
@@ -121,17 +143,52 @@ export function Composer({ providers, selection, runtimeMode, running, stoppable
   const settled = files.every((f) => f.state === "ready");
   const canSend = (allowEmpty || draft.trim() !== "" || files.length > 0) && settled && !sending;
 
-  const mention = searchFiles ? mentionAt(draft, caret) : null;
+  const trigger = triggerAt(draft, caret);
+  const mention = searchFiles && trigger?.kind === "mention" ? trigger : null;
+  const menuKind = trigger && (trigger.kind === "mention" ? mention : loadCommands) ? trigger.kind : null;
   const query = useDebouncedValue(mention ? mention.query : null, 150);
   const entries = mention !== null && results.query === mention.query ? results.entries : [];
-  const showMentions = mention !== null && query !== null && dismissed !== mention.start && entries.length > 0;
+  const provider = localSelection?.instanceId ?? null;
+  const lists = available && available.provider === provider ? available.value : null;
+  const compactable = lists?.commands.some((command) => command.name === "compact") ?? false;
+
+  const items: MenuItem[] =
+    menuKind === "mention"
+      ? entries.map((entry) => {
+          const slash = entry.path.lastIndexOf("/");
+          return { id: entry.path, label: `${entry.path.slice(slash + 1)}${entry.kind === "directory" ? "/" : ""}`, detail: slash > 0 ? entry.path.slice(0, slash) : null, insert: `@${entry.path}` };
+        })
+      : menuKind === "command" && lists
+        ? filterCommands(lists.commands, trigger!.query, { compact: !running }).map((command) => ({
+            id: command.name,
+            label: `/${command.name}`,
+            detail: command.description ?? command.hint ?? null,
+            insert: `/${command.name}`,
+            ...(command.name === "compact" && onCompact && { run: "compact" as const }),
+          }))
+        : menuKind === "skill" && lists
+          ? filterSkills(lists.skills, trigger!.query).map((skill) => ({ id: skill.name, label: `$${skill.name}`, detail: skill.description ?? skill.displayName, insert: `$${skill.name}` }))
+          : [];
+  const showMenu = trigger !== null && menuKind !== null && (menuKind !== "mention" || query !== null) && dismissed !== trigger.start && items.length > 0;
+  const wantsLists = menuKind === "command" || menuKind === "skill";
 
   useEffect(() => {
-    if (!mention) setDismissed(null);
-  }, [mention === null]);
+    if (!trigger) setDismissed(null);
+  }, [trigger === null]);
 
   useEffect(() => {
-    setActive(0);
+    if (!loadCommands || !provider) return;
+    if (available?.provider === provider && (!wantsLists || Date.now() - available.at < COMMANDS_FRESH_MS)) return;
+    let live = true;
+    loadCommands(provider).then((value) => live && setAvailable({ provider, at: Date.now(), value }), () => {});
+    return () => {
+      live = false;
+    };
+  }, [provider, wantsLists]);
+
+  useEffect(() => setActive(0), [trigger?.kind, trigger?.query]);
+
+  useEffect(() => {
     if (!searchFiles || query === null) return setResults({ query: "", entries: [] });
     let live = true;
     searchFiles(query).then((found) => live && setResults({ query, entries: found }), () => live && setResults({ query, entries: [] }));
@@ -161,13 +218,18 @@ export function Composer({ providers, selection, runtimeMode, running, stoppable
     [],
   );
 
-  function pickMention(entry: FileEntry) {
-    if (!mention) return;
-    const next = applyMention(draft, mention, entry.path);
+  const compact = () => attempt(onCompact!, setCompacting);
+
+  function pick(item: MenuItem) {
+    if (!trigger) return;
+    // Like T3 Code: /compact runs at once and leaves no text behind.
+    const runs = item.run === "compact" && onCompact !== undefined;
+    const next = runs ? dropTrigger(draft, trigger) : applyTrigger(draft, trigger, item.insert);
     nextCaret.current = next.caret;
     setCaret(next.caret);
     onDraft(next.text);
     textarea.current?.focus();
+    if (runs) void compact();
   }
 
   async function changeSelection(next: ModelSelection) {
@@ -293,15 +355,19 @@ export function Composer({ providers, selection, runtimeMode, running, stoppable
           onSelect={(e) => setCaret(e.currentTarget.selectionStart)}
           enterKeyHint={touch ? "enter" : "send"}
           onKeyDown={(e) => {
-            if (showMentions && !e.nativeEvent.isComposing) {
+            if (showMenu && !e.nativeEvent.isComposing) {
               if (e.key === "ArrowDown" || e.key === "ArrowUp") {
                 e.preventDefault();
-                return setActive(moveActive(entries.length, active, e.key === "ArrowDown" ? 1 : -1));
+                return setActive(moveActive(items.length, active, e.key === "ArrowDown" ? 1 : -1));
               }
               if ((e.key === "Enter" && !e.shiftKey) || e.key === "Tab") {
                 e.preventDefault();
-                return pickMention(entries[active]!);
+                return pick(items[active]!);
               }
+            }
+            if (onEscape && escapeBlurs({ key: e.key, isComposing: e.nativeEvent.isComposing }, showMenu)) {
+              e.currentTarget.blur();
+              return onEscape();
             }
             if (isSendKey({ key: e.key, shiftKey: e.shiftKey, isComposing: e.nativeEvent.isComposing }, touch)) {
               e.preventDefault();
@@ -317,28 +383,25 @@ export function Composer({ providers, selection, runtimeMode, running, stoppable
             else onDraft(insertText(e.currentTarget, text));
           }}
           autoFocus={autoFocus}
-          placeholder={placeholder ?? (running ? "Queue a message for the agent…" : "Send a message to the agent…")}
+          placeholder={placeholder ?? composerPlaceholder(running, [...(searchFiles ? ["@ files"] : []), ...(loadCommands ? ["$ skills", "/ commands"] : [])])}
           aria-label="Message"
         />
-        {showMentions && (
-          <Popover anchor={card} className="mention-menu" role="listbox" matchWidth onClose={() => setDismissed(mention.start)}>
-            {entries.map((entry, i) => {
-              const slash = entry.path.lastIndexOf("/");
-              return (
-                <Pressable
-                  key={entry.path}
-                  role="option"
-                  aria-selected={i === active}
-                  className={`mention-option${i === active ? " active" : ""}`}
-                  onMouseDown={(e) => e.preventDefault()}
-                  onMouseEnter={() => setActive(i)}
-                  onClick={() => pickMention(entry)}
-                >
-                  <span className="mention-name">{entry.path.slice(slash + 1)}{entry.kind === "directory" && "/"}</span>
-                  {slash > 0 && <small className="mention-dir">{entry.path.slice(0, slash)}</small>}
-                </Pressable>
-              );
-            })}
+        {showMenu && (
+          <Popover anchor={card} className="mention-menu" role="listbox" matchWidth onClose={() => setDismissed(trigger.start)}>
+            {items.map((item, i) => (
+              <Pressable
+                key={item.id}
+                role="option"
+                aria-selected={i === active}
+                className={`mention-option${i === active ? " active" : ""}`}
+                onMouseDown={(e) => e.preventDefault()}
+                onMouseEnter={() => setActive(i)}
+                onClick={() => pick(item)}
+              >
+                <span className="mention-name">{item.label}</span>
+                {item.detail && <small className={`mention-dir${menuKind === "mention" ? " path" : ""}`}>{item.detail}</small>}
+              </Pressable>
+            ))}
           </Popover>
         )}
         <div className="composer-toolbar">
@@ -389,6 +452,19 @@ export function Composer({ providers, selection, runtimeMode, running, stoppable
                   <Icon name="paperclip" />
                 </IconButton>
               </>
+            )}
+            {onCompact && compactable && contextTokens !== null && (
+              <Button
+                size="sm"
+                variant="ghost"
+                className="composer-compact"
+                disabled={running}
+                loading={compacting}
+                tooltip={running ? "Compact is available once the run ends" : `Compact the context: ${contextTokens.toLocaleString("en-US")} tokens`}
+                onClick={() => void compact()}
+              >
+                Compact <span className="compact-tokens">{formatTokens(contextTokens)}</span>
+              </Button>
             )}
             {stoppable && onStop && (
               <IconButton label="Stop" tooltip={running ? "Stop the run" : "Stop background tasks"} className="composer-round stop" disabled={stopping} onClick={() => void attempt(onStop, setStopping)}>

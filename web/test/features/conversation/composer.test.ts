@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { test } from "bun:test";
 import type { DashboardProvider } from "../../../../shared/api.ts";
 import { MAX_ATTACHMENTS, MAX_FILE_BYTES, MAX_IMAGE_BYTES } from "../../../../shared/limits.ts";
-import { acceptFiles, applyMention, attachmentType, currentEffort, findModel, isSendKey, mentionAt, selectEffort, selectModel } from "../../../src/features/conversation/composer.ts";
+import { acceptFiles, applyTrigger, attachmentType, composerPlaceholder, currentEffort, dropTrigger, escapeBlurs, filterCommands, filterSkills, findModel, formatTokens, isSendKey, selectEffort, selectModel, triggerAt } from "../../../src/features/conversation/composer.ts";
 
 const effort = (optionId: string, ids: string[], defaultLevel: string | null) => ({ optionId, levels: ids.map((id) => ({ id, label: id.toUpperCase() })), defaultLevel });
 const providers: DashboardProvider[] = [
@@ -81,26 +81,88 @@ test("acceptFiles counts what is already attached", () => {
   assert.deepEqual([names(heavy), heavy.error], [["p.pdf"], "Images can total up to 80 MB per message."]);
 });
 
-test("mentionAt finds an @ word at the start or after whitespace", () => {
-  assert.deepEqual(mentionAt("@src", 4), { start: 0, query: "src" });
-  assert.deepEqual(mentionAt("look at @src/ap", 15), { start: 8, query: "src/ap" });
-  assert.deepEqual(mentionAt("a\n@", 3), { start: 2, query: "" });
-  assert.deepEqual(mentionAt("see @src and more", 8), { start: 4, query: "src" });
+test("triggerAt finds an @ word at the start or after whitespace", () => {
+  assert.deepEqual(triggerAt("@src", 4), { kind: "mention", start: 0, query: "src" });
+  assert.deepEqual(triggerAt("look at @src/ap", 15), { kind: "mention", start: 8, query: "src/ap" });
+  assert.deepEqual(triggerAt("a\n@", 3), { kind: "mention", start: 2, query: "" });
+  assert.deepEqual(triggerAt("see @src and more", 8), { kind: "mention", start: 4, query: "src" });
 });
 
-test("mentionAt ignores an @ inside a word, an email and a finished mention", () => {
-  assert.equal(mentionAt("mail me@example.com", 19), null);
-  assert.equal(mentionAt("word@", 5), null);
-  assert.equal(mentionAt("@src ", 5), null);
-  assert.equal(mentionAt("no mention", 10), null);
-  assert.equal(mentionAt("", 0), null);
+test("triggerAt ignores an @ inside a word, an email and a finished mention", () => {
+  assert.equal(triggerAt("mail me@example.com", 19), null);
+  assert.equal(triggerAt("word@", 5), null);
+  assert.equal(triggerAt("@src ", 5), null);
+  assert.equal(triggerAt("no mention", 10), null);
+  assert.equal(triggerAt("", 0), null);
 });
 
-test("applyMention swaps the typed word for @path and a space, with the caret after it", () => {
-  const typed = "look at @sr and more";
-  const mention = mentionAt(typed, 11)!;
-  assert.deepEqual(applyMention(typed, mention, "src/app.ts"), { text: "look at @src/app.ts and more", caret: 20 });
-  assert.deepEqual(applyMention("@", { start: 0, query: "" }, "a b.txt"), { text: "@a b.txt ", caret: 9 });
+test("triggerAt opens the command menu for a / at the very start only", () => {
+  assert.deepEqual(triggerAt("/", 1), { kind: "command", start: 0, query: "" });
+  assert.deepEqual(triggerAt("/comp", 5), { kind: "command", start: 0, query: "comp" });
+  assert.equal(triggerAt("run /compact", 12), null);
+  assert.equal(triggerAt("\n/compact", 9), null);
+  assert.equal(triggerAt("/usr/bin", 8), null);
+  assert.equal(triggerAt("/compact now", 12), null);
+});
+
+test("triggerAt opens the skill menu for a $ word, but not for a price", () => {
+  assert.deepEqual(triggerAt("$", 1), { kind: "skill", start: 0, query: "" });
+  assert.deepEqual(triggerAt("use $plug:rev", 13), { kind: "skill", start: 4, query: "plug:rev" });
+  assert.deepEqual(triggerAt("a\n$a-b_c", 8), { kind: "skill", start: 2, query: "a-b_c" });
+  assert.equal(triggerAt("it costs $5", 11), null);
+  assert.equal(triggerAt("cost $5.99", 10), null);
+  assert.equal(triggerAt("a$b", 3), null);
+  assert.equal(triggerAt("$a b", 4), null);
+});
+
+test("applyTrigger swaps the typed word for the replacement and a space, with the caret after it", () => {
+  const typed = "look at @src and more";
+  const trigger = triggerAt(typed, 12)!;
+  assert.deepEqual(applyTrigger(typed, trigger, "@src/app.ts"), { text: "look at @src/app.ts and more", caret: 20 });
+  assert.deepEqual(applyTrigger("@", { kind: "mention", start: 0, query: "" }, "@a b.txt"), { text: "@a b.txt ", caret: 9 });
+  assert.deepEqual(applyTrigger("use $re", triggerAt("use $re", 7)!, "$review"), { text: "use $review ", caret: 12 });
+});
+
+const commands = [
+  { name: "compact", description: "Summarize the conversation" },
+  { name: "review", description: "Review a pull request" },
+  { name: "init", description: "Create a CLAUDE.md file" },
+  { name: "goal", description: null },
+];
+
+test("filterCommands ranks a name prefix before a name or description match", () => {
+  assert.deepEqual(filterCommands(commands, "").map((c) => c.name), ["compact", "review", "init", "goal"]);
+  assert.deepEqual(filterCommands(commands, "re").map((c) => c.name), ["review", "init"]);
+  assert.deepEqual(filterCommands(commands, "CLAUDE").map((c) => c.name), ["init"]);
+  assert.deepEqual(filterCommands(commands, "view").map((c) => c.name), ["review"]);
+  assert.deepEqual(filterCommands(commands, "zzz"), []);
+});
+
+test("filterCommands drops compact when asked to", () => {
+  assert.deepEqual(filterCommands(commands, "", { compact: false }).map((c) => c.name), ["review", "init", "goal"]);
+});
+
+test("filterSkills matches the name, the display name and the description, name prefixes first", () => {
+  const skills = [
+    { name: "plug:deploy", displayName: "Deploy", description: "Ship a release" },
+    { name: "plug:review", displayName: "Code Review", description: "Review code" },
+    { name: "review-pr", displayName: null, description: null },
+  ];
+  assert.deepEqual(filterSkills(skills, "").map((k) => k.name), ["plug:deploy", "plug:review", "review-pr"]);
+  assert.deepEqual(filterSkills(skills, "review").map((k) => k.name), ["review-pr", "plug:review"]);
+  assert.deepEqual(filterSkills(skills, "ship").map((k) => k.name), ["plug:deploy"]);
+  assert.deepEqual(filterSkills(skills, "code rev").map((k) => k.name), ["plug:review"]);
+});
+
+test("formatTokens shortens a count the way T3 Code's Compact button does", () => {
+  assert.equal(formatTokens(0), "0");
+  assert.equal(formatTokens(950), "950");
+  assert.equal(formatTokens(1_500), "1.5k");
+  assert.equal(formatTokens(9_999), "10k");
+  assert.equal(formatTokens(39_658), "40k");
+  assert.equal(formatTokens(722_300), "722k");
+  assert.equal(formatTokens(999_600), "1M");
+  assert.equal(formatTokens(1_250_000), "1.3M");
 });
 
 test("isSendKey: Enter sends, Shift+Enter, composition and touch keyboards do not", () => {
@@ -110,4 +172,27 @@ test("isSendKey: Enter sends, Shift+Enter, composition and touch keyboards do no
   assert.equal(isSendKey({ ...key, isComposing: true }, false), false);
   assert.equal(isSendKey(key, true), false);
   assert.equal(isSendKey({ ...key, key: "a" }, false), false);
+});
+
+test("dropTrigger removes the typed word and the space after it", () => {
+  assert.deepEqual(dropTrigger("/comp now", { kind: "command", start: 0, query: "comp" }), { text: "now", caret: 0 });
+  assert.deepEqual(dropTrigger("/", { kind: "command", start: 0, query: "" }), { text: "", caret: 0 });
+  assert.deepEqual(dropTrigger("a $b", { kind: "skill", start: 2, query: "b" }), { text: "a ", caret: 2 });
+});
+
+test("composerPlaceholder names the menus the composer has, and queues while a run is active", () => {
+  const all = ["@ files", "$ skills", "/ commands"];
+  assert.equal(composerPlaceholder(false, all), "Ask anything. @ files, $ skills, / commands");
+  assert.equal(composerPlaceholder(true, all), "Queue a message for the agent. @ files, $ skills, / commands");
+  assert.equal(composerPlaceholder(false, ["@ files"]), "Ask anything. @ files");
+  assert.equal(composerPlaceholder(false, []), "Send a message to the agent…");
+  assert.equal(composerPlaceholder(true, []), "Queue a message for the agent…");
+});
+
+test("escapeBlurs only for a plain Escape with no menu open and no IME composition", () => {
+  const key = { key: "Escape", isComposing: false };
+  assert.equal(escapeBlurs(key, false), true);
+  assert.equal(escapeBlurs(key, true), false);
+  assert.equal(escapeBlurs({ ...key, isComposing: true }, false), false);
+  assert.equal(escapeBlurs({ ...key, key: "Enter" }, false), false);
 });
