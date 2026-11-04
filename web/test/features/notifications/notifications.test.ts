@@ -1,7 +1,7 @@
 import { test } from "bun:test";
 import assert from "node:assert/strict";
 import { mergeSeen, type SeenState } from "../../../../shared/seen.ts";
-import { badgeText, baselineOf, notifyEntries, NOTIFY_LIMIT, statusMap, transitions, unseenCount } from "../../../src/features/notifications/notifications.ts";
+import { badgeText, baselineOf, notifyEntries, NOTIFY_LIMIT, statusMap, transitions, unseenCount, unseenThreads } from "../../../src/features/notifications/notifications.ts";
 import { thread } from "../../fixtures.ts";
 
 const at = (minute: number) => `2026-01-10T10:${String(minute).padStart(2, "0")}:00.000Z`;
@@ -38,12 +38,27 @@ test("labels and tones tell what happened", () => {
   assert.deepEqual(label(finished("a", 1, { status: "cancelled" })), ["Cancelled", "done"]);
 });
 
-test("a waiting thread always counts; a finished one counts until it is opened", () => {
+test("waiting and finished threads count until they are read", () => {
   const threads = [waiting("w", 1), finished("f", 2)];
   assert.equal(unseenCount(threads, fresh), 2);
-  const seen = markSeen(markSeen(fresh, "f", at(2)), "w", at(1));
+  const seen = markSeen(fresh, "f", at(2));
   assert.equal(unseenCount(threads, seen), 1);
   assert.deepEqual(notifyEntries(threads, seen).map((e) => e.unseen), [true, false]);
+  const all = markSeen(seen, "w", at(1));
+  assert.equal(unseenCount(threads, all), 0);
+  assert.deepEqual(notifyEntries(threads, all).map((e) => e.unseen), [false, false]);
+});
+
+test("a waiting thread read before counts again after new activity", () => {
+  const seen = markSeen(fresh, "w", at(1));
+  assert.equal(unseenCount([waiting("w", 1)], seen), 0);
+  assert.equal(unseenCount([waiting("w", 4)], seen), 1);
+});
+
+test("unseenThreads lists what Mark all as read marks: no working or idle thread", () => {
+  const seen = markSeen(fresh, "f-read", at(3));
+  const got = unseenThreads([waiting("w", 1), finished("f", 2), finished("f-read", 3), running("r"), thread("i")], seen);
+  assert.deepEqual(got.map((t) => t.id), ["w", "f"]);
 });
 
 test("a thread that finishes again after it was opened counts again", () => {

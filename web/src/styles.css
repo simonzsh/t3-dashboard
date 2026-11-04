@@ -241,15 +241,29 @@ main { flex: 1; min-height: 0; overflow: hidden; padding: 24px; display: flex; f
 .notif-icon { position: relative; display: inline-flex; }
 .notif-count { position: absolute; top: -7px; right: -5px; min-width: 16px; height: 16px; padding: 0 4px; box-sizing: border-box; border-radius: 999px; background: var(--accent); color: var(--on-accent); font-size: 10px; font-weight: 700; line-height: 16px; text-align: center; pointer-events: none; }
 .notif-menu { width: min(360px, calc(100vw - 16px)); max-height: min(70vh, 480px); overflow-y: auto; display: flex; flex-direction: column; gap: 2px; padding: 4px; border-radius: 10px; background: var(--surface-1); border: 1px solid var(--line); box-shadow: var(--shadow); font-size: 12px; }
+.notif-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.notif-read-all { margin-right: 2px; }
 .notif-heading { margin: 0; padding: 6px 8px; font-size: 12px; font-weight: 600; color: var(--text-secondary); }
 .notif-empty { margin: 0; padding: 12px 8px; color: var(--text-secondary); }
 .notif-row, .notif-toast-body { display: flex; align-items: center; gap: 8px; min-height: var(--control-md); border: 0; text-align: left; }
-.notif-row { background: none; }
-.notif-row.active, .notif-row:focus-visible { background: var(--surface-0); }
+.notif-item { position: relative; display: flex; align-items: center; gap: 4px; border-radius: var(--radius-md); }
+.notif-row { flex: 1; min-width: 0; background: none; }
+.notif-item.active, .notif-item:has(.notif-row:focus-visible) { background: var(--surface-0); }
 /* The ring shows only while the arrows drive the list (.keys), the first row included. */
 .notif-row:focus-visible { outline: none; }
-.notif-list.keys .notif-row.active { outline: var(--focus-ring); outline-offset: -1px; }
-@media (pointer: coarse) { .notif-row.active { background: none; } }
+.notif-list.keys .notif-item.active { outline: var(--focus-ring); outline-offset: -1px; }
+/* With a mouse, the button covers the dot and shows on hover or focus only. */
+.notif-read { position: absolute; right: 4px; top: 50%; transform: translateY(-50%); opacity: 0; }
+.notif-item:hover .notif-read, .notif-read:focus-visible, .notif-list.keys .notif-item.active .notif-read { opacity: 1; }
+/* The dot would show through the ghost button. */
+@media not (pointer: coarse) {
+  .notif-item:hover .notif-dot, .notif-item:has(.notif-read:focus-visible) .notif-dot, .notif-list.keys .notif-item.active .notif-dot { visibility: hidden; }
+}
+@media (pointer: coarse) {
+  .notif-item.active { background: none; }
+  /* No hover on touch: the button is always there, next to the row. */
+  .notif-read { position: static; transform: none; opacity: 1; min-width: 44px; min-height: 44px; }
+}
 .notif-list { display: flex; flex-direction: column; gap: 2px; outline: none; }
 .notif-title { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .notif-age { flex: none; color: var(--text-secondary); }

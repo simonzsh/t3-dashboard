@@ -1,4 +1,4 @@
-// Which finished threads the user has opened. Every device shares it, so a thread opened
+// Which notifications the user has read (opened, or marked as read). Every device shares it, so a thread opened
 // on one device stops counting as unread on the others.
 
 /** Marks kept at most: the oldest ones fall under the baseline instead. */
@@ -6,7 +6,7 @@ export const SEEN_CAP = 200;
 const MAX_ID = 200;
 const MAX_TIME = 64;
 
-/** `since`: the baseline of the first visit. `seen`: thread id -> its lastActivityAt when it was opened. */
+/** `since`: the baseline of the first visit. `seen`: thread id -> its lastActivityAt when it was read. */
 export interface SeenState {
   since: string;
   seen: Record<string, string>;

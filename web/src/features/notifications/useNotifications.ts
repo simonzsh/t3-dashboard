@@ -3,7 +3,7 @@ import { joinSeen, mergeSeen, type SeenState } from "../../../../shared/seen.ts"
 import type { AgentStatus } from "../../../../shared/status.ts";
 import type { DashboardThread } from "../../../../shared/threads.ts";
 import { useApi } from "../../api/ApiContext.tsx";
-import { baselineOf, notifyEntries, statusMap, transitions, unseenCount, type NotifyEntry } from "./notifications.ts";
+import { baselineOf, notifyEntries, statusMap, transitions, unseenCount, unseenThreads, type NotifyEntry } from "./notifications.ts";
 
 const MAX_TOASTS = 3;
 const TOAST_MS = 6000;
@@ -90,6 +90,12 @@ export function useNotifications({ threads, quiet, remote, connects }: Options) 
     [api, dismiss],
   );
 
+  // One mark per thread: the server takes one change per request.
+  const markAllSeen = useCallback(() => {
+    const { threads: live, seen: current } = latest.current;
+    if (live && current) for (const t of unseenThreads(live, current)) markSeen(t.id);
+  }, [markSeen]);
+
   useEffect(() => {
     if (!threads) return;
     const fresh = transitions(previous.current, threads);
@@ -120,5 +126,5 @@ export function useNotifications({ threads, quiet, remote, connects }: Options) 
     timers.current.clear();
     setToasts([]);
   }, []);
-  return { entries, count, toasts, dismiss, markSeen, clearToasts };
+  return { entries, count, toasts, dismiss, markSeen, markAllSeen, clearToasts };
 }
