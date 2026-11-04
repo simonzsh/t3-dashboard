@@ -42,6 +42,8 @@ export function subagentStatus(raw: RawSubagent): SubagentInfo["status"] {
 }
 
 const SUBAGENT_STATES: Record<string, SubagentState> = { pending: "queued", running: "running", waiting: "waiting", idle: "idle", completed: "completed", failed: "failed", cancelled: "stopped", interrupted: "stopped" };
+// An idle subagent is resumable, not running: nothing to stop.
+const STOPPABLE_STATES = new Set<SubagentState>(["queued", "running", "waiting"]);
 
 // An unknown status falls back to the coarse step status.
 function subagentState(rawStatus: string | null | undefined, coarse: StepStatus): SubagentState {
@@ -219,7 +221,7 @@ function toStep(item: RawTurnItem, kind: StepKind, projection: RawProjection): T
         text: truncate(item.title?.trim() || item.prompt?.trim() || "Subagent", STEP_CHARS),
         detail: state !== "running" && result ? truncate(result, RESULT_CHARS) : null,
         expandable: Boolean(result),
-        subagent: { subagentId, childThreadId: item.childThreadId ?? raw?.childThreadId ?? null, progress: state === "running" ? (item.progress ?? raw?.progress ?? null) : null, stoppable: state === "running" && Boolean(raw?.runId), state: fine, provider: item.providerInstanceId ?? item.driver ?? raw?.providerInstanceId ?? raw?.driver ?? null, turnId: item.providerTurnId ?? null },
+        subagent: { subagentId, childThreadId: item.childThreadId ?? raw?.childThreadId ?? null, progress: state === "running" ? (item.progress ?? raw?.progress ?? null) : null, stoppable: STOPPABLE_STATES.has(fine) && Boolean(raw?.runId), state: fine, provider: item.providerInstanceId ?? item.driver ?? raw?.providerInstanceId ?? raw?.driver ?? null, turnId: item.providerTurnId ?? null },
       };
     }
     case "notice":

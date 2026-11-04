@@ -367,6 +367,8 @@ a.step-result-title { color: var(--accent); }
 .subagent-group-head { display: flex; align-items: center; gap: 10px; width: 100%; padding: 4px 6px; border: 0; border-radius: var(--radius-md); background: none; color: var(--text-primary); text-align: left; }
 .subagent-group-head.idle { color: var(--text-secondary); opacity: 0.55; }
 .subagent-group-head.idle:hover { opacity: 1; }
+.subagent-group-head .chevron { flex: none; margin: -3px 4px 0; transform: rotate(45deg); }
+.subagent-group-head .chevron.open { margin-top: 3px; transform: rotate(225deg); }
 .subagent-avatars { display: flex; flex: none; }
 .subagent-avatars .subagent-avatar + .subagent-avatar { margin-left: -6px; }
 .subagent-avatar { position: relative; flex: none; display: inline-flex; align-items: center; justify-content: center; width: 24px; height: 24px; border: 1px solid var(--line); border-radius: 50%; background: var(--surface-0); box-shadow: 0 0 0 2px var(--surface-0); }
@@ -392,7 +394,8 @@ a.step-result-title { color: var(--accent); }
 .subagent-side .icon { width: 14px; height: 14px; }
 .subagent-time { flex: none; font-size: 11px; color: var(--text-secondary); font-variant-numeric: tabular-nums; }
 .subagent-stop { flex: none; margin-right: 4px; opacity: 0; }
-.subagent-row:hover .subagent-stop, .subagent-stop:focus-visible { opacity: 1; }
+.subagent-row:hover .subagent-stop, .subagent-row:focus-within .subagent-stop { opacity: 1; }
+@media (hover: none) { .subagent-stop { opacity: 1; } }
 .subagent-stop:hover:not(:disabled) { color: var(--danger); }
 .msg-files { display: flex; flex-wrap: wrap; gap: 6px; }
 .msg.user .msg-files { justify-content: flex-end; }
