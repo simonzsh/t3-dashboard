@@ -247,6 +247,8 @@ export interface ThreadDetail {
   title: string | null;
   /** A provider's subagent thread: not in the shell, but a Desk window may show it. */
   subagentThread: boolean;
+  /** The thread that started this subagent; null for any other thread. */
+  parentThreadId: string | null;
   thread: DashboardThread | null;
   messages: ChatMessage[];
   /** In T3's queue order. These messages are never in `messages`. */

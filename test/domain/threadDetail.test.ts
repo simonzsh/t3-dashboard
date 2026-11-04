@@ -34,6 +34,13 @@ test("title and subagentThread come from the projection's own thread", () => {
   assert.deepEqual([toThreadDetail("t", { thread: { id: "t", title: "Main" } }, undefined).subagentThread, toThreadDetail("t", {}, undefined).title], [false, null]);
 });
 
+test("a subagent thread names its parent, any other thread names none", () => {
+  const sub = { id: "c", lineage: { relationshipToParent: "subagent", parentThreadId: "p" }, creationSource: "provider" };
+  assert.equal(toThreadDetail("c", { thread: sub }, undefined).parentThreadId, "p");
+  assert.equal(toThreadDetail("f", { thread: { id: "f", lineage: { relationshipToParent: "fork", parentThreadId: "p" } } }, undefined).parentThreadId, null);
+  assert.equal(toThreadDetail("t", {}, undefined).parentThreadId, null);
+});
+
 test("an empty projection gives empty lists", () => {
   const detail = toThreadDetail("thread-1", {}, undefined);
   assert.deepEqual([detail.messages, detail.pendingRequests, detail.subagents], [[], [], []]);

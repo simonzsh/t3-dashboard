@@ -23,6 +23,7 @@ import { useDocumentTheme } from "../../lib/useDocumentTheme.ts";
 import { omittedLabel } from "./steps.ts";
 import { awaitingStep, timeline } from "./timeline.ts";
 import { LIVE_RELOAD_MS, SEND_POLL_WINDOW_MS, detailRunning, pollDelay } from "./reload.ts";
+import { SubagentBar } from "./SubagentBar.tsx";
 
 const ROLE_LABELS: Record<string, string> = { user: "You", assistant: "Agent", system: "System" };
 // Windows remount when they move between grid, minimized bar and mobile view: keep what they showed.
@@ -406,6 +407,9 @@ function Conversation({ threadId, thread, providers, onOpenThread, onTitle }: Pr
           </IconButton>
         )}
       </div>
+      {detail?.subagentThread ? (
+        <SubagentBar detail={detail} providers={providers} onOpenThread={onOpenThread} />
+      ) : (
       <Composer
         providers={providers}
         selection={detail?.modelSelection ?? null}
@@ -426,6 +430,7 @@ function Conversation({ threadId, thread, providers, onOpenThread, onTitle }: Pr
         restore={restore}
         focusKey={restore.key || undefined}
       />
+      )}
       {editing && <RewindDialog message={editing} onClose={() => setEditing(null)} onConfirm={editFromHere} />}
     </div>
   );

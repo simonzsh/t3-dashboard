@@ -410,6 +410,7 @@ export function toThreadDetail(threadId: string, projection: RawProjection, thre
     threadId,
     title: own?.title?.trim() || null,
     subagentThread: own !== undefined && isSubagentThread(own) && !own.archivedAt && !own.deletedAt,
+    parentThreadId: own !== undefined && isSubagentThread(own) ? (own.lineage?.parentThreadId ?? null) : null,
     thread: thread ?? null,
     messages,
     queue,

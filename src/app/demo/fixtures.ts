@@ -299,7 +299,7 @@ const SPECS: ThreadSpec[] = [
 // What the "Check mobile breakpoints" subagent did in its own thread.
 function childProjection(at: (minutes: number) => string): RawProjection {
   const item = (id: string, ordinal: number, minutes: number, extra: RawTurnItem): RawTurnItem => ({ id, ordinal, threadId: CHILD_ID, runId: "run-child-1", status: "completed", startedAt: at(minutes), completedAt: at(minutes), ...extra });
-  const thread: RawThread = { id: CHILD_ID, projectId: "demo-atlas-web", title: "Check mobile breakpoints", status: "running", activeRunId: "run-child-1", createdAt: at(4), updatedAt: at(1) };
+  const thread: RawThread = { id: CHILD_ID, projectId: "demo-atlas-web", title: "Check mobile breakpoints", status: "running", activeRunId: "run-child-1", lineage: { relationshipToParent: "subagent", parentThreadId: "demo-checkout" }, creationSource: "provider", modelSelection: SONNET, createdAt: at(4), updatedAt: at(1) };
   return {
     thread,
     messages: [],
