@@ -1,10 +1,10 @@
 import { useEffect, useLayoutEffect, useRef, useState, type KeyboardEvent, type ReactNode } from "react";
 import type { DashboardProvider, ModelSelection, RuntimeMode } from "../../../../shared/api.ts";
 import { RUNTIME_MODE_LABELS, findModel, currentEffort, selectEffort, selectModel } from "./composer.ts";
-import { chipLabel, currentSpeed, jumpIndex, jumpLabel, panelModels, selectSpeed, type PanelRow, type Rail } from "./modelPanel.ts";
+import { chipLabel, currentSpeed, panelModels, selectSpeed, type PanelRow, type Rail } from "./modelPanel.ts";
 import { moveActive } from "../../lib/dropdown.ts";
 import { ProviderIcon } from "../../lib/ProviderIcon.tsx";
-import { Icon, Kbd, Pressable, Segmented, TextInput } from "../../ui/index.ts";
+import { Icon, Pressable, Segmented, TextInput } from "../../ui/index.ts";
 
 interface Props {
   providers: DashboardProvider[];
@@ -37,7 +37,6 @@ export function ModelPanel({ providers, selection, mode, modes, onSelection, onM
   });
   const chip = useRef<HTMLButtonElement>(null);
   const search = useRef<HTMLInputElement>(null);
-  const mac = navigator.platform.startsWith("Mac");
 
   const found = findModel(providers, selection);
   const label = chipLabel(selection, found);
@@ -47,7 +46,8 @@ export function ModelPanel({ providers, selection, mode, modes, onSelection, onM
   const speed = found && selection ? currentSpeed(selection, found.model) : null;
 
   function show() {
-    const start = found?.provider.instanceId ?? providers[0]?.instanceId ?? "favorites";
+    // Favorites first; with none, the current provider instead of an empty list.
+    const start: Rail = panelModels(providers, "favorites", "").length > 0 ? "favorites" : (found?.provider.instanceId ?? providers[0]?.instanceId ?? "favorites");
     const first = panelModels(providers, start, "");
     setRail(start);
     setQuery("");
@@ -98,11 +98,7 @@ export function ModelPanel({ providers, selection, mode, modes, onSelection, onM
   }
 
   function onKeyDown(e: KeyboardEvent) {
-    const jump = jumpIndex(e, Math.min(rows.length, 9), mac);
-    if (jump !== null) {
-      e.preventDefault();
-      pickRow(rows[jump]);
-    } else if (e.target === search.current && (e.key === "ArrowDown" || e.key === "ArrowUp")) {
+    if (e.target === search.current && (e.key === "ArrowDown" || e.key === "ArrowUp")) {
       e.preventDefault();
       setActive(moveActive(rows.length, active, e.key === "ArrowDown" ? 1 : -1));
     } else if (e.target === search.current && e.key === "Enter") {
@@ -167,7 +163,6 @@ export function ModelPanel({ providers, selection, mode, modes, onSelection, onM
               <div id="model-list" className="model-list" role="listbox" aria-label="Models">
                 {rows.length === 0 && <div className="model-empty">{query.trim() === "" && rail === "favorites" ? "No favorites yet" : "No models found"}</div>}
                 {rows.map((row, i) => {
-                  const hint = jumpLabel(i, mac);
                   return (
                     <Pressable
                       key={`${row.provider.instanceId}\u0000${row.model.slug}`}
@@ -185,7 +180,6 @@ export function ModelPanel({ providers, selection, mode, modes, onSelection, onM
                     >
                       <ProviderIcon provider={row.provider.instanceId} />
                       <span className="model-row-name">{row.model.name}</span>
-                      {hint && <Kbd>{hint}</Kbd>}
                       {/* T3 Code owns the favorites: the star only shows them. */}
                       {row.model.favorite !== null && <Icon name="starFilled" className="icon model-row-star" label="Favorite" />}
                     </Pressable>

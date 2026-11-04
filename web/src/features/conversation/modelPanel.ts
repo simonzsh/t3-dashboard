@@ -19,27 +19,6 @@ export function panelModels(providers: DashboardProvider[], rail: Rail, query: s
   return rows(providers.filter((provider) => provider.instanceId === rail));
 }
 
-interface KeyLike {
-  key: string;
-  // Alt+digit gives another character on some layouts: digits are also read from the code.
-  code?: string;
-  metaKey: boolean;
-  ctrlKey: boolean;
-  altKey: boolean;
-  shiftKey: boolean;
-}
-
-/** Cmd+1 to 9 on a Mac, like T3 Code; Alt+1 to 9 elsewhere, because Ctrl+1 to 3 belong to the dashboard. */
-export function jumpIndex(e: KeyLike, count: number, mac: boolean): number | null {
-  const mod = mac ? e.metaKey && !e.altKey : e.altKey && !e.metaKey;
-  if (!mod || e.ctrlKey || e.shiftKey) return null;
-  const digit = /^Digit([1-9])$/.exec(e.code ?? "")?.[1] ?? (/^[1-9]$/.test(e.key) ? e.key : null);
-  const index = digit ? Number(digit) - 1 : -1;
-  return index >= 0 && index < count ? index : null;
-}
-
-export const jumpLabel = (index: number, mac: boolean): string | null => (index < 9 ? `${mac ? "⌘" : "Alt+"}${index + 1}` : null);
-
 export function currentSpeed(selection: ModelSelection | null, model: DashboardModel): "fast" | "standard" | null {
   const speed = model.speed;
   if (!speed) return null;
