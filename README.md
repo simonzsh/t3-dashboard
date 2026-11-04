@@ -41,7 +41,7 @@ The screenshots come from the demo mode: the projects, agents and conversations 
 
 **Automations**
 
-- See the routines, reminders and webhooks (T3 Code scheduled tasks), and create one with a form.
+- See the routines, reminders and webhooks (T3 Code scheduled tasks), and create one with a form. The dashboard pauses a reminder after its run and keeps tasks out of worktrees.
 
 The New Agent button (key `N`) starts an agent in a T3 project, or in "No project". It uses the default model and the favorites of T3 Code. Each screen is described in [docs/usage.md](docs/usage.md).
 

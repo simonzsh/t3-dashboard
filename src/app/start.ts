@@ -4,6 +4,7 @@ import { setTimeout as sleep } from "node:timers/promises";
 import index from "../../web/index.html";
 import type { DashboardProvider } from "../../shared/api.ts";
 import { createActions } from "../domain/actions.ts";
+import { AutomationGuard } from "../domain/automationGuard.ts";
 import { createAutomations } from "../domain/automations.ts";
 import { TokenManager } from "../domain/tokenManager.ts";
 import { envAllowedHosts, envPort } from "../config/config.ts";
@@ -17,6 +18,7 @@ import { LinearBoard } from "../domain/linearBoard.ts";
 import { deskText, readDesk } from "../config/deskFile.ts";
 import { readStash, stashText } from "../config/stashFile.ts";
 import { readSeen, seenText } from "../config/seenFile.ts";
+import { syncAgentRules } from "../config/agentRules.ts";
 import { readLinearKey } from "../config/linearFile.ts";
 import { readAutomationThreads } from "../config/automationThreads.ts";
 import { automationThreadsFile, deskFile as deskPath, linearFile, pidFile, seenFile as seenPath, stashFile as stashPath } from "../config/paths.ts";
@@ -31,7 +33,7 @@ import { ShellStore } from "../domain/shellStore.ts";
 import { NO_MODEL_DEFAULTS } from "../domain/providers.ts";
 import { siteFromBundle } from "../server/site.ts";
 import { SseHub } from "../server/sse.ts";
-import { updateDeps } from "./deps.ts";
+import { installDeps, updateDeps } from "./deps.ts";
 import { update } from "../cli/selfUpdate.ts";
 import { UpdateManager } from "../domain/updates.ts";
 import { VERSION } from "../config/version.ts";
@@ -106,6 +108,7 @@ export async function start({ port, log, env }: StartOptions): Promise<void> {
       hub.broadcast({ type: "modelDefaults", data: defaults });
     },
   });
+  const guard = new AutomationGuard({ port: client });
   const getState = () => store.state(live.connection(), providers, readEnvironmentId(environmentId, readText), modelDefaults);
 
   const linearPath = linearFile(env, home);
@@ -116,7 +119,11 @@ export async function start({ port, log, env }: StartOptions): Promise<void> {
   });
 
   const settings = createSettings({ file: linearPath, readFile: readText, writeSecret, board });
-  const setup = { refresh: () => auth.refresh(), paste: (token: string) => auth.paste(token), wake: () => live.retryNow() };
+  const wake = () => {
+    live.retryNow();
+    guard.retryNow();
+  };
+  const setup = { refresh: () => auth.refresh(), paste: (token: string) => auth.paste(token), wake };
 
   const site = siteFromBundle(index);
   const repo = updateDeps(env).repo;
@@ -156,7 +163,12 @@ export async function start({ port, log, env }: StartOptions): Promise<void> {
   // A dev build has no version to compare, and its runs must not call GitHub.
   const checker = VERSION === "dev" ? undefined : setInterval(() => void updates.check(), UPDATE_CHECK_MS);
   if (checker) void updates.check();
+  // The compiled binary refreshes the rules at each start, so a self-update brings the new text.
+  // A dev server must not change the user's real tasks or files, unless asked for a test.
+  const managed = VERSION !== "dev" && Bun.isStandaloneExecutable;
+  if (managed) syncAgentRules("write", installDeps(env));
   live.start();
+  if (managed || env.T3_DASHBOARD_AUTOMATION_GUARD === "on") guard.start();
   const server = await listen({
     hostname: "127.0.0.1",
     port: port ?? envPort(env),
@@ -172,6 +184,7 @@ export async function start({ port, log, env }: StartOptions): Promise<void> {
     clearInterval(reclassifier);
     clearInterval(checker);
     live.stop();
+    guard.stop();
     hub.close();
     client.close();
     void server.stop(true).then(() => process.exit(0));

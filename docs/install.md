@@ -23,7 +23,7 @@ The script does these steps:
 1. It downloads the binary for your system from the latest GitHub release.
 2. It verifies the SHA-256 checksum of the binary with the `SHA256SUMS` file of the release.
 3. It puts the binary in `~/.local/bin` (Windows: `%LOCALAPPDATA%\Programs\t3-dashboard`).
-4. It runs `t3-dashboard install`. This command registers the service, starts it and opens `http://127.0.0.1:4300`.
+4. It runs `t3-dashboard install`. This command registers the service, adds the [agent rules](#agent-rules), starts the service and opens `http://127.0.0.1:4300`.
 
 - On macOS and Linux, the script warns you if the folder is not in the `PATH`.
 - On Windows, the script adds the folder to the user `PATH`. Open a new terminal to use `t3-dashboard`.
@@ -47,13 +47,25 @@ Script options:
 | Windows | "T3 Dashboard" scheduled task at logon |
 
 - The service restarts automatically after a failure.
-- `install` copies these variables into the service, if they are set at installation time: `T3_DASHBOARD_TOKEN_FILE`, `T3_DASHBOARD_CONFIG_DIR`, `T3_DASHBOARD_LINEAR_FILE`, `T3_DASHBOARD_T3_BIN`, `T3_DASHBOARD_ALLOWED_HOSTS`, `T3_SERVER_RUNTIME` and `T3CODE_HOME`. To change a value, set the variable and run `install` again.
+- `install` copies these variables into the service, if they are set at installation time: `T3_DASHBOARD_TOKEN_FILE`, `T3_DASHBOARD_CONFIG_DIR`, `T3_DASHBOARD_LINEAR_FILE`, `T3_DASHBOARD_T3_BIN`, `T3_DASHBOARD_ALLOWED_HOSTS`, `T3_SERVER_RUNTIME`, `T3CODE_HOME`, `CLAUDE_CONFIG_DIR`, `CODEX_HOME` and `T3_DASHBOARD_AGENT_RULES`. To change a value, set the variable and run `install` again.
 - `install` and `update` wait at most 15 s for the new binary to answer on the port.
 - If a different program or an older dashboard uses the port, the command stops with this error: "Port 4300 is used by another program or an older dashboard." Stop this program, or install with `--port <n>`.
 - On Linux, `install` needs `systemctl`. Without `systemctl`, use `t3-dashboard start`.
 - On Linux, run `loginctl enable-linger $USER` to start the service at boot, without a login session.
 - On Windows, the task does not need administrator rights. If Windows refuses the task, the installer uses the user `Run` key.
 - On Windows, file permissions (mode 600) do not apply. The config folder stays in your profile.
+
+## Agent rules
+
+`install` adds a block of rules for automations to `~/.claude/CLAUDE.md` and `~/.codex/AGENTS.md`. The block tells the agent to create reminders, routines and webhooks with the `schedule_task` tool of T3 Code. A missing file is created.
+
+- The block sits between the lines `<!-- t3-dashboard:begin -->` and `<!-- t3-dashboard:end -->`. The dashboard changes only the text between them. Do not edit it: the next start replaces it.
+- The compiled binary refreshes the block at each start, so an update brings the new text.
+- If the markers are damaged (a begin without an end), the dashboard leaves the file as it is and logs the problem.
+- To stop this, set `T3_DASHBOARD_AGENT_RULES=off` before `install` and in the service. Remove the block by hand, or run `uninstall`.
+- `CLAUDE_CONFIG_DIR` and `CODEX_HOME` move the two files, as they do for Claude Code and Codex.
+- If `CLAUDE.md` already loads `AGENTS.md` with an `@` line (for example `@~/.codex/AGENTS.md`), the block goes only in `AGENTS.md`, so Claude does not read it twice.
+- `uninstall` removes the block. A file that holds nothing else is deleted.
 
 ## Commands
 
@@ -133,7 +145,7 @@ The logs never contain a token or an API key. The `dashboard.pid` file is in the
 
 ## Uninstall
 
-1. Run `t3-dashboard uninstall`. The command stops and removes the service.
+1. Run `t3-dashboard uninstall`. The command stops and removes the service, and removes the agent rules block from the two files (the rest of the files stays).
 2. Delete the binary: `rm ~/.local/bin/t3-dashboard`. On Windows, delete the `%LOCALAPPDATA%\Programs\t3-dashboard` folder.
 3. If necessary, delete the config: `rm -r ~/.config/t3-dashboard`. On Windows, this folder is `%USERPROFILE%\.config\t3-dashboard`.
 
@@ -160,5 +172,9 @@ The dashboard has no authentication. Each person who can reach the address can c
 | `T3_DASHBOARD_T3_BIN` | automatic search | Absolute path of `t3`. |
 | `T3_DASHBOARD_LINEAR_FILE` | `<config>/linear.json` | File of the Linear config. |
 | `T3CODE_HOME` | `~/.t3` | Base folder of T3 Code. The dashboard also gives it to `t3 auth session issue`. |
+| `CLAUDE_CONFIG_DIR` | `~/.claude` | Folder of the `CLAUDE.md` file that gets the agent rules. |
+| `CODEX_HOME` | `~/.codex` | Folder of the `AGENTS.md` file that gets the agent rules. |
+| `T3_DASHBOARD_AGENT_RULES` | on | `off` stops `install` and the start of the binary from writing the agent rules. `uninstall` still removes them. |
+| `T3_DASHBOARD_AUTOMATION_GUARD` | off in a dev build | `on` starts the automation guard in a version that Bun starts, for a test against the real T3 Code. The compiled binary always runs it. |
 | `T3_SERVER_RUNTIME` | `<T3CODE_HOME>/userdata/server-runtime.json` | JSON file with the `origin` field. The dashboard reads it again at each connection to T3. Fallback: `http://127.0.0.1:3773`. |
 | `T3_DASHBOARD_REPO` | `simonzsh/t3-dashboard` | GitHub repo of the releases, for `update`, the hourly check and the install scripts. |

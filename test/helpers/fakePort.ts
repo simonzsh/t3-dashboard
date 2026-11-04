@@ -27,6 +27,11 @@ export class FakePort implements T3Port {
   createdWebhookUrl: string | null = null;
   renamedTasks: { id: string; title: string }[] = [];
   renameError: Error | null = null;
+  workspaceCalls: { id: string; workspaceStrategy: { type: "root" } }[] = [];
+  workspaceError: Error | null = null;
+  enabledCalls: { id: string; enabled: boolean }[] = [];
+  enabledError: Error | null = null;
+  taskSubscriptions: Array<{ onTasks(tasks: RawScheduledTask[]): void; onEnd(error?: Error): void; cancelled: boolean }> = [];
   secretAnswers: Array<{ threadId: string; turnItemId: string; answer: SecretAnswer }> = [];
   secretError: Error | null = null;
   dispatchError: Error | null = null;
@@ -71,6 +76,26 @@ export class FakePort implements T3Port {
   async renameScheduledTask(id: string, title: string) {
     if (this.renameError) throw this.renameError;
     this.renamedTasks.push({ id, title });
+  }
+
+  async setScheduledTaskWorkspace(id: string, workspaceStrategy: { type: "root" }) {
+    if (this.workspaceError) throw this.workspaceError;
+    this.workspaceCalls.push({ id, workspaceStrategy });
+  }
+
+  async setScheduledTaskEnabled(id: string, enabled: boolean) {
+    if (this.enabledError) throw this.enabledError;
+    this.enabledCalls.push({ id, enabled });
+  }
+
+  subscribeScheduledTasks(onTasks: (tasks: RawScheduledTask[]) => void, onEnd: (error?: Error) => void) {
+    const subscription = { onTasks, onEnd, cancelled: false };
+    this.taskSubscriptions.push(subscription);
+    return {
+      cancel() {
+        subscription.cancelled = true;
+      },
+    };
   }
 
   async searchThreads(query: string, limit?: number) {

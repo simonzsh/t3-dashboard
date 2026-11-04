@@ -1,4 +1,5 @@
 import { applyPlan, servicePlan, type ApplyDeps, type Plan } from "./service.ts";
+import { syncAgentRules } from "../config/agentRules.ts";
 import { configDir, logFile, pidFile, stateDir } from "../config/paths.ts";
 
 const HEALTH_TIMEOUT_MS = 15_000;
@@ -54,6 +55,7 @@ export async function install({ port, open }: { port: number; open: boolean }, d
   // launchd and `start --log` do not create the folder of the log file.
   deps.mkdir(stateDir(deps.env, deps.home, deps.platform));
   await applyPlan(planFor(deps, port), "install", deps);
+  syncAgentRules("write", deps);
 
   const url = await waitForService(port, deps);
   deps.log(`Dashboard ready: ${url}`);
@@ -67,6 +69,7 @@ export async function install({ port, open }: { port: number; open: boolean }, d
 
 export async function uninstall(deps: InstallDeps): Promise<void> {
   await applyPlan(planFor(deps, 0), "uninstall", deps);
+  syncAgentRules("remove", deps);
   if (deps.platform === "win32") {
     // The Run-key fallback has no task to end: stop the process by its pid.
     try {

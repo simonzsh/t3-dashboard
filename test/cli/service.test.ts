@@ -161,6 +161,13 @@ test("linux: the set override variables go into the unit, quoted, and nothing el
   assert.equal(servicePlan("linux", base).files[0]!.content.match(/^Environment=/gm)!.length, 1);
 });
 
+test("linux: the agent rules variables pass into the unit", () => {
+  const unit = servicePlan("linux", { ...base, env: { CLAUDE_CONFIG_DIR: "/c", CODEX_HOME: "/x", T3_DASHBOARD_AGENT_RULES: "off" } }).files[0]!.content;
+  assert.match(unit, /^Environment="CLAUDE_CONFIG_DIR=\/c"$/m);
+  assert.match(unit, /^Environment="CODEX_HOME=\/x"$/m);
+  assert.match(unit, /^Environment="T3_DASHBOARD_AGENT_RULES=off"$/m);
+});
+
 test("macos: the set override variables go into EnvironmentVariables, escaped", () => {
   const content = servicePlan("darwin", { ...base, home: "/Users/ann", env: { T3_DASHBOARD_CONFIG_DIR: "/a&b", T3CODE_HOME: "/t3" } }).files[0]!.content;
   assert.match(content, /<key>T3_DASHBOARD_CONFIG_DIR<\/key>\s*<string>\/a&amp;b<\/string>/);

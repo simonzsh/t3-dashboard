@@ -38,6 +38,9 @@ export const SERVICE_ENV_KEYS = [
   "T3_DASHBOARD_ALLOWED_HOSTS",
   "T3_SERVER_RUNTIME",
   "T3CODE_HOME",
+  "CLAUDE_CONFIG_DIR",
+  "CODEX_HOME",
+  "T3_DASHBOARD_AGENT_RULES",
 ] as const;
 
 const serviceEnv = (env: PlanInput["env"]): [string, string][] =>

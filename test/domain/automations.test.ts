@@ -239,13 +239,21 @@ test("create keeps a given title and runtime mode, and cuts a long first line to
   assert.equal(port.createdTasks[1]!.title.length, 60);
 });
 
-test("create sends a reminder with the exact time and a self-pause with its own id", async () => {
+test("create sends a reminder with the exact time, a Reminder title and the prompt as written", async () => {
   const { automations, port } = harness();
   await automations.create({ ...base, kind: "reminder", title: "Call Sam", prompt: "Call Sam", at: new Date(2026, 10, 4, 17, 30).toISOString() });
   const [sent] = port.createdTasks;
-  assert.equal(sent!.title, "Call Sam");
+  assert.equal(sent!.title, "Reminder: Call Sam");
   assert.deepEqual(sent!.schedule, { type: "fixed_time", timeOfDay: "17:30", weekdays: [new Date(2026, 10, 4).getDay()] });
-  assert.equal(sent!.prompt, "Call Sam\n\nThen disable this scheduled task: call schedule_task with scheduledTaskId scheduled-task:id-1 and enabled: false. Do not delete it.");
+  assert.equal(sent!.prompt, "Call Sam");
+});
+
+test("a created reminder is listed as a reminder without its prefix", async () => {
+  const { automations, port } = harness();
+  await automations.create({ ...base, kind: "reminder", title: "Call Sam", prompt: "Call Sam", at: new Date(2026, 10, 4, 17, 30).toISOString() });
+  port.scheduledTasks = port.createdTasks.map((created) => ({ id: created.id, title: created.title, prompt: created.prompt, schedule: created.schedule }));
+  const [item] = (await automations.list()).automations;
+  assert.deepEqual([item!.kind, item!.title], ["reminder", "Call Sam"]);
 });
 
 test("create refuses a reminder in the past without calling T3", async () => {

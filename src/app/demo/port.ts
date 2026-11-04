@@ -18,6 +18,7 @@ export class DemoPort implements T3Port {
   private readonly hidden: Set<string>;
   private readonly deletedTasks = new Set<string>();
   private readonly createdTasks: RawScheduledTask[] = [];
+  private readonly pausedTasks = new Set<string>();
   private readonly renamedTasks = new Map<string, string>();
   private sequence = 0;
   private uploads = 0;
@@ -66,7 +67,23 @@ export class DemoPort implements T3Port {
   async listScheduledTasks(): Promise<RawScheduledTask[]> {
     return [...demoScheduledTasks(this.now()), ...this.createdTasks]
       .filter((task) => !this.deletedTasks.has(task.id))
-      .map((task) => ({ ...task, title: this.renamedTasks.get(task.id) ?? task.title }));
+      .map((task) => ({ ...task, title: this.renamedTasks.get(task.id) ?? task.title, ...(this.pausedTasks.has(task.id) && { enabled: false }) }));
+  }
+
+  // The demo keeps its tasks in the default workspace: nothing to move.
+  async setScheduledTaskWorkspace(): Promise<void> {}
+
+  async setScheduledTaskEnabled(id: string, enabled: boolean): Promise<void> {
+    if (enabled) this.pausedTasks.delete(id);
+    else this.pausedTasks.add(id);
+  }
+
+  subscribeScheduledTasks(onTasks: (tasks: RawScheduledTask[]) => void): { cancel(): void } {
+    let cancelled = false;
+    void this.listScheduledTasks().then((tasks) => {
+      if (!cancelled) onTasks(tasks);
+    });
+    return { cancel: () => void (cancelled = true) };
   }
 
   // Nothing is scheduled: the task is only listed. The secret is dropped.
