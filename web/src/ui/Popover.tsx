@@ -47,7 +47,10 @@ export function Popover({ anchor, onClose, align = "start", minWidth = 0, matchW
       const shifted = { left: a.left - dx, top: a.top - dy, width: a.width, height: a.height };
       const p = placeMenu(shifted, size, view, { align, minWidth, matchWidth, preferAbove });
       el.style.left = `${p.left + dx}px`;
-      el.style.top = `${p.top + dy}px`;
+      // Above: hold the bottom edge, so a list that shrinks stays against its anchor with no new pass.
+      const layoutHeight = document.documentElement.clientHeight;
+      el.style.top = p.above ? "auto" : `${p.top + dy}px`;
+      el.style.bottom = p.above ? `${layoutHeight - (p.top + dy + Math.min(size.height, p.maxHeight ?? Infinity))}px` : "auto";
       el.style.maxHeight = p.maxHeight === undefined ? "" : `${p.maxHeight}px`;
       el.style.visibility = "visible";
     };
