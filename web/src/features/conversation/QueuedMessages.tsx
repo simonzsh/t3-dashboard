@@ -1,10 +1,10 @@
 import { useLayoutEffect, useRef, useState } from "react";
 import type { QueuedMessage } from "../../../../shared/api.ts";
 import { useApi } from "../../api/ApiContext.tsx";
-import { attachmentUrl } from "../../api/client.ts";
 import { useAction } from "../../lib/useAction.ts";
 import { Button, Icon, IconButton, TextArea } from "../../ui/index.ts";
 import { MarkdownText } from "./MarkdownText.tsx";
+import { MessageAttachments } from "./MessageAttachments.tsx";
 
 interface Props {
   threadId: string;
@@ -62,16 +62,8 @@ function QueuedItem({ threadId, item, running, onChanged }: { threadId: string; 
 
   return (
     <li className="msg user queued">
-      {item.attachments.length > 0 && (
-        <div className="msg-images">
-          {item.attachments.map((file) => (
-            <a key={file.id} href={attachmentUrl(threadId, file.id)} target="_blank" rel="noreferrer">
-              <img src={attachmentUrl(threadId, file.id)} alt={file.name} loading="lazy" />
-            </a>
-          ))}
-        </div>
-      )}
       <div ref={bubble} className={editing ? "bubble md editing" : "bubble md"} style={editing && width ? { width } : undefined}>
+        <MessageAttachments threadId={threadId} attachments={item.attachments} />
         {editing ? (
           <TextArea
             ref={textarea}

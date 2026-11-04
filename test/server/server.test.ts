@@ -1020,6 +1020,48 @@ test("attachments: ?raw=1 serves a .html file as a download, not a themed page",
   assert.equal(reply.text, "bytes");
 });
 
+test("attachments: ?inline=1 shows a PDF in a frame, with no sandbox that would block the viewer", async () => {
+  const { server, port } = await start();
+  port.assetType = "application/pdf";
+  const reply = await call(server, "GET", "/api/threads/t1/attachments/t1-doc?inline=1");
+  assert.equal(reply.headers["content-type"], "application/pdf");
+  assert.equal(reply.headers["content-disposition"], undefined);
+  assert.equal(reply.headers["content-security-policy"], "frame-ancestors 'self'");
+  assert.equal(reply.headers["x-frame-options"], "SAMEORIGIN");
+  assert.equal(reply.headers["x-content-type-options"], "nosniff");
+  assert.equal(reply.text, "bytes");
+});
+
+test("attachments: ?inline=1 serves a text file as sandboxed plain text, whatever its type", async () => {
+  const { server, port } = await start();
+  for (const type of ["text/markdown", "text/xml; charset=utf-8", "application/json"]) {
+    port.assetType = type;
+    const reply = await call(server, "GET", "/api/threads/t1/attachments/t1-notes?inline=1");
+    assert.equal(reply.headers["content-type"], "text/plain; charset=utf-8");
+    assert.equal(reply.headers["content-security-policy"], "sandbox; frame-ancestors 'self'");
+    assert.equal(reply.headers["x-content-type-options"], "nosniff");
+    assert.equal(reply.headers["content-disposition"], undefined);
+  }
+});
+
+test("attachments: without ?inline=1, or with ?raw=1, a PDF or a text file stays a download", async () => {
+  const { server, port } = await start();
+  for (const [type, query] of [["application/pdf", ""], ["application/pdf", "?raw=1&inline=1"], ["text/plain", ""], ["text/plain", "?raw=1"]]) {
+    port.assetType = type!;
+    const reply = await call(server, "GET", `/api/threads/t1/attachments/t1-doc${query}`);
+    assert.equal(reply.headers["content-type"], "application/octet-stream", `${type} ${query}`);
+    assert.equal(reply.headers["content-disposition"], "attachment");
+  }
+});
+
+test("attachments: ?inline=1 does not show an HTML or SVG type as such", async () => {
+  const { server, port } = await start();
+  port.assetType = "image/svg+xml";
+  const reply = await call(server, "GET", "/api/threads/t1/attachments/t1-pic?inline=1");
+  assert.equal(reply.headers["content-type"], "application/octet-stream");
+  assert.equal(reply.headers["content-disposition"], "attachment");
+});
+
 test("media: only an absolute image path that a message of the thread shows", async () => {
   const { server, port } = await start();
   port.projection = { messages: [{ id: "m", role: "assistant", text: "Done: ![shot](/tmp/out/shot.png)" }] };
