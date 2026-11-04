@@ -32,6 +32,13 @@ interface Props {
 }
 
 const NEEDS_LIMIT = 10;
+
+// Settles every thread even when some fail, then reports how many failed.
+async function settleEach(threads: DashboardThread[], onSettle: Props["onSettle"]): Promise<void> {
+  const results = await Promise.allSettled(threads.map((t) => onSettle(t.id, true)));
+  const failed = results.filter((r) => r.status === "rejected").length;
+  if (failed > 0) throw new Error(`${failed} of ${threads.length} failed.`);
+}
 const RESULTS_LIMIT = 10;
 
 export function InboxView({ state, now, deskIds, onOpen, onToggleDesk, onSettle, seen, onMarkRead, onSwitcher, automations, automationsError, onAutomationsStale, linearVersion }: Props) {
@@ -139,7 +146,7 @@ export function InboxView({ state, now, deskIds, onOpen, onToggleDesk, onSettle,
                 loading={settleAll.busy}
                 tooltip={settleAll.error ?? undefined}
                 variant={settleAll.error ? "danger" : "secondary"}
-                onClick={() => void settleAll.run(() => Promise.all(stale.map((t) => onSettle(t.id, true))))}
+                onClick={() => void settleAll.run(() => settleEach(stale, onSettle))}
               >
                 Settle all older than 3 days ({stale.length})
               </Button>

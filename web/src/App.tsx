@@ -171,8 +171,8 @@ export function App() {
 
   const live = !sseDown && state?.connection.t3 === "live";
   const deskIds = new Set(desk.windows.map((w) => w.id));
-  // Same threads as the Inbox lists: run threads of automations are left out.
-  const unread = state ? unreadCount(inboxSections(excludeRoutineThreads(state.threads, automations.result?.hiddenThreadIds ?? []), notify.seen, now), notify.seen) : 0;
+  // Same threads as the Inbox lists: run and setup threads of automations are left out.
+  const unread = state ? unreadCount(inboxSections(excludeRoutineThreads(state.threads, [...(automations.result?.hiddenThreadIds ?? []), ...(automations.result?.setupThreadIds ?? [])]), notify.seen, now), notify.seen) : 0;
   const deskWaiting = state?.threads.some((t) => t.pending && deskIds.has(t.id)) ?? false;
 
   if (state?.connection.setup) {
