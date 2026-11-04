@@ -12,9 +12,9 @@ interface KeyEvent {
   isComposing: boolean;
 }
 
-/** Ctrl+S, plus Cmd+S on a Mac as in T3 Code. Ctrl+S has no browser meaning on a Mac. */
-export function isStashKey(e: KeyEvent, mac: boolean): boolean {
-  return e.key.toLowerCase() === "s" && (mac ? e.metaKey !== e.ctrlKey : e.ctrlKey && !e.metaKey) && !e.altKey && !e.shiftKey && !e.isComposing;
+/** Ctrl+S on every platform; Cmd+S stays the browser's own. */
+export function isStashKey(e: KeyEvent): boolean {
+  return e.key.toLowerCase() === "s" && e.ctrlKey && !e.metaKey && !e.altKey && !e.shiftKey && !e.isComposing;
 }
 
 /** What a restore puts back, and what it leaves out with the reason. */

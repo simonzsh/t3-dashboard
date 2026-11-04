@@ -51,7 +51,6 @@ interface MenuItem {
 // The provider lists change rarely: a menu refetches them only when they are this old.
 const COMMANDS_FRESH_MS = 60_000;
 
-const isMac = typeof navigator !== "undefined" && /Mac|iPhone|iPad/.test(navigator.platform);
 
 interface Props {
   providers: DashboardProvider[];
@@ -390,7 +389,7 @@ export function Composer({ providers, selection, runtimeMode, running, stoppable
       autoComplete="off"
       onKeyDown={(e) => {
         // Also stops the browser's "save page".
-        if (!stash || !isStashKey({ key: e.key, ctrlKey: e.ctrlKey, metaKey: e.metaKey, altKey: e.altKey, shiftKey: e.shiftKey, isComposing: e.nativeEvent.isComposing }, isMac)) return;
+        if (!stash || !isStashKey({ key: e.key, ctrlKey: e.ctrlKey, metaKey: e.metaKey, altKey: e.altKey, shiftKey: e.shiftKey, isComposing: e.nativeEvent.isComposing })) return;
         e.preventDefault();
         if (!stashing) void stashDraft();
       }}
