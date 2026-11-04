@@ -26,6 +26,18 @@ test("the list shows title, status label and age; only unseen rows have a dot", 
   assert.equal(out.match(/class="provider-icon/g)?.length, 2);
 });
 
+test("only unread rows get a Mark as read button, outside the row button", () => {
+  const out = renderToStaticMarkup(<NotificationList entries={entries} now={now} onOpen={noop} onMarkRead={noop} />);
+  assert.equal(out.match(/aria-label="Mark as read"/g)?.length, 1);
+  assert.match(out, /<\/button><button[^>]*aria-label="Mark as read"/);
+  assert.doesNotMatch(renderToStaticMarkup(<NotificationList entries={entries} now={now} onOpen={noop} />), /Mark as read/);
+});
+
+test("the list shows Mark all as read only when given the handler", () => {
+  assert.match(renderToStaticMarkup(<NotificationList entries={entries} now={now} onOpen={noop} onMarkAllRead={noop} />), /Mark all as read/);
+  assert.doesNotMatch(renderToStaticMarkup(<NotificationList entries={entries} now={now} onOpen={noop} />), /Mark all as read/);
+});
+
 test("an empty list says nothing needs the user", () => {
   assert.match(renderToStaticMarkup(<NotificationList entries={[]} now={now} onOpen={noop} />), /Nothing needs you right now/);
 });

@@ -4,28 +4,46 @@ import { ctrlLabel } from "../../lib/shortcuts.ts";
 import { relativeTime } from "../../lib/format.ts";
 import { ProviderIcon } from "../../lib/ProviderIcon.tsx";
 import { threadTitle } from "../../lib/threads.ts";
-import { Badge, enter, Icon, IconButton, Popover, Pressable } from "../../ui/index.ts";
+import { Badge, Button, enter, Icon, IconButton, Popover, Pressable } from "../../ui/index.ts";
 import { badgeText, type NotifyEntry } from "./notifications.ts";
 
 interface ListProps {
   entries: NotifyEntry[];
   now: Date;
   onOpen: (id: string) => void;
+  onMarkRead?: (id: string) => void;
+  /** Shown only when something is unread. */
+  onMarkAllRead?: () => void;
 }
 
-export function NotificationList({ entries, now, onOpen, active = -1, onActive }: ListProps & { active?: number; onActive?: (index: number) => void }) {
+export function NotificationList({ entries, now, onOpen, onMarkRead, onMarkAllRead, active = -1, onActive }: ListProps & { active?: number; onActive?: (index: number) => void }) {
   return (
     <>
-      <h2 className="notif-heading">Notifications</h2>
+      <div className="notif-head">
+        <h2 className="notif-heading">Notifications</h2>
+        {onMarkAllRead && (
+          <Button variant="ghost" size="sm" className="notif-read-all" onClick={onMarkAllRead}>
+            Mark all as read
+          </Button>
+        )}
+      </div>
       {entries.length === 0 && <p className="notif-empty">Nothing needs you right now</p>}
       {entries.map(({ thread, tone, label, unseen }, i) => (
-        <Pressable key={thread.id} className={`notif-row${i === active ? " active" : ""}`} onMouseEnter={() => onActive?.(i)} onClick={() => onOpen(thread.id)}>
-          <ProviderIcon provider={thread.provider} />
-          <span className="notif-title">{threadTitle(thread)}</span>
-          <Badge variant={tone}>{label}</Badge>
-          <span className="notif-age">{relativeTime(thread.lastActivityAt, now)}</span>
-          {unseen && <span className="notif-dot" role="img" aria-label="Unseen" />}
-        </Pressable>
+        <div key={thread.id} className={`notif-item${i === active ? " active" : ""}`} onMouseEnter={() => onActive?.(i)}>
+          <Pressable className="notif-row" onClick={() => onOpen(thread.id)}>
+            <ProviderIcon provider={thread.provider} />
+            <span className="notif-title">{threadTitle(thread)}</span>
+            <Badge variant={tone}>{label}</Badge>
+            <span className="notif-age">{relativeTime(thread.lastActivityAt, now)}</span>
+            {unseen && <span className="notif-dot" role="img" aria-label="Unseen" />}
+          </Pressable>
+          {/* A sibling of the row, not inside it: a button cannot hold a button. */}
+          {unseen && onMarkRead && (
+            <IconButton variant="ghost" size="sm" className="notif-read" label="Mark as read" onClick={() => onMarkRead(thread.id)}>
+              <Icon name="check" />
+            </IconButton>
+          )}
+        </div>
       ))}
     </>
   );
@@ -62,7 +80,7 @@ export function NotificationToasts({ toasts, onOpen, onDismiss }: { toasts: Noti
 }
 
 // Open state lives in the caller, so a shortcut can toggle the menu too.
-export function NotificationBell({ entries, count, now, onOpen, open, onOpenChange }: ListProps & { count: number; open: boolean; onOpenChange: (open: boolean) => void }) {
+export function NotificationBell({ entries, count, now, onOpen, onMarkRead, onMarkAllRead, open, onOpenChange }: ListProps & { count: number; open: boolean; onOpenChange: (open: boolean) => void }) {
   const button = useRef<HTMLButtonElement>(null);
   const list = useRef<HTMLDivElement>(null);
   // The active row is drawn by a class, not :focus-visible, which the browser skips after a mouse click.
@@ -126,6 +144,8 @@ export function NotificationBell({ entries, count, now, onOpen, open, onOpenChan
               now={now}
               active={active}
               onActive={setActive}
+              onMarkRead={onMarkRead}
+              onMarkAllRead={count > 0 ? onMarkAllRead : undefined}
               onOpen={(id) => {
                 onOpenChange(false);
                 onOpen(id);

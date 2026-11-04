@@ -1,4 +1,4 @@
-// Which finished threads the user has opened. Every device shares it, so a thread opened
+// Which notifications the user has read (opened, or marked as read). Every device shares it, so a thread opened
 // on one device stops counting as unread on the others.
 
 /** Marks kept at most: the oldest ones fall under the baseline instead. */

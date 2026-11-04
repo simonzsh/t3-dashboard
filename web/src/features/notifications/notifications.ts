@@ -27,12 +27,14 @@ function finishedLabel(t: DashboardThread): string {
   return t.status === "cancelled" || t.status === "interrupted" ? "Cancelled" : "Finished";
 }
 
-// A finished thread is unseen while it finished after the baseline and after the last time it was opened.
+// A thread is unseen while its last activity is newer than the baseline and its read mark.
+// A read mark comes from opening the thread or from "Mark as read".
 const isUnseen = (t: DashboardThread, seen: SeenState) => t.lastActivityAt.localeCompare(later(seen.since, seen.seen[t.id] ?? "")) > 0;
 
 function entryOf(t: DashboardThread, kind: NotifyKind, seen: SeenState | null): NotifyEntry {
-  if (kind === "waiting") return { thread: t, kind, tone: "waiting", label: waitingLabel(t), unseen: true };
-  return { thread: t, kind, tone: threadState(t) === "error" ? "error" : "done", label: finishedLabel(t), unseen: seen ? isUnseen(t, seen) : true };
+  const unseen = seen ? isUnseen(t, seen) : true;
+  if (kind === "waiting") return { thread: t, kind, tone: "waiting", label: waitingLabel(t), unseen };
+  return { thread: t, kind, tone: threadState(t) === "error" ? "error" : "done", label: finishedLabel(t), unseen };
 }
 
 export function notifyEntries(threads: DashboardThread[], seen: SeenState): NotifyEntry[] {
@@ -40,12 +42,15 @@ export function notifyEntries(threads: DashboardThread[], seen: SeenState): Noti
   return [...pick("waiting").map((t) => entryOf(t, "waiting", seen)), ...pick("finished").map((t) => entryOf(t, "finished", seen))].slice(0, NOTIFY_LIMIT);
 }
 
-export function unseenCount(threads: DashboardThread[], seen: SeenState): number {
+/** Waiting and finished threads not read yet: the badge count, and what "Mark all as read" marks. */
+export function unseenThreads(threads: DashboardThread[], seen: SeenState): DashboardThread[] {
   return threads.filter((t) => {
     const status = agentStatus(t);
-    return status === "waiting" || (status === "finished" && isUnseen(t, seen));
-  }).length;
+    return (status === "waiting" || status === "finished") && isUnseen(t, seen);
+  });
 }
+
+export const unseenCount = (threads: DashboardThread[], seen: SeenState): number => unseenThreads(threads, seen).length;
 
 export const badgeText = (n: number): string => (n > 9 ? "9+" : String(n));
 
