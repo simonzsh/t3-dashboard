@@ -7,7 +7,8 @@ export const SECRET_STATUS_LABELS: Record<Exclude<SecretStatus, "pending">, stri
   cancelled: "Cancelled",
 };
 
-/** The body for Save, or null while the field is blank or too long. The value is sent as typed. */
+/** The body for Save, or null while the field is blank or too long. Trimmed, as T3 stores it trimmed. */
 export function saveBody(value: string): SecretAnswerBody | null {
-  return value.trim() === "" || value.length > MAX_SECRET_CHARS ? null : { secret: value };
+  const secret = value.trim();
+  return secret === "" || secret.length > MAX_SECRET_CHARS ? null : { secret };
 }

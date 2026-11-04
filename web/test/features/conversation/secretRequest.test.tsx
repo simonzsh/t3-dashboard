@@ -12,7 +12,7 @@ const step = (status: SecretStatus): TurnStep => ({
 const render = (status: SecretStatus) => renderToStaticMarkup(<SecretRequestCard step={step(status)} threadId="t" />);
 
 test("saveBody sends the value as typed and refuses a blank or too long one", () => {
-  assert.deepEqual(saveBody(" dummy "), { secret: " dummy " });
+  assert.deepEqual(saveBody(" dummy "), { secret: "dummy" });
   assert.equal(saveBody("   "), null);
   assert.equal(saveBody(""), null);
   assert.equal(saveBody("x".repeat(8193)), null);
