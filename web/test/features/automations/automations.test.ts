@@ -168,13 +168,18 @@ test("groupAutomations reads the thread of each automation", () => {
 
 test("filterAutomations matches title, project name and schedule, ignoring case and outer spaces", () => {
   const list = [auto("a", { title: "Nightly Backup", project: "Alpha", scheduleLabel: "Daily 2:00", projectId: "pa" }), auto("b", { title: "Report", project: "Beta", scheduleLabel: "Weekly Mon", projectId: "pb" })];
-  const ids = (f: { projectId: string; query: string }) => filterAutomations(list, f).map((a) => a.id);
-  assert.deepEqual(ids({ projectId: "", query: "" }), ["a", "b"]);
-  assert.deepEqual(ids({ projectId: "", query: "  backup " }), ["a"]);
-  assert.deepEqual(ids({ projectId: "", query: "BETA" }), ["b"]);
-  assert.deepEqual(ids({ projectId: "", query: "weekly" }), ["b"]);
+  const ids = (f: { projectId: string | null; query: string }) => filterAutomations(list, f).map((a) => a.id);
+  assert.deepEqual(ids({ projectId: null, query: "" }), ["a", "b"]);
+  assert.deepEqual(ids({ projectId: null, query: "  backup " }), ["a"]);
+  assert.deepEqual(ids({ projectId: null, query: "BETA" }), ["b"]);
+  assert.deepEqual(ids({ projectId: null, query: "weekly" }), ["b"]);
   assert.deepEqual(ids({ projectId: "pa", query: "" }), ["a"]);
   assert.deepEqual(ids({ projectId: "pa", query: "report" }), []);
+});
+
+test("filterAutomations keeps only tasks without a project for the empty project id", () => {
+  const list = [auto("a", { projectId: "" }), auto("b", { projectId: "pb" })];
+  assert.deepEqual(filterAutomations(list, { projectId: "", query: "" }).map((a) => a.id), ["a"]);
 });
 
 test("automationProjects lists each project once, sorted by title", () => {

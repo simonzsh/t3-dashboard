@@ -18,6 +18,8 @@ interface Props {
   automationsError: string | null;
   onAutomationsStale: () => Promise<void>;
   onNewAutomation: () => void;
+  /** T3 Code is live: automations load only then. */
+  available: boolean;
 }
 
 const COLUMNS = 6;
@@ -27,7 +29,8 @@ const GROUPS: ReadonlyArray<{ id: AutomationGroup; title: string }> = [
   { id: "upcoming", title: "Upcoming" },
   { id: "inactive", title: "Paused / finished" },
 ];
-const ALL_PROJECTS = "";
+// T3 gives "" to a task without a project: "all" needs an id no task can have.
+const ALL_PROJECTS = "*all";
 
 function CopyUrlButton({ url }: { url: string }) {
   const { copied, copy } = useCopy("copy the webhook URL");
@@ -139,7 +142,7 @@ function GroupHead({ title, count, open, onToggle }: { title: string; count: num
   );
 }
 
-export function AutomationsView({ state, now, onOpen, automations, automationsError, onAutomationsStale, onNewAutomation }: Props) {
+export function AutomationsView({ state, now, onOpen, automations, automationsError, onAutomationsStale, onNewAutomation, available }: Props) {
   const [query, setQuery] = useState("");
   const [projectId, setProjectId] = useState(ALL_PROJECTS);
   const [inactiveOpen, setInactiveOpen] = useState(false);
@@ -149,11 +152,27 @@ export function AutomationsView({ state, now, onOpen, automations, automationsEr
   const threads = useMemo(() => new Map(state.threads.map((t) => [t.id, t])), [state.threads]);
   const icons = useMemo(() => new Map(state.projects.map((p) => [p.id, p.icon])), [state.projects]);
   const all = automations?.automations ?? [];
-  const shown = useMemo(() => filterAutomations(all, { projectId, query }), [all, projectId, query]);
+  const shown = useMemo(() => filterAutomations(all, { projectId: projectId === ALL_PROJECTS ? null : projectId, query }), [all, projectId, query]);
   const groups = useMemo(() => groupAutomations(shown, threads, now), [shown, threads, now]);
   const options = useMemo(() => [{ id: ALL_PROJECTS, label: "All projects" }, ...automationProjects(all).map((p) => ({ id: p.id, label: p.title }))], [all]);
 
+  if (!available) {
+    return (
+      <div className="empty-state">
+        <strong>T3 Code is not connected</strong>
+        <span>Automations show here once the connection is back.</span>
+      </div>
+    );
+  }
   if (!automations && !automationsError) return <Loader />;
+  if (!automations) {
+    return (
+      <div className="empty-state">
+        <strong>Automations could not be loaded</strong>
+        <span>{automationsError}</span>
+      </div>
+    );
+  }
   if (all.length === 0 && setup.length === 0) {
     return (
       <div className="empty-state">

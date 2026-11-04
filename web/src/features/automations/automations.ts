@@ -57,9 +57,9 @@ export function groupAutomations(list: Automation[], threads: Map<string, Dashbo
   return groups;
 }
 
-export function filterAutomations(list: Automation[], filter: { projectId: string; query: string }): Automation[] {
+export function filterAutomations(list: Automation[], filter: { projectId: string | null; query: string }): Automation[] {
   const query = filter.query.trim().toLowerCase();
-  return list.filter((a) => (filter.projectId === "" || a.projectId === filter.projectId) && (query === "" || [a.title, a.project, a.scheduleLabel].some((text) => text.toLowerCase().includes(query))));
+  return list.filter((a) => (filter.projectId === null || a.projectId === filter.projectId) && (query === "" || [a.title, a.project, a.scheduleLabel].some((text) => text.toLowerCase().includes(query))));
 }
 
 export function automationProjects(list: Automation[]): Array<{ id: string; title: string }> {

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { BoardResult, DashboardThread, LinearIssue } from "../../../../shared/api.ts";
 import { useApi } from "../../api/ApiContext.tsx";
 import { useNotify } from "../../lib/notices.tsx";
@@ -23,8 +23,11 @@ export function useTickets(version: number, threads: DashboardThread[]) {
       }),
     [],
   );
+  // Bypass the server cache only for a settings change, not on each visit to the Inbox.
+  const seen = useRef(version);
   useEffect(() => {
-    void load(version > 0);
+    void load(version !== seen.current);
+    seen.current = version;
   }, [load, version]);
 
   const needsKey = board !== null && boardNeedsKey(board);

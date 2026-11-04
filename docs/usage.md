@@ -2,7 +2,7 @@
 
 [Back to the README](../README.md)
 
-The dashboard has three tabs: Desk, Inbox and Automations. The header contains the New Agent and New Automation buttons and the settings (Settings).
+The dashboard has three tabs: Inbox, Desk and Automations. The header contains the New Agent and New Automation buttons and the settings (Settings).
 
 ## Inbox
 
@@ -200,7 +200,7 @@ The shortcuts use `Ctrl`, also on a Mac, and they work while you type in a field
 
 | Key | Action |
 | --- | --- |
-| `Ctrl` + `1`, `2`, `3` | Opens Desk, Inbox or Automations. |
+| `Ctrl` + `1`, `2`, `3` | Opens Inbox, Desk or Automations. |
 | `Ctrl` + `K` or `⌘` + `K` | Opens or closes the "Jump to" switcher. It finds a conversation by title, project or message. Without text, it shows the agents that wait for an answer, then your recent conversations. `↑` `↓` select, `Enter` opens in the Desk. |
 | `Ctrl` + `S` | In the message field of a conversation: stashes the draft. |
 | `Ctrl` + `N` | Opens New Agent. |

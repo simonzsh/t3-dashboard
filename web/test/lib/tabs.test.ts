@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { TABS, hashForTab, tabFromHash } from "../../src/lib/tabs.ts";
 
 test("the tabs are Desk, Inbox and Automations, keyed 1 to 3", () => {
-  assert.deepEqual(TABS.map((t) => [t.id, t.label, t.key]), [["desk", "Desk", "1"], ["inbox", "Inbox", "2"], ["automations", "Automations", "3"]]);
+  assert.deepEqual(TABS.map((t) => [t.id, t.label, t.key]), [["inbox", "Inbox", "1"], ["desk", "Desk", "2"], ["automations", "Automations", "3"]]);
 });
 
 test("each tab has its own hash", () => {

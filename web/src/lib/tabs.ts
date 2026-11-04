@@ -1,8 +1,8 @@
 export type Tab = "desk" | "inbox" | "automations";
 
 export const TABS: ReadonlyArray<{ id: Tab; label: string; key: string }> = [
-  { id: "desk", label: "Desk", key: "1" },
-  { id: "inbox", label: "Inbox", key: "2" },
+  { id: "inbox", label: "Inbox", key: "1" },
+  { id: "desk", label: "Desk", key: "2" },
   { id: "automations", label: "Automations", key: "3" },
 ];
 

@@ -272,6 +272,7 @@ export function App() {
               automationsError={automations.error}
               onAutomationsStale={automations.reload}
               onNewAutomation={() => setCreatingAutomation(true)}
+              available={state.connection.t3 === "live"}
             />
           ) : <Loader />)}
         {tab === "desk" &&
