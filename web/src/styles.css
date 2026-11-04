@@ -583,7 +583,8 @@ ol.install-steps { padding-left: 18px; }
 .inbox-title { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 600; }
 .inbox-time { flex: none; color: var(--text-secondary); font-size: 12px; white-space: nowrap; }
 .inbox-pin { width: 13px; height: 13px; flex: none; color: var(--text-secondary); }
-.inbox-actions { flex: none; display: flex; align-items: center; gap: 4px; }
+/* Fits the widest set (Open on Desk + Settle), so rows of every section end at the same edge. */
+.inbox-actions { flex: none; display: flex; align-items: center; justify-content: flex-end; gap: 4px; min-width: 166px; }
 .inbox-open-t3 { border-radius: var(--radius-md); }
 .inbox-open-t3:hover { color: var(--text-primary); background: var(--surface-0); }
 .project-tag { flex: none; display: inline-flex; align-items: center; gap: 5px; min-width: 0; max-width: 180px; color: var(--text-secondary); font-size: 12px; }
