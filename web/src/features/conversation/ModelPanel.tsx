@@ -83,8 +83,11 @@ export function ModelPanel({ providers, selection, mode, modes, onSelection, onM
     };
   }, [open, accessOpen]);
 
+  // Only the keyboard and the opening scroll the list: a row under the mouse must not move it.
+  const follow = useRef(true);
   useEffect(() => {
-    if (open) document.getElementById(`model-row-${active}`)?.scrollIntoView({ block: "nearest" });
+    if (open && follow.current) document.getElementById(`model-row-${active}`)?.scrollIntoView({ block: "nearest" });
+    follow.current = true;
   }, [open, active]);
 
   function pickRow(row: PanelRow | undefined) {
@@ -173,7 +176,11 @@ export function ModelPanel({ providers, selection, mode, modes, onSelection, onM
                       aria-selected={sameRow(row, selection)}
                       className={`model-row${i === active ? " active" : ""}`}
                       onMouseDown={(e) => e.preventDefault()}
-                      onMouseEnter={() => setActive(i)}
+                      onMouseEnter={() => {
+                        if (i === active) return;
+                        follow.current = false;
+                        setActive(i);
+                      }}
                       onClick={() => pickRow(row)}
                     >
                       <ProviderIcon provider={row.provider.instanceId} />
