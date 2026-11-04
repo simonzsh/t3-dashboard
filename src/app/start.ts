@@ -18,6 +18,7 @@ import { LinearBoard } from "../domain/linearBoard.ts";
 import { deskText, readDesk } from "../config/deskFile.ts";
 import { readStash, stashText } from "../config/stashFile.ts";
 import { readSeen, seenText } from "../config/seenFile.ts";
+import { syncAgentRules } from "../config/agentRules.ts";
 import { readLinearKey } from "../config/linearFile.ts";
 import { readAutomationThreads } from "../config/automationThreads.ts";
 import { automationThreadsFile, deskFile as deskPath, linearFile, pidFile, seenFile as seenPath, stashFile as stashPath } from "../config/paths.ts";
@@ -32,7 +33,7 @@ import { ShellStore } from "../domain/shellStore.ts";
 import { NO_MODEL_DEFAULTS } from "../domain/providers.ts";
 import { siteFromBundle } from "../server/site.ts";
 import { SseHub } from "../server/sse.ts";
-import { updateDeps } from "./deps.ts";
+import { installDeps, updateDeps } from "./deps.ts";
 import { update } from "../cli/selfUpdate.ts";
 import { UpdateManager } from "../domain/updates.ts";
 import { VERSION } from "../config/version.ts";
@@ -162,6 +163,8 @@ export async function start({ port, log, env }: StartOptions): Promise<void> {
   // A dev build has no version to compare, and its runs must not call GitHub.
   const checker = VERSION === "dev" ? undefined : setInterval(() => void updates.check(), UPDATE_CHECK_MS);
   if (checker) void updates.check();
+  // The compiled binary refreshes the rules at each start, so a self-update brings the new text.
+  if (VERSION !== "dev" && Bun.isStandaloneExecutable) syncAgentRules("write", installDeps(env));
   live.start();
   guard.start();
   const server = await listen({

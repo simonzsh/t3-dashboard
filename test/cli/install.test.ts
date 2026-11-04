@@ -47,6 +47,8 @@ test("install writes the service, starts it, waits for the health check, then op
     "systemctl --user daemon-reload",
     "systemctl --user enable t3-dashboard.service",
     "systemctl --user restart t3-dashboard.service",
+    "write /home/ann/.claude/CLAUDE.md",
+    "write /home/ann/.codex/AGENTS.md",
     "health http://127.0.0.1:4500/api/health",
     "health http://127.0.0.1:4500/api/health",
     "health http://127.0.0.1:4500/api/health",
@@ -94,6 +96,34 @@ test("uninstall removes the unit and keeps the config", async () => {
     "rm /home/ann/.config/systemd/user/t3-dashboard.service",
     "systemctl --user daemon-reload",
   ]);
+});
+
+test("install keeps the user's text and adds the block, uninstall takes it out", async () => {
+  const { deps } = harness();
+  const files: Record<string, string> = { "/home/ann/.claude/CLAUDE.md": "My rules\n" };
+  deps.exists = (path) => path in files;
+  deps.readFile = (path) => files[path]!;
+  deps.writeFile = (path, content) => void (files[path] = content);
+  await install({ port: 4300, open: false }, deps);
+  assert.match(files["/home/ann/.claude/CLAUDE.md"]!, /^My rules\n\n<!-- t3-dashboard:begin -->\n[\s\S]*<!-- t3-dashboard:end -->\n$/);
+  assert.ok(files["/home/ann/.codex/AGENTS.md"]!.includes("schedule_task"));
+  await uninstall(deps);
+  assert.equal(files["/home/ann/.claude/CLAUDE.md"], "My rules\n");
+  assert.equal(files["/home/ann/.codex/AGENTS.md"], "");
+});
+
+test("install writes no rules with the opt-out, but uninstall still removes them", async () => {
+  const { deps } = harness();
+  const files: Record<string, string> = {};
+  deps.env = { T3_DASHBOARD_AGENT_RULES: "off" };
+  deps.exists = (path) => path in files;
+  deps.readFile = (path) => files[path]!;
+  deps.writeFile = (path, content) => void (files[path] = content);
+  await install({ port: 4300, open: false }, deps);
+  assert.deepEqual(Object.keys(files).filter((path) => /CLAUDE\.md|AGENTS\.md/.test(path)), []);
+  files["/home/ann/.codex/AGENTS.md"] = "Mine\n\n<!-- t3-dashboard:begin -->\nx\n<!-- t3-dashboard:end -->\n";
+  await uninstall(deps);
+  assert.equal(files["/home/ann/.codex/AGENTS.md"], "Mine\n");
 });
 
 test("windows uninstall also kills the process of the pid file", async () => {

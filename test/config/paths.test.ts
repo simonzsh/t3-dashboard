@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "bun:test";
-import { authFile, automationThreadsFile, configDir, linearFile, logFile, pidFile, stateDir } from "../../src/config/paths.ts";
+import { authFile, automationThreadsFile, claudeRulesFile, codexRulesFile, configDir, linearFile, logFile, pidFile, stateDir } from "../../src/config/paths.ts";
 
 test("files live in the config directory, under the home by default", () => {
   assert.equal(configDir({}, "/home/ann"), "/home/ann/.config/t3-dashboard");
@@ -24,4 +24,11 @@ test("state files follow each OS convention", () => {
   assert.equal(stateDir({ LOCALAPPDATA: "C:\\Users\\ann\\AppData\\Local" }, "C:\\Users\\ann", "win32"), "C:\\Users\\ann\\AppData\\Local\\t3-dashboard");
   assert.equal(logFile({}, "/Users/ann", "darwin"), "/Users/ann/Library/Logs/t3-dashboard/dashboard.log");
   assert.equal(pidFile({}, "/home/ann", "linux"), "/home/ann/.local/state/t3-dashboard/dashboard.pid");
+});
+
+test("the agent rules files follow the Claude and Codex homes", () => {
+  assert.equal(claudeRulesFile({}, "/home/ann"), "/home/ann/.claude/CLAUDE.md");
+  assert.equal(codexRulesFile({}, "/home/ann"), "/home/ann/.codex/AGENTS.md");
+  assert.equal(claudeRulesFile({ CLAUDE_CONFIG_DIR: "/c" }, "/h"), "/c/CLAUDE.md");
+  assert.equal(codexRulesFile({ CODEX_HOME: "/x" }, "/h"), "/x/AGENTS.md");
 });

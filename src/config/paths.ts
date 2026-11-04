@@ -36,3 +36,9 @@ export const deskFile = (env: Env, homedir: string): string => join(configDir(en
 
 /** Stashed composer drafts, shared by every device. */
 export const stashFile = (env: Env, homedir: string): string => join(configDir(env, homedir), "stash.json");
+
+/** The user rules file of Claude Code. */
+export const claudeRulesFile = (env: Env, homedir: string): string => join(env.CLAUDE_CONFIG_DIR ?? join(homedir, ".claude"), "CLAUDE.md");
+
+/** The user rules file of Codex. */
+export const codexRulesFile = (env: Env, homedir: string): string => join(env.CODEX_HOME ?? join(homedir, ".codex"), "AGENTS.md");
