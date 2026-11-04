@@ -16,6 +16,7 @@ import {
   promoteQueuedCommand,
   startQueuedCommand,
   settleCommand,
+  archiveThreadCommand,
   unsettleCommand,
   rollbackCommand,
   interruptCommand,
@@ -72,6 +73,7 @@ export function samplePayloads(): Record<string, Record<string, unknown>[]> {
     dismissCommand("t", "q"),
     settleCommand("t"),
     unsettleCommand("t"),
+    archiveThreadCommand("t"),
     rollbackCommand("t", { scopeId: "s", checkpointId: "c" }, true),
   ];
   const payloads: Record<string, Record<string, unknown>[]> = {};

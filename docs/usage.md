@@ -134,6 +134,7 @@ The right column of the Agents tab lists the scheduled tasks of T3 Code. It appe
 - Click a row to open the thread of the task.
 - Each row shows the project icon. To rename a task, click the pencil icon on its row, change the title, then push `Enter`. The dashboard also renames the linked thread. It keeps the prefix of a reminder.
 - To delete a task, click the trash icon on its row, then click "Delete". T3 Code deletes the task. You cannot undo this action.
+- When you delete a reminder, the dashboard also archives the threads of its runs. Without this, they would come back in the agent grid. A reminder linked to a conversation keeps that conversation.
 - If T3 Code is too old to list the tasks, the column shows the error. The agent grid continues to work.
 
 ### Create an automation

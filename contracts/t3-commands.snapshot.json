@@ -85,6 +85,10 @@
     "subagentId": "required",
     "threadId": "required"
   },
+  "thread.archive": {
+    "commandId": "required",
+    "threadId": "required"
+  },
   "thread.create": {
     "branch": "required",
     "commandId": "required",

@@ -148,6 +148,45 @@ test("remove deletes the task through the port", async () => {
   assert.deepEqual(port.deletedTasks, ["task-1"]);
 });
 
+const REMINDER = "Reminder: Call back";
+const archived = (port: FakePort) => port.commands.filter((c) => c.type === "thread.archive").map((c) => c.threadId);
+
+test("remove archives the run threads of a reminder after the delete", async () => {
+  const runs = [thread("run-1", { title: REMINDER }), thread("run-2", { title: REMINDER }), thread("done", { title: REMINDER, archivedAt: "2026-04-01T00:00:00.000Z" }), thread("other")];
+  const { automations, port } = harness(runs);
+  port.scheduledTasks = [task({ title: REMINDER, enabled: false })];
+  await automations.remove("task-1");
+  assert.deepEqual(port.deletedTasks, ["task-1"]);
+  assert.deepEqual(archived(port).sort(), ["run-1", "run-2"]);
+});
+
+test("remove keeps the threads of a routine, a webhook and a bound reminder", async () => {
+  for (const kept of [task(), task({ title: REMINDER, schedule: { type: "webhook" } }), task({ title: REMINDER, threadId: "chat" })]) {
+    const { automations, port } = harness([thread("run-1", { title: kept.title }), thread("chat", { title: kept.title })]);
+    port.scheduledTasks = [kept];
+    await automations.remove("task-1");
+    assert.deepEqual(port.deletedTasks, ["task-1"]);
+    assert.deepEqual(archived(port), [], JSON.stringify(kept));
+  }
+});
+
+test("a failed archive does not fail the delete", async () => {
+  const { automations, port, warnings } = harness([thread("run-1", { title: REMINDER })]);
+  port.scheduledTasks = [task({ title: REMINDER })];
+  port.dispatchError = new Error("refused");
+  await automations.remove("task-1");
+  assert.deepEqual(port.deletedTasks, ["task-1"]);
+  assert.equal(warnings.length, 1);
+});
+
+test("a failed delete archives nothing", async () => {
+  const { automations, port } = harness([thread("run-1", { title: REMINDER })]);
+  port.scheduledTasks = [task({ title: REMINDER })];
+  port.deleteError = new Error("socket closed");
+  await assert.rejects(automations.remove("task-1"));
+  assert.deepEqual(archived(port), []);
+});
+
 test("remove wraps a port failure as an IntegrationError", async () => {
   const { automations, port } = harness();
   port.deleteError = new Error("socket closed");
@@ -156,16 +195,18 @@ test("remove wraps a port failure as an IntegrationError", async () => {
   await assert.rejects(automations.remove("task-1"), (error) => error instanceof IntegrationError && error.kind === "refused");
 });
 
-function harness() {
+function harness(threads: RawThread[] = [thread("run-1")]) {
   const port = new FakePort();
+  const warnings: string[] = [];
   const automations = createAutomations({
+    warn: (message) => void warnings.push(message),
     port,
-    store: { project: (id) => (id === "project-1" ? { id, title: "Project A", defaultModelSelection: null, icon: null } : undefined), rawThreads: () => [thread("run-1")] },
+    store: { project: (id) => (id === "project-1" ? { id, title: "Project A", defaultModelSelection: null, icon: null } : undefined), rawThreads: () => threads },
     dedicated: { read: () => new Set(["t-dedicated"]) },
     newId: () => "id-1",
     now: () => new Date(2026, 10, 4, 10, 0, 0),
   });
-  return { automations, port };
+  return { automations, port, warnings };
 }
 
 const base = { title: "", prompt: "  Triage the inbox\nand reply ", projectId: "project-1", modelSelection: { instanceId: "claudeAgent", model: "m" } };
