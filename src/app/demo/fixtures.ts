@@ -539,7 +539,7 @@ export function demoScheduledTasks(now: Date): RawScheduledTask[] {
       ...common,
       id: "launch-follow-up",
       title: "Reminder: Follow up on the 2.4 launch",
-      prompt: "Remind me to follow up on the 2.4 launch. Then disable this scheduled task.",
+      prompt: "Remind me to follow up on the 2.4 launch.",
       schedule: { type: "fixed_time", timeOfDay: "10:00" },
       projectId: "demo-docs",
       threadId: "demo-release-notes",

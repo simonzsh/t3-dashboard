@@ -9,7 +9,7 @@ import type { ShellStore } from "./shellStore.ts";
 
 const REMINDER_PREFIX = /^\s*(?:reminder|rappel)\s*:\s*/i;
 
-// T3 has no one-shot type: a reminder is a task whose prompt pauses this very task.
+// Older reminders paused themselves from their prompt: this marks them. A new reminder has the prefix.
 const pauseInstruction = (id: string) => `call schedule_task with scheduledTaskId ${id} and enabled: false`;
 const pausesItself = (task: RawScheduledTask) => (task.prompt ?? "").includes(pauseInstruction(task.id));
 const isWebhook = (task: RawScheduledTask) => task.schedule?.type === "webhook";
@@ -82,7 +82,7 @@ export interface AutomationsOptions {
 
 export interface Automations {
   list(): Promise<AutomationsResult>;
-  /** Creates the scheduled task in T3. A reminder pauses itself after its run. */
+  /** Creates the scheduled task in T3. The server pauses a reminder after its run. */
   create(body: CreateAutomationBody): Promise<CreateAutomationResult>;
   /** Deletes the T3 scheduled task, and archives the run threads of a reminder. */
   remove(id: string): Promise<void>;
@@ -141,13 +141,12 @@ export function createAutomations(options: AutomationsOptions): Automations {
       const reminder = body.kind === "reminder";
       const name = body.title.trim() || titleFromRequest(body.prompt);
       const schedule: ScheduleInput = body.kind === "routine" ? routineSchedule(body.schedule) : body.kind === "reminder" ? reminderSchedule(new Date(body.at), now()) : webhookSchedule(body.filters, body.signature);
-      const prompt = reminder ? `${body.prompt.trim()}\n\nThen disable this scheduled task: ${pauseInstruction(id)}. Do not delete it.` : body.prompt.trim();
       const projectId = body.projectId || (await viaT3(port.ensureScratchProject()));
       const created = await viaT3(
         port.createScheduledTask({
           id,
-          title: name,
-          prompt,
+          title: reminder ? `Reminder: ${name}` : name,
+          prompt: body.prompt.trim(),
           enabled: true,
           schedule,
           projectId,
