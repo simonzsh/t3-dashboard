@@ -579,7 +579,6 @@ ol.install-steps { padding-left: 18px; }
 .ticket-meta { display: flex; align-items: center; gap: 8px; min-width: 0; }
 /* Two lines at most, so every ticket card keeps the same height. */
 .ticket-title { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; line-clamp: 2; overflow: hidden; min-height: 2lh; font-weight: 500; color: inherit; text-decoration: none; }
-.ticket-actions { display: flex; align-items: center; justify-content: flex-end; gap: 6px; margin-top: auto; }
 .ticket-title:hover { text-decoration: underline; }
 .auto-page { flex: 1; min-height: 0; display: flex; flex-direction: column; gap: 16px; }
 .auto-toolbar { flex: none; display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
@@ -772,11 +771,6 @@ ol.install-steps { padding-left: 18px; }
 .auto-result dl { display: grid; grid-template-columns: max-content 1fr; gap: 6px 12px; margin: 0; }
 .auto-result dt { color: var(--text-secondary); }
 .auto-result dd { margin: 0; }
-.issue-banner { display: flex; align-items: center; gap: 8px; min-width: 0; padding: 8px 12px; border-radius: var(--radius-md); border: 1px solid color-mix(in srgb, var(--accent) 35%, var(--line)); background: color-mix(in srgb, var(--accent) 10%, var(--surface-1)); color: var(--text-primary); text-decoration: none; font-size: 13px; }
-.issue-banner:hover { border-color: var(--accent); }
-.issue-banner-id { flex: none; font: 600 12px/1 var(--font-mono); color: var(--accent); }
-.issue-banner-title { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.issue-banner .icon { flex: none; width: 14px; height: 14px; color: var(--text-secondary); }
 .linear-status { display: inline-flex; align-items: center; gap: 10px; }
 .linear-status.muted { color: var(--text-secondary); }
 .linear-controls { display: flex; align-items: center; gap: 10px; min-width: 0; }

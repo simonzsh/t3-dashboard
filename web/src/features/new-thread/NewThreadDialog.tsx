@@ -1,13 +1,12 @@
 import { useEffect, useState } from "react";
-import type { DashboardProject, DashboardProvider, LinearIssue, ModelDefaults, ModelSelection, RuntimeMode, ThreadSettingsBody, UploadedAttachment } from "../../../../shared/api.ts";
+import type { DashboardProject, DashboardProvider, ModelDefaults, ModelSelection, RuntimeMode, ThreadSettingsBody, UploadedAttachment } from "../../../../shared/api.ts";
 import { useApi } from "../../api/ApiContext.tsx";
 import { browserStorage } from "../../lib/storage.ts";
-import { loadAssignProject, saveAssignProject } from "../../lib/assignProject.ts";
 import { findModel } from "../conversation/composer.ts";
 import { ProjectPicker } from "../../lib/ProjectPicker.tsx";
 import { DEFAULT_RUNTIME_MODE, loadNewAgentProject, presetSelection, saveNewAgentProject, titleFromMessage } from "./newAgent.ts";
 import { Composer } from "../conversation/Composer.tsx";
-import { Dialog, Icon } from "../../ui/index.ts";
+import { Dialog } from "../../ui/index.ts";
 
 interface Props {
   projects: DashboardProject[];
@@ -16,14 +15,11 @@ interface Props {
   defaults: ModelDefaults;
   onClose: () => void;
   onCreated: (threadId: string) => void;
-  /** Set when the agent is assigned to a Linear issue: the thread is named after it and links it. */
-  issue?: LinearIssue;
 }
 
-export function NewThreadDialog({ projects, providers, defaults, onClose, onCreated, issue }: Props) {
+export function NewThreadDialog({ projects, providers, defaults, onClose, onCreated }: Props) {
   const api = useApi();
-  // A Linear issue preselects the last project chosen for its team.
-  const [projectId, setProjectId] = useState(() => (issue ? loadAssignProject(browserStorage(), issue.team.key, projects) : loadNewAgentProject(browserStorage(), projects)));
+  const [projectId, setProjectId] = useState(() => loadNewAgentProject(browserStorage(), projects));
   const [selection, setSelection] = useState<ModelSelection | null>(() => presetSelection(projects.find((p) => p.id === projectId), providers, defaults.selection));
   const [mode, setMode] = useState<RuntimeMode>(defaults.runtimeMode ?? DEFAULT_RUNTIME_MODE);
   const [draft, setDraft] = useState("");
@@ -38,11 +34,6 @@ export function NewThreadDialog({ projects, providers, defaults, onClose, onCrea
   async function send(text: string, uploads: UploadedAttachment[]): Promise<void> {
     if (!selection) throw new Error("No model is available.");
     const extra = { runtimeMode: mode, ...(uploads.length > 0 && { uploads }) };
-    if (issue) {
-      const { threadId } = await api.assignIssue({ issueId: issue.id, projectId, text, modelSelection: selection, ...extra });
-      saveAssignProject(browserStorage(), issue.team.key, projectId);
-      return onCreated(threadId);
-    }
     const title = titleFromMessage(text);
     if (title === "") throw new Error("Write a message: its first line becomes the title.");
     const { threadId } = await api.createThread({ projectId, title, text, modelSelection: selection, ...extra });
@@ -56,14 +47,7 @@ export function NewThreadDialog({ projects, providers, defaults, onClose, onCrea
   }
 
   return (
-    <Dialog title={issue ? "Assign to an agent" : "New Agent"} className="new-agent" onClose={onClose}>
-      {issue && (
-        <a className="issue-banner" href={issue.url} target="_blank" rel="noreferrer">
-          <span className="issue-banner-id">{issue.identifier}</span>
-          <span className="issue-banner-title">{issue.title}</span>
-          <Icon name="arrowUpRight" />
-        </a>
-      )}
+    <Dialog title="New Agent" className="new-agent" onClose={onClose}>
       <div className="dialog-field">
         <span>Project</span>
         <ProjectPicker
@@ -89,8 +73,7 @@ export function NewThreadDialog({ projects, providers, defaults, onClose, onCrea
         onSend={send}
         onSettings={changeSettings}
         errorResetKey={projectId}
-        placeholder={issue ? "Add instructions for the agent (optional)…" : "Describe the task: the first line becomes the title…"}
-        allowEmpty={issue !== undefined}
+        placeholder="Describe the task: the first line becomes the title…"
         focusKey={picks || undefined}
       />
     </Dialog>

@@ -73,8 +73,6 @@ interface Props {
   focusKey?: unknown;
   /** A new value clears the error line: the parent fixed its cause outside the Composer. */
   errorResetKey?: unknown;
-  /** Send works with an empty message, e.g. when the parent adds its own text. */
-  allowEmpty?: boolean;
   /** Hides the attach button and ignores pasted or dropped files, for a parent that cannot send them. */
   noImages?: boolean;
   /** A new `key` adds these files to the message, e.g. the attachments of a message sent back for editing. */
@@ -93,7 +91,7 @@ interface Props {
   stash?: { threadId: string; title: string };
 }
 
-export function Composer({ providers, selection, runtimeMode, running, stoppable = running, draft, onDraft, onSend, onStop, onSettings, placeholder, autoFocus = false, focusKey, errorResetKey, allowEmpty = false, noImages = false, restore, searchFiles, loadCommands, contextUsage = null, onCompact, onEscape, stash }: Props) {
+export function Composer({ providers, selection, runtimeMode, running, stoppable = running, draft, onDraft, onSend, onStop, onSettings, placeholder, autoFocus = false, focusKey, errorResetKey, noImages = false, restore, searchFiles, loadCommands, contextUsage = null, onCompact, onEscape, stash }: Props) {
   const api = useApi();
   // Picks show at once, until new values come in the props or the change fails.
   // Each field has its own override: a model reload never drops a pending mode pick, and the reverse.
@@ -175,7 +173,7 @@ export function Composer({ providers, selection, runtimeMode, running, stoppable
   const found = findModel(providers, localSelection);
   const modes = found?.provider.runtimeModes ?? (Object.keys(RUNTIME_MODE_LABELS) as RuntimeMode[]);
   const settled = files.every((f) => f.state === "ready");
-  const canSend = (allowEmpty || draft.trim() !== "" || files.length > 0) && settled && !sending;
+  const canSend = (draft.trim() !== "" || files.length > 0) && settled && !sending;
 
   const trigger = triggerAt(draft, caret);
   const mention = searchFiles && trigger?.kind === "mention" ? trigger : null;

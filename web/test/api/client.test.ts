@@ -95,16 +95,6 @@ test("getBoard reads the cache by default and forces a refresh on demand", async
   assert.equal(calls[0]?.init?.method ?? "GET", "GET");
 });
 
-test("assignIssue posts the body to the assign route", async () => {
-  const { calls, api } = fake(200, { ok: true, threadId: "thread-7" });
-  const body = { issueId: "i1", projectId: "p1", text: "", modelSelection: { instanceId: "codex", model: "m" } };
-  const res = await api.assignIssue(body);
-  assert.equal(res.threadId, "thread-7");
-  assert.equal(calls[0]?.url, "/api/board/assign");
-  assert.equal(calls[0]?.init?.method, "POST");
-  assert.deepEqual(JSON.parse(String(calls[0]?.init?.body)), body);
-});
-
 test("getAutomations reads /api/automations with GET", async () => {
   const result = { automations: [], hiddenThreadIds: [] };
   const { calls, api } = fake(200, result);

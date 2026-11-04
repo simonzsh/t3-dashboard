@@ -1,4 +1,4 @@
-import type { ApprovalDecision, AssignIssueBody, CreateAutomationBody, CreateThreadBody, RoutineSchedule, WebhookFilter, WebhookSignature, ModelSelection, RespondBody, RewindBody, SecretAnswerBody, SendMessageBody, ThreadSettingsBody, UploadedAttachment, UserInputAnswers } from "../../shared/api.ts";
+import type { ApprovalDecision, CreateAutomationBody, CreateThreadBody, RoutineSchedule, WebhookFilter, WebhookSignature, ModelSelection, RespondBody, RewindBody, SecretAnswerBody, SendMessageBody, ThreadSettingsBody, UploadedAttachment, UserInputAnswers } from "../../shared/api.ts";
 import { normalizeDesk, type DeskUpdate } from "../../shared/desk.ts";
 import { IMAGE_TYPES, MAX_ATTACHMENTS, MAX_FILE_BYTES, MAX_IMAGE_BYTES, MAX_IMAGES, MAX_SECRET_CHARS, isRuntimeMode } from "../../shared/limits.ts";
 import { isSeenId, isSeenTime, type SeenChange } from "../../shared/seen.ts";
@@ -220,17 +220,6 @@ export function validProvider(params: URLSearchParams): string {
 export function validItemId(itemId: string): string {
   if (itemId.length > 512) throw new HttpError(400, "itemId must be at most 512 characters");
   return itemId;
-}
-
-export function validAssign(body: Record<string, unknown>): Omit<AssignIssueBody, "attachments" | "uploads"> {
-  const modelSelection = validSelection(body.modelSelection);
-  const projectId = body.projectId ?? "";
-  const text = body.text ?? "";
-  if (!isText(body.issueId) || typeof projectId !== "string" || typeof text !== "string" || !modelSelection) {
-    throw new HttpError(400, "issueId and modelSelection (instanceId, model) are required; projectId and text are strings");
-  }
-  if (body.runtimeMode !== undefined && !isRuntimeMode(body.runtimeMode)) throw new HttpError(400, "runtimeMode is not a known mode");
-  return { issueId: body.issueId, projectId: projectId.trim(), text, modelSelection, ...(isRuntimeMode(body.runtimeMode) && { runtimeMode: body.runtimeMode }) };
 }
 
 export function validRespond(body: Record<string, unknown>): RespondBody {

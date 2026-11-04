@@ -144,7 +144,7 @@ export async function start({ port, log, env }: StartOptions): Promise<void> {
       return installed;
     },
   });
-  const actions = createActions({ port: client, store, board });
+  const actions = createActions({ port: client, store });
   const threadsFile = automationThreadsFile(env, home);
   const automations = createAutomations({
     port: client,

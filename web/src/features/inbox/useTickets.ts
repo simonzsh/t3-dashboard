@@ -12,15 +12,12 @@ export function useTickets(version: number, threads: DashboardThread[], seen: Se
   const api = useApi();
   const notify = useNotify();
   const [board, setBoard] = useState<BoardResult | null>(null);
-  // Issues just started: hidden until their thread arrives over the event stream.
-  const [started, setStarted] = useState<ReadonlySet<string>>(new Set());
   const { busy: loading, error, run } = useAction("load the tickets");
 
   const load = useCallback(
     (refresh: boolean) =>
       run(async () => {
         setBoard(await api.getBoard(refresh));
-        setStarted(new Set());
       }),
     [],
   );
@@ -37,7 +34,6 @@ export function useTickets(version: number, threads: DashboardThread[], seen: Se
     if (linearError) notify(`Linear returned an error: ${linearError}`);
   }, [linearError]);
 
-  const plan = useMemo(() => planTickets((board?.issues ?? []).filter((i) => !started.has(i.id)), threads, seen, now), [board, threads, started, seen, now]);
-  const markStarted = useCallback((id: string) => setStarted((s) => new Set([...s, id])), []);
-  return { board, needsKey, loading, failed: error !== null, plan, reload: load, markStarted };
+  const plan = useMemo(() => planTickets(board?.issues ?? [], threads, seen, now), [board, threads, seen, now]);
+  return { board, needsKey, loading, failed: error !== null, plan, reload: load };
 }

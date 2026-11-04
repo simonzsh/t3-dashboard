@@ -1,5 +1,5 @@
 import { marked } from "marked";
-import type { AssignIssueBody, ComposerCommands, CreateThreadBody, FileSearchResult, LinearIssue, ModelSelection, RespondBody, SecretAnswerBody, SendMessageBody, StepDetail, ThreadDetail, ThreadSearchResult, ThreadSettingsBody, UploadedAttachment } from "../../shared/api.ts";
+import type { ComposerCommands, CreateThreadBody, FileSearchResult, ModelSelection, RespondBody, SecretAnswerBody, SendMessageBody, StepDetail, ThreadDetail, ThreadSearchResult, ThreadSettingsBody, UploadedAttachment } from "../../shared/api.ts";
 import { ACTIVE_STATUSES, RUNNING_RUN_STATUSES } from "../../shared/status.ts";
 import { IntegrationError } from "../integrations/errors.ts";
 import {
@@ -27,7 +27,6 @@ import {
 import type { AssetResource, FileUpload, ImageUpload, RawProjection, T3Port } from "../integrations/t3/schemas.ts";
 import { DomainError } from "./errors.ts";
 import { toComposerCommands } from "./providers.ts";
-import type { LinearBoard } from "./linearBoard.ts";
 import type { ShellStore } from "./shellStore.ts";
 import { rewindPoints, subagentStatus, toStepDetail, toThreadDetail } from "./threadDetail.ts";
 
@@ -37,7 +36,6 @@ export type { FileUpload, ImageUpload };
 export interface ActionsOptions {
   port: T3Port;
   store: Pick<ShellStore, "thread" | "project" | "backgroundTasks" | "workspaceOf">;
-  board: Pick<LinearBoard, "get">;
   newId?: () => string;
 }
 
@@ -73,7 +71,6 @@ export interface Actions {
   rewind(threadId: string, messageId: string, restoreFiles: boolean): Promise<void>;
   settle(threadId: string): Promise<void>;
   unsettle(threadId: string): Promise<void>;
-  assign(body: Omit<AssignIssueBody, "attachments" | "uploads">, images: ImageUpload[], uploads?: UploadedAttachment[]): Promise<string>;
   /** An image or page of the thread, fetched from T3. */
   asset(threadId: string, request: AssetRequest, range?: string): Promise<{ response: Response; html: boolean }>;
 }
@@ -95,7 +92,7 @@ function addImageTargets(text: string | undefined, into: Set<string>): void {
 const CITED_TTL_MS = 10_000;
 
 export function createActions(options: ActionsOptions): Actions {
-  const { port, store, board } = options;
+  const { port, store } = options;
   const newId = options.newId ?? (() => crypto.randomUUID());
 
   // Every T3 failure is a T3 error, even one a fake port throws as a plain Error.
@@ -162,18 +159,6 @@ export function createActions(options: ActionsOptions): Actions {
   }
 
   const canStopThread = async () => (await t3(port.getConfig())).environment?.capabilities?.threadStop === true;
-
-  async function findIssue(issueId: string): Promise<LinearIssue> {
-    let result = await board.get(false);
-    let issue = result.issues.find((entry) => entry.id === issueId);
-    if (!issue) {
-      result = await board.get(true);
-      issue = result.issues.find((entry) => entry.id === issueId);
-    }
-    if (issue) return issue;
-    if (!result.ok) throw new IntegrationError(result.error ?? "Linear error", { system: "linear", kind: "unreachable" });
-    throw new DomainError("not-found", "Unknown issue");
-  }
 
   return {
     async searchThreads(query, limit) {
@@ -325,24 +310,6 @@ export function createActions(options: ActionsOptions): Actions {
 
     async unsettle(threadId) {
       await send(unsettleCommand(threadId));
-    },
-
-    async assign(body, images, uploads) {
-      const issue = await findIssue(body.issueId);
-      let projectId: string;
-      if (body.projectId) {
-        const project = store.project(body.projectId);
-        if (!project) throw new DomainError("conflict", "T3 project not found");
-        projectId = project.id;
-      } else projectId = await t3(port.ensureScratchProject());
-      // The agent always gets the issue link, after the user's own instructions if any.
-      const reference = `Linear issue ${issue.identifier}: ${issue.url}`;
-      const instructions = body.text.trim();
-      const text = instructions ? `${instructions}\n\n${reference}` : `Handle Linear issue ${issue.identifier}: ${issue.url}`;
-      const create = { projectId, title: `${issue.identifier} ${issue.title}`, text, modelSelection: body.modelSelection, ...(body.runtimeMode && { runtimeMode: body.runtimeMode }) };
-      const threadId = newId();
-      await send(...createThreadCommands(threadId, create, await outgoing(threadId, images, uploads)));
-      return threadId;
     },
   };
 }
