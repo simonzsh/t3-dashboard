@@ -73,7 +73,7 @@ function ScheduleFields({ form, onChange }: { form: AutomationForm; onChange: (f
       <div className="dialog-field">
         <span>When</span>
         <TextInput aria-label="Date and time" type="datetime-local" value={form.reminderAt} onChange={(e) => set({ reminderAt: e.target.value })} />
-        <p className="hint">Runs once, then pauses itself. The time is read in the time zone of the machine that runs T3.</p>
+        <p className="hint">Runs once, then pauses itself. The time is in your browser's time zone.</p>
       </div>
     );
   }

@@ -144,7 +144,8 @@ The right column of the Agents tab lists the scheduled tasks of T3 Code. It appe
 
 - A routine repeats. Choose "At a time" (a time and the days; no day means every day) or "Every N minutes" (1 to 525600).
 - A reminder runs once at the date and time you pick (1 minute to 366 days ahead). The dashboard adds the "Reminder: " prefix and ends the prompt with an instruction to pause the task after its run. T3 Code has no one-time task type.
-- Times are read in the time zone of the machine that runs T3 Code. The row shows the next run: check it.
+- A reminder time is in your browser's time zone. A routine time is in the time zone of the machine that runs T3 Code. The row shows the next run: check it.
+- If T3 Code is off for more than 10 minutes at the time of a reminder set less than 7 days ahead, T3 Code moves it one week later.
 - The new task is not linked to a thread: each run opens its own thread.
 - Setup threads from older versions still show on a setup row while their agent works. The dashboard reads `~/.config/t3-dashboard/automation-threads.json` to hide their grid entries. It no longer writes to this file.
 

@@ -827,6 +827,7 @@ test("POST /api/automations validates its body and never repeats the secret", as
     { ...hookBody, signature: { ...signature, encoding: "base32" } },
     { ...hookBody, signature: { ...signature, header: "bad header" } },
     { ...hookBody, signature: { ...signature, secret: "x".repeat(8193) } },
+    { ...hookBody, signature: { ...signature, secret: " s3cret-value " } },
   ];
   for (const body of bad) {
     const reply = await post(server, "/api/automations", body);

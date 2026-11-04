@@ -61,8 +61,9 @@ function validSignature(value: unknown): (WebhookSignature & { secret: string })
   if (!isObject(value) || typeof value.header !== "string" || !HEADER_NAME.test(value.header.trim()) || (value.encoding !== "hex" && value.encoding !== "base64") || typeof value.prefix !== "string" || value.prefix.length > 50) {
     throw bad("signature needs a header, an encoding (hex or base64) and a prefix");
   }
-  // Not trimmed: T3 trims its own copy, and the check is only that something is there.
   if (!isText(value.secret) || value.secret.length > MAX_SECRET_CHARS) throw bad(`The signing secret must be 1 to ${MAX_SECRET_CHARS} characters`);
+  // T3 trims the stored secret, so GitHub signatures would never match.
+  if (value.secret !== value.secret.trim()) throw bad("The signing secret must not start or end with a space");
   return { header: value.header.trim().toLowerCase(), encoding: value.encoding, prefix: value.prefix, secret: value.secret };
 }
 

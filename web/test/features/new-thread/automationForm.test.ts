@@ -67,9 +67,13 @@ test("a webhook filter with a bad path, no value or an empty list gives an error
   }
 });
 
+test("a secret with a space at either end is refused, since T3 trims it", () => {
+  assert.ok("error" in build({ kind: "webhook", secret: " dummy " }));
+});
+
 test("a signed webhook sends the secret as typed; an unsigned one sends null", () => {
-  const signed = build({ kind: "webhook", secret: " dummy secret " });
-  assert.deepEqual("body" in signed && signed.body.kind === "webhook" && signed.body.signature, { header: "x-hub-signature-256", encoding: "hex", prefix: "sha256=", secret: " dummy secret " });
+  const signed = build({ kind: "webhook", secret: "dummy secret" });
+  assert.deepEqual("body" in signed && signed.body.kind === "webhook" && signed.body.signature, { header: "x-hub-signature-256", encoding: "hex", prefix: "sha256=", secret: "dummy secret" });
   const open = build({ kind: "webhook", signed: false, secret: "ignored" });
   assert.deepEqual("body" in open && open.body.kind === "webhook" && [open.body.signature, JSON.stringify(open).includes("ignored")], [null, false]);
 });

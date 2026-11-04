@@ -127,5 +127,7 @@ export function toCreateBody(form: AutomationForm, base: FormBase, now: Date): {
   if (!form.signed) return { body: { ...common, kind: "webhook", filters, signature: null } };
   if (form.header.trim() === "") return { error: "Write the signature header." };
   if (form.secret.trim() === "") return { error: "Type the signing secret, or turn the signature check off." };
+  // T3 trims the stored secret: GitHub would sign a different value.
+  if (form.secret !== form.secret.trim()) return { error: "The signing secret starts or ends with a space. Remove it here and in GitHub." };
   return { body: { ...common, kind: "webhook", filters, signature: { header: form.header.trim(), encoding: form.encoding, prefix: form.prefix, secret: form.secret } } };
 }
