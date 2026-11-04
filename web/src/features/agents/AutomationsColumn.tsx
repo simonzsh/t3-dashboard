@@ -85,10 +85,10 @@ function Row({ a, thread, project, now, onOpen, onRename, onDelete }: RowProps) 
         <div className="auto-row auto-grid">{body}</div>
       )}
       {url && <CopyUrlButton url={url} />}
-      <IconButton label="Rename automation" size="sm" variant="ghost" className="auto-rename" onClick={() => onRename(a)}>
+      <IconButton label="Rename automation" tooltip="Rename" size="sm" variant="ghost" className="auto-rename" onClick={() => onRename(a)}>
         <Icon name="edit" />
       </IconButton>
-      <IconButton label="Delete automation" size="sm" variant="ghost" className="auto-delete" onClick={() => onDelete(a)}>
+      <IconButton label="Delete automation" tooltip="Delete" size="sm" variant="ghost" className="auto-delete" onClick={() => onDelete(a)}>
         <Icon name="trash" />
       </IconButton>
     </li>
