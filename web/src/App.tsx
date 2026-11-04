@@ -21,6 +21,7 @@ import { useDeskBackground } from "./features/desk/useDeskBackground.ts";
 import { useMediaQuery } from "./lib/useMediaQuery.ts";
 import { useShortcuts } from "./lib/useShortcuts.ts";
 import { TABS } from "./lib/tabs.ts";
+import { ctrlLabel } from "./lib/shortcuts.ts";
 import { useTab } from "./lib/useTab.ts";
 import { useTheme } from "./features/settings/useTheme.ts";
 import { useUpdate } from "./features/update/useUpdate.ts";
@@ -164,7 +165,7 @@ export function App() {
             <Pressable key={id} role="tab" data-tab={id} aria-selected={tab === id} className={tab === id ? "active" : ""} onClick={() => setTab(id)}>
               {label}
               {id === "desk" && deskWaiting && <span className="tab-alert" role="img" aria-label="An agent is waiting for your reply" />}
-              <Kbd>{key}</Kbd>
+              <Kbd>{ctrlLabel(key)}</Kbd>
             </Pressable>
           ))}
         </nav>
@@ -185,7 +186,7 @@ export function App() {
                 <Icon name="assignBot" />
               </IconButton>
             ) : (
-              <Button variant="primary" kbd="N" onClick={() => setCreating(true)}>
+              <Button variant="primary" kbd={ctrlLabel("N")} onClick={() => setCreating(true)}>
                 New Agent
               </Button>
             ))}
@@ -195,11 +196,11 @@ export function App() {
                 <Icon name="calendarClock" />
               </IconButton>
             ) : (
-              <Button kbd="⇧N" onClick={() => setCreatingAutomation(true)}>
+              <Button kbd={ctrlLabel("⇧N")} onClick={() => setCreatingAutomation(true)}>
                 New Automation
               </Button>
             ))}
-          <IconButton label="Settings" kbd="," onClick={() => setSettingsOpen(true)}>
+          <IconButton label="Settings" kbd={ctrlLabel(",")} onClick={() => setSettingsOpen(true)}>
             <Icon name="settings" strokeWidth={1.8} />
           </IconButton>
         </div>

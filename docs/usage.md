@@ -46,7 +46,7 @@ Each Desk window contains a conversation.
 - Type `/` at the start of the message to list the commands of the provider. Type `$` after a space to list its skills. The lists follow the thread folder. The menus work like the `@` list and insert `/command ` or `$skill `. Built-in T3 Code commands (`/model`, `/plan`, `/side`) are not in the lists.
 - The Compact button shows the context size, for example `Compact 722k`. It appears as in T3 Code: on a Claude thread of 200k tokens or more whose prompt cache has expired (70 minutes after the last turn by default), and never during a run. `/compact` stays in the `/` list at any size. Click it, or pick `/compact`, to compact the thread.
 - Stash a draft: press `Ctrl+S` in the composer (`Ctrl`, also on a Mac). On a touch screen, tap the stash button next to Attach. The text and the ready attachments go to the stash and the composer empties. A "Stash" button with the count then shows next to Attach. Click it to open the "Stashed prompts" list: each row has the first line, the age, the conversation and the number of files. Click a row, or use the arrow keys and `Enter`, to restore it: the text goes after your draft and the files return as chips. The "x" deletes an entry and frees its files. `Escape` closes the list. The stash holds 20 prompts and drops the oldest. T3 Code 0.1.6 keeps its own stash in the browser only, so the two are separate. This one is in `~/.config/t3-dashboard/stash.json` and is the same on every device: a change shows at once in every open window. T3 keeps an unsent upload for 24 hours: a restored entry older than that gets its text back and a message names the files to attach again.
-- `Escape` in the message field, with no list open, leaves the field and puts the focus on the conversation. The dashboard shortcuts work again. Press `Escape` again on the Desk to restore a full-screen window.
+- `Escape` in the message field, with no list open, leaves the field and puts the focus on the conversation. The `Ctrl` shortcuts work in the field too. Press `Escape` again on the Desk to restore a full-screen window.
 - Change the model, the reasoning effort and the access mode ("Supervised", "Auto-accept edits", "Auto", "Full access").
 - Stop a run with the "Stop" button.
 - Answer an approval: "Accept", "Accept for session" or "Decline". The dashboard does not offer "Always accept".
@@ -168,20 +168,23 @@ Open Settings with the header button or the `,` key. A sidebar on the left lists
 
 ## Keyboard shortcuts
 
-The shortcuts do not work while you type in a field or while a dialog is open. `Ctrl` + `K` is an exception: it also works while you type. It does not work when a different dialog is open.
+The shortcuts use `Ctrl`, also on a Mac, and they work while you type in a field. They do not work while a dialog is open, except `Ctrl` + `K`. `⌘` keeps its browser meaning. `Esc` and the arrows stay plain keys: a field needs them, so they act only outside a field.
 
 | Key | Action |
 | --- | --- |
-| `1`, `2`, `3` | Opens Agents, Desk or Board. |
+| `Ctrl` + `1`, `2`, `3` | Opens Agents, Desk or Board. |
 | `Ctrl` + `K` or `⌘` + `K` | Opens or closes the "Jump to" switcher. It finds a conversation by title, project or message. Without text, it shows the agents that wait for an answer, then your recent conversations. `↑` `↓` select, `Enter` opens in the Desk. |
-| `Ctrl` + `S` or `⌘` + `S` | In the message field of a conversation: stashes the draft. |
-| `N` | Opens New Agent. |
-| `⇧` + `N` | Opens a new automation (New Automation). |
-| `,` | Opens Settings. |
-| `X` | Desk: closes the active window. |
-| `F` | Desk: puts the active window in full screen, or takes it out of full screen. |
-| `M` | Desk: minimizes the active window. |
-| `Esc` | Desk: exits full screen. |
-| `Alt` + `1` to `6` | Desk: activates window 1 to 6 and puts the cursor in its message field. |
+| `Ctrl` + `S` | In the message field of a conversation: stashes the draft. |
+| `Ctrl` + `N` | Opens New Agent. |
+| `Ctrl` + `⇧` + `N` | Opens a new automation (New Automation). |
+| `Ctrl` + `,` | Opens Settings. |
+| `Ctrl` + `X` | Desk: closes the active window. |
+| `Ctrl` + `F` | Desk: puts the active window in full screen, or takes it out of full screen. |
+| `Ctrl` + `M` | Desk: minimizes the active window. |
+| `Ctrl` + `Alt` + `1` to `6` | Desk: activates window 1 to 6 and puts the cursor in its message field. |
+| `Esc` | Desk, outside a field: exits full screen. In the message field, it leaves the field. |
+| `←` `→` `↑` `↓` | Desk, outside a field: moves the focus to the next window. |
+
+On Windows and Linux, the browser keeps `Ctrl` + `N`, `Ctrl` + `⇧` + `N` and `Ctrl` + `1` to `3` for itself: use the buttons there.
 
 A tooltip gives the name of each button and its shortcut. The animations stop if the system asks for reduced motion (`prefers-reduced-motion`).

@@ -29,11 +29,11 @@ export interface KeyInfo {
   target: { tagName: string; isContentEditable: boolean } | null;
 }
 
-const KEYS: Record<string, ShortcutAction> = { "1": "agents", "2": "desk", "3": "board", n: "new-agent", ",": "settings" };
-const DESK_KEYS: Record<string, ShortcutAction> = {
-  x: "close-window",
-  f: "toggle-fullscreen",
-  m: "minimize-window",
+// Ctrl+key works everywhere, fields included, like Ctrl+S for the stash. Cmd stays the browser's.
+const CTRL_KEYS: Record<string, ShortcutAction> = { "1": "agents", "2": "desk", "3": "board", n: "new-agent", ",": "settings" };
+const CTRL_DESK_KEYS: Record<string, ShortcutAction> = { x: "close-window", f: "toggle-fullscreen", m: "minimize-window" };
+// Plain keys that a field needs for itself: they act only outside fields.
+const PLAIN_DESK_KEYS: Record<string, ShortcutAction> = {
   escape: "unmaximize",
   arrowleft: "focus-left",
   arrowright: "focus-right",
@@ -42,18 +42,27 @@ const DESK_KEYS: Record<string, ShortcutAction> = {
 };
 const TYPING = new Set(["INPUT", "TEXTAREA", "SELECT"]);
 
+const isMac = typeof navigator !== "undefined" && /Mac|iPhone|iPad/.test(navigator.platform);
+/** How a Ctrl shortcut reads in a tooltip or a key cap: ⌃N on a Mac, Ctrl+N elsewhere. */
+export const ctrlLabel = (key: string): string => (isMac ? `⌃${key}` : `Ctrl+${key}`);
+
 function windowShortcut(e: KeyInfo): WindowShortcut | null {
   const digit = /^Digit([1-6])$/.exec(e.code ?? "")?.[1] ?? (/^[1-6]$/.test(e.key) ? e.key : null);
   return digit ? (`window-${digit}` as WindowShortcut) : null;
 }
 
 export function matchShortcut(e: KeyInfo, dialogOpen: boolean, onDesk = false): ShortcutAction | null {
-  // Before the guards: the switcher opens from a field or a dialog too, and App decides.
-  if ((e.ctrlKey || e.metaKey) && !e.altKey && e.key.toLowerCase() === "k") return "switcher";
-  if (dialogOpen || e.ctrlKey || e.metaKey) return null;
-  if (e.target && (TYPING.has(e.target.tagName) || e.target.isContentEditable)) return null;
-  if (e.altKey) return onDesk ? windowShortcut(e) : null;
   const key = e.key.toLowerCase();
-  if (key === "n" && e.shiftKey) return "new-automation";
-  return KEYS[key] ?? (onDesk ? DESK_KEYS[key] : undefined) ?? null;
+  // Before the guards: the switcher opens from a field or a dialog too, and App decides.
+  if ((e.ctrlKey || e.metaKey) && !e.altKey && key === "k") return "switcher";
+  if (dialogOpen || e.metaKey) return null;
+  if (e.ctrlKey) {
+    if (e.altKey) return onDesk && !e.shiftKey ? windowShortcut(e) : null;
+    if (key === "n" && e.shiftKey) return "new-automation";
+    if (e.shiftKey) return null;
+    return CTRL_KEYS[key] ?? (onDesk ? CTRL_DESK_KEYS[key] : undefined) ?? null;
+  }
+  if (e.altKey || e.shiftKey || !onDesk) return null;
+  if (e.target && (TYPING.has(e.target.tagName) || e.target.isContentEditable)) return null;
+  return PLAIN_DESK_KEYS[key] ?? null;
 }

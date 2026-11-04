@@ -7,6 +7,7 @@ import type { DeskAction } from "./desk.ts";
 import { ConversationPanel } from "../conversation/ConversationPanel.tsx";
 import { OpenInT3 } from "../../lib/OpenInT3.tsx";
 import { ProviderIcon } from "../../lib/ProviderIcon.tsx";
+import { ctrlLabel } from "../../lib/shortcuts.ts";
 
 const STATE_LABELS: Record<ThreadState, string> = { waiting: "Waiting", running: "Running", done: "Done", error: "Error", idle: "Idle" };
 
@@ -62,15 +63,15 @@ function DeskWindowView({ id, thread, projectTitle, missing, focused, maximized,
           <OpenInT3 environmentId={t3EnvironmentId} threadId={id} />
           {!compact && (
             <>
-              <IconButton variant="ghost" size="sm" label={maximized ? "Exit fullscreen" : "Fullscreen"} tooltip={maximized ? "Exit fullscreen" : "Fullscreen"} shortcut={maximized ? "F / Esc" : "F"} onClick={onToggleMaximize}>
+              <IconButton variant="ghost" size="sm" label={maximized ? "Exit fullscreen" : "Fullscreen"} tooltip={maximized ? "Exit fullscreen" : "Fullscreen"} shortcut={maximized ? `${ctrlLabel("F")} / Esc` : ctrlLabel("F")} onClick={onToggleMaximize}>
                 <Icon name={maximized ? "exitFullscreen" : "fullscreen"} />
               </IconButton>
-              <IconButton variant="ghost" size="sm" label="Minimize" tooltip="Minimize" shortcut="M" onClick={onMinimize}>
+              <IconButton variant="ghost" size="sm" label="Minimize" tooltip="Minimize" shortcut={ctrlLabel("M")} onClick={onMinimize}>
                 <Icon name="minimize" />
               </IconButton>
             </>
           )}
-          <IconButton variant="ghost" size="sm" label="Close" tooltip="Close" shortcut="X" onClick={onClose}>
+          <IconButton variant="ghost" size="sm" label="Close" tooltip="Close" shortcut={ctrlLabel("X")} onClick={onClose}>
             <Icon name="x" />
           </IconButton>
         </span>
