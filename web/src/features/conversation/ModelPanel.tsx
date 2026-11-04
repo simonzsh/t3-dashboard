@@ -214,7 +214,7 @@ export function ModelPanel({ providers, selection, mode, modes, onSelection, onM
               <Segmented
                 label="Speed"
                 value={speed ?? "standard"}
-                options={[{ id: "standard", label: "Standard" }, { id: "fast", label: "Fast" }]}
+                options={[{ id: "standard", label: "Standard" }, { id: "fast", label: "Fast", icon: <Icon name="bolt" className="icon segmented-icon" /> }]}
                 onChange={(id) => onSelection(selectSpeed(selection, found.model, id === "fast"))}
               />
             )}
