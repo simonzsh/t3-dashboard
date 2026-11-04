@@ -41,6 +41,7 @@ test("a task becomes a routine with its project, schedule label, state and model
     lastRunError: null,
     threadId: null,
     model: "model-x",
+    webhook: null,
   });
 });
 
@@ -49,12 +50,34 @@ test("a Reminder or Rappel prefix makes a reminder and leaves the title", () => 
   assert.deepEqual(items.map((item) => [item.kind, item.title]), [["reminder", "Call Sam"], ["reminder", "Appeler Sam"], ["routine", "Reminders digest"]]);
 });
 
-test("an unknown project is No project, a webhook is a routine labelled Webhook", () => {
-  const [item] = convert([task({ projectId: "gone", schedule: { type: "webhook" } })]).automations;
-  assert.equal(item!.project, "No project");
-  assert.equal(item!.scheduleLabel, "Webhook");
-  assert.equal(item!.kind, "routine");
+test("an unknown project is No project", () => {
+  assert.equal(convert([task({ projectId: "gone" })]).automations[0]!.project, "No project");
   assert.equal(convert([task({ projectId: null })]).automations[0]!.project, "No project");
+});
+
+test("a webhook task is a webhook, even with a Reminder prefix, and keeps its title", () => {
+  const items = convert([task({ id: "a", title: "PR reviews", schedule: { type: "webhook" } }), task({ id: "b", title: "Reminder: hook", schedule: { type: "webhook" } })]).automations;
+  assert.deepEqual(items.map((item) => [item.kind, item.title, item.scheduleLabel]), [["webhook", "PR reviews", "Webhook"], ["webhook", "Reminder: hook", "Webhook"]]);
+});
+
+test("a webhook carries its public URL and whether it is signed", () => {
+  const hook = { type: "webhook" };
+  const [signed, unsigned, missing, unsignedFlag] = convert([
+    task({ id: "a", schedule: hook, webhook: { url: "https://relay.example.invalid/v1/hooks/k/a/tok", hasSecret: true } }),
+    task({ id: "b", schedule: hook, webhook: { url: null, hasSecret: false } }),
+    task({ id: "c", schedule: hook }),
+    task({ id: "d", schedule: hook, webhook: { url: "https://relay.example.invalid/v1/hooks/k/d/tok" } }),
+  ]).automations;
+  assert.deepEqual(signed!.webhook, { url: "https://relay.example.invalid/v1/hooks/k/a/tok", signed: true });
+  assert.deepEqual(unsigned!.webhook, { url: null, signed: false });
+  assert.deepEqual(missing!.webhook, { url: null, signed: false });
+  assert.deepEqual(unsignedFlag!.webhook, { url: "https://relay.example.invalid/v1/hooks/k/d/tok", signed: false });
+});
+
+test("a task that is not a webhook has no webhook field, whatever T3 sends", () => {
+  const [item] = convert([task({ webhook: { url: "https://relay.example.invalid/x", hasSecret: true } })]).automations;
+  assert.equal(item!.kind, "routine");
+  assert.equal(item!.webhook, null);
 });
 
 test("run status maps to running, succeeded or failed; never and unknown give null", () => {
@@ -109,6 +132,23 @@ test("automationPrompt carries the trimmed request and the reminder rules", () =
   assert.match(prompt, /"Reminder: "/);
   assert.match(prompt, /interval, with everyMs/);
   assert.match(prompt, /\n\nRemind me at 5pm\n\n/);
+});
+
+test("automationPrompt tells how to build a GitHub webhook task", () => {
+  const prompt = automationPrompt("When someone requests my review");
+  assert.match(prompt, /type: "webhook"/);
+  assert.match(prompt, /request_secret/);
+  assert.match(prompt, /secretRef/);
+  assert.match(prompt, /x-hub-signature-256/);
+  assert.match(prompt, /sha256=/);
+  assert.match(prompt, /bindToCurrentThread: false/);
+  assert.match(prompt, /application\/json/);
+  assert.match(prompt, /headers\.x-github-event/);
+  assert.match(prompt, /body\.action/);
+  assert.match(prompt, /body\.requested_reviewer\.login/);
+  assert.match(prompt, /\{\{body\.pull_request\.html_url\}\}/);
+  assert.match(prompt, /webhookUrl/);
+  assert.match(prompt, /T3 Connect/);
 });
 
 test("remove deletes the task through the port", async () => {

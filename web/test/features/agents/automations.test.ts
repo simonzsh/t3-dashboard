@@ -19,6 +19,7 @@ function auto(id: string, over: Partial<Automation> = {}): Automation {
     lastRunError: null,
     threadId: null,
     model: null,
+    webhook: null,
     ...over,
   };
 }

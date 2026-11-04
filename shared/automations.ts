@@ -2,10 +2,19 @@
 
 export type AutomationRunStatus = "running" | "succeeded" | "failed";
 
+export type AutomationKind = "routine" | "reminder" | "webhook";
+
+export interface AutomationWebhook {
+  /** Public URL through T3 Connect, with its token; null when T3 Connect is off. */
+  url: string | null;
+  /** T3 checks a signature (a secret is stored). */
+  signed: boolean;
+}
+
 export interface Automation {
   /** The T3 scheduled task id. */
   id: string;
-  kind: "routine" | "reminder";
+  kind: AutomationKind;
   /** Without the "Reminder:" prefix. */
   title: string;
   projectId: string;
@@ -21,6 +30,8 @@ export interface Automation {
   /** The bound thread, else the newest run thread, else null. */
   threadId: string | null;
   model: string | null;
+  /** Set only for kind "webhook". */
+  webhook: AutomationWebhook | null;
 }
 
 export interface AutomationsResult {

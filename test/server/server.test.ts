@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { afterEach, test } from "bun:test";
-import type { AutomationsResult, ConnectionStatus, DashboardEvent, DashboardState } from "../../shared/api.ts";
+import type { Automation, AutomationsResult, ConnectionStatus, DashboardEvent, DashboardState } from "../../shared/api.ts";
 import { LinearClient } from "../../src/integrations/linear/client.ts";
 import { createActions } from "../../src/domain/actions.ts";
 import type { Automations } from "../../src/domain/automations.ts";
@@ -713,6 +713,17 @@ test("GET /api/automations returns the automations listed at each call", async (
   assert.deepEqual(first.json, result);
   await call(server, "GET", "/api/automations");
   assert.equal(calls, 2);
+});
+
+test("GET /api/automations carries the kind and the webhook of each automation", async () => {
+  const automation: Automation = {
+    id: "task-1", kind: "webhook", title: "PR reviews", projectId: "p", project: "P", scheduleLabel: "Webhook", enabled: true,
+    nextRunAt: null, lastRunAt: null, lastRunStatus: null, lastRunError: null, threadId: null, model: null,
+    webhook: { url: "https://relay.example.invalid/v1/hooks/k/task-1/tok", signed: true },
+  };
+  const { server } = await start({ automations: { list: async () => ({ automations: [automation], hiddenThreadIds: [], setupThreadIds: [] }), request: async () => "", remove: async () => {}, rename: async () => {} } });
+  const { json } = await call(server, "GET", "/api/automations");
+  assert.deepEqual((json as AutomationsResult).automations, [automation]);
 });
 
 test("an automations failure gives 502", async () => {

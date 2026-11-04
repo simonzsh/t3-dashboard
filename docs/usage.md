@@ -127,6 +127,7 @@ The right column of the Agents tab lists the scheduled tasks of T3 Code. It appe
 
 - A routine runs at each occurrence. The row shows the project, the frequency, the next run and the status of the last run. A paused task shows "paused".
 - A reminder is a task with a title that starts with "Reminder: " or "Rappel : ". The row shows the date of the reminder. The prefix is not shown.
+- A webhook is a task that runs when a request arrives (see [Webhooks](#webhooks)).
 - After its run, a reminder pauses. The row then shows "Finished" with the time of the run. Finished reminders are at the bottom of the list, the most recent first.
 - Click a row to open the thread of the task.
 - Each row shows the project icon. To rename a task, click the pencil icon on its row, change the title, then push `Enter`. The dashboard also renames the linked thread. It keeps the prefix of a reminder. You cannot rename a webhook task.
@@ -148,6 +149,21 @@ The dashboard creates a thread with the default model of the project. This threa
 - When the task exists, the row becomes the row of the task. You open the thread from this row.
 - If the thread is idle and has no task (failed creation, or deleted task), it goes back into the grid with the result.
 - The dashboard keeps the list of these threads in `~/.config/t3-dashboard/automation-threads.json`.
+
+### Webhooks
+
+A webhook task runs when a service sends a request to its URL, for example a GitHub event. Each event opens a new thread in the project of the task.
+
+1. Open a new automation and describe the event. Example: "When someone requests my review on a pull request, review it".
+2. The agent asks for the GitHub webhook secret in a private card. The secret never appears in the chat.
+3. The agent creates the task with a signature check and filters. Then it replies with the Payload URL, the content type (`application/json`), the secret and the events to select in the GitHub webhook settings.
+4. Add the webhook in GitHub with these values.
+
+- The row shows the status of the last run. It has no next run.
+- The public URL needs T3 Code Connect remote access. Without it, the agent says the access is off, and the dashboard cannot copy a URL.
+- The URL contains a token. Treat it as a secret. The dashboard never shows it as text.
+- You cannot rename a webhook task.
+- The setup thread of a webhook is not linked to the task. It shows on a setup row while the agent works or waits for you. Then it goes back into the grid.
 
 ### From a conversation
 

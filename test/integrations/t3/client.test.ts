@@ -98,6 +98,17 @@ test("listScheduledTasks sends an empty payload and returns the tasks", async ()
   assert.equal(socket.closed, false);
 });
 
+test("listScheduledTasks keeps the webhook field of a T3 0.1.6 task", async () => {
+  const { client } = setup();
+  const done = client.listScheduledTasks();
+  const socket = await nextSocket();
+  const webhook = { path: "/api/hooks/task-1/tok", url: "https://relay.example.invalid/v1/hooks/k/task-1/tok", hasSecret: true };
+  socket.receive({ _tag: "Chunk", requestId: "1", values: [{ tasks: [{ id: "task-1", title: "Hook", schedule: { type: "webhook", signature: null }, webhook }] }] });
+  const [task] = await done;
+  assert.equal(task!.webhook?.url, webhook.url);
+  assert.equal(task!.webhook?.hasSecret, true);
+});
+
 test("deleteScheduledTask sends the id and is not retried on a dropped socket", async () => {
   const { client } = setup();
   const done = client.deleteScheduledTask("task-1");

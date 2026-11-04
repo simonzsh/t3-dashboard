@@ -66,6 +66,8 @@ export const RawScheduledTask = s.object({
       weekdays: s.optional(s.nullable(s.array(s.number()))),
     }),
   ),
+  // The URL holds a token: it is a credential.
+  webhook: s.optional(s.nullable(s.object({ url: s.optional(s.nullable(s.string())), hasSecret: s.optional(s.boolean()) }))),
   projectId: text(),
   threadId: text(),
   modelSelection: s.optional(s.nullable(ModelSelection)),

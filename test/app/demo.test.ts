@@ -164,8 +164,12 @@ test("the demo Linear board and automations need no network", async () => {
   const store = syncedStore(port);
   await Bun.sleep(0);
   const { automations, hiddenThreadIds, setupThreadIds } = await createAutomations({ port, store, dedicated: { read: () => new Set(["demo-digest", "demo-setup"]), add() {} }, createThread: async () => "x" }).list();
-  assert.ok(automations.length >= 3 && automations.every((automation) => automation.nextRunAt !== null));
+  assert.ok(automations.length >= 3 && automations.filter((automation) => automation.kind !== "webhook").every((automation) => automation.nextRunAt !== null));
   assert.ok(automations.some((automation) => automation.kind === "reminder"));
+  const hooks = automations.filter((automation) => automation.kind === "webhook");
+  assert.equal(hooks.length, 2);
+  assert.ok(hooks.some((hook) => hook.webhook?.signed === true && hook.webhook.url !== null && hook.enabled && hook.threadId === null && hook.lastRunStatus === "succeeded"));
+  assert.ok(hooks.some((hook) => hook.webhook?.url === null && !hook.enabled));
   assert.deepEqual(hiddenThreadIds, ["demo-digest"]);
   assert.deepEqual(setupThreadIds, ["demo-setup"]);
   assert.equal(store.thread("demo-setup")?.status, "running");
