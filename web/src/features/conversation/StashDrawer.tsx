@@ -7,14 +7,13 @@ import { Icon, IconButton, Popover, Pressable } from "../../ui/index.ts";
 interface Props {
   entries: StashEntry[];
   anchor: RefObject<HTMLElement | null>;
-  shortcut: string;
   onRestore: (entry: StashEntry) => void;
   onDelete: (entry: StashEntry) => void;
   onClose: () => void;
 }
 
 /** The stashed prompts above the composer: arrows pick a row, Enter restores it, Escape closes. */
-export function StashDrawer({ entries, anchor, shortcut, onRestore, onDelete, onClose }: Props) {
+export function StashDrawer({ entries, anchor, onRestore, onDelete, onClose }: Props) {
   const [active, setActive] = useState(0);
   const list = useRef<HTMLUListElement>(null);
   const latest = useRef({ entries, active, onRestore });
@@ -49,10 +48,7 @@ export function StashDrawer({ entries, anchor, shortcut, onRestore, onDelete, on
   return (
     <Popover anchor={anchor} className="stash-drawer" matchWidth fitWidth preferAbove onClose={onClose}>
       <h3 className="stash-title">Stashed prompts</h3>
-      {entries.length === 0 ? (
-        <p className="stash-empty">Nothing stashed yet. Press {shortcut} with a prompt in the composer to stash it.</p>
-      ) : (
-        <ul ref={list} className="stash-list" aria-label="Stashed prompts">
+      <ul ref={list} className="stash-list" aria-label="Stashed prompts">
           {entries.map((entry, i) => (
             <li key={entry.id} className={`stash-row${i === active ? " active" : ""}`} onMouseEnter={() => setActive(i)}>
               <Pressable className="stash-restore" aria-label={`Restore stashed prompt: ${stashPreview(entry)}`} onClick={() => onRestore(entry)}>
@@ -69,7 +65,6 @@ export function StashDrawer({ entries, anchor, shortcut, onRestore, onDelete, on
             </li>
           ))}
         </ul>
-      )}
     </Popover>
   );
 }

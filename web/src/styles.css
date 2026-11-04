@@ -753,7 +753,6 @@ button.auto-row:hover { transform: translateY(-1px); }
 .stash-drawer { display: flex; flex-direction: column; max-height: 300px; padding: 4px; border-radius: 12px; border: 1px solid var(--line); background: var(--surface-1); box-shadow: var(--shadow); }
 :where(:root:not([data-theme="dark"])) .stash-drawer { box-shadow: 0 4px 6px rgb(16 24 40 / 0.04), 0 16px 40px rgb(16 24 40 / 0.14); }
 .stash-title { margin: 0; padding: 6px 8px 4px; font-size: 12px; font-weight: 600; color: var(--text-secondary); }
-.stash-empty { margin: 0; padding: 6px 8px 8px; font-size: 13px; color: var(--text-secondary); }
 .stash-list { margin: 0; padding: 0; list-style: none; overflow: auto; }
 .stash-row { display: flex; align-items: center; gap: 4px; border-radius: 8px; }
 .stash-row.active { background: var(--surface-0); }

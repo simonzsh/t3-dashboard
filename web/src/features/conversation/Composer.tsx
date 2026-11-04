@@ -13,7 +13,7 @@ import { useDebouncedValue } from "../../lib/useDebouncedValue.ts";
 import { useMediaQuery } from "../../lib/useMediaQuery.ts";
 import { insertText } from "../../lib/paste.ts";
 import { StashDrawer } from "./StashDrawer.tsx";
-import { isStashKey, planRestore, stashShortcutLabel } from "./stash.ts";
+import { isStashKey, planRestore } from "./stash.ts";
 import { mergeDraft } from "./rewind.ts";
 
 interface Attached {
@@ -110,6 +110,10 @@ export function Composer({ providers, selection, runtimeMode, running, stoppable
   const [compacting, setCompacting] = useState(false);
   const [stashed, setStashed] = useState<StashEntry[]>([]);
   const [stashOpen, setStashOpen] = useState(false);
+  // The last entry gone: close the list so the next stash does not reopen it.
+  useEffect(() => {
+    if (stashed.length === 0) setStashOpen(false);
+  }, [stashed.length]);
   const [stashing, setStashing] = useState(false);
   const draftRef = useRef(draft);
   draftRef.current = draft;
@@ -470,7 +474,7 @@ export function Composer({ providers, selection, runtimeMode, running, stoppable
             ))}
           </Popover>
         )}
-        {stashOpen && <StashDrawer anchor={card} entries={stashed} shortcut={stashShortcutLabel(isMac)} onRestore={(e) => void restoreStash(e)} onDelete={(e) => void deleteStash(e)} onClose={() => setStashOpen(false)} />}
+        {stashOpen && stashed.length > 0 && <StashDrawer anchor={card} entries={stashed} onRestore={(e) => void restoreStash(e)} onDelete={(e) => void deleteStash(e)} onClose={() => setStashOpen(false)} />}
         <div className="composer-toolbar">
           <div className="composer-pickers">
             <Dropdown

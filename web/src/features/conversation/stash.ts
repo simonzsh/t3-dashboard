@@ -17,8 +17,6 @@ export function isStashKey(e: KeyEvent, mac: boolean): boolean {
   return e.key.toLowerCase() === "s" && (mac ? e.metaKey !== e.ctrlKey : e.ctrlKey && !e.metaKey) && !e.altKey && !e.shiftKey && !e.isComposing;
 }
 
-export const stashShortcutLabel = (mac: boolean): string => (mac ? "⌘S" : "Ctrl+S");
-
 /** What a restore puts back, and what it leaves out with the reason. */
 export function planRestore(entry: StashEntry, taken: number, now: Date): { uploads: UploadedAttachment[]; notes: string[] } {
   const { uploads: live, expired } = liveUploads(entry, now);

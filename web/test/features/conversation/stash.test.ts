@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "bun:test";
-import { isStashKey, planRestore, stashShortcutLabel } from "../../../src/features/conversation/stash.ts";
+import { isStashKey, planRestore } from "../../../src/features/conversation/stash.ts";
 import type { StashEntry } from "../../../../shared/stash.ts";
 
 const key = { key: "s", ctrlKey: false, metaKey: false, altKey: false, shiftKey: false, isComposing: false };
@@ -19,11 +19,6 @@ test("isStashKey: Ctrl+S everywhere, Cmd+S on a Mac, never with Shift, Alt or IM
   assert.equal(isStashKey({ ...key, ctrlKey: true, altKey: true }, false), false);
   assert.equal(isStashKey({ ...key, ctrlKey: true, isComposing: true }, false), false);
   assert.equal(isStashKey({ ...key, key: "k", ctrlKey: true }, false), false);
-});
-
-test("the shortcut label follows the platform", () => {
-  assert.equal(stashShortcutLabel(true), "⌘S");
-  assert.equal(stashShortcutLabel(false), "Ctrl+S");
 });
 
 test("a fresh entry restores all its uploads with no note", () => {
