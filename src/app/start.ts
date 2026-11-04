@@ -15,13 +15,15 @@ import { environmentIdFile, readEnvironmentId, readServerVersion, resolveOrigin,
 import { LiveSync } from "../domain/liveSync.ts";
 import { LinearBoard } from "../domain/linearBoard.ts";
 import { deskText, readDesk } from "../config/deskFile.ts";
+import { readStash, stashText } from "../config/stashFile.ts";
 import { readLinearKey } from "../config/linearFile.ts";
 import { addAutomationThread, readAutomationThreads } from "../config/automationThreads.ts";
-import { automationThreadsFile, deskFile as deskPath, linearFile, pidFile } from "../config/paths.ts";
+import { automationThreadsFile, deskFile as deskPath, linearFile, pidFile, stashFile as stashPath } from "../config/paths.ts";
 import { redirectConsole, writePidFile } from "../config/runFiles.ts";
 import { writeSecret } from "../config/secretFile.ts";
 import { createDashboardServer } from "../server/server.ts";
 import { DeskStore } from "../domain/deskStore.ts";
+import { StashStore } from "../domain/stashStore.ts";
 import { createSettings } from "../domain/settings.ts";
 import { ShellStore } from "../domain/shellStore.ts";
 import { NO_MODEL_DEFAULTS } from "../domain/providers.ts";
@@ -143,7 +145,9 @@ export async function start({ port, log, env }: StartOptions): Promise<void> {
   });
   const deskFile = deskPath(env, home);
   const desk = new DeskStore(readDesk(deskFile, readText), (value) => writeSecret(deskFile, deskText(value)));
-  const handler = createDashboardServer({ actions, desk, hub, board, automations, getState, connection: () => live.connection(), site, settings, setup, updates, allowedHosts: envAllowedHosts(env) });
+  const stashFile = stashPath(env, home);
+  const stash = new StashStore(readStash(stashFile, readText), (entries) => writeSecret(stashFile, stashText(entries)), { now: () => new Date(), newId: () => crypto.randomUUID() });
+  const handler = createDashboardServer({ actions, desk, stash, hub, board, automations, getState, connection: () => live.connection(), site, settings, setup, updates, allowedHosts: envAllowedHosts(env) });
 
   const reclassifier = setInterval(() => store.reclassify(new Date()), RECLASSIFY_MS);
   // A dev build has no version to compare, and its runs must not call GitHub.

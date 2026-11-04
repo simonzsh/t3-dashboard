@@ -9,6 +9,8 @@ import { DomainError } from "../../src/domain/errors.ts";
 import { LinearBoard } from "../../src/domain/linearBoard.ts";
 import { readLinearKey } from "../../src/config/linearFile.ts";
 import { DeskStore } from "../../src/domain/deskStore.ts";
+import { StashStore } from "../../src/domain/stashStore.ts";
+import type { StashEntry } from "../../shared/stash.ts";
 import type { SharedDesk } from "../../shared/desk.ts";
 import { createSettings } from "../../src/domain/settings.ts";
 import { createDashboardServer } from "../../src/server/server.ts";
@@ -41,6 +43,7 @@ interface StartOptions {
   update?: { unavailable?: string | null; tag?: string };
   allowedHosts?: string[];
   desk?: SharedDesk | null;
+  stash?: StashEntry[];
 }
 
 const LINEAR_FILE = "/cfg/linear.json";
@@ -113,6 +116,9 @@ async function start(startOptions: StartOptions = {}) {
   ]);
   const savedDesks: SharedDesk[] = [];
   const desk = new DeskStore(startOptions.desk ?? null, (value) => void savedDesks.push(value));
+  const savedStashes: StashEntry[][] = [];
+  let stashed = 0;
+  const stash = new StashStore(startOptions.stash ?? [], (entries) => void savedStashes.push(entries), { now: () => new Date("2026-11-04T10:00:00Z"), newId: () => `stash-${++stashed}` });
   const events: DashboardEvent[] = [];
   const broadcast = hub.broadcast.bind(hub);
   hub.broadcast = (event) => (events.push(event), broadcast(event));
@@ -120,6 +126,7 @@ async function start(startOptions: StartOptions = {}) {
   const server: DashboardHandler = createDashboardServer({
     actions,
     desk,
+    stash,
     hub,
     board,
     automations,
@@ -132,7 +139,7 @@ async function start(startOptions: StartOptions = {}) {
     allowedHosts: startOptions.allowedHosts,
   });
   running.push(async () => hub.close());
-  return { port, store, hub, server, savedDesks, events, linearCalls, files, setupCalls, updateRuns };
+  return { port, store, hub, server, savedDesks, savedStashes, events, linearCalls, files, setupCalls, updateRuns };
 }
 
 interface Reply {
@@ -530,6 +537,7 @@ test("every POST route refuses a body that is not JSON", async () => {
   const posts = [
     "/api/board/assign",
     "/api/desk",
+    "/api/stash",
     "/api/setup/retry",
     "/api/setup/token",
     "/api/update/check",
@@ -1257,4 +1265,42 @@ test("GET /api/threads/:id/files is empty when T3 names no folder, and refuses a
     assert.equal((await call(server, "GET", `/api/threads/idle-1/files?${query}`)).status, 400, query);
   }
   assert.deepEqual(port.entriesCalls, []);
+});
+
+const stashed = (id: string, text = "hello"): StashEntry => ({ id, text, uploads: [], createdAt: "2026-11-03T10:00:00.000Z", threadId: "t-1", threadTitle: "Fix login" });
+
+test("GET /api/stash lists the entries, newest first", async () => {
+  const { server } = await start({ stash: [stashed("b"), stashed("a")] });
+  assert.deepEqual((await call(server, "GET", "/api/stash")).json, { entries: [stashed("b"), stashed("a")] });
+});
+
+test("POST /api/stash stores the draft with an id and a date, and returns what the limit pushed out", async () => {
+  const full = Array.from({ length: 20 }, (_, i) => stashed(`old-${i}`));
+  const { server, savedStashes } = await start({ stash: full });
+  const upload = { type: "file", id: "att-1", name: "a.txt", mimeType: "text/plain", sizeBytes: 3 };
+  const reply = await post(server, "/api/stash", { text: "draft", uploads: [upload], threadId: "t-9", threadTitle: "Other" });
+  const entry = { id: "stash-1", text: "draft", uploads: [upload], createdAt: "2026-11-04T10:00:00.000Z", threadId: "t-9", threadTitle: "Other" };
+  assert.equal(reply.status, 200);
+  assert.deepEqual(reply.json, { ok: true, entry, evicted: [full[19]] });
+  assert.equal(savedStashes.at(-1)!.length, 20);
+  assert.deepEqual(((await call(server, "GET", "/api/stash")).json as { entries: StashEntry[] }).entries[0], entry);
+});
+
+test("POST /api/stash refuses an empty draft, a bad upload and a missing thread", async () => {
+  const { server, savedStashes } = await start();
+  const thread = { threadId: "t-1", threadTitle: "T" };
+  assert.equal((await post(server, "/api/stash", { text: "  ", uploads: [], ...thread })).status, 400);
+  assert.equal((await post(server, "/api/stash", { text: "x", uploads: [{ id: "a/b" }], ...thread })).status, 400);
+  assert.equal((await post(server, "/api/stash", { text: "x", threadTitle: "T" })).status, 400);
+  assert.equal((await post(server, "/api/stash", { text: 5, ...thread })).status, 400);
+  assert.equal((await post(server, "/api/stash", { text: "x".repeat(100_001), ...thread })).status, 400);
+  assert.deepEqual(savedStashes, []);
+  assert.equal((await post(server, "/api/stash", { text: "", uploads: [{ type: "file", id: "att-1", name: "a", mimeType: "text/plain", sizeBytes: 1 }], ...thread })).status, 200);
+});
+
+test("POST /api/stash/:id/delete removes the entry, then answers 404 for it", async () => {
+  const { server } = await start({ stash: [stashed("a"), stashed("b")] });
+  assert.equal((await post(server, "/api/stash/a/delete", {})).status, 200);
+  assert.deepEqual((await call(server, "GET", "/api/stash")).json, { entries: [stashed("b")] });
+  assert.equal((await post(server, "/api/stash/a/delete", {})).status, 404);
 });

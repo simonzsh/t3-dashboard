@@ -3,6 +3,7 @@ import type { ConnectionStatus, DashboardState } from "../../shared/api.ts";
 import { MAX_MESSAGE_BODY_BYTES, MAX_UPLOAD_BODY_BYTES } from "../../shared/limits.ts";
 import type { Actions, AssetRequest } from "../domain/actions.ts";
 import type { DeskStore } from "../domain/deskStore.ts";
+import type { StashStore } from "../domain/stashStore.ts";
 import type { Automations } from "../domain/automations.ts";
 import type { LinearBoard } from "../domain/linearBoard.ts";
 import type { Settings } from "../domain/settings.ts";
@@ -14,7 +15,7 @@ import { matchesEtag } from "./etag.ts";
 import { servePwa } from "./pwa.ts";
 import type { Site } from "./site.ts";
 import type { SseHub } from "./sse.ts";
-import { isObject, isText, validAssign, validAttachments, validAutomationRequest, validDesk, validCreate, validFileSearch, validItemId, validMessage, validProvider, validQueuedEdit, validRename, validRespond, validRewind, validSearch, validSettings, validUpload } from "./validate.ts";
+import { isObject, isText, validAssign, validAttachments, validAutomationRequest, validDesk, validCreate, validFileSearch, validItemId, validMessage, validProvider, validQueuedEdit, validRename, validRespond, validRewind, validSearch, validSettings, validStash, validUpload } from "./validate.ts";
 
 export interface SetupControl {
   /** Resolves the token again. */
@@ -29,6 +30,7 @@ export interface DashboardServerOptions {
   board: Pick<LinearBoard, "get">;
   automations: Pick<Automations, "list" | "request" | "remove" | "rename">;
   desk: Pick<DeskStore, "get" | "set">;
+  stash: Pick<StashStore, "list" | "add" | "remove">;
   hub: SseHub;
   getState: () => DashboardState;
   connection: () => ConnectionStatus;
@@ -137,7 +139,7 @@ function matchRoute(pattern: string[], segments: string[]): Record<string, strin
 }
 
 export function createDashboardServer(options: DashboardServerOptions): DashboardHandler {
-  const { actions, desk, hub, board, automations, getState, connection, site, settings, setup, updates } = options;
+  const { actions, desk, stash, hub, board, automations, getState, connection, site, settings, setup, updates } = options;
   const allowedHosts = new Set([...LOCAL_HOSTS, ...(options.allowedHosts ?? [])]);
   const ok = (extra: Record<string, unknown> = {}) => json(200, { ok: true, ...extra });
   const done = async (work: Promise<unknown>) => (await work, ok());
@@ -171,6 +173,7 @@ export function createDashboardServer(options: DashboardServerOptions): Dashboar
     { method: "GET", path: "/api/automations", handle: async () => json(200, await automations.list()) },
     { method: "GET", path: "/api/settings", handle: () => json(200, settings.get()) },
     { method: "GET", path: "/api/desk", handle: () => json(200, { desk: desk.get() }) },
+    { method: "GET", path: "/api/stash", handle: () => json(200, { entries: stash.list() }) },
     { method: "GET", path: "/api/update", handle: () => json(200, updates.status()) },
     {
       method: "GET",
@@ -248,6 +251,15 @@ export function createDashboardServer(options: DashboardServerOptions): Dashboar
         const update = validDesk(body);
         desk.set(update.desk);
         hub.broadcast({ type: "desk", data: update });
+        return ok();
+      },
+    },
+    { method: "POST", path: "/api/stash", handle: ({ body }) => ok(stash.add(validStash(body))) },
+    {
+      method: "POST",
+      path: "/api/stash/:id/delete",
+      handle: ({ params }) => {
+        if (!stash.remove(params.id!)) throw new HttpError(404, "This stashed prompt is gone already");
         return ok();
       },
     },

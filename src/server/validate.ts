@@ -1,6 +1,7 @@
 import type { ApprovalDecision, AssignIssueBody, AutomationRequestBody, CreateThreadBody, ModelSelection, RespondBody, RewindBody, SendMessageBody, ThreadSettingsBody, UploadedAttachment, UserInputAnswers } from "../../shared/api.ts";
 import { normalizeDesk, type DeskUpdate } from "../../shared/desk.ts";
 import { IMAGE_TYPES, MAX_ATTACHMENTS, MAX_FILE_BYTES, MAX_IMAGE_BYTES, MAX_IMAGES, isRuntimeMode } from "../../shared/limits.ts";
+import { STASH_TEXT_MAX, type StashBody } from "../../shared/stash.ts";
 import type { FileUpload, ImageUpload } from "../domain/actions.ts";
 import { HttpError } from "./httpError.ts";
 
@@ -210,4 +211,19 @@ export function validDesk(body: Record<string, unknown>): DeskUpdate {
     throw new HttpError(400, `desk (an ids list) and origin (1 to ${MAX_ORIGIN} characters) are required`);
   }
   return { desk, origin: body.origin };
+}
+
+const MAX_THREAD_TITLE = 500;
+
+/** A draft to stash: text, uploads or both, and the conversation it came from. */
+export function validStash(body: Record<string, unknown>): StashBody {
+  const uploads = validUploads(body.uploads);
+  const { text, threadId, threadTitle } = body;
+  if (typeof text !== "string" || text.length > STASH_TEXT_MAX || (text.trim() === "" && uploads.length === 0)) {
+    throw new HttpError(400, `text (up to ${STASH_TEXT_MAX} characters) or uploads is required`);
+  }
+  if (!isText(threadId) || threadId.length > MAX_ID || typeof threadTitle !== "string" || threadTitle.length > MAX_THREAD_TITLE) {
+    throw new HttpError(400, `threadId and threadTitle (up to ${MAX_THREAD_TITLE} characters) are required`);
+  }
+  return { text, uploads, threadId, threadTitle };
 }
