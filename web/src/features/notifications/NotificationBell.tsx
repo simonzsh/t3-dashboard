@@ -75,7 +75,9 @@ export function NotificationBell({ entries, count, now, onOpen, open, onOpenChan
     if (e.key !== "ArrowDown" && e.key !== "ArrowUp" && e.key !== "Home" && e.key !== "End") return;
     const rows = [...(list.current?.querySelectorAll<HTMLElement>(".notif-row") ?? [])];
     if (rows.length === 0) return;
+    // Kept here: the Desk also reads plain arrows to move between windows.
     e.preventDefault();
+    e.stopPropagation();
     const current = rows.indexOf(document.activeElement as HTMLElement);
     const next = e.key === "Home" ? 0 : e.key === "End" ? rows.length - 1 : moveActive(rows.length, current, e.key === "ArrowDown" ? 1 : -1);
     rows[next]?.focus();
