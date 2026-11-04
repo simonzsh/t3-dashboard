@@ -1,3 +1,4 @@
+import type { RoutineSchedule, WebhookFilter, WebhookSignature } from "./automations.ts";
 import type { ModelSelection, RuntimeMode } from "./threads.ts";
 
 // Bodies and results of the thread actions (POST /api/threads…).
@@ -17,13 +18,32 @@ export interface CreateThreadBody {
   uploads?: UploadedAttachment[];
 }
 
-export interface AutomationRequestBody {
-  /** 1 to 2000 characters once trimmed. */
-  text: string;
+interface CreateAutomationBase {
+  /** 0 to 120 characters; empty uses the first line of the prompt. */
+  title: string;
+  /** 1 to 20000 characters once trimmed. */
+  prompt: string;
   /** Empty: T3's "No project". */
   projectId: string;
   modelSelection: ModelSelection;
+  /** Defaults to full access. */
   runtimeMode?: RuntimeMode;
+}
+
+export type CreateAutomationBody = CreateAutomationBase &
+  (
+    | { kind: "routine"; schedule: RoutineSchedule }
+    /** `at` is an ISO time from 1 minute to 366 days ahead. */
+    | { kind: "reminder"; at: string }
+    | { kind: "webhook"; filters: WebhookFilter[]; signature: (WebhookSignature & { secret: string }) | null }
+  );
+
+export interface CreateAutomationResult {
+  ok: true;
+  id: string;
+  /** Public URL with its token; null when T3 Connect is off. */
+  webhookUrl: string | null;
+  nextRunAt: string | null;
 }
 
 export interface ImageAttachment {

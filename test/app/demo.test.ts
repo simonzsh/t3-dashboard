@@ -163,7 +163,7 @@ test("the demo Linear board and automations need no network", async () => {
   const port = new DemoPort(() => NOW);
   const store = syncedStore(port);
   await Bun.sleep(0);
-  const { automations, hiddenThreadIds, setupThreadIds } = await createAutomations({ port, store, dedicated: { read: () => new Set(["demo-digest", "demo-setup"]), add() {} }, createThread: async () => "x" }).list();
+  const { automations, hiddenThreadIds, setupThreadIds } = await createAutomations({ port, store, dedicated: { read: () => new Set(["demo-digest", "demo-setup"]) } }).list();
   assert.ok(automations.length >= 3 && automations.filter((automation) => automation.kind !== "webhook").every((automation) => automation.nextRunAt !== null));
   assert.ok(automations.some((automation) => automation.kind === "reminder"));
   const hooks = automations.filter((automation) => automation.kind === "webhook");
@@ -181,11 +181,25 @@ test("the demo Linear board and automations need no network", async () => {
   assert.ok(!left.some((task) => task.id === reminder.id));
 });
 
+test("demo create lists a webhook with a demo URL and no secret", async () => {
+  const port = new DemoPort(() => NOW);
+  const store = syncedStore(port);
+  await Bun.sleep(0);
+  const automations = createAutomations({ port, store, dedicated: { read: () => new Set() }, newId: () => "new-1" });
+  const signature = { header: "x-hub-signature-256", encoding: "hex" as const, prefix: "sha256=", secret: "s3cret-value" };
+  const result = await automations.create({ kind: "webhook", title: "Hook", prompt: "Handle it", projectId: "", modelSelection: { instanceId: "claudeAgent", model: "m" }, filters: [], signature });
+  assert.match(result.webhookUrl ?? "", /^https:\/\/relay\.example\.invalid\//);
+  const listed = await automations.list();
+  const hook = listed.automations.find((automation) => automation.id === result.id)!;
+  assert.deepEqual([hook.kind, hook.title, hook.webhook?.signed], ["webhook", "Hook", true]);
+  assert.equal(JSON.stringify([listed, result]).includes("s3cret-value"), false);
+});
+
 test("demo rename changes the task title and the bound thread, in memory", async () => {
   const port = new DemoPort(() => NOW);
   const store = syncedStore(port);
   await Bun.sleep(0);
-  const automations = createAutomations({ port, store, dedicated: { read: () => new Set(), add() {} }, createThread: async () => "x" });
+  const automations = createAutomations({ port, store, dedicated: { read: () => new Set() } });
   const reminder = (await automations.list()).automations.find((automation) => automation.kind === "reminder")!;
   await automations.rename(reminder.id, "Ping the team");
   const renamed = (await automations.list()).automations.find((automation) => automation.id === reminder.id)!;

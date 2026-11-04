@@ -16,7 +16,7 @@ import { matchesEtag } from "./etag.ts";
 import { servePwa } from "./pwa.ts";
 import type { Site } from "./site.ts";
 import type { SseHub } from "./sse.ts";
-import { isObject, isText, validAssign, validAttachments, validAutomationRequest, validDesk, validCreate, validFileSearch, validItemId, validMessage, validProvider, validQueuedEdit, validRename, validRespond, validRewind, validSearch, validSecretAnswer, validSeen, validSettings, validStash, validUpload } from "./validate.ts";
+import { isObject, isText, validAssign, validAttachments, validCreateAutomation, validDesk, validCreate, validFileSearch, validItemId, validMessage, validProvider, validQueuedEdit, validRename, validRespond, validRewind, validSearch, validSecretAnswer, validSeen, validSettings, validStash, validUpload } from "./validate.ts";
 
 export interface SetupControl {
   /** Resolves the token again. */
@@ -29,7 +29,7 @@ export interface SetupControl {
 export interface DashboardServerOptions {
   actions: Actions;
   board: Pick<LinearBoard, "get">;
-  automations: Pick<Automations, "list" | "request" | "remove" | "rename">;
+  automations: Pick<Automations, "list" | "create" | "remove" | "rename">;
   desk: Pick<DeskStore, "get" | "set">;
   stash: Pick<StashStore, "list" | "add" | "remove">;
   seen: Pick<SeenStore, "get" | "apply">;
@@ -296,7 +296,7 @@ export function createDashboardServer(options: DashboardServerOptions): Dashboar
     },
     { method: "POST", path: "/api/settings/linear/key", handle: async ({ body }) => json(200, await settings.connectKey({ apiKey: String(body.apiKey ?? "") })) },
     { method: "POST", path: "/api/settings/linear/disconnect", handle: () => json(200, settings.disconnect()) },
-    { method: "POST", path: "/api/automations", handle: async ({ body }) => ok({ threadId: await automations.request(validAutomationRequest(body)) }) },
+    { method: "POST", path: "/api/automations", handle: async ({ body }) => json(200, await automations.create(validCreateAutomation(body))) },
     { method: "POST", path: "/api/automations/:id/rename", handle: ({ params, body }) => done(automations.rename(params.id!, validRename(body))) },
     { method: "POST", path: "/api/automations/:id/delete", handle: ({ params }) => done(automations.remove(params.id!)) },
     {

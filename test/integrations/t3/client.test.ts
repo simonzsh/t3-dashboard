@@ -119,6 +119,80 @@ test("deleteScheduledTask sends the id and is not retried on a dropped socket", 
   await done;
 });
 
+const newTask = {
+  id: "scheduled-task:abc",
+  title: "PR reviews",
+  prompt: "Review it",
+  enabled: true as const,
+  schedule: { type: "webhook" as const, signature: { header: "x-hub-signature-256", encoding: "hex" as const, prefix: "sha256=", secret: "dummy-secret" }, filters: [{ path: "body.action", op: "equals" as const, value: "opened" }] },
+  projectId: "p1",
+  threadId: null,
+  workspaceStrategy: { type: "root" as const },
+  modelSelection: { instanceId: "i", model: "m" },
+  runtimeMode: "full-access" as const,
+  interactionMode: "default" as const,
+  creationSource: "web" as const,
+};
+
+test("createScheduledTask upserts the task as is, without requireExisting, and reads the task back", async () => {
+  const { client } = setup();
+  const done = client.createScheduledTask(newTask);
+  const socket = await nextSocket();
+  assert.equal(socket.sent[0]!.tag, "scheduledTasks.upsert");
+  assert.deepEqual(socket.sent[0]!.payload, newTask);
+  const answer = { task: { id: "scheduled-task:abc", title: "PR reviews", nextRunAt: "2026-11-05T09:00:00.000Z", webhook: { path: "/api/hooks/a/b", url: "https://relay.example.invalid/v1/hooks/k/a/b", hasSecret: true } } };
+  socket.receive({ _tag: "Exit", requestId: "1", exit: { _tag: "Success", value: answer } });
+  const task = await done;
+  assert.deepEqual([task.id, task.webhook?.url, task.webhook?.hasSecret], ["scheduled-task:abc", "https://relay.example.invalid/v1/hooks/k/a/b", true]);
+});
+
+test("createScheduledTask is not sent twice after a cut", async () => {
+  const { client } = setup();
+  const done = client.createScheduledTask(newTask);
+  const socket = await nextSocket();
+  socket.close();
+  await assert.rejects(done, (error: Error) => error instanceof IntegrationError && error.kind === "unreachable");
+  await tick();
+  assert.equal(FakeSocket.instances.length, 1);
+});
+
+test("createScheduledTask rebuilds a refusal, so the secret in T3's message never comes out", async () => {
+  const { client } = setup();
+  const done = client.createScheduledTask(newTask);
+  const socket = await nextSocket();
+  const error = { _tag: "ScheduledTaskError", message: "Could not decode dummy-secret" };
+  socket.receive({ _tag: "Exit", requestId: "1", exit: { _tag: "Failure", cause: [{ _tag: "Fail", error }] } });
+  const failure = await done.then(() => null, (e: IntegrationError) => e);
+  assert.ok(failure instanceof IntegrationError);
+  assert.deepEqual([failure.kind, failure.message], ["refused", "T3 refused the scheduled task."]);
+});
+
+test("createScheduledTask names the missing signing secret", async () => {
+  const { client } = setup();
+  const done = client.createScheduledTask(newTask);
+  const socket = await nextSocket();
+  const error = { _tag: "ScheduledTaskError", message: "A webhook signature check needs a signing secret." };
+  socket.receive({ _tag: "Exit", requestId: "1", exit: { _tag: "Failure", cause: { _tag: "Fail", error } } });
+  const failure = await done.then(() => null, (e: IntegrationError) => e);
+  assert.equal(failure?.message, "T3 needs a signing secret for this webhook.");
+});
+
+test("renameScheduledTask keeps a webhook task whole, with its creation source", async () => {
+  const { client } = setup();
+  const done = client.renameScheduledTask("hook-1", "New name");
+  const socket = await nextSocket();
+  const schedule = { type: "webhook", signature: { header: "x-hub-signature-256", encoding: "hex", prefix: "sha256=" }, filters: [{ path: "body.action", op: "equals", value: "opened" }], dedupe: { window: 60 } };
+  const raw = { id: "hook-1", title: "Old", prompt: "Do it", enabled: true, schedule, projectId: "p1", threadId: null, workspaceStrategy: { type: "root" }, modelSelection: { instanceId: "i", model: "m" }, runtimeMode: "full-access", interactionMode: "default", creationSource: "mcp", webhook: { path: "/x", url: null, hasSecret: true } };
+  socket.receive({ _tag: "Chunk", requestId: "1", values: [{ tasks: [raw] }] });
+  await tick();
+  const upsert = socket.sent.find((frame) => frame.tag === "scheduledTasks.upsert")!;
+  const { webhook, ...rest } = raw;
+  assert.deepEqual(upsert.payload, { ...rest, title: "New name", requireExisting: true });
+  assert.equal(webhook.hasSecret, true);
+  socket.receive({ _tag: "Exit", requestId: "2", exit: { _tag: "Success", value: {} } });
+  await done;
+});
+
 test("renameScheduledTask upserts the raw task with only the title changed", async () => {
   const { client } = setup();
   const done = client.renameScheduledTask("task-1", "Reminder: New");

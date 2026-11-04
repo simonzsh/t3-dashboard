@@ -11,6 +11,26 @@ export interface AutomationWebhook {
   signed: boolean;
 }
 
+export type WebhookFilter =
+  | { path: string; op: "equals" | "notEquals" | "startsWith"; value: string }
+  | { path: string; op: "in"; value: string[] }
+  | { path: string; op: "exists" };
+
+export interface WebhookSignature {
+  header: string;
+  encoding: "hex" | "base64";
+  prefix: string;
+}
+
+/** What GitHub sends with a signed delivery. */
+export const GITHUB_SIGNATURE: WebhookSignature = { header: "x-hub-signature-256", encoding: "hex", prefix: "sha256=" };
+
+export type RoutineSchedule =
+  /** Whole minutes, 1 to 525600. */
+  | { type: "interval"; everyMinutes: number }
+  /** "HH:MM" in the T3 host time zone; no weekday (or all seven) means every day. 0 is Sunday. */
+  | { type: "fixed_time"; timeOfDay: string; weekdays: number[] };
+
 export interface Automation {
   /** The T3 scheduled task id. */
   id: string;

@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "bun:test";
-import type { AutomationRequestBody } from "../../shared/api.ts";
-import { automationPrompt, createAutomations, toAutomations } from "../../src/domain/automations.ts";
+import type { CreateAutomationBody } from "../../shared/api.ts";
+import { createAutomations, toAutomations } from "../../src/domain/automations.ts";
 import { DomainError } from "../../src/domain/errors.ts";
 import { IntegrationError } from "../../src/integrations/errors.ts";
 import type { RawScheduledTask, RawThread } from "../../src/integrations/t3/schemas.ts";
@@ -132,32 +132,6 @@ test("a bound task never matches run threads", () => {
   assert.deepEqual(result.hiddenThreadIds, []);
 });
 
-test("automationPrompt carries the trimmed request and the reminder rules", () => {
-  const prompt = automationPrompt("  Remind me at 5pm  ");
-  assert.match(prompt, /schedule_task/);
-  assert.match(prompt, /bindToCurrentThread: true/);
-  assert.match(prompt, /"Reminder: "/);
-  assert.match(prompt, /interval, with everyMs/);
-  assert.match(prompt, /\n\nRemind me at 5pm\n\n/);
-});
-
-test("automationPrompt tells how to build a GitHub webhook task", () => {
-  const prompt = automationPrompt("When someone requests my review");
-  assert.match(prompt, /type: "webhook"/);
-  assert.match(prompt, /request_secret/);
-  assert.match(prompt, /secretRef/);
-  assert.match(prompt, /x-hub-signature-256/);
-  assert.match(prompt, /sha256=/);
-  assert.match(prompt, /bindToCurrentThread: false/);
-  assert.match(prompt, /application\/json/);
-  assert.match(prompt, /headers\.x-github-event/);
-  assert.match(prompt, /body\.action/);
-  assert.match(prompt, /body\.requested_reviewer\.login/);
-  assert.match(prompt, /\{\{body\.pull_request\.html_url\}\}/);
-  assert.match(prompt, /webhookUrl/);
-  assert.match(prompt, /T3 Connect/);
-});
-
 test("remove deletes the task through the port", async () => {
   const { automations, port } = harness();
   await automations.remove("task-1");
@@ -172,66 +146,88 @@ test("remove wraps a port failure as an IntegrationError", async () => {
   await assert.rejects(automations.remove("task-1"), (error) => error instanceof IntegrationError && error.kind === "refused");
 });
 
-function harness(overrides: { dedicatedAdd?: (id: string) => void } = {}) {
+function harness() {
   const port = new FakePort();
-  const created: Array<{ create: unknown; images: unknown }> = [];
-  const added: string[] = [];
-  const warnings: string[] = [];
   const automations = createAutomations({
     port,
     store: { project: (id) => (id === "project-1" ? { id, title: "Project A", defaultModelSelection: null, icon: null } : undefined), rawThreads: () => [thread("run-1")] },
-    dedicated: { read: () => new Set(["t-dedicated"]), add: overrides.dedicatedAdd ?? ((id) => void added.push(id)) },
-    createThread: async (create, images) => {
-      created.push({ create, images });
-      return "new-thread";
-    },
-    warn: (message) => warnings.push(message),
+    dedicated: { read: () => new Set(["t-dedicated"]) },
     newId: () => "id-1",
+    now: () => new Date(2026, 10, 4, 10, 0, 0),
   });
-  return { automations, port, created, added, warnings };
+  return { automations, port };
 }
 
-const body = (extra: Partial<AutomationRequestBody> = {}): AutomationRequestBody => ({ text: "  Remind me at 5pm\nabout the launch ", projectId: "project-1", modelSelection: { instanceId: "claudeAgent", model: "m" }, runtimeMode: "full-access", ...extra });
+const base = { title: "", prompt: "  Triage the inbox\nand reply ", projectId: "project-1", modelSelection: { instanceId: "claudeAgent", model: "m" } };
+const routine: CreateAutomationBody = { ...base, kind: "routine", schedule: { type: "interval", everyMinutes: 15 } };
+const expected = {
+  id: "scheduled-task:id-1",
+  enabled: true,
+  projectId: "project-1",
+  threadId: null,
+  workspaceStrategy: { type: "root" },
+  modelSelection: { instanceId: "claudeAgent", model: "m" },
+  runtimeMode: "full-access",
+  interactionMode: "default",
+  creationSource: "web",
+};
 
-test("request creates a thread with the instruction, records it and returns its id", async () => {
-  const { automations, created, added } = harness();
-  assert.equal(await automations.request(body()), "new-thread");
-  assert.deepEqual(created, [
-    {
-      create: { projectId: "project-1", title: "Remind me at 5pm", text: automationPrompt("Remind me at 5pm\nabout the launch"), modelSelection: { instanceId: "claudeAgent", model: "m" }, runtimeMode: "full-access" },
-      images: [],
-    },
-  ]);
-  assert.deepEqual(added, ["new-thread"]);
+test("create sends a routine as an unbound T3 task and maps the result", async () => {
+  const { automations, port } = harness();
+  const result = await automations.create(routine);
+  assert.deepEqual(port.createdTasks, [{ ...expected, title: "Triage the inbox", prompt: "Triage the inbox\nand reply", schedule: { type: "interval", everyMs: 900_000 } }]);
+  assert.deepEqual(result, { ok: true, id: "scheduled-task:id-1", webhookUrl: null, nextRunAt: "2026-11-05T09:00:00.000Z" });
 });
 
-test("request cuts a long first line to a 60-character title", async () => {
-  const { automations, created } = harness();
-  await automations.request(body({ text: "x".repeat(100) }));
-  assert.equal((created[0]!.create as { title: string }).title.length, 60);
+test("create keeps a given title and runtime mode, and cuts a long first line to 60 characters", async () => {
+  const { automations, port } = harness();
+  await automations.create({ ...routine, title: " Inbox ", runtimeMode: "auto" });
+  await automations.create({ ...routine, prompt: "x".repeat(100) });
+  assert.equal(port.createdTasks[0]!.title, "Inbox");
+  assert.equal(port.createdTasks[0]!.runtimeMode, "auto");
+  assert.equal(port.createdTasks[1]!.title.length, 60);
 });
 
-test("request keeps an empty project id so T3's No project is used", async () => {
-  const { automations, created } = harness();
-  await automations.request(body({ projectId: "" }));
-  assert.equal((created[0]!.create as { projectId: string }).projectId, "");
+test("create sends a reminder with the Reminder prefix, the exact time and a self-pause with its own id", async () => {
+  const { automations, port } = harness();
+  await automations.create({ ...base, kind: "reminder", title: "Call Sam", prompt: "Call Sam", at: new Date(2026, 10, 4, 17, 30).toISOString() });
+  const [sent] = port.createdTasks;
+  assert.equal(sent!.title, "Reminder: Call Sam");
+  assert.deepEqual(sent!.schedule, { type: "fixed_time", timeOfDay: "17:30", weekdays: [new Date(2026, 10, 4).getDay()] });
+  assert.equal(sent!.prompt, "Call Sam\n\nThen disable this scheduled task: call schedule_task with scheduledTaskId scheduled-task:id-1 and enabled: false. Do not delete it.");
 });
 
-test("request rejects an empty text", async () => {
-  const { automations, created } = harness();
-  await assert.rejects(automations.request(body({ text: "  \n " })), (error) => error instanceof DomainError && error.code === "invalid");
-  assert.equal(created.length, 0);
+test("create refuses a reminder in the past without calling T3", async () => {
+  const { automations, port } = harness();
+  await assert.rejects(automations.create({ ...base, kind: "reminder", at: new Date(2026, 10, 4, 9).toISOString() }), (error) => error instanceof DomainError && error.code === "invalid");
+  assert.deepEqual(port.createdTasks, []);
 });
 
-test("request still succeeds when the state file cannot be written", async () => {
-  const { automations, warnings } = harness({
-    dedicatedAdd: () => {
-      throw new Error("disk full");
-    },
-  });
-  assert.equal(await automations.request(body()), "new-thread");
-  assert.equal(warnings.length, 1);
-  assert.match(warnings[0]!, /disk full/);
+test("create sends a webhook with its filters and signature, and returns the URL", async () => {
+  const { automations, port } = harness();
+  port.createdWebhookUrl = "https://relay.example.invalid/v1/hooks/k/t/token";
+  const signature = { header: "x-hub-signature-256", encoding: "hex" as const, prefix: "sha256=", secret: "s3cret" };
+  const filters = [{ path: "headers.x-github-event", op: "equals" as const, value: "pull_request" }];
+  const result = await automations.create({ ...base, kind: "webhook", filters, signature });
+  assert.deepEqual(port.createdTasks[0]!.schedule, { type: "webhook", signature, filters });
+  assert.equal(port.createdTasks[0]!.title, "Triage the inbox");
+  assert.equal(result.webhookUrl, "https://relay.example.invalid/v1/hooks/k/t/token");
+  assert.equal(JSON.stringify(result).includes("s3cret"), false);
+});
+
+test("create uses T3's No project when the project is empty", async () => {
+  const { automations, port } = harness();
+  await automations.create({ ...routine, projectId: "" });
+  assert.equal(port.createdTasks[0]!.projectId, "scratch-project");
+});
+
+test("create wraps a port failure as a T3 error and keeps an integration error", async () => {
+  const { automations, port } = harness();
+  port.createError = new Error("socket closed");
+  await assert.rejects(automations.create(routine), (error) => error instanceof IntegrationError && error.kind === "unreachable");
+  const refused = new IntegrationError("T3 refused the scheduled task.", { system: "t3", kind: "refused" });
+  port.createError = refused;
+  await assert.rejects(automations.create(routine), (error) => error === refused);
 });
 
 test("list converts the tasks of T3 with the live threads and the dedicated set", async () => {
@@ -274,11 +270,10 @@ test("rename also renames the bound thread with a stamped command", async () => 
   assert.deepEqual(port.commands, [{ type: "thread.metadata.update", threadId: "t-dedicated", title: "Daily triage", commandId: "id-1" }]);
 });
 
-test("rename refuses a webhook task, an unknown task and an empty title", async () => {
+test("rename refuses an unknown task and an empty title", async () => {
   const { automations, port } = harness();
-  port.scheduledTasks = [task({ schedule: { type: "webhook" } })];
+  port.scheduledTasks = [task()];
   const code = (id: string, title: string) => automations.rename(id, title).then(() => null, (error: DomainError) => error.code);
-  assert.equal(await code("task-1", "x"), "conflict");
   assert.equal(await code("nope", "x"), "not-found");
   assert.equal(await code("task-1", "  "), "invalid");
   assert.deepEqual(port.renamedTasks, []);
@@ -291,4 +286,11 @@ test("rename keeps the thread as it is when T3 refuses the task rename", async (
   port.renameError = new IntegrationError("refused", { system: "t3", kind: "refused" });
   await assert.rejects(automations.rename("task-1", "x"), IntegrationError);
   assert.deepEqual(port.commands, []);
+});
+
+test("rename accepts a webhook task", async () => {
+  const { automations, port } = harness();
+  port.scheduledTasks = [task({ schedule: { type: "webhook" } })];
+  await automations.rename("task-1", "PR reviews");
+  assert.deepEqual(port.renamedTasks, [{ id: "task-1", title: "PR reviews" }]);
 });

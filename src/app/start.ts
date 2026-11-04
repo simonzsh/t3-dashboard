@@ -18,7 +18,7 @@ import { deskText, readDesk } from "../config/deskFile.ts";
 import { readStash, stashText } from "../config/stashFile.ts";
 import { readSeen, seenText } from "../config/seenFile.ts";
 import { readLinearKey } from "../config/linearFile.ts";
-import { addAutomationThread, readAutomationThreads } from "../config/automationThreads.ts";
+import { readAutomationThreads } from "../config/automationThreads.ts";
 import { automationThreadsFile, deskFile as deskPath, linearFile, pidFile, seenFile as seenPath, stashFile as stashPath } from "../config/paths.ts";
 import { redirectConsole, writePidFile } from "../config/runFiles.ts";
 import { writeSecret } from "../config/secretFile.ts";
@@ -142,8 +142,7 @@ export async function start({ port, log, env }: StartOptions): Promise<void> {
   const automations = createAutomations({
     port: client,
     store,
-    dedicated: { read: () => readAutomationThreads(threadsFile, readText), add: (id) => addAutomationThread(threadsFile, id, readText, writeSecret) },
-    createThread: actions.createThread,
+    dedicated: { read: () => readAutomationThreads(threadsFile, readText) },
   });
   const deskFile = deskPath(env, home);
   const desk = new DeskStore(readDesk(deskFile, readText), (value) => writeSecret(deskFile, deskText(value)));
