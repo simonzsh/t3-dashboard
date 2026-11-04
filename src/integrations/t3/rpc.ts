@@ -24,10 +24,14 @@ interface Exit {
 const PING_MS = 30_000;
 
 // Effect wraps a typed failure as `{_tag: "Fail", error}`; dispatch errors carry commandType and message.
+// T3 0.1.6 sends the cause as an array of `{_tag: "Fail", error}`; older shapes send one object.
 function reasonOf(cause: unknown): string | undefined {
-  const error = (cause as { error?: unknown } | null)?.error ?? cause;
-  const { reason } = (error ?? {}) as { reason?: unknown };
-  return typeof reason === "string" ? reason : undefined;
+  for (const entry of Array.isArray(cause) ? cause : [cause]) {
+    const error = (entry as { error?: unknown } | null)?.error ?? entry;
+    const { reason } = (error ?? {}) as { reason?: unknown };
+    if (typeof reason === "string") return reason;
+  }
+  return undefined;
 }
 
 function describeCause(cause: unknown): string {

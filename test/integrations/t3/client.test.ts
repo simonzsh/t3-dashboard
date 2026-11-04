@@ -598,3 +598,15 @@ test("answerSecretRequest keeps the T3 reason and never puts the secret or the c
   assert.deepEqual([failure.kind, failure.reason], ["refused", "already_answered"]);
   assert.equal(failure.message.includes("dummy-secret"), false);
 });
+
+test("answerSecretRequest reads the reason from a cause sent as an array", async () => {
+  const { client } = setup();
+  const done = client.answerSecretRequest("t1", "item-1", { type: "save", secret: "dummy-secret" });
+  const socket = await nextSocket();
+  const error = { _tag: "SecretRequestError", reason: "agent_stopped", cause: { echoed: "dummy-secret" } };
+  socket.receive({ _tag: "Exit", requestId: "1", exit: { _tag: "Failure", cause: [{ _tag: "Fail", error }] } });
+  const failure = await done.then(() => null, (e: IntegrationError) => e);
+  assert.ok(failure instanceof IntegrationError);
+  assert.deepEqual([failure.kind, failure.reason], ["refused", "agent_stopped"]);
+  assert.equal(failure.message.includes("dummy-secret"), false);
+});
