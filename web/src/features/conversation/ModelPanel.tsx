@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type KeyboardEvent, type ReactNode } from "react";
+import { useEffect, useLayoutEffect, useRef, useState, type KeyboardEvent, type ReactNode } from "react";
 import type { DashboardProvider, ModelSelection, RuntimeMode } from "../../../../shared/api.ts";
 import { RUNTIME_MODE_LABELS, findModel, currentEffort, selectEffort, selectModel } from "./composer.ts";
 import { chipLabel, currentSpeed, jumpIndex, jumpLabel, panelModels, selectSpeed, type PanelRow, type Rail } from "./modelPanel.ts";
@@ -25,6 +25,16 @@ export function ModelPanel({ providers, selection, mode, modes, onSelection, onM
   const [active, setActive] = useState(0);
   const [accessOpen, setAccessOpen] = useState(false);
   const root = useRef<HTMLDivElement>(null);
+  const panel = useRef<HTMLDivElement>(null);
+  // A desk window clips what overflows it: keep the panel within the room above the composer.
+  useLayoutEffect(() => {
+    const box = panel.current;
+    const anchor = box?.offsetParent;
+    if (!box || !anchor) return;
+    const top = anchor.getBoundingClientRect().top;
+    const frame = anchor.closest(".desk-window")?.getBoundingClientRect().top ?? 0;
+    box.style.maxHeight = `${Math.max(180, top - frame - 12)}px`;
+  });
   const chip = useRef<HTMLButtonElement>(null);
   const search = useRef<HTMLInputElement>(null);
   const mac = navigator.platform.startsWith("Mac");
@@ -126,7 +136,7 @@ export function ModelPanel({ providers, selection, mode, modes, onSelection, onM
         {label.fast && <Icon name="bolt" className="icon model-chip-fast" />}
       </Pressable>
       {open && (
-        <div className="model-panel" role="dialog" aria-label="Model, reasoning and access" onKeyDown={onKeyDown}>
+        <div ref={panel} className="model-panel" role="dialog" aria-label="Model, reasoning and access" onKeyDown={onKeyDown}>
           <div className="model-panel-body">
             <div className="model-rail">
               {railButton("favorites", "Favorites", <Icon name={rail === "favorites" ? "starFilled" : "star"} />)}
