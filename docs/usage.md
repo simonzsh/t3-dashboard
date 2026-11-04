@@ -162,7 +162,6 @@ A webhook task runs when a service sends a request to its URL, for example a Git
 - The row shows the status of the last run. It has no next run.
 - The public URL needs T3 Code Connect remote access. Without it, the agent says the access is off, and the dashboard cannot copy a URL.
 - The URL contains a token. Treat it as a secret. The dashboard never shows it as text.
-- You cannot rename a webhook task.
 - The setup thread of a webhook is not linked to the task. It shows on a setup row while the agent works or waits for you. Then it goes back into the grid.
 
 ### From a conversation
