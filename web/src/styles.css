@@ -813,7 +813,7 @@ button.auto-row:hover { transform: translateY(-1px); }
 .auto-form .segmented { align-self: flex-start; }
 .auto-form-row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
 .auto-form-row .field { flex: 1; min-width: 80px; }
-.auto-form-row.checks label { flex-direction: row; align-items: center; gap: 4px; }
+.dialog label.auto-check { flex-direction: row; align-items: center; gap: 8px; align-self: flex-start; cursor: pointer; }
 .auto-form .hint, .auto-result .hint { color: var(--text-secondary); font-size: 12px; margin: 0; }
 .auto-days button { border: 1px solid var(--line); background: none; padding: 3px 8px; border-radius: 7px; color: var(--text-secondary); }
 .auto-days button[aria-pressed="true"] { background: var(--accent); color: var(--on-accent); border-color: var(--accent); }

@@ -122,7 +122,7 @@ function ScheduleFields({ form, onChange }: { form: AutomationForm; onChange: (f
         </div>
       </div>
       <div className="dialog-field">
-        <label className="auto-form-row checks">
+        <label className="auto-check">
           <Choice type="checkbox" checked={form.signed} onChange={(e) => set({ signed: e.target.checked })} />
           Check the signature
         </label>
