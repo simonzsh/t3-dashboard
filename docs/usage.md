@@ -50,7 +50,7 @@ Each Desk window contains a conversation.
 - `Escape` in the message field, with no list open, leaves the field and puts the focus on the conversation. The `Ctrl` shortcuts work in the field too. Press `Escape` again on the Desk to restore a full-screen window.
 - Change the model, its options and the access mode with one chip in the composer. The chip shows the provider icon, the model, the reasoning level and a bolt when Fast is on. Click it to open the panel above it:
   - The panel opens on your favorites (or on the current provider when you have none). The left rail has the favorites (star) and one icon per provider. Type in "Search models..." to search all providers.
-  - Click a model, or use `↑` `↓` and `Enter`. `Escape` closes the panel.
+  - Click a model, or use `↑` `↓` and `Enter`: the panel closes. `Escape` also closes it.
   - The right column lists the reasoning levels of the model. "Default" marks the default level and a check marks the current one.
   - The footer has "Standard" and "Fast" when the model has a speed option, and the access menu ("Supervised", "Auto-accept edits", "Auto", "Full access") on the right.
   - A star on a model shows a T3 Code favorite. Change favorites in T3 Code: the dashboard does not change them.
