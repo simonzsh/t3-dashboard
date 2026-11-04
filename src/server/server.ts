@@ -54,6 +54,9 @@ const SECURITY_HEADERS = {
 };
 
 
+// ?inline=1 frames these in the preview dialog. A PDF cannot be sandboxed: Chrome's viewer would not load.
+const PDF_TYPE = /^application\/pdf\s*(;|$)/i;
+const TEXT_TYPE = /^(text\/[\w.+-]+|application\/json)\s*(;|$)/i;
 const MEDIA_TYPE = /^(image\/(png|jpeg|gif|webp|avif)|video\/(mp4|webm|quicktime))\s*(;|$)/i;
 
 function hostnameOf(value: string): string | null {
@@ -151,10 +154,14 @@ export function createDashboardServer(options: DashboardServerOptions): Dashboar
     const { response, html } = await actions.asset(threadId, request, req.headers.get("range") ?? undefined);
     const headers: Record<string, string> = { "cache-control": "private, max-age=3600" };
     // ?raw=1 asks for the bytes: a user's .html file is a download, not a page to render.
-    if (!html || new URL(req.url).searchParams.get("raw") === "1") {
+    const params = new URL(req.url).searchParams;
+    if (!html || params.get("raw") === "1") {
       // Never pass through a type the browser could run (html, svg) on the dashboard origin.
       const type = response.headers.get("content-type") ?? "";
+      const inline = params.get("inline") === "1" && params.get("raw") !== "1";
       if (MEDIA_TYPE.test(type)) headers["content-type"] = type;
+      else if (inline && PDF_TYPE.test(type)) Object.assign(headers, { "content-type": "application/pdf", "content-security-policy": "frame-ancestors 'self'" });
+      else if (inline && TEXT_TYPE.test(type)) Object.assign(headers, { "content-type": "text/plain; charset=utf-8", "content-security-policy": "sandbox; frame-ancestors 'self'" });
       else Object.assign(headers, { "content-type": "application/octet-stream", "content-disposition": "attachment" });
       // Videos play by byte ranges: Safari refuses one without them.
       for (const name of ["content-range", "accept-ranges", "content-length"]) {
@@ -163,7 +170,7 @@ export function createDashboardServer(options: DashboardServerOptions): Dashboar
       }
       return new Response(response.body, { status: response.status, headers });
     }
-    const theme = new URL(req.url).searchParams.get("theme");
+    const theme = params.get("theme");
     headers["content-type"] = "text/html; charset=utf-8";
     headers["content-security-policy"] = "sandbox allow-scripts allow-popups; frame-ancestors 'self'";
     return new Response(themedPage(await response.text(), isPageTheme(theme) ? theme : "light"), { headers });
