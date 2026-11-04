@@ -412,7 +412,7 @@ a.step-result-title { color: var(--accent); }
 .model-footer { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 6px 8px; border-top: 1px solid var(--line); }
 .model-footer .segmented { padding: 2px; border-radius: 8px; }
 .model-footer .segmented button { padding: 2px 10px; border-radius: 6px; font-size: 12px; }
-.model-footer .segmented button.active { background: var(--surface-1); color: var(--text-primary); box-shadow: 0 1px 2px rgb(16 24 40 / 0.12); }
+.model-footer .segmented button.active { background: color-mix(in srgb, var(--text-primary) 10%, transparent); color: var(--text-primary); }
 .model-access { position: relative; margin-left: auto; }
 .model-access-button { display: inline-flex; align-items: center; gap: 5px; padding: 3px 6px; border: 0; border-radius: 7px; background: none; color: var(--text-secondary); font-size: 12px; }
 .model-access-button:hover:not(:disabled) { background: var(--surface-0); color: var(--text-primary); }
