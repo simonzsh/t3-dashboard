@@ -32,6 +32,7 @@ export function SecretRequestCard({ step, threadId }: { step: TurnStep; threadId
       {request.reason && <div className="msg">{request.reason}</div>}
       {pending && (
         <form
+          autoComplete="off"
           className="key-row"
           onSubmit={(event) => {
             event.preventDefault();
