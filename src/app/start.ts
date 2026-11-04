@@ -4,6 +4,7 @@ import { setTimeout as sleep } from "node:timers/promises";
 import index from "../../web/index.html";
 import type { DashboardProvider } from "../../shared/api.ts";
 import { createActions } from "../domain/actions.ts";
+import { AutomationGuard } from "../domain/automationGuard.ts";
 import { createAutomations } from "../domain/automations.ts";
 import { TokenManager } from "../domain/tokenManager.ts";
 import { envAllowedHosts, envPort } from "../config/config.ts";
@@ -106,6 +107,7 @@ export async function start({ port, log, env }: StartOptions): Promise<void> {
       hub.broadcast({ type: "modelDefaults", data: defaults });
     },
   });
+  const guard = new AutomationGuard({ port: client });
   const getState = () => store.state(live.connection(), providers, readEnvironmentId(environmentId, readText), modelDefaults);
 
   const linearPath = linearFile(env, home);
@@ -116,7 +118,11 @@ export async function start({ port, log, env }: StartOptions): Promise<void> {
   });
 
   const settings = createSettings({ file: linearPath, readFile: readText, writeSecret, board });
-  const setup = { refresh: () => auth.refresh(), paste: (token: string) => auth.paste(token), wake: () => live.retryNow() };
+  const wake = () => {
+    live.retryNow();
+    guard.retryNow();
+  };
+  const setup = { refresh: () => auth.refresh(), paste: (token: string) => auth.paste(token), wake };
 
   const site = siteFromBundle(index);
   const repo = updateDeps(env).repo;
@@ -157,6 +163,7 @@ export async function start({ port, log, env }: StartOptions): Promise<void> {
   const checker = VERSION === "dev" ? undefined : setInterval(() => void updates.check(), UPDATE_CHECK_MS);
   if (checker) void updates.check();
   live.start();
+  guard.start();
   const server = await listen({
     hostname: "127.0.0.1",
     port: port ?? envPort(env),
@@ -172,6 +179,7 @@ export async function start({ port, log, env }: StartOptions): Promise<void> {
     clearInterval(reclassifier);
     clearInterval(checker);
     live.stop();
+    guard.stop();
     hub.close();
     client.close();
     void server.stop(true).then(() => process.exit(0));

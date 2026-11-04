@@ -7,7 +7,7 @@ import type { ShellStore } from "./shellStore.ts";
 import type { T3Port } from "../integrations/t3/schemas.ts";
 import { toModelDefaults, toProviders } from "./providers.ts";
 
-const BACKOFF_MS = [1000, 2000, 4000, 8000, 16000, 30000];
+export const BACKOFF_MS = [1000, 2000, 4000, 8000, 16000, 30000];
 const EXPECTED_PROTOCOL = 2;
 
 export interface LiveSyncOptions {

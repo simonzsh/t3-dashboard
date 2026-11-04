@@ -13,7 +13,7 @@ const REMINDER_PREFIX = /^\s*(?:reminder|rappel)\s*:\s*/i;
 const pauseInstruction = (id: string) => `call schedule_task with scheduledTaskId ${id} and enabled: false`;
 const pausesItself = (task: RawScheduledTask) => (task.prompt ?? "").includes(pauseInstruction(task.id));
 const isWebhook = (task: RawScheduledTask) => task.schedule?.type === "webhook";
-const isReminder = (task: RawScheduledTask) => !isWebhook(task) && (pausesItself(task) || REMINDER_PREFIX.test(task.title ?? ""));
+export const isReminder = (task: RawScheduledTask) => !isWebhook(task) && (pausesItself(task) || REMINDER_PREFIX.test(task.title ?? ""));
 const TITLE_MAX = 60;
 const RUN_STATUSES = new Set<string>(["running", "succeeded", "failed"] satisfies AutomationRunStatus[]);
 
