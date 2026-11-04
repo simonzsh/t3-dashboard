@@ -23,7 +23,7 @@ interface Props {
   onSent: () => void;
 }
 
-/** New automation: asks an agent, in a new thread, to schedule a reminder or a routine. */
+/** New automation: asks an agent, in a new thread, to schedule a reminder, a routine or a webhook. */
 export function NewAutomationDialog({ projects, providers, defaults, onClose, onSent }: Props) {
   const api = useApi();
   const [projectId, setProjectId] = useState(() => loadProjectChoice(browserStorage(), KEY, projects));
@@ -79,7 +79,7 @@ export function NewAutomationDialog({ projects, providers, defaults, onClose, on
         onSend={send}
         onSettings={changeSettings}
         errorResetKey={projectId}
-        placeholder="Every weekday at 9:00, summarize my Linear tickets…"
+        placeholder="Every weekday at 9:00, summarize my tickets… or when someone requests my review, review the PR…"
         noImages
         focusKey={picks || undefined}
       />

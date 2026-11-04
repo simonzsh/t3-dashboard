@@ -36,13 +36,20 @@ export const isFinishedReminder = (a: Automation): boolean => a.kind === "remind
 
 const byLastRunDesc = (a: Automation, b: Automation) => (b.lastRunAt ?? "").localeCompare(a.lastRunAt ?? "");
 
-export function splitAutomations(list: Automation[]): { routines: Automation[]; reminders: Automation[] } {
+// Enabled hooks first: a paused one waits for the user.
+const byEnabledThenLastRun = (a: Automation, b: Automation) => Number(b.enabled) - Number(a.enabled) || byLastRunDesc(a, b);
+
+export function splitAutomations(list: Automation[]): { routines: Automation[]; reminders: Automation[]; webhooks: Automation[] } {
   const reminders = list.filter((a) => a.kind === "reminder");
   return {
     routines: list.filter((a) => a.kind === "routine").sort(byNextRun),
     reminders: [...reminders.filter((a) => !isFinishedReminder(a)).sort(byNextRun), ...reminders.filter(isFinishedReminder).sort(byLastRunDesc)],
+    webhooks: list.filter((a) => a.kind === "webhook").sort(byEnabledThenLastRun),
   };
 }
+
+// The URL holds a token: the UI copies it and never shows it.
+export const copyableUrl = (a: Automation): string | null => (a.kind === "webhook" ? (a.webhook?.url ?? null) : null);
 
 const two = (n: number) => String(n).padStart(2, "0");
 const hm = (d: Date) => `${d.getHours()}:${two(d.getMinutes())}`;

@@ -605,9 +605,9 @@ button.auto-row { cursor: pointer; }
 /* The delete button is a sibling of the row button, at its top right, so it never nests in it. */
 .auto-item { position: relative; }
 .auto-item .auto-row { padding-right: 58px; }
-.auto-delete, .auto-rename { position: absolute; top: 7px; }
+.auto-delete, .auto-rename, .auto-copy { position: absolute; top: 7px; }
 .auto-delete { right: 6px; }
-.auto-rename { right: 30px; }
+.auto-rename, .auto-copy { right: 30px; }
 .auto-item .icon-button.sm { min-width: 22px; height: 22px; border-radius: var(--radius-sm); }
 .auto-item .icon-button.sm svg { width: 14px; height: 14px; }
 .auto-sub { display: flex; align-items: center; gap: 6px; min-width: 0; white-space: nowrap; }
