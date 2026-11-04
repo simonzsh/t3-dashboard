@@ -120,6 +120,13 @@ test("run threads of an unbound task are hidden and the newest is the row thread
   assert.equal(result.automations[0]!.threadId, "run-new");
 });
 
+test("webhook event threads stay in the grid and the newest is the row thread", () => {
+  const threads = [thread("event-1", { createdAt: "2026-03-20T10:00:00.000Z" }), thread("event-2", { createdAt: "2026-03-20T12:00:00.000Z" })];
+  const result = convert([task({ schedule: { type: "webhook" } })], threads);
+  assert.deepEqual(result.hiddenThreadIds, []);
+  assert.equal(result.automations[0]!.threadId, "event-2");
+});
+
 test("a bound task never matches run threads", () => {
   const result = convert([task({ threadId: "t-chat" })], [thread("t-chat"), thread("lookalike")]);
   assert.deepEqual(result.hiddenThreadIds, []);

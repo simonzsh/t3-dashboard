@@ -156,7 +156,7 @@ A webhook task runs when a service sends a request to its URL, for example a Git
 
 1. Open a new automation and describe the event. Example: "When someone requests my review on a pull request, review it".
 2. The agent asks for the GitHub webhook secret in a private card. The secret never appears in the chat.
-3. The agent creates the task with a signature check and filters. Then it replies with the Payload URL, the content type (`application/json`), the secret and the events to select in the GitHub webhook settings.
+3. The agent creates the task with a signature check and filters. Then it replies with the Payload URL, the content type (`application/json`) and the events to select in the GitHub webhook settings. For the secret, use the value you typed in the card.
 4. Add the webhook in GitHub with these values.
 
 - The row shows the status of the last run. It has no next run.
