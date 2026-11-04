@@ -67,6 +67,8 @@ export function NotificationBell({ entries, count, now, onOpen, open, onOpenChan
   const list = useRef<HTMLDivElement>(null);
   // The active row is drawn by a class, not :focus-visible, which the browser skips after a mouse click.
   const [active, setActive] = useState(0);
+  // The ring shows once the arrows move the active row, not on opening or under the mouse.
+  const [keys, setKeys] = useState(false);
   const rows = () => [...(list.current?.querySelectorAll<HTMLElement>(".notif-row") ?? [])];
   const go = (index: number) => {
     setActive(index);
@@ -75,6 +77,7 @@ export function NotificationBell({ entries, count, now, onOpen, open, onOpenChan
   // Each opening, from a click or Ctrl+B even while typing, starts on the first row. A touch screen has no arrows: no active row.
   useEffect(() => {
     if (!open) return;
+    setKeys(false);
     if (matchMedia("(pointer: coarse)").matches) return setActive(-1);
     setActive(0);
     const frame = requestAnimationFrame(() => (rows()[0] ?? list.current)?.focus({ preventScroll: true }));
@@ -87,6 +90,7 @@ export function NotificationBell({ entries, count, now, onOpen, open, onOpenChan
     const count = rows().length;
     if (count === 0) return;
     e.preventDefault();
+    setKeys(true);
     go(e.key === "Home" ? 0 : e.key === "End" ? count - 1 : moveActive(count, active, e.key === "ArrowDown" ? 1 : -1));
   };
   return (
@@ -116,7 +120,7 @@ export function NotificationBell({ entries, count, now, onOpen, open, onOpenChan
             if (reason === "escape") button.current?.focus();
           }}
         >
-          <div ref={list} className="notif-list" tabIndex={-1} onKeyDown={onKeyDown}>
+          <div ref={list} className={`notif-list${keys ? " keys" : ""}`} tabIndex={-1} onKeyDown={onKeyDown} onMouseMove={() => keys && setKeys(false)}>
             <NotificationList
               entries={entries}
               now={now}

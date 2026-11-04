@@ -246,10 +246,10 @@ main { flex: 1; min-height: 0; overflow: hidden; padding: 24px; display: flex; f
 .notif-row, .notif-toast-body { display: flex; align-items: center; gap: 8px; min-height: var(--control-md); border: 0; text-align: left; }
 .notif-row { background: none; }
 .notif-row.active, .notif-row:focus-visible { background: var(--surface-0); }
-/* The ring follows the active row, the first one included: the browser alone skips it after a click. */
+/* The ring shows only while the arrows drive the list (.keys), the first row included. */
 .notif-row:focus-visible { outline: none; }
-.notif-row.active { outline: var(--focus-ring); outline-offset: -1px; }
-@media (pointer: coarse) { .notif-row.active { outline: none; background: none; } }
+.notif-list.keys .notif-row.active { outline: var(--focus-ring); outline-offset: -1px; }
+@media (pointer: coarse) { .notif-row.active { background: none; } }
 .notif-list { display: flex; flex-direction: column; gap: 2px; outline: none; }
 .notif-title { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .notif-age { flex: none; color: var(--text-secondary); }
