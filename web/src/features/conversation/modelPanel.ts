@@ -43,7 +43,9 @@ export const jumpLabel = (index: number, mac: boolean): string | null => (index 
 export function currentSpeed(selection: ModelSelection | null, model: DashboardModel): "fast" | "standard" | null {
   const speed = model.speed;
   if (!speed) return null;
-  return selection?.options?.find((option) => option.id === speed.optionId)?.value === speed.fast ? "fast" : "standard";
+  const value = selection?.options?.find((option) => option.id === speed.optionId)?.value;
+  const fast = value === undefined ? speed.defaultFast : value === speed.fast;
+  return fast ? "fast" : "standard";
 }
 
 export function selectSpeed(selection: ModelSelection, model: DashboardModel, fast: boolean): ModelSelection {

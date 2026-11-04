@@ -11,7 +11,7 @@ const providers: DashboardProvider[] = [
     displayName: "Claude",
     runtimeModes: ["approval-required", "full-access"],
     models: [
-      { slug: "opus", name: "Opus", effort: effort("effort", ["low", "medium", "high", "max"], "medium"), speed: { optionId: "fastMode", fast: true, standard: false }, favorite: null },
+      { slug: "opus", name: "Opus", effort: effort("effort", ["low", "medium", "high", "max"], "medium"), speed: { optionId: "fastMode", fast: true, standard: false, defaultFast: false }, favorite: null },
       { slug: "haiku", name: "Haiku", effort: null, speed: null, favorite: null },
     ],
   },

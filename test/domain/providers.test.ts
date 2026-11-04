@@ -44,7 +44,7 @@ test("toProviders reads the Fast option: a fastMode toggle, or a service tier na
       },
     ],
   });
-  assert.deepEqual(a!.models.map((m) => m.speed), [{ optionId: "fastMode", fast: true, standard: false }, { optionId: "serviceTier", fast: "priority", standard: "default" }, null]);
+  assert.deepEqual(a!.models.map((m) => m.speed), [{ optionId: "fastMode", fast: true, standard: false, defaultFast: false }, { optionId: "serviceTier", fast: "priority", standard: "default", defaultFast: false }, null]);
 });
 
 test("toProviders follows T3's model order, hides hidden models and ranks favorites", () => {
@@ -115,4 +115,14 @@ test("toProviders keeps the provider kind, which the instance id may not say", (
   const [a, b] = toProviders({ providers: [{ instanceId: "work-claude", driver: "claudeAgent", enabled: true, status: "ready", models: [] }, { instanceId: "x", enabled: true, status: "ready", models: [] }] });
   assert.equal(a!.driver, "claudeAgent");
   assert.equal(b!.driver, undefined);
+});
+
+test("a model that starts on Fast keeps a distinct Standard option and says Fast is its default", () => {
+  const tier = { id: "serviceTier", label: "Tier", type: "select", options: [{ id: "priority", label: "Fast", isDefault: true }, { id: "default", label: "Standard" }] };
+  const toggle = { id: "fastMode", label: "Fast", type: "boolean", currentValue: true };
+  const [p] = toProviders({ providers: [{ instanceId: "a", enabled: true, status: "ready", models: [{ slug: "terra", capabilities: { optionDescriptors: [tier] } }, { slug: "opus", capabilities: { optionDescriptors: [toggle] } }] }] });
+  assert.deepEqual(p!.models.map((m) => m.speed), [
+    { optionId: "serviceTier", fast: "priority", standard: "default", defaultFast: true },
+    { optionId: "fastMode", fast: true, standard: false, defaultFast: true },
+  ]);
 });

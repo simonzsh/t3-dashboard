@@ -6,8 +6,8 @@ import { chipLabel, currentSpeed, jumpIndex, jumpLabel, panelModels, selectSpeed
 const levels = (ids: string[]) => ids.map((id) => ({ id, label: id.toUpperCase() }));
 const model = (slug: string, name: string, extra: Partial<DashboardModel> = {}): DashboardModel => ({ slug, name, effort: null, speed: null, favorite: null, ...extra });
 const effort = { optionId: "effort", label: "Reasoning", levels: levels(["low", "high"]), defaultLevel: "high" };
-const toggle = { optionId: "fastMode", fast: true, standard: false };
-const tier = { optionId: "serviceTier", fast: "priority", standard: "default" };
+const toggle = { optionId: "fastMode", fast: true, standard: false, defaultFast: false };
+const tier = { optionId: "serviceTier", fast: "priority", standard: "default", defaultFast: false };
 
 const providers: DashboardProvider[] = [
   { instanceId: "claudeAgent", displayName: "Claude", runtimeModes: [], models: [model("opus", "Opus", { effort, speed: toggle, favorite: 1 }), model("haiku", "Haiku")] },
@@ -54,6 +54,8 @@ test("currentSpeed reads the toggle or the tier, standard by default", () => {
   assert.equal(currentSpeed({ instanceId: "codex", model: "gpt", options: [{ id: "serviceTier", value: "priority" }] }, gpt), "fast");
   assert.equal(currentSpeed({ instanceId: "codex", model: "gpt" }, gpt), "standard");
   assert.equal(currentSpeed(null, providers[0]!.models[1]!), null);
+  // No option sent yet: the model's own default, Fast for some.
+  assert.equal(currentSpeed({ instanceId: "codex", model: "gpt" }, { ...gpt, speed: { ...tier, defaultFast: true } }), "fast");
 });
 
 test("selectSpeed sets the Fast option and keeps the others", () => {

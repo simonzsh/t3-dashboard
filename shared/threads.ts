@@ -57,6 +57,8 @@ export interface ModelSpeed {
   optionId: string;
   fast: string | boolean;
   standard: string | boolean;
+  /** T3's default for the model: some models start on Fast. */
+  defaultFast: boolean;
 }
 
 export interface DashboardModel {

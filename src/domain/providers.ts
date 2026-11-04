@@ -17,11 +17,14 @@ function toEffort(descriptors: RawOptionDescriptor[] = []): ModelEffort | null {
 
 // Like T3 Code: a fastMode toggle, or a serviceTier select with an option labelled Fast.
 function toSpeed(descriptors: RawOptionDescriptor[] = []): ModelSpeed | null {
-  if (descriptors.some((descriptor) => descriptor.id === "fastMode" && descriptor.type === "boolean")) return { optionId: "fastMode", fast: true, standard: false };
+  const toggle = descriptors.find((descriptor) => descriptor.id === "fastMode" && descriptor.type === "boolean");
+  if (toggle) return { optionId: "fastMode", fast: true, standard: false, defaultFast: toggle.currentValue === true };
   const tier = descriptors.find((descriptor) => descriptor.id === "serviceTier" && descriptor.type === "select");
   const fast = tier?.options?.find((option) => option.label === "Fast");
-  const standard = tier?.options?.find((option) => option.isDefault) ?? tier?.options?.find((option) => option !== fast);
-  return tier && fast && standard ? { optionId: tier.id, fast: fast.id, standard: standard.id } : null;
+  // Standard is never the Fast option, even when Fast is the model's default.
+  const others = tier?.options?.filter((option) => option !== fast) ?? [];
+  const standard = others.find((option) => option.isDefault) ?? others[0];
+  return tier && fast && standard ? { optionId: tier.id, fast: fast.id, standard: standard.id, defaultFast: fast.isDefault === true } : null;
 }
 
 interface Preferences {
