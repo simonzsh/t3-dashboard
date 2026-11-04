@@ -6,6 +6,8 @@ import { ConnectionBanner } from "./features/setup/ConnectionBanner.tsx";
 import { DeskView } from "./features/desk/DeskView.tsx";
 import { NewAutomationDialog } from "./features/new-thread/NewAutomationDialog.tsx";
 import { NewThreadDialog } from "./features/new-thread/NewThreadDialog.tsx";
+import { NotificationBell, NotificationToasts } from "./features/notifications/NotificationBell.tsx";
+import { useNotifications } from "./features/notifications/useNotifications.ts";
 import { Switcher } from "./features/switcher/Switcher.tsx";
 import { useOpenHistory } from "./features/switcher/useOpenHistory.ts";
 import { SettingsDialog } from "./features/settings/SettingsDialog.tsx";
@@ -38,7 +40,7 @@ function focusComposer(threadId: string) {
 }
 
 export function App() {
-  const { state, sseDown, remoteDesk, connects } = useDashboard();
+  const { state, sseDown, remoteDesk, remoteSeen, connects } = useDashboard();
   const [tab, setTab] = useTab();
   const automations = useAutomations(tab === "agents" && state?.connection.t3 === "live");
   const [desk, dispatchDesk] = useDesk();
@@ -50,9 +52,24 @@ export function App() {
     remote: remoteDesk,
     connects,
   });
+  // The focused desk window on the visible Desk tab is already in front of the user: no toast for it.
+  const watching = useRef<(id: string) => boolean>(() => false);
+  watching.current = (id) => tab === "desk" && desk.focusedId === id;
+  const notify = useNotifications({
+    threads: state?.connection.t3 === "live" ? state.threads : null,
+    quiet: useCallback((id: string) => watching.current(id), []),
+    remote: remoteSeen,
+    connects,
+  });
   const [creating, setCreating] = useState(false);
   const [creatingAutomation, setCreatingAutomation] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [bellOpen, setBellOpen] = useState(false);
+  // The menu lists every toast: clear them rather than cover the menu.
+  const showBell = (open: boolean) => {
+    if (open) notify.clearToasts();
+    setBellOpen(open);
+  };
   const [confirmingUpdate, setConfirmingUpdate] = useState(false);
   // null: closed; a string: open, seeded with that query.
   const [switcherQuery, setSwitcherQuery] = useState<string | null>(null);
@@ -88,6 +105,7 @@ export function App() {
   function openOnDesk(id: string, showDesk: boolean) {
     dispatchDesk({ type: "open", id });
     recordOpened(id);
+    notify.markSeen(id);
     if (showDesk) setTab("desk");
   }
 
@@ -108,6 +126,7 @@ export function App() {
     (action) => {
       if (action === "agents" || action === "board" || action === "desk") setTab(action);
       else if (action === "settings") setSettingsOpen(true);
+      else if (action === "notifications") showBell(!bellOpen);
       else if (action === "switcher") {
         if (state && !creating && !creatingAutomation && !settingsOpen && !confirmingUpdate) setSwitcherQuery((open) => (open === null ? "" : null));
       } else if (action === "new-agent") {
@@ -221,12 +240,14 @@ export function App() {
                 New Automation
               </Button>
             ))}
+          <NotificationBell entries={notify.entries} count={notify.count} now={now} onOpen={(id) => openOnDesk(id, true)} open={bellOpen} onOpenChange={showBell} />
           <IconButton label="Settings" kbd={ctrlLabel(",")} onClick={() => setSettingsOpen(true)}>
             <Icon name="settings" strokeWidth={1.8} />
           </IconButton>
         </div>
       </header>
       <ConnectionBanner connection={state?.connection ?? null} sseDown={sseDown} />
+      <NotificationToasts toasts={notify.toasts} onOpen={(id) => openOnDesk(id, true)} onDismiss={notify.dismiss} />
       <main>
         {tab === "agents" &&
           (state ? (

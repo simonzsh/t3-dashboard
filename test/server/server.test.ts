@@ -12,6 +12,8 @@ import { DeskStore } from "../../src/domain/deskStore.ts";
 import { StashStore } from "../../src/domain/stashStore.ts";
 import type { StashEntry } from "../../shared/stash.ts";
 import type { SharedDesk } from "../../shared/desk.ts";
+import type { SeenState } from "../../shared/seen.ts";
+import { SeenStore } from "../../src/domain/seenStore.ts";
 import { createSettings } from "../../src/domain/settings.ts";
 import { createDashboardServer } from "../../src/server/server.ts";
 import type { DashboardHandler } from "../../src/server/server.ts";
@@ -44,6 +46,7 @@ interface StartOptions {
   allowedHosts?: string[];
   desk?: SharedDesk | null;
   stash?: StashEntry[];
+  seen?: SeenState | null;
 }
 
 const LINEAR_FILE = "/cfg/linear.json";
@@ -119,6 +122,8 @@ async function start(startOptions: StartOptions = {}) {
   const savedStashes: StashEntry[][] = [];
   let stashed = 0;
   const stash = new StashStore(startOptions.stash ?? [], (entries) => void savedStashes.push(entries), { now: () => new Date("2026-11-04T10:00:00Z"), newId: () => `stash-${++stashed}` });
+  const savedSeen: SeenState[] = [];
+  const seen = new SeenStore(startOptions.seen ?? null, (value) => void savedSeen.push(value));
   const events: DashboardEvent[] = [];
   const broadcast = hub.broadcast.bind(hub);
   hub.broadcast = (event) => (events.push(event), broadcast(event));
@@ -127,6 +132,7 @@ async function start(startOptions: StartOptions = {}) {
     actions,
     desk,
     stash,
+    seen,
     hub,
     board,
     automations,
@@ -139,7 +145,7 @@ async function start(startOptions: StartOptions = {}) {
     allowedHosts: startOptions.allowedHosts,
   });
   running.push(async () => hub.close());
-  return { port, store, hub, server, savedDesks, savedStashes, events, linearCalls, files, setupCalls, updateRuns };
+  return { port, store, hub, server, savedDesks, savedStashes, savedSeen, events, linearCalls, files, setupCalls, updateRuns };
 }
 
 interface Reply {
@@ -538,6 +544,7 @@ test("every POST route refuses a body that is not JSON", async () => {
     "/api/board/assign",
     "/api/desk",
     "/api/stash",
+    "/api/seen",
     "/api/setup/retry",
     "/api/setup/token",
     "/api/update/check",
@@ -1313,4 +1320,45 @@ test("a stash change is broadcast to every open page, and a refused one is not",
   await post(server, "/api/stash", { text: " ", uploads: [], threadId: "t-9", threadTitle: "Other" });
   const lists = events.filter((e) => e.type === "stash").map((e) => (e.data as StashEntry[]).map((x) => x.id));
   assert.deepEqual(lists, [["stash-1", "a"], ["stash-1"]]);
+});
+
+test("GET /api/seen is null until a baseline is set, then returns the state", async () => {
+  assert.deepEqual((await call((await start()).server, "GET", "/api/seen")).json, { seen: null });
+  const saved = { since: "2026-01-01T00:00:00Z", seen: { a: "2026-01-02T00:00:00Z" } };
+  assert.deepEqual((await call((await start({ seen: saved })).server, "GET", "/api/seen")).json, { seen: saved });
+});
+
+test("POST /api/seen sets the baseline once, saves it and broadcasts the full state", async () => {
+  const { server, savedSeen, events } = await start();
+  assert.deepEqual((await post(server, "/api/seen", { since: "2026-01-01T00:00:00Z" })).json, { ok: true, seen: { since: "2026-01-01T00:00:00Z", seen: {} } });
+  // A later baseline changes nothing, but the answer still carries the current state.
+  assert.deepEqual((await post(server, "/api/seen", { since: "2026-06-01T00:00:00Z" })).json, { ok: true, seen: { since: "2026-01-01T00:00:00Z", seen: {} } });
+  const state = { since: "2026-01-01T00:00:00Z", seen: {} };
+  assert.deepEqual(savedSeen, [state]);
+  assert.deepEqual(events, [{ type: "seen", data: state }]);
+  assert.deepEqual((await call(server, "GET", "/api/seen")).json, { seen: state });
+});
+
+test("POST /api/seen marks a thread forward only, and stays silent when nothing changes", async () => {
+  const { server, savedSeen, events } = await start({ seen: { since: "2026-01-01T00:00:00Z", seen: {} } });
+  await post(server, "/api/seen", { id: "a", at: "2026-01-05T00:00:00Z" });
+  await post(server, "/api/seen", { id: "a", at: "2026-01-03T00:00:00Z" });
+  await post(server, "/api/seen", { id: "b", at: "2025-12-01T00:00:00Z" });
+  assert.deepEqual(savedSeen, [{ since: "2026-01-01T00:00:00Z", seen: { a: "2026-01-05T00:00:00Z" } }]);
+  assert.equal(events.length, 1);
+});
+
+test("POST /api/seen ignores a mark while there is no baseline", async () => {
+  const { server, savedSeen, events } = await start();
+  assert.deepEqual((await post(server, "/api/seen", { id: "a", at: "2026-01-05T00:00:00Z" })).json, { ok: true, seen: null });
+  assert.deepEqual(savedSeen, []);
+  assert.deepEqual(events, []);
+});
+
+test("POST /api/seen refuses a body that is neither a mark nor a baseline", async () => {
+  const { server, savedSeen, events } = await start();
+  const bad = [{}, { id: "a" }, { at: "x" }, { id: "", at: "x" }, { id: 1, at: "x" }, { id: "a".repeat(201), at: "x" }, { since: "" }, { since: 3 }, { since: "x".repeat(65) }, { since: "~" }, { since: "2026-13-45T00:00:00Z" }, { id: "a", at: "~" }];
+  for (const body of bad) assert.equal((await post(server, "/api/seen", body)).status, 400, JSON.stringify(body));
+  assert.deepEqual(savedSeen, []);
+  assert.deepEqual(events, []);
 });

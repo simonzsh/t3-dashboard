@@ -1,6 +1,7 @@
 import type { ApprovalDecision, AssignIssueBody, AutomationRequestBody, CreateThreadBody, ModelSelection, RespondBody, RewindBody, SendMessageBody, ThreadSettingsBody, UploadedAttachment, UserInputAnswers } from "../../shared/api.ts";
 import { normalizeDesk, type DeskUpdate } from "../../shared/desk.ts";
 import { IMAGE_TYPES, MAX_ATTACHMENTS, MAX_FILE_BYTES, MAX_IMAGE_BYTES, MAX_IMAGES, isRuntimeMode } from "../../shared/limits.ts";
+import { isSeenId, isSeenTime, type SeenChange } from "../../shared/seen.ts";
 import { STASH_TEXT_MAX, type StashBody } from "../../shared/stash.ts";
 import type { FileUpload, ImageUpload } from "../domain/actions.ts";
 import { HttpError } from "./httpError.ts";
@@ -226,4 +227,10 @@ export function validStash(body: Record<string, unknown>): StashBody {
     throw new HttpError(400, `threadId and threadTitle (up to ${MAX_THREAD_TITLE} characters) are required`);
   }
   return { text, uploads, threadId, threadTitle };
+}
+
+export function validSeen(body: Record<string, unknown>): SeenChange {
+  if (isSeenId(body.id) && isSeenTime(body.at)) return { id: body.id, at: body.at };
+  if (isSeenTime(body.since)) return { since: body.since };
+  throw new HttpError(400, "id and at (a mark), or since (the baseline), are required");
 }

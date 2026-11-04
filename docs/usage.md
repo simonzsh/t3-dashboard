@@ -32,6 +32,7 @@ The Desk shows many conversations side by side, in a grid.
 - Click a window in the dock to open it again.
 - Drag the dividers to change the size of the columns and rows. The browser keeps these sizes for each number of windows.
 - Each window has three buttons: full screen, minimize, close.
+- The server keeps which finished conversations you opened, for the notification bell, in `~/.config/t3-dashboard/seen.json`. A conversation read on one device is read on all of them.
 - The server keeps which conversations are on the Desk in `~/.config/t3-dashboard/desk.json`. Every device shows the same conversations, and an opened or closed window appears on the other open tabs at once. Each device keeps its own window order, minimized windows, focused window, full screen window, sizes and Jump to history.
 - In Settings, select a background for the Desk: a gradient or your own image.
 
@@ -183,6 +184,7 @@ The shortcuts use `Ctrl`, also on a Mac, and they work while you type in a field
 | `Ctrl` + `N` | Opens New Agent. |
 | `Ctrl` + `⇧` + `N` | Opens a new automation (New Automation). |
 | `Ctrl` + `,` | Opens Settings. |
+| `Ctrl` + `B` | Opens or closes the notifications (the bell). |
 | `Ctrl` + `X` | Desk: closes the active window. |
 | `Ctrl` + `F` | Desk: puts the active window in full screen, or takes it out of full screen. |
 | `Ctrl` + `M` | Desk: minimizes the active window. |

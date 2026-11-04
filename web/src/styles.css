@@ -236,6 +236,25 @@ main { flex: 1; min-height: 0; overflow: hidden; padding: 24px; display: flex; f
 .menu { font-size: 12px; display: flex; flex-direction: column; gap: 2px; padding: 4px; border-radius: 10px; background: var(--surface-1); border: 1px solid var(--line); box-shadow: var(--shadow); }
 .menu button { display: flex; gap: 8px; align-items: center; border: 0; text-align: left; }
 .menu .provider-icon { margin: 0; }
+/* Notification bell: badge, menu, toasts. */
+.notif-bell { position: relative; }
+.notif-icon { position: relative; display: inline-flex; }
+.notif-count { position: absolute; top: -7px; right: -5px; min-width: 16px; height: 16px; padding: 0 4px; box-sizing: border-box; border-radius: 999px; background: var(--accent); color: var(--on-accent); font-size: 10px; font-weight: 700; line-height: 16px; text-align: center; pointer-events: none; }
+.notif-menu { width: min(360px, calc(100vw - 16px)); max-height: min(70vh, 480px); overflow-y: auto; display: flex; flex-direction: column; gap: 2px; padding: 4px; border-radius: 10px; background: var(--surface-1); border: 1px solid var(--line); box-shadow: var(--shadow); font-size: 12px; }
+.notif-heading { margin: 0; padding: 6px 8px; font-size: 12px; font-weight: 600; color: var(--text-secondary); }
+.notif-empty { margin: 0; padding: 12px 8px; color: var(--text-secondary); }
+.notif-row, .notif-toast-body { display: flex; align-items: center; gap: 8px; min-height: var(--control-md); border: 0; text-align: left; }
+.notif-row { background: none; }
+.notif-row:hover:not(:disabled) { background: var(--surface-0); }
+.notif-title { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.notif-age { flex: none; color: var(--text-secondary); }
+.notif-row .provider-icon, .notif-toast-body .provider-icon { width: 16px; height: 16px; margin: 0; }
+.notif-dot { flex: none; width: 8px; height: 8px; border-radius: 50%; background: var(--accent); }
+/* Under popovers (50): an open menu stays on top of a late toast. */
+.notif-toasts { position: fixed; z-index: 45; top: calc(var(--topbar-h, 0px) + 8px); right: 12px; width: min(340px, calc(100vw - 24px)); display: flex; flex-direction: column; gap: 6px; pointer-events: none; }
+.notif-toast { pointer-events: auto; display: flex; align-items: center; gap: 4px; padding: 4px; border-radius: var(--radius-md); background: var(--surface-1); border: 1px solid var(--line); box-shadow: var(--shadow); font-size: 13px; }
+.notif-toast-body { flex: 1; min-width: 0; background: none; }
+.notif-toast .icon-button { border: 0; background: none; }
 .conversation { flex: 1; min-height: 0; display: flex; flex-direction: column; }
 .conversation:focus { outline: none; }
 .messages-frame { flex: 1; min-height: 0; display: flex; flex-direction: column; position: relative; }
@@ -681,9 +700,14 @@ button.auto-row:hover { transform: translateY(-1px); }
   .pane-dots button.active::before { width: 16px; background: var(--accent); }
   .app:not(.desk-mode) :is(.agents-page, .board):has(.pane-dots) { padding-bottom: 48px; }
   .switcher-meta { display: none; }
+  .notif-toasts { left: 12px; right: 12px; width: auto; }
   /* One line: short title, small tabs, icon actions. The insets keep it clear of the iPhone notch in landscape. */
   .topbar { gap: 8px; padding: max(8px, env(safe-area-inset-top)) max(12px, env(safe-area-inset-right)) 8px max(12px, env(safe-area-inset-left)); }
-  .topbar-left, .topbar-right { gap: 8px; }
+  /* Content-sized side columns: equal 1fr sides made the tabs cover the title once the right side grew. */
+  .topbar { grid-template-columns: auto 1fr auto; }
+  .topbar .tabs { justify-self: center; }
+  .topbar-left { gap: 8px; }
+  .topbar-right { gap: 4px; }
   .tabs { gap: 2px; }
   .tabs button { padding: 4px 10px; font-size: 13px; }
   .topbar h1 .title-rest, .conn-label { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
@@ -715,7 +739,7 @@ button.auto-row:hover { transform: translateY(-1px); }
 }
 @media (max-width: 380px) {
   .topbar { gap: 6px; padding-inline: max(8px, env(safe-area-inset-left)) max(8px, env(safe-area-inset-right)); }
-  .topbar-left, .topbar-right { gap: 6px; }
+  .topbar-left { gap: 6px; }
   .tabs button { padding: 4px 7px; font-size: 12px; }
 }
 @media (max-width: 900px) {
@@ -730,6 +754,9 @@ button.auto-row:hover { transform: translateY(-1px); }
   .agents-switcher .field { padding-right: 12px; }
 }
 @media (pointer: coarse) {
+  .notif-row, .notif-toast-body { min-height: 44px; }
+  /* A wider hit area with no layout cost: the phone header has no room for a 44px button. */
+  .notif-bell::before { content: ""; position: absolute; inset: -6px; }
   /* iOS zooms into any field under 16px on focus. */
   input, textarea { font-size: 16px; }
 }
