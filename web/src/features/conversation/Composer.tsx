@@ -14,7 +14,7 @@ import { useDebouncedValue } from "../../lib/useDebouncedValue.ts";
 import { useMediaQuery } from "../../lib/useMediaQuery.ts";
 import { insertText } from "../../lib/paste.ts";
 import { StashDrawer } from "./StashDrawer.tsx";
-import { isStashKey, planRestore } from "./stash.ts";
+import { isStashKey, planRestore, withStashed } from "./stash.ts";
 import { mergeDraft } from "./rewind.ts";
 
 interface Attached {
@@ -300,7 +300,7 @@ export function Composer({ providers, selection, runtimeMode, running, stoppable
     if (!settled) return setError("Wait for the uploads to finish before stashing this prompt.");
     const sent = await attempt(async () => {
       const { entry, evicted } = await api.createStash({ text: draft, uploads: files.map((f) => f.attachment!), threadId: stash.threadId, threadTitle: stash.title });
-      setStash((list) => [entry, ...list].slice(0, STASH_LIMIT));
+      setStash((list) => withStashed(list, entry));
       evicted.forEach((e) => free(e.uploads));
       if (evicted.length > 0) setError(`The stash holds ${STASH_LIMIT} prompts; the oldest was removed to make room.`);
     }, setStashing);
