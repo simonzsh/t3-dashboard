@@ -9,7 +9,8 @@ test("previewKind picks the frame by type, then by extension", () => {
   assert.equal(previewKind(file("shot.png", "image/png", "image")), "image");
   assert.equal(previewKind(file("a.pdf", "application/pdf")), "pdf");
   assert.equal(previewKind(file("page.html", "text/html")), "html");
-  assert.equal(previewKind(file("page.HTM", null)), "html");
+  assert.equal(previewKind(file("page.htm", "text/html")), "text");
+  assert.equal(previewKind(file("page.HTML", null)), "other");
   assert.equal(previewKind(file("notes.md", "text/markdown")), "text");
   assert.equal(previewKind(file("data.json", "application/json")), "text");
   assert.equal(previewKind(file("a.zip", "application/zip")), "other");

@@ -17,7 +17,8 @@ export function previewKind({ name, mimeType, kind }: Pick<ChatAttachment, "name
   const type = (mimeType ?? "").toLowerCase();
   if (kind === "image" || type.startsWith("image/")) return "image";
   if (type === "application/pdf") return "pdf";
-  if (type === "text/html" || /\.html?$/i.test(name)) return "html";
+  // The server renders a themed page only for a name ending in ".html"; any other HTML shows as text.
+  if (name.endsWith(".html")) return "html";
   if (type.startsWith("text/") || type === "application/json") return "text";
   return "other";
 }
