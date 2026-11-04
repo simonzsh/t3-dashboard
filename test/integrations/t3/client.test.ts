@@ -220,6 +220,84 @@ test("renameScheduledTask refuses an unknown task without upserting", async () =
   assert.equal(socket.sent.filter((frame) => frame._tag === "Request").length, 1);
 });
 
+test("setScheduledTaskWorkspace keeps every other field, a webhook schedule included", async () => {
+  const { client } = setup();
+  const done = client.setScheduledTaskWorkspace("hook-1", { type: "root" });
+  const socket = await nextSocket();
+  const schedule = { type: "webhook", signature: { header: "x-hub-signature-256", encoding: "hex", prefix: "sha256=" }, filters: [{ path: "body.action", op: "equals", value: "opened" }], dedupe: { window: 60 }, maxDeliveryAge: 5 };
+  const raw = { id: "hook-1", title: "Hook", prompt: "Do it", enabled: true, schedule, projectId: "p1", threadId: null, workspaceStrategy: { type: "worktree", baseRef: "main" }, modelSelection: { instanceId: "i", model: "m" }, runtimeMode: "full-access", interactionMode: "default", creationSource: "mcp", unknownField: 1 };
+  socket.receive({ _tag: "Chunk", requestId: "1", values: [{ tasks: [raw] }] });
+  await tick();
+  const upsert = socket.sent.find((frame) => frame.tag === "scheduledTasks.upsert")!;
+  const { unknownField, ...kept } = raw;
+  assert.deepEqual(upsert.payload, { ...kept, workspaceStrategy: { type: "root" }, requireExisting: true });
+  socket.receive({ _tag: "Exit", requestId: "2", exit: { _tag: "Success", value: {} } });
+  await done;
+});
+
+test("setScheduledTaskWorkspace refuses an unknown task without upserting", async () => {
+  const { client } = setup();
+  const done = client.setScheduledTaskWorkspace("gone", { type: "root" });
+  const socket = await nextSocket();
+  socket.receive({ _tag: "Chunk", requestId: "1", values: [{ tasks: [{ id: "task-1" }] }] });
+  await assert.rejects(done, IntegrationError);
+  assert.equal(socket.sent.filter((frame) => frame._tag === "Request").length, 1);
+});
+
+test("a refused task update is rebuilt without T3's message", async () => {
+  const { client } = setup();
+  const done = client.setScheduledTaskWorkspace("task-1", { type: "root" });
+  const socket = await nextSocket();
+  socket.receive({ _tag: "Chunk", requestId: "1", values: [{ tasks: [{ id: "task-1", prompt: "p" }] }] });
+  await tick();
+  const error = { _tag: "ScheduledTaskError", message: "Could not decode dummy-secret" };
+  socket.receive({ _tag: "Exit", requestId: "2", exit: { _tag: "Failure", cause: [{ _tag: "Fail", error }] } });
+  const failure = await done.then(() => null, (e: IntegrationError) => e);
+  assert.deepEqual([failure?.kind, failure?.message], ["refused", "T3 refused the scheduled task update."]);
+});
+
+test("setScheduledTaskEnabled sends the id and the flag, and is sent again after a cut", async () => {
+  const { client } = setup();
+  const done = client.setScheduledTaskEnabled("task-1", false);
+  const socket = await nextSocket();
+  assert.equal(socket.sent[0]!.tag, "scheduledTasks.setEnabled");
+  assert.deepEqual(socket.sent[0]!.payload, { id: "task-1", enabled: false });
+  socket.close();
+  for (let i = 0; i < 20 && FakeSocket.instances.length < 2; i++) await tick();
+  const retry = FakeSocket.instances[1]!;
+  retry.open();
+  assert.deepEqual(retry.sent[0]!.payload, { id: "task-1", enabled: false });
+  retry.receive({ _tag: "Exit", requestId: "1", exit: { _tag: "Success", value: {} } });
+  await done;
+});
+
+test("subscribeScheduledTasks passes valid snapshots on, warns once on a wrong one and skips it", async () => {
+  const { client, warnings } = setup();
+  const seen: unknown[] = [];
+  client.subscribeScheduledTasks((tasks) => seen.push(tasks), () => {});
+  const socket = await nextSocket();
+  assert.equal(socket.sent[0]!.tag, "scheduledTasks.subscribe");
+  assert.deepEqual(socket.sent[0]!.payload, {});
+  const bad = { tasks: [{ id: "t1", prompt: 99 }] };
+  socket.receive({ _tag: "Chunk", requestId: "1", values: [{ tasks: [{ id: "t0", title: "A" }] }, bad] });
+  socket.receive({ _tag: "Chunk", requestId: "1", values: [bad] });
+  assert.deepEqual(seen, [[{ id: "t0", title: "A" }]]);
+  assert.equal(warnings.length, 1);
+  assert.ok(!warnings[0]!.includes("99"));
+});
+
+test("subscribeScheduledTasks calls onEnd when T3 ends the stream, and cancel closes the socket", async () => {
+  const { client } = setup();
+  const ends: unknown[] = [];
+  const handle = client.subscribeScheduledTasks(() => {}, (error) => ends.push(error));
+  const socket = await nextSocket();
+  socket.receive({ _tag: "Exit", requestId: "1", exit: { _tag: "Success", value: undefined } });
+  assert.equal(ends.length, 1);
+  handle.cancel();
+  assert.equal(socket.closed, true);
+  assert.equal(ends.length, 1);
+});
+
 test("listScheduledTasks rejects an answer without a task list", async () => {
   const { client } = setup();
   const done = client.listScheduledTasks();

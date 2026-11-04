@@ -26,6 +26,7 @@ export const RPC = {
   subscribeScheduledTasks: "scheduledTasks.subscribe",
   deleteScheduledTask: "scheduledTasks.delete",
   upsertScheduledTask: "scheduledTasks.upsert",
+  setEnabledScheduledTask: "scheduledTasks.setEnabled",
   answerSecret: "secrets.answerRequest",
 } as const;
 
@@ -59,7 +60,7 @@ export interface T3ClientOptions {
 }
 
 // Safe to send twice: a retry after a lost connection cannot repeat a side effect.
-const IDEMPOTENT = new Set<string>([RPC.getConfig, RPC.searchThreads, RPC.createAssetUrl, RPC.ensureScratch, RPC.getTurnItem, RPC.searchEntries]);
+const IDEMPOTENT = new Set<string>([RPC.getConfig, RPC.searchThreads, RPC.createAssetUrl, RPC.ensureScratch, RPC.getTurnItem, RPC.searchEntries, RPC.setEnabledScheduledTask]);
 
 const SECRET_REFUSALS: Record<string, string> = {
   not_found: "This secret request no longer exists.",
@@ -127,14 +128,32 @@ export class T3Client implements T3Port {
     return read(UpsertedScheduledTask, answer, "scheduledTasks.upsert").task;
   }
 
-  // The upsert replaces the whole task, so every field comes from T3's raw answer: the reduced schema would drop some.
   async renameScheduledTask(id: string, title: string): Promise<void> {
+    await this.upsertKeeping(id, { title });
+  }
+
+  async setScheduledTaskWorkspace(id: string, workspaceStrategy: { type: "root" }): Promise<void> {
+    await this.upsertKeeping(id, { workspaceStrategy });
+  }
+
+  async setScheduledTaskEnabled(id: string, enabled: boolean): Promise<void> {
+    await this.call(RPC.setEnabledScheduledTask, { id, enabled });
+  }
+
+  // The upsert replaces the whole task, so every field comes from T3's raw answer: the reduced schema would drop some.
+  // A refusal is rebuilt without T3's message: it can echo the payload, which may hold a signing secret.
+  private async upsertKeeping(id: string, patch: Record<string, unknown>): Promise<void> {
     const answer = await this.scheduledTasksSnapshot();
     read(ScheduledTasksResponse, answer, RPC.subscribeScheduledTasks);
     const task = (answer as { tasks: Record<string, unknown>[] }).tasks.find((entry) => entry.id === id);
     if (!task) throw new IntegrationError("T3 has no scheduled task with this id", { system: "t3", kind: "refused" });
-    const keep = Object.fromEntries(UPSERT_FIELDS.map((key) => [key, task[key]]));
-    await this.call(RPC.upsertScheduledTask, { ...keep, id, requireExisting: true, title });
+    const keep = Object.fromEntries(["title", ...UPSERT_FIELDS].map((key) => [key, task[key]]));
+    try {
+      await this.call(RPC.upsertScheduledTask, { ...keep, ...patch, id, requireExisting: true });
+    } catch (error) {
+      if (!(error instanceof IntegrationError) || error.kind !== "refused") throw error;
+      throw new IntegrationError("T3 refused the scheduled task update.", { system: "t3", kind: "refused", ...(error.reason && { reason: error.reason }) });
+    }
   }
 
   // T3 sends an initial snapshot, then keeps the stream open for changes.
@@ -241,6 +260,46 @@ export class T3Client implements T3Port {
         // Without the marker T3 never sends `synchronized`, and the store would never commit.
         const payload = { requestCompletionMarker: true };
         cancelStream = opened.stream(RPC.subscribeShell, payload, (values) => onItems(this.checkShell(values)), finish).cancel;
+      },
+      (error: Error) => finish(error),
+    );
+    return {
+      cancel() {
+        cancelled = true;
+        cancelStream?.();
+        connection?.close();
+      },
+    };
+  }
+
+  subscribeScheduledTasks(onTasks: (tasks: RawScheduledTask[]) => void, onEnd: (error?: Error) => void): { cancel(): void } {
+    let connection: RpcConnection | undefined;
+    let cancelStream: (() => void) | undefined;
+    let cancelled = false;
+    const finish = (error?: Error) => {
+      connection?.close();
+      if (!cancelled) onEnd(error);
+    };
+    // A wrong snapshot is skipped, never thrown: the guard must keep running.
+    const receive = (values: unknown[]) => {
+      for (const value of values) {
+        const found = issues(ScheduledTasksResponse, value);
+        if (found.length > 0) {
+          const message = `T3 contract: ${RPC.subscribeScheduledTasks} ${describe(found[0]!)}`;
+          if (!this.warned.has(message)) {
+            this.warned.add(message);
+            this.warn(message);
+          }
+          continue;
+        }
+        onTasks((value as { tasks: RawScheduledTask[] }).tasks);
+      }
+    };
+    this.openSocket().then(
+      (opened) => {
+        connection = opened;
+        if (cancelled) return opened.close();
+        cancelStream = opened.stream(RPC.subscribeScheduledTasks, {}, receive, finish).cancel;
       },
       (error: Error) => finish(error),
     );

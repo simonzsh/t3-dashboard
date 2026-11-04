@@ -73,9 +73,12 @@ export const RawScheduledTask = s.object({
   projectId: text(),
   threadId: text(),
   modelSelection: s.optional(s.nullable(ModelSelection)),
+  workspaceStrategy: s.optional(s.nullable(s.object({ type: text() }))),
+  runCount: s.optional(s.nullable(s.number())),
   createdBy: text(),
   creationSource: text(),
   createdAt: text(),
+  updatedAt: text(),
   nextRunAt: text(),
   lastRunAt: text(),
   lastRunStatus: text(),
@@ -415,6 +418,12 @@ export interface T3Port {
   createScheduledTask(task: NewScheduledTask): Promise<RawScheduledTask>;
   /** Sets the title of a scheduled task and leaves every other field as T3 has it. */
   renameScheduledTask(id: string, title: string): Promise<void>;
+  /** Sets the workspace of a scheduled task and leaves every other field as T3 has it. */
+  setScheduledTaskWorkspace(id: string, workspaceStrategy: { type: "root" }): Promise<void>;
+  /** Pauses or resumes a scheduled task. */
+  setScheduledTaskEnabled(id: string, enabled: boolean): Promise<void>;
+  /** Full task snapshots: T3 sends the whole list on each change. */
+  subscribeScheduledTasks(onTasks: (tasks: RawScheduledTask[]) => void, onEnd: (error?: Error) => void): { cancel(): void };
   /** Message matches in T3, best first. */
   searchThreads(query: string, limit?: number): Promise<RawSearchMatch[]>;
   persistAttachments(threadId: string, messageId: string, images: ImageUpload[]): Promise<AttachmentRef[]>;
