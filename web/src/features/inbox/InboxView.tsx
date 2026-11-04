@@ -1,12 +1,16 @@
-import { useMemo, useState, type ReactNode } from "react";
+import { useMemo } from "react";
 import type { AutomationsResult, DashboardState, DashboardThread } from "../../../../shared/api.ts";
+import type { SeenState } from "../../../../shared/seen.ts";
+import { threadState } from "../../../../shared/status.ts";
+import { useAction } from "../../lib/useAction.ts";
 import { useScrolled } from "../../lib/useScrolled.ts";
-import { Icon, Kbd, Loader, Pressable, TextInput } from "../../ui/index.ts";
+import { Button, Icon, Kbd, Loader, TextInput } from "../../ui/index.ts";
 import { excludeRoutineThreads } from "../automations/automations.ts";
 import { useSetupRows } from "../automations/useSetupRows.ts";
 import { InboxRow, type RowActions } from "./InboxRow.tsx";
-import { inboxSections, nothingToDo } from "./inbox.ts";
-import { TicketsSection } from "./TicketsSection.tsx";
+import { Collapsible, Section } from "./InboxSection.tsx";
+import { inboxSections, inboxSummary, nothingToDo, settleCandidates } from "./inbox.ts";
+import { TicketRow, UpNextSection } from "./TicketsSection.tsx";
 import { useTickets } from "./useTickets.ts";
 
 interface Props {
@@ -17,6 +21,8 @@ interface Props {
   onOpen: (id: string, addOnly: boolean) => void;
   onToggleDesk: (id: string) => void;
   onSettle: (id: string, settle: boolean) => Promise<unknown>;
+  seen: SeenState;
+  onMarkRead: (id: string) => void;
   onSwitcher: (initialQuery: string) => void;
   automations: AutomationsResult | null;
   automationsError: string | null;
@@ -25,57 +31,44 @@ interface Props {
   linearVersion: number;
 }
 
-// Closed by default: running and settled threads need no action from the user.
-function Collapsible({ title, count, className, children }: { title: string; count: number; className?: string; children: ReactNode }) {
-  const [open, setOpen] = useState(false);
-  return (
-    <section className="inbox-section">
-      <Pressable className={["inbox-collapse-head", className].filter(Boolean).join(" ")} aria-expanded={open} onClick={() => setOpen(!open)}>
-        <span className={`chevron${open ? " open" : ""}`} aria-hidden="true" />
-        {title} ({count})
-      </Pressable>
-      {open && <div className="inbox-list">{children}</div>}
-    </section>
-  );
-}
+const NEEDS_LIMIT = 10;
+const RESULTS_LIMIT = 10;
 
-export function InboxView({ state, now, deskIds, onOpen, onToggleDesk, onSettle, onSwitcher, automations, automationsError, onAutomationsStale, linearVersion }: Props) {
+export function InboxView({ state, now, deskIds, onOpen, onToggleDesk, onSettle, seen, onMarkRead, onSwitcher, automations, automationsError, onAutomationsStale, linearVersion }: Props) {
   const scrolled = useScrolled();
   const hiddenIds = automations?.hiddenThreadIds;
   const setup = useSetupRows(state.threads, automations?.setupThreadIds, onAutomationsStale);
+  const visible = useMemo(() => excludeRoutineThreads(state.threads, [...(hiddenIds ?? []), ...setup.map((t) => t.id)]), [state.threads, hiddenIds, setup]);
+  const tickets = useTickets(linearVersion, visible, seen, now);
+  const { relaunch, upNext } = tickets.plan;
   const sections = useMemo(
-    () => inboxSections(excludeRoutineThreads(state.threads, [...(hiddenIds ?? []), ...setup.map((t) => t.id)]), now),
-    [state.threads, hiddenIds, setup, now],
+    () => inboxSections(visible, seen, now, new Set(relaunch.flatMap((r) => (r.thread ? [r.thread.id] : [])))),
+    [visible, seen, now, relaunch],
   );
   const projects = useMemo(() => new Map(state.projects.map((p) => [p.id, p])), [state.projects]);
-  const tickets = useTickets(linearVersion, state.threads);
+  const settleAll = useAction("settle the threads");
+  const stale = settleCandidates(sections.readIdle, now);
   // Before the first automations answer, routine threads would flash in the lists.
   const loading = state.connection.t3 === "live" && automations === null && automationsError === null;
 
-  const rows = (threads: DashboardThread[], actions: RowActions) =>
-    threads.map((t) => (
-      <InboxRow
-        key={t.id}
-        thread={t}
-        project={projects.get(t.projectId)}
-        now={now}
-        actions={actions}
-        onDesk={deskIds.has(t.id)}
-        t3EnvironmentId={state.t3EnvironmentId}
-        onOpen={onOpen}
-        onToggleDesk={onToggleDesk}
-        onSettle={onSettle}
-      />
-    ));
-  const section = (id: string, title: string, threads: DashboardThread[], actions: RowActions, headClass?: string) =>
-    threads.length > 0 && (
-      <section className="inbox-section" aria-labelledby={id}>
-        <h2 id={id} className={["inbox-heading", headClass].filter(Boolean).join(" ")}>
-          {title} <span className="count">{threads.length}</span>
-        </h2>
-        <div className="inbox-list">{rows(threads, actions)}</div>
-      </section>
-    );
+  const row = (t: DashboardThread, actions: RowActions) => (
+    <InboxRow
+      key={t.id}
+      thread={t}
+      project={projects.get(t.projectId)}
+      now={now}
+      actions={actions}
+      onDesk={deskIds.has(t.id)}
+      t3EnvironmentId={state.t3EnvironmentId}
+      onOpen={onOpen}
+      onToggleDesk={onToggleDesk}
+      onSettle={onSettle}
+      onMarkRead={onMarkRead}
+    />
+  );
+  const rows = (threads: DashboardThread[], actions: RowActions) => threads.map((t) => row(t, actions));
+  const summary = inboxSummary(sections.needsYou.length, sections.newResults.length, relaunch.length);
+  const ticketProps = { projects: state.projects, providers: state.providers, modelDefaults: state.modelDefaults, onOpen, onStarted: tickets.markStarted };
 
   return (
     <div className="inbox-page">
@@ -99,38 +92,63 @@ export function InboxView({ state, now, deskIds, onOpen, onToggleDesk, onSettle,
         <Loader />
       ) : (
         <div className="inbox-sections">
-          {nothingToDo(sections, tickets.tickets.length) && (
+          {summary && <p className="inbox-summary">{summary}</p>}
+          {nothingToDo(sections, relaunch.length, upNext.length) && (
             <div className="empty-state">
               <strong>Nothing needs you</strong>
-              <span>Waiting agents, errors, finished work and new tickets show up here.</span>
+              <span>Waiting agents, errors, new results and tickets to start show up here.</span>
             </div>
           )}
-          {section("inbox-waiting-head", "Waiting for you", sections.waiting, "open")}
-          {section("inbox-errors-head", "Errors", sections.errors, "open-settle")}
-          {section("inbox-finished-head", "Finished", sections.finished, "desk-settle", "inbox-finished-head")}
-          <TicketsSection
+          <Section id="inbox-needs-head" title="Needs you" count={sections.needsYou.length} limit={NEEDS_LIMIT}>
+            {sections.needsYou.map((t) => row(t, threadState(t) === "waiting" ? "open" : "open-settle"))}
+          </Section>
+          <Section
+            id="inbox-results-head"
+            title="New results"
+            count={sections.newResults.length}
+            limit={RESULTS_LIMIT}
+            headClass="inbox-finished-head"
+            action={
+              <Button variant="ghost" size="sm" onClick={() => sections.newResults.forEach((t) => onMarkRead(t.id))}>
+                Mark all read
+              </Button>
+            }
+          >
+            {rows(sections.newResults, "result")}
+          </Section>
+          <Section id="inbox-relaunch-head" title="To relaunch" count={relaunch.length}>
+            {relaunch.map(({ issue, thread }) => (thread ? row(thread, "open") : <TicketRow key={issue.id} issue={issue} {...ticketProps} />))}
+          </Section>
+          <UpNextSection
             board={tickets.board}
             needsKey={tickets.needsKey}
             loading={tickets.loading}
             failed={tickets.failed}
-            tickets={tickets.tickets}
-            projects={state.projects}
-            providers={state.providers}
-            modelDefaults={state.modelDefaults}
-            onOpen={onOpen}
-            onStarted={tickets.markStarted}
+            tickets={upNext}
             onRefresh={() => void tickets.reload(true)}
+            {...ticketProps}
           />
-          {sections.running.length > 0 && (
-            <Collapsible title="Running" count={sections.running.length}>
-              {rows(sections.running, "desk")}
-            </Collapsible>
-          )}
-          {sections.settled.length > 0 && (
-            <Collapsible title="Recently settled" count={sections.settled.length} className="inbox-settled-head">
-              {rows(sections.settled, "unsettle")}
-            </Collapsible>
-          )}
+          <Collapsible title="Running" count={sections.running.length}>
+            {rows(sections.running, "desk")}
+          </Collapsible>
+          <Collapsible title="Read and idle" count={sections.readIdle.length}>
+            {stale.length > 0 && (
+              <Button
+                size="sm"
+                className="inbox-settle-all"
+                loading={settleAll.busy}
+                tooltip={settleAll.error ?? undefined}
+                variant={settleAll.error ? "danger" : "secondary"}
+                onClick={() => void settleAll.run(() => Promise.all(stale.map((t) => onSettle(t.id, true))))}
+              >
+                Settle all older than 3 days ({stale.length})
+              </Button>
+            )}
+            {rows(sections.readIdle, "desk-settle")}
+          </Collapsible>
+          <Collapsible title="Recently settled" count={sections.settled.length} className="inbox-settled-head">
+            {rows(sections.settled, "unsettle")}
+          </Collapsible>
         </div>
       )}
     </div>

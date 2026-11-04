@@ -1,7 +1,8 @@
 import { test } from "bun:test";
 import assert from "node:assert/strict";
 import type { DashboardProject, DashboardProvider, LinearIssue } from "../../../../shared/api.ts";
-import { linkedIdentifiers, ticketStart, ticketsWithoutAgent } from "../../../src/features/inbox/tickets.ts";
+import type { SeenState } from "../../../../shared/seen.ts";
+import { IDLE_RELAUNCH_MS, linkedIdentifiers, planTickets, ticketStart, ticketsWithoutAgent } from "../../../src/features/inbox/tickets.ts";
 import { thread } from "../../fixtures.ts";
 
 function issue(identifier: string, over: Partial<LinearIssue> = {}): LinearIssue {
@@ -47,6 +48,61 @@ test("tickets sort by priority, none last, then most recently updated", () => {
     [],
   );
   assert.deepEqual(open.map((i) => i.identifier), ["A-3", "A-5", "A-4", "A-2", "A-1"]);
+});
+
+test("only to do and started tickets count", () => {
+  const types = ["triage", "backlog", "unstarted", "started", "completed", "canceled"];
+  const open = ticketsWithoutAgent(types.map((type) => issue(`T-${type}`, { state: { name: type, type, color: "#fff" } })), []);
+  assert.deepEqual(open.map((i) => i.identifier), ["T-unstarted", "T-started"]);
+});
+
+const now = new Date("2026-01-12T12:00:00.000Z");
+const ago = (ms: number) => new Date(now.getTime() - ms).toISOString();
+const seen: SeenState = { since: "2026-01-01T00:00:00.000Z", seen: {} };
+const readAt = (...threads: Array<{ id: string; lastActivityAt: string }>): SeenState => ({ since: seen.since, seen: Object.fromEntries(threads.map((t) => [t.id, t.lastActivityAt])) });
+const started = { name: "In Progress", type: "started", color: "#fff" };
+const stale = (id: string, title: string, over = {}) => thread(id, { title, status: "completed", lastActivityAt: ago(IDLE_RELAUNCH_MS + 1000), ...over });
+const keys = (items: Array<{ issue: LinearIssue; thread: { id: string } | null }>) => items.map((r) => [r.issue.identifier, r.thread?.id ?? null]);
+
+test("a started ticket without an agent is to relaunch, a to do one is up next", () => {
+  const plan = planTickets([issue("A-1", { state: started }), issue("A-2")], [], seen, now);
+  assert.deepEqual(keys(plan.relaunch), [["A-1", null]]);
+  assert.deepEqual(plan.upNext.map((i) => i.identifier), ["A-2"]);
+});
+
+test("a started ticket whose thread is finished, read and idle for over 24 h is to relaunch", () => {
+  const t = stale("t1", "A-1 work");
+  const plan = planTickets([issue("A-1", { state: started })], [t], readAt(t), now);
+  assert.deepEqual(keys(plan.relaunch), [["A-1", "t1"]]);
+  assert.equal(plan.upNext.length, 0);
+});
+
+test("a linked ticket is not to relaunch while its thread is recent, unread, running, settled or failed", () => {
+  const cases = [
+    stale("t", "A-1", { lastActivityAt: ago(IDLE_RELAUNCH_MS - 1000) }),
+    stale("t", "A-1", { settled: true }),
+    stale("t", "A-1", { status: "running" }),
+    stale("t", "A-1", { status: "failed", lastError: "x" }),
+  ];
+  for (const t of cases) assert.equal(planTickets([issue("A-1", { state: started })], [t], readAt(t), now).relaunch.length, 0, JSON.stringify(t));
+  assert.equal(planTickets([issue("A-1", { state: started })], [stale("t", "A-1")], seen, now).relaunch.length, 0);
+});
+
+test("only the latest thread of a ticket decides", () => {
+  const old = stale("old", "A-1 first", { lastActivityAt: ago(IDLE_RELAUNCH_MS * 3) });
+  const running = thread("run", { title: "A-1 again", status: "running", lastActivityAt: ago(1000) });
+  assert.equal(planTickets([issue("A-1", { state: started })], [old, running], readAt(old), now).relaunch.length, 0);
+});
+
+test("a linked ticket in the to do state is neither to relaunch nor up next", () => {
+  const t = stale("t", "A-1");
+  const plan = planTickets([issue("A-1")], [t], readAt(t), now);
+  assert.equal(plan.relaunch.length + plan.upNext.length, 0);
+});
+
+test("to relaunch sorts by priority, none last", () => {
+  const plan = planTickets([issue("A-1", { state: started, priority: 0 }), issue("A-2", { state: started, priority: 2 })], [], seen, now);
+  assert.deepEqual(keys(plan.relaunch), [["A-2", null], ["A-1", null]]);
 });
 
 const projects: DashboardProject[] = [{ id: "p1", title: "P1", defaultModelSelection: null, icon: null }];

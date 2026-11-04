@@ -1,13 +1,14 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import type { BoardResult, DashboardThread, LinearIssue } from "../../../../shared/api.ts";
+import type { BoardResult, DashboardThread } from "../../../../shared/api.ts";
+import type { SeenState } from "../../../../shared/seen.ts";
 import { useApi } from "../../api/ApiContext.tsx";
 import { useNotify } from "../../lib/notices.tsx";
 import { useAction } from "../../lib/useAction.ts";
 import { boardNeedsKey } from "../settings/linearSettings.ts";
-import { ticketsWithoutAgent } from "./tickets.ts";
+import { planTickets } from "./tickets.ts";
 
-/** The Linear issues that have no agent yet. `version` changes with the Linear settings: the issues then load again. */
-export function useTickets(version: number, threads: DashboardThread[]) {
+/** The Linear tickets to relaunch or do next. `version` changes with the Linear settings: the issues then load again. */
+export function useTickets(version: number, threads: DashboardThread[], seen: SeenState, now: Date) {
   const api = useApi();
   const notify = useNotify();
   const [board, setBoard] = useState<BoardResult | null>(null);
@@ -24,10 +25,10 @@ export function useTickets(version: number, threads: DashboardThread[]) {
     [],
   );
   // Bypass the server cache only for a settings change, not on each visit to the Inbox.
-  const seen = useRef(version);
+  const loadedVersion = useRef(version);
   useEffect(() => {
-    void load(version !== seen.current);
-    seen.current = version;
+    void load(version !== loadedVersion.current);
+    loadedVersion.current = version;
   }, [load, version]);
 
   const needsKey = board !== null && boardNeedsKey(board);
@@ -36,7 +37,7 @@ export function useTickets(version: number, threads: DashboardThread[]) {
     if (linearError) notify(`Linear returned an error: ${linearError}`);
   }, [linearError]);
 
-  const tickets: LinearIssue[] = useMemo(() => ticketsWithoutAgent(board?.issues ?? [], threads).filter((i) => !started.has(i.id)), [board, threads, started]);
+  const plan = useMemo(() => planTickets((board?.issues ?? []).filter((i) => !started.has(i.id)), threads, seen, now), [board, threads, started, seen, now]);
   const markStarted = useCallback((id: string) => setStarted((s) => new Set([...s, id])), []);
-  return { board, needsKey, loading, failed: error !== null, tickets, reload: load, markStarted };
+  return { board, needsKey, loading, failed: error !== null, plan, reload: load, markStarted };
 }

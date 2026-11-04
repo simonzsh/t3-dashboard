@@ -1,7 +1,7 @@
 import { test } from "bun:test";
 import assert from "node:assert/strict";
 import { mergeSeen, type SeenState } from "../../../../shared/seen.ts";
-import { badgeText, baselineOf, notifyEntries, NOTIFY_LIMIT, statusMap, transitions, unseenCount, unseenThreads } from "../../../src/features/notifications/notifications.ts";
+import { badgeText, baselineOf, isUnseen, statusMap, transitions } from "../../../src/features/notifications/notifications.ts";
 import { thread } from "../../fixtures.ts";
 
 const at = (minute: number) => `2026-01-10T10:${String(minute).padStart(2, "0")}:00.000Z`;
@@ -11,72 +11,32 @@ const running = (id: string) => thread(id, { status: "running", activeRunId: "ru
 const fresh: SeenState = { since: "", seen: {} };
 const markSeen = (state: SeenState, id: string, when: string) => mergeSeen(state, { id, at: when })!;
 
-test("waiting threads come first, then finished ones, newest first; working and idle are left out", () => {
-  const entries = notifyEntries([finished("f-new", 30), waiting("w-old", 1), running("r"), thread("i"), finished("f-old", 5), waiting("w-new", 2)], fresh);
-  assert.deepEqual(entries.map((e) => e.thread.id), ["w-new", "w-old", "f-new", "f-old"]);
-  assert.deepEqual(entries.map((e) => e.kind), ["waiting", "waiting", "finished", "finished"]);
-});
-
-test("the list holds at most 20 entries", () => {
-  const many = Array.from({ length: NOTIFY_LIMIT + 5 }, (_, i) => finished(`t${i}`, i));
-  const entries = notifyEntries(many, fresh);
-  assert.equal(entries.length, 20);
-  assert.equal(entries[0]!.thread.id, "t24");
-});
-
 test("labels and tones tell what happened", () => {
-  const label = (t: ReturnType<typeof thread>) => {
-    const [e] = notifyEntries([t], fresh);
+  const label = (before: ReturnType<typeof thread>, after: ReturnType<typeof thread>) => {
+    const [e] = transitions(statusMap([before]), [after]);
     return [e!.label, e!.tone];
   };
-  assert.deepEqual(label(waiting("a", 1, "approval")), ["Needs approval", "waiting"]);
-  assert.deepEqual(label(waiting("a", 1, "user-input")), ["Needs your input", "waiting"]);
-  assert.deepEqual(label(waiting("a", 1, "other")), ["Waiting", "waiting"]);
-  assert.deepEqual(label(finished("a", 1)), ["Finished", "done"]);
-  assert.deepEqual(label(finished("a", 1, { status: "failed" })), ["Failed", "error"]);
-  assert.deepEqual(label(finished("a", 1, { lastError: "boom" })), ["Failed", "error"]);
-  assert.deepEqual(label(finished("a", 1, { status: "cancelled" })), ["Cancelled", "done"]);
+  const was = running("a");
+  assert.deepEqual(label(thread("a"), waiting("a", 1, "approval")), ["Needs approval", "waiting"]);
+  assert.deepEqual(label(thread("a"), waiting("a", 1, "user-input")), ["Needs your input", "waiting"]);
+  assert.deepEqual(label(thread("a"), waiting("a", 1, "other")), ["Waiting", "waiting"]);
+  assert.deepEqual(label(was, finished("a", 1)), ["Finished", "done"]);
+  assert.deepEqual(label(was, finished("a", 1, { status: "failed" })), ["Failed", "error"]);
+  assert.deepEqual(label(was, finished("a", 1, { lastError: "boom" })), ["Failed", "error"]);
+  assert.deepEqual(label(was, finished("a", 1, { status: "cancelled" })), ["Cancelled", "done"]);
 });
 
-test("waiting and finished threads count until they are read", () => {
-  const threads = [waiting("w", 1), finished("f", 2)];
-  assert.equal(unseenCount(threads, fresh), 2);
+test("a thread is unseen until it is read, and again after new activity", () => {
+  assert.equal(isUnseen(finished("f", 2), fresh), true);
   const seen = markSeen(fresh, "f", at(2));
-  assert.equal(unseenCount(threads, seen), 1);
-  assert.deepEqual(notifyEntries(threads, seen).map((e) => e.unseen), [true, false]);
-  const all = markSeen(seen, "w", at(1));
-  assert.equal(unseenCount(threads, all), 0);
-  assert.deepEqual(notifyEntries(threads, all).map((e) => e.unseen), [false, false]);
+  assert.equal(isUnseen(finished("f", 2), seen), false);
+  assert.equal(isUnseen(finished("f", 9), seen), true);
 });
 
-test("a waiting thread read before counts again after new activity", () => {
-  const seen = markSeen(fresh, "w", at(1));
-  assert.equal(unseenCount([waiting("w", 1)], seen), 0);
-  assert.equal(unseenCount([waiting("w", 4)], seen), 1);
-});
-
-test("unseenThreads lists what Mark all as read marks: no working or idle thread", () => {
-  const seen = markSeen(fresh, "f-read", at(3));
-  const got = unseenThreads([waiting("w", 1), finished("f", 2), finished("f-read", 3), running("r"), thread("i")], seen);
-  assert.deepEqual(got.map((t) => t.id), ["w", "f"]);
-});
-
-test("a thread that finishes again after it was opened counts again", () => {
-  const seen = markSeen(fresh, "f", at(2));
-  assert.equal(unseenCount([finished("f", 2)], seen), 0);
-  assert.equal(unseenCount([finished("f", 9)], seen), 1);
-});
-
-test("history older than the baseline is listed but not counted", () => {
+test("history older than the baseline is not unseen", () => {
   const seen: SeenState = { since: at(10), seen: {} };
-  const threads = [finished("old", 5), finished("new", 15)];
-  assert.equal(unseenCount(threads, seen), 1);
-  assert.equal(notifyEntries(threads, seen).find((e) => e.thread.id === "old")!.unseen, false);
-});
-
-test("the count covers every thread, not only the 20 listed", () => {
-  const many = Array.from({ length: 30 }, (_, i) => finished(`t${i}`, i));
-  assert.equal(unseenCount(many, fresh), 30);
+  assert.equal(isUnseen(finished("old", 5), seen), false);
+  assert.equal(isUnseen(finished("new", 15), seen), true);
 });
 
 test("the badge caps at 9+", () => {

@@ -3,8 +3,6 @@ import { agentStatus, threadState, type AgentStatus } from "../../../../shared/s
 import type { DashboardThread } from "../../../../shared/threads.ts";
 import type { BadgeVariant } from "../../ui/index.ts";
 
-export const NOTIFY_LIMIT = 20;
-
 export type NotifyKind = "waiting" | "finished";
 
 export interface NotifyEntry {
@@ -12,10 +10,7 @@ export interface NotifyEntry {
   kind: NotifyKind;
   tone: BadgeVariant;
   label: string;
-  unseen: boolean;
 }
-
-const newest = (a: DashboardThread, b: DashboardThread) => b.lastActivityAt.localeCompare(a.lastActivityAt);
 
 function waitingLabel(t: DashboardThread): string {
   if (t.pending?.category === "approval") return "Needs approval";
@@ -29,28 +24,12 @@ function finishedLabel(t: DashboardThread): string {
 
 // A thread is unseen while its last activity is newer than the baseline and its read mark.
 // A read mark comes from opening the thread or from "Mark as read".
-const isUnseen = (t: DashboardThread, seen: SeenState) => t.lastActivityAt.localeCompare(later(seen.since, seen.seen[t.id] ?? "")) > 0;
+export const isUnseen = (t: DashboardThread, seen: SeenState) => t.lastActivityAt.localeCompare(later(seen.since, seen.seen[t.id] ?? "")) > 0;
 
-function entryOf(t: DashboardThread, kind: NotifyKind, seen: SeenState | null): NotifyEntry {
-  const unseen = seen ? isUnseen(t, seen) : true;
-  if (kind === "waiting") return { thread: t, kind, tone: "waiting", label: waitingLabel(t), unseen };
-  return { thread: t, kind, tone: threadState(t) === "error" ? "error" : "done", label: finishedLabel(t), unseen };
+function entryOf(t: DashboardThread, kind: NotifyKind): NotifyEntry {
+  if (kind === "waiting") return { thread: t, kind, tone: "waiting", label: waitingLabel(t) };
+  return { thread: t, kind, tone: threadState(t) === "error" ? "error" : "done", label: finishedLabel(t) };
 }
-
-export function notifyEntries(threads: DashboardThread[], seen: SeenState): NotifyEntry[] {
-  const pick = (status: AgentStatus) => threads.filter((t) => agentStatus(t) === status).sort(newest);
-  return [...pick("waiting").map((t) => entryOf(t, "waiting", seen)), ...pick("finished").map((t) => entryOf(t, "finished", seen))].slice(0, NOTIFY_LIMIT);
-}
-
-/** Waiting and finished threads not read yet: the badge count, and what "Mark all as read" marks. */
-export function unseenThreads(threads: DashboardThread[], seen: SeenState): DashboardThread[] {
-  return threads.filter((t) => {
-    const status = agentStatus(t);
-    return (status === "waiting" || status === "finished") && isUnseen(t, seen);
-  });
-}
-
-export const unseenCount = (threads: DashboardThread[], seen: SeenState): number => unseenThreads(threads, seen).length;
 
 export const badgeText = (n: number): string => (n > 9 ? "9+" : String(n));
 
@@ -67,8 +46,8 @@ export function transitions(prev: Map<string, AgentStatus> | null, threads: Dash
     const before = prev.get(t.id);
     const now = agentStatus(t);
     if (before === undefined || before === now) continue;
-    if (now === "waiting") out.push(entryOf(t, "waiting", null));
-    else if (now === "finished" && (before === "working" || before === "waiting")) out.push(entryOf(t, "finished", null));
+    if (now === "waiting") out.push(entryOf(t, "waiting"));
+    else if (now === "finished" && (before === "working" || before === "waiting")) out.push(entryOf(t, "finished"));
   }
   return out;
 }

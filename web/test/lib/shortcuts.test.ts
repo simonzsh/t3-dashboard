@@ -13,7 +13,7 @@ test("Ctrl+key maps to the actions", () => {
   assert.equal(matchShortcut(ctrl("n"), false), "new-agent");
   assert.equal(matchShortcut(ctrl("N"), false), "new-agent");
   assert.equal(matchShortcut(ctrl(","), false), "settings");
-  assert.equal(matchShortcut(ctrl("b"), false), "notifications");
+  assert.equal(matchShortcut(ctrl("b"), false), "inbox");
   assert.equal(matchShortcut(ctrl("N", { shiftKey: true }), false), "new-automation");
 });
 

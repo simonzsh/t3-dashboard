@@ -63,6 +63,7 @@ const FEATURE_EDGES = new Map([
   ["features/inbox -> features/automations", "the inbox hides routine and setup threads"],
   ["features/inbox -> features/settings", "the Linear setup card reuses the key form"],
   ["features/inbox -> features/new-thread", "starting a ticket opens the New Agent dialog or reuses its model preset"],
+  ["features/inbox -> features/notifications", "the inbox reads the same unread state as the toasts"],
   ["features/settings -> features/update", "the Updates tab shows the update status"],
   ["features/settings -> features/desk", "settings pick the desk background"],
 ]);

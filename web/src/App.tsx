@@ -5,8 +5,11 @@ import { ConnectionBanner } from "./features/setup/ConnectionBanner.tsx";
 import { DeskView } from "./features/desk/DeskView.tsx";
 import { NewAutomationDialog } from "./features/new-thread/NewAutomationDialog.tsx";
 import { NewThreadDialog } from "./features/new-thread/NewThreadDialog.tsx";
-import { NotificationBell, NotificationToasts } from "./features/notifications/NotificationBell.tsx";
+import { NotificationToasts } from "./features/notifications/NotificationToasts.tsx";
+import { badgeText } from "./features/notifications/notifications.ts";
 import { useNotifications } from "./features/notifications/useNotifications.ts";
+import { excludeRoutineThreads } from "./features/automations/automations.ts";
+import { inboxSections, unreadCount } from "./features/inbox/inbox.ts";
 import { Switcher } from "./features/switcher/Switcher.tsx";
 import { useOpenHistory } from "./features/switcher/useOpenHistory.ts";
 import { SettingsDialog } from "./features/settings/SettingsDialog.tsx";
@@ -39,7 +42,8 @@ function focusComposer(threadId: string) {
 export function App() {
   const { state, sseDown, remoteDesk, remoteSeen, connects } = useDashboard();
   const [tab, setTab] = useTab();
-  const automations = useAutomations((tab === "inbox" || tab === "automations") && state?.connection.t3 === "live");
+  // Always loaded while live: the Inbox badge must leave out automation run threads.
+  const automations = useAutomations(state?.connection.t3 === "live");
   const [desk, dispatchDesk] = useDesk();
   const [openHistory, recordOpened] = useOpenHistory();
   useDeskSync({
@@ -61,12 +65,6 @@ export function App() {
   const [creating, setCreating] = useState(false);
   const [creatingAutomation, setCreatingAutomation] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
-  const [bellOpen, setBellOpen] = useState(false);
-  // The menu lists every toast: clear them rather than cover the menu.
-  const showBell = (open: boolean) => {
-    if (open) notify.clearToasts();
-    setBellOpen(open);
-  };
   const [confirmingUpdate, setConfirmingUpdate] = useState(false);
   // null: closed; a string: open, seeded with that query.
   const [switcherQuery, setSwitcherQuery] = useState<string | null>(null);
@@ -123,7 +121,6 @@ export function App() {
     (action) => {
       if (action === "desk" || action === "inbox" || action === "automations") setTab(action);
       else if (action === "settings") setSettingsOpen(true);
-      else if (action === "notifications") showBell(!bellOpen);
       else if (action === "switcher") {
         if (state && !creating && !creatingAutomation && !settingsOpen && !confirmingUpdate) setSwitcherQuery((open) => (open === null ? "" : null));
       } else if (action === "new-agent") {
@@ -174,6 +171,8 @@ export function App() {
 
   const live = !sseDown && state?.connection.t3 === "live";
   const deskIds = new Set(desk.windows.map((w) => w.id));
+  // Same threads as the Inbox lists: run threads of automations are left out.
+  const unread = state ? unreadCount(inboxSections(excludeRoutineThreads(state.threads, automations.result?.hiddenThreadIds ?? []), notify.seen, now), notify.seen) : 0;
   const deskWaiting = state?.threads.some((t) => t.pending && deskIds.has(t.id)) ?? false;
 
   if (state?.connection.setup) {
@@ -201,6 +200,7 @@ export function App() {
           {TABS.map(({ id, label, key }) => (
             <Pressable key={id} role="tab" data-tab={id} aria-selected={tab === id} className={tab === id ? "active" : ""} onClick={() => setTab(id)}>
               {label}
+              {id === "inbox" && unread > 0 && <span className="count" role="img" aria-label={`${unread} unread`}>{badgeText(unread)}</span>}
               {id === "desk" && deskWaiting && <span className="tab-alert" role="img" aria-label="An agent is waiting for your reply" />}
               <Kbd>{ctrlLabel(key)}</Kbd>
             </Pressable>
@@ -237,7 +237,6 @@ export function App() {
                 New Automation
               </Button>
             ))}
-          <NotificationBell entries={notify.entries} count={notify.count} now={now} onOpen={(id) => openOnDesk(id, true)} onMarkRead={notify.markSeen} onMarkAllRead={notify.markAllSeen} open={bellOpen} onOpenChange={showBell} />
           <IconButton label="Settings" kbd={ctrlLabel(",")} onClick={() => setSettingsOpen(true)}>
             <Icon name="settings" strokeWidth={1.8} />
           </IconButton>
@@ -255,6 +254,8 @@ export function App() {
               onOpen={onOpen}
               onToggleDesk={onToggleDesk}
               onSettle={onSettle}
+              seen={notify.seen}
+              onMarkRead={notify.markSeen}
               onSwitcher={setSwitcherQuery}
               automations={automations.result}
               automationsError={automations.error}
