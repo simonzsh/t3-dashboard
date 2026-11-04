@@ -387,7 +387,7 @@ export function Composer({ providers, selection, runtimeMode, running, stoppable
           aria-label="Message"
         />
         {showMenu && (
-          <Popover anchor={card} className="mention-menu" role="listbox" matchWidth onClose={() => setDismissed(trigger.start)}>
+          <Popover anchor={card} className="mention-menu" role="listbox" matchWidth fitWidth onClose={() => setDismissed(trigger.start)}>
             {items.map((item, i) => (
               <Pressable
                 key={item.id}

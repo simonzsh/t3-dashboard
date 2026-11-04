@@ -10,6 +10,8 @@ interface Props {
   align?: "start" | "end";
   minWidth?: number;
   matchWidth?: boolean;
+  /** Never wider than the anchor: long rows are cut instead. */
+  fitWidth?: boolean;
   className?: string;
   role?: string;
   children: ReactNode;
@@ -19,7 +21,7 @@ interface Props {
 const open: object[] = [];
 
 /** A menu in document.body, fixed next to its anchor: no scrolling parent can clip it. */
-export function Popover({ anchor, onClose, align = "start", minWidth = 0, matchWidth = false, className = "", role, children }: Props) {
+export function Popover({ anchor, onClose, align = "start", minWidth = 0, matchWidth = false, fitWidth = false, className = "", role, children }: Props) {
   const box = useRef<HTMLDivElement>(null);
   const inside = useRef(false);
   const self = useRef({});
@@ -35,6 +37,7 @@ export function Popover({ anchor, onClose, align = "start", minWidth = 0, matchW
       el.style.minWidth = "";
       const a = trigger.getBoundingClientRect();
       el.style.minWidth = `${matchWidth ? Math.max(minWidth, a.width) : minWidth}px`;
+      if (fitWidth) el.style.maxWidth = `${Math.max(minWidth, a.width)}px`;
       const size = el.getBoundingClientRect();
       const p = placeMenu(a, size, { width: window.innerWidth, height: window.innerHeight }, { align, minWidth, matchWidth });
       el.style.left = `${p.left}px`;
@@ -58,12 +61,16 @@ export function Popover({ anchor, onClose, align = "start", minWidth = 0, matchW
     frame = requestAnimationFrame(follow);
     window.addEventListener("scroll", place, true);
     window.addEventListener("resize", place);
+    // A filtered list shrinks: place it again so a menu above its anchor stays against it.
+    const resized = new ResizeObserver(() => place());
+    if (box.current) resized.observe(box.current);
     return () => {
+      resized.disconnect();
       cancelAnimationFrame(frame);
       window.removeEventListener("scroll", place, true);
       window.removeEventListener("resize", place);
     };
-  }, [align, minWidth, matchWidth]);
+  }, [align, minWidth, matchWidth, fitWidth]);
 
   useLayoutEffect(() => {
     const anim = box.current && enter(box.current, { y: -4, duration: 160 });
