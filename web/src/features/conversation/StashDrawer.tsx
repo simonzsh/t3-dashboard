@@ -21,7 +21,10 @@ export function StashDrawer({ entries, anchor, shortcut, onRestore, onDelete, on
   latest.current = { entries, active, onRestore };
 
   useEffect(() => setActive((i) => Math.min(i, Math.max(0, entries.length - 1))), [entries.length]);
-  useEffect(() => list.current?.children[active]?.scrollIntoView({ block: "nearest" }), [active]);
+  // Braces: recent Chrome returns a Promise from scrollIntoView, which React would call as a cleanup.
+  useEffect(() => {
+    list.current?.children[active]?.scrollIntoView({ block: "nearest" });
+  }, [active]);
 
   // Capture phase: the composer field must not also send on this Enter.
   useEffect(() => {

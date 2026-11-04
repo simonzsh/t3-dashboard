@@ -127,3 +127,11 @@ test("button rows are spaced and dialog actions sit on the right", async () => {
   assert.match(css, /^\.buttons \{[^}]*display: flex;[^}]*gap: 8px;/m);
   assert.match(css, /^\.dialog-actions[^{]*\{[^}]*justify-content: flex-end;/m);
 });
+
+// scrollIntoView and scrollTo return a Promise in recent Chrome: as an effect's value, React calls it as a cleanup and crashes.
+test("no effect returns the result of a scroll call", () => {
+  const bad = sources.flatMap(({ file, text }) =>
+    [...text.matchAll(/use(?:Layout)?Effect\(\(\) => (?!\{|void )[^\n]*\.(?:scrollIntoView|scrollTo|scrollBy)\(/g)].map(() => file),
+  );
+  assert.deepEqual(bad, []);
+});
