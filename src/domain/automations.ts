@@ -27,7 +27,7 @@ function runThreads(task: RawScheduledTask, threads: RawThread[]): RawThread[] {
     .sort((a, b) => stamp(b.createdAt) - stamp(a.createdAt));
 }
 
-/** The tasks of T3 as rows, plus the threads the Agents grid leaves out. */
+/** The tasks of T3 as rows, plus the threads the Inbox leaves out. */
 export function toAutomations(tasks: RawScheduledTask[], threads: RawThread[], dedicated: ReadonlySet<string>, projectTitle: (id: string) => string | null): AutomationsResult {
   const hidden = new Set<string>();
   const bound = new Set<string>();
@@ -36,8 +36,7 @@ export function toAutomations(tasks: RawScheduledTask[], threads: RawThread[], d
     if (threadId !== null) bound.add(threadId);
     if (threadId === null) {
       const runs = runThreads(task, threads);
-      // Each webhook event is its own job: keep its thread in the Agents grid.
-      if (task.schedule?.type !== "webhook") for (const run of runs) hidden.add(run.id);
+      for (const run of runs) hidden.add(run.id);
       threadId = runs[0]?.id ?? null;
     } else if (dedicated.has(threadId)) {
       hidden.add(threadId);
