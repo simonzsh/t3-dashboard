@@ -215,6 +215,13 @@ export interface RunActivity {
   completedAt: string | null;
 }
 
+/** Tokens in the model's context, as the provider last reported them. */
+export interface ContextUsage {
+  usedTokens: number;
+  /** Null when the provider names no limit. */
+  maxTokens: number | null;
+}
+
 export interface ThreadDetail {
   threadId: string;
   /** The thread's name in T3: it titles a window of a subagent thread, which the shell hides. */
@@ -233,6 +240,8 @@ export interface ThreadDetail {
   /** The thread's current model, effort and access, as the composer shows them. */
   modelSelection: ModelSelection | null;
   runtimeMode: RuntimeMode | null;
+  /** Null until a turn reports it. */
+  contextUsage: ContextUsage | null;
   activity: RunActivity | null;
   /** Steps of every run, oldest first: the latest 400. */
   steps: TurnStep[];

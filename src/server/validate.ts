@@ -147,6 +147,12 @@ export function validFileSearch(params: URLSearchParams): { query: string; limit
   return { query, limit };
 }
 
+export function validProvider(params: URLSearchParams): string {
+  const instanceId = params.get("provider") ?? "";
+  if (instanceId === "" || instanceId.length > 200) throw new HttpError(400, "provider must be a provider instance id of 1 to 200 characters");
+  return instanceId;
+}
+
 export function validItemId(itemId: string): string {
   if (itemId.length > 512) throw new HttpError(400, "itemId must be at most 512 characters");
   return itemId;

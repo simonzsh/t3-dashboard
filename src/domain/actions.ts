@@ -1,5 +1,5 @@
 import { marked } from "marked";
-import type { AssignIssueBody, CreateThreadBody, FileSearchResult, LinearIssue, ModelSelection, RespondBody, SendMessageBody, StepDetail, ThreadDetail, ThreadSearchResult, ThreadSettingsBody, UploadedAttachment } from "../../shared/api.ts";
+import type { AssignIssueBody, ComposerCommands, CreateThreadBody, FileSearchResult, LinearIssue, ModelSelection, RespondBody, SendMessageBody, StepDetail, ThreadDetail, ThreadSearchResult, ThreadSettingsBody, UploadedAttachment } from "../../shared/api.ts";
 import { ACTIVE_STATUSES, RUNNING_RUN_STATUSES } from "../../shared/status.ts";
 import { IntegrationError } from "../integrations/errors.ts";
 import {
@@ -26,6 +26,7 @@ import {
 } from "../integrations/t3/commands.ts";
 import type { AssetResource, FileUpload, ImageUpload, RawProjection, T3Port } from "../integrations/t3/schemas.ts";
 import { DomainError } from "./errors.ts";
+import { toComposerCommands } from "./providers.ts";
 import type { LinearBoard } from "./linearBoard.ts";
 import type { ShellStore } from "./shellStore.ts";
 import { rewindPoints, subagentStatus, toStepDetail, toThreadDetail } from "./threadDetail.ts";
@@ -49,6 +50,8 @@ export interface Actions {
   stepDetail(threadId: string, itemId: string): Promise<StepDetail>;
   /** Files and folders of the thread's workspace that match the query; empty when T3 names no folder. */
   searchFiles(threadId: string, query: string, limit: number): Promise<FileSearchResult>;
+  /** The commands and skills the provider offers in the thread's folder, for the / and $ menus. */
+  composerCommands(threadId: string, instanceId: string): Promise<ComposerCommands>;
   /** Stores one file in T3, ready to go with a message. */
   uploadAttachment(upload: FileUpload): Promise<UploadedAttachment>;
   deleteAttachment(attachmentId: string): Promise<void>;
@@ -193,6 +196,10 @@ export function createActions(options: ActionsOptions): Actions {
       if (!cwd) return { entries: [], truncated: false };
       const { entries, truncated } = await t3(port.searchEntries(cwd, query, limit));
       return { entries: entries.map(({ path, kind }) => ({ path, kind: kind === "directory" ? "directory" : "file" })), truncated: truncated ?? false };
+    },
+
+    async composerCommands(threadId, instanceId) {
+      return toComposerCommands(await t3(port.getConfig()), instanceId, store.workspaceOf(threadId));
     },
 
     async uploadAttachment({ type, name, mimeType, sizeBytes, bytes }) {

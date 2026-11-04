@@ -284,3 +284,14 @@ test("rewind refuses a message with no rewind point, and a thread with a running
   await assert.rejects(actions.rewind("busy", "u1", false), rejectsWith("conflict"));
   assert.deepEqual(commands, []);
 });
+
+test("composerCommands reads the provider's commands and the folder's skills from the T3 config", async () => {
+  const { actions, port } = fakeHarness({ t1: "/work" });
+  port.config = async () => ({
+    providers: [{ instanceId: "a", slashCommands: [{ name: "compact" }], workspaceSnapshots: [{ cwd: "/work", slashCommands: [{ name: "compact" }, { name: "local" }], skills: [{ name: "s", path: "/s", enabled: true }] }] }],
+  });
+  assert.deepEqual(await actions.composerCommands("t1", "a"), {
+    commands: [{ name: "compact", description: null }, { name: "local", description: null }],
+    skills: [{ name: "s", displayName: null, description: null }],
+  });
+});

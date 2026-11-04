@@ -101,6 +101,18 @@ test("the demo searches files and stores uploads", async () => {
   assert.deepEqual(message.attachments, [{ id: ref.id, name: "a.txt", kind: "file", mimeType: "text/plain", sizeBytes: 1 }]);
 });
 
+test("the demo lists commands and skills, reports the context size and compacts it", async () => {
+  const { actions, threadId } = await runningDemo();
+  const { commands, skills } = await actions.composerCommands(threadId, "claudeAgent");
+  assert.ok(commands.some((command) => command.name === "compact"));
+  assert.ok(skills.some((skill) => skill.name === "simplify"));
+  assert.deepEqual((await actions.threadDetail(threadId)).contextUsage, { usedTokens: 722_000, maxTokens: 1_000_000 });
+  const before = (await actions.threadDetail(threadId)).messages.length;
+  await actions.sendMessage(threadId, { text: "/compact" }, []);
+  const after = await actions.threadDetail(threadId);
+  assert.deepEqual([after.contextUsage!.usedTokens < 722_000, after.messages.length], [true, before]);
+});
+
 async function runningDemo() {
   const port = new DemoPort(() => NOW);
   const store = syncedStore(port);

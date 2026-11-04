@@ -1,4 +1,4 @@
-import type { ChatAttachment, ChatMessage, DashboardThread, HtmlRender, RunActivity, PendingRequestDetail, QueuedMessage, StepDetail, StepKind, StepStatus, SubagentInfo, ThreadDetail, TodoEntry, TurnStep } from "../../shared/api.ts";
+import type { ChatAttachment, ChatMessage, ContextUsage, DashboardThread, HtmlRender, RunActivity, PendingRequestDetail, QueuedMessage, StepDetail, StepKind, StepStatus, SubagentInfo, ThreadDetail, TodoEntry, TurnStep } from "../../shared/api.ts";
 import { FAILED_STATUSES, RUNNING_RUN_STATUSES } from "../../shared/status.ts";
 import { isSubagentThread } from "./classify.ts";
 import { isRuntimeMode } from "../../shared/limits.ts";
@@ -359,6 +359,16 @@ export function rewindPoints(projection: RawProjection): Map<string, RewindPoint
 }
 
 /** `tasks` are the shell thread's pending background tasks: they say which subagents still run. */
+// Like T3 Code: the newest turn report, else what the active provider thread last kept.
+function contextUsageOf(projection: RawProjection): ContextUsage | null {
+  let latest: { usedTokens: number; maxTokens?: number | null; updatedAt?: string | null } | null = null;
+  for (const { tokenUsage } of projection.providerTurns ?? []) {
+    if (tokenUsage && (latest === null || Date.parse(tokenUsage.updatedAt ?? "") >= Date.parse(latest.updatedAt ?? ""))) latest = tokenUsage;
+  }
+  latest ??= projection.providerThreads?.find((thread) => thread.id === projection.thread?.activeProviderThreadId)?.contextUsage ?? null;
+  return latest && { usedTokens: Math.max(0, latest.usedTokens), maxTokens: latest.maxTokens ?? null };
+}
+
 export function toThreadDetail(threadId: string, projection: RawProjection, thread: DashboardThread | undefined, tasks: RawBackgroundTask[] = []): ThreadDetail {
   // Like T3 Code: a message keeps its visible item's place and time. A queued message was sent when its item
   // started, not when it was queued, so it shows after the replies written while it waited.
@@ -409,6 +419,7 @@ export function toThreadDetail(threadId: string, projection: RawProjection, thre
     subagents: subagentsOf(projection, tasks),
     modelSelection: projection.thread?.modelSelection ?? null,
     runtimeMode: isRuntimeMode(runtimeMode) ? runtimeMode : null,
+    contextUsage: contextUsageOf(projection),
     activity: activityOf(projection),
     steps,
     stepsOmitted: omitted,

@@ -25,6 +25,7 @@ export const RawThread = s.object({
   worktreePath: text(),
   branch: text(),
   providerInstanceId: text(),
+  activeProviderThreadId: text(),
   modelSelection: s.optional(s.nullable(ModelSelection)),
   runtimeMode: text(),
   lineage: s.optional(s.nullable(s.object({ relationshipToParent: text(), parentThreadId: text() }))),
@@ -252,6 +253,9 @@ export const RawProjection = s.object({
   checkpoints: s.optional(
     s.array(s.object({ id: s.string(), scopeId: s.string(), runId: text(), status: text(), ordinalWithinScope: s.optional(s.number()), appRunOrdinal: s.optional(s.nullable(s.number())) })),
   ),
+  // Context size: each turn reports its own, the provider thread keeps the latest.
+  providerTurns: s.optional(s.array(s.object({ tokenUsage: s.optional(s.nullable(s.object({ usedTokens: s.number(), maxTokens: s.optional(s.nullable(s.number())), updatedAt: text() }))) }))),
+  providerThreads: s.optional(s.array(s.object({ id: s.string(), contextUsage: s.optional(s.nullable(s.object({ usedTokens: s.number(), maxTokens: s.optional(s.nullable(s.number())) }))) }))),
   thread: s.optional(RawThread),
 });
 export type RawProjection = Infer<typeof RawProjection>;
@@ -276,12 +280,27 @@ export const RawOptionDescriptor = s.object({
 });
 export type RawOptionDescriptor = Infer<typeof RawOptionDescriptor>;
 
+const RawSlashCommand = s.object({ name: s.string(), description: text(), input: s.optional(s.nullable(s.object({ hint: text() }))) });
+const RawSkill = s.object({
+  name: s.string(),
+  path: text(),
+  enabled: s.optional(s.boolean()),
+  displayName: text(),
+  description: text(),
+  shortDescription: text(),
+  userInvocable: s.optional(s.nullable(s.boolean())),
+});
+
 export const RawProvider = s.object({
   instanceId: s.string(),
   displayName: text(),
   enabled: s.optional(s.boolean()),
   status: s.optional(s.string()),
   supportedRuntimeModes: s.optional(s.array(s.string())),
+  slashCommands: s.optional(s.array(RawSlashCommand)),
+  skills: s.optional(s.array(RawSkill)),
+  // The lists as seen from one folder: a project can add its own skills.
+  workspaceSnapshots: s.optional(s.array(s.object({ cwd: s.string(), slashCommands: s.optional(s.array(RawSlashCommand)), skills: s.optional(s.array(RawSkill)) }))),
   models: s.optional(
     s.array(s.object({ slug: s.string(), name: text(), capabilities: s.optional(s.nullable(s.object({ optionDescriptors: s.optional(s.array(RawOptionDescriptor)) }))) })),
   ),

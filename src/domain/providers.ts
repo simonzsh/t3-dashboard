@@ -1,4 +1,4 @@
-import type { DashboardModel, DashboardProvider, ModelDefaults, ModelEffort } from "../../shared/api.ts";
+import type { ComposerCommands, DashboardModel, DashboardProvider, ModelDefaults, ModelEffort } from "../../shared/api.ts";
 import { RUNTIME_MODES, isRuntimeMode } from "../../shared/limits.ts";
 import type { RawConfig, RawOptionDescriptor } from "../integrations/t3/schemas.ts";
 
@@ -67,5 +67,18 @@ export function toModelDefaults(config: RawConfig): ModelDefaults {
   return {
     selection: settings.defaultModelSelection ?? null,
     runtimeMode: isRuntimeMode(mode) ? mode : null,
+  };
+}
+
+/** The commands and skills the provider offers in the thread's folder; its own lists when T3 has no snapshot of that folder. */
+export function toComposerCommands(config: RawConfig, instanceId: string, cwd: string | null): ComposerCommands {
+  const provider = config.providers?.find((candidate) => candidate.instanceId === instanceId);
+  if (!provider) return { commands: [], skills: [] };
+  const view = (cwd && provider.workspaceSnapshots?.find((snapshot) => snapshot.cwd === cwd)) || provider;
+  return {
+    commands: (view.slashCommands ?? []).map((command) => ({ name: command.name, description: command.description ?? null, ...(command.input?.hint && { hint: command.input.hint }) })),
+    skills: (view.skills ?? [])
+      .filter((skill) => skill.enabled !== false && skill.userInvocable !== false)
+      .map((skill) => ({ name: skill.name, displayName: skill.displayName ?? null, description: skill.shortDescription ?? skill.description ?? null })),
   };
 }

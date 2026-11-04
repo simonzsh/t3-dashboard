@@ -14,7 +14,7 @@ import { matchesEtag } from "./etag.ts";
 import { servePwa } from "./pwa.ts";
 import type { Site } from "./site.ts";
 import type { SseHub } from "./sse.ts";
-import { isObject, isText, validAssign, validAttachments, validAutomationRequest, validDesk, validCreate, validFileSearch, validItemId, validMessage, validQueuedEdit, validRename, validRespond, validRewind, validSearch, validSettings, validUpload } from "./validate.ts";
+import { isObject, isText, validAssign, validAttachments, validAutomationRequest, validDesk, validCreate, validFileSearch, validItemId, validMessage, validProvider, validQueuedEdit, validRename, validRespond, validRewind, validSearch, validSettings, validUpload } from "./validate.ts";
 
 export interface SetupControl {
   /** Resolves the token again. */
@@ -198,6 +198,7 @@ export function createDashboardServer(options: DashboardServerOptions): Dashboar
         return json(200, await actions.searchFiles(params.id!, query, limit));
       },
     },
+    { method: "GET", path: "/api/threads/:id/commands", handle: async ({ req, params }) => json(200, await actions.composerCommands(params.id!, validProvider(new URL(req.url).searchParams))) },
     { method: "GET", path: "/api/threads/:id/attachments/:attachmentId", handle: ({ req, params }) => asset(req, params.id!, { attachmentId: params.attachmentId! }) },
     {
       method: "GET",

@@ -1233,6 +1233,22 @@ test("GET /api/threads/:id/files searches the worktree first, then the project r
   assert.deepEqual(port.entriesCalls, [{ cwd: "/work/wt", query: "a", limit: 20 }, { cwd: "/work/root", query: "", limit: 5 }]);
 });
 
+test("GET /api/threads/:id/commands gives the provider's commands and skills for the thread's folder", async () => {
+  const { server, port } = await start();
+  port.config = async () => ({
+    providers: [{ instanceId: "a", slashCommands: [{ name: "compact", description: "Summarize" }], workspaceSnapshots: [{ cwd: "/work/wt", slashCommands: [{ name: "compact" }, { name: "local" }], skills: [{ name: "s", path: "/s", enabled: true }] }] }],
+  });
+  const reply = await call(server, "GET", "/api/threads/idle-1/commands?provider=a");
+  assert.deepEqual(reply.json, { commands: [{ name: "compact", description: null }, { name: "local", description: null }], skills: [{ name: "s", displayName: null, description: null }] });
+  const global = await call(server, "GET", "/api/threads/unknown/commands?provider=a");
+  assert.deepEqual(global.json, { commands: [{ name: "compact", description: "Summarize" }], skills: [] });
+});
+
+test("GET /api/threads/:id/commands needs a provider", async () => {
+  const { server } = await start();
+  for (const query of ["", "?provider=", `?provider=${"x".repeat(201)}`]) assert.equal((await call(server, "GET", `/api/threads/idle-1/commands${query}`)).status, 400, query);
+});
+
 test("GET /api/threads/:id/files is empty when T3 names no folder, and refuses a bad query", async () => {
   const { server, port } = await start();
   const reply = await call(server, "GET", "/api/threads/unknown/files?q=a");

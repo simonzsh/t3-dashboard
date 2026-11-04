@@ -621,3 +621,25 @@ test("a queued run does not count as the run before a message", () => {
   const queued = rewindProjection({ runs: [{ id: "r1", ordinal: 1, status: "completed", userMessageId: "u1" }, { id: "rq", ordinal: 2, status: "queued", userMessageId: "uq" }, { id: "r2", ordinal: 3, status: "completed", userMessageId: "u2" }] });
   assert.equal(rewindPoints(queued).get("u2")?.checkpointId, "c1");
 });
+
+const usage = (usedTokens: number, updatedAt: string, maxTokens?: number) => ({ tokenUsage: { usedTokens, updatedAt, ...(maxTokens && { maxTokens }) } });
+
+test("contextUsage: null until a turn reports it", () => {
+  assert.equal(toThreadDetail("t", {}, undefined).contextUsage, null);
+  assert.equal(toThreadDetail("t", { providerTurns: [{}] }, undefined).contextUsage, null);
+});
+
+test("contextUsage: the turn report with the latest time wins", () => {
+  const providerTurns = [usage(1000, "2026-03-01T10:00:00Z", 200000), usage(722000, "2026-03-01T12:00:00Z", 1000000), usage(5, "2026-03-01T11:00:00Z")];
+  assert.deepEqual(toThreadDetail("t", { providerTurns }, undefined).contextUsage, { usedTokens: 722000, maxTokens: 1000000 });
+});
+
+test("contextUsage: falls back to the active provider thread, and keeps a missing limit null", () => {
+  const providerThreads = [
+    { id: "p1", contextUsage: { usedTokens: 10, maxTokens: 20 } },
+    { id: "p2", contextUsage: { usedTokens: 300 } },
+  ];
+  const thread = { id: "t", activeProviderThreadId: "p2" };
+  assert.deepEqual(toThreadDetail("t", { providerThreads, thread }, undefined).contextUsage, { usedTokens: 300, maxTokens: null });
+  assert.equal(toThreadDetail("t", { providerThreads: [{ id: "p2", contextUsage: null }], thread }, undefined).contextUsage, null);
+});

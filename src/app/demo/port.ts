@@ -2,7 +2,9 @@ import { RUNNING_RUN_STATUSES } from "../../../shared/status.ts";
 import type { FetchLike } from "../../integrations/linear/client.ts";
 import type { AttachmentRef, Command, FileUpload, ImageUpload, RawConfig, RawProjection, RawScheduledTask, RawSearchMatch, RawThread, RawTurnItem, SearchEntriesResponse, ShellItem, T3Port } from "../../integrations/t3/schemas.ts";
 import { searchEntries, searchProjections } from "./search.ts";
-import { demoFixtures, demoIssues, demoScheduledTasks, SCRATCH_PROJECT_ID } from "./fixtures.ts";
+import { DEMO_CONTEXT_TOKENS, demoFixtures, demoIssues, demoScheduledTasks, SCRATCH_PROJECT_ID } from "./fixtures.ts";
+
+const COMPACTED_TOKENS = 12_000;
 
 type Listener = (items: ShellItem[]) => void;
 
@@ -94,6 +96,11 @@ export class DemoPort implements T3Port {
     const thread = { ...projection.thread!, updatedAt: at };
     switch (command.type) {
       case "message.dispatch": {
+        // Like T3: /compact is not a chat message, it shrinks the context.
+        if (command.text === "/compact") {
+          projection.providerTurns = [{ tokenUsage: { usedTokens: COMPACTED_TOKENS, maxTokens: DEMO_CONTEXT_TOKENS, updatedAt: at } }];
+          break;
+        }
         const attachments = (command.attachments as Array<{ type: string; id: string; name: string; mimeType: string; sizeBytes: number }> | undefined) ?? [];
         const message = { id: String(command.messageId), role: "user" as const, text: String(command.text), createdAt: at, attachments };
         const runs = projection.runs ?? [];

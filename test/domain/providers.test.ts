@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "bun:test";
-import { toModelDefaults, toProviders } from "../../src/domain/providers.ts";
+import { toComposerCommands, toModelDefaults, toProviders } from "../../src/domain/providers.ts";
 
 test("toProviders keeps the effort levels a model accepts and the provider's runtime modes", () => {
   const effort = {
@@ -40,4 +40,49 @@ test("toModelDefaults reads T3's default model and access, and ignores a bad mod
   assert.deepEqual(toModelDefaults({ settings: { defaultModelSelection: selection, defaultRuntimeMode: "full-access" } }), { selection, runtimeMode: "full-access" });
   assert.deepEqual(toModelDefaults({ settings: { defaultRuntimeMode: "yolo" } }), { selection: null, runtimeMode: null });
   assert.deepEqual(toModelDefaults({}), { selection: null, runtimeMode: null });
+});
+
+const skill = (name: string, extra: Record<string, unknown> = {}) => ({ name, path: `/skills/${name}`, enabled: true, ...extra });
+
+test("toComposerCommands reads the provider's own list with no folder", () => {
+  const config = {
+    providers: [
+      {
+        instanceId: "a",
+        slashCommands: [{ name: "compact", description: "Summarize" }, { name: "goal", input: { hint: "Objective" } }],
+        skills: [skill("review", { displayName: "Code Review", description: "Long", shortDescription: "Short" })],
+      },
+      { instanceId: "b", slashCommands: [{ name: "other" }] },
+    ],
+  };
+  assert.deepEqual(toComposerCommands(config, "a", null), {
+    commands: [{ name: "compact", description: "Summarize" }, { name: "goal", description: null, hint: "Objective" }],
+    skills: [{ name: "review", displayName: "Code Review", description: "Short" }],
+  });
+  assert.deepEqual(toComposerCommands(config, "missing", null), { commands: [], skills: [] });
+});
+
+test("toComposerCommands prefers the snapshot of the thread's folder", () => {
+  const config = {
+    providers: [
+      {
+        instanceId: "a",
+        slashCommands: [{ name: "global" }],
+        skills: [skill("global-skill")],
+        workspaceSnapshots: [
+          { cwd: "/other", slashCommands: [{ name: "other" }], skills: [] },
+          { cwd: "/work", slashCommands: [{ name: "local" }], skills: [skill("local-skill")] },
+        ],
+      },
+    ],
+  };
+  const found = toComposerCommands(config, "a", "/work");
+  assert.deepEqual([found.commands.map((c) => c.name), found.skills.map((k) => k.name)], [["local"], ["local-skill"]]);
+  const none = toComposerCommands(config, "a", "/unknown");
+  assert.deepEqual([none.commands.map((c) => c.name), none.skills.map((k) => k.name)], [["global"], ["global-skill"]]);
+});
+
+test("toComposerCommands leaves out skills a user cannot invoke", () => {
+  const config = { providers: [{ instanceId: "a", skills: [skill("on"), skill("off", { enabled: false }), skill("internal", { userInvocable: false }), skill("explicit", { userInvocable: true })] }] };
+  assert.deepEqual(toComposerCommands(config, "a", null).skills.map((k) => k.name), ["on", "explicit"]);
 });

@@ -38,6 +38,7 @@ const CODEX = { instanceId: "codex", model: "gpt-5.5-codex" };
 
 type Role = "user" | "assistant";
 const LAST = "@last-message";
+export const DEMO_CONTEXT_TOKENS = 1_000_000;
 
 interface ThreadSpec {
   id: string;
@@ -51,11 +52,14 @@ interface ThreadSpec {
   subagents?: Array<Omit<RawSubagent, "startedAt" | "completedAt"> & { at: number; done?: number }>;
   request?: { id: string; kind: string; at: number; item: RawTurnItem };
   thread?: Partial<RawThread>;
+  /** Context size the provider reported for the last turn. */
+  tokens?: number;
 }
 
 const SPECS: ThreadSpec[] = [
   {
     id: "demo-checkout",
+    tokens: 722000,
     projectId: "demo-atlas-web",
     title: "Redesign the checkout summary",
     model: CLAUDE,
@@ -125,6 +129,7 @@ const SPECS: ThreadSpec[] = [
   },
   {
     id: "demo-migration",
+    tokens: 148000,
     projectId: "demo-atlas-api",
     title: "Migrate the invoices table",
     model: CLAUDE,
@@ -189,6 +194,7 @@ const SPECS: ThreadSpec[] = [
   },
   {
     id: "demo-dark-mode",
+    tokens: 39700,
     projectId: "demo-atlas-web",
     title: "Fix dark mode contrast on charts",
     model: SONNET,
@@ -205,6 +211,7 @@ const SPECS: ThreadSpec[] = [
   },
   {
     id: "demo-release-notes",
+    tokens: 1500,
     projectId: "demo-docs",
     title: "Release notes for 2.4",
     model: CLAUDE,
@@ -233,6 +240,7 @@ const SPECS: ThreadSpec[] = [
   },
   {
     id: "demo-charts",
+    tokens: 265000,
     projectId: SCRATCH_PROJECT_ID,
     title: "Compare charting libraries",
     model: CLAUDE,
@@ -344,6 +352,7 @@ function buildThread(spec: ThreadSpec, at: (minutes: number) => string): { threa
     visibleTurnItems: messages.map((message) => ({ id: `${message.id}-item`, messageId: message.id })),
     turnItems: [...activity, ...(request ? [request.item] : [])],
     subagents,
+    providerTurns: spec.tokens === undefined ? [] : [{ tokenUsage: { usedTokens: spec.tokens, maxTokens: DEMO_CONTEXT_TOKENS, updatedAt: last.createdAt } }],
     runtimeRequests: request ? [{ id: request.id, kind: request.kind, status: "pending", createdAt: at(request.at), responseCapability: { type: "live" } }] : [],
   };
   return { thread, projection };
@@ -360,6 +369,17 @@ const CONFIG: RawConfig = {
       displayName: "Claude",
       enabled: true,
       status: "ready",
+      slashCommands: [
+        { name: "compact", description: "Summarize the conversation and reduce context usage" },
+        { name: "review", description: "Review the pending changes" },
+        { name: "init", description: "Create a CLAUDE.md file for this project" },
+        { name: "goal", description: "Keep working toward a goal until it is done", input: { hint: "Objective, or pause, resume, clear" } },
+      ],
+      skills: [
+        { name: "simplify", path: "/demo/skills/simplify", enabled: true, displayName: "Simplify", shortDescription: "Review changed code for reuse and simplicity" },
+        { name: "security-review", path: "/demo/skills/security-review", enabled: true, displayName: "Security review", shortDescription: "Review the pending changes for security issues" },
+        { name: "release-notes", path: "/demo/skills/release-notes", enabled: true, displayName: "Release notes", shortDescription: "Write release notes for a change" },
+      ],
       models: [
         { slug: "claude-opus-5-5", name: "Claude Opus 5.5", ...effort("effort", ["low", "medium", "high", "max"], "high") },
         { slug: "claude-sonnet-5", name: "Claude Sonnet 5", ...effort("effort", ["low", "medium", "high"], "medium") },
@@ -371,6 +391,8 @@ const CONFIG: RawConfig = {
       displayName: "Codex",
       enabled: true,
       status: "ready",
+      slashCommands: [{ name: "compact", description: "Summarize the conversation and reduce context usage" }],
+      skills: [{ name: "simplify", path: "/demo/skills/simplify", enabled: true, displayName: "Simplify", shortDescription: "Review changed code for reuse and simplicity" }],
       models: [
         { slug: "gpt-5.5-codex", name: "GPT-5.5 Codex", ...effort("reasoningEffort", ["low", "medium", "high"], "medium") },
         { slug: "gpt-5.5", name: "GPT-5.5", ...effort("reasoningEffort", ["minimal", "low", "medium", "high"], "medium") },

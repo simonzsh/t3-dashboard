@@ -67,6 +67,27 @@ export interface FileSearchResult {
   truncated: boolean;
 }
 
+/** A command of the thread's provider: typed as `/name` at the start of a message. */
+export interface SlashCommand {
+  name: string;
+  description: string | null;
+  /** What goes after the name, e.g. "Objective, or pause, resume, clear". */
+  hint?: string;
+}
+
+/** A skill of the thread's provider: typed as `$name` in a message. */
+export interface SkillInfo {
+  name: string;
+  displayName: string | null;
+  description: string | null;
+}
+
+/** GET /api/threads/:id/commands?provider= */
+export interface ComposerCommands {
+  commands: SlashCommand[];
+  skills: SkillInfo[];
+}
+
 export interface SendMessageBody {
   text: string;
   mode?: "queue" | "steer";
