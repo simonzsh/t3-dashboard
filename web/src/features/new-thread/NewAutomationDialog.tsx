@@ -197,10 +197,6 @@ export function NewAutomationDialog({ projects, providers, defaults, onClose, on
             }}
           />
         </div>
-        <div className="dialog-field">
-          <span>Title</span>
-          <TextInput aria-label="Title" maxLength={120} placeholder="Optional: the first line of the prompt" value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} />
-        </div>
         <ScheduleFields form={form} onChange={setForm} />
       </div>
       <Composer

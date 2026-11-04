@@ -139,7 +139,7 @@ The right column of the Agents tab lists the scheduled tasks of T3 Code. It appe
 1. Open a new automation. Click "New Automation" in the header, to the right of New Agent, or push `⇧` + `N`. A window opens with a form.
 2. Pick the kind: Routine, Reminder or Webhook.
 3. Select a project, or keep "No project". The dashboard keeps this selection for the next time.
-4. Write a title (optional: the first line of the prompt is the default), set the schedule (see below), write the prompt, and pick the model.
+4. Set the schedule (see below), write the prompt, and pick the model. The first line of the prompt becomes the title. Rename the task later with the pencil icon.
 5. Send. The dashboard creates the task in T3 Code directly: no agent thread is involved. The task runs with full access unless you pick another mode in the model menu. If an error occurs, the window stays open and shows the error.
 
 - A routine repeats. Choose "At a time" (a time and the days; no day means every day) or "Every N minutes" (1 to 525600).
