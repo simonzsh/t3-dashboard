@@ -77,3 +77,14 @@ test("a menu that fits on neither side takes the larger side and a max height", 
   assert.equal(p.maxHeight, 500 - 4 - 8);
   assert.equal(p.top, 8);
 });
+
+test("a composer menu opens above its field when it fits there, against the field", () => {
+  const p = place({ left: 100, top: 400, width: 80, height: 30 }, { width: 200, height: 90 }, { preferAbove: true });
+  assert.equal(p.above, true);
+  assert.equal(p.top, 400 - 4 - 90);
+});
+
+test("a composer menu still opens below when only the room below fits it", () => {
+  const p = place({ left: 100, top: 100, width: 80, height: 30 }, menu, { preferAbove: true });
+  assert.equal(p.above, false);
+});

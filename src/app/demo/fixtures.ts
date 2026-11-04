@@ -6,15 +6,31 @@ import type { RawConfig, RawProject, RawProjection, RawScheduledTask, RawSubagen
 
 export const SCRATCH_PROJECT_ID = "demo-no-project";
 export const DEMO_ENVIRONMENT_ID = "demo-environment";
+const CHILD_ID = "demo-checkout-mobile-child";
 
 const PROJECTS: RawProject[] = [
-  { id: "demo-atlas-web", title: "Atlas Web", projectIcon: { kind: "lucide", name: "folder-code", color: "blue" } },
-  { id: "demo-atlas-api", title: "Atlas API", projectIcon: { kind: "lucide", name: "folder-tree", color: "green" } },
+  { id: "demo-atlas-web", title: "Atlas Web", workspaceRoot: "/demo/atlas-web", projectIcon: { kind: "lucide", name: "folder-code", color: "blue" } },
+  { id: "demo-atlas-api", title: "Atlas API", workspaceRoot: "/demo/atlas-api", projectIcon: { kind: "lucide", name: "folder-tree", color: "green" } },
   { id: "demo-mobile", title: "Mobile App", projectIcon: { kind: "lucide", name: "smartphone", color: "purple" } },
   { id: "demo-docs", title: "Docs site", projectIcon: { kind: "lucide", name: "book-open", color: "gray" } },
   { id: "demo-assistant", title: "Assistant", projectIcon: { kind: "lucide", name: "brain", color: "purple" } },
   { id: SCRATCH_PROJECT_ID, title: "No project" },
 ];
+
+const SUMMARY_DIFF = [
+  "--- a/web/src/checkout/OrderSummary.tsx",
+  "+++ b/web/src/checkout/OrderSummary.tsx",
+  "@@ -10,7 +10,9 @@ export function OrderSummary({ order }: Props) {",
+  "   return (",
+  '     <section className="summary">',
+  "-      <Row label=\"Shipping\" value={order.shipping} />",
+  "-      <Row label=\"Taxes\" value={order.taxes} />",
+  "+      <Fees order={order} />",
+  "+      <Total value={order.total} />",
+  "     </section>",
+  "   );",
+  " }",
+].join("\n");
 
 const CLAUDE = { instanceId: "claudeAgent", model: "claude-opus-5-5" };
 const SONNET = { instanceId: "claudeAgent", model: "claude-sonnet-5" };
@@ -22,6 +38,7 @@ const CODEX = { instanceId: "codex", model: "gpt-5.5-codex" };
 
 type Role = "user" | "assistant";
 const LAST = "@last-message";
+export const DEMO_CONTEXT_TOKENS = 1_000_000;
 
 interface ThreadSpec {
   id: string;
@@ -35,11 +52,14 @@ interface ThreadSpec {
   subagents?: Array<Omit<RawSubagent, "startedAt" | "completedAt"> & { at: number; done?: number }>;
   request?: { id: string; kind: string; at: number; item: RawTurnItem };
   thread?: Partial<RawThread>;
+  /** Context size the provider reported for the last turn. */
+  tokens?: number;
 }
 
 const SPECS: ThreadSpec[] = [
   {
     id: "demo-checkout",
+    tokens: 722000,
     projectId: "demo-atlas-web",
     title: "Redesign the checkout summary",
     model: CLAUDE,
@@ -60,18 +80,23 @@ const SPECS: ThreadSpec[] = [
     ],
     activity: [
       { id: "a1", type: "reasoning", runId: "run-checkout-2", text: "Read the summary component and its tests before changing the layout.", at: 6, done: 6 },
-      { id: "a2", type: "command_execution", runId: "run-checkout-2", input: 'rg -n "OrderSummary" web/src', exitCode: 0, at: 6, done: 6 },
-      { id: "a3", type: "file_change", runId: "run-checkout-2", fileName: "web/src/checkout/OrderSummary.tsx", at: 5, done: 5 },
-      { id: "a4", type: "subagent", runId: "run-checkout-2", title: "Audit price formatting helpers", at: 5, done: 3 },
-      { id: "a5", type: "subagent", runId: "run-checkout-2", title: "Check mobile breakpoints", status: "running", at: 4 },
-      { id: "a6", type: "file_change", runId: "run-checkout-2", fileName: "web/src/checkout/summary.css", at: 3, done: 3 },
-      { id: "a7", type: "command_execution", runId: "run-checkout-2", input: "bun test web/src/checkout", exitCode: 0, at: 2, done: 2 },
-      { id: "a8", type: "dynamic_tool", runId: "run-checkout-2", toolName: "mcp__browser__preview_open", input: { url: "http://localhost:5173/checkout" }, at: 2, done: 1 },
+      { id: "a1b", type: "todo_list", runId: "run-checkout-2", explanation: "Checkout summary", steps: [{ id: "t1", text: "Group the fees", status: "completed" }, { id: "t2", text: "Enlarge the total", status: "running" }, { id: "t3", text: "Update the snapshot tests", status: "pending" }], at: 6, done: 6 },
+      { id: "a1c", type: "proposed_plan", runId: "run-checkout-2", markdown: "## Plan\n\n1. Group shipping, taxes and fees under **Fees**.\n2. Enlarge the total.\n3. Update the tests.", at: 6, done: 6 },
+      { id: "a2", type: "command_execution", runId: "run-checkout-2", input: 'rg -n "OrderSummary" web/src', output: "web/src/checkout/OrderSummary.tsx:8:export function OrderSummary({ order }: Props) {\nweb/src/checkout/index.ts:1:export { OrderSummary } from \"./OrderSummary\";", exitCode: 0, at: 6, done: 6 },
+      { id: "a3", type: "file_change", runId: "run-checkout-2", fileName: "web/src/checkout/OrderSummary.tsx", diffStr: SUMMARY_DIFF, additions: 2, deletions: 2, at: 5, done: 5 },
+      { id: "a4", type: "subagent", runId: "run-checkout-2", subagentId: "sub-format", title: "Audit price formatting helpers", result: "Two helpers format prices: `formatPrice` and `toCurrency`. Only `formatPrice` handles locales; the summary now uses it everywhere.", at: 5, done: 3 },
+      { id: "a5", type: "subagent", runId: "run-checkout-2", subagentId: "sub-mobile", childThreadId: CHILD_ID, title: "Check mobile breakpoints", progress: "Testing 375 px and 768 px widths", status: "running", at: 4 },
+      { id: "a6", type: "file_change", runId: "run-checkout-2", fileName: "web/src/checkout/summary.css", oldStr: ".total { font-size: 14px; }", newStr: ".total { font-size: 20px; font-weight: 600; }", at: 3, done: 3 },
+      { id: "a6b", type: "checkpoint", runId: "run-checkout-2", files: [{ fileName: "web/src/checkout/OrderSummary.tsx" }, { fileName: "web/src/checkout/summary.css" }], filesTotal: 2, at: 3, done: 3 },
+      { id: "a7", type: "command_execution", runId: "run-checkout-2", input: "bun test web/src/checkout", output: JSON.stringify({ stdout: "web/src/checkout/OrderSummary.test.tsx\n  ✓ shows the total first\n  ✓ groups the fees\n\n 2 pass\n 0 fail", stderr: "", interrupted: false }), exitCode: 0, at: 2, done: 2 },
+      { id: "a7b", type: "command_execution", runId: "run-checkout-2", input: "bun run typecheck", output: "web/src/checkout/Fees.tsx(4,10): error TS2305: Module './format' has no exported member 'toCurrency'.", exitCode: 2, at: 2, done: 2 },
+      { id: "a8", type: "dynamic_tool", runId: "run-checkout-2", toolName: "mcp__browser__preview_open", input: { url: "http://localhost:5173/checkout" }, output: [{ type: "text", text: "Opened http://localhost:5173/checkout (375 x 812)" }], at: 2, done: 1 },
+      { id: "a8b", type: "compaction", runId: "run-checkout-2", summary: "Earlier steps were summarized to save context.", beforeTokenCount: 84000, afterTokenCount: 12000, at: 1, done: 1 },
       { id: "a9", type: "reasoning", runId: "run-checkout-2", text: "Compare the new layout with the design spec.", status: "running", at: 1 },
     ],
     subagents: [
       { id: "sub-format", runId: "run-checkout-2", title: "Audit price formatting helpers", status: "completed", result: "Two helpers format prices: `formatPrice` and `toCurrency`. Only `formatPrice` handles locales; the summary now uses it everywhere.", at: 5, done: 3 },
-      { id: "sub-mobile", runId: "run-checkout-2", title: "Check mobile breakpoints", status: "running", progress: "Testing 375 px and 768 px widths", at: 4 },
+      { id: "sub-mobile", runId: "run-checkout-2", childThreadId: CHILD_ID, title: "Check mobile breakpoints", status: "running", progress: "Testing 375 px and 768 px widths", at: 4 },
     ],
     thread: { activeRunId: "run-checkout-2", runtimeMode: "full-access", pinnedAt: LAST },
   },
@@ -93,13 +118,18 @@ const SPECS: ThreadSpec[] = [
     activity: [
       { id: "b1", type: "reasoning", runId: "run-rate-1", text: "Look for an existing middleware folder and the test setup.", at: 11, done: 11 },
       { id: "b2", type: "command_execution", runId: "run-rate-1", input: "ls src/middleware", exitCode: 0, at: 10, done: 10 },
-      { id: "b3", type: "file_change", runId: "run-rate-1", fileName: "src/middleware/rateLimit.ts", at: 6, done: 6 },
+      { id: "b2b", type: "file_search", runId: "run-rate-1", pattern: "rateLimit", results: [{ fileName: "src/middleware/index.ts", preview: 'export { rateLimit } from "./rateLimit";' }], at: 9, done: 9 },
+      { id: "b2c", type: "web_search", runId: "run-rate-1", patterns: ["Retry-After header token bucket"], results: [{ title: "Retry-After - HTTP | MDN", url: "https://developer.mozilla.org/docs/Web/HTTP/Headers/Retry-After", snippet: "The Retry-After response header tells the client how long to wait." }], at: 8, done: 8 },
+      { id: "b3", type: "file_change", runId: "run-rate-1", fileName: "src/middleware/rateLimit.ts", diffStr: "--- /dev/null\n+++ b/src/middleware/rateLimit.ts\n@@ -0,0 +1,2 @@\n+export const rateLimit = bucket({ capacity: 60, refillPerSecond: 1 });\n+export default rateLimit;", additions: 2, deletions: 0, at: 6, done: 6 },
+      { id: "b3b", type: "error", runId: "run-rate-1", failure: { class: "provider", message: "The provider was overloaded. Retrying in 5 s." }, at: 3, done: 3 },
+      { id: "b3c", type: "system_notice", runId: "run-rate-1", message: "Switched to the fallback model.", at: 2, done: 2 },
       { id: "b4", type: "command_execution", runId: "run-rate-1", input: "bun test src/middleware", status: "running", at: 1 },
     ],
     thread: { activeRunId: "run-rate-1", runtimeMode: "auto-accept-edits" },
   },
   {
     id: "demo-migration",
+    tokens: 722000,
     projectId: "demo-atlas-api",
     title: "Migrate the invoices table",
     model: CLAUDE,
@@ -164,6 +194,7 @@ const SPECS: ThreadSpec[] = [
   },
   {
     id: "demo-dark-mode",
+    tokens: 39700,
     projectId: "demo-atlas-web",
     title: "Fix dark mode contrast on charts",
     model: SONNET,
@@ -180,6 +211,7 @@ const SPECS: ThreadSpec[] = [
   },
   {
     id: "demo-release-notes",
+    tokens: 1500,
     projectId: "demo-docs",
     title: "Release notes for 2.4",
     model: CLAUDE,
@@ -208,6 +240,7 @@ const SPECS: ThreadSpec[] = [
   },
   {
     id: "demo-charts",
+    tokens: 265000,
     projectId: SCRATCH_PROJECT_ID,
     title: "Compare charting libraries",
     model: CLAUDE,
@@ -263,13 +296,32 @@ const SPECS: ThreadSpec[] = [
   },
 ];
 
+// What the "Check mobile breakpoints" subagent did in its own thread.
+function childProjection(at: (minutes: number) => string): RawProjection {
+  const item = (id: string, ordinal: number, minutes: number, extra: RawTurnItem): RawTurnItem => ({ id, ordinal, threadId: CHILD_ID, runId: "run-child-1", status: "completed", startedAt: at(minutes), completedAt: at(minutes), ...extra });
+  const thread: RawThread = { id: CHILD_ID, projectId: "demo-atlas-web", title: "Check mobile breakpoints", status: "running", activeRunId: "run-child-1", lineage: { relationshipToParent: "subagent", parentThreadId: "demo-checkout" }, creationSource: "provider", modelSelection: SONNET, createdAt: at(4), updatedAt: at(1) };
+  return {
+    thread,
+    messages: [],
+    runs: [{ id: "run-child-1", status: "running", startedAt: at(4), completedAt: null }],
+    turnItems: [
+      item("c1", 1, 4, { type: "reasoning", text: "Check the summary at 375 px and 768 px." }),
+      item("c2", 2, 3, { type: "command_execution", input: "bun run test:visual --width 375", output: "375 px: totals fit on one line", exitCode: 0 }),
+      item("c3", 3, 1, { type: "command_execution", input: "bun run test:visual --width 768", status: "running", completedAt: null }),
+    ],
+  };
+}
+
 function buildThread(spec: ThreadSpec, at: (minutes: number) => string): { thread: RawThread; projection: RawProjection } {
   const messages = spec.messages.map(([role, minutes, text], index) => ({ id: `${spec.id}-m${index}`, role, text, createdAt: at(minutes) }));
   const last = messages.at(-1)!;
   const lastUser = messages.findLast((message) => message.role === "user");
-  const runs = (spec.runs ?? []).map((run) => ({ id: run.id, status: run.status, startedAt: at(run.started), completedAt: run.completed === undefined ? null : at(run.completed) }));
+  const userMessages = messages.filter((message) => message.role === "user");
+  const runs = (spec.runs ?? []).map((run, index) => ({ id: run.id, ordinal: index + 1, userMessageId: userMessages[index]?.id, status: run.status, startedAt: at(run.started), completedAt: run.completed === undefined ? null : at(run.completed) }));
+  // The start checkpoint, then one per finished run: "Edit from here" rewinds to one of them.
+  const checkpoints = [{ id: `${spec.id}-cp0`, scopeId: `${spec.id}-scope`, runId: null, status: "ready", ordinalWithinScope: 0, appRunOrdinal: null }, ...runs.filter((run) => run.completedAt).map((run) => ({ id: `${spec.id}-cp${run.ordinal}`, scopeId: `${spec.id}-scope`, runId: run.id, status: "ready", ordinalWithinScope: run.ordinal, appRunOrdinal: run.ordinal }))];
   const latestRun = runs.at(-1);
-  const activity = (spec.activity ?? []).map(({ at: started, done, ...item }, index) => ({ ...item, ordinal: index + 1, status: item.status ?? (done === undefined ? "running" : "completed"), startedAt: at(started), completedAt: done === undefined ? null : at(done) }));
+  const activity = (spec.activity ?? []).map(({ at: started, done, ...item }, index) => ({ ...item, threadId: spec.id, ordinal: index + 1, status: item.status ?? (done === undefined ? "running" : "completed"), startedAt: at(started), completedAt: done === undefined ? null : at(done) }));
   const subagents = (spec.subagents ?? []).map(({ at: started, done, ...raw }) => ({ ...raw, startedAt: at(started), completedAt: done === undefined ? null : at(done) }));
   const { request } = spec;
   // A field set to LAST takes the time of the last message.
@@ -296,38 +348,63 @@ function buildThread(spec: ThreadSpec, at: (minutes: number) => string): { threa
     thread,
     messages,
     runs,
+    checkpoints,
     visibleTurnItems: messages.map((message) => ({ id: `${message.id}-item`, messageId: message.id })),
     turnItems: [...activity, ...(request ? [request.item] : [])],
     subagents,
+    providerTurns: spec.tokens === undefined ? [] : [{ tokenUsage: { usedTokens: spec.tokens, maxTokens: DEMO_CONTEXT_TOKENS, updatedAt: last.createdAt } }],
     runtimeRequests: request ? [{ id: request.id, kind: request.kind, status: "pending", createdAt: at(request.at), responseCapability: { type: "live" } }] : [],
   };
   return { thread, projection };
 }
 
-const effort = (id: string, levels: string[], defaultLevel: string) => ({
-  capabilities: { optionDescriptors: [{ id, label: "Reasoning", type: "select", options: levels.map((level) => ({ id: level, label: level[0]!.toUpperCase() + level.slice(1), isDefault: level === defaultLevel })) }] },
+const FAST_TOGGLE = { id: "fastMode", label: "Fast", type: "boolean" };
+const FAST_TIER = { id: "serviceTier", label: "Speed", type: "select", options: [{ id: "default", label: "Standard", isDefault: true }, { id: "fast", label: "Fast" }] };
+
+const effort = (id: string, levels: string[], defaultLevel: string, speed?: typeof FAST_TOGGLE | typeof FAST_TIER) => ({
+  capabilities: {
+    optionDescriptors: [
+      { id, label: "Reasoning", type: "select", options: levels.map((level) => ({ id: level, label: level[0]!.toUpperCase() + level.slice(1), isDefault: level === defaultLevel })) },
+      ...(speed ? [speed] : []),
+    ],
+  },
 });
 
 const CONFIG: RawConfig = {
   providers: [
     {
       instanceId: "claudeAgent",
+      driver: "claudeAgent",
       displayName: "Claude",
       enabled: true,
       status: "ready",
+      slashCommands: [
+        { name: "compact", description: "Summarize the conversation and reduce context usage" },
+        { name: "review", description: "Review the pending changes" },
+        { name: "init", description: "Create a CLAUDE.md file for this project" },
+        { name: "goal", description: "Keep working toward a goal until it is done", input: { hint: "Objective, or pause, resume, clear" } },
+      ],
+      skills: [
+        { name: "simplify", path: "/demo/skills/simplify", enabled: true, displayName: "Simplify", shortDescription: "Review changed code for reuse and simplicity" },
+        { name: "security-review", path: "/demo/skills/security-review", enabled: true, displayName: "Security review", shortDescription: "Review the pending changes for security issues" },
+        { name: "release-notes", path: "/demo/skills/release-notes", enabled: true, displayName: "Release notes", shortDescription: "Write release notes for a change" },
+      ],
       models: [
-        { slug: "claude-opus-5-5", name: "Claude Opus 5.5", ...effort("effort", ["low", "medium", "high", "max"], "high") },
+        { slug: "claude-opus-5-5", name: "Claude Opus 5.5", ...effort("effort", ["low", "medium", "high", "max"], "high", FAST_TOGGLE) },
         { slug: "claude-sonnet-5", name: "Claude Sonnet 5", ...effort("effort", ["low", "medium", "high"], "medium") },
         { slug: "claude-haiku-4-5", name: "Claude Haiku 4.5" },
       ],
     },
     {
       instanceId: "codex",
+      driver: "codex",
       displayName: "Codex",
       enabled: true,
       status: "ready",
+      slashCommands: [{ name: "compact", description: "Summarize the conversation and reduce context usage" }],
+      skills: [{ name: "simplify", path: "/demo/skills/simplify", enabled: true, displayName: "Simplify", shortDescription: "Review changed code for reuse and simplicity" }],
       models: [
-        { slug: "gpt-5.5-codex", name: "GPT-5.5 Codex", ...effort("reasoningEffort", ["low", "medium", "high"], "medium") },
+        { slug: "gpt-5.5-codex", name: "GPT-5.5 Codex", ...effort("reasoningEffort", ["low", "medium", "high"], "medium", FAST_TIER) },
         { slug: "gpt-5.5", name: "GPT-5.5", ...effort("reasoningEffort", ["minimal", "low", "medium", "high"], "medium") },
       ],
     },
@@ -348,6 +425,8 @@ export interface DemoFixtures {
   threads: RawThread[];
   projections: Record<string, RawProjection>;
   config: RawConfig;
+  /** Threads the shell hides, such as a subagent's own thread: only their projection is served. */
+  hiddenThreadIds: string[];
 }
 
 export function demoFixtures(now: Date): DemoFixtures {
@@ -356,8 +435,9 @@ export function demoFixtures(now: Date): DemoFixtures {
   return {
     projects: PROJECTS,
     threads: built.map(({ thread }) => thread),
-    projections: Object.fromEntries(built.map(({ thread, projection }) => [thread.id, projection])),
+    projections: { ...Object.fromEntries(built.map(({ thread, projection }) => [thread.id, projection])), [CHILD_ID]: childProjection(at) },
     config: CONFIG,
+    hiddenThreadIds: [CHILD_ID],
   };
 }
 

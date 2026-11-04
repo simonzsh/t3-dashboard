@@ -1,7 +1,8 @@
 import type { Ref } from "react";
 
 interface Props {
-  accept: string;
+  /** Without it, any file. */
+  accept?: string;
   multiple?: boolean;
   onFiles: (files: File[]) => void;
   /** A button opens the picker with ref.current.click(). */

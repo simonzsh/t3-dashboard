@@ -1,6 +1,7 @@
 import { useEffect, useReducer, useState } from "react";
 import type { DashboardEvent, DashboardState, DeskUpdate, Diff, SeenState } from "../../../shared/api.ts";
 import { DASHBOARD_EVENT_TYPES } from "../../../shared/events.ts";
+import { setStash } from "./stashStore.ts";
 
 function applyDiff<T extends { id: string }>(list: T[], diff: Diff<T>): T[] {
   const byId = new Map(list.map((x) => [x.id, x]));
@@ -25,6 +26,7 @@ export function applyEvent(state: DashboardState | null, event: DashboardEvent):
     case "connection":
       return { ...state, connection: event.data };
     case "desk":
+    case "stash":
     case "seen":
       return state;
   }
@@ -44,6 +46,7 @@ export function useDashboard(): { state: DashboardState | null; sseDown: boolean
       es.addEventListener(type, (e) => {
         const event = { type, data: JSON.parse((e as MessageEvent<string>).data) } as DashboardEvent;
         if (event.type === "desk") setRemoteDesk(event.data);
+        else if (event.type === "stash") setStash(event.data);
         else if (event.type === "seen") setRemoteSeen(event.data);
         else dispatch(event);
         setSseDown(false);

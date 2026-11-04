@@ -1,3 +1,5 @@
+import type { ThreadDetail } from "../../../../shared/api.ts";
+
 // Run activity (commands, thinking) has no shell event per step: poll fast while a run is active.
 export const RUN_POLL_MS = 2500;
 // Subagent progress does not always reach the shell stream: poll while one runs.
@@ -21,3 +23,10 @@ export function pollDelay({ running, sentAt, background, now }: PollInput): numb
   if (running || now - sentAt < SEND_POLL_WINDOW_MS) return RUN_POLL_MS;
   return background ? SUBAGENT_POLL_MS : null;
 }
+
+/**
+ * A thread the shell does not list (a subagent's) has no live status: its detail says whether a run is active.
+ * A run with no end time, or a running step, counts.
+ */
+export const detailRunning = (detail: Pick<ThreadDetail, "activity" | "steps"> | null): boolean =>
+  detail !== null && ((detail.activity !== null && detail.activity.completedAt === null) || detail.steps.some((step) => step.status === "running"));

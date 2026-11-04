@@ -21,13 +21,15 @@ interface Props {
   onCancel?: () => void;
   cancelLabel?: string;
   primary?: Action;
+  /** A second choice between Cancel and the primary action. */
+  secondary?: Action;
   className?: string;
   children?: ReactNode;
 }
 
 const FOCUSABLE = 'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
 
-export function Dialog({ title, label, onClose, onCancel, cancelLabel = "Cancel", primary, className, children }: Props) {
+export function Dialog({ title, label, onClose, onCancel, cancelLabel = "Cancel", primary, secondary, className, children }: Props) {
   useEscape(onClose);
   const titleId = useId();
   const box = useRef<HTMLDivElement>(null);
@@ -87,9 +89,14 @@ export function Dialog({ title, label, onClose, onCancel, cancelLabel = "Cancel"
           </IconButton>
         </div>
         {children}
-        {(onCancel || primary) && (
+        {(onCancel || primary || secondary) && (
           <div className="buttons dialog-actions">
             {onCancel && <Button onClick={onCancel}>{cancelLabel}</Button>}
+            {secondary && (
+              <Button disabled={secondary.disabled} onClick={secondary.onClick}>
+                {secondary.label}
+              </Button>
+            )}
             {primary && (
               <Button variant="primary" disabled={primary.disabled} onClick={primary.onClick}>
                 {primary.label}

@@ -4,7 +4,7 @@ import type { ChatMessage, ThreadDetail } from "../../../../shared/api.ts";
 export interface PendingMessage {
   id: string;
   text: string;
-  images: number;
+  attachments: number;
   sentAt: number;
   // How many user messages with this text the thread had at send time: the browser and server clocks may differ.
   baseline: number;
@@ -29,6 +29,6 @@ export function isSettled(p: PendingMessage, messages: Sent[], now: number): boo
 export const countSame = (messages: Sent[], text: string): number =>
   messages.filter((m) => m.role === "user" && m.text === text).length;
 
-export function pendingLabel(images: number): string {
-  return images ? `Sending… · ${images} image${images === 1 ? "" : "s"}` : "Sending…";
+export function pendingLabel(attachments: number): string {
+  return attachments ? `Sending… · ${attachments} attachment${attachments === 1 ? "" : "s"}` : "Sending…";
 }

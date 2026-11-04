@@ -88,3 +88,7 @@ test("lex keeps recent texts and drops the least recently used past 500", () => 
   assert.equal(lex("text 0"), first);
   assert.notEqual(lex("text 1"), second, "text 1 was evicted");
 });
+
+test("a t3-context link shows its label and is not a link", () => {
+  assert.equal(html("see [the file](t3-context://file/abc)"), "<p>see the file</p>");
+});

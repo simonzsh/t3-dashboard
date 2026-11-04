@@ -219,3 +219,10 @@ export function saveDesk(storage: Store | null, state: DeskState): void {
     // Ignored on purpose: the desk then starts empty on the next load.
   }
 }
+
+/** The windows a prune keeps: live threads, and subagent threads, which the shell never lists but the server resolves. */
+export async function windowsToKeep(windowIds: readonly string[], liveIds: ReadonlySet<string>, isSubagentThread: (id: string) => Promise<boolean>): Promise<Set<string>> {
+  const missing = windowIds.filter((id) => !liveIds.has(id));
+  const subagent = await Promise.all(missing.map((id) => isSubagentThread(id).catch(() => false)));
+  return new Set([...windowIds.filter((id) => liveIds.has(id)), ...missing.filter((_, i) => subagent[i])]);
+}

@@ -14,6 +14,7 @@ export interface CreateThreadBody {
   /** Defaults to full access. */
   runtimeMode?: RuntimeMode;
   attachments?: ImageAttachment[];
+  uploads?: UploadedAttachment[];
 }
 
 export interface AutomationRequestBody {
@@ -32,14 +33,77 @@ export interface ImageAttachment {
   dataUrl: string;
 }
 
+/** A file already in T3 (POST /api/attachments): message.dispatch sends this ref as is. */
+export interface UploadedAttachment {
+  type: "image" | "file";
+  id: string;
+  name: string;
+  mimeType: string;
+  sizeBytes: number;
+}
+
+/** POST /api/attachments: one file per request. */
+export interface UploadBody {
+  name: string;
+  /** file.type, or "application/octet-stream" when empty. */
+  mimeType: string;
+  /** `data:<mimeType>;base64,…` */
+  dataUrl: string;
+}
+
+export interface UploadResult {
+  ok: true;
+  attachment: UploadedAttachment;
+}
+
+export interface FileEntry {
+  /** Relative to the thread's worktree, or else to the project root. */
+  path: string;
+  kind: "file" | "directory";
+}
+
+export interface FileSearchResult {
+  entries: FileEntry[];
+  truncated: boolean;
+}
+
+/** A command of the thread's provider: typed as `/name` at the start of a message. */
+export interface SlashCommand {
+  name: string;
+  description: string | null;
+  /** What goes after the name, e.g. "Objective, or pause, resume, clear". */
+  hint?: string;
+}
+
+/** A skill of the thread's provider: typed as `$name` in a message. */
+export interface SkillInfo {
+  name: string;
+  displayName: string | null;
+  description: string | null;
+}
+
+/** GET /api/threads/:id/commands?provider= */
+export interface ComposerCommands {
+  commands: SlashCommand[];
+  skills: SkillInfo[];
+}
+
 export interface SendMessageBody {
   text: string;
   mode?: "queue" | "steer";
   attachments?: ImageAttachment[];
+  uploads?: UploadedAttachment[];
 }
 
 export interface EditQueuedBody {
   text: string;
+}
+
+/** POST /api/threads/:id/rewind: back to before this user message. */
+export interface RewindBody {
+  messageId: string;
+  /** Also undo the agent's file edits. */
+  restoreFiles: boolean;
 }
 
 export interface ThreadSettingsBody {

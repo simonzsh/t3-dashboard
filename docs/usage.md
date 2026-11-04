@@ -41,15 +41,52 @@ The Desk shows many conversations side by side, in a grid.
 Each Desk window contains a conversation.
 
 - Write a message and send it with `Enter`. During a run, the message waits in the "Up next" list (dashed border). T3 Code sends it when the turn ends.
-- Under each queued message, three icons: send (Enter arrow), edit, remove. During a run, the send icon steers: the message goes into the current run now. After a Stop, T3 Code holds the queue, and the send icon starts a turn with this message.
-- Attach images: PNG, JPEG, GIF or WebP. The limit is 10 images, 10 MB for each image and 18 MB in total.
-- Change the model, the reasoning effort and the access mode ("Supervised", "Auto-accept edits", "Auto", "Full access").
+- Under each queued message, three icons: "Send now" (the same arrow as Send), edit, remove. During a run, "Send now" steers: the message goes into the current run now. After a Stop, T3 Code holds the queue, and "Send now" starts a turn with this message.
+- Attach files with the paperclip, by drag and drop on the composer, or by paste. A chip shows each upload ("uploading", ready or "failed" with a retry button). Send waits for all uploads. The limits are those of T3 Code: 100 files, 10 MB for each image (PNG, JPEG, GIF or WebP), 50 MB for each other file and 80 MB of images in all.
+- Type `@` after a space to search the files of the conversation folder. Use the arrow keys and `Enter` or `Tab` to insert `@path`. `Escape` closes the list.
+- Type `/` at the start of the message to list the commands of the provider. Type `$` after a space to list its skills. The lists follow the thread folder. The menus work like the `@` list and insert `/command ` or `$skill `. Built-in T3 Code commands (`/model`, `/plan`, `/side`) are not in the lists.
+- The Compact button shows the context size, for example `Compact 722k`. It appears as in T3 Code: on a Claude thread of 200k tokens or more whose prompt cache has expired (70 minutes after the last turn by default), and never during a run. `/compact` stays in the `/` list at any size. Click it, or pick `/compact`, to compact the thread.
+- Stash a draft: press `Ctrl+S` in the composer (`Ctrl`, also on a Mac). On a touch screen, tap the stash button next to Attach. The text and the ready attachments go to the stash and the composer empties. A "Stash" button with the count then shows next to Attach. Click it to open the "Stashed prompts" list: each row has the first line, the age, the conversation and the number of files. Click a row, or use the arrow keys and `Enter`, to restore it: the text goes after your draft and the files return as chips. The "x" deletes an entry and frees its files. `Escape` closes the list. The stash holds 20 prompts and drops the oldest. T3 Code 0.1.6 keeps its own stash in the browser only, so the two are separate. This one is in `~/.config/t3-dashboard/stash.json` and is the same on every device: a change shows at once in every open window. T3 keeps an unsent upload for 24 hours: a restored entry older than that gets its text back and a message names the files to attach again.
+- `Escape` in the message field, with no list open, leaves the field and puts the focus on the conversation. The `Ctrl` shortcuts work in the field too. Press `Escape` again on the Desk to restore a full-screen window.
+- Change the model, its options and the access mode with one chip in the composer. The chip shows the provider icon, the model, the reasoning level and a bolt when Fast is on. Click it to open the panel above it:
+  - The panel opens on your favorites (or on the current provider when you have none). The left rail has the favorites (star) and one icon per provider. Type in "Search models..." to search all providers.
+  - Click a model, or use `↑` `↓` and `Enter`. `Escape` closes the panel.
+  - The right column lists the reasoning levels of the model. "Default" marks the default level and a check marks the current one.
+  - The footer has "Standard" and "Fast" when the model has a speed option, and the access menu ("Supervised", "Auto-accept edits", "Auto", "Full access") on the right.
+  - A star on a model shows a T3 Code favorite. Change favorites in T3 Code: the dashboard does not change them.
 - Stop a run with the "Stop" button.
 - Answer an approval: "Accept", "Accept for session" or "Decline". The dashboard does not offer "Always accept".
 - Answer a question from the agent, or click "Dismiss".
-- Follow the steps of the run: reasoning, commands, tools, files and sub-agents.
+- Follow the steps of the run in the conversation. Consecutive steps (reasoning, commands, tools, file changes, searches) form one group. The group of the active run shows its last 4 steps under "Working for …". Other groups are closed: click one to see its steps.
+- Click a command to see its output and exit code. Click a file change to see its diff. Click a tool or a search to see its input and results. A note says when T3 Code cut a long text.
+- A to-do list, a proposed plan and a notice (checkpoint, compaction, error) have their own block.
+- A subagent has its own block with its status and time. Click it to see its result and its steps. "Open thread" opens its thread in a Desk window. The window takes its name from the thread, follows a running subagent, and stays on the Desk after a reload. It goes full screen or closes, but it does not minimize. Like T3 Code, it has no message field: a bar shows the model, the run time, "Runs on its own" and "Open parent", which opens the parent thread. `@` search there uses the folder of the parent thread. The stop icon stops a running subagent.
+- Between your message and the first step, a "Working…" row shows while the run is active.
+- Point at a message (or tab to it) to see a row of icons under it. On a touch screen, the row always shows. The copy icon copies the text of the message (Markdown) and shows "Copied".
+- The "Edit from here" icon (your messages only) opens a dialog. Choose "Revert files too" to rewind the conversation to before this message and also undo the file edits of the agent, or "Revert and keep changes" to rewind the conversation only: your files stay as they are. In both cases your text and attachments return to the composer. The icon is disabled during a run. A message with no ready checkpoint before it has no icon.
+- Files that you sent show under the message as chips: click one to download it.
 - See the images and videos that the agent refers to in its messages.
 - See the pages from the T3 Code `html_render` tool. The dashboard shows them in an isolated frame (sandbox), with the theme colors.
+
+#### Conversation API
+
+The web page uses these routes of the dashboard server.
+
+| Route | Use |
+| --- | --- |
+| `GET /api/threads/:id` | The conversation: messages, queue, `steps` (the latest 400 steps of every run) and `stepsOmitted`. The timeline shows "N earlier steps not shown" when steps are left out. |
+| `GET /api/threads/:id/items/:itemId` | The full detail of one step: command output, diff, tool input and output, full text. Long texts are cut. |
+| `GET /api/threads/:id/commands?provider=` | Commands and skills of the provider for the `/` and `$` lists, as seen from the thread folder. |
+| `GET /api/threads/:id/files?q=&limit=` | Files and folders for an `@` mention. The search folder is the worktree of the thread, or else the project root. |
+| `POST /api/attachments` | Upload one file (`name`, `mimeType`, `dataUrl`). An image of 10 MB or less goes as an image, any other file of 50 MB or less as a file. |
+| `POST /api/attachments/:attachmentId/delete` | Remove an uploaded file that was not sent. |
+| `GET /api/stash` | The stashed drafts, newest first: `{ entries }`, each with `id`, `text`, `uploads`, `createdAt`, `threadId` and `threadTitle`. |
+| `POST /api/stash` | Stash a draft: `{ text, uploads, threadId, threadTitle }`. Answers `{ entry, evicted }`: `evicted` holds the entries that the limit of 20 pushed out. |
+| `POST /api/stash/:id/delete` | Remove an entry. `404` when it is gone already, for example restored on another device. |
+| `POST /api/threads/:id/rewind` | Rewind to before a user message: `{ messageId, restoreFiles }`. Sends the T3 command `checkpoint.rollback` with the checkpoint of the run before the message. `409` during a run or without a ready checkpoint. A message has `rewindable: true` when it can be rewound. |
+| `POST /api/threads/:id/messages`, `POST /api/threads` | Send `uploads` (the answers of `POST /api/attachments`) with the message. A message takes up to 100 attachments. `POST /api/board/assign` takes `uploads` too. |
+
+`GET /api/threads/:id/attachments/:attachmentId` serves an attachment. A `.html` file is a rendered, themed page, unless the URL has `?raw=1`: file chips and "Edit from here" use `?raw=1`, so a file that you send is never shown as a page.
 
 ## New Agent
 
@@ -57,7 +94,7 @@ The New Agent button (key `N`) starts a new agent.
 
 1. Select a T3 project, or keep "No project". Without a project, the session goes into the "No project" project of T3 Code.
 2. Write the task. The first line becomes the title of the session.
-3. If necessary, change the model or the access mode, or attach images.
+3. If necessary, change the model or the access mode, or attach files. `@` search does not work here: the thread does not exist yet.
 4. Send. The conversation opens on the Desk.
 
 - The proposed model is the default model of the project. If there is none, it is the default model of T3 Code.
@@ -78,7 +115,7 @@ The Board tab shows the Linear tickets that are assigned to you. It needs a Line
 1. Click the "Assign to an agent" button of the ticket. The New Agent window opens with the ticket.
 2. Select the T3 project. The browser keeps the last project for each Linear team and selects it first.
 3. Select the model and the access mode.
-4. If necessary, add instructions or images.
+4. If necessary, add instructions or files.
 5. Send. The session has the number and the title of the ticket. It goes onto the Desk, and the Board stays visible.
 6. Click "View on Desk" to see the conversation.
 
@@ -137,19 +174,26 @@ Open Settings with the header button or the `,` key. A sidebar on the left lists
 
 ## Keyboard shortcuts
 
-The shortcuts do not work while you type in a field or while a dialog is open. `Ctrl` + `K` is an exception: it also works while you type. It does not work when a different dialog is open.
+The shortcuts use `Ctrl`, also on a Mac, and they work while you type in a field. They do not work while a dialog is open, except `Ctrl` + `K`. `⌘` keeps its browser meaning. `Esc` and the arrows stay plain keys: a field needs them, so they act only outside a field.
 
 | Key | Action |
 | --- | --- |
-| `1`, `2`, `3` | Opens Agents, Desk or Board. |
+| `Ctrl` + `1`, `2`, `3` | Opens Agents, Desk or Board. |
 | `Ctrl` + `K` or `⌘` + `K` | Opens or closes the "Jump to" switcher. It finds a conversation by title, project or message. Without text, it shows the agents that wait for an answer, then your recent conversations. `↑` `↓` select, `Enter` opens in the Desk. |
-| `N` | Opens New Agent. |
-| `⇧` + `N` | Opens a new automation (New Automation). |
-| `,` | Opens Settings. |
-| `X` | Desk: closes the active window. |
-| `F` | Desk: puts the active window in full screen, or takes it out of full screen. |
-| `M` | Desk: minimizes the active window. |
-| `Esc` | Desk: exits full screen. |
-| `Alt` + `1` to `6` | Desk: activates window 1 to 6 and puts the cursor in its message field. |
+| `Ctrl` + `S` | In the message field of a conversation: stashes the draft. |
+| `Ctrl` + `N` | Opens New Agent. |
+| `Ctrl` + `⇧` + `N` | Opens a new automation (New Automation). |
+| `Ctrl` + `,` | Opens Settings. |
+| `Ctrl` + `B` | Opens or closes the notifications (the bell). The menu takes the focus: `↑` `↓` move between rows, `Enter` opens one, `Esc` closes. |
+| `Ctrl` + `X` | Desk: closes the active window. |
+| `Ctrl` + `F` | Desk: puts the active window in full screen, or takes it out of full screen. |
+| `Ctrl` + `M` | Desk: minimizes the active window. |
+| `Ctrl` + `Alt` + `1` to `6` | Desk: activates window 1 to 6 and puts the cursor in its message field. |
+| `Esc` | Desk, outside a field: exits full screen. In the message field, it leaves the field. |
+| `←` `→` `↑` `↓` | Desk, outside a field: moves the focus to the next window. |
+
+On the Desk, typing a letter outside any field writes it in the message field of the active window: no click needed first.
+
+On Windows and Linux, the browser keeps `Ctrl` + `N`, `Ctrl` + `⇧` + `N` and `Ctrl` + `1` to `3` for itself: use the buttons there.
 
 A tooltip gives the name of each button and its shortcut. The animations stop if the system asks for reduced motion (`prefers-reduced-motion`).

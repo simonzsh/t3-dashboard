@@ -82,3 +82,12 @@ export const settleCommand = (threadId: string): UnsentCommand => ({ type: "thre
 export const unsettleCommand = (threadId: string): UnsentCommand => ({ type: "thread.unsettle", threadId, reason: "user" });
 
 export const dismissCommand = (threadId: string, requestId: string): UnsentCommand => ({ type: "thread.user-input.dismiss", threadId, requestId });
+
+// Rewinds the thread to a checkpoint, the way "Edit from here" does in T3 Code; restoreFiles also undoes file edits.
+export const rollbackCommand = (threadId: string, checkpoint: { scopeId: string; checkpointId: string }, restoreFiles: boolean): UnsentCommand => ({
+  type: "checkpoint.rollback",
+  threadId,
+  scopeId: checkpoint.scopeId,
+  checkpointId: checkpoint.checkpointId,
+  restoreFiles,
+});

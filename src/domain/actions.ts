@@ -1,5 +1,5 @@
 import { marked } from "marked";
-import type { AssignIssueBody, CreateThreadBody, LinearIssue, ModelSelection, RespondBody, SendMessageBody, ThreadDetail, ThreadSearchResult, ThreadSettingsBody } from "../../shared/api.ts";
+import type { AssignIssueBody, ComposerCommands, CreateThreadBody, FileSearchResult, LinearIssue, ModelSelection, RespondBody, SendMessageBody, StepDetail, ThreadDetail, ThreadSearchResult, ThreadSettingsBody, UploadedAttachment } from "../../shared/api.ts";
 import { ACTIVE_STATUSES, RUNNING_RUN_STATUSES } from "../../shared/status.ts";
 import { IntegrationError } from "../integrations/errors.ts";
 import {
@@ -11,6 +11,7 @@ import {
   promoteQueuedCommand,
   startQueuedCommand,
   settleCommand,
+  rollbackCommand,
   unsettleCommand,
   interruptCommand,
   messageCommand,
@@ -23,18 +24,19 @@ import {
   type OutgoingMessage,
   type UnsentCommand,
 } from "../integrations/t3/commands.ts";
-import type { AssetResource, ImageUpload, RawProjection, T3Port } from "../integrations/t3/schemas.ts";
+import type { AssetResource, FileUpload, ImageUpload, RawProjection, T3Port } from "../integrations/t3/schemas.ts";
 import { DomainError } from "./errors.ts";
+import { toComposerCommands } from "./providers.ts";
 import type { LinearBoard } from "./linearBoard.ts";
 import type { ShellStore } from "./shellStore.ts";
-import { subagentStatus, toThreadDetail } from "./threadDetail.ts";
+import { rewindPoints, subagentStatus, toStepDetail, toThreadDetail } from "./threadDetail.ts";
 
-export type { ImageUpload };
+export type { FileUpload, ImageUpload };
 
 
 export interface ActionsOptions {
   port: T3Port;
-  store: Pick<ShellStore, "thread" | "project" | "backgroundTasks">;
+  store: Pick<ShellStore, "thread" | "project" | "backgroundTasks" | "workspaceOf">;
   board: Pick<LinearBoard, "get">;
   newId?: () => string;
 }
@@ -44,8 +46,17 @@ export interface Actions {
   threadDetail(threadId: string): Promise<ThreadDetail>;
   /** Message matches in threads the dashboard lists, in T3's order. */
   searchThreads(query: string, limit?: number): Promise<ThreadSearchResult>;
-  createThread(create: CreateThreadBody, images: ImageUpload[]): Promise<string>;
-  sendMessage(threadId: string, body: Omit<SendMessageBody, "attachments">, images: ImageUpload[]): Promise<void>;
+  /** The full item behind a step: command output, diff, tool input. */
+  stepDetail(threadId: string, itemId: string): Promise<StepDetail>;
+  /** Files and folders of the thread's workspace that match the query; empty when T3 names no folder. */
+  searchFiles(threadId: string, query: string, limit: number): Promise<FileSearchResult>;
+  /** The commands and skills the provider offers in the thread's folder, for the / and $ menus. */
+  composerCommands(threadId: string, instanceId: string): Promise<ComposerCommands>;
+  /** Stores one file in T3, ready to go with a message. */
+  uploadAttachment(upload: FileUpload): Promise<UploadedAttachment>;
+  deleteAttachment(attachmentId: string): Promise<void>;
+  createThread(create: CreateThreadBody, images: ImageUpload[], uploads?: UploadedAttachment[]): Promise<string>;
+  sendMessage(threadId: string, body: Omit<SendMessageBody, "attachments" | "uploads">, images: ImageUpload[], uploads?: UploadedAttachment[]): Promise<void>;
   changeSettings(threadId: string, settings: ThreadSettingsBody): Promise<void>;
   interrupt(threadId: string): Promise<void>;
   /** Steers the active run with a queued message, or starts it when no run is active. */
@@ -56,9 +67,11 @@ export interface Actions {
   stopSubagent(threadId: string, subagentId: string): Promise<void>;
   respond(threadId: string, requestId: string, answer: RespondBody): Promise<void>;
   dismiss(threadId: string, requestId: string): Promise<void>;
+  /** Rewinds the thread to before a user message; `restoreFiles` also undoes the agent's file edits. */
+  rewind(threadId: string, messageId: string, restoreFiles: boolean): Promise<void>;
   settle(threadId: string): Promise<void>;
   unsettle(threadId: string): Promise<void>;
-  assign(body: Omit<AssignIssueBody, "attachments">, images: ImageUpload[]): Promise<string>;
+  assign(body: Omit<AssignIssueBody, "attachments" | "uploads">, images: ImageUpload[], uploads?: UploadedAttachment[]): Promise<string>;
   /** An image or page of the thread, fetched from T3. */
   asset(threadId: string, request: AssetRequest, range?: string): Promise<{ response: Response; html: boolean }>;
 }
@@ -96,9 +109,9 @@ export function createActions(options: ActionsOptions): Actions {
     for (const command of commands) await t3(port.dispatch({ ...command, commandId: newId() }));
   };
   // Images are persisted before the dispatch, under the message id it will carry.
-  const outgoing = async (threadId: string, images: ImageUpload[]): Promise<OutgoingMessage> => {
+  const outgoing = async (threadId: string, images: ImageUpload[], uploads: UploadedAttachment[] = []): Promise<OutgoingMessage> => {
     const messageId = newId();
-    return { messageId, attachments: images.length ? await t3(port.persistAttachments(threadId, messageId, images)) : [] };
+    return { messageId, attachments: [...(images.length ? await t3(port.persistAttachments(threadId, messageId, images)) : []), ...uploads] };
   };
 
   const cited = new Map<string, { at: number; paths: Promise<Set<string>> }>();
@@ -170,6 +183,34 @@ export function createActions(options: ActionsOptions): Actions {
       return toThreadDetail(threadId, await t3(port.threadProjection(threadId)), store.thread(threadId), store.backgroundTasks(threadId));
     },
 
+    async stepDetail(threadId, itemId) {
+      const item = await t3(port.turnItem(threadId, itemId));
+      if (!item) throw new DomainError("not-found", "No such step in this thread");
+      // Projection subagents hold the result when the item has none.
+      const needsProjection = item.type === "subagent" && !item.result?.trim();
+      return toStepDetail(item, needsProjection ? await t3(port.threadProjection(threadId)) : undefined);
+    },
+
+    async searchFiles(threadId, query, limit) {
+      const cwd = store.workspaceOf(threadId);
+      if (!cwd) return { entries: [], truncated: false };
+      const { entries, truncated } = await t3(port.searchEntries(cwd, query, limit));
+      return { entries: entries.map(({ path, kind }) => ({ path, kind: kind === "directory" ? "directory" : "file" })), truncated: truncated ?? false };
+    },
+
+    async composerCommands(threadId, instanceId) {
+      return toComposerCommands(await t3(port.getConfig()), instanceId, store.workspaceOf(threadId));
+    },
+
+    async uploadAttachment({ type, name, mimeType, sizeBytes, bytes }) {
+      const id = await t3(port.uploadAttachment({ type, name, mimeType, sizeBytes, bytes }));
+      return { type, id, name, mimeType, sizeBytes };
+    },
+
+    async deleteAttachment(attachmentId) {
+      await t3(port.deleteAttachment(attachmentId));
+    },
+
     // T3 signs any readable file: only serve images and videos the thread itself shows.
     async asset(threadId, request, range) {
       let resource: AssetResource;
@@ -186,19 +227,19 @@ export function createActions(options: ActionsOptions): Actions {
       return { response, html: resource._tag === "attachment" && fileName.endsWith(".html") };
     },
 
-    async createThread(create, images) {
+    async createThread(create, images, uploads) {
       const threadId = newId();
       const projectId = create.projectId || (await t3(port.ensureScratchProject()));
-      await send(...createThreadCommands(threadId, { ...create, projectId }, await outgoing(threadId, images)));
+      await send(...createThreadCommands(threadId, { ...create, projectId }, await outgoing(threadId, images, uploads)));
       return threadId;
     },
 
-    async sendMessage(threadId, body, images) {
+    async sendMessage(threadId, body, images, uploads) {
       const thread = store.thread(threadId);
       const active = thread !== undefined && ACTIVE_STATUSES.has(thread.status);
       const steer = body.mode === "steer";
       const dispatchMode: DispatchMode = active && !steer ? { type: "queue_after_active" } : { type: "start_immediately" };
-      await send(messageCommand(threadId, body.text, await outgoing(threadId, images), { mode: dispatchMode, steer }));
+      await send(messageCommand(threadId, body.text, await outgoing(threadId, images, uploads), { mode: dispatchMode, steer }));
     },
 
     async changeSettings(threadId, settings) {
@@ -257,6 +298,14 @@ export function createActions(options: ActionsOptions): Actions {
       await send(dismissCommand(threadId, requestId));
     },
 
+    async rewind(threadId, messageId, restoreFiles) {
+      const projection = await t3(port.threadProjection(threadId));
+      if (store.thread(threadId)?.activeRunId || (projection.runs ?? []).some((run) => RUNNING_RUN_STATUSES.has(run.status ?? ""))) throw new DomainError("conflict", "Stop the run before editing from here");
+      const point = rewindPoints(projection).get(messageId);
+      if (!point) throw new DomainError("conflict", "This message cannot be rewound");
+      await send(rollbackCommand(threadId, point, restoreFiles));
+    },
+
     async settle(threadId) {
       await send(settleCommand(threadId));
     },
@@ -265,7 +314,7 @@ export function createActions(options: ActionsOptions): Actions {
       await send(unsettleCommand(threadId));
     },
 
-    async assign(body, images) {
+    async assign(body, images, uploads) {
       const issue = await findIssue(body.issueId);
       let projectId: string;
       if (body.projectId) {
@@ -279,7 +328,7 @@ export function createActions(options: ActionsOptions): Actions {
       const text = instructions ? `${instructions}\n\n${reference}` : `Handle Linear issue ${issue.identifier}: ${issue.url}`;
       const create = { projectId, title: `${issue.identifier} ${issue.title}`, text, modelSelection: body.modelSelection, ...(body.runtimeMode && { runtimeMode: body.runtimeMode }) };
       const threadId = newId();
-      await send(...createThreadCommands(threadId, create, await outgoing(threadId, images)));
+      await send(...createThreadCommands(threadId, create, await outgoing(threadId, images, uploads)));
       return threadId;
     },
   };

@@ -4,8 +4,8 @@ import type { ChatMessage } from "../../../../shared/api.ts";
 import { PENDING_MAX_MS, countSame, isSettled, pendingLabel, sentMessages } from "../../../src/features/conversation/pending.ts";
 
 const SENT = Date.parse("2026-01-01T10:00:00.000Z");
-const msg = (role: ChatMessage["role"], text: string, createdAt: string): ChatMessage => ({ id: `${role}-${createdAt}`, role, text, createdAt, streaming: false, attachments: [] });
-const pending = { id: "p1", text: "hello", images: 0, sentAt: SENT, baseline: 0 };
+const msg = (role: ChatMessage["role"], text: string, createdAt: string): ChatMessage => ({ id: `${role}-${createdAt}`, role, text, createdAt, streaming: false, attachments: [], rewindable: false });
+const pending = { id: "p1", text: "hello", attachments: 0, sentAt: SENT, baseline: 0 };
 
 test("a pending message is settled once a new user message has the same text, whatever its clock", () => {
   const messages = [msg("user", "hello", "2026-01-01T09:59:00.000Z")];
@@ -27,10 +27,10 @@ test("a pending message expires after the maximum delay", () => {
   assert.equal(isSettled(pending, [], SENT + PENDING_MAX_MS), true);
 });
 
-test("the label counts images", () => {
+test("the label counts attachments, images or not", () => {
   assert.equal(pendingLabel(0), "Sending…");
-  assert.equal(pendingLabel(1), "Sending… · 1 image");
-  assert.equal(pendingLabel(3), "Sending… · 3 images");
+  assert.equal(pendingLabel(1), "Sending… · 1 attachment");
+  assert.equal(pendingLabel(3), "Sending… · 3 attachments");
 });
 
 test("a pending message settles when its text shows up in the queue", () => {

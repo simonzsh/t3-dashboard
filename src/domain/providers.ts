@@ -1,4 +1,4 @@
-import type { DashboardModel, DashboardProvider, ModelDefaults, ModelEffort } from "../../shared/api.ts";
+import type { ComposerCommands, DashboardModel, DashboardProvider, ModelDefaults, ModelEffort, ModelSpeed } from "../../shared/api.ts";
 import { RUNTIME_MODES, isRuntimeMode } from "../../shared/limits.ts";
 import type { RawConfig, RawOptionDescriptor } from "../integrations/t3/schemas.ts";
 
@@ -12,7 +12,19 @@ function toEffort(descriptors: RawOptionDescriptor[] = []): ModelEffort | null {
   const levels = (raw.options ?? []).filter((option) => !injected.has(option.id)).map((option) => ({ id: option.id, label: option.label ?? option.id }));
   const fallback = typeof raw.currentValue === "string" ? raw.currentValue : null;
   const defaultLevel = (raw.options ?? []).find((option) => option.isDefault && !injected.has(option.id))?.id ?? fallback;
-  return levels.length ? { optionId: raw.id, levels, defaultLevel } : null;
+  return levels.length ? { optionId: raw.id, label: raw.label ?? "Reasoning", levels, defaultLevel } : null;
+}
+
+// Like T3 Code: a fastMode toggle, or a serviceTier select with an option labelled Fast.
+function toSpeed(descriptors: RawOptionDescriptor[] = []): ModelSpeed | null {
+  const toggle = descriptors.find((descriptor) => descriptor.id === "fastMode" && descriptor.type === "boolean");
+  if (toggle) return { optionId: "fastMode", fast: true, standard: false, defaultFast: toggle.currentValue === true };
+  const tier = descriptors.find((descriptor) => descriptor.id === "serviceTier" && descriptor.type === "select");
+  const fast = tier?.options?.find((option) => option.label === "Fast");
+  // Standard is never the Fast option, even when Fast is the model's default.
+  const others = tier?.options?.filter((option) => option !== fast) ?? [];
+  const standard = others.find((option) => option.isDefault) ?? others[0];
+  return tier && fast && standard ? { optionId: tier.id, fast: fast.id, standard: standard.id, defaultFast: fast.isDefault === true } : null;
 }
 
 interface Preferences {
@@ -50,10 +62,12 @@ export function toProviders(config: RawConfig): DashboardProvider[] {
           slug: model.slug,
           name: model.name ?? model.slug,
           effort: toEffort(model.capabilities?.optionDescriptors),
+          speed: toSpeed(model.capabilities?.optionDescriptors),
           favorite: favorite(provider.instanceId, model.slug),
         })),
         preferencesFor(config.settings?.providerModelPreferences, provider.instanceId),
       ),
+      ...(provider.driver && { driver: provider.driver }),
       runtimeModes: provider.supportedRuntimeModes ? RUNTIME_MODES.filter((mode) => provider.supportedRuntimeModes!.includes(mode)) : RUNTIME_MODES,
     }));
 }
@@ -67,5 +81,18 @@ export function toModelDefaults(config: RawConfig): ModelDefaults {
   return {
     selection: settings.defaultModelSelection ?? null,
     runtimeMode: isRuntimeMode(mode) ? mode : null,
+  };
+}
+
+/** The commands and skills the provider offers in the thread's folder; its own lists when T3 has no snapshot of that folder. */
+export function toComposerCommands(config: RawConfig, instanceId: string, cwd: string | null): ComposerCommands {
+  const provider = config.providers?.find((candidate) => candidate.instanceId === instanceId);
+  if (!provider) return { commands: [], skills: [] };
+  const view = (cwd && provider.workspaceSnapshots?.find((snapshot) => snapshot.cwd === cwd)) || provider;
+  return {
+    commands: (view.slashCommands ?? []).map((command) => ({ name: command.name, description: command.description ?? null, ...(command.input?.hint && { hint: command.input.hint }) })),
+    skills: (view.skills ?? [])
+      .filter((skill) => skill.enabled !== false && skill.userInvocable !== false)
+      .map((skill) => ({ name: skill.name, displayName: skill.displayName ?? null, description: skill.shortDescription ?? skill.description ?? null })),
   };
 }

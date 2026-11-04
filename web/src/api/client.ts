@@ -15,12 +15,21 @@ import type {
   OkResult,
   RespondBody,
   EditQueuedBody,
+  RewindBody,
+  ComposerCommands,
+  FileSearchResult,
   SendMessageBody,
   SettingsResult,
+  StashBody,
+  StashCreated,
+  StashList,
+  StepDetail,
   ThreadSearchResult,
   ThreadDetail,
   ThreadSettingsBody,
   UpdateStatus,
+  UploadBody,
+  UploadResult,
 } from "../../../shared/api.ts";
 
 // The server sends its own message when it has one; these cover the rest.
@@ -95,6 +104,9 @@ export function createApi(fetchImpl: Fetch) {
     disconnectLinear: () => call<SettingsResult>("/api/settings/linear/disconnect", {}),
     getDesk: () => call<{ desk: SharedDesk | null }>("/api/desk"),
     saveDesk: (update: DeskUpdate) => call<OkResult>("/api/desk", update),
+    getStash: () => call<StashList>("/api/stash"),
+    createStash: (b: StashBody) => call<StashCreated>("/api/stash", b),
+    deleteStash: (id: string) => call<OkResult>(`/api/stash/${encodeURIComponent(id)}/delete`, {}),
     getSeen: () => call<{ seen: SeenState | null }>("/api/seen"),
     markSeen: (change: SeenChange) => call<SeenResult>("/api/seen", change),
     getUpdate: () => call<UpdateStatus>("/api/update"),
@@ -104,6 +116,11 @@ export function createApi(fetchImpl: Fetch) {
     searchThreads: (query: string, limit?: number) =>
       call<ThreadSearchResult>(`/api/search?q=${encodeURIComponent(query)}${limit ? `&limit=${limit}` : ""}`),
     getThread,
+    getStepDetail: (id: string, itemId: string) => call<StepDetail>(`${t(id)}/items/${encodeURIComponent(itemId)}`),
+    searchFiles: (id: string, query: string, limit?: number) => call<FileSearchResult>(`${t(id)}/files?q=${encodeURIComponent(query)}${limit ? `&limit=${limit}` : ""}`),
+    getComposerCommands: (id: string, provider: string) => call<ComposerCommands>(`${t(id)}/commands?provider=${encodeURIComponent(provider)}`),
+    uploadAttachment: (b: UploadBody) => call<UploadResult>("/api/attachments", b),
+    deleteAttachment: (attachmentId: string) => call<OkResult>(`/api/attachments/${encodeURIComponent(attachmentId)}/delete`, {}),
     createThread: (b: CreateThreadBody) => call<CreateThreadResult>("/api/threads", b),
     sendMessage: (id: string, b: SendMessageBody) => call<OkResult>(`${t(id)}/messages`, b),
     settle: (id: string) => call<OkResult>(`${t(id)}/settle`, {}),
@@ -111,6 +128,7 @@ export function createApi(fetchImpl: Fetch) {
     sendQueued: (id: string, runId: string) => call<OkResult>(`${t(id)}/queue/${encodeURIComponent(runId)}/send`, {}),
     editQueued: (id: string, runId: string, text: string) => call<OkResult>(`${t(id)}/queue/${encodeURIComponent(runId)}/edit`, { text } satisfies EditQueuedBody),
     cancelQueued: (id: string, runId: string) => call<OkResult>(`${t(id)}/queue/${encodeURIComponent(runId)}/cancel`, {}),
+    rewind: (id: string, b: RewindBody) => call<OkResult>(`${t(id)}/rewind`, b),
     interrupt: (id: string) => call<OkResult>(`${t(id)}/interrupt`, {}),
     stopSubagent: (id: string, subagentId: string) => call<OkResult>(`${t(id)}/subagents/${encodeURIComponent(subagentId)}/stop`, {}),
     updateSettings: (id: string, b: ThreadSettingsBody) => call<OkResult>(`${t(id)}/settings`, b),
@@ -126,6 +144,8 @@ export type Api = ReturnType<typeof createApi>;
 const threadPath = (id: string) => `/api/threads/${encodeURIComponent(id)}`;
 export const attachmentUrl = (threadId: string, attachmentId: string, theme?: string) =>
   `${threadPath(threadId)}/attachments/${encodeURIComponent(attachmentId)}${theme ? `?theme=${theme}` : ""}`;
+/** The file as it was sent, never themed as a page. */
+export const rawAttachmentUrl = (threadId: string, attachmentId: string) => `${attachmentUrl(threadId, attachmentId)}?raw=1`;
 export const mediaUrl = (threadId: string, path: string) => `${threadPath(threadId)}/media?path=${encodeURIComponent(path)}`;
 
 export const api = createApi((input, init) => globalThis.fetch(input, init));

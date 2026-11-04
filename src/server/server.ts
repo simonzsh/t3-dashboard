@@ -1,8 +1,9 @@
 import type { Server } from "bun";
 import type { ConnectionStatus, DashboardState } from "../../shared/api.ts";
-import { MAX_MESSAGE_BODY_BYTES } from "../../shared/limits.ts";
+import { MAX_MESSAGE_BODY_BYTES, MAX_UPLOAD_BODY_BYTES } from "../../shared/limits.ts";
 import type { Actions, AssetRequest } from "../domain/actions.ts";
 import type { DeskStore } from "../domain/deskStore.ts";
+import type { StashStore } from "../domain/stashStore.ts";
 import type { SeenStore } from "../domain/seenStore.ts";
 import type { Automations } from "../domain/automations.ts";
 import type { LinearBoard } from "../domain/linearBoard.ts";
@@ -15,7 +16,7 @@ import { matchesEtag } from "./etag.ts";
 import { servePwa } from "./pwa.ts";
 import type { Site } from "./site.ts";
 import type { SseHub } from "./sse.ts";
-import { isObject, isText, validAssign, validAutomationRequest, validDesk, validCreate, validImages, validMessage, validQueuedEdit, validRename, validRespond, validSearch, validSeen, validSettings } from "./validate.ts";
+import { isObject, isText, validAssign, validAttachments, validAutomationRequest, validDesk, validCreate, validFileSearch, validItemId, validMessage, validProvider, validQueuedEdit, validRename, validRespond, validRewind, validSearch, validSeen, validSettings, validStash, validUpload } from "./validate.ts";
 
 export interface SetupControl {
   /** Resolves the token again. */
@@ -30,6 +31,7 @@ export interface DashboardServerOptions {
   board: Pick<LinearBoard, "get">;
   automations: Pick<Automations, "list" | "request" | "remove" | "rename">;
   desk: Pick<DeskStore, "get" | "set">;
+  stash: Pick<StashStore, "list" | "add" | "remove">;
   seen: Pick<SeenStore, "get" | "apply">;
   hub: SseHub;
   getState: () => DashboardState;
@@ -139,16 +141,17 @@ function matchRoute(pattern: string[], segments: string[]): Record<string, strin
 }
 
 export function createDashboardServer(options: DashboardServerOptions): DashboardHandler {
-  const { actions, desk, seen, hub, board, automations, getState, connection, site, settings, setup, updates } = options;
+  const { actions, desk, stash, seen, hub, board, automations, getState, connection, site, settings, setup, updates } = options;
   const allowedHosts = new Set([...LOCAL_HOSTS, ...(options.allowedHosts ?? [])]);
   const ok = (extra: Record<string, unknown> = {}) => json(200, { ok: true, ...extra });
   const done = async (work: Promise<unknown>) => (await work, ok());
 
-  // Images keep T3's type; a page is served sandboxed, so its scripts get an opaque origin and cannot call /api.
+  // Images keep T3's type; a rendered page is served sandboxed, so its scripts get an opaque origin and cannot call /api.
   async function asset(req: Request, threadId: string, request: AssetRequest): Promise<Response> {
     const { response, html } = await actions.asset(threadId, request, req.headers.get("range") ?? undefined);
     const headers: Record<string, string> = { "cache-control": "private, max-age=3600" };
-    if (!html) {
+    // ?raw=1 asks for the bytes: a user's .html file is a download, not a page to render.
+    if (!html || new URL(req.url).searchParams.get("raw") === "1") {
       // Never pass through a type the browser could run (html, svg) on the dashboard origin.
       const type = response.headers.get("content-type") ?? "";
       if (MEDIA_TYPE.test(type)) headers["content-type"] = type;
@@ -172,6 +175,7 @@ export function createDashboardServer(options: DashboardServerOptions): Dashboar
     { method: "GET", path: "/api/automations", handle: async () => json(200, await automations.list()) },
     { method: "GET", path: "/api/settings", handle: () => json(200, settings.get()) },
     { method: "GET", path: "/api/desk", handle: () => json(200, { desk: desk.get() }) },
+    { method: "GET", path: "/api/stash", handle: () => json(200, { entries: stash.list() }) },
     { method: "GET", path: "/api/seen", handle: () => json(200, { seen: seen.get() }) },
     { method: "GET", path: "/api/update", handle: () => json(200, updates.status()) },
     {
@@ -191,6 +195,16 @@ export function createDashboardServer(options: DashboardServerOptions): Dashboar
       },
     },
     { method: "GET", path: "/api/threads/:id", handle: async ({ req, params }) => threadResponse(req, await actions.threadDetail(params.id!)) },
+    { method: "GET", path: "/api/threads/:id/items/:itemId", handle: async ({ params }) => json(200, await actions.stepDetail(params.id!, validItemId(params.itemId!))) },
+    {
+      method: "GET",
+      path: "/api/threads/:id/files",
+      handle: async ({ req, params }) => {
+        const { query, limit } = validFileSearch(new URL(req.url).searchParams);
+        return json(200, await actions.searchFiles(params.id!, query, limit));
+      },
+    },
+    { method: "GET", path: "/api/threads/:id/commands", handle: async ({ req, params }) => json(200, await actions.composerCommands(params.id!, validProvider(new URL(req.url).searchParams))) },
     { method: "GET", path: "/api/threads/:id/attachments/:attachmentId", handle: ({ req, params }) => asset(req, params.id!, { attachmentId: params.attachmentId! }) },
     {
       method: "GET",
@@ -205,7 +219,11 @@ export function createDashboardServer(options: DashboardServerOptions): Dashboar
       method: "POST",
       path: "/api/board/assign",
       maxBytes: MAX_MESSAGE_BODY_BYTES,
-      handle: async ({ body }) => ok({ threadId: await actions.assign(validAssign(body), validImages(body.attachments)) }),
+      handle: async ({ body }) => {
+        const assign = validAssign(body);
+        const { images, uploads } = validAttachments(body);
+        return ok({ threadId: await actions.assign(assign, images, uploads) });
+      },
     },
     {
       method: "POST",
@@ -241,6 +259,24 @@ export function createDashboardServer(options: DashboardServerOptions): Dashboar
     },
     {
       method: "POST",
+      path: "/api/stash",
+      handle: ({ body }) => {
+        const added = stash.add(validStash(body));
+        hub.broadcast({ type: "stash", data: stash.list() });
+        return ok(added);
+      },
+    },
+    {
+      method: "POST",
+      path: "/api/stash/:id/delete",
+      handle: ({ params }) => {
+        if (!stash.remove(params.id!)) throw new HttpError(404, "This stashed prompt is gone already");
+        hub.broadcast({ type: "stash", data: stash.list() });
+        return ok();
+      },
+    },
+    {
+      method: "POST",
       path: "/api/seen",
       handle: ({ body }) => {
         const next = seen.apply(validSeen(body));
@@ -267,21 +303,35 @@ export function createDashboardServer(options: DashboardServerOptions): Dashboar
       method: "POST",
       path: "/api/threads",
       maxBytes: MAX_MESSAGE_BODY_BYTES,
-      handle: async ({ body }) => ok({ threadId: await actions.createThread(validCreate(body), validImages(body.attachments)) }),
+      handle: async ({ body }) => {
+        const create = validCreate(body);
+        const { images, uploads } = validAttachments(body);
+        return ok({ threadId: await actions.createThread(create, images, uploads) });
+      },
     },
+    { method: "POST", path: "/api/attachments", maxBytes: MAX_UPLOAD_BODY_BYTES, handle: async ({ body }) => ok({ attachment: await actions.uploadAttachment(validUpload(body)) }) },
+    { method: "POST", path: "/api/attachments/:attachmentId/delete", handle: ({ params }) => done(actions.deleteAttachment(params.attachmentId!)) },
     {
       method: "POST",
       path: "/api/threads/:id/messages",
       maxBytes: MAX_MESSAGE_BODY_BYTES,
       handle: async ({ params, body }) => {
-        const { message, images } = validMessage(body);
-        await actions.sendMessage(params.id!, message, images);
+        const { message, images, uploads } = validMessage(body);
+        await actions.sendMessage(params.id!, message, images, uploads);
         return ok();
       },
     },
     { method: "POST", path: "/api/threads/:id/settings", handle: ({ params, body }) => done(actions.changeSettings(params.id!, validSettings(body))) },
     { method: "POST", path: "/api/threads/:id/settle", handle: ({ params }) => done(actions.settle(params.id!)) },
     { method: "POST", path: "/api/threads/:id/unsettle", handle: ({ params }) => done(actions.unsettle(params.id!)) },
+    {
+      method: "POST",
+      path: "/api/threads/:id/rewind",
+      handle: ({ params, body }) => {
+        const { messageId, restoreFiles } = validRewind(body);
+        return done(actions.rewind(params.id!, messageId, restoreFiles));
+      },
+    },
     { method: "POST", path: "/api/threads/:id/interrupt", handle: ({ params }) => done(actions.interrupt(params.id!)) },
     { method: "POST", path: "/api/threads/:id/queue/:runId/send", handle: ({ params }) => done(actions.sendQueued(params.id!, params.runId!)) },
     { method: "POST", path: "/api/threads/:id/queue/:runId/edit", handle: ({ params, body }) => done(actions.editQueued(params.id!, params.runId!, validQueuedEdit(body))) },

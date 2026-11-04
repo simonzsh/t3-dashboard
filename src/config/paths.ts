@@ -33,3 +33,6 @@ export const seenFile = (env: Env, homedir: string): string => join(configDir(en
 
 /** The Desk windows and the switcher history, shared by every device. */
 export const deskFile = (env: Env, homedir: string): string => join(configDir(env, homedir), "desk.json");
+
+/** Stashed composer drafts, shared by every device. */
+export const stashFile = (env: Env, homedir: string): string => join(configDir(env, homedir), "stash.json");

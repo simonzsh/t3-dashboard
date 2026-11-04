@@ -1,6 +1,6 @@
 import { test } from "bun:test";
 import assert from "node:assert/strict";
-import { STEP_LABELS, duration, errorMessage, failure, formatMessageTime, relativeTime } from "../../src/lib/format.ts";
+import { STEP_LABELS, duration, errorMessage, failure, formatBytes, formatMessageTime, relativeTime } from "../../src/lib/format.ts";
 
 const now = new Date("2026-03-01T12:00:00Z");
 
@@ -44,4 +44,10 @@ test("formatMessageTime matches toLocaleString with the same options", () => {
   for (const iso of ["2026-03-01T12:00:00Z", "2025-12-31T23:59:00Z"]) {
     assert.equal(formatMessageTime(iso), new Date(iso).toLocaleString("en-US", { dateStyle: "medium", timeStyle: "short" }));
   }
+});
+
+test("formatBytes picks the unit", () => {
+  assert.equal(formatBytes(512), "512 B");
+  assert.equal(formatBytes(2048), "2 KB");
+  assert.equal(formatBytes(5.5 * 1024 * 1024), "5.5 MB");
 });

@@ -86,6 +86,30 @@ function live() {
   return ctx;
 }
 
+test("workspaceOf gives the worktree first, then the project root, else null", () => {
+  const { store } = setup();
+  store.beginSync();
+  store.apply([
+    snapshot(
+      [raw("wt", { worktreePath: "/work/wt" }), raw("root"), raw("lost", { projectId: "no-such-project" }), raw("no-folder", { projectId: "project-2" })],
+      [{ id: "project-1", title: "A", workspaceRoot: "/work/root" }, { id: "project-2", title: "B" }],
+    ),
+    { kind: "synchronized" },
+  ]);
+  assert.deepEqual(["wt", "root", "lost", "no-folder", "unknown"].map((id) => store.workspaceOf(id)), ["/work/wt", "/work/root", null, null, null]);
+});
+
+test("workspaceOf a hidden subagent thread gives its parent's folder", () => {
+  const { store } = setup();
+  const child = (id: string, parentThreadId: string) => raw(id, { lineage: { relationshipToParent: "subagent", parentThreadId }, creationSource: "provider" });
+  store.beginSync();
+  store.apply([snapshot([raw("parent", { worktreePath: "/work/wt" }), child("snap-child", "parent")], [{ id: "project-1", title: "A", workspaceRoot: "/work/root" }]), { kind: "synchronized" }]);
+  store.apply([{ kind: "thread.updated", thread: child("live-child", "parent"), location: "active" }]);
+  assert.deepEqual(["snap-child", "live-child"].map((id) => store.workspaceOf(id)), ["/work/wt", "/work/wt"]);
+  store.apply([{ kind: "thread.removed", threadId: "live-child" }]);
+  assert.equal(store.workspaceOf("live-child"), null);
+});
+
 test("thread.updated upserts and emits one diff", () => {
   const { store, threads } = live();
   store.apply([{ kind: "thread.updated", thread: raw("thread-3"), location: "active" }]);

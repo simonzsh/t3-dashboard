@@ -23,6 +23,7 @@ import { useDeskBackground } from "./features/desk/useDeskBackground.ts";
 import { useMediaQuery } from "./lib/useMediaQuery.ts";
 import { useShortcuts } from "./lib/useShortcuts.ts";
 import { TABS } from "./lib/tabs.ts";
+import { ctrlLabel, startsTyping } from "./lib/shortcuts.ts";
 import { useTab } from "./lib/useTab.ts";
 import { useTheme } from "./features/settings/useTheme.ts";
 import { useUpdate } from "./features/update/useUpdate.ts";
@@ -120,6 +121,7 @@ export function App() {
   const onToggleDesk = useCallback((id: string) => handlers.current.toggleOnDesk(id), []);
   const onSettle = useCallback((id: string, settle: boolean) => (settle ? api.settle(id) : api.unsettle(id)), []);
 
+  const blocked = creating || creatingAutomation || settingsOpen || confirmingUpdate || switcherQuery !== null;
   useShortcuts(
     (action) => {
       if (action === "agents" || action === "board" || action === "desk") setTab(action);
@@ -141,6 +143,8 @@ export function App() {
       }
       else if (action === "close-window" || action === "toggle-fullscreen" || action === "minimize-window") {
         const type = action === "close-window" ? "close" : action === "minimize-window" ? "minimize" : "maximize";
+        // A subagent window (not in the shell) only goes full screen or closes.
+        if (type === "minimize" && !state?.threads.some((t) => t.id === desk.focusedId)) return;
         if (desk.focusedId) dispatchDesk({ type, id: desk.focusedId });
       } else {
         const target = gridWindows(desk)[Number(action.slice("window-".length)) - 1];
@@ -149,9 +153,27 @@ export function App() {
         focusComposer(target.id);
       }
     },
-    creating || creatingAutomation || settingsOpen || confirmingUpdate || switcherQuery !== null,
+    blocked,
     tab === "desk",
   );
+
+  // Shortcuts use Ctrl now, so plain typing on the Desk can go straight to the focused window's field.
+  useEffect(() => {
+    if (tab !== "desk" || blocked || !desk.focusedId) return;
+    const id = desk.focusedId;
+    const onKey = (e: KeyboardEvent) => {
+      const el = e.target instanceof HTMLElement ? e.target : null;
+      if (!startsTyping({ key: e.key, ctrlKey: e.ctrlKey, metaKey: e.metaKey, altKey: e.altKey, target: el })) return;
+      if (el?.closest('[role="dialog"], [role="menu"], [role="listbox"]')) return;
+      const field = document.querySelector<HTMLTextAreaElement>(`[data-desk-window="${CSS.escape(id)}"] textarea`);
+      if (!field || field.disabled) return;
+      // Focused during keydown: the browser then types this key into the field.
+      field.focus();
+      field.setSelectionRange(field.value.length, field.value.length);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [tab, blocked, desk.focusedId]);
 
   const live = !sseDown && state?.connection.t3 === "live";
   const deskIds = new Set(desk.windows.map((w) => w.id));
@@ -183,7 +205,7 @@ export function App() {
             <Pressable key={id} role="tab" data-tab={id} aria-selected={tab === id} className={tab === id ? "active" : ""} onClick={() => setTab(id)}>
               {label}
               {id === "desk" && deskWaiting && <span className="tab-alert" role="img" aria-label="An agent is waiting for your reply" />}
-              <Kbd>{key}</Kbd>
+              <Kbd>{ctrlLabel(key)}</Kbd>
             </Pressable>
           ))}
         </nav>
@@ -204,7 +226,7 @@ export function App() {
                 <Icon name="assignBot" />
               </IconButton>
             ) : (
-              <Button variant="primary" kbd="N" onClick={() => setCreating(true)}>
+              <Button variant="primary" kbd={ctrlLabel("N")} onClick={() => setCreating(true)}>
                 New Agent
               </Button>
             ))}
@@ -214,12 +236,12 @@ export function App() {
                 <Icon name="calendarClock" />
               </IconButton>
             ) : (
-              <Button kbd="⇧N" onClick={() => setCreatingAutomation(true)}>
+              <Button kbd={ctrlLabel("⇧N")} onClick={() => setCreatingAutomation(true)}>
                 New Automation
               </Button>
             ))}
           <NotificationBell entries={notify.entries} count={notify.count} now={now} onOpen={(id) => openOnDesk(id, true)} open={bellOpen} onOpenChange={showBell} />
-          <IconButton label="Settings" kbd="," onClick={() => setSettingsOpen(true)}>
+          <IconButton label="Settings" kbd={ctrlLabel(",")} onClick={() => setSettingsOpen(true)}>
             <Icon name="settings" strokeWidth={1.8} />
           </IconButton>
         </div>

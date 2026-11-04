@@ -68,6 +68,15 @@ test("action routes hit the right URL with a JSON body", async () => {
   assert.deepEqual(JSON.parse(String(calls[9]?.init?.body)), { text: "new" });
 });
 
+test("stash calls use GET to list, and POST to create and delete", async () => {
+  const { calls, api } = fake(200, { entries: [] });
+  await api.getStash();
+  await api.createStash({ text: "hi", uploads: [], threadId: "t 1", threadTitle: "T" });
+  await api.deleteStash("s/1");
+  assert.deepEqual(calls.map((c) => [c.url, c.init?.method ?? "GET"]), [["/api/stash", "GET"], ["/api/stash", "POST"], ["/api/stash/s%2F1/delete", "POST"]]);
+  assert.deepEqual(JSON.parse(String(calls[1]?.init?.body)), { text: "hi", uploads: [], threadId: "t 1", threadTitle: "T" });
+});
+
 test("non-2xx throws with the server message", async () => {
   const { api } = fake(502, { error: "T3 refused" });
   await assert.rejects(() => api.interrupt("t"), { message: "T3 refused" });

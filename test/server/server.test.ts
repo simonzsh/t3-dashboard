@@ -9,6 +9,8 @@ import { DomainError } from "../../src/domain/errors.ts";
 import { LinearBoard } from "../../src/domain/linearBoard.ts";
 import { readLinearKey } from "../../src/config/linearFile.ts";
 import { DeskStore } from "../../src/domain/deskStore.ts";
+import { StashStore } from "../../src/domain/stashStore.ts";
+import type { StashEntry } from "../../shared/stash.ts";
 import type { SharedDesk } from "../../shared/desk.ts";
 import type { SeenState } from "../../shared/seen.ts";
 import { SeenStore } from "../../src/domain/seenStore.ts";
@@ -43,6 +45,7 @@ interface StartOptions {
   update?: { unavailable?: string | null; tag?: string };
   allowedHosts?: string[];
   desk?: SharedDesk | null;
+  stash?: StashEntry[];
   seen?: SeenState | null;
 }
 
@@ -105,17 +108,20 @@ async function start(startOptions: StartOptions = {}) {
       kind: "snapshot",
       snapshot: {
         threads: [
-          { id: "idle-1", projectId: "project-1", title: "Thread 1", status: "idle", createdAt: "2026-03-01T00:00:00Z" },
+          { id: "idle-1", projectId: "project-1", title: "Thread 1", status: "idle", worktreePath: "/work/wt", createdAt: "2026-03-01T00:00:00Z" },
           { id: "run-1", projectId: "project-1", title: "Thread 2", status: "running", activeRunId: "run-a", createdAt: "2026-03-02T00:00:00Z" },
           { id: "run-2", projectId: "project-1", title: "Thread 3", status: "running", activeRunId: null, createdAt: "2026-03-03T00:00:00Z" },
         ],
-        projects: [{ id: "project-1", title: "Project A" }, { id: "project-2", title: "Project B" }],
+        projects: [{ id: "project-1", title: "Project A", workspaceRoot: "/work/root" }, { id: "project-2", title: "Project B" }],
       },
     },
     { kind: "synchronized" },
   ]);
   const savedDesks: SharedDesk[] = [];
   const desk = new DeskStore(startOptions.desk ?? null, (value) => void savedDesks.push(value));
+  const savedStashes: StashEntry[][] = [];
+  let stashed = 0;
+  const stash = new StashStore(startOptions.stash ?? [], (entries) => void savedStashes.push(entries), { now: () => new Date("2026-11-04T10:00:00Z"), newId: () => `stash-${++stashed}` });
   const savedSeen: SeenState[] = [];
   const seen = new SeenStore(startOptions.seen ?? null, (value) => void savedSeen.push(value));
   const events: DashboardEvent[] = [];
@@ -125,6 +131,7 @@ async function start(startOptions: StartOptions = {}) {
   const server: DashboardHandler = createDashboardServer({
     actions,
     desk,
+    stash,
     seen,
     hub,
     board,
@@ -138,7 +145,7 @@ async function start(startOptions: StartOptions = {}) {
     allowedHosts: startOptions.allowedHosts,
   });
   running.push(async () => hub.close());
-  return { port, store, hub, server, savedDesks, savedSeen, events, linearCalls, files, setupCalls, updateRuns };
+  return { port, store, hub, server, savedDesks, savedStashes, savedSeen, events, linearCalls, files, setupCalls, updateRuns };
 }
 
 interface Reply {
@@ -434,6 +441,19 @@ test("settle", async () => {
   assert.deepEqual(port.commands[0], { type: "thread.settle", commandId: "id-1", threadId: "run-1" });
 });
 
+test("rewind sends the checkpoint rollback and validates the body", async () => {
+  const { server, port } = await start();
+  port.projection = {
+    messages: [{ id: "u1", role: "user", text: "x" }],
+    runs: [{ id: "r1", ordinal: 1, status: "completed", userMessageId: "u1" }],
+    checkpoints: [{ id: "c0", scopeId: "s", runId: null, status: "ready", ordinalWithinScope: 0, appRunOrdinal: null }],
+  };
+  for (const body of [{}, { messageId: "", restoreFiles: false }, { messageId: "u1" }, { messageId: "u1", restoreFiles: "yes" }]) assert.equal((await post(server, "/api/threads/idle-1/rewind", body)).status, 400, JSON.stringify(body));
+  assert.equal((await post(server, "/api/threads/idle-1/rewind", { messageId: "u1", restoreFiles: true })).status, 200);
+  assert.deepEqual(port.commands, [{ type: "checkpoint.rollback", commandId: "id-1", threadId: "idle-1", scopeId: "s", checkpointId: "c0", restoreFiles: true }]);
+  assert.equal((await post(server, "/api/threads/idle-1/rewind", { messageId: "nope", restoreFiles: false })).status, 409);
+});
+
 test("unsettle", async () => {
   const { server, port } = await start();
   assert.equal((await post(server, "/api/threads/run-1/unsettle")).status, 200);
@@ -523,6 +543,7 @@ test("every POST route refuses a body that is not JSON", async () => {
   const posts = [
     "/api/board/assign",
     "/api/desk",
+    "/api/stash",
     "/api/seen",
     "/api/setup/retry",
     "/api/setup/token",
@@ -531,6 +552,8 @@ test("every POST route refuses a body that is not JSON", async () => {
     "/api/settings/linear/key",
     "/api/settings/linear/disconnect",
     "/api/threads",
+    "/api/attachments",
+    "/api/attachments/att-1/delete",
     "/api/automations",
     "/api/automations/task-1/delete",
     "/api/automations/task-1/rename",
@@ -928,6 +951,16 @@ test("attachments: a page is themed and sandboxed, and only the dashboard may fr
   assert.match(reply.text, /bytes$/);
 });
 
+test("attachments: ?raw=1 serves a .html file as a download, not a themed page", async () => {
+  const { server, port } = await start();
+  port.assetFileName = "t1-notes-html.html";
+  port.assetType = "text/html";
+  const reply = await call(server, "GET", "/api/threads/t1/attachments/t1-notes-html?raw=1");
+  assert.equal(reply.headers["content-type"], "application/octet-stream");
+  assert.equal(reply.headers["content-disposition"], "attachment");
+  assert.equal(reply.text, "bytes");
+});
+
 test("media: only an absolute image path that a message of the thread shows", async () => {
   const { server, port } = await start();
   port.projection = { messages: [{ id: "m", role: "assistant", text: "Done: ![shot](/tmp/out/shot.png)" }] };
@@ -1104,6 +1137,189 @@ test("POST /api/desk refuses a body without a desk or an origin, and saves nothi
   for (const body of bad) assert.equal((await post(server, "/api/desk", body)).status, 400, JSON.stringify(body));
   assert.deepEqual(savedDesks, []);
   assert.deepEqual(events, []);
+});
+
+// "hello" in base64.
+const textFile = { name: " notes.txt ", mimeType: "text/plain", dataUrl: "data:text/plain;base64,aGVsbG8=" };
+
+test("POST /api/attachments stores a file in T3 and answers its reference", async () => {
+  const { server, port } = await start();
+  const reply = await post(server, "/api/attachments", textFile);
+  assert.deepEqual(reply.json, { ok: true, attachment: { type: "file", id: "file-1", name: "notes.txt", mimeType: "text/plain", sizeBytes: 5 } });
+  assert.equal(new TextDecoder().decode(port.fileUploads[0]!.bytes), "hello");
+  const image = await post(server, "/api/attachments", png);
+  assert.deepEqual(image.json.attachment, { type: "image", id: "file-2", name: "shot.png", mimeType: "image/png", sizeBytes: 4 });
+});
+
+test("POST /api/attachments refuses a bad name, type, data URL or size before any T3 call", async () => {
+  const { server, port } = await start();
+  const big = (mimeType: string, bytes: number) => ({ name: "big", mimeType, dataUrl: `data:${mimeType};base64,${"A".repeat(Math.ceil((bytes + 1) / 3) * 4)}` });
+  const bad = [
+    {},
+    { ...textFile, name: "  " },
+    { ...textFile, name: "n".repeat(256) },
+    { ...textFile, mimeType: "text" },
+    { ...textFile, mimeType: `text/${"p".repeat(100)}` },
+    { ...textFile, dataUrl: "data:text/html;base64,aGVsbG8=" },
+    { ...textFile, dataUrl: "data:text/plain;base64,aGVsbG8" },
+    { ...textFile, dataUrl: "data:text/plain;base64," },
+    big("image/png", 10 * 1024 * 1024),
+    big("application/zip", 50 * 1024 * 1024),
+  ];
+  for (const body of bad) assert.equal((await post(server, "/api/attachments", body)).status, 400, JSON.stringify(body).slice(0, 80));
+  assert.deepEqual(port.fileUploads, []);
+});
+
+test("POST /api/attachments takes a file over 25 MB, up to 70 MB", async () => {
+  const { server } = await start();
+  const mimeType = "application/zip";
+  const body = { name: "a.zip", mimeType, dataUrl: `data:${mimeType};base64,${"A".repeat(40 * 1024 * 1024)}` };
+  assert.equal((await post(server, "/api/attachments", body)).status, 200);
+});
+
+test("POST /api/attachments/:id/delete removes the file in T3", async () => {
+  const { server, port } = await start();
+  assert.equal((await post(server, "/api/attachments/att%201/delete")).status, 200);
+  assert.deepEqual(port.deletedAttachments, ["att 1"]);
+});
+
+const upload = { type: "file", id: "att-1", name: "notes.txt", mimeType: "text/plain", sizeBytes: 5 };
+
+test("messages: uploads alone are enough and go after the persisted images", async () => {
+  const { server, port } = await start();
+  assert.equal((await post(server, "/api/threads/idle-1/messages", { text: "", uploads: [upload] })).status, 200);
+  assert.deepEqual(port.commands[0]!.attachments, [upload]);
+  assert.equal((await post(server, "/api/threads/idle-1/messages", { text: "x", attachments: [png], uploads: [upload] })).status, 200);
+  assert.deepEqual(port.commands[1]!.attachments, [{ type: "image", id: "stored-0", name: "shot.png", mimeType: "image/png", sizeBytes: 4 }, upload]);
+});
+
+test("messages: refuses bad upload refs and more than 100 attachments in total", async () => {
+  const { server, port } = await start();
+  const bad = [
+    "x",
+    [{ ...upload, type: "audio" }],
+    [{ ...upload, id: "" }],
+    [{ ...upload, id: "a/b" }],
+    [{ ...upload, id: "a\nb" }],
+    [{ ...upload, id: "i".repeat(257) }],
+    [{ ...upload, name: "" }],
+    [{ ...upload, mimeType: "m".repeat(101) }],
+    [{ ...upload, sizeBytes: 0 }],
+    [{ ...upload, sizeBytes: 1.5 }],
+    Array.from({ length: 101 }, () => upload),
+  ];
+  for (const uploads of bad) assert.equal((await post(server, "/api/threads/idle-1/messages", { text: "x", uploads })).status, 400, JSON.stringify(uploads).slice(0, 80));
+  assert.equal((await post(server, "/api/threads/idle-1/messages", { text: "x", attachments: [png], uploads: Array.from({ length: 100 }, () => upload) })).status, 400);
+  assert.equal((await post(server, "/api/threads/idle-1/messages", { text: "x", uploads: Array.from({ length: 100 }, () => upload) })).status, 200);
+  assert.deepEqual(port.uploads, []);
+});
+
+test("POST /api/threads takes uploads", async () => {
+  const { server, port } = await start();
+  const reply = await post(server, "/api/threads", { projectId: "project-1", title: "t", text: "x", modelSelection: model, uploads: [upload] });
+  assert.equal(reply.status, 200);
+  assert.deepEqual(port.commands[1]!.attachments, [upload]);
+  assert.equal((await post(server, "/api/threads", { projectId: "project-1", title: "t", text: "x", modelSelection: model, uploads: [{ ...upload, id: "" }] })).status, 400);
+});
+
+test("POST /api/board/assign takes uploads", async () => {
+  const { server, port } = await start({ linearKey: "key-1" });
+  assert.equal((await post(server, "/api/board/assign", { ...assignBody, uploads: [upload] })).status, 200);
+  assert.deepEqual(port.commands[1]!.attachments, [upload]);
+  assert.equal((await post(server, "/api/board/assign", { ...assignBody, uploads: [{ ...upload, id: "" }] })).status, 400);
+});
+
+test("GET /api/threads/:id/items/:itemId answers the step detail, 404 when T3 has no such item", async () => {
+  const { server, port } = await start();
+  port.turnItems["item-1"] = { id: "item-1", type: "command_execution", input: "ls", output: "a\nb", exitCode: 0 };
+  const reply = await call(server, "GET", "/api/threads/run-1/items/item-1");
+  assert.deepEqual(reply.json, { id: "item-1", kind: "command", input: "ls", output: "a\nb", exitCode: 0, diff: null, text: null, results: [], truncated: false });
+  assert.deepEqual(port.turnItemCalls, [{ threadId: "run-1", itemId: "item-1" }]);
+  assert.equal((await call(server, "GET", "/api/threads/run-1/items/missing")).status, 404);
+  assert.equal((await call(server, "GET", `/api/threads/run-1/items/${"i".repeat(513)}`)).status, 400);
+});
+
+test("GET /api/threads/:id/files searches the worktree first, then the project root", async () => {
+  const { server, port } = await start();
+  port.entries = { entries: [{ path: "src/a.ts", kind: "file" }, { path: "src", kind: "directory" }], truncated: true };
+  const reply = await call(server, "GET", "/api/threads/idle-1/files?q=a");
+  assert.deepEqual(reply.json, { entries: port.entries.entries, truncated: true });
+  await call(server, "GET", "/api/threads/run-1/files?q=&limit=5");
+  assert.deepEqual(port.entriesCalls, [{ cwd: "/work/wt", query: "a", limit: 20 }, { cwd: "/work/root", query: "", limit: 5 }]);
+});
+
+test("GET /api/threads/:id/commands gives the provider's commands and skills for the thread's folder", async () => {
+  const { server, port } = await start();
+  port.config = async () => ({
+    providers: [{ instanceId: "a", slashCommands: [{ name: "compact", description: "Summarize" }], workspaceSnapshots: [{ cwd: "/work/wt", slashCommands: [{ name: "compact" }, { name: "local" }], skills: [{ name: "s", path: "/s", enabled: true }] }] }],
+  });
+  const reply = await call(server, "GET", "/api/threads/idle-1/commands?provider=a");
+  assert.deepEqual(reply.json, { commands: [{ name: "compact", description: null }, { name: "local", description: null }], skills: [{ name: "s", displayName: null, description: null }] });
+  const global = await call(server, "GET", "/api/threads/unknown/commands?provider=a");
+  assert.deepEqual(global.json, { commands: [{ name: "compact", description: "Summarize" }], skills: [] });
+});
+
+test("GET /api/threads/:id/commands needs a provider", async () => {
+  const { server } = await start();
+  for (const query of ["", "?provider=", `?provider=${"x".repeat(201)}`]) assert.equal((await call(server, "GET", `/api/threads/idle-1/commands${query}`)).status, 400, query);
+});
+
+test("GET /api/threads/:id/files is empty when T3 names no folder, and refuses a bad query", async () => {
+  const { server, port } = await start();
+  const reply = await call(server, "GET", "/api/threads/unknown/files?q=a");
+  assert.deepEqual(reply.json, { entries: [], truncated: false });
+  for (const query of [`q=${"q".repeat(257)}`, "q=a&limit=0", "q=a&limit=51", "q=a&limit=x", "q=a&limit="]) {
+    assert.equal((await call(server, "GET", `/api/threads/idle-1/files?${query}`)).status, 400, query);
+  }
+  assert.deepEqual(port.entriesCalls, []);
+});
+
+const stashed = (id: string, text = "hello"): StashEntry => ({ id, text, uploads: [], createdAt: "2026-11-03T10:00:00.000Z", threadId: "t-1", threadTitle: "Fix login" });
+
+test("GET /api/stash lists the entries, newest first", async () => {
+  const { server } = await start({ stash: [stashed("b"), stashed("a")] });
+  assert.deepEqual((await call(server, "GET", "/api/stash")).json, { entries: [stashed("b"), stashed("a")] });
+});
+
+test("POST /api/stash stores the draft with an id and a date, and returns what the limit pushed out", async () => {
+  const full = Array.from({ length: 20 }, (_, i) => stashed(`old-${i}`));
+  const { server, savedStashes } = await start({ stash: full });
+  const upload = { type: "file", id: "att-1", name: "a.txt", mimeType: "text/plain", sizeBytes: 3 };
+  const reply = await post(server, "/api/stash", { text: "draft", uploads: [upload], threadId: "t-9", threadTitle: "Other" });
+  const entry = { id: "stash-1", text: "draft", uploads: [upload], createdAt: "2026-11-04T10:00:00.000Z", threadId: "t-9", threadTitle: "Other" };
+  assert.equal(reply.status, 200);
+  assert.deepEqual(reply.json, { ok: true, entry, evicted: [full[19]] });
+  assert.equal(savedStashes.at(-1)!.length, 20);
+  assert.deepEqual(((await call(server, "GET", "/api/stash")).json as { entries: StashEntry[] }).entries[0], entry);
+});
+
+test("POST /api/stash refuses an empty draft, a bad upload and a missing thread", async () => {
+  const { server, savedStashes } = await start();
+  const thread = { threadId: "t-1", threadTitle: "T" };
+  assert.equal((await post(server, "/api/stash", { text: "  ", uploads: [], ...thread })).status, 400);
+  assert.equal((await post(server, "/api/stash", { text: "x", uploads: [{ id: "a/b" }], ...thread })).status, 400);
+  assert.equal((await post(server, "/api/stash", { text: "x", threadTitle: "T" })).status, 400);
+  assert.equal((await post(server, "/api/stash", { text: 5, ...thread })).status, 400);
+  assert.equal((await post(server, "/api/stash", { text: "x".repeat(100_001), ...thread })).status, 400);
+  assert.deepEqual(savedStashes, []);
+  assert.equal((await post(server, "/api/stash", { text: "", uploads: [{ type: "file", id: "att-1", name: "a", mimeType: "text/plain", sizeBytes: 1 }], ...thread })).status, 200);
+});
+
+test("POST /api/stash/:id/delete removes the entry, then answers 404 for it", async () => {
+  const { server } = await start({ stash: [stashed("a"), stashed("b")] });
+  assert.equal((await post(server, "/api/stash/a/delete", {})).status, 200);
+  assert.deepEqual((await call(server, "GET", "/api/stash")).json, { entries: [stashed("b")] });
+  assert.equal((await post(server, "/api/stash/a/delete", {})).status, 404);
+});
+
+test("a stash change is broadcast to every open page, and a refused one is not", async () => {
+  const { server, events } = await start({ stash: [stashed("a")] });
+  await post(server, "/api/stash", { text: "draft", uploads: [], threadId: "t-9", threadTitle: "Other" });
+  await post(server, "/api/stash/a/delete", {});
+  await post(server, "/api/stash/missing/delete", {});
+  await post(server, "/api/stash", { text: " ", uploads: [], threadId: "t-9", threadTitle: "Other" });
+  const lists = events.filter((e) => e.type === "stash").map((e) => (e.data as StashEntry[]).map((x) => x.id));
+  assert.deepEqual(lists, [["stash-1", "a"], ["stash-1"]]);
 });
 
 test("GET /api/seen is null until a baseline is set, then returns the state", async () => {

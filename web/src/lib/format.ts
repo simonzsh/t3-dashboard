@@ -1,3 +1,9 @@
+export function formatBytes(bytes: number): string {
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${Math.round(bytes / 1024)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
+
 export function relativeTime(iso: string, now: Date): string {
   const min = Math.max(0, (now.getTime() - new Date(iso).getTime()) / 60_000);
   if (min < 1) return "just now";

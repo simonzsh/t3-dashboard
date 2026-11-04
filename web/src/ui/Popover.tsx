@@ -10,6 +10,9 @@ interface Props {
   align?: "start" | "end";
   minWidth?: number;
   matchWidth?: boolean;
+  /** Never wider than the anchor: long rows are cut instead. */
+  fitWidth?: boolean;
+  preferAbove?: boolean;
   className?: string;
   role?: string;
   children: ReactNode;
@@ -19,7 +22,7 @@ interface Props {
 const open: object[] = [];
 
 /** A menu in document.body, fixed next to its anchor: no scrolling parent can clip it. */
-export function Popover({ anchor, onClose, align = "start", minWidth = 0, matchWidth = false, className = "", role, children }: Props) {
+export function Popover({ anchor, onClose, align = "start", minWidth = 0, matchWidth = false, fitWidth = false, preferAbove = false, className = "", role, children }: Props) {
   const box = useRef<HTMLDivElement>(null);
   const inside = useRef(false);
   const self = useRef({});
@@ -35,10 +38,19 @@ export function Popover({ anchor, onClose, align = "start", minWidth = 0, matchW
       el.style.minWidth = "";
       const a = trigger.getBoundingClientRect();
       el.style.minWidth = `${matchWidth ? Math.max(minWidth, a.width) : minWidth}px`;
+      if (fitWidth) el.style.maxWidth = `${Math.max(minWidth, a.width)}px`;
       const size = el.getBoundingClientRect();
-      const p = placeMenu(a, size, { width: window.innerWidth, height: window.innerHeight }, { align, minWidth, matchWidth });
-      el.style.left = `${p.left}px`;
-      el.style.top = `${p.top}px`;
+      // A phone keyboard hides the bottom of the page without changing innerHeight: place within what is visible.
+      const vv = window.visualViewport;
+      const [dx, dy] = vv ? [vv.offsetLeft, vv.offsetTop] : [0, 0];
+      const view = vv ? { width: vv.width, height: vv.height } : { width: window.innerWidth, height: window.innerHeight };
+      const shifted = { left: a.left - dx, top: a.top - dy, width: a.width, height: a.height };
+      const p = placeMenu(shifted, size, view, { align, minWidth, matchWidth, preferAbove });
+      el.style.left = `${p.left + dx}px`;
+      // Above: hold the bottom edge, so a list that shrinks stays against its anchor with no new pass.
+      const layoutHeight = document.documentElement.clientHeight;
+      el.style.top = p.above ? "auto" : `${p.top + dy}px`;
+      el.style.bottom = p.above ? `${layoutHeight - (p.top + dy + Math.min(size.height, p.maxHeight ?? Infinity))}px` : "auto";
       el.style.maxHeight = p.maxHeight === undefined ? "" : `${p.maxHeight}px`;
       el.style.visibility = "visible";
     };
@@ -58,12 +70,20 @@ export function Popover({ anchor, onClose, align = "start", minWidth = 0, matchW
     frame = requestAnimationFrame(follow);
     window.addEventListener("scroll", place, true);
     window.addEventListener("resize", place);
+    window.visualViewport?.addEventListener("resize", place);
+    window.visualViewport?.addEventListener("scroll", place);
+    // A filtered list shrinks: place it again so a menu above its anchor stays against it.
+    const resized = new ResizeObserver(() => place());
+    if (box.current) resized.observe(box.current);
     return () => {
+      resized.disconnect();
       cancelAnimationFrame(frame);
       window.removeEventListener("scroll", place, true);
       window.removeEventListener("resize", place);
+      window.visualViewport?.removeEventListener("resize", place);
+      window.visualViewport?.removeEventListener("scroll", place);
     };
-  }, [align, minWidth, matchWidth]);
+  }, [align, minWidth, matchWidth, fitWidth, preferAbove]);
 
   useLayoutEffect(() => {
     const anim = box.current && enter(box.current, { y: -4, duration: 160 });

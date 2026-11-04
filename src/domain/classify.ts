@@ -5,9 +5,11 @@ const EPOCH = new Date(0).toISOString();
 
 const APPROVAL_KINDS = new Set(["command", "file-read", "file-change", "permission", "mcp-elicitation"]);
 
+/** A provider's subagent thread: the shell hides it, the parent's timeline shows it. */
+export const isSubagentThread = (raw: RawThread): boolean => raw.lineage?.relationshipToParent === "subagent" && raw.creationSource === "provider";
+
 export function isHidden(raw: RawThread, location?: string): boolean {
-  const subagent = raw.lineage?.relationshipToParent === "subagent" && raw.creationSource === "provider";
-  return subagent || Boolean(raw.deletedAt) || Boolean(raw.archivedAt) || location === "archive";
+  return isSubagentThread(raw) || Boolean(raw.deletedAt) || Boolean(raw.archivedAt) || location === "archive";
 }
 
 // `updatedAt` is left out: a pin or a visit bumps it without any real activity.
