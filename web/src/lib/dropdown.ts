@@ -50,6 +50,8 @@ interface PlaceOptions {
   align: "start" | "end";
   minWidth: number;
   matchWidth: boolean;
+  /** Open above the anchor whenever it fits there (a composer menu). */
+  preferAbove?: boolean;
   gap?: number;
   margin?: number;
 }
@@ -62,7 +64,7 @@ export function placeMenu(anchor: Box, menu: { width: number; height: number }, 
   const width = Math.max(menu.width, minWidth);
   const below = view.height - margin - (anchor.top + anchor.height + gap);
   const aboveRoom = anchor.top - gap - margin;
-  const above = menu.height > below && aboveRoom > below;
+  const above = o.preferAbove ? menu.height <= aboveRoom || aboveRoom > below : menu.height > below && aboveRoom > below;
   const room = above ? aboveRoom : below;
   const height = Math.min(menu.height, Math.max(room, 0));
   const top = above ? anchor.top - gap - height : anchor.top + anchor.height + gap;

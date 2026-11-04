@@ -12,6 +12,7 @@ interface Props {
   matchWidth?: boolean;
   /** Never wider than the anchor: long rows are cut instead. */
   fitWidth?: boolean;
+  preferAbove?: boolean;
   className?: string;
   role?: string;
   children: ReactNode;
@@ -21,7 +22,7 @@ interface Props {
 const open: object[] = [];
 
 /** A menu in document.body, fixed next to its anchor: no scrolling parent can clip it. */
-export function Popover({ anchor, onClose, align = "start", minWidth = 0, matchWidth = false, fitWidth = false, className = "", role, children }: Props) {
+export function Popover({ anchor, onClose, align = "start", minWidth = 0, matchWidth = false, fitWidth = false, preferAbove = false, className = "", role, children }: Props) {
   const box = useRef<HTMLDivElement>(null);
   const inside = useRef(false);
   const self = useRef({});
@@ -39,7 +40,7 @@ export function Popover({ anchor, onClose, align = "start", minWidth = 0, matchW
       el.style.minWidth = `${matchWidth ? Math.max(minWidth, a.width) : minWidth}px`;
       if (fitWidth) el.style.maxWidth = `${Math.max(minWidth, a.width)}px`;
       const size = el.getBoundingClientRect();
-      const p = placeMenu(a, size, { width: window.innerWidth, height: window.innerHeight }, { align, minWidth, matchWidth });
+      const p = placeMenu(a, size, { width: window.innerWidth, height: window.innerHeight }, { align, minWidth, matchWidth, preferAbove });
       el.style.left = `${p.left}px`;
       el.style.top = `${p.top}px`;
       el.style.maxHeight = p.maxHeight === undefined ? "" : `${p.maxHeight}px`;
@@ -70,7 +71,7 @@ export function Popover({ anchor, onClose, align = "start", minWidth = 0, matchW
       window.removeEventListener("scroll", place, true);
       window.removeEventListener("resize", place);
     };
-  }, [align, minWidth, matchWidth, fitWidth]);
+  }, [align, minWidth, matchWidth, fitWidth, preferAbove]);
 
   useLayoutEffect(() => {
     const anim = box.current && enter(box.current, { y: -4, duration: 160 });
