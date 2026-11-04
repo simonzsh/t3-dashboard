@@ -417,7 +417,7 @@ test("steps: a subagent step carries its ids, progress and whether Stop applies"
   const [a, b, c, d] = detail.steps;
   assert.deepEqual(a!.subagent, { subagentId: "sub-1", childThreadId: "child-1", progress: "Reading files", stoppable: true, state: "running", provider: null, turnId: null });
   assert.deepEqual(b!.subagent, { subagentId: "sub-2", childThreadId: null, progress: null, stoppable: false, state: "running", provider: null, turnId: null });
-  assert.deepEqual([c!.status, c!.detail, c!.expandable, c!.subagent], ["done", "All good, with details.", true, { subagentId: "sub-3", childThreadId: null, progress: null, stoppable: false }]);
+  assert.deepEqual([c!.status, c!.detail, c!.expandable, c!.subagent], ["done", "All good, with details.", true, { subagentId: "sub-3", childThreadId: null, progress: null, stoppable: false, state: "completed", provider: null, turnId: null }]);
   assert.equal(d!.subagent!.childThreadId, "child-from-raw");
 });
 
