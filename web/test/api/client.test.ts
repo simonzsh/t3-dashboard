@@ -113,10 +113,11 @@ test("getAutomations reads /api/automations with GET", async () => {
   assert.equal(calls[0]?.init?.method ?? "GET", "GET");
 });
 
-test("requestAutomation posts the request as JSON", async () => {
-  const { calls, api } = fake(200, { ok: true, threadId: "thread-3" });
-  const body = { text: "Remind me", projectId: "", modelSelection: { instanceId: "provider-a", model: "model-x" } };
-  assert.equal((await api.requestAutomation(body)).threadId, "thread-3");
+test("createAutomation posts the body as JSON and returns the created task", async () => {
+  const result = { ok: true, id: "task-3", webhookUrl: null, nextRunAt: "2026-11-05T09:00:00.000Z" };
+  const { calls, api } = fake(200, result);
+  const body = { kind: "routine" as const, title: "", prompt: "Triage", projectId: "", modelSelection: { instanceId: "provider-a", model: "model-x" }, schedule: { type: "interval" as const, everyMinutes: 15 } };
+  assert.deepEqual(await api.createAutomation(body), result);
   assert.equal(calls[0]?.url, "/api/automations");
   assert.equal(calls[0]?.init?.method, "POST");
   assert.deepEqual(JSON.parse(String(calls[0]?.init?.body)), body);

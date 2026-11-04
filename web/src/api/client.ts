@@ -1,10 +1,11 @@
 import type {
   AssignIssueBody,
-  AutomationRequestBody,
   AutomationsResult,
   BoardResult,
   ConnectionStatus,
   CreateThreadBody,
+  CreateAutomationBody,
+  CreateAutomationResult,
   CreateThreadResult,
   DeskUpdate,
   SeenChange,
@@ -93,7 +94,7 @@ export function createApi(fetchImpl: Fetch) {
   }
   return {
     getAutomations: () => call<AutomationsResult>("/api/automations"),
-    requestAutomation: (b: AutomationRequestBody) => call<CreateThreadResult>("/api/automations", b),
+    createAutomation: (b: CreateAutomationBody) => call<CreateAutomationResult>("/api/automations", b),
     renameAutomation: (id: string, title: string) => call<OkResult>(`/api/automations/${encodeURIComponent(id)}/rename`, { title }),
     deleteAutomation: (id: string) => call<OkResult>(`/api/automations/${encodeURIComponent(id)}/delete`, {}),
     getBoard: (refresh = false) => call<BoardResult>(refresh ? "/api/board?refresh=1" : "/api/board"),
