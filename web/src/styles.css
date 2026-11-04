@@ -542,24 +542,30 @@ ol.install-steps { padding-left: 18px; }
 .inbox-head .inbox-heading { margin: 0; }
 .linear-source { display: inline-flex; align-items: center; gap: 6px; margin-right: auto; font-size: 12px; color: var(--text-secondary); }
 .linear-source .conn-dot { background: var(--ok); }
-.inbox-list { display: flex; flex-direction: column; gap: 8px; }
-.inbox-more, .inbox-settle-all { align-self: flex-start; }
+/* Cards, several per row: a wide list wasted the space right of the titles. */
+.inbox-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(280px, 100%), 1fr)); gap: 12px; }
+.inbox-list > .inbox-more { grid-column: 1 / -1; justify-self: start; }
+.inbox-settle-all { align-self: flex-start; }
 .inbox-summary { margin: 0; font-size: 15px; font-weight: 600; }
 .inbox-section > .inbox-list { margin-top: 8px; }
 .inbox-collapse-head { align-self: flex-start; display: inline-flex; align-items: center; gap: 8px; padding: 4px 6px; border: 0; background: none; color: var(--text-secondary); font-size: 12px; font-weight: 500; }
 .inbox-collapse-head:hover:not(:disabled) { color: var(--text-primary); }
-/* The actions sit inside the row, on the right: the row keeps room for all three so every row lines up. */
-.inbox-item { position: relative; }
-.inbox-row { position: relative; width: 100%; min-width: 0; display: flex; align-items: center; gap: 10px; padding: 10px 116px 10px 14px; border-radius: 12px; box-shadow: var(--shadow); text-align: left; transition: border-color 0.12s, box-shadow 0.12s; }
+.inbox-item { position: relative; min-width: 0; }
+.inbox-row { position: relative; width: 100%; height: 100%; min-width: 0; display: flex; flex-direction: column; align-items: flex-start; gap: 6px; padding: 14px 16px; border-radius: 14px; box-shadow: var(--shadow); text-align: left; transition: transform 0.12s, border-color 0.12s, box-shadow 0.12s; }
+.inbox-row:hover:not(:disabled) { transform: translateY(-1px); }
+.inbox-card-head { display: flex; align-items: center; gap: 10px; min-width: 0; width: 100%; }
+.inbox-row > .project-tag { max-width: 100%; }
+/* The actions sit in the bottom right corner of the card: the foot keeps room for all three. */
+.inbox-card-foot { display: flex; align-items: center; gap: 8px; min-width: 0; margin-top: auto; padding-right: 100px; white-space: nowrap; }
 .inbox-row.on-desk { border-color: color-mix(in srgb, var(--accent) 55%, var(--line)); }
 /* One line: a long title must not make the row taller. */
 .inbox-title { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 600; }
 .inbox-time { flex: none; color: var(--text-secondary); font-size: 12px; white-space: nowrap; }
 .inbox-pin { width: 13px; height: 13px; flex: none; color: var(--text-secondary); }
-.inbox-actions { position: absolute; top: 50%; right: 10px; transform: translateY(-50%); display: flex; align-items: center; gap: 4px; }
+.inbox-actions { position: absolute; right: 10px; bottom: 10px; display: flex; align-items: center; gap: 4px; }
 .inbox-open-t3 { border-radius: var(--radius-md); }
 .inbox-open-t3:hover { color: var(--text-primary); background: var(--surface-0); }
-.project-tag { flex: none; display: inline-flex; align-items: center; gap: 5px; min-width: 0; max-width: 180px; color: var(--text-secondary); font-size: 12px; }
+.project-tag { flex: 0 1 auto; display: inline-flex; align-items: center; gap: 5px; min-width: 0; max-width: 180px; color: var(--text-secondary); font-size: 12px; }
 .project-tag .project-icon { width: 14px; height: 14px; }
 .project-tag-text { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .inbox-row.waiting { border-color: var(--warn); background: color-mix(in srgb, var(--warn-bg) 55%, var(--surface-1)); box-shadow: 0 0 0 1px var(--warn), var(--shadow); }
@@ -568,9 +574,12 @@ ol.install-steps { padding-left: 18px; }
 .inbox-row.finished { background: color-mix(in srgb, var(--done-bg) 40%, var(--surface-1)); box-shadow: none; }
 .inbox-row.finished .inbox-title { font-weight: 500; }
 .inbox-row.is-settled { background: var(--surface-0); border-color: var(--line); box-shadow: none; }
-.inbox-row.is-settled > :not(.inbox-title) { opacity: 0.6; filter: grayscale(1); }
-.ticket-row { display: flex; align-items: center; gap: 10px; padding: 8px 12px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface-1); }
-.ticket-title { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 500; color: inherit; text-decoration: none; }
+.inbox-row.is-settled > * { opacity: 0.6; filter: grayscale(1); }
+.ticket-row { display: flex; flex-direction: column; gap: 8px; min-width: 0; padding: 12px 14px; border: 1px solid var(--line); border-radius: 14px; background: var(--surface-1); }
+.ticket-meta { display: flex; align-items: center; gap: 8px; min-width: 0; }
+/* Two lines at most, so every ticket card keeps the same height. */
+.ticket-title { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; line-clamp: 2; overflow: hidden; min-height: 2lh; font-weight: 500; color: inherit; text-decoration: none; }
+.ticket-actions { display: flex; align-items: center; justify-content: flex-end; gap: 6px; margin-top: auto; }
 .ticket-title:hover { text-decoration: underline; }
 .auto-page { flex: 1; min-height: 0; display: flex; flex-direction: column; gap: 16px; }
 .auto-toolbar { flex: none; display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }

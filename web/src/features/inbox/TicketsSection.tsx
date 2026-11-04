@@ -51,18 +51,22 @@ export function TicketRow({ issue, projects, providers, modelDefaults, onOpen, o
 
   return (
     <div className="ticket-row" ref={row}>
-      <PriorityIcon priority={issue.priority} label={issue.priorityLabel} />
-      <span className="ident">{issue.identifier}</span>
+      <span className="ticket-meta">
+        <PriorityIcon priority={issue.priority} label={issue.priorityLabel} />
+        <span className="ident">{issue.identifier}</span>
+        {project && <ProjectTag icon={project.icon} title={project.title} />}
+      </span>
       <a href={issue.url} target="_blank" rel="noreferrer" className="ticket-title" data-tooltip={issue.title} data-tooltip-clipped>
         {issue.title}
       </a>
-      {project && <ProjectTag icon={project.icon} title={project.title} />}
-      <Button variant="primary" size="sm" loading={busy} onClick={start}>
-        Start
-      </Button>
-      <IconButton label="Choose project and instructions" tooltip="Choose project and instructions" size="sm" aria-haspopup="dialog" onClick={() => setChoosing(true)}>
-        <Icon name="assignBot" strokeWidth={1.8} />
-      </IconButton>
+      <span className="ticket-actions">
+        <IconButton label="Choose project and instructions" tooltip="Choose project and instructions" size="sm" aria-haspopup="dialog" onClick={() => setChoosing(true)}>
+          <Icon name="assignBot" strokeWidth={1.8} />
+        </IconButton>
+        <Button variant="primary" size="sm" loading={busy} onClick={start}>
+          Start
+        </Button>
+      </span>
       {choosing &&
         createPortal(
           <NewThreadDialog

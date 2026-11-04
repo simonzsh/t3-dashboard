@@ -46,14 +46,18 @@ function InboxRowView({ thread: t, project, now, onDesk, t3EnvironmentId, onOpen
           onOpen(t.id, e.shiftKey);
         }}
       >
-        <ProviderIcon provider={t.provider} />
-        <span className="inbox-title">{threadTitle(t)}</span>
-        {project && <ProjectTag icon={project.icon} title={project.title} />}
-        <span data-tooltip={status === "finished" ? (t.lastError ?? undefined) : undefined}>
-          <StatusBadge thread={t} status={status} />
+        <span className="inbox-card-head">
+          <ProviderIcon provider={t.provider} />
+          <span className="inbox-title">{threadTitle(t)}</span>
+          {t.pinned && <Icon name="pin" label="Pinned" className="inbox-pin" />}
         </span>
-        {t.pinned && <Icon name="pin" label="Pinned" className="inbox-pin" />}
-        <span className="inbox-time">{relativeTime(t.lastActivityAt, now)}</span>
+        {project && <ProjectTag icon={project.icon} title={project.title} />}
+        <span className="inbox-card-foot">
+          <span data-tooltip={status === "finished" ? (t.lastError ?? undefined) : undefined}>
+            <StatusBadge thread={t} status={status} />
+          </span>
+          <span className="inbox-time">{relativeTime(t.lastActivityAt, now)}</span>
+        </span>
       </Pressable>
       <div className="inbox-actions">
         <OpenInT3 environmentId={t3EnvironmentId} threadId={t.id} className="inbox-open-t3 sm" />
