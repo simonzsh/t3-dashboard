@@ -8,7 +8,7 @@ import { useCopy } from "../../lib/useCopy.ts";
 import { findModel } from "../conversation/composer.ts";
 import { Composer } from "../conversation/Composer.tsx";
 import { Button, Choice, Dialog, Dropdown, Icon, IconButton, Segmented, SecretInput, TextInput } from "../../ui/index.ts";
-import { FILTER_OPS, WEEKDAY_LABELS, addFilter, emptyForm, promptPlaceholder, removeFilter, toCreateBody, toggleWeekday, updateFilter, type AutomationForm, type FilterOp, type FormKind } from "./automationForm.ts";
+import { FILTER_OPS, WEEKDAY_LABELS, WEEKDAY_ORDER, addFilter, emptyForm, promptPlaceholder, removeFilter, toCreateBody, toggleWeekday, updateFilter, type AutomationForm, type FilterOp, type FormKind } from "./automationForm.ts";
 import { presetSelection } from "./newAgent.ts";
 
 const KEY = "t3-dashboard-automation-project";
@@ -88,9 +88,9 @@ function ScheduleFields({ form, onChange }: { form: AutomationForm; onChange: (f
           <>
             <TextInput aria-label="Time" type="time" value={form.timeOfDay} onChange={(e) => set({ timeOfDay: e.target.value })} />
             <div className="auto-form-row auto-days" role="group" aria-label="Days">
-              {WEEKDAY_LABELS.map((label, day) => (
-                <Button key={label} size="sm" aria-pressed={form.weekdays.includes(day)} onClick={() => onChange(toggleWeekday(form, day))}>
-                  {label}
+              {WEEKDAY_ORDER.map((day) => (
+                <Button key={day} size="sm" aria-pressed={form.weekdays.includes(day)} onClick={() => onChange(toggleWeekday(form, day))}>
+                  {WEEKDAY_LABELS[day]}
                 </Button>
               ))}
             </div>
