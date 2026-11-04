@@ -7,12 +7,13 @@ const key = { key: "s", ctrlKey: false, metaKey: false, altKey: false, shiftKey:
 const upload = (id: string) => ({ type: "file" as const, id, name: `${id}.txt`, mimeType: "text/plain", sizeBytes: 1 });
 const entry = (uploads = [upload("a")]): StashEntry => ({ id: "e", text: "t", uploads, createdAt: "2026-11-04T10:00:00.000Z", threadId: "t", threadTitle: "T" });
 
-test("isStashKey: Ctrl+S off a Mac, Cmd+S on one, never with Shift, Alt or IME", () => {
+test("isStashKey: Ctrl+S everywhere, Cmd+S on a Mac, never with Shift, Alt or IME", () => {
   assert.equal(isStashKey({ ...key, ctrlKey: true }, false), true);
   assert.equal(isStashKey({ ...key, key: "S", ctrlKey: true }, false), true);
   assert.equal(isStashKey({ ...key, metaKey: true }, false), false);
   assert.equal(isStashKey({ ...key, metaKey: true }, true), true);
-  assert.equal(isStashKey({ ...key, ctrlKey: true }, true), false);
+  assert.equal(isStashKey({ ...key, ctrlKey: true }, true), true);
+  assert.equal(isStashKey({ ...key, ctrlKey: true, metaKey: true }, true), false);
   assert.equal(isStashKey(key, false), false);
   assert.equal(isStashKey({ ...key, ctrlKey: true, shiftKey: true }, false), false);
   assert.equal(isStashKey({ ...key, ctrlKey: true, altKey: true }, false), false);

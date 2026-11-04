@@ -12,9 +12,9 @@ interface KeyEvent {
   isComposing: boolean;
 }
 
-/** Mod+S, like T3 Code: Cmd on a Mac, Ctrl elsewhere. */
+/** Ctrl+S, plus Cmd+S on a Mac as in T3 Code. Ctrl+S has no browser meaning on a Mac. */
 export function isStashKey(e: KeyEvent, mac: boolean): boolean {
-  return e.key.toLowerCase() === "s" && (mac ? e.metaKey && !e.ctrlKey : e.ctrlKey && !e.metaKey) && !e.altKey && !e.shiftKey && !e.isComposing;
+  return e.key.toLowerCase() === "s" && (mac ? e.metaKey !== e.ctrlKey : e.ctrlKey && !e.metaKey) && !e.altKey && !e.shiftKey && !e.isComposing;
 }
 
 export const stashShortcutLabel = (mac: boolean): string => (mac ? "⌘S" : "Ctrl+S");
