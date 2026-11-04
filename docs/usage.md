@@ -44,7 +44,7 @@ Each Desk window contains a conversation.
 - Attach files with the paperclip, by drag and drop on the composer, or by paste. A chip shows each upload ("uploading", ready or "failed" with a retry button). Send waits for all uploads. The limits are those of T3 Code: 100 files, 10 MB for each image (PNG, JPEG, GIF or WebP), 50 MB for each other file and 80 MB of images in all.
 - Type `@` after a space to search the files of the conversation folder. Use the arrow keys and `Enter` or `Tab` to insert `@path`. `Escape` closes the list.
 - Type `/` at the start of the message to list the commands of the provider. Type `$` after a space to list its skills. The lists follow the thread folder. The menus work like the `@` list and insert `/command ` or `$skill `. Built-in T3 Code commands (`/model`, `/plan`, `/side`) are not in the lists.
-- The Compact button shows the context size, for example `Compact 722k`. It appears when the provider has `/compact` and has reported a size. Click it, or pick `/compact`, to compact the thread. It is disabled while a run is active.
+- The Compact button shows the context size, for example `Compact 722k`. It appears when the provider has `/compact` and the context holds 200k tokens or more, as in T3 Code. `/compact` stays in the `/` list at any size. Click it, or pick `/compact`, to compact the thread. It is disabled while a run is active.
 - `Escape` in the message field, with no list open, leaves the field and puts the focus on the conversation. The dashboard shortcuts work again. Press `Escape` again on the Desk to restore a full-screen window.
 - Change the model, the reasoning effort and the access mode ("Supervised", "Auto-accept edits", "Auto", "Full access").
 - Stop a run with the "Stop" button.

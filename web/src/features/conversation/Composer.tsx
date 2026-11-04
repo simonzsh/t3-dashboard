@@ -1,6 +1,6 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import type { ComposerCommands, DashboardModel, DashboardProvider, FileEntry, ModelSelection, RuntimeMode, ThreadSettingsBody, UploadedAttachment } from "../../../../shared/api.ts";
-import { RUNTIME_MODE_LABELS, acceptFiles, applyTrigger, attachmentType, composerPlaceholder, currentEffort, dropTrigger, escapeBlurs, filterCommands, filterSkills, findModel, formatTokens, isSendKey, selectEffort, selectModel, triggerAt } from "./composer.ts";
+import { RUNTIME_MODE_LABELS, acceptFiles, applyTrigger, attachmentType, composerPlaceholder, currentEffort, dropTrigger, escapeBlurs, filterCommands, filterSkills, findModel, formatTokens, isSendKey, selectEffort, selectModel, showsCompact, triggerAt } from "./composer.ts";
 import { moveActive, type DropdownOption } from "../../lib/dropdown.ts";
 import { useApi } from "../../api/ApiContext.tsx";
 import { Button, Dropdown, FileInput, Icon, IconButton, Loader, Popover, Pressable, TextArea } from "../../ui/index.ts";
@@ -453,7 +453,7 @@ export function Composer({ providers, selection, runtimeMode, running, stoppable
                 </IconButton>
               </>
             )}
-            {onCompact && compactable && contextTokens !== null && (
+            {onCompact && compactable && contextTokens !== null && showsCompact(contextTokens) && (
               <Button
                 size="sm"
                 variant="ghost"

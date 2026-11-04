@@ -145,6 +145,13 @@ export function filterSkills(skills: SkillInfo[], query: string): SkillInfo[] {
   return ranked(skills, (skill) => rank(query, skill.name, [skill.displayName, skill.description]));
 }
 
+/** Like T3 Code: the Compact button shows only once the context passes this size. */
+export const COMPACT_SHOW_TOKENS = 200_000;
+
+export function showsCompact(contextTokens: number | null): boolean {
+  return contextTokens !== null && contextTokens >= COMPACT_SHOW_TOKENS;
+}
+
 /** 950, 1.5k, 722k, 1.3M: the size T3 Code shows on its Compact button. */
 export function formatTokens(count: number): string {
   if (count < 1000) return String(Math.round(count));

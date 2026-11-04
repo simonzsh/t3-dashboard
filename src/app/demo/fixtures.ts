@@ -129,7 +129,7 @@ const SPECS: ThreadSpec[] = [
   },
   {
     id: "demo-migration",
-    tokens: 148000,
+    tokens: 722000,
     projectId: "demo-atlas-api",
     title: "Migrate the invoices table",
     model: CLAUDE,

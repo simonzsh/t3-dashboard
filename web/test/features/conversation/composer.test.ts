@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { test } from "bun:test";
 import type { DashboardProvider } from "../../../../shared/api.ts";
 import { MAX_ATTACHMENTS, MAX_FILE_BYTES, MAX_IMAGE_BYTES } from "../../../../shared/limits.ts";
-import { acceptFiles, applyTrigger, attachmentType, composerPlaceholder, currentEffort, dropTrigger, escapeBlurs, filterCommands, filterSkills, findModel, formatTokens, isSendKey, selectEffort, selectModel, triggerAt } from "../../../src/features/conversation/composer.ts";
+import { acceptFiles, applyTrigger, attachmentType, composerPlaceholder, currentEffort, dropTrigger, escapeBlurs, filterCommands, filterSkills, findModel, formatTokens, isSendKey, selectEffort, selectModel, showsCompact, triggerAt } from "../../../src/features/conversation/composer.ts";
 
 const effort = (optionId: string, ids: string[], defaultLevel: string | null) => ({ optionId, levels: ids.map((id) => ({ id, label: id.toUpperCase() })), defaultLevel });
 const providers: DashboardProvider[] = [
@@ -195,4 +195,11 @@ test("escapeBlurs only for a plain Escape with no menu open and no IME compositi
   assert.equal(escapeBlurs(key, true), false);
   assert.equal(escapeBlurs({ ...key, isComposing: true }, false), false);
   assert.equal(escapeBlurs({ ...key, key: "Enter" }, false), false);
+});
+
+test("the Compact button shows only from 200k tokens, like T3 Code", () => {
+  assert.equal(showsCompact(null), false);
+  assert.equal(showsCompact(148_000), false);
+  assert.equal(showsCompact(200_000), true);
+  assert.equal(showsCompact(722_000), true);
 });
