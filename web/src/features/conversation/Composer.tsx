@@ -513,7 +513,7 @@ export function Composer({ providers, selection, runtimeMode, running, stoppable
           </div>
           <div className="composer-actions">
             {stash && stashed.length > 0 && (
-              <Button size="sm" variant="ghost" className="composer-stash" aria-expanded={stashOpen} aria-label={`Stashed prompts: ${stashed.length}. Open stash.`} tooltip="Stashed prompts" shortcut={stashShortcutLabel(isMac)} onClick={() => setStashOpen((open) => !open)}>
+              <Button size="sm" variant="ghost" className="composer-stash" aria-expanded={stashOpen} aria-label={`Stashed prompts: ${stashed.length}. Open stash.`} tooltip="Stashed prompts" onClick={() => setStashOpen((open) => !open)}>
                 <Icon name="archive" /> Stash <span className="stash-count">{stashed.length}</span>
               </Button>
             )}
