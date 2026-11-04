@@ -11,6 +11,7 @@ const label = (e: Entry): string => {
   if (e.kind === "message") return e.message.id;
   if (e.kind === "render") return e.render.id;
   if (e.kind === "step") return e.step.id;
+  if (e.kind === "subagents") return `subs(${e.steps.map((s) => s.id).join(",")})`;
   return `work(${e.steps.map((s) => s.id).join(",")})`;
 };
 const labels = (detail: Parameters<typeof timeline>[0]) => timeline(detail).map(label);
@@ -51,7 +52,31 @@ test("todo, plan, notice and subagent steps stand alone and split a group", () =
         step("d", "web", "2026-01-01T10:08:00Z"),
       ],
     }),
-    ["work(a)", "todo", "work(b,c)", "sub", "plan", "note", "work(d)"],
+    ["work(a)", "todo", "work(b,c)", "subs(sub)", "plan", "note", "work(d)"],
+  );
+});
+
+const sub = (id: string, startedAt: string, turnId: string | null, runId = "run"): TurnStep => ({
+  ...step(id, "subagent", startedAt),
+  runId,
+  subagent: { subagentId: id, childThreadId: null, progress: null, stoppable: false, state: "running", provider: null, turnId },
+});
+
+test("consecutive subagents of one run and turn share a group", () => {
+  assert.deepEqual(
+    labels({
+      messages: [],
+      renders: [],
+      steps: [
+        sub("a", "2026-01-01T10:01:00Z", "t1"),
+        sub("b", "2026-01-01T10:01:01Z", "t1"),
+        sub("c", "2026-01-01T10:01:02Z", "t2"),
+        sub("d", "2026-01-01T10:01:03Z", "t2", "other"),
+        step("w", "command", "2026-01-01T10:01:04Z"),
+        sub("e", "2026-01-01T10:01:05Z", "t2", "other"),
+      ],
+    }),
+    ["subs(a,b)", "subs(c)", "subs(d)", "work(w)", "subs(e)"],
   );
 });
 

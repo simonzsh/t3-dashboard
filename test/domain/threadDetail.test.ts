@@ -415,9 +415,9 @@ test("steps: a subagent step carries its ids, progress and whether Stop applies"
     { subagents: raw },
   );
   const [a, b, c, d] = detail.steps;
-  assert.deepEqual(a!.subagent, { subagentId: "sub-1", childThreadId: "child-1", progress: "Reading files", stoppable: true });
-  assert.deepEqual(b!.subagent, { subagentId: "sub-2", childThreadId: null, progress: null, stoppable: false });
-  assert.deepEqual([c!.status, c!.detail, c!.expandable, c!.subagent], ["done", "All good, with details.", true, { subagentId: "sub-3", childThreadId: null, progress: null, stoppable: false }]);
+  assert.deepEqual(a!.subagent, { subagentId: "sub-1", childThreadId: "child-1", progress: "Reading files", stoppable: true, state: "running", provider: null, turnId: null });
+  assert.deepEqual(b!.subagent, { subagentId: "sub-2", childThreadId: null, progress: null, stoppable: false, state: "running", provider: null, turnId: null });
+  assert.deepEqual([c!.status, c!.detail, c!.expandable, c!.subagent], ["done", "All good, with details.", true, { subagentId: "sub-3", childThreadId: null, progress: null, stoppable: false, state: "completed", provider: null, turnId: null }]);
   assert.equal(d!.subagent!.childThreadId, "child-from-raw");
 });
 
@@ -649,4 +649,17 @@ test("contextUsage: falls back to the active provider thread, and keeps a missin
   const thread = { id: "t", activeProviderThreadId: "p2" };
   assert.deepEqual(toThreadDetail("t", { providerThreads, thread }, undefined).contextUsage, { usedTokens: 300, maxTokens: null, updatedAt: null, promptCacheTtlMs: null });
   assert.equal(toThreadDetail("t", { providerThreads: [{ id: "p2", contextUsage: null }], thread }, undefined).contextUsage, null);
+});
+
+test("a subagent step carries its provider, turn and T3 status", () => {
+  const item = (id: string, status: string, extra = {}) => ({ id, type: "subagent", threadId: "t", ordinal: 1, status, subagentId: id, startedAt: "2026-03-01T10:00:00Z", providerTurnId: "turn-1", ...extra });
+  const detail = toThreadDetail("t", {
+    turnItems: [item("a", "pending", { driver: "codex", providerInstanceId: "codex-2" }), item("b", "interrupted", { driver: "claudeAgent" }), item("c", "waiting"), item("d", "weird")],
+    subagents: [{ id: "c", runId: "r", status: "waiting", providerInstanceId: "claude-main" }],
+  }, undefined);
+  const by = Object.fromEntries(detail.steps.map((s) => [s.id, s.subagent!]));
+  assert.deepEqual([by.a!.state, by.a!.provider, by.a!.turnId], ["queued", "codex-2", "turn-1"]);
+  assert.deepEqual([by.b!.state, by.b!.provider], ["stopped", "claudeAgent"]);
+  assert.deepEqual([by.c!.state, by.c!.provider], ["waiting", "claude-main"]);
+  assert.deepEqual([by.d!.state, by.d!.provider], ["running", null]);
 });

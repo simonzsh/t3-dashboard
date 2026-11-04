@@ -168,6 +168,9 @@ export interface TodoEntry {
   status: "pending" | "running" | "completed";
 }
 
+/** T3 Code's subagent statuses, folded: pending is queued, cancelled and interrupted are stopped. */
+export type SubagentState = "queued" | "running" | "waiting" | "idle" | "completed" | "failed" | "stopped";
+
 export interface SubagentStep {
   /** For POST /api/threads/:id/subagents/:subagentId/stop. */
   subagentId: string;
@@ -177,6 +180,12 @@ export interface SubagentStep {
   progress: string | null;
   /** Running with a run: Stop applies. */
   stoppable: boolean;
+  /** The finer status behind the step's running, done or failed. */
+  state: SubagentState;
+  /** Provider instance (or driver) that runs it: picks the avatar logo. */
+  provider: string | null;
+  /** Subagents of one run and one provider turn start together: the timeline groups them. */
+  turnId: string | null;
 }
 
 /** One agent step in the timeline. Texts are cut; GET /api/threads/:id/items/:itemId gives the rest. */

@@ -13,7 +13,8 @@ import { RewindDialog } from "./RewindDialog.tsx";
 import { attachmentFiles, mergeDraft } from "./rewind.ts";
 import { PendingRequestView } from "./PendingRequestView.tsx";
 import { WorkGroup } from "./Steps.tsx";
-import { NoticeRow, PlanCard, SubagentBlock, TodoCard } from "./TimelineBlocks.tsx";
+import { SubagentRows } from "./SubagentRows.tsx";
+import { NoticeRow, PlanCard, TodoCard } from "./TimelineBlocks.tsx";
 import { useStickToBottom } from "./useStickToBottom.ts";
 import { documentPage, usePoll } from "../../lib/usePoll.ts";
 import { singleFlight } from "../../lib/singleFlight.ts";
@@ -104,8 +105,10 @@ const Timeline = memo(function Timeline({ detail, threadId, running, editing, on
           case "work":
             // Keyed by its first step: the group keeps its open state while later steps join it.
             return <WorkGroup key={entry.steps[0]!.id} steps={entry.steps} threadId={threadId} live={running && i === entries.length - 1} />;
+          case "subagents":
+            return <SubagentRows key={entry.steps[0]!.id} steps={entry.steps} threadId={threadId} onOpenThread={onOpenThread} onChanged={onChanged} />;
           case "step":
-            return <StandaloneStep key={entry.step.id} step={entry.step} threadId={threadId} onOpenThread={onOpenThread} onChanged={onChanged} />;
+            return <StandaloneStep key={entry.step.id} step={entry.step} threadId={threadId} />;
         }
       })}
       {awaitingStep(entries, running) && (
@@ -118,14 +121,12 @@ const Timeline = memo(function Timeline({ detail, threadId, running, editing, on
   );
 });
 
-function StandaloneStep({ step, threadId, onOpenThread, onChanged }: { step: TurnStep; threadId: string; onOpenThread?: (id: string) => void; onChanged: () => void }) {
+function StandaloneStep({ step, threadId }: { step: TurnStep; threadId: string }) {
   switch (step.kind) {
     case "todo":
       return <TodoCard step={step} />;
     case "plan":
       return <PlanCard step={step} threadId={threadId} />;
-    case "subagent":
-      return <SubagentBlock step={step} threadId={threadId} onOpenThread={onOpenThread} onChanged={onChanged} />;
     default:
       return <NoticeRow step={step} />;
   }
