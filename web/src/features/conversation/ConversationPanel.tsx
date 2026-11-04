@@ -347,8 +347,8 @@ function Conversation({ threadId, thread, providers, onOpenThread, onTitle }: Pr
         if (!e.dataTransfer.types.includes("Files")) return;
         e.preventDefault();
         setDropping(false);
-        // The composer takes its own drop: a second add here would attach each file twice.
-        if (detail?.subagentThread || (e.target as Element).closest(".composer-card")) return;
+        // The composer takes its own drop (a second add would attach each file twice); an open dialog takes none.
+        if (detail?.subagentThread || (e.target as Element).closest(".composer-card, .dialog-backdrop")) return;
         setRestore((last) => ({ key: last.key + 1, files: [...e.dataTransfer.files] }));
       }}
     >
