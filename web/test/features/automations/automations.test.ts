@@ -33,6 +33,11 @@ test("excludeRoutineThreads drops the hidden threads only", () => {
   assert.deepEqual(excludeRoutineThreads(threads, ["t-hidden", "t-gone"]).map((t) => t.id), ["t-chat", "t-other"]);
 });
 
+test("excludeRoutineThreads keeps a hidden run that waits for the user", () => {
+  const waiting = { ...thread("t-run"), pending: { category: "approval" as const } };
+  assert.deepEqual(excludeRoutineThreads([waiting, thread("t-done")], ["t-run", "t-done"]).map((t) => t.id), ["t-run"]);
+});
+
 test("excludeRoutineThreads returns the same threads when nothing is hidden", () => {
   const threads = [thread("a"), thread("b")];
   assert.equal(excludeRoutineThreads(threads, []), threads);

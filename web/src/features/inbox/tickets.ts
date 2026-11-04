@@ -58,7 +58,8 @@ export function planTickets(issues: LinearIssue[], threads: DashboardThread[], s
     const t = latest.get(issue.identifier.toUpperCase());
     return t && issue.state.type === "started" && idle(t) ? [{ issue, thread: t }] : [];
   });
-  const relaunch = [...stalled, ...unlinked.filter((i) => i.state.type === "started").map((issue) => ({ issue, thread: null }))];
+  const once = stalled.filter((r, i) => stalled.findIndex((s) => s.thread === r.thread) === i);
+  const relaunch = [...once, ...unlinked.filter((i) => i.state.type === "started").map((issue) => ({ issue, thread: null }))];
   return { relaunch: relaunch.sort((a, b) => byPriority(a.issue, b.issue)), upNext: unlinked.filter((i) => i.state.type === "unstarted") };
 }
 

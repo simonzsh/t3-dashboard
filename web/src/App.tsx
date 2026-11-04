@@ -255,6 +255,7 @@ export function App() {
               onToggleDesk={onToggleDesk}
               onSettle={onSettle}
               seen={notify.seen}
+              seenReady={notify.seenReady}
               onMarkRead={notify.markSeen}
               onSwitcher={setSwitcherQuery}
               automations={automations.result}

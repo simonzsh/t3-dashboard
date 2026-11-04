@@ -113,5 +113,5 @@ export function useNotifications({ threads, quiet, remote, connects }: Options) 
 
   // Until the server state is known, finished threads count as seen: no full badge on a first visit.
   const ready = useMemo(() => seen ?? { since: "9999", seen: {} }, [seen]);
-  return { seen: ready, toasts, dismiss, markSeen };
+  return { seen: ready, seenReady: seen !== null, toasts, dismiss, markSeen };
 }

@@ -22,6 +22,8 @@ interface Props {
   onToggleDesk: (id: string) => void;
   onSettle: (id: string, settle: boolean) => Promise<unknown>;
   seen: SeenState;
+  /** False until the server answers: every thread would look read, and "Settle all" could settle unread ones. */
+  seenReady: boolean;
   onMarkRead: (id: string) => void;
   onSwitcher: (initialQuery: string) => void;
   automations: AutomationsResult | null;
@@ -41,7 +43,7 @@ async function settleEach(threads: DashboardThread[], onSettle: Props["onSettle"
 }
 const RESULTS_LIMIT = 10;
 
-export function InboxView({ state, now, deskIds, onOpen, onToggleDesk, onSettle, seen, onMarkRead, onSwitcher, automations, automationsError, onAutomationsStale, linearVersion }: Props) {
+export function InboxView({ state, now, deskIds, onOpen, onToggleDesk, onSettle, seen, seenReady, onMarkRead, onSwitcher, automations, automationsError, onAutomationsStale, linearVersion }: Props) {
   const scrolled = useScrolled();
   const hiddenIds = automations?.hiddenThreadIds;
   const setup = useSetupRows(state.threads, automations?.setupThreadIds, onAutomationsStale);
@@ -56,7 +58,7 @@ export function InboxView({ state, now, deskIds, onOpen, onToggleDesk, onSettle,
   const settleAll = useAction("settle the threads");
   const stale = settleCandidates(sections.readIdle, now);
   // Before the first automations answer, routine threads would flash in the lists.
-  const loading = state.connection.t3 === "live" && automations === null && automationsError === null;
+  const loading = state.connection.t3 === "live" && ((automations === null && automationsError === null) || !seenReady);
 
   const row = (t: DashboardThread, actions: RowActions) => (
     <InboxRow

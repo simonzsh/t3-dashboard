@@ -15,6 +15,7 @@ const render = (threads: ReturnType<typeof thread>[], seen = { since: "2026-01-0
       onToggleDesk={() => {}}
       onSettle={async () => {}}
       seen={seen}
+      seenReady
       onMarkRead={() => {}}
       onSwitcher={() => {}}
       automations={{ automations: [], hiddenThreadIds: ["t-routine"], setupThreadIds: [] }}
