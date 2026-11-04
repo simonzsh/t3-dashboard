@@ -252,13 +252,17 @@ main { flex: 1; min-height: 0; overflow: hidden; padding: 24px; display: flex; f
 /* The ring shows only while the arrows drive the list (.keys), the first row included. */
 .notif-row:focus-visible { outline: none; }
 .notif-list.keys .notif-item.active { outline: var(--focus-ring); outline-offset: -1px; }
-/* With a mouse, the button covers the age and the dot, and shows on hover or focus only. */
-.notif-read { position: absolute; right: 4px; top: 50%; transform: translateY(-50%); opacity: 0; background: var(--surface-0); }
+/* With a mouse, the button covers the dot and shows on hover or focus only. */
+.notif-read { position: absolute; right: 4px; top: 50%; transform: translateY(-50%); opacity: 0; }
 .notif-item:hover .notif-read, .notif-read:focus-visible, .notif-list.keys .notif-item.active .notif-read { opacity: 1; }
+/* The dot would show through the ghost button. */
+@media not (pointer: coarse) {
+  .notif-item:hover .notif-dot, .notif-item:has(.notif-read:focus-visible) .notif-dot, .notif-list.keys .notif-item.active .notif-dot { visibility: hidden; }
+}
 @media (pointer: coarse) {
   .notif-item.active { background: none; }
   /* No hover on touch: the button is always there, next to the row. */
-  .notif-read { position: static; transform: none; opacity: 1; background: none; min-width: 44px; min-height: 44px; }
+  .notif-read { position: static; transform: none; opacity: 1; min-width: 44px; min-height: 44px; }
 }
 .notif-list { display: flex; flex-direction: column; gap: 2px; outline: none; }
 .notif-title { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
