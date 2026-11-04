@@ -64,6 +64,8 @@ Script options:
 - If the markers are damaged (a begin without an end), the dashboard leaves the file as it is and logs the problem.
 - To stop this, set `T3_DASHBOARD_AGENT_RULES=off` before `install` and in the service. Remove the block by hand, or run `uninstall`.
 - `CLAUDE_CONFIG_DIR` and `CODEX_HOME` move the two files, as they do for Claude Code and Codex.
+- If `CLAUDE.md` already loads `AGENTS.md` with an `@` line (for example `@~/.codex/AGENTS.md`), the block goes only in `AGENTS.md`, so Claude does not read it twice.
+- `uninstall` removes the block. A file that holds nothing else is deleted.
 
 ## Commands
 
@@ -173,5 +175,6 @@ The dashboard has no authentication. Each person who can reach the address can c
 | `CLAUDE_CONFIG_DIR` | `~/.claude` | Folder of the `CLAUDE.md` file that gets the agent rules. |
 | `CODEX_HOME` | `~/.codex` | Folder of the `AGENTS.md` file that gets the agent rules. |
 | `T3_DASHBOARD_AGENT_RULES` | on | `off` stops `install` and the start of the binary from writing the agent rules. `uninstall` still removes them. |
+| `T3_DASHBOARD_AUTOMATION_GUARD` | off in a dev build | `on` starts the automation guard in a version that Bun starts, for a test against the real T3 Code. The compiled binary always runs it. |
 | `T3_SERVER_RUNTIME` | `<T3CODE_HOME>/userdata/server-runtime.json` | JSON file with the `origin` field. The dashboard reads it again at each connection to T3. Fallback: `http://127.0.0.1:3773`. |
 | `T3_DASHBOARD_REPO` | `simonzsh/t3-dashboard` | GitHub repo of the releases, for `update`, the hourly check and the install scripts. |

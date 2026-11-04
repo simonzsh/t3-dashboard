@@ -45,6 +45,11 @@ test("an older reminder that pauses itself is paused by the guard too", () => {
   assert.deepEqual(kinds([task]), ["pause:r1"]);
 });
 
+test("a reminder changed long after its run is not paused again: someone enabled it", () => {
+  assert.deepEqual(kinds([finished({ updatedAt: "2026-11-05T09:00:20.000Z" })]), ["pause:r1"]);
+  assert.deepEqual(kinds([finished({ updatedAt: "2026-11-06T10:00:00.000Z" })]), []);
+});
+
 test("a state that was already tried is skipped", () => {
   const [action] = guardActions([finished()], none);
   assert.deepEqual(kinds([finished()], new Set([action!.key])), []);
@@ -52,9 +57,9 @@ test("a state that was already tried is skipped", () => {
 });
 
 const flush = () => new Promise((resolve) => setTimeout(resolve, 0));
-function guardWith(port = new FakePort(), sleep: (ms: number) => Promise<void> = () => new Promise(() => {})) {
+function guardWith(port = new FakePort(), sleep: (ms: number) => Promise<void> = () => new Promise(() => {}), now: () => number = Date.now) {
   const warnings: string[] = [];
-  const guard = new AutomationGuard({ port, warn: (message) => warnings.push(message), sleep });
+  const guard = new AutomationGuard({ port, warn: (message) => warnings.push(message), sleep, now });
   guard.start();
   return { guard, port, warnings };
 }
@@ -115,15 +120,23 @@ test("snapshots are handled one after the other", async () => {
 
 test("the guard subscribes again after the stream ends, and stop cancels it", async () => {
   const waits: number[] = [];
-  const { guard, port } = guardWith(new FakePort(), async (ms) => void waits.push(ms));
+  let clock = 0;
+  const { guard, port } = guardWith(new FakePort(), async (ms) => void waits.push(ms), () => clock);
   port.taskSubscriptions[0]!.onEnd(new Error("cut"));
   await flush();
   assert.equal(port.taskSubscriptions.length, 2);
   assert.deepEqual(waits, [1000]);
+  // A stream that drops right after its snapshot keeps the backoff growing.
   port.taskSubscriptions[1]!.onTasks([]);
   port.taskSubscriptions[1]!.onEnd();
   await flush();
-  assert.deepEqual(waits, [1000, 1000]);
+  assert.deepEqual(waits, [1000, 2000]);
+  // A stream that stayed open resets it.
+  port.taskSubscriptions[2]!.onTasks([]);
+  clock += 60_000;
+  port.taskSubscriptions[2]!.onEnd();
+  await flush();
+  assert.deepEqual(waits, [1000, 2000, 1000]);
   guard.stop();
   assert.equal(port.taskSubscriptions.at(-1)!.cancelled, true);
   const count = port.taskSubscriptions.length;

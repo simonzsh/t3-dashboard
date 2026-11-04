@@ -183,8 +183,8 @@ A task without a linked thread creates a new thread at each run. The dashboard h
 
 - The minimum interval is 1 minute.
 - A fixed time follows the local time of the T3 Code server. T3 Code has no time zone for each task.
-- The dashboard must run to pause a reminder. If it is off during the run, it pauses the reminder at its next start (the startup check looks at every task).
-- If you turn on a finished reminder again, the dashboard pauses it again after its next restart: it remembers the tasks it handled only while it runs.
+- The dashboard must run to pause a reminder. If it starts again less than one hour after the run, it pauses the reminder at once. After a longer stop, an interval reminder can run again: pause it from its row.
+- The dashboard pauses a reminder only when its last change is the run itself. If you turn on a finished reminder again, the dashboard leaves it on until its next run ends.
 - Pausing does not stop a run that is under way: T3 Code marks a run as succeeded when it sends the prompt.
 
 ## Settings

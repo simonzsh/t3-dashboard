@@ -59,6 +59,10 @@ function harness(files: Record<string, string>, env: Record<string, string | und
       writes.push(path);
       files[path] = content;
     },
+    rm: (path: string) => {
+      writes.push(`rm ${path}`);
+      delete files[path];
+    },
     log: (message: string) => logs.push(message),
   };
   return { files, writes, logs, deps };
@@ -82,11 +86,22 @@ test("write does nothing when the opt-out is on, remove ignores it", () => {
   assert.equal(files["/c/CLAUDE.md"], "Mine\n");
 });
 
-test("remove skips a missing file and keeps a file that is left empty", () => {
+test("remove skips a missing file and deletes a file that held only the block", () => {
   const { files, writes, deps } = harness({ "/c/CLAUDE.md": `${AGENT_RULES}\n` });
   syncAgentRules("remove", deps);
-  assert.deepEqual(writes, ["/c/CLAUDE.md"]);
-  assert.equal(files["/c/CLAUDE.md"], "");
+  assert.deepEqual(writes, ["rm /c/CLAUDE.md"]);
+  assert.deepEqual(Object.keys(files), []);
+});
+
+test("a Claude file that loads the Codex file gets no second block", () => {
+  const { files, deps } = harness({ "/c/CLAUDE.md": `@/x/AGENTS.md\n\n${AGENT_RULES}\n` });
+  syncAgentRules("write", deps);
+  assert.equal(files["/c/CLAUDE.md"], "@/x/AGENTS.md\n");
+  assert.equal(files["/x/AGENTS.md"], `${AGENT_RULES}\n`);
+  const tilde = harness({ "/h/.claude/CLAUDE.md": "@~/.codex/AGENTS.md\n" }, { CLAUDE_CONFIG_DIR: undefined, CODEX_HOME: undefined });
+  syncAgentRules("write", tilde.deps);
+  assert.equal(tilde.files["/h/.claude/CLAUDE.md"], "@~/.codex/AGENTS.md\n");
+  assert.equal(tilde.files["/h/.codex/AGENTS.md"], `${AGENT_RULES}\n`);
 });
 
 test("a damaged file is left alone and logged, the other file is still updated", () => {

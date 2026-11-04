@@ -104,12 +104,13 @@ test("install keeps the user's text and adds the block, uninstall takes it out",
   deps.exists = (path) => path in files;
   deps.readFile = (path) => files[path]!;
   deps.writeFile = (path, content) => void (files[path] = content);
+  deps.rm = (path) => void delete files[path];
   await install({ port: 4300, open: false }, deps);
   assert.match(files["/home/ann/.claude/CLAUDE.md"]!, /^My rules\n\n<!-- t3-dashboard:begin -->\n[\s\S]*<!-- t3-dashboard:end -->\n$/);
   assert.ok(files["/home/ann/.codex/AGENTS.md"]!.includes("schedule_task"));
   await uninstall(deps);
   assert.equal(files["/home/ann/.claude/CLAUDE.md"], "My rules\n");
-  assert.equal(files["/home/ann/.codex/AGENTS.md"], "");
+  assert.equal("/home/ann/.codex/AGENTS.md" in files, false);
 });
 
 test("install writes no rules with the opt-out, but uninstall still removes them", async () => {

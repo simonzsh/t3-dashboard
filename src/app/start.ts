@@ -164,9 +164,11 @@ export async function start({ port, log, env }: StartOptions): Promise<void> {
   const checker = VERSION === "dev" ? undefined : setInterval(() => void updates.check(), UPDATE_CHECK_MS);
   if (checker) void updates.check();
   // The compiled binary refreshes the rules at each start, so a self-update brings the new text.
-  if (VERSION !== "dev" && Bun.isStandaloneExecutable) syncAgentRules("write", installDeps(env));
+  // A dev server must not change the user's real tasks or files, unless asked for a test.
+  const managed = VERSION !== "dev" && Bun.isStandaloneExecutable;
+  if (managed) syncAgentRules("write", installDeps(env));
   live.start();
-  guard.start();
+  if (managed || env.T3_DASHBOARD_AUTOMATION_GUARD === "on") guard.start();
   const server = await listen({
     hostname: "127.0.0.1",
     port: port ?? envPort(env),

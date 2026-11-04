@@ -60,19 +60,34 @@ export interface AgentRulesDeps {
   exists(path: string): boolean;
   readFile(path: string): string;
   writeFile(path: string, content: string): void;
+  rm(path: string): void;
   log(message: string): void;
+}
+
+// Claude can load another file with an `@path` line. When its file loads the Codex one,
+// a second block would give Claude the rules twice.
+function includes(content: string, target: string, home: string): boolean {
+  return content.split(/\r?\n/).some((line) => {
+    const path = /^@(\S+)\s*$/.exec(line.trim())?.[1];
+    return path !== undefined && path.replace(/^~(?=[\/\\])/, home) === target;
+  });
 }
 
 /** Writes or removes the block in the Claude and Codex rules files. A failure is logged, never thrown. */
 export function syncAgentRules(action: "write" | "remove", deps: AgentRulesDeps): void {
   if (action === "write" && agentRulesOff(deps.env)) return;
-  for (const path of [claudeRulesFile(deps.env, deps.home), codexRulesFile(deps.env, deps.home)]) {
+  const codex = codexRulesFile(deps.env, deps.home);
+  for (const path of [claudeRulesFile(deps.env, deps.home), codex]) {
     try {
       const present = deps.exists(path);
-      if (action === "remove" && !present) continue;
+      if (!present && action === "remove") continue;
       const current = present ? deps.readFile(path) : null;
-      const next = action === "write" ? withRules(current) : withoutRules(current!);
-      if (next !== current) deps.writeFile(path, next);
+      const write = action === "write" && !(path !== codex && current !== null && includes(current, codex, deps.home));
+      const next = write ? withRules(current) : withoutRules(current!);
+      if (next === current) continue;
+      // The dashboard made this file for its block only: leave no empty file behind.
+      if (!write && next.trim() === "") deps.rm(path);
+      else deps.writeFile(path, next);
     } catch (error) {
       deps.log(`Could not update ${path}: ${(error as Error).message}`);
     }
