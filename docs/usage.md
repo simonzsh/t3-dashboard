@@ -45,6 +45,7 @@ Each Desk window contains a conversation.
 - Type `@` after a space to search the files of the conversation folder. Use the arrow keys and `Enter` or `Tab` to insert `@path`. `Escape` closes the list.
 - Type `/` at the start of the message to list the commands of the provider. Type `$` after a space to list its skills. The lists follow the thread folder. The menus work like the `@` list and insert `/command ` or `$skill `. Built-in T3 Code commands (`/model`, `/plan`, `/side`) are not in the lists.
 - The Compact button shows the context size, for example `Compact 722k`. It appears when the provider has `/compact` and the context holds 200k tokens or more, as in T3 Code. `/compact` stays in the `/` list at any size. Click it, or pick `/compact`, to compact the thread. It is disabled while a run is active.
+- Stash a draft: press `Ctrl+S` (`Cmd+S` on a Mac) in the composer. The text and the ready attachments go to the stash and the composer empties. A "Stash" button with the count then shows next to Attach. Click it to open the "Stashed prompts" list: each row has the first line, the age, the conversation and the number of files. Click a row, or use the arrow keys and `Enter`, to restore it: the text goes after your draft and the files return as chips. The "x" deletes an entry and frees its files. `Escape` closes the list. The stash holds 20 prompts and drops the oldest. T3 Code 0.1.6 keeps its own stash in the browser only, so the two are separate. This one is in `~/.config/t3-dashboard/stash.json` and is the same on every device. T3 keeps an unsent upload for 24 hours: a restored entry older than that gets its text back and a message names the files to attach again.
 - `Escape` in the message field, with no list open, leaves the field and puts the focus on the conversation. The dashboard shortcuts work again. Press `Escape` again on the Desk to restore a full-screen window.
 - Change the model, the reasoning effort and the access mode ("Supervised", "Auto-accept edits", "Auto", "Full access").
 - Stop a run with the "Stop" button.
@@ -73,6 +74,9 @@ The web page uses these routes of the dashboard server.
 | `GET /api/threads/:id/files?q=&limit=` | Files and folders for an `@` mention. The search folder is the worktree of the thread, or else the project root. |
 | `POST /api/attachments` | Upload one file (`name`, `mimeType`, `dataUrl`). An image of 10 MB or less goes as an image, any other file of 50 MB or less as a file. |
 | `POST /api/attachments/:attachmentId/delete` | Remove an uploaded file that was not sent. |
+| `GET /api/stash` | The stashed drafts, newest first: `{ entries }`, each with `id`, `text`, `uploads`, `createdAt`, `threadId` and `threadTitle`. |
+| `POST /api/stash` | Stash a draft: `{ text, uploads, threadId, threadTitle }`. Answers `{ entry, evicted }`: `evicted` holds the entries that the limit of 20 pushed out. |
+| `POST /api/stash/:id/delete` | Remove an entry. `404` when it is gone already, for example restored on another device. |
 | `POST /api/threads/:id/rewind` | Rewind to before a user message: `{ messageId, restoreFiles }`. Sends the T3 command `checkpoint.rollback` with the checkpoint of the run before the message. `409` during a run or without a ready checkpoint. A message has `rewindable: true` when it can be rewound. |
 | `POST /api/threads/:id/messages`, `POST /api/threads` | Send `uploads` (the answers of `POST /api/attachments`) with the message. A message takes up to 100 attachments. `POST /api/board/assign` takes `uploads` too. |
 
@@ -170,6 +174,7 @@ The shortcuts do not work while you type in a field or while a dialog is open. `
 | --- | --- |
 | `1`, `2`, `3` | Opens Agents, Desk or Board. |
 | `Ctrl` + `K` or `⌘` + `K` | Opens or closes the "Jump to" switcher. It finds a conversation by title, project or message. Without text, it shows the agents that wait for an answer, then your recent conversations. `↑` `↓` select, `Enter` opens in the Desk. |
+| `Ctrl` + `S` or `⌘` + `S` | In the message field of a conversation: stashes the draft. |
 | `N` | Opens New Agent. |
 | `⇧` + `N` | Opens a new automation (New Automation). |
 | `,` | Opens Settings. |

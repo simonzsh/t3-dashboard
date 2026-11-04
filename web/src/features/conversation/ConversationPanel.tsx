@@ -420,6 +420,7 @@ function Conversation({ threadId, thread, providers, onOpenThread, onTitle }: Pr
         contextTokens={detail?.contextUsage?.usedTokens ?? null}
         onCompact={compact}
         onEscape={() => frame.current?.focus({ preventScroll: true })}
+        stash={{ threadId, title: t?.title ?? "" }}
         onStop={() => api.interrupt(threadId)}
         onSettings={updateSettings}
         restore={restore}

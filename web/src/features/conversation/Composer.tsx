@@ -1,5 +1,7 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import type { ComposerCommands, DashboardModel, DashboardProvider, FileEntry, ModelSelection, RuntimeMode, ThreadSettingsBody, UploadedAttachment } from "../../../../shared/api.ts";
+import type { StashEntry } from "../../../../shared/stash.ts";
+import { STASH_LIMIT } from "../../../../shared/stash.ts";
 import { RUNTIME_MODE_LABELS, acceptFiles, applyTrigger, attachmentType, composerPlaceholder, currentEffort, dropTrigger, escapeBlurs, filterCommands, filterSkills, findModel, formatTokens, isSendKey, selectEffort, selectModel, showsCompact, triggerAt } from "./composer.ts";
 import { moveActive, type DropdownOption } from "../../lib/dropdown.ts";
 import { useApi } from "../../api/ApiContext.tsx";
@@ -10,10 +12,17 @@ import { useAction } from "../../lib/useAction.ts";
 import { useDebouncedValue } from "../../lib/useDebouncedValue.ts";
 import { useMediaQuery } from "../../lib/useMediaQuery.ts";
 import { insertText } from "../../lib/paste.ts";
+import { StashDrawer } from "./StashDrawer.tsx";
+import { isStashKey, planRestore, stashShortcutLabel } from "./stash.ts";
+import { mergeDraft } from "./rewind.ts";
 
 interface Attached {
   key: string;
-  file: File;
+  name: string;
+  type: string;
+  size: number;
+  /** Null for a file restored from the stash: T3 holds it already. */
+  file: File | null;
   /** Object URL of an image, for the chip. */
   preview: string | null;
   state: "uploading" | "ready" | "failed";
@@ -40,6 +49,8 @@ interface MenuItem {
 
 // The provider lists change rarely: a menu refetches them only when they are this old.
 const COMMANDS_FRESH_MS = 60_000;
+
+const isMac = typeof navigator !== "undefined" && /Mac|iPhone|iPad/.test(navigator.platform);
 
 interface Props {
   providers: DashboardProvider[];
@@ -78,9 +89,11 @@ interface Props {
   onCompact?: () => Promise<unknown>;
   /** Escape in the field, with no menu open, blurs it and calls this: the parent takes the focus for its shortcuts. */
   onEscape?: () => void;
+  /** Mod+S stashes the draft, labelled with this conversation. Without it, no stash. */
+  stash?: { threadId: string; title: string };
 }
 
-export function Composer({ providers, selection, runtimeMode, running, stoppable = running, draft, onDraft, onSend, onStop, onSettings, placeholder, autoFocus = false, focusKey, errorResetKey, allowEmpty = false, noImages = false, restore, searchFiles, loadCommands, contextTokens = null, onCompact, onEscape }: Props) {
+export function Composer({ providers, selection, runtimeMode, running, stoppable = running, draft, onDraft, onSend, onStop, onSettings, placeholder, autoFocus = false, focusKey, errorResetKey, allowEmpty = false, noImages = false, restore, searchFiles, loadCommands, contextTokens = null, onCompact, onEscape, stash }: Props) {
   const api = useApi();
   // Picks show at once, until new values come in the props or the change fails.
   // Each field has its own override: a model reload never drops a pending mode pick, and the reverse.
@@ -95,6 +108,11 @@ export function Composer({ providers, selection, runtimeMode, running, stoppable
   const [caret, setCaret] = useState(0);
   const [available, setAvailable] = useState<{ provider: string; at: number; value: ComposerCommands } | null>(null);
   const [compacting, setCompacting] = useState(false);
+  const [stashed, setStashed] = useState<StashEntry[]>([]);
+  const [stashOpen, setStashOpen] = useState(false);
+  const [stashing, setStashing] = useState(false);
+  const draftRef = useRef(draft);
+  draftRef.current = draft;
   // The results carry the query they answer: a slower or older answer never shows for a newer mention.
   const [results, setResults] = useState<{ query: string; entries: FileEntry[] }>({ query: "", entries: [] });
   const [active, setActive] = useState(0);
@@ -204,6 +222,11 @@ export function Composer({ providers, selection, runtimeMode, running, stoppable
     nextCaret.current = null;
   }, [draft]);
 
+  const reloadStash = () => api.getStash().then((r) => setStashed(r.entries), () => {});
+  useEffect(() => {
+    if (stash) void reloadStash();
+  }, [stash === undefined]);
+
   useEffect(() => {
     if (restore?.files.length) addFiles(restore.files);
   }, [restore?.key]);
@@ -257,11 +280,48 @@ export function Composer({ providers, selection, runtimeMode, running, stoppable
   }
 
   function addFiles(picked: File[]) {
-    const { accepted, error: refused } = acceptFiles(files.map((f) => f.file), picked);
+    const { accepted, error: refused } = acceptFiles(files, picked);
     setError(refused);
-    const added = accepted.map((file): Attached => ({ key: crypto.randomUUID(), file, preview: attachmentType(file) === "image" ? URL.createObjectURL(file) : null, state: "uploading" }));
+    const added = accepted.map((file): Attached => ({ key: crypto.randomUUID(), name: file.name, type: file.type, size: file.size, file, preview: attachmentType(file) === "image" ? URL.createObjectURL(file) : null, state: "uploading" }));
     setFiles((current) => [...current, ...added]);
-    for (const { key, file } of added) void upload(key, file);
+    for (const { key, file } of added) if (file) void upload(key, file);
+  }
+
+  const free = (uploads: UploadedAttachment[]) => uploads.forEach((u) => void api.deleteAttachment(u.id).catch(() => {}));
+
+  // The files move to the stash entry: they belong to it now, not to this composer.
+  async function stashDraft() {
+    if (!stash || (draft.trim() === "" && files.length === 0)) return;
+    if (!settled) return setError("Wait for the uploads to finish before stashing this prompt.");
+    const sent = await attempt(async () => {
+      const { entry, evicted } = await api.createStash({ text: draft, uploads: files.map((f) => f.attachment!), threadId: stash.threadId, threadTitle: stash.title });
+      setStashed((list) => [entry, ...list].slice(0, STASH_LIMIT));
+      evicted.forEach((e) => free(e.uploads));
+      if (evicted.length > 0) setError(`The stash holds ${STASH_LIMIT} prompts; the oldest was removed to make room.`);
+    }, setStashing);
+    if (!sent) return;
+    files.forEach((f) => sentKeys.current.add(f.key));
+    files.forEach((f) => f.preview && URL.revokeObjectURL(f.preview));
+    setFiles([]);
+    onDraft("");
+  }
+
+  // Like T3 Code: the entry leaves the stash first, so a second device cannot restore it twice.
+  async function restoreStash(entry: StashEntry) {
+    if (!(await attempt(() => api.deleteStash(entry.id)))) return void reloadStash();
+    const { uploads, notes } = planRestore(entry, filesRef.current.length, new Date());
+    setStashed((list) => list.filter((e) => e.id !== entry.id));
+    setStashOpen(false);
+    onDraft(mergeDraft(draftRef.current, entry.text));
+    setFiles((current) => [...current, ...uploads.map((attachment): Attached => ({ key: crypto.randomUUID(), name: attachment.name, type: attachment.mimeType, size: attachment.sizeBytes, file: null, preview: null, state: "ready", attachment }))]);
+    if (notes.length > 0) setError(notes.join(" "));
+    textarea.current?.focus();
+  }
+
+  async function deleteStash(entry: StashEntry) {
+    if (!(await attempt(() => api.deleteStash(entry.id)))) return void reloadStash();
+    free(entry.uploads);
+    setStashed((list) => list.filter((e) => e.id !== entry.id));
   }
 
   function removeFile(item: Attached) {
@@ -300,6 +360,12 @@ export function Composer({ providers, selection, runtimeMode, running, stoppable
     <form
       className="composer"
       autoComplete="off"
+      onKeyDown={(e) => {
+        // Also stops the browser's "save page".
+        if (!stash || !isStashKey({ key: e.key, ctrlKey: e.ctrlKey, metaKey: e.metaKey, altKey: e.altKey, shiftKey: e.shiftKey, isComposing: e.nativeEvent.isComposing }, isMac)) return;
+        e.preventDefault();
+        if (!stashing) void stashDraft();
+      }}
       onSubmit={(e) => {
         e.preventDefault();
         void submit();
@@ -330,14 +396,14 @@ export function Composer({ providers, selection, runtimeMode, running, stoppable
             {files.map((f) => (
               <li key={f.key} className={`file-chip ${f.state}`}>
                 {f.preview ? <img src={f.preview} alt="" /> : <Icon name="paperclip" />}
-                <span data-tooltip={f.error ?? f.file.name} data-tooltip-clipped>{f.state === "failed" ? `${f.file.name}: failed` : f.file.name}</span>
+                <span data-tooltip={f.error ?? f.name} data-tooltip-clipped>{f.state === "failed" ? `${f.name}: failed` : f.name}</span>
                 {f.state === "uploading" && <Loader inline label="Uploading" />}
-                {f.state === "failed" && (
-                  <Pressable aria-label={`Retry ${f.file.name}`} tooltip="Retry" onClick={() => void upload(f.key, f.file)}>
+                {f.state === "failed" && f.file && (
+                  <Pressable aria-label={`Retry ${f.name}`} tooltip="Retry" onClick={() => void upload(f.key, f.file!)}>
                     <Icon name="refresh" />
                   </Pressable>
                 )}
-                <Pressable aria-label={`Remove ${f.file.name}`} onClick={() => removeFile(f)}>
+                <Pressable aria-label={`Remove ${f.name}`} onClick={() => removeFile(f)}>
                   <Icon name="x" />
                 </Pressable>
               </li>
@@ -404,6 +470,7 @@ export function Composer({ providers, selection, runtimeMode, running, stoppable
             ))}
           </Popover>
         )}
+        {stashOpen && <StashDrawer anchor={card} entries={stashed} shortcut={stashShortcutLabel(isMac)} onRestore={(e) => void restoreStash(e)} onDelete={(e) => void deleteStash(e)} onClose={() => setStashOpen(false)} />}
         <div className="composer-toolbar">
           <div className="composer-pickers">
             <Dropdown
@@ -445,6 +512,11 @@ export function Composer({ providers, selection, runtimeMode, running, stoppable
             />
           </div>
           <div className="composer-actions">
+            {stash && stashed.length > 0 && (
+              <Button size="sm" variant="ghost" className="composer-stash" aria-expanded={stashOpen} aria-label={`Stashed prompts: ${stashed.length}. Open stash.`} tooltip="Stashed prompts" shortcut={stashShortcutLabel(isMac)} onClick={() => setStashOpen((open) => !open)}>
+                <Icon name="archive" /> Stash <span className="stash-count">{stashed.length}</span>
+              </Button>
+            )}
             {!noImages && (
               <>
                 <FileInput ref={fileInput} multiple onFiles={addFiles} />
