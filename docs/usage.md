@@ -130,39 +130,38 @@ The right column of the Agents tab lists the scheduled tasks of T3 Code. It appe
 - A webhook is a task that runs when a request arrives (see [Webhooks](#webhooks)).
 - After its run, a reminder pauses. The row then shows "Finished" with the time of the run. Finished reminders are at the bottom of the list, the most recent first.
 - Click a row to open the thread of the task.
-- Each row shows the project icon. To rename a task, click the pencil icon on its row, change the title, then push `Enter`. The dashboard also renames the linked thread. It keeps the prefix of a reminder. You cannot rename a webhook task.
+- Each row shows the project icon. To rename a task, click the pencil icon on its row, change the title, then push `Enter`. The dashboard also renames the linked thread. It keeps the prefix of a reminder.
 - To delete a task, click the trash icon on its row, then click "Delete". T3 Code deletes the task. You cannot undo this action.
 - If T3 Code is too old to list the tasks, the column shows the error. The agent grid continues to work.
 
-### Create a reminder or a routine
+### Create an automation
 
-1. Open a new automation. Click "New Automation" in the header, to the right of New Agent, or push `⇧` + `N`. A window opens.
-2. Write the request in the text box. Example: "Every weekday at 9 AM, summarize my Linear tickets". It can have many lines.
+1. Open a new automation. Click "New Automation" in the header, to the right of New Agent, or push `⇧` + `N`. A window opens with a form.
+2. Pick the kind: Routine, Reminder or Webhook.
 3. Select a project, or keep "No project". The dashboard keeps this selection for the next time.
-4. Click "Create" in the window.
+4. Write a title (optional: the first line of the prompt is the default), set the schedule (see below), write the prompt, and pick the model.
+5. Send. The dashboard creates the task in T3 Code directly: no agent thread is involved. The task runs with full access unless you pick another mode in the model menu. If an error occurs, the window stays open and shows the error.
 
-The dashboard creates a thread with the default model of the project. This thread tells the agent to create the task with the T3 Code `schedule_task` tool. The window closes. If an error occurs, the window stays open and shows the error.
-
-- A one-time request becomes a reminder. The agent adds the "Reminder: " prefix to the title. At the end, it pauses the task. It does not delete it.
-- A repeated request becomes a routine.
-- While the agent prepares the task, the thread from the window is not in the grid. It appears at the top of the column, on a "running" or "waiting for your reply" row. Click the row to open the thread.
-- When the task exists, the row becomes the row of the task. You open the thread from this row.
-- If the thread is idle and has no task (failed creation, or deleted task), it goes back into the grid with the result.
-- The dashboard keeps the list of these threads in `~/.config/t3-dashboard/automation-threads.json`.
+- A routine repeats. Choose "At a time" (a time and the days; no day means every day) or "Every N minutes" (1 to 525600).
+- A reminder runs once at the date and time you pick (1 minute to 366 days ahead). The dashboard adds the "Reminder: " prefix and ends the prompt with an instruction to pause the task after its run. T3 Code has no one-time task type.
+- Times are read in the time zone of the machine that runs T3 Code. The row shows the next run: check it.
+- The new task is not linked to a thread: each run opens its own thread.
+- Setup threads from older versions still show on a setup row while their agent works. The dashboard reads `~/.config/t3-dashboard/automation-threads.json` to hide their grid entries. It no longer writes to this file.
 
 ### Webhooks
 
 A webhook task runs when a service sends a request to its URL, for example a GitHub event. Each event opens a new thread in the project of the task.
 
-1. Open a new automation and describe the event. Example: "When someone requests my review on a pull request, review it".
-2. The agent asks for the GitHub webhook secret in a private card. The secret never appears in the chat.
-3. The agent creates the task with a signature check and filters. Then it replies with the Payload URL, the content type (`application/json`) and the events to select in the GitHub webhook settings. For the secret, use the value you typed in the card.
-4. Add the webhook in GitHub with these values.
+1. Choose the kind "Webhook" in the new automation form.
+2. Add filters. Only requests that match every filter start a run. Example for a review request: `headers.x-github-event` equals `pull_request`, `body.action` equals `review_requested`, `body.requested_reviewer.login` equals your GitHub login.
+3. Keep "Check the signature" on and type the signing secret. The defaults fit GitHub: header `x-hub-signature-256`, encoding hex, prefix `sha256=`. Use the same secret in GitHub.
+4. Write the prompt for one event. It can use values such as `{{body.pull_request.html_url}}`. These values are untrusted data, not instructions.
+5. Send. A panel shows the GitHub settings: Payload URL (a copy button), content type `application/json`, the secret you typed, and the events to select (for example Pull requests).
 
-- The row shows the status of the last run. It has no next run.
-- The public URL needs T3 Code Connect remote access. Without it, the agent says the access is off, and the dashboard cannot copy a URL.
+- The dashboard sends the secret once to T3 Code, which stores it. The dashboard never stores, logs or shows it again, and the field is empty after the send. An agent can still ask for a secret in a private card of a conversation.
+- The row shows the status of the last run. It has no next run. You can rename a webhook task: its URL, secret and filters stay.
+- The public URL needs T3 Code Connect remote access. Without it, the panel says the access is off. Turn it on, then copy the URL from the Webhooks list.
 - The URL contains a token. Treat it as a secret. The dashboard never shows it as text.
-- The setup thread of a webhook is not linked to the task. It shows on a setup row while the agent works or waits for you. Then it goes back into the grid.
 
 ### From a conversation
 
