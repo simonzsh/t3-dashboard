@@ -368,7 +368,7 @@ a.step-result-title { color: var(--accent); }
 .question label small { color: var(--text-secondary); }
 /* Composer: one rounded card with the text and a toolbar, as in T3 Code. */
 .composer { padding: 6px 10px 10px; display: flex; flex-direction: column; gap: 6px; container-type: inline-size; }
-.composer-card { display: flex; flex-direction: column; gap: 4px; padding: 10px 10px 6px 14px; border-radius: var(--radius-composer); border: 1px solid var(--line); background: var(--surface-1); box-shadow: var(--shadow); transition: border-color 0.12s, box-shadow 0.12s; }
+.composer-card { position: relative; display: flex; flex-direction: column; gap: 4px; padding: 10px 10px 6px 14px; border-radius: var(--radius-composer); border: 1px solid var(--line); background: var(--surface-1); box-shadow: var(--shadow); transition: border-color 0.12s, box-shadow 0.12s; }
 .composer-card:focus-within { border-color: var(--field-border-focus); box-shadow: var(--field-ring), var(--shadow); }
 .composer-card textarea { width: 100%; box-sizing: border-box; min-height: 44px; max-height: min(40vh, 260px); padding: 2px 0; border: 0; border-radius: 0; background: none; box-shadow: none; resize: none; outline: none; line-height: 1.5; }
 .composer-toolbar { display: flex; align-items: center; gap: 8px; min-width: 0; }
@@ -739,6 +739,7 @@ button.auto-row:hover { transform: translateY(-1px); }
 .file-chip .loader { flex: none; min-height: 0; }
 .file-chip .loader svg { width: 14px; height: 14px; }
 .mention-menu { display: flex; flex-direction: column; max-height: 260px; padding: 4px; border-radius: 12px; border: 1px solid var(--line); background: var(--surface-1); box-shadow: var(--shadow); }
+.composer-menu { position: absolute; z-index: 40; left: 0; right: 0; bottom: calc(100% + 4px); overflow-y: auto; }
 .mention-option { display: flex; align-items: baseline; gap: 8px; width: 100%; padding: 6px 8px; border: 0; border-radius: 8px; background: none; font-size: 13px; text-align: left; }
 .mention-option.active { background: var(--surface-0); }
 .mention-name { flex: none; }

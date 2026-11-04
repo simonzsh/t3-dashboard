@@ -6,7 +6,7 @@ import { RUNTIME_MODE_LABELS, acceptFiles, applyTrigger, attachmentType, compose
 import { moveActive, type DropdownOption } from "../../lib/dropdown.ts";
 import { useApi } from "../../api/ApiContext.tsx";
 import { setStash, useStash } from "../../api/stashStore.ts";
-import { Button, Dropdown, FileInput, Icon, IconButton, Loader, Popover, Pressable, TextArea } from "../../ui/index.ts";
+import { Button, Dropdown, FileInput, Icon, IconButton, Loader, Pressable, TextArea } from "../../ui/index.ts";
 import { ProviderIcon } from "../../lib/ProviderIcon.tsx";
 import { errorMessage } from "../../lib/format.ts";
 import { useAction } from "../../lib/useAction.ts";
@@ -123,6 +123,10 @@ export function Composer({ providers, selection, runtimeMode, running, stoppable
   const [active, setActive] = useState(0);
   // The start of the word that Escape closed: the popup stays shut for that one.
   const [dismissed, setDismissed] = useState<number | null>(null);
+  const [focused, setFocused] = useState(false);
+  const menuBox = useRef<HTMLDivElement>(null);
+  const blurTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
+  useEffect(() => () => clearTimeout(blurTimer.current), []);
   const nextCaret = useRef<number | null>(null);
   // One error line: each attempt replaces it, so an older error never hides a newer one.
   const { setError, run: attempt } = useAction("send your request");
@@ -194,6 +198,16 @@ export function Composer({ providers, selection, runtimeMode, running, stoppable
           : [];
   const showMenu = trigger !== null && menuKind !== null && (menuKind !== "mention" || query !== null) && dismissed !== trigger.start && items.length > 0;
   const wantsLists = menuKind === "command" || menuKind === "skill";
+  // The menu shows while the field has the focus: a tap or click elsewhere hides it.
+  const menuOpen = showMenu && focused;
+  // In the card, under CSS: it stays against the field, keyboard up or not. Only its height is measured.
+  useLayoutEffect(() => {
+    const box = menuBox.current;
+    const top = card.current?.getBoundingClientRect().top;
+    if (!box || top === undefined) return;
+    const frame = card.current!.closest(".desk-window")?.getBoundingClientRect().top ?? 0;
+    box.style.maxHeight = `${Math.max(96, Math.min(260, top - frame - 12))}px`;
+  });
 
   useEffect(() => {
     if (!trigger) setDismissed(null);
@@ -426,7 +440,13 @@ export function Composer({ providers, selection, runtimeMode, running, stoppable
           onSelect={(e) => setCaret(e.currentTarget.selectionStart)}
           enterKeyHint={touch ? "enter" : "send"}
           onKeyDown={(e) => {
-            if (showMenu && !e.nativeEvent.isComposing) {
+            if (menuOpen && !e.nativeEvent.isComposing) {
+              if (e.key === "Escape") {
+                // Stop here: a dialog or the desk must not also react to this Escape.
+                e.preventDefault();
+                e.stopPropagation();
+                return setDismissed(trigger!.start);
+              }
               if (e.key === "ArrowDown" || e.key === "ArrowUp") {
                 e.preventDefault();
                 return setActive(moveActive(items.length, active, e.key === "ArrowDown" ? 1 : -1));
@@ -436,7 +456,7 @@ export function Composer({ providers, selection, runtimeMode, running, stoppable
                 return pick(items[active]!);
               }
             }
-            if (onEscape && escapeBlurs({ key: e.key, isComposing: e.nativeEvent.isComposing }, showMenu)) {
+            if (onEscape && escapeBlurs({ key: e.key, isComposing: e.nativeEvent.isComposing }, menuOpen)) {
               e.currentTarget.blur();
               return onEscape();
             }
@@ -453,12 +473,20 @@ export function Composer({ providers, selection, runtimeMode, running, stoppable
             if (pasted.length > 0 && !noImages) addFiles(pasted);
             else onDraft(insertText(e.currentTarget, text));
           }}
+          onFocus={() => {
+            clearTimeout(blurTimer.current);
+            setFocused(true);
+          }}
+          // A tap on an option may blur the field before its click: hide the menu a moment later.
+          onBlur={() => {
+            blurTimer.current = setTimeout(() => setFocused(false), 200);
+          }}
           autoFocus={autoFocus}
           placeholder={placeholder ?? composerPlaceholder(running, [...(searchFiles ? ["@ files"] : []), ...(loadCommands ? ["$ skills", "/ commands"] : [])])}
           aria-label="Message"
         />
-        {showMenu && (
-          <Popover anchor={card} className="mention-menu" role="listbox" matchWidth fitWidth preferAbove onClose={() => setDismissed(trigger.start)}>
+        {menuOpen && (
+          <div ref={menuBox} className="mention-menu composer-menu" role="listbox">
             {items.map((item, i) => (
               <Pressable
                 key={item.id}
@@ -473,7 +501,7 @@ export function Composer({ providers, selection, runtimeMode, running, stoppable
                 {item.detail && <small className={`mention-dir${menuKind === "mention" ? " path" : ""}`}>{item.detail}</small>}
               </Pressable>
             ))}
-          </Popover>
+          </div>
         )}
         {stashOpen && stashed.length > 0 && <StashDrawer anchor={card} entries={stashed} onRestore={(e) => void restoreStash(e)} onDelete={(e) => void deleteStash(e)} onClose={() => setStashOpen(false)} />}
         <div className="composer-toolbar">
