@@ -6,7 +6,7 @@ export const SEEN_CAP = 200;
 const MAX_ID = 200;
 const MAX_TIME = 64;
 
-/** `since`: the baseline of the first visit. `seen`: thread id -> its lastActivityAt when it was opened. */
+/** `since`: the baseline of the first visit. `seen`: thread id -> its lastActivityAt when it was read. */
 export interface SeenState {
   since: string;
   seen: Record<string, string>;

@@ -22,7 +22,16 @@ export function NotificationList({ entries, now, onOpen, onMarkRead, onMarkAllRe
       <div className="notif-head">
         <h2 className="notif-heading">Notifications</h2>
         {onMarkAllRead && (
-          <Button variant="ghost" size="sm" className="notif-read-all" onClick={onMarkAllRead}>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="notif-read-all"
+            onClick={(e) => {
+              // The button goes away once all is read: keep focus in the list so the arrows still work.
+              e.currentTarget.closest<HTMLElement>(".notif-list")?.focus();
+              onMarkAllRead();
+            }}
+          >
             Mark all as read
           </Button>
         )}
@@ -39,7 +48,18 @@ export function NotificationList({ entries, now, onOpen, onMarkRead, onMarkAllRe
           </Pressable>
           {/* A sibling of the row, not inside it: a button cannot hold a button. */}
           {unseen && onMarkRead && (
-            <IconButton variant="ghost" size="sm" className="notif-read" label="Mark as read" onClick={() => onMarkRead(thread.id)}>
+            <IconButton
+              variant="ghost"
+              size="sm"
+              className="notif-read"
+              label="Mark as read"
+              onClick={(e) => {
+                // The button goes away once read: focus moves back to its row, so the arrows still work.
+                (e.currentTarget.previousElementSibling as HTMLElement | null)?.focus();
+                onActive?.(i);
+                onMarkRead(thread.id);
+              }}
+            >
               <Icon name="check" />
             </IconButton>
           )}
