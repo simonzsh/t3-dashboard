@@ -373,18 +373,71 @@ a.step-result-title { color: var(--accent); }
 .composer-card textarea { width: 100%; box-sizing: border-box; min-height: 44px; max-height: min(40vh, 260px); padding: 2px 0; border: 0; border-radius: 0; background: none; box-shadow: none; resize: none; outline: none; line-height: 1.5; }
 .composer-toolbar { display: flex; align-items: center; gap: 8px; min-width: 0; }
 .composer-pickers { display: flex; align-items: center; gap: 2px; min-width: 0; flex: 1; }
-.composer-sep { flex: none; width: 1px; height: 16px; background: var(--line); margin: 0 4px; }
+/* Model panel: one chip for model, reasoning, speed and access; the panel opens above it, inside the composer card. */
+.model-picker { min-width: 0; }
+.model-chip { display: inline-flex; align-items: center; gap: 6px; max-width: 100%; padding: 4px 8px; border: 0; border-radius: 8px; background: none; color: var(--text-secondary); font-size: 13px; }
+.model-chip:hover:not(:disabled), .model-chip[aria-expanded="true"] { color: var(--text-primary); background: var(--surface-0); }
+.model-chip .provider-icon, .model-row .provider-icon { width: 15px; height: 15px; margin: 0; }
+.model-chip-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.model-chip-effort { flex: none; }
+.model-chip-fast { flex: none; width: 13px; height: 13px; }
+.model-panel { position: absolute; z-index: 40; left: 0; bottom: calc(100% + 4px); width: min(560px, 100%); display: flex; flex-direction: column; border-radius: 12px; border: 1px solid var(--line); background: var(--surface-1); box-shadow: var(--shadow); }
+:where(:root:not([data-theme="dark"])) .model-panel { box-shadow: 0 4px 6px rgb(16 24 40 / 0.04), 0 16px 40px rgb(16 24 40 / 0.14); }
+.model-panel-body { display: grid; grid-template-columns: 44px minmax(0, 1fr) minmax(0, 190px); min-height: 0; }
+.model-rail { display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 10px 0; border-right: 1px solid var(--line); }
+.model-rail-button { display: grid; place-items: center; width: 30px; height: 30px; border: 0; border-radius: 8px; background: none; color: var(--text-secondary); }
+.model-rail-button:hover, .model-rail-button.active { background: var(--surface-0); color: var(--text-primary); }
+.model-rail-button .icon { width: 17px; height: 17px; }
+.model-rail-button .provider-icon { width: 17px; height: 17px; margin: 0; }
+.model-rail-sep { width: 24px; height: 1px; background: var(--line); }
+.model-main { display: flex; flex-direction: column; min-width: 0; padding: 8px; gap: 4px; }
+.model-search { display: flex; align-items: center; gap: 8px; padding: 0 4px; color: var(--text-secondary); }
+.model-search .icon { flex: none; width: 15px; height: 15px; }
+.model-search input { flex: 1; min-width: 0; padding: 5px 0; border: 0; background: none; box-shadow: none; font-size: 13px; }
+.model-list { max-height: 252px; min-height: 120px; overflow-y: auto; }
+.model-row { display: flex; align-items: center; gap: 8px; width: 100%; padding: 7px 8px; border: 0; border-radius: 8px; background: none; font-size: 13px; text-align: left; }
+.model-row.active { background: var(--surface-0); }
+.model-row-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.model-row-star { flex: none; width: 13px; height: 13px; color: #f59e0b; }
+.model-empty { padding: 8px; font-size: 13px; color: var(--text-secondary); }
+.model-options { min-width: 0; padding: 8px; border-left: 1px solid var(--line); }
+.model-options-head { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; padding: 4px 8px 6px; font-size: 13px; font-weight: 500; }
+.model-options-head small { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--text-secondary); font-weight: 400; }
+.model-level { display: flex; align-items: center; gap: 8px; width: 100%; padding: 7px 8px; border: 0; border-radius: 8px; background: none; font-size: 13px; text-align: left; }
+.model-level:hover { background: var(--surface-0); }
+.model-level-name { flex: 1; min-width: 0; }
+.model-level small { color: var(--text-secondary); }
+.model-level-check { flex: none; width: 14px; height: 14px; color: var(--accent); }
+.model-level-check.hidden { visibility: hidden; }
+.model-footer { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 8px; border-top: 1px solid var(--line); }
+.model-access { position: relative; margin-left: auto; }
+.model-access-button { display: inline-flex; align-items: center; gap: 6px; padding: 5px 8px; border: 0; border-radius: 8px; background: none; color: var(--text-secondary); font-size: 13px; }
+.model-access-button:hover:not(:disabled) { background: var(--surface-0); color: var(--text-primary); }
+.model-access-menu { position: absolute; right: 0; bottom: calc(100% + 6px); z-index: 1; display: flex; flex-direction: column; width: 260px; max-width: calc(100vw - 32px); padding: 4px; border-radius: 12px; border: 1px solid var(--line); background: var(--surface-1); box-shadow: var(--shadow); }
+.model-access-option { display: flex; align-items: center; gap: 8px; padding: 6px 8px; border: 0; border-radius: 8px; background: none; font-size: 13px; text-align: left; }
+.model-access-option:hover { background: var(--surface-0); }
+.model-access-text { display: flex; flex-direction: column; flex: 1; min-width: 0; }
+.model-access-text small { color: var(--text-secondary); font-size: 11px; }
+/* A narrow composer stacks the options under the list. */
+@container (max-width: 520px) {
+  .model-panel { width: 100%; }
+  .model-panel-body { grid-template-columns: 44px minmax(0, 1fr); }
+  .model-options { grid-column: 1 / -1; border-left: 0; border-top: 1px solid var(--line); }
+  .model-list { max-height: 90px; min-height: 0; }
+  .model-options { padding: 2px 8px 6px; }
+  .model-options-head { padding: 2px 8px; }
+  .model-level { padding: 5px 8px; }
+  .model-options [role="radiogroup"] { display: flex; flex-wrap: wrap; gap: 2px; }
+  .model-level { width: auto; }
+  .model-level small { display: none; }
+  .model-chip-effort { display: none; }
+}
 /* Dropdown: the one menu control of the dashboard (no native select). */
 .dropdown { position: relative; min-width: 0; }
-.dropdown.secondary { flex: none; }
-@container (max-width: 480px) {
-  .dropdown.secondary .dropdown-value, .dropdown.secondary .chevron-down { display: none; }
-}
 .dropdown-trigger { display: inline-flex; align-items: center; gap: 6px; max-width: 100%; padding: 4px 6px; border: 0; border-radius: 8px; background: none; color: var(--text-secondary); font-size: 13px; }
 .dropdown-trigger:hover:not(:disabled) { color: var(--text-primary); background: var(--surface-0); }
-.dropdown-trigger .provider-icon { width: 15px; height: 15px; margin: 0; flex: none; }
 .dropdown-value { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.dropdown-trigger .chevron-down { width: 13px; height: 13px; opacity: 0.8; flex: none; }
+.dropdown-trigger .chevron-down, .model-access-button .chevron-down { width: 13px; height: 13px; opacity: 0.8; flex: none; }
 .dropdown.field .dropdown-trigger { display: flex; width: 100%; padding: 6px 10px; border: 1px solid var(--line); background: var(--surface-1); color: var(--text-primary); font-size: inherit; }
 .dropdown.field .dropdown-trigger:hover:not(:disabled) { border-color: var(--accent); background: var(--surface-1); }
 .dropdown.field .dropdown-value { flex: 1; text-align: left; }
@@ -398,7 +451,6 @@ input.dropdown-search { position: absolute; inset: 0 auto 0 0; z-index: 1; width
 .dropdown-group { padding: 6px 8px 2px; font-size: 11px; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; color: var(--text-secondary); }
 .dropdown-option { display: flex; align-items: center; gap: 8px; padding: 6px 8px; border-radius: 8px; font-size: 13px; cursor: pointer; }
 .dropdown-option.active { background: var(--surface-0); }
-.dropdown-option .provider-icon { width: 15px; height: 15px; margin: 0; flex: none; }
 .dropdown-text { display: flex; flex-direction: column; flex: 1; min-width: 0; }
 .dropdown-text small { color: var(--text-secondary); font-size: 11px; }
 .dropdown-check { width: 14px; height: 14px; color: var(--accent); flex: none; }

@@ -1,18 +1,18 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
-import type { ComposerCommands, ContextUsage, DashboardModel, DashboardProvider, FileEntry, ModelSelection, RuntimeMode, ThreadSettingsBody, UploadedAttachment } from "../../../../shared/api.ts";
+import type { ComposerCommands, ContextUsage, DashboardProvider, FileEntry, ModelSelection, RuntimeMode, ThreadSettingsBody, UploadedAttachment } from "../../../../shared/api.ts";
 import type { StashEntry } from "../../../../shared/stash.ts";
 import { STASH_LIMIT } from "../../../../shared/stash.ts";
-import { RUNTIME_MODE_LABELS, acceptFiles, applyTrigger, attachmentType, composerPlaceholder, currentEffort, dropTrigger, escapeBlurs, filterCommands, filterSkills, findModel, formatTokens, isSendKey, selectEffort, selectModel, suggestsCompact, triggerAt } from "./composer.ts";
-import { moveActive, type DropdownOption } from "../../lib/dropdown.ts";
+import { RUNTIME_MODE_LABELS, acceptFiles, applyTrigger, attachmentType, composerPlaceholder, dropTrigger, escapeBlurs, filterCommands, filterSkills, findModel, formatTokens, isSendKey, suggestsCompact, triggerAt } from "./composer.ts";
+import { moveActive } from "../../lib/dropdown.ts";
 import { useApi } from "../../api/ApiContext.tsx";
 import { setStash, useStash } from "../../api/stashStore.ts";
-import { Button, Dropdown, FileInput, Icon, IconButton, Loader, Pressable, TextArea } from "../../ui/index.ts";
-import { ProviderIcon } from "../../lib/ProviderIcon.tsx";
+import { Button, FileInput, Icon, IconButton, Loader, Pressable, TextArea } from "../../ui/index.ts";
 import { errorMessage } from "../../lib/format.ts";
 import { useAction } from "../../lib/useAction.ts";
 import { useDebouncedValue } from "../../lib/useDebouncedValue.ts";
 import { useMediaQuery } from "../../lib/useMediaQuery.ts";
 import { insertText } from "../../lib/paste.ts";
+import { ModelPanel } from "./ModelPanel.tsx";
 import { StashDrawer } from "./StashDrawer.tsx";
 import { isStashKey, planRestore, withStashed } from "./stash.ts";
 import { mergeDraft } from "./rewind.ts";
@@ -173,7 +173,6 @@ export function Composer({ providers, selection, runtimeMode, running, stoppable
   useEffect(() => fit.current(), [draft]);
 
   const found = findModel(providers, localSelection);
-  const effort = found ? currentEffort(localSelection, found.model) : null;
   const modes = found?.provider.runtimeModes ?? (Object.keys(RUNTIME_MODE_LABELS) as RuntimeMode[]);
   const settled = files.every((f) => f.state === "ready");
   const canSend = (allowEmpty || draft.trim() !== "" || files.length > 0) && settled && !sending;
@@ -367,22 +366,6 @@ export function Composer({ providers, selection, runtimeMode, running, stoppable
     }
   }
 
-  const option = (p: DashboardProvider, m: DashboardModel, group: string): DropdownOption => ({
-    id: `${p.instanceId}\u0000${m.slug}`,
-    label: m.name,
-    group,
-    icon: <ProviderIcon provider={p.instanceId} />,
-  });
-  // T3's favorites come first and are not repeated in their provider's group.
-  const favorites = providers
-    .flatMap((p) => p.models.filter((m) => m.favorite !== null).map((m) => ({ p, m })))
-    .sort((a, b) => a.m.favorite! - b.m.favorite!)
-    .map(({ p, m }) => option(p, m, "Favorites"));
-  const others = providers.flatMap((p) => p.models.filter((m) => m.favorite === null).map((m) => option(p, m, p.displayName)));
-  const modelOptions: DropdownOption[] = [...favorites, ...others];
-  const selectedModelId = localSelection ? `${localSelection.instanceId}\u0000${localSelection.model}` : null;
-  if (localSelection && !found) modelOptions.unshift({ id: selectedModelId!, label: localSelection.model });
-
   return (
     <form
       className="composer"
@@ -514,43 +497,7 @@ export function Composer({ providers, selection, runtimeMode, running, stoppable
         {stashOpen && stashed.length > 0 && <StashDrawer anchor={card} entries={stashed} onRestore={(e) => void restoreStash(e)} onDelete={(e) => void deleteStash(e)} onClose={() => setStashOpen(false)} />}
         <div className="composer-toolbar">
           <div className="composer-pickers">
-            <Dropdown
-              label="Model"
-              icon={localSelection ? <ProviderIcon provider={localSelection.instanceId} /> : null}
-              value={selectedModelId}
-              options={modelOptions}
-              searchPlaceholder="Search models…"
-              disabled={!localSelection}
-              onPick={(id) => {
-                const [instanceId, slug] = id.split("\u0000");
-                const provider = providers.find((p) => p.instanceId === instanceId);
-                const model = provider?.models.find((m) => m.slug === slug);
-                if (provider && model) void changeSelection(selectModel(localSelection, provider, model));
-              }}
-            />
-            {found?.model.effort && localSelection && (
-              <>
-                <span className="composer-sep" aria-hidden="true" />
-                <Dropdown
-                  label="Reasoning effort"
-                  icon={<Icon name="brain" />}
-                  value={effort}
-                  options={found.model.effort.levels}
-                  className="secondary"
-                  onPick={(level) => void changeSelection(selectEffort(localSelection, found.model, level))}
-                />
-              </>
-            )}
-            <span className="composer-sep" aria-hidden="true" />
-            <Dropdown
-              label="Access"
-              icon={<Icon name={localMode === "full-access" ? "unlock" : "lock"} />}
-              value={localMode}
-              options={modes.map((mode) => ({ id: mode, ...RUNTIME_MODE_LABELS[mode] }))}
-              disabled={!localMode}
-              className="secondary"
-              onPick={(mode) => void changeMode(mode as RuntimeMode)}
-            />
+            <ModelPanel providers={providers} selection={localSelection} mode={localMode} modes={modes} onSelection={(next) => void changeSelection(next)} onMode={(next) => void changeMode(next)} />
           </div>
           <div className="composer-actions">
             {/* No Ctrl+S on a touch screen: this button stashes instead. */}

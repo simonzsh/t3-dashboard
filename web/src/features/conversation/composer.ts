@@ -26,14 +26,13 @@ export function currentEffort(selection: ModelSelection | null, model: Dashboard
   return effort.levels.some((level) => level.id === value) ? (value as string) : effort.defaultLevel;
 }
 
-export function selectEffort(selection: ModelSelection, model: DashboardModel, level: string): ModelSelection {
-  const optionId = model.effort?.optionId ?? "effort";
+export function setOption(selection: ModelSelection, id: string, value: unknown): ModelSelection {
   const options = selection.options ?? [];
-  const next = options.some((option) => option.id === optionId)
-    ? options.map((option) => (option.id === optionId ? { id: optionId, value: level } : option))
-    : [...options, { id: optionId, value: level }];
+  const next = options.some((option) => option.id === id) ? options.map((option) => (option.id === id ? { id, value } : option)) : [...options, { id, value }];
   return { ...selection, options: next };
 }
+
+export const selectEffort = (selection: ModelSelection, model: DashboardModel, level: string): ModelSelection => setOption(selection, model.effort?.optionId ?? "effort", level);
 
 // Other options (fast mode, context window) belong to the old model: only a supported effort carries over.
 export function selectModel(from: ModelSelection | null, provider: DashboardProvider, model: DashboardModel): ModelSelection {
