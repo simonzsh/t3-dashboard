@@ -517,6 +517,12 @@ export function Composer({ providers, selection, runtimeMode, running, stoppable
             />
           </div>
           <div className="composer-actions">
+            {/* No Ctrl+S on a touch screen: this button stashes instead. */}
+            {stash && touch && (draft.trim() !== "" || files.length > 0) && (
+              <IconButton label="Stash this prompt" tooltip="Stash this prompt" variant="ghost" className="composer-icon" disabled={stashing} onClick={() => void stashDraft()}>
+                <Icon name="stashIn" />
+              </IconButton>
+            )}
             {stash && stashed.length > 0 && (
               <Button size="sm" variant="ghost" className="composer-stash" aria-expanded={stashOpen} aria-label={`Stashed prompts: ${stashed.length}. Open stash.`} tooltip="Stashed prompts" onClick={() => setStashOpen((open) => !open)}>
                 <Icon name="archive" /> Stash <span className="stash-count">{stashed.length}</span>
