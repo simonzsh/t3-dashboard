@@ -1,8 +1,16 @@
+import { createPortal } from "react-dom";
 import { Dialog } from "../../ui/index.ts";
 import type { PreviewTarget } from "./attachmentPreview.ts";
 
+type Props = { target: PreviewTarget; onClose: () => void };
+
+// Portal: a desk panel makes a stacking context, so the app header would cover the tall dialog.
+export function AttachmentPreview(props: Props) {
+  return createPortal(<PreviewDialog {...props} />, document.body);
+}
+
 // Only an HTML page runs scripts, sandboxed without same-origin like a render: it cannot reach the dashboard API.
-export function AttachmentPreview({ target, onClose }: { target: PreviewTarget; onClose: () => void }) {
+export function PreviewDialog({ target, onClose }: Props) {
   return (
     <Dialog title={target.name} onClose={onClose} className="preview-dialog">
       <div className="preview-body">

@@ -2,7 +2,7 @@ import { test } from "bun:test";
 import assert from "node:assert/strict";
 import { renderToStaticMarkup } from "react-dom/server";
 import type { ChatAttachment } from "../../../../shared/api.ts";
-import { AttachmentPreview } from "../../../src/features/conversation/AttachmentPreview.tsx";
+import { PreviewDialog } from "../../../src/features/conversation/AttachmentPreview.tsx";
 import { MessageAttachments } from "../../../src/features/conversation/MessageAttachments.tsx";
 
 const image: ChatAttachment = { id: "i1", name: "shot.png", kind: "image", mimeType: "image/png", sizeBytes: 10 };
@@ -27,7 +27,7 @@ test("no attachment renders nothing", () => {
 
 test("the dialog frames a PDF and offers Download and Open in new tab", () => {
   const target = { name: "a.pdf", kind: "pdf" as const, src: "/v?inline=1", open: "/v?inline=1", download: "/v?raw=1" };
-  const html = renderToStaticMarkup(<AttachmentPreview target={target} onClose={() => {}} />);
+  const html = renderToStaticMarkup(<PreviewDialog target={target} onClose={() => {}} />);
   assert.match(html, /<iframe[^>]*src="\/v\?inline=1"/);
   assert.doesNotMatch(html, /sandbox=/);
   assert.match(html, /<a[^>]*href="\/v\?raw=1"[^>]*download="a\.pdf"[^>]*>Download<\/a>/);
@@ -36,6 +36,6 @@ test("the dialog frames a PDF and offers Download and Open in new tab", () => {
 
 test("the dialog shows an image large and sandboxes an HTML page", () => {
   const base = { name: "n", src: "/s", open: "/s", download: "/d" };
-  assert.match(renderToStaticMarkup(<AttachmentPreview target={{ ...base, kind: "image" }} onClose={() => {}} />), /<img src="\/s" alt="n"/);
-  assert.match(renderToStaticMarkup(<AttachmentPreview target={{ ...base, kind: "html" }} onClose={() => {}} />), /<iframe[^>]*sandbox="allow-scripts allow-popups"/);
+  assert.match(renderToStaticMarkup(<PreviewDialog target={{ ...base, kind: "image" }} onClose={() => {}} />), /<img src="\/s" alt="n"/);
+  assert.match(renderToStaticMarkup(<PreviewDialog target={{ ...base, kind: "html" }} onClose={() => {}} />), /<iframe[^>]*sandbox="allow-scripts allow-popups"/);
 });
