@@ -18,6 +18,8 @@ interface Props {
 const sameRow = (row: PanelRow, selection: ModelSelection | null) => row.provider.instanceId === selection?.instanceId && row.model.slug === selection.model;
 
 /** One chip for the model, its reasoning, speed and the access mode; its panel opens above, inside the composer card. */
+const touch = () => matchMedia("(pointer: coarse)").matches;
+
 export function ModelPanel({ providers, selection, mode, modes, onSelection, onMode }: Props) {
   const [open, setOpen] = useState(false);
   const [rail, setRail] = useState<Rail>("favorites");
@@ -63,8 +65,9 @@ export function ModelPanel({ providers, selection, mode, modes, onSelection, onM
 
   useEffect(() => {
     if (!open) return;
-    // On a touch screen the search stays unfocused: no keyboard covers the panel.
-    if (!matchMedia("(pointer: coarse)").matches) search.current?.focus({ preventScroll: true });
+    // On a touch screen nothing keeps a field focused: no keyboard covers the panel.
+    if (!touch()) search.current?.focus({ preventScroll: true });
+    else if (document.activeElement instanceof HTMLTextAreaElement || document.activeElement instanceof HTMLInputElement) document.activeElement.blur();
     const down = (e: MouseEvent) => {
       if (!root.current?.contains(e.target as Node)) setOpen(false);
     };
@@ -119,7 +122,7 @@ export function ModelPanel({ providers, selection, mode, modes, onSelection, onM
         setRail(id);
         setQuery("");
         setActive(0);
-        search.current?.focus({ preventScroll: true });
+        if (!touch()) search.current?.focus({ preventScroll: true });
       }}
     >
       {icon}

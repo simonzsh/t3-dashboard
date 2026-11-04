@@ -455,13 +455,15 @@ a.step-result-title { color: var(--accent); }
 /* A narrow composer stacks the options under the list. */
 @container (max-width: 520px) {
   .model-panel { width: 100%; }
-  .model-panel-body { grid-template-columns: 44px minmax(0, 1fr); grid-template-rows: minmax(0, 1fr) auto; }
+  /* Taller here: the reasoning row sits under the list and must not squeeze it. */
+  .model-panel-body { height: 360px; grid-template-columns: 44px minmax(0, 1fr); grid-template-rows: minmax(0, 1fr) auto; }
   .model-options { grid-column: 1 / -1; border-left: 0; border-top: 1px solid var(--line); }
   .model-list { min-height: 0; }
   .model-options { padding: 2px 8px 6px; }
   .model-options-head { padding: 2px 8px; }
   .model-level { padding: 5px 8px; }
-  .model-options [role="radiogroup"] { display: flex; flex-wrap: wrap; gap: 2px; }
+  .model-options [role="radiogroup"] { display: flex; flex-wrap: nowrap; gap: 2px; overflow-x: auto; scrollbar-width: none; }
+  .model-level { flex: none; }
   .model-level { width: auto; }
   .model-level small { display: none; }
   .model-chip-effort { display: none; }
