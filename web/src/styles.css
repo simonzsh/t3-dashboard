@@ -388,7 +388,7 @@ a.step-result-title { color: var(--accent); }
 .model-rail-button { display: grid; place-items: center; width: 30px; height: 30px; padding: 0; border: 0; border-radius: 8px; background: none; color: var(--text-secondary); }
 .model-rail-button:hover, .model-rail-button.active { background: var(--surface-0); color: var(--text-primary); }
 .model-rail-button .icon { width: 17px; height: 17px; }
-.model-rail-button .provider-icon { width: 17px; height: 17px; margin: 0; }
+.model-rail-button .provider-icon { width: 17px; height: 17px; margin: 0; color: var(--text-primary); }
 .model-rail-sep { width: 24px; height: 1px; background: var(--line); }
 .model-main { display: flex; flex-direction: column; min-width: 0; min-height: 0; padding: 8px; gap: 4px; }
 .model-search { display: flex; align-items: center; gap: 8px; padding: 0 4px; color: var(--text-secondary); }
