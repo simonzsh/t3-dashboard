@@ -26,10 +26,9 @@ export function ticketsWithoutAgent(issues: LinearIssue[], threads: DashboardThr
 /** A started ticket whose thread has been finished, read and idle for this long is to relaunch. */
 export const IDLE_RELAUNCH_MS = 24 * 3_600_000;
 
-/** `thread` is null when the ticket has no agent at all. */
 export interface RelaunchItem {
   issue: LinearIssue;
-  thread: DashboardThread | null;
+  thread: DashboardThread;
 }
 
 export interface TicketPlan {
@@ -59,8 +58,9 @@ export function planTickets(issues: LinearIssue[], threads: DashboardThread[], s
     return t && issue.state.type === "started" && idle(t) ? [{ issue, thread: t }] : [];
   });
   const once = stalled.filter((r, i) => stalled.findIndex((s) => s.thread === r.thread) === i);
-  const relaunch = [...once, ...unlinked.filter((i) => i.state.type === "started").map((issue) => ({ issue, thread: null }))];
-  return { relaunch: relaunch.sort((a, b) => byPriority(a.issue, b.issue)), upNext: unlinked.filter((i) => i.state.type === "unstarted") };
+  // A started ticket with no agent is often worked by hand: it leads Up next instead of claiming to be stalled.
+  const upNext = [...unlinked].sort((a, b) => Number(b.state.type === "started") - Number(a.state.type === "started") || byPriority(a, b));
+  return { relaunch: once.sort((a, b) => byPriority(a.issue, b.issue)), upNext };
 }
 
 export type TicketStart = { kind: "direct"; project: DashboardProject; body: AssignIssueBody } | { kind: "dialog" };

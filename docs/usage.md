@@ -14,8 +14,8 @@ The Inbox tab shows what needs you. It is a list of rows, not a grid. It has no 
 - In each section, the agents pinned in T3 Code come first, with a small pin. Then the most recent activity comes first.
 - "Needs you" lists the agents that wait for an approval or an answer, and the agents that failed and that you did not settle. The badge tells which one. Point at the badge of a failed agent to read the error. The buttons are "Open on Desk" and, for a failed agent, "Settle". The section shows 10 rows, then "Show N more".
 - "New results" lists the agents that stopped without error, that you did not settle and that you did not read. A click on the row opens the conversation and marks it read. The buttons are "Mark read", "Settle" and "Add to Desk". "Mark all read" marks the whole section. The section shows 10 rows, then "Show N more".
-- "To relaunch" lists the started tickets that stopped. It has two kinds of row. A ticket whose agent finished, that you read and that has been idle for more than 24 hours shows the agent, with "Open on Desk". A started ticket with no agent shows the ticket, with "Start".
-- "Up next" lists the tickets to do that have no agent (see [Tickets](#tickets)). It shows 5 rows, then "Show N more".
+- "To relaunch" lists the agents of started tickets that stopped: the agent finished, you read it, and it has been idle for more than 24 hours. Each row has "Open on Desk".
+- "Up next" lists the tickets that have no agent, started ones first (see [Tickets](#tickets)). It shows 5 rows, then "Show N more".
 - "Running" lists the agents that work. "Read and idle" lists the finished agents that you read and that are not in "To relaunch". Its "Settle all older than 3 days" button settles the ones with no activity for 3 days. "Recently settled" disappears after 3 days without activity. Its rows have an "Unsettle" button.
 - When "Needs you", "New results", "To relaunch" and "Up next" are empty, the Inbox shows "Nothing needs you".
 - Archived or deleted sessions, sub-agents and the threads of scheduled tasks, webhook runs included (see [Automations](#automations)), do not appear.
@@ -31,7 +31,7 @@ The rows change status live, without a page reload. The toasts and the browser n
 The Linear tickets feed "To relaunch" and "Up next". They need a Linear API key: see [install.md](install.md#linear). Only the tickets assigned to you in the states "Todo" and "In Progress" count. The other states (triage, backlog, done, canceled) never show.
 
 - A ticket has an agent when the title of a session contains its number, for example `ABC-123`. A session that you archive in T3 Code no longer counts: its ticket comes back.
-- "Up next" holds the tickets in the "Todo" state with no agent. The tickets are sorted by priority (urgent first, no priority last), then by update date.
+- "Up next" holds the tickets in the "Todo" and "In Progress" states with no agent. "In Progress" tickets come first, then the tickets are sorted by priority (urgent first, no priority last), then by update date.
 - Click the title of a ticket to open it in Linear. The "Refresh" button of "Up next" reads the tickets again immediately.
 - The "Start" button starts an agent on the ticket at once, with the default prompt "Handle Linear issue ...". It uses the last project that you selected for the Linear team, and the default model of this project. The session goes onto the Desk and the Inbox stays visible.
 - Without a saved project for the team, "Start" opens the New Agent window with the ticket. After one session, the browser remembers the project and "Start" works at once.

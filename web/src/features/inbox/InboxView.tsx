@@ -51,7 +51,7 @@ export function InboxView({ state, now, deskIds, onOpen, onToggleDesk, onSettle,
   const tickets = useTickets(linearVersion, visible, seen, now);
   const { relaunch, upNext } = tickets.plan;
   const sections = useMemo(
-    () => inboxSections(visible, seen, now, new Set(relaunch.flatMap((r) => (r.thread ? [r.thread.id] : [])))),
+    () => inboxSections(visible, seen, now, new Set(relaunch.map((r) => r.thread.id))),
     [visible, seen, now, relaunch],
   );
   const projects = useMemo(() => new Map(state.projects.map((p) => [p.id, p])), [state.projects]);
@@ -126,7 +126,7 @@ export function InboxView({ state, now, deskIds, onOpen, onToggleDesk, onSettle,
             {rows(sections.newResults, "result")}
           </Section>
           <Section id="inbox-relaunch-head" title="To relaunch" count={relaunch.length}>
-            {relaunch.map(({ issue, thread }) => (thread ? row(thread, "open") : <TicketRow key={issue.id} issue={issue} {...ticketProps} />))}
+            {relaunch.map(({ thread }) => row(thread, "open"))}
           </Section>
           <UpNextSection
             board={tickets.board}
