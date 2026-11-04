@@ -245,7 +245,8 @@ main { flex: 1; min-height: 0; overflow: hidden; padding: 24px; display: flex; f
 .notif-empty { margin: 0; padding: 12px 8px; color: var(--text-secondary); }
 .notif-row, .notif-toast-body { display: flex; align-items: center; gap: 8px; min-height: var(--control-md); border: 0; text-align: left; }
 .notif-row { background: none; }
-.notif-row:hover:not(:disabled) { background: var(--surface-0); }
+.notif-row:hover:not(:disabled), .notif-row:focus-visible { background: var(--surface-0); }
+.notif-list { display: flex; flex-direction: column; gap: 2px; outline: none; }
 .notif-title { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .notif-age { flex: none; color: var(--text-secondary); }
 .notif-row .provider-icon, .notif-toast-body .provider-icon { width: 16px; height: 16px; margin: 0; }

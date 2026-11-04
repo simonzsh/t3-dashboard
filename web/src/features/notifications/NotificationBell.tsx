@@ -1,4 +1,5 @@
-import { useLayoutEffect, useRef } from "react";
+import { useEffect, useLayoutEffect, useRef, type KeyboardEvent } from "react";
+import { moveActive } from "../../lib/dropdown.ts";
 import { ctrlLabel } from "../../lib/shortcuts.ts";
 import { relativeTime } from "../../lib/format.ts";
 import { ProviderIcon } from "../../lib/ProviderIcon.tsx";
@@ -63,6 +64,22 @@ export function NotificationToasts({ toasts, onOpen, onDismiss }: { toasts: Noti
 // Open state lives in the caller, so a shortcut can toggle the menu too.
 export function NotificationBell({ entries, count, now, onOpen, open, onOpenChange }: ListProps & { count: number; open: boolean; onOpenChange: (open: boolean) => void }) {
   const button = useRef<HTMLButtonElement>(null);
+  const list = useRef<HTMLDivElement>(null);
+  // Open from a click or Ctrl+B, even while typing: the focus goes to the first row, so the arrows work at once.
+  useEffect(() => {
+    if (!open) return;
+    const frame = requestAnimationFrame(() => (list.current?.querySelector<HTMLElement>(".notif-row") ?? list.current)?.focus({ preventScroll: true }));
+    return () => cancelAnimationFrame(frame);
+  }, [open]);
+  const onKeyDown = (e: KeyboardEvent) => {
+    if (e.key !== "ArrowDown" && e.key !== "ArrowUp" && e.key !== "Home" && e.key !== "End") return;
+    const rows = [...(list.current?.querySelectorAll<HTMLElement>(".notif-row") ?? [])];
+    if (rows.length === 0) return;
+    e.preventDefault();
+    const current = rows.indexOf(document.activeElement as HTMLElement);
+    const next = e.key === "Home" ? 0 : e.key === "End" ? rows.length - 1 : moveActive(rows.length, current, e.key === "ArrowDown" ? 1 : -1);
+    rows[next]?.focus();
+  };
   return (
     <>
       <IconButton
@@ -90,14 +107,16 @@ export function NotificationBell({ entries, count, now, onOpen, open, onOpenChan
             if (reason === "escape") button.current?.focus();
           }}
         >
-          <NotificationList
-            entries={entries}
-            now={now}
-            onOpen={(id) => {
-              onOpenChange(false);
-              onOpen(id);
-            }}
-          />
+          <div ref={list} className="notif-list" tabIndex={-1} onKeyDown={onKeyDown}>
+            <NotificationList
+              entries={entries}
+              now={now}
+              onOpen={(id) => {
+                onOpenChange(false);
+                onOpen(id);
+              }}
+            />
+          </div>
         </Popover>
       )}
     </>
