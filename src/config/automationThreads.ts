@@ -1,6 +1,6 @@
 import type { ReadFile } from "./config.ts";
 
-// A missing or broken file means no dedicated thread: the grid then shows every thread.
+// Older versions wrote this file; it is read only now. A missing or broken file means no dedicated thread: the grid then shows every thread.
 export function readAutomationThreads(file: string, readFile: ReadFile): Set<string> {
   try {
     const ids = (JSON.parse(readFile(file)) as { threadIds?: unknown } | null)?.threadIds;
@@ -8,11 +8,4 @@ export function readAutomationThreads(file: string, readFile: ReadFile): Set<str
   } catch {
     return new Set();
   }
-}
-
-export function addAutomationThread(file: string, threadId: string, readFile: ReadFile, write: (file: string, text: string) => void): void {
-  const ids = readAutomationThreads(file, readFile);
-  if (ids.has(threadId)) return;
-  ids.add(threadId);
-  write(file, `${JSON.stringify({ threadIds: [...ids] }, null, 2)}\n`);
 }

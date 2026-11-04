@@ -1,6 +1,6 @@
 import { RUNNING_RUN_STATUSES } from "../../../shared/status.ts";
 import type { FetchLike } from "../../integrations/linear/client.ts";
-import type { AttachmentRef, Command, FileUpload, ImageUpload, RawConfig, RawProjection, RawScheduledTask, RawSearchMatch, RawThread, RawTurnItem, SearchEntriesResponse, ShellItem, T3Port } from "../../integrations/t3/schemas.ts";
+import type { AttachmentRef, Command, FileUpload, ImageUpload, NewScheduledTask, RawConfig, RawProjection, RawScheduledTask, RawSearchMatch, RawThread, RawTurnItem, SearchEntriesResponse, ShellItem, T3Port } from "../../integrations/t3/schemas.ts";
 import { searchEntries, searchProjections } from "./search.ts";
 import { DEMO_CONTEXT_TOKENS, demoFixtures, demoIssues, demoScheduledTasks, SCRATCH_PROJECT_ID } from "./fixtures.ts";
 
@@ -17,6 +17,7 @@ export class DemoPort implements T3Port {
   private readonly listeners = new Set<Listener>();
   private readonly hidden: Set<string>;
   private readonly deletedTasks = new Set<string>();
+  private readonly createdTasks: RawScheduledTask[] = [];
   private readonly renamedTasks = new Map<string, string>();
   private sequence = 0;
   private uploads = 0;
@@ -55,14 +56,40 @@ export class DemoPort implements T3Port {
 
   async deleteAttachment(): Promise<void> {}
 
+  // The demo keeps no secret: the card stays as it is.
+  async answerSecretRequest(): Promise<void> {}
+
   async getConfig(): Promise<RawConfig> {
     return this.config;
   }
 
   async listScheduledTasks(): Promise<RawScheduledTask[]> {
-    return demoScheduledTasks(this.now())
+    return [...demoScheduledTasks(this.now()), ...this.createdTasks]
       .filter((task) => !this.deletedTasks.has(task.id))
       .map((task) => ({ ...task, title: this.renamedTasks.get(task.id) ?? task.title }));
+  }
+
+  // Nothing is scheduled: the task is only listed. The secret is dropped.
+  async createScheduledTask(task: NewScheduledTask): Promise<RawScheduledTask> {
+    const { schedule } = task;
+    const now = this.now().toISOString();
+    const created: RawScheduledTask = {
+      id: task.id,
+      title: task.title,
+      prompt: task.prompt,
+      enabled: true,
+      schedule: schedule.type === "webhook" ? { type: "webhook" } : schedule,
+      projectId: task.projectId,
+      threadId: null,
+      modelSelection: task.modelSelection,
+      createdBy: "user",
+      creationSource: task.creationSource,
+      createdAt: now,
+      nextRunAt: schedule.type === "interval" ? new Date(this.now().getTime() + schedule.everyMs).toISOString() : schedule.type === "fixed_time" ? new Date(this.now().getTime() + 86_400_000).toISOString() : null,
+      ...(schedule.type === "webhook" && { webhook: { url: `https://relay.example.invalid/v1/hooks/demo/${encodeURIComponent(task.id)}/token`, hasSecret: schedule.signature !== null } }),
+    };
+    this.createdTasks.push(created);
+    return created;
   }
 
   async deleteScheduledTask(id: string): Promise<void> {

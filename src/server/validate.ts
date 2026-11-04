@@ -1,6 +1,6 @@
-import type { ApprovalDecision, AssignIssueBody, AutomationRequestBody, CreateThreadBody, ModelSelection, RespondBody, RewindBody, SendMessageBody, ThreadSettingsBody, UploadedAttachment, UserInputAnswers } from "../../shared/api.ts";
+import type { ApprovalDecision, AssignIssueBody, CreateAutomationBody, CreateThreadBody, RoutineSchedule, WebhookFilter, WebhookSignature, ModelSelection, RespondBody, RewindBody, SecretAnswerBody, SendMessageBody, ThreadSettingsBody, UploadedAttachment, UserInputAnswers } from "../../shared/api.ts";
 import { normalizeDesk, type DeskUpdate } from "../../shared/desk.ts";
-import { IMAGE_TYPES, MAX_ATTACHMENTS, MAX_FILE_BYTES, MAX_IMAGE_BYTES, MAX_IMAGES, isRuntimeMode } from "../../shared/limits.ts";
+import { IMAGE_TYPES, MAX_ATTACHMENTS, MAX_FILE_BYTES, MAX_IMAGE_BYTES, MAX_IMAGES, MAX_SECRET_CHARS, isRuntimeMode } from "../../shared/limits.ts";
 import { isSeenId, isSeenTime, type SeenChange } from "../../shared/seen.ts";
 import { STASH_TEXT_MAX, type StashBody } from "../../shared/stash.ts";
 import type { FileUpload, ImageUpload } from "../domain/actions.ts";
@@ -30,16 +30,78 @@ function validSelection(selection: unknown): ModelSelection | null {
   return { instanceId, model, ...(valid && { options: valid }) };
 }
 
-const MAX_AUTOMATION_TEXT = 2000;
+const MAX_AUTOMATION_TITLE = 120;
+const MAX_AUTOMATION_PROMPT = 20_000;
+const MAX_FILTERS = 16;
+const MAX_MINUTES = 525_600;
+const FILTER_PATH = /^(body|headers|query)(\.|$)/;
+const TIME_OF_DAY = /^([01]?\d|2[0-3]):[0-5]\d$/;
+const HEADER_NAME = /^[\w-]{1,100}$/;
+const bad = (message: string) => new HttpError(400, message);
 
-export function validAutomationRequest(body: Record<string, unknown>): AutomationRequestBody {
+function validFilter(entry: unknown): WebhookFilter {
+  if (!isObject(entry) || typeof entry.path !== "string" || !FILTER_PATH.test(entry.path.trim())) throw bad("Each filter needs a path that starts with body, headers or query");
+  const path = entry.path.trim();
+  const { op, value } = entry;
+  if (op === "exists") return { path, op };
+  if (op === "equals" || op === "notEquals" || op === "startsWith") {
+    if (!isText(value)) throw bad("A filter value is required");
+    return { path, op, value: value.trim() };
+  }
+  if (op === "in") {
+    const items = Array.isArray(value) ? value.map((item) => (typeof item === "string" ? item.trim() : "")) : [];
+    if (items.length === 0 || items.some((item) => item === "" || item.includes(","))) throw bad("An in filter needs one or more values without commas");
+    return { path, op, value: items };
+  }
+  throw bad("A filter operator is not known");
+}
+
+function validSignature(value: unknown): (WebhookSignature & { secret: string }) | null {
+  if (value === null) return null;
+  if (!isObject(value) || typeof value.header !== "string" || !HEADER_NAME.test(value.header.trim()) || (value.encoding !== "hex" && value.encoding !== "base64") || typeof value.prefix !== "string" || value.prefix.length > 50) {
+    throw bad("signature needs a header, an encoding (hex or base64) and a prefix");
+  }
+  if (!isText(value.secret) || value.secret.length > MAX_SECRET_CHARS) throw bad(`The signing secret must be 1 to ${MAX_SECRET_CHARS} characters`);
+  // T3 trims the stored secret, so GitHub signatures would never match.
+  if (value.secret !== value.secret.trim()) throw bad("The signing secret must not start or end with a space");
+  return { header: value.header.trim().toLowerCase(), encoding: value.encoding, prefix: value.prefix, secret: value.secret };
+}
+
+function validRoutine(value: unknown): RoutineSchedule {
+  if (isObject(value) && value.type === "interval") {
+    const minutes = value.everyMinutes;
+    if (typeof minutes !== "number" || !Number.isInteger(minutes) || minutes < 1 || minutes > MAX_MINUTES) throw bad(`everyMinutes must be a whole number from 1 to ${MAX_MINUTES}`);
+    return { type: "interval", everyMinutes: minutes };
+  }
+  if (isObject(value) && value.type === "fixed_time") {
+    const { timeOfDay, weekdays } = value;
+    if (typeof timeOfDay !== "string" || !TIME_OF_DAY.test(timeOfDay)) throw bad("timeOfDay must look like 09:30");
+    if (!Array.isArray(weekdays) || weekdays.some((day) => !Number.isInteger(day) || (day as number) < 0 || (day as number) > 6)) throw bad("weekdays must list days from 0 (Sunday) to 6");
+    return { type: "fixed_time", timeOfDay, weekdays: weekdays as number[] };
+  }
+  throw bad("schedule must be an interval or a fixed_time");
+}
+
+// Messages name the field and never repeat a value: the body can hold a signing secret.
+export function validCreateAutomation(body: Record<string, unknown>): CreateAutomationBody {
   const modelSelection = validSelection(body.modelSelection);
   const projectId = body.projectId ?? "";
-  if (typeof projectId !== "string" || !isText(body.text) || body.text.trim().length > MAX_AUTOMATION_TEXT || !modelSelection) {
-    throw new HttpError(400, `text (1 to ${MAX_AUTOMATION_TEXT} characters) and modelSelection (instanceId, model) are required; projectId is a string`);
+  const title = body.title ?? "";
+  if (typeof projectId !== "string" || typeof title !== "string" || title.trim().length > MAX_AUTOMATION_TITLE || !isText(body.prompt) || body.prompt.trim().length > MAX_AUTOMATION_PROMPT || !modelSelection) {
+    throw bad(`prompt (1 to ${MAX_AUTOMATION_PROMPT} characters), title (up to ${MAX_AUTOMATION_TITLE}) and modelSelection (instanceId, model) are required; projectId is a string`);
   }
-  if (body.runtimeMode !== undefined && !isRuntimeMode(body.runtimeMode)) throw new HttpError(400, "runtimeMode is not a known mode");
-  return { text: body.text.trim(), projectId: projectId.trim(), modelSelection, ...(isRuntimeMode(body.runtimeMode) && { runtimeMode: body.runtimeMode }) };
+  if (body.runtimeMode !== undefined && !isRuntimeMode(body.runtimeMode)) throw bad("runtimeMode is not a known mode");
+  const common = { title: title.trim(), prompt: body.prompt.trim(), projectId: projectId.trim(), modelSelection, ...(isRuntimeMode(body.runtimeMode) && { runtimeMode: body.runtimeMode }) };
+  if (body.kind === "routine") return { ...common, kind: "routine", schedule: validRoutine(body.schedule) };
+  if (body.kind === "reminder") {
+    if (typeof body.at !== "string" || Number.isNaN(Date.parse(body.at))) throw bad("at must be an ISO date and time");
+    return { ...common, kind: "reminder", at: body.at };
+  }
+  if (body.kind === "webhook") {
+    if (!Array.isArray(body.filters) || body.filters.length > MAX_FILTERS) throw bad(`filters must be a list of at most ${MAX_FILTERS}`);
+    return { ...common, kind: "webhook", filters: body.filters.map(validFilter), signature: validSignature(body.signature ?? null) };
+  }
+  throw bad("kind must be routine, reminder or webhook");
 }
 
 const MAX_RENAME = 120;
@@ -183,6 +245,18 @@ export function validRespond(body: Record<string, unknown>): RespondBody {
   const valid = isObject(answers) && Object.values(answers).every((value) => typeof value === "string" || (Array.isArray(value) && value.every((entry) => typeof entry === "string")));
   if (!valid) throw new HttpError(400, "answers must map question ids to strings or string arrays");
   return { answers: answers as UserInputAnswers };
+}
+
+// Errors name the rule, never the value.
+export function validSecretAnswer(body: Record<string, unknown>): SecretAnswerBody {
+  const hasSecret = "secret" in body;
+  if (hasSecret === ("decline" in body)) throw new HttpError(400, "Send either secret or decline");
+  if (!hasSecret) {
+    if (body.decline !== true) throw new HttpError(400, "decline must be true");
+    return { decline: true };
+  }
+  if (typeof body.secret !== "string" || body.secret.trim() === "" || body.secret.length > MAX_SECRET_CHARS) throw new HttpError(400, `secret must be 1 to ${MAX_SECRET_CHARS} characters`);
+  return { secret: body.secret };
 }
 
 export function validQueuedEdit(body: Record<string, unknown>): string {

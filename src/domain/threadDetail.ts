@@ -1,4 +1,4 @@
-import type { ChatAttachment, ChatMessage, ContextUsage, DashboardThread, HtmlRender, RunActivity, PendingRequestDetail, QueuedMessage, StepDetail, StepKind, StepStatus, SubagentInfo, SubagentState, ThreadDetail, TodoEntry, TurnStep } from "../../shared/api.ts";
+import type { ChatAttachment, ChatMessage, ContextUsage, DashboardThread, HtmlRender, RunActivity, PendingRequestDetail, QueuedMessage, StepDetail, SecretStatus, StepKind, StepStatus, SubagentInfo, SubagentState, ThreadDetail, TodoEntry, TurnStep } from "../../shared/api.ts";
 import { FAILED_STATUSES, RUNNING_RUN_STATUSES } from "../../shared/status.ts";
 import { isSubagentThread } from "./classify.ts";
 import { isRuntimeMode } from "../../shared/limits.ts";
@@ -121,6 +121,7 @@ const STEP_KINDS: Record<string, StepKind> = {
   todo_list: "todo",
   proposed_plan: "plan",
   subagent: "subagent",
+  secret_request: "secret",
   checkpoint: "notice",
   compaction: "notice",
   error: "notice",
@@ -128,6 +129,7 @@ const STEP_KINDS: Record<string, StepKind> = {
   run_interrupt_request: "notice",
   run_interrupt_result: "notice",
 };
+const SECRET_STATUSES: ReadonlySet<string> = new Set(["pending", "saved", "declined", "cancelled"]);
 const NOTICES: Record<string, NonNullable<TurnStep["notice"]>> = {
   checkpoint: "checkpoint",
   compaction: "compaction",
@@ -223,6 +225,11 @@ function toStep(item: RawTurnItem, kind: StepKind, projection: RawProjection): T
         expandable: Boolean(result),
         subagent: { subagentId, childThreadId: item.childThreadId ?? raw?.childThreadId ?? null, progress: state === "running" ? (item.progress ?? raw?.progress ?? null) : null, stoppable: STOPPABLE_STATES.has(fine) && Boolean(raw?.runId), state: fine, provider: item.providerInstanceId ?? item.driver ?? raw?.providerInstanceId ?? raw?.driver ?? null, turnId: item.providerTurnId ?? null },
       };
+    }
+    case "secret": {
+      const status = SECRET_STATUSES.has(item.secretStatus ?? "") ? (item.secretStatus as SecretStatus) : "cancelled";
+      const label = item.label?.trim() || "Secret";
+      return { ...base, status: status === "pending" ? "running" : "done", text: truncate(label, STEP_CHARS), secret: { label: truncate(label, STEP_CHARS), reason: truncate(item.reason?.trim() ?? "", STEP_CHARS), placeholder: item.placeholder?.trim() ? truncate(item.placeholder.trim(), STEP_CHARS) : null, status } };
     }
     case "notice":
       return { ...base, status: item.type === "error" ? "failed" : "done", ...noticeText(item), notice: NOTICES[item.type!] };

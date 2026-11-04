@@ -2,10 +2,12 @@ import type { InputHTMLAttributes, Ref, TextareaHTMLAttributes } from "react";
 import { NO_AUTOFILL, SECRET_FIELD } from "./noAutofill.ts";
 
 type InputProps = Omit<InputHTMLAttributes<HTMLInputElement>, "type"> & { ref?: Ref<HTMLInputElement> };
+// A time, date or number field still takes the no-autofill attributes.
+type FieldProps = InputProps & { type?: "text" | "number" | "time" | "datetime-local" };
 const cls = (base: string, extra?: string) => (extra ? `${base} ${extra}` : base);
 
-export function TextInput({ className, ...rest }: InputProps) {
-  return <input {...NO_AUTOFILL} type="text" {...rest} className={cls("field", className)} />;
+export function TextInput({ className, type = "text", ...rest }: FieldProps) {
+  return <input {...NO_AUTOFILL} type={type} {...rest} className={cls("field", className)} />;
 }
 
 export function SecretInput({ className, ...rest }: InputProps) {

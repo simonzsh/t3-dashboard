@@ -8,11 +8,14 @@ export class IntegrationError extends Error {
   readonly system: IntegrationSystem;
   readonly kind: IntegrationErrorKind;
   readonly status: number | undefined;
+  /** The system's own code for a refusal, when it sends one. */
+  readonly reason: string | undefined;
 
-  constructor(message: string, { system, kind, status }: { system: IntegrationSystem; kind: IntegrationErrorKind; status?: number }) {
+  constructor(message: string, { system, kind, status, reason }: { system: IntegrationSystem; kind: IntegrationErrorKind; status?: number; reason?: string }) {
     super(message);
     this.system = system;
     this.kind = kind;
     this.status = status;
+    this.reason = reason;
   }
 }

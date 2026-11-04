@@ -663,3 +663,16 @@ test("a subagent step carries its provider, turn and T3 status", () => {
   assert.deepEqual([by.c!.state, by.c!.provider], ["waiting", "claude-main"]);
   assert.deepEqual([by.d!.state, by.d!.provider], ["running", null]);
 });
+
+test("steps: a secret request is a secret step with its label, reason and status, and no value", () => {
+  const request = (id: string, secretStatus: string, extra: Record<string, unknown> = {}) =>
+    item(id, "secret_request", Number(id.slice(1)), { label: "Webhook secret", reason: "Sign the webhook", secretStatus, status: undefined, completedAt: undefined, secret: "dummy-secret", ...extra });
+  const detail = stepsOf([request("s1", "pending", { placeholder: "whsec_…" }), request("s2", "saved"), request("s3", "declined"), request("s4", "weird")]);
+  assert.deepEqual(detail.steps.map((step) => [step.kind, step.text, step.status, step.secret]), [
+    ["secret", "Webhook secret", "running", { label: "Webhook secret", reason: "Sign the webhook", placeholder: "whsec_…", status: "pending" }],
+    ["secret", "Webhook secret", "done", { label: "Webhook secret", reason: "Sign the webhook", placeholder: null, status: "saved" }],
+    ["secret", "Webhook secret", "done", { label: "Webhook secret", reason: "Sign the webhook", placeholder: null, status: "declined" }],
+    ["secret", "Webhook secret", "done", { label: "Webhook secret", reason: "Sign the webhook", placeholder: null, status: "cancelled" }],
+  ]);
+  assert.equal(JSON.stringify(detail).includes("dummy-secret"), false);
+});

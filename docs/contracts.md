@@ -14,7 +14,7 @@
 | `t3` | `orchestration.subscribeShell`: the script reads the stream until `synchronized`, then stops it. Each item passes the `ShellItem` schema. Each thread status is known. |
 | `t3` | `scheduledTasks.subscribe`: the first snapshot passes the `ScheduledTasksResponse` schema. A T3 version without this method gives "could not run". |
 | `t3` | `GET /api/orchestration/threads/{id}` for 3 threads maximum. Each response passes the `ProjectionResponse` schema. |
-| `t3` | The 8 RPC tags of the dashboard exist in the T3 web client. |
+| `t3` | The 15 RPC tags of the dashboard exist in the T3 web client. |
 | `t3` | The write commands (see below). |
 | `linear` | `{ viewer { id } }`, then one page of assigned tickets, with the board query. Only if a key exists. |
 | `github` | The latest release has a `tag_name` in version format. Its `SHA256SUMS` file contains a SHA-256 sum for each of the 5 binaries. The script downloads no binary. |
@@ -23,7 +23,7 @@ The schemas are in `src/integrations/*/schemas.ts`. The script uses the same sch
 
 ### T3 write commands
 
-The script never runs a write command: `thread.create`, `message.dispatch`, `run.interrupt`, `subagent.stop`, `thread.stop`, `queued-message.promote-to-steer`, `queued-run.start`, `queued-run.edit`, `queued-run.cancel`, `runtime-request.respond`, `thread.user-input.dismiss`, `thread.model-selection.set`, `thread.runtime-mode.set` and image upload. It does a static comparison:
+The script never runs a write command: `thread.create`, `message.dispatch`, `run.interrupt`, `subagent.stop`, `thread.stop`, `queued-message.promote-to-steer`, `queued-run.start`, `queued-run.edit`, `queued-run.cancel`, `runtime-request.respond`, `thread.user-input.dismiss`, `thread.model-selection.set`, `thread.runtime-mode.set`, `secrets.answerRequest`, `scheduledTasks.upsert` (the creation and the rename of a scheduled task) and image upload. It does a static comparison:
 
 1. It reads the T3 version in `server-runtime.json`.
 2. It reads the `~/.t3/runtime/versions/<version>/client/assets/*.js` files as text. It does not import or run this code.

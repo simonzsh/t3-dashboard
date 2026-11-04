@@ -1,7 +1,7 @@
 import { test } from "bun:test";
 import assert from "node:assert/strict";
 import type { Automation, DashboardThread } from "../../../../shared/api.ts";
-import { excludeRoutineThreads, finishedSetups, isFinishedReminder, setupThreads, lastRunState, nextLabel, reminderDate, splitAutomations } from "../../../src/features/agents/automations.ts";
+import { excludeRoutineThreads, finishedSetups, isFinishedReminder, setupThreads, lastRunState, nextLabel, reminderDate, splitAutomations, copyableUrl } from "../../../src/features/agents/automations.ts";
 import { thread } from "../../fixtures.ts";
 
 function auto(id: string, over: Partial<Automation> = {}): Automation {
@@ -19,6 +19,7 @@ function auto(id: string, over: Partial<Automation> = {}): Automation {
     lastRunError: null,
     threadId: null,
     model: null,
+    webhook: null,
     ...over,
   };
 }
@@ -123,4 +124,27 @@ test("finishedSetups lists the setup threads that stopped being active", () => {
   const active = [thread("t-run", { status: "running" })];
   assert.deepEqual(finishedSetups(new Set(["t-run", "t-done"]), active), ["t-done"]);
   assert.deepEqual(finishedSetups(new Set(), active), []);
+});
+
+const hook = (id: string, over: Partial<Automation> = {}) => auto(id, { kind: "webhook", webhook: { url: null, signed: true }, ...over });
+
+test("splitAutomations puts webhooks in their own list, enabled first then newest run", () => {
+  const list = [
+    hook("paused", { enabled: false, lastRunAt: "2026-10-26T10:00:00Z" }),
+    hook("old", { lastRunAt: "2026-10-24T10:00:00Z" }),
+    hook("new", { lastRunAt: "2026-10-25T10:00:00Z" }),
+    hook("never"),
+    auto("r"),
+  ];
+  const { webhooks, routines, reminders } = splitAutomations(list);
+  assert.deepEqual(webhooks.map((a) => a.id), ["new", "old", "never", "paused"]);
+  assert.deepEqual(routines.map((a) => a.id), ["r"]);
+  assert.equal(reminders.length, 0);
+});
+
+test("copyableUrl gives the URL of a webhook only", () => {
+  const url = "https://relay.example.invalid/v1/hooks/k/t/token";
+  assert.equal(copyableUrl(hook("a", { webhook: { url, signed: true } })), url);
+  assert.equal(copyableUrl(hook("b", { webhook: { url: null, signed: false } })), null);
+  assert.equal(copyableUrl(auto("c")), null);
 });

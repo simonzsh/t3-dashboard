@@ -1,10 +1,11 @@
 import type { Automation, AutomationsResult, DashboardProject, DashboardThread } from "../../../../shared/api.ts";
-import { isFinishedReminder, lastRunState, nextLabel, reminderDate, splitAutomations } from "./automations.ts";
+import { copyableUrl, isFinishedReminder, lastRunState, nextLabel, reminderDate, splitAutomations } from "./automations.ts";
 import { agentStatus } from "../../../../shared/status.ts";
 import { useState } from "react";
 import { Badge, Icon, IconButton, Loader, Pressable } from "../../ui/index.ts";
 import { DeleteAutomationDialog } from "./DeleteAutomationDialog.tsx";
 import { RenameAutomationDialog } from "./RenameAutomationDialog.tsx";
+import { useCopy } from "../../lib/useCopy.ts";
 import { ProjectIcon } from "../../lib/ProjectIcon.tsx";
 import { StatusBadge } from "./StatusBadge.tsx";
 
@@ -31,17 +32,28 @@ interface RowProps {
   onDelete: (a: Automation) => void;
 }
 
+function CopyUrlButton({ url }: { url: string }) {
+  const { copied, copy } = useCopy("copy the webhook URL");
+  return (
+    <IconButton label="Copy webhook URL" tooltip="Copy webhook URL" size="sm" variant="ghost" className="auto-copy" onClick={() => copy(url)}>
+      <Icon name={copied ? "check" : "copy"} />
+    </IconButton>
+  );
+}
+
 function Row({ a, thread, project, now, onOpen, onRename, onDelete }: RowProps) {
   const last = lastRunState(a, thread);
   const finished = isFinishedReminder(a);
   const reminderAt = finished ? a.lastRunAt : a.nextRunAt;
-  const when = a.kind === "reminder" ? (reminderAt ? reminderDate(reminderAt) : "") : a.scheduleLabel;
-  const sub = [a.project, when].filter(Boolean).join(" · ");
+  const hook = a.kind === "webhook";
+  const when = a.kind === "reminder" ? (reminderAt ? reminderDate(reminderAt) : "") : hook ? "Webhook" : a.scheduleLabel;
+  const sub = [a.project, when, hook && !a.webhook?.signed ? "unsigned" : ""].filter(Boolean).join(" · ");
+  const url = copyableUrl(a);
   const body = (
     <>
       <span className="auto-title">{a.title}</span>
       <span className="auto-side">
-        {!finished && <span className="auto-next">{a.enabled ? nextLabel(a.nextRunAt, now) : "paused"}</span>}
+        {!finished && (!hook || !a.enabled) && <span className="auto-next">{a.enabled ? nextLabel(a.nextRunAt, now) : "paused"}</span>}
         {last?.kind === "waiting" && <Badge variant="waiting">Waiting</Badge>}
         {last?.kind === "running" && (
           <Badge variant="running">
@@ -72,10 +84,11 @@ function Row({ a, thread, project, now, onOpen, onRename, onDelete }: RowProps) 
       ) : (
         <div className="auto-row auto-grid">{body}</div>
       )}
-      <IconButton label="Rename automation" size="sm" variant="ghost" className="auto-rename" onClick={() => onRename(a)}>
+      {url && <CopyUrlButton url={url} />}
+      <IconButton label="Rename automation" tooltip="Rename" size="sm" variant="ghost" className="auto-rename" onClick={() => onRename(a)}>
         <Icon name="edit" />
       </IconButton>
-      <IconButton label="Delete automation" size="sm" variant="ghost" className="auto-delete" onClick={() => onDelete(a)}>
+      <IconButton label="Delete automation" tooltip="Delete" size="sm" variant="ghost" className="auto-delete" onClick={() => onDelete(a)}>
         <Icon name="trash" />
       </IconButton>
     </li>
@@ -104,7 +117,7 @@ export function AutomationsColumn({ result, error, threads, projects, setup, now
   const [renaming, setRenaming] = useState<Automation | null>(null);
   const byId = new Map(threads.map((t) => [t.id, t]));
   const projectById = new Map(projects.map((p) => [p.id, p]));
-  const { routines, reminders } = splitAutomations(result?.automations ?? []);
+  const { routines, reminders, webhooks } = splitAutomations(result?.automations ?? []);
   const section = (title: string, rows: Automation[], empty: string) => (
     <section className="group">
       <h2>
@@ -139,6 +152,7 @@ export function AutomationsColumn({ result, error, threads, projects, setup, now
         <>
           {section("Routines", routines, "No routines")}
           {section("Reminders", reminders, "No reminders")}
+          {section("Webhooks", webhooks, "No webhooks")}
         </>
       )}
       {renaming && (

@@ -13,6 +13,7 @@ import { RewindDialog } from "./RewindDialog.tsx";
 import { attachmentFiles, mergeDraft } from "./rewind.ts";
 import { PendingRequestView } from "./PendingRequestView.tsx";
 import { WorkGroup } from "./Steps.tsx";
+import { SecretRequestCard } from "./SecretRequestCard.tsx";
 import { SubagentRows } from "./SubagentRows.tsx";
 import { NoticeRow, PlanCard, TodoCard } from "./TimelineBlocks.tsx";
 import { useStickToBottom } from "./useStickToBottom.ts";
@@ -127,6 +128,8 @@ function StandaloneStep({ step, threadId }: { step: TurnStep; threadId: string }
       return <TodoCard step={step} />;
     case "plan":
       return <PlanCard step={step} threadId={threadId} />;
+    case "secret":
+      return <SecretRequestCard step={step} threadId={threadId} />;
     default:
       return <NoticeRow step={step} />;
   }

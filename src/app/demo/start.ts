@@ -68,7 +68,7 @@ export async function startDemo(env: Record<string, string | undefined>): Promis
   const site = siteFromBundle(index);
   const actions = createActions({ port, store, board });
   const dedicated = new Set(["demo-digest", "demo-setup"]);
-  const automations = createAutomations({ port, store, dedicated: { read: () => dedicated, add: (id) => void dedicated.add(id) }, createThread: actions.createThread });
+  const automations = createAutomations({ port, store, dedicated: { read: () => dedicated } });
   const handler = createDashboardServer({
     actions,
     desk: new DeskStore(null, () => {}),

@@ -1,4 +1,4 @@
-import type { AssetResource, Command, FileUpload, ImageUpload, RawConfig, RawProjection, RawScheduledTask, RawSearchMatch, RawTurnItem, SearchEntriesResponse, ShellItem, T3Port } from "../../src/integrations/t3/schemas.ts";
+import type { AssetResource, Command, FileUpload, ImageUpload, NewScheduledTask, RawConfig, RawProjection, RawScheduledTask, RawSearchMatch, RawTurnItem, SearchEntriesResponse, SecretAnswer, ShellItem, T3Port } from "../../src/integrations/t3/schemas.ts";
 
 /** In-memory T3: records commands, uploads and shell subscriptions; each answer can be swapped. */
 export class FakePort implements T3Port {
@@ -22,8 +22,13 @@ export class FakePort implements T3Port {
   scheduledTasksError: Error | null = null;
   deletedTasks: string[] = [];
   deleteError: Error | null = null;
+  createdTasks: NewScheduledTask[] = [];
+  createError: Error | null = null;
+  createdWebhookUrl: string | null = null;
   renamedTasks: { id: string; title: string }[] = [];
   renameError: Error | null = null;
+  secretAnswers: Array<{ threadId: string; turnItemId: string; answer: SecretAnswer }> = [];
+  secretError: Error | null = null;
   dispatchError: Error | null = null;
   projectionError: Error | null = null;
   projectionCalls = 0;
@@ -41,6 +46,11 @@ export class FakePort implements T3Port {
     return { sequence: 1 };
   }
 
+  async answerSecretRequest(threadId: string, turnItemId: string, answer: SecretAnswer) {
+    if (this.secretError) throw this.secretError;
+    this.secretAnswers.push({ threadId, turnItemId, answer });
+  }
+
   async listScheduledTasks() {
     if (this.scheduledTasksError) throw this.scheduledTasksError;
     return this.scheduledTasks;
@@ -49,6 +59,13 @@ export class FakePort implements T3Port {
   async deleteScheduledTask(id: string) {
     if (this.deleteError) throw this.deleteError;
     this.deletedTasks.push(id);
+  }
+
+  async createScheduledTask(task: NewScheduledTask): Promise<RawScheduledTask> {
+    if (this.createError) throw this.createError;
+    this.createdTasks.push(task);
+    const webhook = task.schedule.type === "webhook" ? { url: this.createdWebhookUrl, hasSecret: task.schedule.signature !== null } : null;
+    return { id: task.id, title: task.title, nextRunAt: "2026-11-05T09:00:00.000Z", ...(webhook && { webhook }) };
   }
 
   async renameScheduledTask(id: string, title: string) {

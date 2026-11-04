@@ -406,6 +406,8 @@ a.step-result-title { color: var(--accent); }
 .msg-file-size { flex: none; color: var(--text-secondary); }
 .requests { display: flex; flex-direction: column; gap: 8px; }
 .request { border: 1px solid var(--line); border-left: 3px solid var(--warn); border-radius: 6px; padding: 10px; background: var(--surface-1); display: flex; flex-direction: column; gap: 8px; }
+.secret-card header { display: flex; align-items: center; gap: 8px; }
+.secret-status { color: var(--text-secondary); font-size: 12px; }
 .question { display: flex; flex-direction: column; gap: 4px; border: 0; padding: 0; margin: 0; }
 .question label { display: flex; gap: 6px; align-items: baseline; }
 .question label small { color: var(--text-secondary); }
@@ -605,9 +607,11 @@ button.auto-row { cursor: pointer; }
 /* The delete button is a sibling of the row button, at its top right, so it never nests in it. */
 .auto-item { position: relative; }
 .auto-item .auto-row { padding-right: 58px; }
-.auto-delete, .auto-rename { position: absolute; top: 7px; }
+.auto-delete, .auto-rename, .auto-copy { position: absolute; top: 7px; }
 .auto-delete { right: 6px; }
 .auto-rename { right: 30px; }
+.auto-copy { right: 54px; }
+.auto-item:has(.auto-copy) .auto-row { padding-right: 82px; }
 .auto-item .icon-button.sm { min-width: 22px; height: 22px; border-radius: var(--radius-sm); }
 .auto-item .icon-button.sm svg { width: 14px; height: 14px; }
 .auto-sub { display: flex; align-items: center; gap: 6px; min-width: 0; white-space: nowrap; }
@@ -805,6 +809,18 @@ button.auto-row:hover { transform: translateY(-1px); }
 .dialog.settings { max-height: 78vh; overflow-y: auto; }
 .dialog.new-agent { width: min(640px, 94vw); gap: 12px; }
 .dialog.new-agent .composer { padding: 0; }
+.auto-form { display: flex; flex-direction: column; gap: 12px; }
+.auto-form .segmented { align-self: flex-start; }
+.auto-form-row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.auto-form-row .field { flex: 1; min-width: 80px; }
+.dialog label.auto-check { flex-direction: row; align-items: center; gap: 8px; align-self: flex-start; cursor: pointer; }
+.auto-form .hint, .auto-result .hint { color: var(--text-secondary); font-size: 12px; margin: 0; }
+.auto-days button { border: 1px solid var(--line); background: none; padding: 3px 8px; border-radius: 7px; color: var(--text-secondary); }
+.auto-days button[aria-pressed="true"] { background: var(--accent); color: var(--on-accent); border-color: var(--accent); }
+.auto-result { display: flex; flex-direction: column; gap: 10px; }
+.auto-result dl { display: grid; grid-template-columns: max-content 1fr; gap: 6px 12px; margin: 0; }
+.auto-result dt { color: var(--text-secondary); }
+.auto-result dd { margin: 0; }
 .issue-banner { display: flex; align-items: center; gap: 8px; min-width: 0; padding: 8px 12px; border-radius: var(--radius-md); border: 1px solid color-mix(in srgb, var(--accent) 35%, var(--line)); background: color-mix(in srgb, var(--accent) 10%, var(--surface-1)); color: var(--text-primary); text-decoration: none; font-size: 13px; }
 .issue-banner:hover { border-color: var(--accent); }
 .issue-banner-id { flex: none; font: 600 12px/1 var(--font-mono); color: var(--accent); }

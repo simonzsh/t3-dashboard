@@ -1,10 +1,11 @@
 import type {
   AssignIssueBody,
-  AutomationRequestBody,
   AutomationsResult,
   BoardResult,
   ConnectionStatus,
   CreateThreadBody,
+  CreateAutomationBody,
+  CreateAutomationResult,
   CreateThreadResult,
   DeskUpdate,
   SeenChange,
@@ -14,6 +15,7 @@ import type {
   HealthResult,
   OkResult,
   RespondBody,
+  SecretAnswerBody,
   EditQueuedBody,
   RewindBody,
   ComposerCommands,
@@ -92,7 +94,7 @@ export function createApi(fetchImpl: Fetch) {
   }
   return {
     getAutomations: () => call<AutomationsResult>("/api/automations"),
-    requestAutomation: (b: AutomationRequestBody) => call<CreateThreadResult>("/api/automations", b),
+    createAutomation: (b: CreateAutomationBody) => call<CreateAutomationResult>("/api/automations", b),
     renameAutomation: (id: string, title: string) => call<OkResult>(`/api/automations/${encodeURIComponent(id)}/rename`, { title }),
     deleteAutomation: (id: string) => call<OkResult>(`/api/automations/${encodeURIComponent(id)}/delete`, {}),
     getBoard: (refresh = false) => call<BoardResult>(refresh ? "/api/board?refresh=1" : "/api/board"),
@@ -134,6 +136,7 @@ export function createApi(fetchImpl: Fetch) {
     updateSettings: (id: string, b: ThreadSettingsBody) => call<OkResult>(`${t(id)}/settings`, b),
     respond: (id: string, requestId: string, b: RespondBody) =>
       call<OkResult>(`${t(id)}/requests/${encodeURIComponent(requestId)}/respond`, b),
+    answerSecret: (id: string, itemId: string, b: SecretAnswerBody) => call<OkResult>(`${t(id)}/secrets/${encodeURIComponent(itemId)}`, b),
     dismiss: (id: string, requestId: string) => call<OkResult>(`${t(id)}/requests/${encodeURIComponent(requestId)}/dismiss`, {}),
   };
 }

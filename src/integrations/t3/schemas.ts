@@ -1,3 +1,5 @@
+import type { WebhookFilter, WebhookSignature } from "../../../shared/automations.ts";
+import type { ModelSelection as SharedModelSelection, RuntimeMode } from "../../../shared/threads.ts";
 import { s, type Infer } from "../contract.ts";
 
 // Raw T3 shapes, limited to the fields the dashboard reads.
@@ -66,6 +68,8 @@ export const RawScheduledTask = s.object({
       weekdays: s.optional(s.nullable(s.array(s.number()))),
     }),
   ),
+  // The URL holds a token: it is a credential.
+  webhook: s.optional(s.nullable(s.object({ url: s.optional(s.nullable(s.string())), hasSecret: s.optional(s.boolean()) }))),
   projectId: text(),
   threadId: text(),
   modelSelection: s.optional(s.nullable(ModelSelection)),
@@ -79,6 +83,7 @@ export const RawScheduledTask = s.object({
 });
 export type RawScheduledTask = Infer<typeof RawScheduledTask>;
 export const ScheduledTasksResponse = s.object({ tasks: s.array(RawScheduledTask) });
+export const UpsertedScheduledTask = s.object({ task: RawScheduledTask });
 export const DeletedScheduledTask = s.object({ id: s.string() });
 
 export const RawProject = s.object({
@@ -160,6 +165,9 @@ export const RawTurnItem = s.object({
   inputIntent: text(),
   prompt: text(),
   reason: text(),
+  label: text(),
+  placeholder: text(),
+  secretStatus: text(),
   questions: s.optional(s.array(RawQuestion)),
   messageId: s.optional(s.string()),
   id: s.optional(s.string()),
@@ -372,12 +380,39 @@ export interface ImageUpload {
 
 export type Command = Record<string, unknown>;
 
+/** The user's answer to a secret request. The value is only ever held in memory. */
+export type SecretAnswer = { type: "save"; secret: string } | { type: "decline" };
+
+export type ScheduleInput =
+  | { type: "interval"; everyMs: number }
+  | { type: "fixed_time"; timeOfDay: string; weekdays?: number[] }
+  /** The secret is only ever held in memory, and only sent to T3. */
+  | { type: "webhook"; signature: (WebhookSignature & { secret: string }) | null; filters?: WebhookFilter[] };
+
+/** A scheduled task the dashboard creates: an unbound task that runs in the project root. */
+export interface NewScheduledTask {
+  id: string;
+  title: string;
+  prompt: string;
+  enabled: true;
+  schedule: ScheduleInput;
+  projectId: string;
+  threadId: null;
+  workspaceStrategy: { type: "root" };
+  modelSelection: SharedModelSelection;
+  runtimeMode: RuntimeMode;
+  interactionMode: "default";
+  creationSource: "web";
+}
+
 export interface T3Port {
   threadProjection(threadId: string): Promise<RawProjection>;
   dispatch(command: Command): Promise<unknown>;
   getConfig(): Promise<RawConfig>;
   listScheduledTasks(): Promise<RawScheduledTask[]>;
   deleteScheduledTask(id: string): Promise<void>;
+  /** Creates the task in T3. Never retried: a second send could make a duplicate. */
+  createScheduledTask(task: NewScheduledTask): Promise<RawScheduledTask>;
   /** Sets the title of a scheduled task and leaves every other field as T3 has it. */
   renameScheduledTask(id: string, title: string): Promise<void>;
   /** Message matches in T3, best first. */
@@ -389,6 +424,8 @@ export interface T3Port {
   /** Sends the file to T3 and returns its attachment id. */
   uploadAttachment(upload: FileUpload): Promise<string>;
   deleteAttachment(attachmentId: string): Promise<void>;
+  /** Hands the secret (or a refusal) to T3, which stores it. Never retried. */
+  answerSecretRequest(threadId: string, turnItemId: string, answer: SecretAnswer): Promise<void>;
   /** The id of T3's "No project" project, created if missing. */
   ensureScratchProject(): Promise<string>;
   /** Fetches an asset through a short-lived signed URL; the file name ends the URL. */

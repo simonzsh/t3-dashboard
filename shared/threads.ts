@@ -160,7 +160,7 @@ export interface SubagentInfo {
   stop: "subagent" | "thread" | null;
 }
 
-export type StepKind = "thinking" | "command" | "tool" | "file" | "search" | "web" | "todo" | "plan" | "subagent" | "notice";
+export type StepKind = "thinking" | "command" | "tool" | "file" | "search" | "web" | "todo" | "plan" | "subagent" | "notice" | "secret";
 export type StepStatus = "running" | "done" | "failed";
 
 export interface TodoEntry {
@@ -188,6 +188,16 @@ export interface SubagentStep {
   turnId: string | null;
 }
 
+export type SecretStatus = "pending" | "saved" | "declined" | "cancelled";
+
+/** Kind "secret": the agent asks for a value. The value never comes back, only its status. */
+export interface SecretStep {
+  label: string;
+  reason: string;
+  placeholder: string | null;
+  status: SecretStatus;
+}
+
 /** One agent step in the timeline. Texts are cut; GET /api/threads/:id/items/:itemId gives the rest. */
 export interface TurnStep {
   id: string;
@@ -210,6 +220,8 @@ export interface TurnStep {
   markdown?: string;
   /** Kind "subagent". */
   subagent?: SubagentStep;
+  /** Kind "secret". Answer with POST /api/threads/:id/secrets/:itemId. */
+  secret?: SecretStep;
   /** Kind "notice". */
   notice?: "checkpoint" | "compaction" | "error" | "system" | "interrupt";
 }

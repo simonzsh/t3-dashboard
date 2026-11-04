@@ -50,6 +50,8 @@ function harness({ searchResult = [] as ReturnType<typeof searchMatch>[], search
     listScheduledTasks: async () => [],
     deleteScheduledTask: async () => {},
     renameScheduledTask: async () => {},
+    createScheduledTask: async (task) => ({ id: task.id }),
+    answerSecretRequest: async () => {},
     searchThreads: async () => {
       if (searchError) throw searchError;
       return searchResult;
