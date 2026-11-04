@@ -13,8 +13,13 @@ import { RewindDialog } from "./RewindDialog.tsx";
 import { attachmentFiles, mergeDraft } from "./rewind.ts";
 import { PendingRequestView } from "./PendingRequestView.tsx";
 import { WorkGroup } from "./Steps.tsx";
+<<<<<<< HEAD
 import { SubagentRows } from "./SubagentRows.tsx";
 import { NoticeRow, PlanCard, TodoCard } from "./TimelineBlocks.tsx";
+=======
+import { SecretRequestCard } from "./SecretRequestCard.tsx";
+import { NoticeRow, PlanCard, SubagentBlock, TodoCard } from "./TimelineBlocks.tsx";
+>>>>>>> 0916b51 (feat(conversation): answer agent secret requests in a private card)
 import { useStickToBottom } from "./useStickToBottom.ts";
 import { documentPage, usePoll } from "../../lib/usePoll.ts";
 import { singleFlight } from "../../lib/singleFlight.ts";
@@ -127,6 +132,13 @@ function StandaloneStep({ step, threadId }: { step: TurnStep; threadId: string }
       return <TodoCard step={step} />;
     case "plan":
       return <PlanCard step={step} threadId={threadId} />;
+<<<<<<< HEAD
+=======
+    case "secret":
+      return <SecretRequestCard step={step} threadId={threadId} />;
+    case "subagent":
+      return <SubagentBlock step={step} threadId={threadId} onOpenThread={onOpenThread} onChanged={onChanged} />;
+>>>>>>> 0916b51 (feat(conversation): answer agent secret requests in a private card)
     default:
       return <NoticeRow step={step} />;
   }

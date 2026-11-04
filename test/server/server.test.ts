@@ -562,6 +562,7 @@ test("every POST route refuses a body that is not JSON", async () => {
     "/api/threads/run-1/interrupt",
     "/api/threads/run-1/requests/req-1/respond",
     "/api/threads/run-1/requests/req-1/dismiss",
+    "/api/threads/run-1/secrets/item-1",
   ];
   for (const path of posts) {
     assert.equal((await call(server, "POST", path, { headers: { "content-type": "text/plain" }, raw: "{}" })).status, 400, path);
@@ -1372,4 +1373,41 @@ test("POST /api/seen refuses a body that is neither a mark nor a baseline", asyn
   for (const body of bad) assert.equal((await post(server, "/api/seen", body)).status, 400, JSON.stringify(body));
   assert.deepEqual(savedSeen, []);
   assert.deepEqual(events, []);
+});
+
+const SECRET_PATH = "/api/threads/run-1/secrets/item%201";
+
+test("secret answer: save and decline reach T3, the answer says ok and never echoes the secret", async () => {
+  const { server, port } = await start();
+  const saved = await post(server, SECRET_PATH, { secret: "dummy-secret" });
+  assert.deepEqual([saved.status, saved.json], [200, { ok: true }]);
+  assert.equal(saved.text.includes("dummy-secret"), false);
+  assert.equal((await post(server, SECRET_PATH, { decline: true })).status, 200);
+  assert.deepEqual(port.secretAnswers, [
+    { threadId: "run-1", turnItemId: "item 1", answer: { type: "save", secret: "dummy-secret" } },
+    { threadId: "run-1", turnItemId: "item 1", answer: { type: "decline" } },
+  ]);
+});
+
+test("secret answer: refuses a blank, missing, too long or ambiguous secret", async () => {
+  const { server, port } = await start();
+  const bad = [{}, { secret: "" }, { secret: "   " }, { secret: 3 }, { secret: "x".repeat(8193) }, { decline: false }, { secret: "a", decline: true }];
+  for (const body of bad) {
+    const reply = await post(server, SECRET_PATH, body);
+    assert.equal(reply.status, 400, JSON.stringify(body).slice(0, 40));
+    assert.equal(reply.text.includes("xxxx"), false);
+  }
+  assert.equal((await post(server, SECRET_PATH, { secret: "x".repeat(8192) })).status, 200);
+  assert.equal(port.secretAnswers.length, 1);
+});
+
+test("secret answer: T3 reasons become 404, 409 and 502, without the secret", async () => {
+  const { server, port } = await start();
+  const cases: Array<[string, number]> = [["not_found", 404], ["already_answered", 409], ["agent_stopped", 409], ["store_failed", 502]];
+  for (const [reason, status] of cases) {
+    port.secretError = new IntegrationError(`T3 could not take the secret (${reason})`, { system: "t3", kind: "refused", reason });
+    const reply = await post(server, SECRET_PATH, { secret: "dummy-secret" });
+    assert.equal(reply.status, status, reason);
+    assert.equal(reply.text.includes("dummy-secret"), false);
+  }
 });

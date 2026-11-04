@@ -113,6 +113,9 @@ export interface ThreadSettingsBody {
 
 export type RespondBody = { decision: ApprovalDecision } | { answers: UserInputAnswers };
 
+/** POST /api/threads/:id/secrets/:itemId. The secret is 1 to 8192 characters. */
+export type SecretAnswerBody = { secret: string } | { decline: true };
+
 export interface OkResult {
   ok: true;
 }

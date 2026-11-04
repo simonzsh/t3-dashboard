@@ -13,6 +13,7 @@ export const STEP_ICONS: Record<StepKind, IconName> = {
   plan: "fileText",
   subagent: "bot",
   notice: "info",
+  secret: "lock",
 };
 
 /** The time from the first start to the last end, or null while a step has no time. */

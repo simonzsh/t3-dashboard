@@ -162,6 +162,9 @@ export const RawTurnItem = s.object({
   inputIntent: text(),
   prompt: text(),
   reason: text(),
+  label: text(),
+  placeholder: text(),
+  secretStatus: text(),
   questions: s.optional(s.array(RawQuestion)),
   messageId: s.optional(s.string()),
   id: s.optional(s.string()),
@@ -374,6 +377,9 @@ export interface ImageUpload {
 
 export type Command = Record<string, unknown>;
 
+/** The user's answer to a secret request. The value is only ever held in memory. */
+export type SecretAnswer = { type: "save"; secret: string } | { type: "decline" };
+
 export interface T3Port {
   threadProjection(threadId: string): Promise<RawProjection>;
   dispatch(command: Command): Promise<unknown>;
@@ -391,6 +397,8 @@ export interface T3Port {
   /** Sends the file to T3 and returns its attachment id. */
   uploadAttachment(upload: FileUpload): Promise<string>;
   deleteAttachment(attachmentId: string): Promise<void>;
+  /** Hands the secret (or a refusal) to T3, which stores it. Never retried. */
+  answerSecretRequest(threadId: string, turnItemId: string, answer: SecretAnswer): Promise<void>;
   /** The id of T3's "No project" project, created if missing. */
   ensureScratchProject(): Promise<string>;
   /** Fetches an asset through a short-lived signed URL; the file name ends the URL. */

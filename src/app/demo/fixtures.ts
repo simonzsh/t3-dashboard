@@ -122,6 +122,7 @@ const SPECS: ThreadSpec[] = [
       { id: "b2c", type: "web_search", runId: "run-rate-1", patterns: ["Retry-After header token bucket"], results: [{ title: "Retry-After - HTTP | MDN", url: "https://developer.mozilla.org/docs/Web/HTTP/Headers/Retry-After", snippet: "The Retry-After response header tells the client how long to wait." }], at: 8, done: 8 },
       { id: "b3", type: "file_change", runId: "run-rate-1", fileName: "src/middleware/rateLimit.ts", diffStr: "--- /dev/null\n+++ b/src/middleware/rateLimit.ts\n@@ -0,0 +1,2 @@\n+export const rateLimit = bucket({ capacity: 60, refillPerSecond: 1 });\n+export default rateLimit;", additions: 2, deletions: 0, at: 6, done: 6 },
       { id: "b3b", type: "error", runId: "run-rate-1", failure: { class: "provider", message: "The provider was overloaded. Retrying in 5 s." }, at: 3, done: 3 },
+      { id: "b3d", type: "secret_request", runId: "run-rate-1", label: "Webhook signing secret", reason: "The agent signs the webhook it creates with this secret.", placeholder: "Paste the secret", secretStatus: "pending", at: 2 },
       { id: "b3c", type: "system_notice", runId: "run-rate-1", message: "Switched to the fallback model.", at: 2, done: 2 },
       { id: "b4", type: "command_execution", runId: "run-rate-1", input: "bun test src/middleware", status: "running", at: 1 },
     ],

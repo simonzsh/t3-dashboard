@@ -14,6 +14,7 @@ import type {
   HealthResult,
   OkResult,
   RespondBody,
+  SecretAnswerBody,
   EditQueuedBody,
   RewindBody,
   ComposerCommands,
@@ -134,6 +135,7 @@ export function createApi(fetchImpl: Fetch) {
     updateSettings: (id: string, b: ThreadSettingsBody) => call<OkResult>(`${t(id)}/settings`, b),
     respond: (id: string, requestId: string, b: RespondBody) =>
       call<OkResult>(`${t(id)}/requests/${encodeURIComponent(requestId)}/respond`, b),
+    answerSecret: (id: string, itemId: string, b: SecretAnswerBody) => call<OkResult>(`${t(id)}/secrets/${encodeURIComponent(itemId)}`, b),
     dismiss: (id: string, requestId: string) => call<OkResult>(`${t(id)}/requests/${encodeURIComponent(requestId)}/dismiss`, {}),
   };
 }

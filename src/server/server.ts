@@ -16,7 +16,7 @@ import { matchesEtag } from "./etag.ts";
 import { servePwa } from "./pwa.ts";
 import type { Site } from "./site.ts";
 import type { SseHub } from "./sse.ts";
-import { isObject, isText, validAssign, validAttachments, validAutomationRequest, validDesk, validCreate, validFileSearch, validItemId, validMessage, validProvider, validQueuedEdit, validRename, validRespond, validRewind, validSearch, validSeen, validSettings, validStash, validUpload } from "./validate.ts";
+import { isObject, isText, validAssign, validAttachments, validAutomationRequest, validDesk, validCreate, validFileSearch, validItemId, validMessage, validProvider, validQueuedEdit, validRename, validRespond, validRewind, validSearch, validSecretAnswer, validSeen, validSettings, validStash, validUpload } from "./validate.ts";
 
 export interface SetupControl {
   /** Resolves the token again. */
@@ -342,6 +342,7 @@ export function createDashboardServer(options: DashboardServerOptions): Dashboar
       path: "/api/threads/:id/requests/:requestId/respond",
       handle: ({ params, body }) => done(actions.respond(params.id!, params.requestId!, validRespond(body))),
     },
+    { method: "POST", path: "/api/threads/:id/secrets/:itemId", handle: ({ params, body }) => done(actions.answerSecret(params.id!, params.itemId!, validSecretAnswer(body))) },
     { method: "POST", path: "/api/threads/:id/requests/:requestId/dismiss", handle: ({ params }) => done(actions.dismiss(params.id!, params.requestId!)) },
   ];
   const table = routes.map((route) => ({ ...route, pattern: route.path.split("/").slice(1) }));

@@ -574,3 +574,27 @@ test("close ends the shared socket", async () => {
   client.close();
   await waitFor(() => socket.closed);
 });
+
+test("answerSecretRequest sends the tag and the answer, and is not sent twice after a cut", async () => {
+  const { client } = setup();
+  const done = client.answerSecretRequest("t1", "item-1", { type: "save", secret: "dummy-secret" });
+  const socket = await nextSocket();
+  assert.equal(socket.sent[0]!.tag, "secrets.answerRequest");
+  assert.deepEqual(socket.sent[0]!.payload, { threadId: "t1", turnItemId: "item-1", answer: { type: "save", secret: "dummy-secret" } });
+  socket.close();
+  await assert.rejects(done, (error: Error) => error instanceof IntegrationError && error.kind === "unreachable");
+  await tick();
+  assert.equal(FakeSocket.instances.length, 1);
+});
+
+test("answerSecretRequest keeps the T3 reason and never puts the secret or the cause in the message", async () => {
+  const { client } = setup();
+  const done = client.answerSecretRequest("t1", "item-1", { type: "save", secret: "dummy-secret" });
+  const socket = await nextSocket();
+  const error = { _tag: "SecretRequestError", reason: "already_answered", cause: { echoed: "dummy-secret" } };
+  socket.receive({ _tag: "Exit", requestId: "1", exit: { _tag: "Failure", cause: { _tag: "Fail", error } } });
+  const failure = await done.then(() => null, (e: IntegrationError) => e);
+  assert.ok(failure instanceof IntegrationError);
+  assert.deepEqual([failure.kind, failure.reason], ["refused", "already_answered"]);
+  assert.equal(failure.message.includes("dummy-secret"), false);
+});

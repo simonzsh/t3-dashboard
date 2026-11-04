@@ -2,7 +2,7 @@ import { describe, issues, parse, type Schema } from "../contract.ts";
 import { IntegrationError } from "../errors.ts";
 import { RpcConnection } from "./rpc.ts";
 import { AssetUrl, PersistedAttachments, ScratchProject, ProjectionResponse, RawConfig, SearchEntriesResponse, SearchThreadsResponse, DeletedScheduledTask, ScheduledTasksResponse, ShellItem, TurnItemResponse, UploadUrl, WebSocketTicket } from "./schemas.ts";
-import type { AssetResource, AttachmentRef, Command, FileUpload, ImageUpload, RawProjection, RawScheduledTask, RawSearchMatch, RawTurnItem, T3Port } from "./schemas.ts";
+import type { AssetResource, AttachmentRef, Command, FileUpload, ImageUpload, RawProjection, RawScheduledTask, RawSearchMatch, RawTurnItem, SecretAnswer, T3Port } from "./schemas.ts";
 
 export const ORCHESTRATION_PROTOCOL = "2";
 // Images go up as data URLs of up to 10 MB each: give T3 time to write them.
@@ -26,6 +26,7 @@ export const RPC = {
   subscribeScheduledTasks: "scheduledTasks.subscribe",
   deleteScheduledTask: "scheduledTasks.delete",
   upsertScheduledTask: "scheduledTasks.upsert",
+  answerSecret: "secrets.answerRequest",
 } as const;
 
 export type Validation = "ok" | "rejected" | "unreachable";
@@ -59,6 +60,14 @@ export interface T3ClientOptions {
 
 // Safe to send twice: a retry after a lost connection cannot repeat a side effect.
 const IDEMPOTENT = new Set<string>([RPC.getConfig, RPC.searchThreads, RPC.createAssetUrl, RPC.ensureScratch, RPC.getTurnItem, RPC.searchEntries]);
+
+const SECRET_REFUSALS: Record<string, string> = {
+  not_found: "This secret request no longer exists.",
+  already_answered: "This secret request was already answered.",
+  agent_stopped: "The agent that asked has stopped, so this secret can't be used.",
+  store_failed: "T3 could not store the secret.",
+  record_failed: "T3 saved the secret but could not update the request.",
+};
 
 const UPSERT_FIELDS = ["prompt", "enabled", "schedule", "projectId", "threadId", "workspaceStrategy", "modelSelection", "runtimeMode", "interactionMode"];
 
@@ -163,6 +172,17 @@ export class T3Client implements T3Port {
 
   async deleteAttachment(attachmentId: string): Promise<void> {
     await this.call(RPC.deleteAttachment, { attachmentId });
+  }
+
+  // The refusal is rebuilt from T3's reason: the cause of the failure could hold the value.
+  async answerSecretRequest(threadId: string, turnItemId: string, answer: SecretAnswer): Promise<void> {
+    try {
+      await this.call(RPC.answerSecret, { threadId, turnItemId, answer });
+    } catch (error) {
+      if (!(error instanceof IntegrationError) || error.kind !== "refused") throw error;
+      const reason = error.reason ?? "unknown";
+      throw new IntegrationError(SECRET_REFUSALS[reason] ?? "T3 could not take the secret", { system: "t3", kind: "refused", reason });
+    }
   }
 
   async persistAttachments(threadId: string, messageId: string, images: ImageUpload[]): Promise<AttachmentRef[]> {

@@ -55,6 +55,9 @@ export class DemoPort implements T3Port {
 
   async deleteAttachment(): Promise<void> {}
 
+  // The demo keeps no secret: the card stays as it is.
+  async answerSecretRequest(): Promise<void> {}
+
   async getConfig(): Promise<RawConfig> {
     return this.config;
   }

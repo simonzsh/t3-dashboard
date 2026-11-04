@@ -1,5 +1,5 @@
 import { marked } from "marked";
-import type { AssignIssueBody, ComposerCommands, CreateThreadBody, FileSearchResult, LinearIssue, ModelSelection, RespondBody, SendMessageBody, StepDetail, ThreadDetail, ThreadSearchResult, ThreadSettingsBody, UploadedAttachment } from "../../shared/api.ts";
+import type { AssignIssueBody, ComposerCommands, CreateThreadBody, FileSearchResult, LinearIssue, ModelSelection, RespondBody, SecretAnswerBody, SendMessageBody, StepDetail, ThreadDetail, ThreadSearchResult, ThreadSettingsBody, UploadedAttachment } from "../../shared/api.ts";
 import { ACTIVE_STATUSES, RUNNING_RUN_STATUSES } from "../../shared/status.ts";
 import { IntegrationError } from "../integrations/errors.ts";
 import {
@@ -67,6 +67,8 @@ export interface Actions {
   stopSubagent(threadId: string, subagentId: string): Promise<void>;
   respond(threadId: string, requestId: string, answer: RespondBody): Promise<void>;
   dismiss(threadId: string, requestId: string): Promise<void>;
+  /** Hands a secret the agent asked for to T3, or declines the request. The value is never kept or logged. */
+  answerSecret(threadId: string, itemId: string, answer: SecretAnswerBody): Promise<void>;
   /** Rewinds the thread to before a user message; `restoreFiles` also undoes the agent's file edits. */
   rewind(threadId: string, messageId: string, restoreFiles: boolean): Promise<void>;
   settle(threadId: string): Promise<void>;
@@ -292,6 +294,17 @@ export function createActions(options: ActionsOptions): Actions {
 
     async respond(threadId, requestId, answer) {
       await send("decision" in answer ? approvalCommand(threadId, requestId, answer.decision) : userInputCommand(threadId, requestId, answer.answers));
+    },
+
+    async answerSecret(threadId, itemId, answer) {
+      try {
+        await t3(port.answerSecretRequest(threadId, itemId, "secret" in answer ? { type: "save", secret: answer.secret } : { type: "decline" }));
+      } catch (error) {
+        if (!(error instanceof IntegrationError)) throw error;
+        if (error.reason === "not_found") throw new DomainError("not-found", error.message);
+        if (error.reason === "already_answered" || error.reason === "agent_stopped") throw new DomainError("conflict", error.message);
+        throw error;
+      }
     },
 
     async dismiss(threadId, requestId) {

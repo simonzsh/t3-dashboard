@@ -1,6 +1,6 @@
-import type { ApprovalDecision, AssignIssueBody, AutomationRequestBody, CreateThreadBody, ModelSelection, RespondBody, RewindBody, SendMessageBody, ThreadSettingsBody, UploadedAttachment, UserInputAnswers } from "../../shared/api.ts";
+import type { ApprovalDecision, AssignIssueBody, AutomationRequestBody, CreateThreadBody, ModelSelection, RespondBody, RewindBody, SecretAnswerBody, SendMessageBody, ThreadSettingsBody, UploadedAttachment, UserInputAnswers } from "../../shared/api.ts";
 import { normalizeDesk, type DeskUpdate } from "../../shared/desk.ts";
-import { IMAGE_TYPES, MAX_ATTACHMENTS, MAX_FILE_BYTES, MAX_IMAGE_BYTES, MAX_IMAGES, isRuntimeMode } from "../../shared/limits.ts";
+import { IMAGE_TYPES, MAX_ATTACHMENTS, MAX_FILE_BYTES, MAX_IMAGE_BYTES, MAX_IMAGES, MAX_SECRET_CHARS, isRuntimeMode } from "../../shared/limits.ts";
 import { isSeenId, isSeenTime, type SeenChange } from "../../shared/seen.ts";
 import { STASH_TEXT_MAX, type StashBody } from "../../shared/stash.ts";
 import type { FileUpload, ImageUpload } from "../domain/actions.ts";
@@ -183,6 +183,18 @@ export function validRespond(body: Record<string, unknown>): RespondBody {
   const valid = isObject(answers) && Object.values(answers).every((value) => typeof value === "string" || (Array.isArray(value) && value.every((entry) => typeof entry === "string")));
   if (!valid) throw new HttpError(400, "answers must map question ids to strings or string arrays");
   return { answers: answers as UserInputAnswers };
+}
+
+// Errors name the rule, never the value.
+export function validSecretAnswer(body: Record<string, unknown>): SecretAnswerBody {
+  const hasSecret = "secret" in body;
+  if (hasSecret === ("decline" in body)) throw new HttpError(400, "Send either secret or decline");
+  if (!hasSecret) {
+    if (body.decline !== true) throw new HttpError(400, "decline must be true");
+    return { decline: true };
+  }
+  if (typeof body.secret !== "string" || body.secret.trim() === "" || body.secret.length > MAX_SECRET_CHARS) throw new HttpError(400, `secret must be 1 to ${MAX_SECRET_CHARS} characters`);
+  return { secret: body.secret };
 }
 
 export function validQueuedEdit(body: Record<string, unknown>): string {

@@ -24,6 +24,12 @@ interface Exit {
 const PING_MS = 30_000;
 
 // Effect wraps a typed failure as `{_tag: "Fail", error}`; dispatch errors carry commandType and message.
+function reasonOf(cause: unknown): string | undefined {
+  const error = (cause as { error?: unknown } | null)?.error ?? cause;
+  const { reason } = (error ?? {}) as { reason?: unknown };
+  return typeof reason === "string" ? reason : undefined;
+}
+
 function describeCause(cause: unknown): string {
   const error = (cause as { error?: unknown } | null)?.error ?? cause;
   const { message, commandType } = (error ?? {}) as { message?: unknown; commandType?: unknown };
@@ -131,7 +137,7 @@ export class RpcConnection {
   }
 
   private onExit(id: string, exit: Exit | undefined): void {
-    const failure = exit?._tag === "Success" ? undefined : new IntegrationError(`T3 refused the request: ${describeCause(exit?.cause)}`, { system: "t3", kind: "refused" });
+    const failure = exit?._tag === "Success" ? undefined : new IntegrationError(`T3 refused the request: ${describeCause(exit?.cause)}`, { system: "t3", kind: "refused", reason: reasonOf(exit?.cause) });
     const request = this.pending.get(id);
     if (request) {
       this.pending.delete(id);
