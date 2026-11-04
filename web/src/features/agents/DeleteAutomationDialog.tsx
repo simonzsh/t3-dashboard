@@ -31,6 +31,7 @@ export function DeleteAutomationDialog({ automation, onDeleted, onClose }: Props
     <Dialog title="Delete automation?" onClose={onClose} onCancel={onClose} primary={{ label: busy ? "Deleting…" : "Delete", onClick: () => void confirm(), disabled: busy }}>
       <p>
         <strong>{automation.title}</strong> will no longer run. This cannot be undone.
+        {automation.kind === "reminder" && " The threads of its runs will be archived."}
       </p>
     </Dialog>
   );

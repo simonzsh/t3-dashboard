@@ -1,7 +1,7 @@
 import type { Automation, AutomationRunStatus, AutomationsResult, CreateAutomationBody, CreateAutomationResult } from "../../shared/api.ts";
 import { IntegrationError } from "../integrations/errors.ts";
 import type { RawScheduledTask, RawThread, ScheduleInput, T3Port } from "../integrations/t3/schemas.ts";
-import { renameThreadCommand } from "../integrations/t3/commands.ts";
+import { archiveThreadCommand, renameThreadCommand } from "../integrations/t3/commands.ts";
 import { reminderSchedule, routineSchedule, webhookSchedule } from "./automationSchedule.ts";
 import { DomainError } from "./errors.ts";
 import { scheduleLabel } from "./scheduleLabel.ts";
@@ -12,6 +12,8 @@ const REMINDER_PREFIX = /^\s*(?:reminder|rappel)\s*:\s*/i;
 // T3 has no one-shot type: a reminder is a task whose prompt pauses this very task.
 const pauseInstruction = (id: string) => `call schedule_task with scheduledTaskId ${id} and enabled: false`;
 const pausesItself = (task: RawScheduledTask) => (task.prompt ?? "").includes(pauseInstruction(task.id));
+const isWebhook = (task: RawScheduledTask) => task.schedule?.type === "webhook";
+const isReminder = (task: RawScheduledTask) => !isWebhook(task) && (pausesItself(task) || REMINDER_PREFIX.test(task.title ?? ""));
 const TITLE_MAX = 60;
 const RUN_STATUSES = new Set<string>(["running", "succeeded", "failed"] satisfies AutomationRunStatus[]);
 
@@ -41,11 +43,11 @@ export function toAutomations(tasks: RawScheduledTask[], threads: RawThread[], d
       hidden.add(threadId);
     }
     const title = task.title ?? "";
-    const isWebhook = task.schedule?.type === "webhook";
-    const reminder = !isWebhook && (pausesItself(task) || REMINDER_PREFIX.test(title));
+    const webhook = isWebhook(task);
+    const reminder = isReminder(task);
     return {
       id: task.id,
-      kind: isWebhook ? "webhook" : reminder ? "reminder" : "routine",
+      kind: webhook ? "webhook" : reminder ? "reminder" : "routine",
       title: reminder ? title.replace(REMINDER_PREFIX, "") : title,
       projectId: task.projectId ?? "",
       project: (task.projectId && projectTitle(task.projectId)) || "No project",
@@ -57,7 +59,7 @@ export function toAutomations(tasks: RawScheduledTask[], threads: RawThread[], d
       lastRunError: task.lastRunError ?? null,
       threadId,
       model: task.modelSelection?.model ?? null,
-      webhook: isWebhook ? { url: task.webhook?.url ?? null, signed: task.webhook?.hasSecret === true } : null,
+      webhook: webhook ? { url: task.webhook?.url ?? null, signed: task.webhook?.hasSecret === true } : null,
     };
   });
   return { automations, hiddenThreadIds: [...hidden], setupThreadIds: [...dedicated].filter((id) => !bound.has(id)) };
@@ -73,6 +75,7 @@ export interface AutomationsOptions {
   store: Pick<ShellStore, "project" | "rawThreads">;
   /** The setup threads that older versions created: still hidden from the Agents grid. */
   dedicated: { read(): ReadonlySet<string> };
+  warn?: (message: string) => void;
   newId?: () => string;
   now?: () => Date;
 }
@@ -81,7 +84,7 @@ export interface Automations {
   list(): Promise<AutomationsResult>;
   /** Creates the scheduled task in T3. A reminder pauses itself after its run. */
   create(body: CreateAutomationBody): Promise<CreateAutomationResult>;
-  /** Deletes the T3 scheduled task. */
+  /** Deletes the T3 scheduled task, and archives the run threads of a reminder. */
   remove(id: string): Promise<void>;
   /** Renames the T3 task, keeping a "Reminder:" prefix, and the thread it is bound to. */
   rename(id: string, title: string): Promise<void>;
@@ -100,6 +103,7 @@ export function createAutomations(options: AutomationsOptions): Automations {
   const { port, store, dedicated } = options;
   const newId = options.newId ?? (() => crypto.randomUUID());
   const now = options.now ?? (() => new Date());
+  const warn = options.warn ?? console.warn;
 
   return {
     async list() {
@@ -107,7 +111,20 @@ export function createAutomations(options: AutomationsOptions): Automations {
       return toAutomations(tasks, store.rawThreads(), dedicated.read(), (id) => store.project(id)?.title || null);
     },
 
-    remove: (id) => viaT3(port.deleteScheduledTask(id)),
+    async remove(id) {
+      const task = (await viaT3(port.listScheduledTasks())).find((entry) => entry.id === id);
+      await viaT3(port.deleteScheduledTask(id));
+      // Without its task, a run thread comes back in the grid. A bound thread is the user's chat: keep it.
+      if (!task || task.threadId || !isReminder(task)) return;
+      for (const run of runThreads(task, store.rawThreads())) {
+        if (run.archivedAt) continue;
+        try {
+          await port.dispatch({ ...archiveThreadCommand(run.id), commandId: newId() });
+        } catch (error) {
+          warn(`Could not archive thread ${run.id} of the deleted reminder: ${(error as Error).message}`);
+        }
+      }
+    },
 
     async rename(id, title) {
       const name = title.trim();
