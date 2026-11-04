@@ -260,12 +260,20 @@ main { flex: 1; min-height: 0; overflow: hidden; padding: 24px; display: flex; f
 .notif-toast { pointer-events: auto; display: flex; align-items: center; gap: 4px; padding: 4px; border-radius: var(--radius-md); background: var(--surface-1); border: 1px solid var(--line); box-shadow: var(--shadow); font-size: 13px; }
 .notif-toast-body { flex: 1; min-width: 0; background: none; }
 .notif-toast .icon-button { border: 0; background: none; }
-.conversation { flex: 1; min-height: 0; display: flex; flex-direction: column; }
+.conversation { flex: 1; min-height: 0; display: flex; flex-direction: column; position: relative; }
+.conversation.dropping::after { content: ""; position: absolute; inset: 4px; z-index: 3; pointer-events: none; border: 2px dashed var(--accent); border-radius: var(--radius-md); background: color-mix(in srgb, var(--accent) 7%, transparent); }
 .conversation:focus { outline: none; }
 .messages-frame { flex: 1; min-height: 0; display: flex; flex-direction: column; position: relative; }
 .to-bottom { position: absolute; left: 50%; bottom: 12px; transform: translateX(-50%); z-index: 2; border-radius: 50%; background: var(--surface-1); box-shadow: var(--shadow); }
 .msg-images { display: flex; flex-wrap: wrap; gap: 6px; }
 .msg.user .msg-images { justify-content: flex-end; }
+.msg-attachments { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.bubble .msg-attachments:not(:last-child) { margin-bottom: 6px; }
+.bubble .msg-images, .bubble .msg-files { justify-content: flex-start; }
+.msg-thumb, .md-image-button { display: block; padding: 0; border: 0; border-radius: var(--radius-md); background: none; cursor: zoom-in; max-width: 100%; }
+.msg-thumb:hover, .md-image-button:hover { filter: brightness(1.06); }
+.md-image-button { margin: 4px 0; }
+.md-image-button .md-image { margin: 0; }
 .msg-images img, .md-image { display: block; max-width: min(100%, 320px); max-height: 240px; border-radius: var(--radius-md); border: 1px solid var(--line); object-fit: cover; }
 .md-image { max-width: 100%; max-height: 420px; object-fit: contain; margin: 4px 0; }
 .msg.render iframe { width: 100%; border: 0; display: block; background: transparent; }
@@ -555,6 +563,14 @@ input.dropdown-search { position: absolute; inset: 0 auto 0 0; z-index: 1; width
 .dialog-actions, .request .buttons { justify-content: flex-end; }
 .dialog-backdrop { position: fixed; inset: 0; background: var(--backdrop); display: grid; place-items: start center; padding-top: 16vh; box-sizing: border-box; z-index: 20; }
 .dialog { width: min(480px, 94vw); background: var(--surface-1); border: 1px solid var(--line); border-radius: 14px; padding: 20px; box-shadow: var(--shadow); display: flex; flex-direction: column; gap: 10px; }
+.dialog-backdrop:has(.preview-dialog) { padding-top: 4vh; }
+.dialog.preview-dialog { width: min(1100px, 96vw); height: 88vh; }
+.preview-body { flex: 1; min-height: 0; display: flex; align-items: center; justify-content: center; overflow: auto; border-radius: var(--radius-md); background: var(--surface-0); }
+.preview-body img { max-width: 100%; max-height: 100%; object-fit: contain; }
+.preview-body iframe { width: 100%; height: 100%; border: 0; background: var(--surface-0); }
+.preview-actions { display: flex; justify-content: flex-end; gap: 8px; }
+.preview-actions .btn { text-decoration: none; color: var(--text-primary); background: var(--surface-1); border: 1px solid var(--line); border-radius: var(--radius-md); }
+.preview-actions .btn:hover { border-color: var(--accent); }
 .dialog h2 { margin: 0; font-size: 15px; }
 .dialog-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
 .dialog-close { margin: -6px -8px -6px 0; }

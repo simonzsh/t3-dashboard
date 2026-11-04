@@ -1,11 +1,13 @@
 import { marked, type Token, type Tokens } from "marked";
 import { Fragment, type ReactNode } from "react";
-import { Choice } from "../ui/index.ts";
+import { Choice, Pressable } from "../ui/index.ts";
 
 // marked is only the lexer: tokens become React elements, so raw HTML stays text.
 interface Ctx {
   /** URL that serves an image or a video at this absolute path, if the caller can serve it. */
   localMedia?: (path: string) => string;
+  /** Makes a local image clickable: called with its absolute path. */
+  onImage?: (path: string) => void;
   /** Turn single newlines into line breaks, as typed in the chat input. */
   breaks?: boolean;
 }
@@ -52,7 +54,16 @@ function inline(tokens: Token[] | undefined, ctx: Ctx): ReactNode[] {
         // A local path is an image or video the agent made: the dashboard serves it, others stay links.
         const src = t.href.startsWith("/") ? ctx.localMedia?.(t.href) : undefined;
         if (src && VIDEO_FILE.test(t.href)) return <video key={key} className="md-image" src={src} aria-label={t.text} controls muted playsInline preload="metadata" />;
-        return src ? <img key={key} className="md-image" src={src} alt={t.text} loading="lazy" /> : link(t.href, t.text || t.href, key);
+        if (!src) return link(t.href, t.text || t.href, key);
+        const img = <img className="md-image" src={src} alt={t.text} loading="lazy" />;
+        const { onImage } = ctx;
+        return onImage ? (
+          <Pressable key={key} className="md-image-button" onClick={() => onImage(t.href)}>
+            {img}
+          </Pressable>
+        ) : (
+          <Fragment key={key}>{img}</Fragment>
+        );
       }
       case "checkbox":
         return <Choice key={key} type="checkbox" disabled checked={t.checked} />;

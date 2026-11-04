@@ -55,6 +55,12 @@ test("a fenced code block inside a list item renders as code", () => {
   assert.ok(!out.includes("```"), out);
 });
 
+test("with onImage, a local image is a button; other images stay links", () => {
+  const out = (text: string) => renderToStaticMarkup(renderMarkdown(text, { localMedia: (path) => `/media?path=${encodeURIComponent(path)}`, onImage: () => {} }));
+  assert.equal(out("![shot](/tmp/a.png)"), '<p><button type="button" class="md-image-button"><img class="md-image" src="/media?path=%2Ftmp%2Fa.png" alt="shot" loading="lazy"/></button></p>');
+  assert.match(out("![logo](https://example.com/a.png)"), /^<p><a href=/);
+});
+
 test("a local image shows through the caller's URL; others stay links", () => {
   const withMedia = (text: string) => renderToStaticMarkup(renderMarkdown(text, { localMedia: (path) => `/media?path=${encodeURIComponent(path)}` }));
   assert.equal(withMedia("![shot](/tmp/a.png)"), '<p><img class="md-image" src="/media?path=%2Ftmp%2Fa.png" alt="shot" loading="lazy"/></p>');

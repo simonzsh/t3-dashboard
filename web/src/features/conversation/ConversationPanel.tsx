@@ -3,11 +3,12 @@ import type { ChatMessage, DashboardProvider, HtmlRender, DashboardThread, Threa
 import { runActive } from "../../../../shared/status.ts";
 import { useApi } from "../../api/ApiContext.tsx";
 import { Icon, IconButton, Loader } from "../../ui/index.ts";
-import { attachmentUrl, rawAttachmentUrl } from "../../api/client.ts";
+import { attachmentUrl } from "../../api/client.ts";
 import { type PendingMessage, countSame, isSettled, pendingLabel, sentMessages } from "./pending.ts";
 import { MarkdownText } from "./MarkdownText.tsx";
 import { QueuedMessages } from "./QueuedMessages.tsx";
 import { Composer } from "./Composer.tsx";
+import { MessageAttachments } from "./MessageAttachments.tsx";
 import { MessageActions } from "./MessageActions.tsx";
 import { RewindDialog } from "./RewindDialog.tsx";
 import { attachmentFiles, mergeDraft } from "./rewind.ts";
@@ -20,7 +21,7 @@ import { useStickToBottom } from "./useStickToBottom.ts";
 import { documentPage, usePoll } from "../../lib/usePoll.ts";
 import { singleFlight } from "../../lib/singleFlight.ts";
 import { NoticeProvider, useNotify } from "../../lib/notices.tsx";
-import { failure, formatBytes, formatMessageTime } from "../../lib/format.ts";
+import { failure, formatMessageTime } from "../../lib/format.ts";
 import { useDocumentTheme } from "../../lib/useDocumentTheme.ts";
 import { omittedLabel } from "./steps.ts";
 import { awaitingStep, timeline } from "./timeline.ts";
@@ -43,35 +44,22 @@ interface MessageEditing {
 
 const Message = memo(function Message({ message: m, threadId, editing }: { message: ChatMessage; threadId: string; editing: MessageEditing }) {
   const time = formatMessageTime(m.createdAt);
-  const images = m.attachments.filter((file) => file.kind === "image");
-  const files = m.attachments.filter((file) => file.kind === "file");
+  const attachments = <MessageAttachments threadId={threadId} attachments={m.attachments} />;
   return (
     <div className={`msg ${m.role}`}>
-      {images.length > 0 && (
-        <div className="msg-images">
-          {images.map((file) => (
-            <a key={file.id} href={attachmentUrl(threadId, file.id)} target="_blank" rel="noreferrer">
-              <img src={attachmentUrl(threadId, file.id)} alt={file.name} loading="lazy" />
-            </a>
-          ))}
-        </div>
-      )}
-      {files.length > 0 && (
-        <div className="msg-files">
-          {files.map((file) => (
-            <a key={file.id} className="msg-file" href={rawAttachmentUrl(threadId, file.id)} download={file.name}>
-              <Icon name="paperclip" />
-              <span className="msg-file-name">{file.name}</span>
-              {file.sizeBytes !== null && <span className="msg-file-size">{formatBytes(file.sizeBytes)}</span>}
-            </a>
-          ))}
-        </div>
-      )}
-      {m.role === "user" ? m.text && (
+      {m.role === "user" ? (
+        (m.text || m.attachments.length > 0) && (
           <div className="bubble md">
-            <MarkdownText text={m.text} threadId={threadId} breaks />
+            {attachments}
+            {m.text && <MarkdownText text={m.text} threadId={threadId} breaks />}
           </div>
-        ) : <div className="md">{m.role === "assistant" ? <MarkdownText text={m.text} threadId={threadId} /> : m.text}</div>}
+        )
+      ) : (
+        <>
+          {attachments}
+          <div className="md">{m.role === "assistant" ? <MarkdownText text={m.text} threadId={threadId} /> : m.text}</div>
+        </>
+      )}
       <small>
         {ROLE_LABELS[m.role] ?? m.role} · {time}
         {m.streaming && <span className="streaming" role="img" aria-label="Running" />}
@@ -186,6 +174,7 @@ function Conversation({ threadId, thread, providers, onOpenThread, onTitle }: Pr
   const [atBottom, setAtBottom] = useState(true);
   const [editing, setEditing] = useState<ChatMessage | null>(null);
   const [restore, setRestore] = useState<{ key: number; files: File[] }>({ key: 0, files: [] });
+  const [dropping, setDropping] = useState(false);
 
   // Bumped on every thread change and cleanup: a late response from an older effect is dropped.
   const epoch = useRef(0);
@@ -341,7 +330,28 @@ function Conversation({ threadId, thread, providers, onOpenThread, onTitle }: Pr
 
   return (
     // tabIndex -1: Escape in the composer leaves the field here, so the dashboard shortcuts work again.
-    <div className="conversation" ref={frame} tabIndex={-1}>
+    <div
+      className={dropping ? "conversation dropping" : "conversation"}
+      ref={frame}
+      tabIndex={-1}
+      onDragOver={(e) => {
+        if (!e.dataTransfer.types.includes("Files")) return;
+        // Always cancelled: a dropped file must not make the browser leave the page.
+        e.preventDefault();
+        setDropping(!detail?.subagentThread);
+      }}
+      onDragLeave={(e) => {
+        if (!e.currentTarget.contains(e.relatedTarget as Node | null)) setDropping(false);
+      }}
+      onDrop={(e) => {
+        if (!e.dataTransfer.types.includes("Files")) return;
+        e.preventDefault();
+        setDropping(false);
+        // The composer takes its own drop: a second add here would attach each file twice.
+        if (detail?.subagentThread || (e.target as Element).closest(".composer-card")) return;
+        setRestore((last) => ({ key: last.key + 1, files: [...e.dataTransfer.files] }));
+      }}
+    >
       <div className="messages-frame">
         <div
           className="messages"
