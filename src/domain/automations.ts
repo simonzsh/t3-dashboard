@@ -8,6 +8,10 @@ import { scheduleLabel } from "./scheduleLabel.ts";
 import type { ShellStore } from "./shellStore.ts";
 
 const REMINDER_PREFIX = /^\s*(?:reminder|rappel)\s*:\s*/i;
+
+// T3 has no one-shot type: a reminder is a task whose prompt pauses this very task.
+const pauseInstruction = (id: string) => `call schedule_task with scheduledTaskId ${id} and enabled: false`;
+const pausesItself = (task: RawScheduledTask) => (task.prompt ?? "").includes(pauseInstruction(task.id));
 const TITLE_MAX = 60;
 const RUN_STATUSES = new Set<string>(["running", "succeeded", "failed"] satisfies AutomationRunStatus[]);
 
@@ -38,7 +42,7 @@ export function toAutomations(tasks: RawScheduledTask[], threads: RawThread[], d
     }
     const title = task.title ?? "";
     const isWebhook = task.schedule?.type === "webhook";
-    const reminder = !isWebhook && REMINDER_PREFIX.test(title);
+    const reminder = !isWebhook && (pausesItself(task) || REMINDER_PREFIX.test(title));
     return {
       id: task.id,
       kind: isWebhook ? "webhook" : reminder ? "reminder" : "routine",
@@ -120,13 +124,12 @@ export function createAutomations(options: AutomationsOptions): Automations {
       const reminder = body.kind === "reminder";
       const name = body.title.trim() || titleFromRequest(body.prompt);
       const schedule: ScheduleInput = body.kind === "routine" ? routineSchedule(body.schedule) : body.kind === "reminder" ? reminderSchedule(new Date(body.at), now()) : webhookSchedule(body.filters, body.signature);
-      // T3 has no one-shot task: the run pauses its own task, so the prompt carries the real id.
-      const prompt = reminder ? `${body.prompt.trim()}\n\nThen disable this scheduled task: call schedule_task with scheduledTaskId ${id} and enabled: false. Do not delete it.` : body.prompt.trim();
+      const prompt = reminder ? `${body.prompt.trim()}\n\nThen disable this scheduled task: ${pauseInstruction(id)}. Do not delete it.` : body.prompt.trim();
       const projectId = body.projectId || (await viaT3(port.ensureScratchProject()));
       const created = await viaT3(
         port.createScheduledTask({
           id,
-          title: reminder ? `Reminder: ${name}` : name,
+          title: name,
           prompt,
           enabled: true,
           schedule,

@@ -50,6 +50,16 @@ test("a Reminder or Rappel prefix makes a reminder and leaves the title", () => 
   assert.deepEqual(items.map((item) => [item.kind, item.title]), [["reminder", "Call Sam"], ["reminder", "Appeler Sam"], ["routine", "Reminders digest"]]);
 });
 
+test("a prompt that pauses its own task makes a reminder, whatever the title", () => {
+  const pause = (id: string) => `Do it.\n\nThen disable this scheduled task: call schedule_task with scheduledTaskId ${id} and enabled: false. Do not delete it.`;
+  const items = convert([
+    task({ id: "a", title: "Call Sam", prompt: pause("a") }),
+    task({ id: "b", title: "List tasks", prompt: pause("other-task") }),
+    task({ id: "c", title: "Hook", prompt: pause("c"), schedule: { type: "webhook" } }),
+  ]).automations;
+  assert.deepEqual(items.map((item) => [item.kind, item.title]), [["reminder", "Call Sam"], ["routine", "List tasks"], ["webhook", "Hook"]]);
+});
+
 test("an unknown project is No project", () => {
   assert.equal(convert([task({ projectId: "gone" })]).automations[0]!.project, "No project");
   assert.equal(convert([task({ projectId: null })]).automations[0]!.project, "No project");
@@ -188,11 +198,11 @@ test("create keeps a given title and runtime mode, and cuts a long first line to
   assert.equal(port.createdTasks[1]!.title.length, 60);
 });
 
-test("create sends a reminder with the Reminder prefix, the exact time and a self-pause with its own id", async () => {
+test("create sends a reminder with the exact time and a self-pause with its own id", async () => {
   const { automations, port } = harness();
   await automations.create({ ...base, kind: "reminder", title: "Call Sam", prompt: "Call Sam", at: new Date(2026, 10, 4, 17, 30).toISOString() });
   const [sent] = port.createdTasks;
-  assert.equal(sent!.title, "Reminder: Call Sam");
+  assert.equal(sent!.title, "Call Sam");
   assert.deepEqual(sent!.schedule, { type: "fixed_time", timeOfDay: "17:30", weekdays: [new Date(2026, 10, 4).getDay()] });
   assert.equal(sent!.prompt, "Call Sam\n\nThen disable this scheduled task: call schedule_task with scheduledTaskId scheduled-task:id-1 and enabled: false. Do not delete it.");
 });

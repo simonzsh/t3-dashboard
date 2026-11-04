@@ -126,7 +126,7 @@ The browser keeps the project selection in its `localStorage`, not on the server
 The right column of the Agents tab lists the scheduled tasks of T3 Code. It appears when T3 Code is connected. It updates every 30 s while the tab is open.
 
 - A routine runs at each occurrence. The row shows the project, the frequency, the next run and the status of the last run. A paused task shows "paused".
-- A reminder is a task with a title that starts with "Reminder: " or "Rappel : ". The row shows the date of the reminder. The prefix is not shown.
+- A reminder is a task whose prompt pauses this same task: "call schedule_task with scheduledTaskId <its id> and enabled: false". T3 Code has no one-time type. A title that starts with "Reminder: " or "Rappel : " also marks a reminder (older reminders); the prefix is not shown. The row shows the date of the reminder.
 - A webhook is a task that runs when a request arrives (see [Webhooks](#webhooks)).
 - After its run, a reminder pauses. The row then shows "Finished" with the time of the run. Finished reminders are at the bottom of the list, the most recent first.
 - Click a row to open the thread of the task.
@@ -143,7 +143,7 @@ The right column of the Agents tab lists the scheduled tasks of T3 Code. It appe
 5. Send. The dashboard creates the task in T3 Code directly: no agent thread is involved. The task runs with full access unless you pick another mode in the model menu. If an error occurs, the window stays open and shows the error.
 
 - A routine repeats. Choose "At a time" (a time and the days; no day means every day) or "Every N minutes" (1 to 525600).
-- A reminder runs once at the date and time you pick (1 minute to 366 days ahead). The dashboard adds the "Reminder: " prefix and ends the prompt with an instruction to pause the task after its run. T3 Code has no one-time task type.
+- A reminder runs once at the date and time you pick (1 minute to 366 days ahead). The dashboard ends the prompt with an instruction to pause the task after its run, with the real task id. T3 Code has no one-time task type.
 - A reminder time is in your browser's time zone. A routine time is in the time zone of the machine that runs T3 Code. The row shows the next run: check it.
 - If T3 Code is off for more than 10 minutes at the time of a reminder set less than 7 days ahead, T3 Code moves it one week later.
 - The new task is not linked to a thread: each run opens its own thread.
@@ -166,7 +166,7 @@ A webhook task runs when a service sends a request to its URL, for example a Git
 
 ### From a conversation
 
-You can also ask for a task in a normal conversation. By default, `schedule_task` links the task to this conversation, and each run posts in it. The conversation stays in the grid. To open a new thread at each run, ask the agent to use `bindToCurrentThread: false` (see the next section). For a one-time reminder, write: "Create a reminder: the title starts with "Reminder: ", and pause the task after its run".
+You can also ask for a task in a normal conversation. By default, `schedule_task` links the task to this conversation, and each run posts in it. The conversation stays in the grid. To open a new thread at each run, ask the agent to use `bindToCurrentThread: false` (see the next section). For a one-time reminder, write: "Create a reminder, and end its prompt with: Then disable this scheduled task: call schedule_task with scheduledTaskId <id> and enabled: false".
 
 ### Threads of tasks without a linked conversation
 
