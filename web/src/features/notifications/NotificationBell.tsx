@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useRef, type KeyboardEvent } from "react";
+import { useEffect, useLayoutEffect, useRef, useState, type KeyboardEvent } from "react";
 import { moveActive } from "../../lib/dropdown.ts";
 import { ctrlLabel } from "../../lib/shortcuts.ts";
 import { relativeTime } from "../../lib/format.ts";
@@ -13,13 +13,13 @@ interface ListProps {
   onOpen: (id: string) => void;
 }
 
-export function NotificationList({ entries, now, onOpen }: ListProps) {
+export function NotificationList({ entries, now, onOpen, active = -1, onActive }: ListProps & { active?: number; onActive?: (index: number) => void }) {
   return (
     <>
       <h2 className="notif-heading">Notifications</h2>
       {entries.length === 0 && <p className="notif-empty">Nothing needs you right now</p>}
-      {entries.map(({ thread, tone, label, unseen }) => (
-        <Pressable key={thread.id} className="notif-row" onClick={() => onOpen(thread.id)}>
+      {entries.map(({ thread, tone, label, unseen }, i) => (
+        <Pressable key={thread.id} className={`notif-row${i === active ? " active" : ""}`} onMouseEnter={() => onActive?.(i)} onClick={() => onOpen(thread.id)}>
           <ProviderIcon provider={thread.provider} />
           <span className="notif-title">{threadTitle(thread)}</span>
           <Badge variant={tone}>{label}</Badge>
@@ -65,22 +65,28 @@ export function NotificationToasts({ toasts, onOpen, onDismiss }: { toasts: Noti
 export function NotificationBell({ entries, count, now, onOpen, open, onOpenChange }: ListProps & { count: number; open: boolean; onOpenChange: (open: boolean) => void }) {
   const button = useRef<HTMLButtonElement>(null);
   const list = useRef<HTMLDivElement>(null);
-  // Open from a click or Ctrl+B, even while typing: the focus goes to the first row, so the arrows work at once.
+  // The active row is drawn by a class, not :focus-visible, which the browser skips after a mouse click.
+  const [active, setActive] = useState(0);
+  const rows = () => [...(list.current?.querySelectorAll<HTMLElement>(".notif-row") ?? [])];
+  const go = (index: number) => {
+    setActive(index);
+    rows()[index]?.focus({ preventScroll: index === 0 });
+  };
+  // Each opening, from a click or Ctrl+B even while typing, starts on the first row.
   useEffect(() => {
     if (!open) return;
-    const frame = requestAnimationFrame(() => (list.current?.querySelector<HTMLElement>(".notif-row") ?? list.current)?.focus({ preventScroll: true }));
+    setActive(0);
+    const frame = requestAnimationFrame(() => (rows()[0] ?? list.current)?.focus({ preventScroll: true }));
     return () => cancelAnimationFrame(frame);
   }, [open]);
   const onKeyDown = (e: KeyboardEvent) => {
     // Kept here: the Desk also reads plain arrows to move between windows.
     if (e.key.startsWith("Arrow")) e.stopPropagation();
     if (e.key !== "ArrowDown" && e.key !== "ArrowUp" && e.key !== "Home" && e.key !== "End") return;
-    const rows = [...(list.current?.querySelectorAll<HTMLElement>(".notif-row") ?? [])];
-    if (rows.length === 0) return;
+    const count = rows().length;
+    if (count === 0) return;
     e.preventDefault();
-    const current = rows.indexOf(document.activeElement as HTMLElement);
-    const next = e.key === "Home" ? 0 : e.key === "End" ? rows.length - 1 : moveActive(rows.length, current, e.key === "ArrowDown" ? 1 : -1);
-    rows[next]?.focus();
+    go(e.key === "Home" ? 0 : e.key === "End" ? count - 1 : moveActive(count, active, e.key === "ArrowDown" ? 1 : -1));
   };
   return (
     <>
@@ -113,6 +119,8 @@ export function NotificationBell({ entries, count, now, onOpen, open, onOpenChan
             <NotificationList
               entries={entries}
               now={now}
+              active={active}
+              onActive={setActive}
               onOpen={(id) => {
                 onOpenChange(false);
                 onOpen(id);
