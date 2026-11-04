@@ -61,3 +61,6 @@ export interface AutomationsResult {
   /** Dedicated threads with no task yet: the agent is still setting the task up, or it failed. */
   setupThreadIds: string[];
 }
+
+// A reminder disables itself after its run instead of deleting itself, so the column can show it as finished.
+export const isFinishedReminder = (a: Pick<Automation, "kind" | "enabled" | "lastRunAt">): boolean => a.kind === "reminder" && !a.enabled && a.lastRunAt !== null;

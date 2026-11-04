@@ -156,16 +156,18 @@ test("remove wraps a port failure as an IntegrationError", async () => {
   await assert.rejects(automations.remove("task-1"), (error) => error instanceof IntegrationError && error.kind === "refused");
 });
 
-function harness() {
+function harness(saved: string[] = []) {
   const port = new FakePort();
+  const hidden = { ids: saved, writes: 0 };
   const automations = createAutomations({
+    hidden: { read: () => hidden.ids, write: (ids) => void ((hidden.ids = [...ids]), hidden.writes++) },
     port,
     store: { project: (id) => (id === "project-1" ? { id, title: "Project A", defaultModelSelection: null, icon: null } : undefined), rawThreads: () => [thread("run-1")] },
     dedicated: { read: () => new Set(["t-dedicated"]) },
     newId: () => "id-1",
     now: () => new Date(2026, 10, 4, 10, 0, 0),
   });
-  return { automations, port };
+  return { automations, port, hidden };
 }
 
 const base = { title: "", prompt: "  Triage the inbox\nand reply ", projectId: "project-1", modelSelection: { instanceId: "claudeAgent", model: "m" } };
@@ -303,4 +305,50 @@ test("rename accepts a webhook task", async () => {
   port.scheduledTasks = [task({ schedule: { type: "webhook" } })];
   await automations.rename("task-1", "PR reviews");
   assert.deepEqual(port.renamedTasks, [{ id: "task-1", title: "PR reviews" }]);
+});
+
+const finished = (id: string) => task({ id, title: "Reminder: Call back", enabled: false, lastRunAt: "2026-11-03T09:00:00.000Z", lastRunStatus: "succeeded" });
+
+test("hide removes a finished reminder from the list and keeps its run threads hidden", async () => {
+  const { automations, port, hidden } = harness();
+  port.scheduledTasks = [finished("task-1"), task({ id: "task-2" })];
+  await automations.hide("task-1");
+  assert.deepEqual(hidden.ids, ["task-1"]);
+  const result = await automations.list();
+  assert.deepEqual(result.automations.map((a) => a.id), ["task-2"]);
+  assert.ok(result.hiddenThreadIds.includes("run-1"));
+});
+
+test("hide twice stores the id once", async () => {
+  const { automations, port, hidden } = harness();
+  port.scheduledTasks = [finished("task-1")];
+  await automations.hide("task-1");
+  await automations.hide("task-1");
+  assert.deepEqual(hidden.ids, ["task-1"]);
+  assert.equal(hidden.writes, 1);
+});
+
+test("hide refuses an unknown task and a task that is not a finished reminder", async () => {
+  const { automations, port, hidden } = harness();
+  port.scheduledTasks = [task({ id: "routine" }), task({ id: "pending", title: "Reminder: Later", enabled: true })];
+  await assert.rejects(automations.hide("missing"), (error) => error instanceof DomainError && error.code === "not-found");
+  await assert.rejects(automations.hide("routine"), (error) => error instanceof DomainError && error.code === "invalid");
+  await assert.rejects(automations.hide("pending"), (error) => error instanceof DomainError && error.code === "invalid");
+  assert.deepEqual(hidden.ids, []);
+});
+
+test("list shows a hidden reminder again once it is enabled", async () => {
+  const { automations, port } = harness(["task-1"]);
+  port.scheduledTasks = [{ ...finished("task-1"), enabled: true }];
+  assert.deepEqual((await automations.list()).automations.map((a) => a.id), ["task-1"]);
+});
+
+test("list drops the hidden ids of deleted tasks and writes only on change", async () => {
+  const { automations, port, hidden } = harness(["task-1", "gone"]);
+  port.scheduledTasks = [finished("task-1")];
+  await automations.list();
+  assert.deepEqual(hidden.ids, ["task-1"]);
+  assert.equal(hidden.writes, 1);
+  await automations.list();
+  assert.equal(hidden.writes, 1);
 });

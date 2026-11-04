@@ -29,7 +29,7 @@ export interface SetupControl {
 export interface DashboardServerOptions {
   actions: Actions;
   board: Pick<LinearBoard, "get">;
-  automations: Pick<Automations, "list" | "create" | "remove" | "rename">;
+  automations: Pick<Automations, "list" | "create" | "remove" | "rename" | "hide">;
   desk: Pick<DeskStore, "get" | "set">;
   stash: Pick<StashStore, "list" | "add" | "remove">;
   seen: Pick<SeenStore, "get" | "apply">;
@@ -306,6 +306,7 @@ export function createDashboardServer(options: DashboardServerOptions): Dashboar
     { method: "POST", path: "/api/automations", handle: async ({ body }) => json(200, await automations.create(validCreateAutomation(body))) },
     { method: "POST", path: "/api/automations/:id/rename", handle: ({ params, body }) => done(automations.rename(params.id!, validRename(body))) },
     { method: "POST", path: "/api/automations/:id/delete", handle: ({ params }) => done(automations.remove(params.id!)) },
+    { method: "POST", path: "/api/automations/:id/hide", handle: ({ params }) => done(automations.hide(params.id!)) },
     {
       method: "POST",
       path: "/api/threads",

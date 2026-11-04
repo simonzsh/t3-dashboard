@@ -1,4 +1,5 @@
 import type { Automation, DashboardThread } from "../../../../shared/api.ts";
+import { isFinishedReminder } from "../../../../shared/automations.ts";
 import { ACTIVE_STATUSES, hasFailed } from "../../../../shared/status.ts";
 
 export type LastRun = { kind: "waiting" } | { kind: "running" } | { kind: "failed"; error: string | null } | { kind: "done"; at: string };
@@ -31,8 +32,7 @@ export function finishedSetups(wasActive: ReadonlySet<string>, active: readonly 
 
 const byNextRun = (a: Automation, b: Automation) => Number(a.nextRunAt === null) - Number(b.nextRunAt === null) || (a.nextRunAt ?? "").localeCompare(b.nextRunAt ?? "");
 
-// A reminder disables itself after its run instead of deleting itself, so the column can show it as finished.
-export const isFinishedReminder = (a: Automation): boolean => a.kind === "reminder" && !a.enabled && a.lastRunAt !== null;
+export { isFinishedReminder };
 
 const byLastRunDesc = (a: Automation, b: Automation) => (b.lastRunAt ?? "").localeCompare(a.lastRunAt ?? "");
 

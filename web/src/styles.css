@@ -623,11 +623,11 @@ button.auto-row { cursor: pointer; }
 /* The delete button is a sibling of the row button, at its top right, so it never nests in it. */
 .auto-item { position: relative; }
 .auto-item .auto-row { padding-right: 58px; }
-.auto-delete, .auto-rename, .auto-copy { position: absolute; top: 7px; }
+.auto-delete, .auto-rename, .auto-copy, .auto-hide { position: absolute; top: 7px; }
 .auto-delete { right: 6px; }
 .auto-rename { right: 30px; }
-.auto-copy { right: 54px; }
-.auto-item:has(.auto-copy) .auto-row { padding-right: 82px; }
+.auto-copy, .auto-hide { right: 54px; }
+.auto-item:has(.auto-copy, .auto-hide) .auto-row { padding-right: 82px; }
 .auto-item .icon-button.sm { min-width: 22px; height: 22px; border-radius: var(--radius-sm); }
 .auto-item .icon-button.sm svg { width: 14px; height: 14px; }
 .auto-sub { display: flex; align-items: center; gap: 6px; min-width: 0; white-space: nowrap; }

@@ -131,6 +131,7 @@ The right column of the Agents tab lists the scheduled tasks of T3 Code. It appe
 - A reminder is a task whose prompt pauses this same task: "call schedule_task with scheduledTaskId <its id> and enabled: false". T3 Code has no one-time type. A title that starts with "Reminder: " or "Rappel : " also marks a reminder (older reminders); the prefix is not shown. The row shows the date of the reminder.
 - A webhook is a task that runs when a request arrives (see [Webhooks](#webhooks)).
 - After its run, a reminder pauses. The row then shows "Finished" with the time of the run. Finished reminders are at the bottom of the list, the most recent first.
+- To hide a finished reminder, click the check icon on its row. The dashboard keeps the task in T3 Code, so its threads stay out of the agent grid. If the reminder runs again, it shows again.
 - Click a row to open the thread of the task.
 - Each row shows the project icon. To rename a task, click the pencil icon on its row, change the title, then push `Enter`. The dashboard also renames the linked thread. It keeps the prefix of a reminder.
 - To delete a task, click the trash icon on its row, then click "Delete". T3 Code deletes the task. You cannot undo this action.

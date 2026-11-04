@@ -38,7 +38,7 @@ interface StartOptions {
   site?: Site;
   linearKey?: string;
   linearFetch?: (url: string, init: RequestInit) => Promise<Response>;
-  automations?: Pick<Automations, "list" | "create" | "remove" | "rename">;
+  automations?: Pick<Automations, "list" | "create" | "remove" | "rename" | "hide">;
   // Content of the Linear file. Without it, `linearKey` feeds the board directly.
   linear?: unknown;
   pasteResult?: "ok" | "rejected" | "unreachable" | "locked";
@@ -52,7 +52,7 @@ interface StartOptions {
 const LINEAR_FILE = "/cfg/linear.json";
 
 async function start(startOptions: StartOptions = {}) {
-  const { site = { serve: async () => null }, linearKey = "", linearFetch, automations = { list: async () => ({ automations: [], hiddenThreadIds: [], setupThreadIds: [] }), create: async () => created, remove: async () => {}, rename: async () => {} } } = startOptions;
+  const { site = { serve: async () => null }, linearKey = "", linearFetch, automations = { list: async () => ({ automations: [], hiddenThreadIds: [], setupThreadIds: [] }), create: async () => created, remove: async () => {}, rename: async () => {}, hide: async () => {} } } = startOptions;
   const linearCalls: string[] = [];
   const files: Record<string, string> = startOptions.linear === undefined ? {} : { [LINEAR_FILE]: JSON.stringify(startOptions.linear) };
   const readFile = (path: string) => {
@@ -558,6 +558,7 @@ test("every POST route refuses a body that is not JSON", async () => {
     "/api/automations",
     "/api/automations/task-1/delete",
     "/api/automations/task-1/rename",
+    "/api/automations/task-1/hide",
     "/api/threads/run-1/messages",
     "/api/threads/run-1/settings",
     "/api/threads/run-1/interrupt",
@@ -708,7 +709,7 @@ test("assign answers 502 when Linear fails and when T3 fails", async () => {
 test("GET /api/automations returns the automations listed at each call", async () => {
   let calls = 0;
   const result: AutomationsResult = { automations: [], hiddenThreadIds: ["thread-1"], setupThreadIds: ["thread-2"] };
-  const { server } = await start({ automations: { list: async () => (calls++, result), create: async () => created, remove: async () => {}, rename: async () => {} } });
+  const { server } = await start({ automations: { list: async () => (calls++, result), create: async () => created, remove: async () => {}, rename: async () => {}, hide: async () => {} } });
   const first = await call(server, "GET", "/api/automations");
   assert.equal(first.status, 200);
   assert.equal(first.headers["content-type"], "application/json; charset=utf-8");
@@ -723,7 +724,7 @@ test("GET /api/automations carries the kind and the webhook of each automation",
     nextRunAt: null, lastRunAt: null, lastRunStatus: null, lastRunError: null, threadId: null, model: null,
     webhook: { url: "https://relay.example.invalid/v1/hooks/k/task-1/tok", signed: true },
   };
-  const { server } = await start({ automations: { list: async () => ({ automations: [automation], hiddenThreadIds: [], setupThreadIds: [] }), create: async () => created, remove: async () => {}, rename: async () => {} } });
+  const { server } = await start({ automations: { list: async () => ({ automations: [automation], hiddenThreadIds: [], setupThreadIds: [] }), create: async () => created, remove: async () => {}, rename: async () => {}, hide: async () => {} } });
   const { json } = await call(server, "GET", "/api/automations");
   assert.deepEqual((json as AutomationsResult).automations, [automation]);
 });
@@ -732,15 +733,24 @@ test("an automations failure gives 502", async () => {
   const failing = async () => {
     throw new IntegrationError("T3 is down", { system: "t3", kind: "unreachable" });
   };
-  const { server } = await start({ automations: { list: failing, create: failing, remove: failing, rename: failing } });
+  const { server } = await start({ automations: { list: failing, create: failing, remove: failing, rename: failing, hide: failing } });
   assert.equal((await call(server, "GET", "/api/automations")).status, 502);
   assert.equal((await post(server, "/api/automations", { ...routineBody })).status, 502);
   assert.equal((await post(server, "/api/automations/task-1/delete", {})).status, 502);
+  assert.equal((await post(server, "/api/automations/task-1/hide", {})).status, 502);
+});
+
+test("POST /api/automations/:id/hide hides the task", async () => {
+  const hidden: string[] = [];
+  const { server } = await start({ automations: { list: async () => ({ automations: [], hiddenThreadIds: [], setupThreadIds: [] }), create: async () => created, remove: async () => {}, rename: async () => {}, hide: async (id) => void hidden.push(id) } });
+  const reply = await post(server, "/api/automations/task%2F1/hide", {});
+  assert.equal(reply.status, 200);
+  assert.deepEqual(hidden, ["task/1"]);
 });
 
 test("POST /api/automations/:id/delete removes the task", async () => {
   const removed: string[] = [];
-  const { server } = await start({ automations: { list: async () => ({ automations: [], hiddenThreadIds: [], setupThreadIds: [] }), create: async () => created, remove: async (id) => void removed.push(id), rename: async () => {} } });
+  const { server } = await start({ automations: { list: async () => ({ automations: [], hiddenThreadIds: [], setupThreadIds: [] }), create: async () => created, remove: async (id) => void removed.push(id), rename: async () => {}, hide: async () => {} } });
   const reply = await post(server, "/api/automations/task%2F1/delete", {});
   assert.equal(reply.status, 200);
   assert.deepEqual(reply.json, { ok: true });
@@ -749,7 +759,7 @@ test("POST /api/automations/:id/delete removes the task", async () => {
 
 test("POST /api/automations/:id/rename trims the title and passes it on", async () => {
   const renamed: unknown[] = [];
-  const { server } = await start({ automations: { list: async () => ({ automations: [], hiddenThreadIds: [], setupThreadIds: [] }), create: async () => created, remove: async () => {}, rename: async (id, title) => void renamed.push([id, title]) } });
+  const { server } = await start({ automations: { list: async () => ({ automations: [], hiddenThreadIds: [], setupThreadIds: [] }), create: async () => created, remove: async () => {}, rename: async (id, title) => void renamed.push([id, title]), hide: async () => {} } });
   const reply = await post(server, "/api/automations/task%2F1/rename", { title: "  New name " });
   assert.equal(reply.status, 200);
   assert.deepEqual(reply.json, { ok: true });
@@ -759,7 +769,7 @@ test("POST /api/automations/:id/rename trims the title and passes it on", async 
 });
 
 test("rename errors map to 404, 409 and 502", async () => {
-  const fail = (error: Error) => ({ list: async () => ({ automations: [], hiddenThreadIds: [], setupThreadIds: [] }), create: async () => created, remove: async () => {}, rename: async () => Promise.reject(error) });
+  const fail = (error: Error) => ({ list: async () => ({ automations: [], hiddenThreadIds: [], setupThreadIds: [] }), create: async () => created, remove: async () => {}, rename: async () => Promise.reject(error), hide: async () => {} });
   const status = async (error: Error) => (await post((await start({ automations: fail(error) })).server, "/api/automations/task-1/rename", { title: "x" })).status;
   assert.equal(await status(new DomainError("not-found", "gone")), 404);
   assert.equal(await status(new DomainError("conflict", "webhook")), 409);
@@ -772,7 +782,7 @@ const hookBody = { ...routineBody, kind: "webhook", filters: [{ path: "headers.x
 
 function createStart(requests: unknown[]) {
   const result = { ...created, webhookUrl: "https://relay.example.invalid/v1/hooks/k/t/token", nextRunAt: "2026-11-05T09:00:00.000Z" };
-  return start({ automations: { list: async () => ({ automations: [], hiddenThreadIds: [], setupThreadIds: [] }), create: async (body) => (requests.push(body), result), remove: async () => {}, rename: async () => {} } });
+  return start({ automations: { list: async () => ({ automations: [], hiddenThreadIds: [], setupThreadIds: [] }), create: async (body) => (requests.push(body), result), remove: async () => {}, rename: async () => {}, hide: async () => {} } });
 }
 
 test("POST /api/automations passes a routine on and returns the task", async () => {

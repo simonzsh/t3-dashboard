@@ -6,6 +6,9 @@ import { Badge, Icon, IconButton, Loader, Pressable } from "../../ui/index.ts";
 import { DeleteAutomationDialog } from "./DeleteAutomationDialog.tsx";
 import { RenameAutomationDialog } from "./RenameAutomationDialog.tsx";
 import { useCopy } from "../../lib/useCopy.ts";
+import { useApi } from "../../api/ApiContext.tsx";
+import { failure } from "../../lib/format.ts";
+import { useNotify } from "../../lib/notices.tsx";
 import { ProjectIcon } from "../../lib/ProjectIcon.tsx";
 import { StatusBadge } from "./StatusBadge.tsx";
 
@@ -20,6 +23,7 @@ interface Props {
   onOpen: (id: string, addOnly: boolean) => void;
   onDeleted: () => void;
   onRenamed: () => void;
+  onHidden: () => void;
 }
 
 interface RowProps {
@@ -30,6 +34,7 @@ interface RowProps {
   onOpen: (id: string, addOnly: boolean) => void;
   onRename: (a: Automation) => void;
   onDelete: (a: Automation) => void;
+  onHidden: () => void;
 }
 
 function CopyUrlButton({ url }: { url: string }) {
@@ -41,7 +46,29 @@ function CopyUrlButton({ url }: { url: string }) {
   );
 }
 
-function Row({ a, thread, project, now, onOpen, onRename, onDelete }: RowProps) {
+// T3 keeps the task, so its run threads stay out of the agent grid.
+function HideButton({ id, onHidden }: { id: string; onHidden: () => void }) {
+  const api = useApi();
+  const notify = useNotify();
+  const [busy, setBusy] = useState(false);
+  async function hide() {
+    setBusy(true);
+    try {
+      await api.hideAutomation(id);
+      onHidden();
+    } catch (e) {
+      notify(failure("hide the reminder", e));
+      setBusy(false);
+    }
+  }
+  return (
+    <IconButton label="Hide reminder" tooltip="Hide" size="sm" variant="ghost" className="auto-hide" disabled={busy} onClick={() => void hide()}>
+      <Icon name="check" />
+    </IconButton>
+  );
+}
+
+function Row({ a, thread, project, now, onOpen, onRename, onDelete, onHidden }: RowProps) {
   const last = lastRunState(a, thread);
   const finished = isFinishedReminder(a);
   const reminderAt = finished ? a.lastRunAt : a.nextRunAt;
@@ -85,6 +112,7 @@ function Row({ a, thread, project, now, onOpen, onRename, onDelete }: RowProps) 
         <div className="auto-row auto-grid">{body}</div>
       )}
       {url && <CopyUrlButton url={url} />}
+      {finished && <HideButton id={a.id} onHidden={onHidden} />}
       <IconButton label="Rename automation" tooltip="Rename" size="sm" variant="ghost" className="auto-rename" onClick={() => onRename(a)}>
         <Icon name="edit" />
       </IconButton>
@@ -112,7 +140,7 @@ function SetupRow({ thread, onOpen }: { thread: DashboardThread; onOpen: (id: st
   );
 }
 
-export function AutomationsColumn({ result, error, threads, projects, setup, now, onOpen, onDeleted, onRenamed }: Props) {
+export function AutomationsColumn({ result, error, threads, projects, setup, now, onOpen, onDeleted, onRenamed, onHidden }: Props) {
   const [deleting, setDeleting] = useState<Automation | null>(null);
   const [renaming, setRenaming] = useState<Automation | null>(null);
   const byId = new Map(threads.map((t) => [t.id, t]));
@@ -128,7 +156,7 @@ export function AutomationsColumn({ result, error, threads, projects, setup, now
       ) : (
         <ul className="auto-list">
           {rows.map((a) => (
-            <Row key={a.id} a={a} thread={a.threadId ? byId.get(a.threadId) : undefined} project={projectById.get(a.projectId)} now={now} onOpen={onOpen} onRename={setRenaming} onDelete={setDeleting} />
+            <Row key={a.id} a={a} thread={a.threadId ? byId.get(a.threadId) : undefined} project={projectById.get(a.projectId)} now={now} onOpen={onOpen} onRename={setRenaming} onDelete={setDeleting} onHidden={onHidden} />
           ))}
         </ul>
       )}

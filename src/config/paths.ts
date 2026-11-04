@@ -28,6 +28,9 @@ export const pidFile = inStateDir("dashboard.pid");
 /** Threads the Agents page created for a scheduled task. */
 export const automationThreadsFile = (env: Env, homedir: string): string => join(configDir(env, homedir), "automation-threads.json");
 
+/** Finished reminders the user hid from the Automations column. */
+export const hiddenAutomationsFile = (env: Env, homedir: string): string => join(configDir(env, homedir), "hidden-automations.json");
+
 /** The finished threads each device has opened, shared by every device. */
 export const seenFile = (env: Env, homedir: string): string => join(configDir(env, homedir), "seen.json");
 

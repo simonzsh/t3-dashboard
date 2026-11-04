@@ -1,4 +1,5 @@
 import type { Automation, AutomationRunStatus, AutomationsResult, CreateAutomationBody, CreateAutomationResult } from "../../shared/api.ts";
+import { isFinishedReminder } from "../../shared/automations.ts";
 import { IntegrationError } from "../integrations/errors.ts";
 import type { RawScheduledTask, RawThread, ScheduleInput, T3Port } from "../integrations/t3/schemas.ts";
 import { renameThreadCommand } from "../integrations/t3/commands.ts";
@@ -73,6 +74,8 @@ export interface AutomationsOptions {
   store: Pick<ShellStore, "project" | "rawThreads">;
   /** The setup threads that older versions created: still hidden from the Agents grid. */
   dedicated: { read(): ReadonlySet<string> };
+  /** Finished reminders the user hid; in memory when absent. */
+  hidden?: { read(): readonly string[]; write(ids: readonly string[]): void };
   newId?: () => string;
   now?: () => Date;
 }
@@ -83,6 +86,8 @@ export interface Automations {
   create(body: CreateAutomationBody): Promise<CreateAutomationResult>;
   /** Deletes the T3 scheduled task. */
   remove(id: string): Promise<void>;
+  /** Hides a finished reminder from the list; T3 keeps the task, so its threads stay out of the grid. */
+  hide(id: string): Promise<void>;
   /** Renames the T3 task, keeping a "Reminder:" prefix, and the thread it is bound to. */
   rename(id: string, title: string): Promise<void>;
 }
@@ -100,11 +105,30 @@ export function createAutomations(options: AutomationsOptions): Automations {
   const { port, store, dedicated } = options;
   const newId = options.newId ?? (() => crypto.randomUUID());
   const now = options.now ?? (() => new Date());
+  let memory: readonly string[] = [];
+  const hidden = options.hidden ?? { read: () => memory, write: (ids: readonly string[]) => void (memory = ids) };
+  const convert = (tasks: RawScheduledTask[]) => toAutomations(tasks, store.rawThreads(), dedicated.read(), (id) => store.project(id)?.title || null);
 
   return {
     async list() {
       const tasks = await viaT3(port.listScheduledTasks());
-      return toAutomations(tasks, store.rawThreads(), dedicated.read(), (id) => store.project(id)?.title || null);
+      const result = convert(tasks);
+      const saved = hidden.read();
+      const exists = new Set(tasks.map((task) => task.id));
+      const kept = saved.filter((id) => exists.has(id));
+      if (kept.length !== saved.length) hidden.write(kept);
+      // A hidden reminder that runs again shows again. Its threads stay in hiddenThreadIds.
+      const skip = new Set(kept);
+      return { ...result, automations: result.automations.filter((a) => !(skip.has(a.id) && isFinishedReminder(a))) };
+    },
+
+    async hide(id) {
+      const task = (await viaT3(port.listScheduledTasks())).find((entry) => entry.id === id);
+      if (!task) throw new DomainError("not-found", "This automation no longer exists");
+      const automation = convert([task]).automations[0];
+      if (!automation || !isFinishedReminder(automation)) throw new DomainError("invalid", "Only a finished reminder can be hidden");
+      const saved = hidden.read();
+      if (!saved.includes(id)) hidden.write([...saved, id]);
     },
 
     remove: (id) => viaT3(port.deleteScheduledTask(id)),

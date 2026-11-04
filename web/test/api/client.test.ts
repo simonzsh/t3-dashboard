@@ -130,6 +130,13 @@ test("deleteAutomation posts to the delete route of the task", async () => {
   assert.equal(calls[0]?.init?.method, "POST");
 });
 
+test("hideAutomation posts to the hide route of the task", async () => {
+  const { calls, api } = fake(200, { ok: true });
+  await api.hideAutomation("task/1");
+  assert.equal(calls[0]?.url, "/api/automations/task%2F1/hide");
+  assert.equal(calls[0]?.init?.method, "POST");
+});
+
 test("renameAutomation posts the title to the rename route of the task", async () => {
   const { calls, api } = fake(200, { ok: true });
   await api.renameAutomation("task/1", "New name");

@@ -19,7 +19,8 @@ import { readStash, stashText } from "../config/stashFile.ts";
 import { readSeen, seenText } from "../config/seenFile.ts";
 import { readLinearKey } from "../config/linearFile.ts";
 import { readAutomationThreads } from "../config/automationThreads.ts";
-import { automationThreadsFile, deskFile as deskPath, linearFile, pidFile, seenFile as seenPath, stashFile as stashPath } from "../config/paths.ts";
+import { hiddenAutomationsText, readHiddenAutomations } from "../config/hiddenAutomations.ts";
+import { automationThreadsFile, hiddenAutomationsFile, deskFile as deskPath, linearFile, pidFile, seenFile as seenPath, stashFile as stashPath } from "../config/paths.ts";
 import { redirectConsole, writePidFile } from "../config/runFiles.ts";
 import { writeSecret } from "../config/secretFile.ts";
 import { createDashboardServer } from "../server/server.ts";
@@ -139,10 +140,19 @@ export async function start({ port, log, env }: StartOptions): Promise<void> {
   });
   const actions = createActions({ port: client, store, board });
   const threadsFile = automationThreadsFile(env, home);
+  const hiddenFile = hiddenAutomationsFile(env, home);
+  let hidden = readHiddenAutomations(hiddenFile, readText);
   const automations = createAutomations({
     port: client,
     store,
     dedicated: { read: () => readAutomationThreads(threadsFile, readText) },
+    hidden: {
+      read: () => hidden,
+      write: (ids) => {
+        writeSecret(hiddenFile, hiddenAutomationsText(ids));
+        hidden = [...ids];
+      },
+    },
   });
   const deskFile = deskPath(env, home);
   const desk = new DeskStore(readDesk(deskFile, readText), (value) => writeSecret(deskFile, deskText(value)));
