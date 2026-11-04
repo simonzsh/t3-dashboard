@@ -1,7 +1,7 @@
 import { test } from "bun:test";
 import assert from "node:assert/strict";
 import type { Automation, DashboardThread } from "../../../../shared/api.ts";
-import { excludeRoutineThreads, finishedSetups, isFinishedReminder, setupThreads, lastRunState, nextLabel, reminderDate, splitAutomations, copyableUrl } from "../../../src/features/agents/automations.ts";
+import { automationGroup, automationProjects, copyableUrl, excludeRoutineThreads, filterAutomations, finishedSetups, groupAutomations, isFinishedReminder, lastRunState, nextLabel, reminderDate, scheduleText, setupThreads } from "../../../src/features/automations/automations.ts";
 import { thread } from "../../fixtures.ts";
 
 function auto(id: string, over: Partial<Automation> = {}): Automation {
@@ -36,29 +36,6 @@ test("excludeRoutineThreads drops the hidden threads only", () => {
 test("excludeRoutineThreads returns the same threads when nothing is hidden", () => {
   const threads = [thread("a"), thread("b")];
   assert.equal(excludeRoutineThreads(threads, []), threads);
-});
-
-test("splitAutomations sorts routines by next run (none last) and reminders by date", () => {
-  const at = (id: string, when: string) => auto(id, { kind: "reminder", nextRunAt: when });
-  const { routines, reminders } = splitAutomations([
-    auto("late", { nextRunAt: "2026-10-27T09:00:00.000Z" }),
-    auto("none"),
-    auto("soon", { nextRunAt: "2026-10-25T15:00:00.000Z" }),
-    at("rem-2", "2026-10-30T09:00:00.000Z"),
-    at("rem-1", "2026-10-26T09:00:00.000Z"),
-  ]);
-  assert.deepEqual(routines.map((a) => a.id), ["soon", "late", "none"]);
-  assert.deepEqual(reminders.map((a) => a.id), ["rem-1", "rem-2"]);
-});
-
-test("splitAutomations puts finished reminders last, newest first", () => {
-  const done = (id: string, lastRunAt: string) => auto(id, { kind: "reminder", enabled: false, lastRunAt, lastRunStatus: "succeeded" });
-  const { reminders } = splitAutomations([
-    done("done-old", "2026-10-20T09:00:00.000Z"),
-    auto("next", { kind: "reminder", nextRunAt: "2026-10-30T09:00:00.000Z" }),
-    done("done-new", "2026-10-24T09:00:00.000Z"),
-  ]);
-  assert.deepEqual(reminders.map((a) => a.id), ["next", "done-new", "done-old"]);
 });
 
 test("isFinishedReminder needs a disabled reminder that ran", () => {
@@ -128,23 +105,88 @@ test("finishedSetups lists the setup threads that stopped being active", () => {
 
 const hook = (id: string, over: Partial<Automation> = {}) => auto(id, { kind: "webhook", webhook: { url: null, signed: true }, ...over });
 
-test("splitAutomations puts webhooks in their own list, enabled first then newest run", () => {
-  const list = [
-    hook("paused", { enabled: false, lastRunAt: "2026-10-26T10:00:00Z" }),
-    hook("old", { lastRunAt: "2026-10-24T10:00:00Z" }),
-    hook("new", { lastRunAt: "2026-10-25T10:00:00Z" }),
-    hook("never"),
-    auto("r"),
-  ];
-  const { webhooks, routines, reminders } = splitAutomations(list);
-  assert.deepEqual(webhooks.map((a) => a.id), ["new", "old", "never", "paused"]);
-  assert.deepEqual(routines.map((a) => a.id), ["r"]);
-  assert.equal(reminders.length, 0);
-});
-
 test("copyableUrl gives the URL of a webhook only", () => {
   const url = "https://relay.example.invalid/v1/hooks/k/t/token";
   assert.equal(copyableUrl(hook("a", { webhook: { url, signed: true } })), url);
   assert.equal(copyableUrl(hook("b", { webhook: { url: null, signed: false } })), null);
   assert.equal(copyableUrl(auto("c")), null);
+});
+
+const waitingThread = thread("t-wait", { status: "waiting", pending: { category: "approval" } });
+const tomorrow9 = local(10, 26, 9, 0).toISOString();
+
+test("automationGroup: a failed or waiting last run needs attention, even when paused", () => {
+  assert.equal(automationGroup(auto("a", { lastRunStatus: "failed" }), undefined, NOW), "attention");
+  assert.equal(automationGroup(auto("a", { enabled: false, lastRunStatus: "failed" }), undefined, NOW), "attention");
+  assert.equal(automationGroup(auto("a", { nextRunAt: tomorrow9 }), waitingThread, NOW), "attention");
+});
+
+test("automationGroup: paused and finished reminders are inactive", () => {
+  assert.equal(automationGroup(auto("a", { enabled: false }), undefined, NOW), "inactive");
+  const done = auto("r", { kind: "reminder", enabled: false, lastRunAt: local(10, 24, 9, 0).toISOString(), lastRunStatus: "succeeded" });
+  assert.equal(automationGroup(done, undefined, NOW), "inactive");
+});
+
+test("automationGroup: running, or due before tomorrow's local midnight, is today", () => {
+  assert.equal(automationGroup(auto("a", { lastRunStatus: "running", nextRunAt: local(11, 5, 9, 0).toISOString() }), undefined, NOW), "today");
+  assert.equal(automationGroup(auto("a", { nextRunAt: local(10, 25, 23, 59).toISOString() }), undefined, NOW), "today");
+  assert.equal(automationGroup(auto("a", { nextRunAt: local(10, 26, 0, 0).toISOString() }), undefined, NOW), "upcoming");
+});
+
+test("automationGroup: enabled webhooks and tasks without a next run are upcoming", () => {
+  assert.equal(automationGroup(hook("h"), undefined, NOW), "upcoming");
+  assert.equal(automationGroup(auto("a"), undefined, NOW), "upcoming");
+});
+
+test("groupAutomations sorts today and upcoming by next run (none last), attention and inactive by last run", () => {
+  const groups = groupAutomations(
+    [
+      auto("up-none"),
+      auto("up-late", { nextRunAt: local(10, 30, 9, 0).toISOString() }),
+      auto("up-soon", { nextRunAt: tomorrow9 }),
+      auto("today-2", { nextRunAt: local(10, 25, 20, 0).toISOString() }),
+      auto("today-1", { nextRunAt: local(10, 25, 15, 0).toISOString() }),
+      auto("fail-old", { lastRunStatus: "failed", lastRunAt: local(10, 20, 9, 0).toISOString() }),
+      auto("fail-new", { lastRunStatus: "failed", lastRunAt: local(10, 24, 9, 0).toISOString() }),
+      auto("off-old", { enabled: false, lastRunAt: local(10, 1, 9, 0).toISOString() }),
+      auto("off-new", { enabled: false, lastRunAt: local(10, 2, 9, 0).toISOString() }),
+    ],
+    new Map(),
+    NOW,
+  );
+  const ids = (list: Automation[]) => list.map((a) => a.id);
+  assert.deepEqual(ids(groups.today), ["today-1", "today-2"]);
+  assert.deepEqual(ids(groups.upcoming), ["up-soon", "up-late", "up-none"]);
+  assert.deepEqual(ids(groups.attention), ["fail-new", "fail-old"]);
+  assert.deepEqual(ids(groups.inactive), ["off-new", "off-old"]);
+});
+
+test("groupAutomations reads the thread of each automation", () => {
+  const groups = groupAutomations([auto("a", { threadId: "t-wait" }), auto("b")], new Map([["t-wait", waitingThread]]), NOW);
+  assert.deepEqual(groups.attention.map((a) => a.id), ["a"]);
+});
+
+test("filterAutomations matches title, project name and schedule, ignoring case and outer spaces", () => {
+  const list = [auto("a", { title: "Nightly Backup", project: "Alpha", scheduleLabel: "Daily 2:00", projectId: "pa" }), auto("b", { title: "Report", project: "Beta", scheduleLabel: "Weekly Mon", projectId: "pb" })];
+  const ids = (f: { projectId: string; query: string }) => filterAutomations(list, f).map((a) => a.id);
+  assert.deepEqual(ids({ projectId: "", query: "" }), ["a", "b"]);
+  assert.deepEqual(ids({ projectId: "", query: "  backup " }), ["a"]);
+  assert.deepEqual(ids({ projectId: "", query: "BETA" }), ["b"]);
+  assert.deepEqual(ids({ projectId: "", query: "weekly" }), ["b"]);
+  assert.deepEqual(ids({ projectId: "pa", query: "" }), ["a"]);
+  assert.deepEqual(ids({ projectId: "pa", query: "report" }), []);
+});
+
+test("automationProjects lists each project once, sorted by title", () => {
+  const list = [auto("a", { projectId: "p2", project: "Zeta" }), auto("b", { projectId: "p1", project: "Alpha" }), auto("c", { projectId: "p2", project: "Zeta" })];
+  assert.deepEqual(automationProjects(list), [{ id: "p1", title: "Alpha" }, { id: "p2", title: "Zeta" }]);
+});
+
+test("scheduleText: a reminder shows its date, a webhook says Webhook, a routine its label", () => {
+  assert.equal(scheduleText(auto("a", { kind: "reminder", nextRunAt: tomorrow9 })), "Oct 26, 9:00");
+  const lastRunAt = local(10, 24, 8, 30).toISOString();
+  assert.equal(scheduleText(auto("a", { kind: "reminder", enabled: false, lastRunAt })), "Oct 24, 8:30");
+  assert.equal(scheduleText(auto("a", { kind: "reminder", nextRunAt: null })), "");
+  assert.equal(scheduleText(hook("h")), "Webhook");
+  assert.equal(scheduleText(auto("a")), "Daily 9:00");
 });

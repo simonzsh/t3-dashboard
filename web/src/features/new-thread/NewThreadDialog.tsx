@@ -5,7 +5,7 @@ import { browserStorage } from "../../lib/storage.ts";
 import { loadAssignProject, saveAssignProject } from "../../lib/assignProject.ts";
 import { findModel } from "../conversation/composer.ts";
 import { ProjectPicker } from "../../lib/ProjectPicker.tsx";
-import { loadNewAgentProject, presetSelection, saveNewAgentProject, titleFromMessage } from "./newAgent.ts";
+import { DEFAULT_RUNTIME_MODE, loadNewAgentProject, presetSelection, saveNewAgentProject, titleFromMessage } from "./newAgent.ts";
 import { Composer } from "../conversation/Composer.tsx";
 import { Dialog, Icon } from "../../ui/index.ts";
 
@@ -20,15 +20,12 @@ interface Props {
   issue?: LinearIssue;
 }
 
-// Same default as the server when no mode is sent, used when T3 has none.
-const DEFAULT_MODE: RuntimeMode = "full-access";
-
 export function NewThreadDialog({ projects, providers, defaults, onClose, onCreated, issue }: Props) {
   const api = useApi();
   // A Linear issue preselects the last project chosen for its team.
   const [projectId, setProjectId] = useState(() => (issue ? loadAssignProject(browserStorage(), issue.team.key, projects) : loadNewAgentProject(browserStorage(), projects)));
   const [selection, setSelection] = useState<ModelSelection | null>(() => presetSelection(projects.find((p) => p.id === projectId), providers, defaults.selection));
-  const [mode, setMode] = useState<RuntimeMode>(defaults.runtimeMode ?? DEFAULT_MODE);
+  const [mode, setMode] = useState<RuntimeMode>(defaults.runtimeMode ?? DEFAULT_RUNTIME_MODE);
   const [draft, setDraft] = useState("");
   // Each project pick moves the focus to the message.
   const [picks, setPicks] = useState(0);

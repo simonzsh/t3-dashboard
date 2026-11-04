@@ -1,7 +1,7 @@
-import type { DashboardThread } from "../../../../shared/api.ts";
-import { hasFailed, type AgentStatus } from "../../../../shared/status.ts";
-import { pendingLabel } from "../../lib/threads.ts";
-import { Badge } from "../../ui/index.ts";
+import type { DashboardThread } from "../../../shared/api.ts";
+import { hasFailed, type AgentStatus } from "../../../shared/status.ts";
+import { pendingLabel } from "./threads.ts";
+import { Badge } from "../ui/index.ts";
 
 /** The status of an agent as a badge: shared by the cards and the automation rows. */
 export function StatusBadge({ thread, status }: { thread: DashboardThread; status: AgentStatus }) {

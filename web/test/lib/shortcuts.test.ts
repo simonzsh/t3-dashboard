@@ -7,9 +7,9 @@ const ctrl = (key: string, over: Partial<KeyInfo> = {}) => press(key, { ctrlKey:
 const typing = { tagName: "TEXTAREA", isContentEditable: false };
 
 test("Ctrl+key maps to the actions", () => {
-  assert.equal(matchShortcut(ctrl("1"), false), "agents");
-  assert.equal(matchShortcut(ctrl("2"), false), "desk");
-  assert.equal(matchShortcut(ctrl("3"), false), "board");
+  assert.equal(matchShortcut(ctrl("1"), false), "desk");
+  assert.equal(matchShortcut(ctrl("2"), false), "inbox");
+  assert.equal(matchShortcut(ctrl("3"), false), "automations");
   assert.equal(matchShortcut(ctrl("n"), false), "new-agent");
   assert.equal(matchShortcut(ctrl("N"), false), "new-agent");
   assert.equal(matchShortcut(ctrl(","), false), "settings");
@@ -18,7 +18,7 @@ test("Ctrl+key maps to the actions", () => {
 });
 
 test("Ctrl shortcuts work while typing in a field", () => {
-  for (const tagName of ["INPUT", "TEXTAREA", "SELECT"]) assert.equal(matchShortcut(ctrl("1", { target: { tagName, isContentEditable: false } }), false), "agents", tagName);
+  for (const tagName of ["INPUT", "TEXTAREA", "SELECT"]) assert.equal(matchShortcut(ctrl("1", { target: { tagName, isContentEditable: false } }), false), "desk", tagName);
   assert.equal(matchShortcut(ctrl("n", { target: { tagName: "DIV", isContentEditable: true } }), false), "new-agent");
   assert.equal(matchShortcut(ctrl("x", { target: typing }), false, true), "close-window");
 });

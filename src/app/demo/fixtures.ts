@@ -61,7 +61,7 @@ const SPECS: ThreadSpec[] = [
     id: "demo-checkout",
     tokens: 722000,
     projectId: "demo-atlas-web",
-    title: "Redesign the checkout summary",
+    title: "ATL-142 Redesign the checkout summary",
     model: CLAUDE,
     status: "running",
     messages: [
@@ -103,7 +103,7 @@ const SPECS: ThreadSpec[] = [
   {
     id: "demo-rate-limit",
     projectId: "demo-atlas-api",
-    title: "Add rate limiting to public endpoints",
+    title: "ATL-149 Add rate limiting to public endpoints",
     model: CODEX,
     status: "running",
     messages: [

@@ -7,7 +7,7 @@ import { usePoll } from "../../lib/usePoll.ts";
 
 const POLL_MS = 30_000;
 
-// Polls only while the Agents tab is open; it reloads at once on each opening.
+// Polls only while the Inbox or Automations tab is open; it reloads at once on each opening.
 export function useAutomations(active: boolean): { result: AutomationsResult | null; error: string | null; reload: () => Promise<void> } {
   const api = useApi();
   const notify = useNotify();
