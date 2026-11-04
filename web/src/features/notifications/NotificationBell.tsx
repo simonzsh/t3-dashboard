@@ -72,9 +72,10 @@ export function NotificationBell({ entries, count, now, onOpen, open, onOpenChan
     setActive(index);
     rows()[index]?.focus({ preventScroll: index === 0 });
   };
-  // Each opening, from a click or Ctrl+B even while typing, starts on the first row.
+  // Each opening, from a click or Ctrl+B even while typing, starts on the first row. A touch screen has no arrows: no active row.
   useEffect(() => {
     if (!open) return;
+    if (matchMedia("(pointer: coarse)").matches) return setActive(-1);
     setActive(0);
     const frame = requestAnimationFrame(() => (rows()[0] ?? list.current)?.focus({ preventScroll: true }));
     return () => cancelAnimationFrame(frame);

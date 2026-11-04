@@ -249,6 +249,7 @@ main { flex: 1; min-height: 0; overflow: hidden; padding: 24px; display: flex; f
 /* The ring follows the active row, the first one included: the browser alone skips it after a click. */
 .notif-row:focus-visible { outline: none; }
 .notif-row.active { outline: var(--focus-ring); outline-offset: -1px; }
+@media (pointer: coarse) { .notif-row.active { outline: none; background: none; } }
 .notif-list { display: flex; flex-direction: column; gap: 2px; outline: none; }
 .notif-title { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .notif-age { flex: none; color: var(--text-secondary); }
