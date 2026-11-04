@@ -184,7 +184,7 @@ The shortcuts use `Ctrl`, also on a Mac, and they work while you type in a field
 | `Ctrl` + `N` | Opens New Agent. |
 | `Ctrl` + `⇧` + `N` | Opens a new automation (New Automation). |
 | `Ctrl` + `,` | Opens Settings. |
-| `Ctrl` + `B` | Opens or closes the notifications (the bell). |
+| `Ctrl` + `B` | Opens or closes the notifications (the bell). The menu takes the focus: `↑` `↓` move between rows, `Enter` opens one, `Esc` closes. |
 | `Ctrl` + `X` | Desk: closes the active window. |
 | `Ctrl` + `F` | Desk: puts the active window in full screen, or takes it out of full screen. |
 | `Ctrl` + `M` | Desk: minimizes the active window. |
