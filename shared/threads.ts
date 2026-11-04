@@ -65,6 +65,8 @@ export interface ModelDefaults {
 
 export interface DashboardProvider {
   instanceId: string;
+  /** The provider kind, e.g. claudeAgent. */
+  driver?: string;
   displayName: string;
   models: DashboardModel[];
   runtimeModes: RuntimeMode[];
@@ -220,6 +222,10 @@ export interface ContextUsage {
   usedTokens: number;
   /** Null when the provider names no limit. */
   maxTokens: number | null;
+  /** When the provider last reported it. */
+  updatedAt: string | null;
+  /** How long the provider keeps the prompt cache; null for its default. */
+  promptCacheTtlMs: number | null;
 }
 
 export interface ThreadDetail {

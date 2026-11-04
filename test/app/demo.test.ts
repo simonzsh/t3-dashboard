@@ -106,7 +106,8 @@ test("the demo lists commands and skills, reports the context size and compacts 
   const { commands, skills } = await actions.composerCommands(threadId, "claudeAgent");
   assert.ok(commands.some((command) => command.name === "compact"));
   assert.ok(skills.some((skill) => skill.name === "simplify"));
-  assert.deepEqual((await actions.threadDetail(threadId)).contextUsage, { usedTokens: 722_000, maxTokens: 1_000_000 });
+  const usage = (await actions.threadDetail(threadId)).contextUsage;
+  assert.deepEqual([usage?.usedTokens, usage?.maxTokens], [722_000, 1_000_000]);
   const before = (await actions.threadDetail(threadId)).messages.length;
   await actions.sendMessage(threadId, { text: "/compact" }, []);
   const after = await actions.threadDetail(threadId);

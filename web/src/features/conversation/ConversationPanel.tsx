@@ -417,7 +417,7 @@ function Conversation({ threadId, thread, providers, onOpenThread, onTitle }: Pr
         onSend={send}
         searchFiles={(q) => api.searchFiles(threadId, q, 20).then((r) => r.entries)}
         loadCommands={(provider) => api.getComposerCommands(threadId, provider)}
-        contextTokens={detail?.contextUsage?.usedTokens ?? null}
+        contextUsage={detail?.contextUsage ?? null}
         onCompact={compact}
         onEscape={() => frame.current?.focus({ preventScroll: true })}
         stash={{ threadId, title: t?.title ?? "" }}

@@ -1,8 +1,8 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
-import type { ComposerCommands, DashboardModel, DashboardProvider, FileEntry, ModelSelection, RuntimeMode, ThreadSettingsBody, UploadedAttachment } from "../../../../shared/api.ts";
+import type { ComposerCommands, ContextUsage, DashboardModel, DashboardProvider, FileEntry, ModelSelection, RuntimeMode, ThreadSettingsBody, UploadedAttachment } from "../../../../shared/api.ts";
 import type { StashEntry } from "../../../../shared/stash.ts";
 import { STASH_LIMIT } from "../../../../shared/stash.ts";
-import { RUNTIME_MODE_LABELS, acceptFiles, applyTrigger, attachmentType, composerPlaceholder, currentEffort, dropTrigger, escapeBlurs, filterCommands, filterSkills, findModel, formatTokens, isSendKey, selectEffort, selectModel, showsCompact, triggerAt } from "./composer.ts";
+import { RUNTIME_MODE_LABELS, acceptFiles, applyTrigger, attachmentType, composerPlaceholder, currentEffort, dropTrigger, escapeBlurs, filterCommands, filterSkills, findModel, formatTokens, isSendKey, selectEffort, selectModel, suggestsCompact, triggerAt } from "./composer.ts";
 import { moveActive, type DropdownOption } from "../../lib/dropdown.ts";
 import { useApi } from "../../api/ApiContext.tsx";
 import { setStash, useStash } from "../../api/stashStore.ts";
@@ -85,7 +85,7 @@ interface Props {
   /** Typing / at the start lists the provider's commands, and $ its skills. Without it, no menu and no Compact button. */
   loadCommands?: (provider: string) => Promise<ComposerCommands>;
   /** Tokens in the model's context: shown on the Compact button. */
-  contextTokens?: number | null;
+  contextUsage?: ContextUsage | null;
   /** Compacts the context; the Compact button and /compact call it. */
   onCompact?: () => Promise<unknown>;
   /** Escape in the field, with no menu open, blurs it and calls this: the parent takes the focus for its shortcuts. */
@@ -94,7 +94,7 @@ interface Props {
   stash?: { threadId: string; title: string };
 }
 
-export function Composer({ providers, selection, runtimeMode, running, stoppable = running, draft, onDraft, onSend, onStop, onSettings, placeholder, autoFocus = false, focusKey, errorResetKey, allowEmpty = false, noImages = false, restore, searchFiles, loadCommands, contextTokens = null, onCompact, onEscape, stash }: Props) {
+export function Composer({ providers, selection, runtimeMode, running, stoppable = running, draft, onDraft, onSend, onStop, onSettings, placeholder, autoFocus = false, focusKey, errorResetKey, allowEmpty = false, noImages = false, restore, searchFiles, loadCommands, contextUsage = null, onCompact, onEscape, stash }: Props) {
   const api = useApi();
   // Picks show at once, until new values come in the props or the change fails.
   // Each field has its own override: a model reload never drops a pending mode pick, and the reverse.
@@ -141,6 +141,15 @@ export function Composer({ providers, selection, runtimeMode, running, stoppable
   useEffect(() => setSelectionOverride(null), [JSON.stringify(selection)]);
   useEffect(() => setModeOverride(null), [runtimeMode]);
   const localSelection = selectionOverride ?? selection;
+  const driver = providers.find((p) => p.instanceId === localSelection?.instanceId)?.driver;
+  // The prompt cache expires with time: look again every minute, like T3 Code.
+  const [minute, setMinute] = useState(() => Date.now());
+  const nearCompact = (contextUsage?.usedTokens ?? 0) >= 200_000;
+  useEffect(() => {
+    if (!nearCompact) return;
+    const id = setInterval(() => setMinute(Date.now()), 60_000);
+    return () => clearInterval(id);
+  }, [nearCompact]);
   const localMode = modeOverride ?? runtimeMode;
   useEffect(() => setError(null), [errorResetKey]);
   useEffect(() => {
@@ -564,17 +573,17 @@ export function Composer({ providers, selection, runtimeMode, running, stoppable
                 </IconButton>
               </>
             )}
-            {onCompact && compactable && contextTokens !== null && showsCompact(contextTokens) && (
+            {onCompact && compactable && contextUsage && !running && suggestsCompact(driver, contextUsage, minute) && (
               <Button
                 size="sm"
                 variant="ghost"
                 className="composer-compact"
                 disabled={running}
                 loading={compacting}
-                tooltip={running ? "Compact is available once the run ends" : `Compact the context: ${contextTokens.toLocaleString("en-US")} tokens`}
+                tooltip={`Compact the context: ${contextUsage.usedTokens.toLocaleString("en-US")} tokens`}
                 onClick={() => void compact()}
               >
-                Compact <span className="compact-tokens">{formatTokens(contextTokens)}</span>
+                Compact <span className="compact-tokens">{formatTokens(contextUsage.usedTokens)}</span>
               </Button>
             )}
             {stoppable && onStop && (

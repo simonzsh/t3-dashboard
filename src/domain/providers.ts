@@ -54,6 +54,7 @@ export function toProviders(config: RawConfig): DashboardProvider[] {
         })),
         preferencesFor(config.settings?.providerModelPreferences, provider.instanceId),
       ),
+      ...(provider.driver && { driver: provider.driver }),
       runtimeModes: provider.supportedRuntimeModes ? RUNTIME_MODES.filter((mode) => provider.supportedRuntimeModes!.includes(mode)) : RUNTIME_MODES,
     }));
 }

@@ -1,4 +1,4 @@
-import type { DashboardModel, DashboardProvider, ModelSelection, RuntimeMode, SkillInfo, SlashCommand } from "../../../../shared/api.ts";
+import type { ContextUsage, DashboardModel, DashboardProvider, ModelSelection, RuntimeMode, SkillInfo, SlashCommand } from "../../../../shared/api.ts";
 import { IMAGE_TYPES, MAX_ATTACHMENTS, MAX_FILE_BYTES, MAX_IMAGE_BYTES, MAX_IMAGES_TOTAL_BYTES } from "../../../../shared/limits.ts";
 
 export const RUNTIME_MODE_LABELS: Record<RuntimeMode, { label: string; description: string }> = {
@@ -145,11 +145,15 @@ export function filterSkills(skills: SkillInfo[], query: string): SkillInfo[] {
   return ranked(skills, (skill) => rank(query, skill.name, [skill.displayName, skill.description]));
 }
 
-/** Like T3 Code: the Compact button shows only once the context passes this size. */
-export const COMPACT_SHOW_TOKENS = 200_000;
+const COMPACT_MIN_TOKENS = 200_000;
+/** T3 Code's default prompt cache lifetime: 70 minutes. */
+const PROMPT_CACHE_TTL_MS = 4_200_000;
 
-export function showsCompact(contextTokens: number | null): boolean {
-  return contextTokens !== null && contextTokens >= COMPACT_SHOW_TOKENS;
+/** Like T3 Code: a Claude context of 200k tokens or more whose prompt cache has expired. */
+export function suggestsCompact(driver: string | undefined, usage: ContextUsage | null, now: number): boolean {
+  if (driver !== "claudeAgent" || !usage || usage.usedTokens < COMPACT_MIN_TOKENS) return false;
+  const at = Date.parse(usage.updatedAt ?? "");
+  return Number.isFinite(at) && now - at >= (usage.promptCacheTtlMs ?? PROMPT_CACHE_TTL_MS);
 }
 
 /** 950, 1.5k, 722k, 1.3M: the size T3 Code shows on its Compact button. */

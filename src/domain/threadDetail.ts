@@ -360,12 +360,12 @@ export function rewindPoints(projection: RawProjection): Map<string, RewindPoint
 
 // Like T3 Code: the newest turn report, else what the active provider thread last kept.
 function contextUsageOf(projection: RawProjection): ContextUsage | null {
-  let latest: { usedTokens: number; maxTokens?: number | null; updatedAt?: string | null } | null = null;
+  let latest: { usedTokens: number; maxTokens?: number | null; promptCacheTtlMs?: number | null; updatedAt?: string | null } | null = null;
   for (const { tokenUsage } of projection.providerTurns ?? []) {
     if (tokenUsage && (latest === null || Date.parse(tokenUsage.updatedAt ?? "") >= Date.parse(latest.updatedAt ?? ""))) latest = tokenUsage;
   }
   latest ??= projection.providerThreads?.find((thread) => thread.id === projection.thread?.activeProviderThreadId)?.contextUsage ?? null;
-  return latest && { usedTokens: Math.max(0, latest.usedTokens), maxTokens: latest.maxTokens ?? null };
+  return latest && { usedTokens: Math.max(0, latest.usedTokens), maxTokens: latest.maxTokens ?? null, updatedAt: latest.updatedAt ?? null, promptCacheTtlMs: latest.promptCacheTtlMs ?? null };
 }
 
 /** `tasks` are the shell thread's pending background tasks: they say which subagents still run. */

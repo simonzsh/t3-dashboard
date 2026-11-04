@@ -254,7 +254,7 @@ export const RawProjection = s.object({
     s.array(s.object({ id: s.string(), scopeId: s.string(), runId: text(), status: text(), ordinalWithinScope: s.optional(s.number()), appRunOrdinal: s.optional(s.nullable(s.number())) })),
   ),
   // Context size: each turn reports its own, the provider thread keeps the latest.
-  providerTurns: s.optional(s.array(s.object({ tokenUsage: s.optional(s.nullable(s.object({ usedTokens: s.number(), maxTokens: s.optional(s.nullable(s.number())), updatedAt: text() }))) }))),
+  providerTurns: s.optional(s.array(s.object({ tokenUsage: s.optional(s.nullable(s.object({ usedTokens: s.number(), maxTokens: s.optional(s.nullable(s.number())), promptCacheTtlMs: s.optional(s.nullable(s.number())), updatedAt: text() }))) }))),
   providerThreads: s.optional(s.array(s.object({ id: s.string(), contextUsage: s.optional(s.nullable(s.object({ usedTokens: s.number(), maxTokens: s.optional(s.nullable(s.number())) }))) }))),
   thread: s.optional(RawThread),
 });
@@ -293,6 +293,8 @@ const RawSkill = s.object({
 
 export const RawProvider = s.object({
   instanceId: s.string(),
+  // The provider kind, e.g. claudeAgent: an instance id can be anything.
+  driver: s.optional(s.string()),
   displayName: text(),
   enabled: s.optional(s.boolean()),
   status: s.optional(s.string()),

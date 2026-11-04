@@ -631,7 +631,7 @@ test("contextUsage: null until a turn reports it", () => {
 
 test("contextUsage: the turn report with the latest time wins", () => {
   const providerTurns = [usage(1000, "2026-03-01T10:00:00Z", 200000), usage(722000, "2026-03-01T12:00:00Z", 1000000), usage(5, "2026-03-01T11:00:00Z")];
-  assert.deepEqual(toThreadDetail("t", { providerTurns }, undefined).contextUsage, { usedTokens: 722000, maxTokens: 1000000 });
+  assert.deepEqual(toThreadDetail("t", { providerTurns }, undefined).contextUsage, { usedTokens: 722000, maxTokens: 1000000, updatedAt: "2026-03-01T12:00:00Z", promptCacheTtlMs: null });
 });
 
 test("contextUsage: falls back to the active provider thread, and keeps a missing limit null", () => {
@@ -640,6 +640,6 @@ test("contextUsage: falls back to the active provider thread, and keeps a missin
     { id: "p2", contextUsage: { usedTokens: 300 } },
   ];
   const thread = { id: "t", activeProviderThreadId: "p2" };
-  assert.deepEqual(toThreadDetail("t", { providerThreads, thread }, undefined).contextUsage, { usedTokens: 300, maxTokens: null });
+  assert.deepEqual(toThreadDetail("t", { providerThreads, thread }, undefined).contextUsage, { usedTokens: 300, maxTokens: null, updatedAt: null, promptCacheTtlMs: null });
   assert.equal(toThreadDetail("t", { providerThreads: [{ id: "p2", contextUsage: null }], thread }, undefined).contextUsage, null);
 });

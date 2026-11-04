@@ -366,6 +366,7 @@ const CONFIG: RawConfig = {
   providers: [
     {
       instanceId: "claudeAgent",
+      driver: "claudeAgent",
       displayName: "Claude",
       enabled: true,
       status: "ready",
@@ -388,6 +389,7 @@ const CONFIG: RawConfig = {
     },
     {
       instanceId: "codex",
+      driver: "codex",
       displayName: "Codex",
       enabled: true,
       status: "ready",

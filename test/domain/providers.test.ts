@@ -86,3 +86,9 @@ test("toComposerCommands leaves out skills a user cannot invoke", () => {
   const config = { providers: [{ instanceId: "a", skills: [skill("on"), skill("off", { enabled: false }), skill("internal", { userInvocable: false }), skill("explicit", { userInvocable: true })] }] };
   assert.deepEqual(toComposerCommands(config, "a", null).skills.map((k) => k.name), ["on", "explicit"]);
 });
+
+test("toProviders keeps the provider kind, which the instance id may not say", () => {
+  const [a, b] = toProviders({ providers: [{ instanceId: "work-claude", driver: "claudeAgent", enabled: true, status: "ready", models: [] }, { instanceId: "x", enabled: true, status: "ready", models: [] }] });
+  assert.equal(a!.driver, "claudeAgent");
+  assert.equal(b!.driver, undefined);
+});

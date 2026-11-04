@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { test } from "bun:test";
 import type { DashboardProvider } from "../../../../shared/api.ts";
 import { MAX_ATTACHMENTS, MAX_FILE_BYTES, MAX_IMAGE_BYTES } from "../../../../shared/limits.ts";
-import { acceptFiles, applyTrigger, attachmentType, composerPlaceholder, currentEffort, dropTrigger, escapeBlurs, filterCommands, filterSkills, findModel, formatTokens, isSendKey, selectEffort, selectModel, showsCompact, triggerAt } from "../../../src/features/conversation/composer.ts";
+import { acceptFiles, applyTrigger, attachmentType, composerPlaceholder, currentEffort, dropTrigger, escapeBlurs, filterCommands, filterSkills, findModel, formatTokens, isSendKey, selectEffort, selectModel, suggestsCompact, triggerAt } from "../../../src/features/conversation/composer.ts";
 
 const effort = (optionId: string, ids: string[], defaultLevel: string | null) => ({ optionId, levels: ids.map((id) => ({ id, label: id.toUpperCase() })), defaultLevel });
 const providers: DashboardProvider[] = [
@@ -197,9 +197,15 @@ test("escapeBlurs only for a plain Escape with no menu open and no IME compositi
   assert.equal(escapeBlurs({ ...key, key: "Enter" }, false), false);
 });
 
-test("the Compact button shows only from 200k tokens, like T3 Code", () => {
-  assert.equal(showsCompact(null), false);
-  assert.equal(showsCompact(148_000), false);
-  assert.equal(showsCompact(200_000), true);
-  assert.equal(showsCompact(722_000), true);
+test("Compact shows like T3 Code: Claude, 200k tokens or more, prompt cache expired", () => {
+  const now = Date.parse("2026-11-04T12:00:00Z");
+  const usage = (usedTokens: number, minutesAgo: number, promptCacheTtlMs: number | null = null) => ({ usedTokens, maxTokens: 1_000_000, updatedAt: new Date(now - minutesAgo * 60_000).toISOString(), promptCacheTtlMs });
+  assert.equal(suggestsCompact("claudeAgent", usage(250_000, 70), now), true);
+  assert.equal(suggestsCompact("claudeAgent", usage(250_000, 69), now), false, "cache still warm");
+  assert.equal(suggestsCompact("claudeAgent", usage(199_999, 120), now), false, "under 200k");
+  assert.equal(suggestsCompact("codex", usage(500_000, 120), now), false, "not Claude");
+  assert.equal(suggestsCompact(undefined, usage(500_000, 120), now), false);
+  assert.equal(suggestsCompact("claudeAgent", usage(250_000, 6, 300_000), now), true, "the provider's own TTL");
+  assert.equal(suggestsCompact("claudeAgent", { ...usage(250_000, 120), updatedAt: null }, now), false);
+  assert.equal(suggestsCompact("claudeAgent", null, now), false);
 });
