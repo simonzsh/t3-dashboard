@@ -40,9 +40,14 @@ export function Popover({ anchor, onClose, align = "start", minWidth = 0, matchW
       el.style.minWidth = `${matchWidth ? Math.max(minWidth, a.width) : minWidth}px`;
       if (fitWidth) el.style.maxWidth = `${Math.max(minWidth, a.width)}px`;
       const size = el.getBoundingClientRect();
-      const p = placeMenu(a, size, { width: window.innerWidth, height: window.innerHeight }, { align, minWidth, matchWidth, preferAbove });
-      el.style.left = `${p.left}px`;
-      el.style.top = `${p.top}px`;
+      // A phone keyboard hides the bottom of the page without changing innerHeight: place within what is visible.
+      const vv = window.visualViewport;
+      const [dx, dy] = vv ? [vv.offsetLeft, vv.offsetTop] : [0, 0];
+      const view = vv ? { width: vv.width, height: vv.height } : { width: window.innerWidth, height: window.innerHeight };
+      const shifted = { left: a.left - dx, top: a.top - dy, width: a.width, height: a.height };
+      const p = placeMenu(shifted, size, view, { align, minWidth, matchWidth, preferAbove });
+      el.style.left = `${p.left + dx}px`;
+      el.style.top = `${p.top + dy}px`;
       el.style.maxHeight = p.maxHeight === undefined ? "" : `${p.maxHeight}px`;
       el.style.visibility = "visible";
     };
@@ -62,6 +67,8 @@ export function Popover({ anchor, onClose, align = "start", minWidth = 0, matchW
     frame = requestAnimationFrame(follow);
     window.addEventListener("scroll", place, true);
     window.addEventListener("resize", place);
+    window.visualViewport?.addEventListener("resize", place);
+    window.visualViewport?.addEventListener("scroll", place);
     // A filtered list shrinks: place it again so a menu above its anchor stays against it.
     const resized = new ResizeObserver(() => place());
     if (box.current) resized.observe(box.current);
@@ -70,6 +77,8 @@ export function Popover({ anchor, onClose, align = "start", minWidth = 0, matchW
       cancelAnimationFrame(frame);
       window.removeEventListener("scroll", place, true);
       window.removeEventListener("resize", place);
+      window.visualViewport?.removeEventListener("resize", place);
+      window.visualViewport?.removeEventListener("scroll", place);
     };
   }, [align, minWidth, matchWidth, fitWidth, preferAbove]);
 
