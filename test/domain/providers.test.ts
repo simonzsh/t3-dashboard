@@ -18,9 +18,33 @@ test("toProviders keeps the effort levels a model accepts and the provider's run
       { instanceId: "b", enabled: true, status: "ready", supportedRuntimeModes: ["approval-required", "bogus", "full-access"], models: [{ slug: "m2", capabilities: { optionDescriptors: [tier, reasoning] } }] },
     ],
   });
-  assert.deepEqual(a!.models[0]!.effort, { optionId: "effort", levels: [{ id: "low", label: "Low" }, { id: "high", label: "High" }], defaultLevel: "high" });
-  assert.deepEqual(b!.models[0]!.effort, { optionId: "reasoningEffort", levels: [{ id: "medium", label: "Medium" }], defaultLevel: "medium" });
+  assert.deepEqual(a!.models[0]!.effort, { optionId: "effort", label: "Reasoning", levels: [{ id: "low", label: "Low" }, { id: "high", label: "High" }], defaultLevel: "high" });
+  assert.deepEqual(b!.models[0]!.effort, { optionId: "reasoningEffort", label: "Reasoning", levels: [{ id: "medium", label: "Medium" }], defaultLevel: "medium" });
   assert.deepEqual(b!.runtimeModes, ["approval-required", "full-access"]);
+});
+
+test("toProviders reads the Fast option: a fastMode toggle, or a service tier named Fast", () => {
+  const tier = {
+    id: "serviceTier",
+    label: "Speed",
+    type: "select",
+    options: [{ id: "default", label: "Standard", isDefault: true }, { id: "priority", label: "Fast" }],
+  };
+  const [a] = toProviders({
+    providers: [
+      {
+        instanceId: "a",
+        enabled: true,
+        status: "ready",
+        models: [
+          { slug: "toggle", capabilities: { optionDescriptors: [{ id: "fastMode", label: "Fast", type: "boolean" }] } },
+          { slug: "tier", capabilities: { optionDescriptors: [tier] } },
+          { slug: "none", capabilities: { optionDescriptors: [{ id: "serviceTier", type: "select", options: [{ id: "default", label: "Standard" }] }] } },
+        ],
+      },
+    ],
+  });
+  assert.deepEqual(a!.models.map((m) => m.speed), [{ optionId: "fastMode", fast: true, standard: false }, { optionId: "serviceTier", fast: "priority", standard: "default" }, null]);
 });
 
 test("toProviders follows T3's model order, hides hidden models and ranks favorites", () => {

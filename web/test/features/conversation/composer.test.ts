@@ -4,18 +4,18 @@ import type { DashboardProvider } from "../../../../shared/api.ts";
 import { MAX_ATTACHMENTS, MAX_FILE_BYTES, MAX_IMAGE_BYTES } from "../../../../shared/limits.ts";
 import { acceptFiles, applyTrigger, attachmentType, composerPlaceholder, currentEffort, dropTrigger, escapeBlurs, filterCommands, filterSkills, findModel, formatTokens, isSendKey, selectEffort, selectModel, suggestsCompact, triggerAt } from "../../../src/features/conversation/composer.ts";
 
-const effort = (optionId: string, ids: string[], defaultLevel: string | null) => ({ optionId, levels: ids.map((id) => ({ id, label: id.toUpperCase() })), defaultLevel });
+const effort = (optionId: string, ids: string[], defaultLevel: string | null) => ({ optionId, label: "Reasoning", levels: ids.map((id) => ({ id, label: id.toUpperCase() })), defaultLevel });
 const providers: DashboardProvider[] = [
   {
     instanceId: "claudeAgent",
     displayName: "Claude",
     runtimeModes: ["approval-required", "full-access"],
     models: [
-      { slug: "opus", name: "Opus", effort: effort("effort", ["low", "medium", "high", "max"], "medium"), favorite: null },
-      { slug: "haiku", name: "Haiku", effort: null, favorite: null },
+      { slug: "opus", name: "Opus", effort: effort("effort", ["low", "medium", "high", "max"], "medium"), speed: { optionId: "fastMode", fast: true, standard: false }, favorite: null },
+      { slug: "haiku", name: "Haiku", effort: null, speed: null, favorite: null },
     ],
   },
-  { instanceId: "codex", displayName: "Codex", runtimeModes: ["full-access"], models: [{ slug: "gpt", name: "GPT", effort: effort("reasoningEffort", ["low", "high"], "high"), favorite: null }] },
+  { instanceId: "codex", displayName: "Codex", runtimeModes: ["full-access"], models: [{ slug: "gpt", name: "GPT", effort: effort("reasoningEffort", ["low", "high"], "high"), speed: null, favorite: null }] },
 ];
 
 test("findModel locates the provider and model of a selection", () => {

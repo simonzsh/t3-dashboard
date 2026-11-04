@@ -358,8 +358,16 @@ function buildThread(spec: ThreadSpec, at: (minutes: number) => string): { threa
   return { thread, projection };
 }
 
-const effort = (id: string, levels: string[], defaultLevel: string) => ({
-  capabilities: { optionDescriptors: [{ id, label: "Reasoning", type: "select", options: levels.map((level) => ({ id: level, label: level[0]!.toUpperCase() + level.slice(1), isDefault: level === defaultLevel })) }] },
+const FAST_TOGGLE = { id: "fastMode", label: "Fast", type: "boolean" };
+const FAST_TIER = { id: "serviceTier", label: "Speed", type: "select", options: [{ id: "default", label: "Standard", isDefault: true }, { id: "fast", label: "Fast" }] };
+
+const effort = (id: string, levels: string[], defaultLevel: string, speed?: typeof FAST_TOGGLE | typeof FAST_TIER) => ({
+  capabilities: {
+    optionDescriptors: [
+      { id, label: "Reasoning", type: "select", options: levels.map((level) => ({ id: level, label: level[0]!.toUpperCase() + level.slice(1), isDefault: level === defaultLevel })) },
+      ...(speed ? [speed] : []),
+    ],
+  },
 });
 
 const CONFIG: RawConfig = {
@@ -382,7 +390,7 @@ const CONFIG: RawConfig = {
         { name: "release-notes", path: "/demo/skills/release-notes", enabled: true, displayName: "Release notes", shortDescription: "Write release notes for a change" },
       ],
       models: [
-        { slug: "claude-opus-5-5", name: "Claude Opus 5.5", ...effort("effort", ["low", "medium", "high", "max"], "high") },
+        { slug: "claude-opus-5-5", name: "Claude Opus 5.5", ...effort("effort", ["low", "medium", "high", "max"], "high", FAST_TOGGLE) },
         { slug: "claude-sonnet-5", name: "Claude Sonnet 5", ...effort("effort", ["low", "medium", "high"], "medium") },
         { slug: "claude-haiku-4-5", name: "Claude Haiku 4.5" },
       ],
@@ -396,7 +404,7 @@ const CONFIG: RawConfig = {
       slashCommands: [{ name: "compact", description: "Summarize the conversation and reduce context usage" }],
       skills: [{ name: "simplify", path: "/demo/skills/simplify", enabled: true, displayName: "Simplify", shortDescription: "Review changed code for reuse and simplicity" }],
       models: [
-        { slug: "gpt-5.5-codex", name: "GPT-5.5 Codex", ...effort("reasoningEffort", ["low", "medium", "high"], "medium") },
+        { slug: "gpt-5.5-codex", name: "GPT-5.5 Codex", ...effort("reasoningEffort", ["low", "medium", "high"], "medium", FAST_TIER) },
         { slug: "gpt-5.5", name: "GPT-5.5", ...effort("reasoningEffort", ["minimal", "low", "medium", "high"], "medium") },
       ],
     },

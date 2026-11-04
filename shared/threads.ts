@@ -45,14 +45,25 @@ export interface DashboardProject {
 export interface ModelEffort {
   /** Option id in ModelSelection.options: "effort" for Claude, "reasoningEffort" for Codex. */
   optionId: string;
+  /** T3's title for the option, e.g. "Reasoning". */
+  label: string;
   levels: Array<{ id: string; label: string }>;
   defaultLevel: string | null;
+}
+
+/** The Standard / Fast choice of a model: the values to put in ModelSelection.options. */
+export interface ModelSpeed {
+  /** "fastMode" (a toggle) or "serviceTier" (a select). */
+  optionId: string;
+  fast: string | boolean;
+  standard: string | boolean;
 }
 
 export interface DashboardModel {
   slug: string;
   name: string;
   effort: ModelEffort | null;
+  speed: ModelSpeed | null;
   /** Rank in T3's favorites, or null when not a favorite. */
   favorite: number | null;
 }
