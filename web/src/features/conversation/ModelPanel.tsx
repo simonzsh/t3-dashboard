@@ -96,8 +96,7 @@ export function ModelPanel({ providers, selection, mode, modes, onSelection, onM
   function pickRow(row: PanelRow | undefined) {
     if (!row) return;
     if (!sameRow(row, selection)) onSelection(selectModel(selection, row.provider, row.model));
-    // A model with options keeps the panel open, so its reasoning or speed can follow.
-    if (!row.model.effort && !row.model.speed) close(true);
+    close(true);
   }
 
   function onKeyDown(e: KeyboardEvent) {
