@@ -2,8 +2,10 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import type { DashboardState } from "../../../../shared/api.ts";
 import { finishedSetups, setupThreads } from "./automations.ts";
 
+const NONE: readonly string[] = [];
+
 /** Setup rows, plus the ones that just finished: they stay listed until a fresh list says where they go. */
-export function useSetupRows(threads: DashboardState["threads"], setupIds: readonly string[], reload: () => Promise<void>) {
+export function useSetupRows(threads: DashboardState["threads"], setupIds: readonly string[] = NONE, reload: () => Promise<void>) {
   const active = useMemo(() => setupThreads(threads, setupIds), [threads, setupIds]);
   const wasActive = useRef<ReadonlySet<string>>(new Set());
   const [settling, setSettling] = useState<ReadonlySet<string>>(new Set());

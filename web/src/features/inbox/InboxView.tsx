@@ -25,8 +25,6 @@ interface Props {
   linearVersion: number;
 }
 
-const NONE: readonly string[] = [];
-
 // Closed by default: running and settled threads need no action from the user.
 function Collapsible({ title, count, className, children }: { title: string; count: number; className?: string; children: ReactNode }) {
   const [open, setOpen] = useState(false);
@@ -44,7 +42,7 @@ function Collapsible({ title, count, className, children }: { title: string; cou
 export function InboxView({ state, now, deskIds, onOpen, onToggleDesk, onSettle, onSwitcher, automations, automationsError, onAutomationsStale, linearVersion }: Props) {
   const scrolled = useScrolled();
   const hiddenIds = automations?.hiddenThreadIds;
-  const setup = useSetupRows(state.threads, automations?.setupThreadIds ?? NONE, onAutomationsStale);
+  const setup = useSetupRows(state.threads, automations?.setupThreadIds, onAutomationsStale);
   const sections = useMemo(
     () => inboxSections(excludeRoutineThreads(state.threads, [...(hiddenIds ?? []), ...setup.map((t) => t.id)]), now),
     [state.threads, hiddenIds, setup, now],

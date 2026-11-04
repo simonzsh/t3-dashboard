@@ -3,7 +3,7 @@ import { createPortal } from "react-dom";
 import type { BoardResult, DashboardProject, DashboardProvider, LinearIssue, ModelDefaults } from "../../../../shared/api.ts";
 import { useApi } from "../../api/ApiContext.tsx";
 import { loadAssignProject } from "../../lib/assignProject.ts";
-import { ProjectIcon } from "../../lib/ProjectIcon.tsx";
+import { ProjectTag } from "../../lib/ProjectTag.tsx";
 import { browserStorage } from "../../lib/storage.ts";
 import { tabSelector } from "../../lib/tabs.ts";
 import { useAction } from "../../lib/useAction.ts";
@@ -53,12 +53,7 @@ function TicketRow({ issue, projects, providers, modelDefaults, onOpen, onStarte
       <a href={issue.url} target="_blank" rel="noreferrer" className="ticket-title" data-tooltip={issue.title} data-tooltip-clipped>
         {issue.title}
       </a>
-      {project && (
-        <span className="project-tag">
-          <ProjectIcon icon={project.icon} />
-          <span className="project-tag-text">{project.title}</span>
-        </span>
-      )}
+      {project && <ProjectTag icon={project.icon} title={project.title} />}
       <Button variant="primary" size="sm" loading={busy} onClick={start}>
         Start
       </Button>

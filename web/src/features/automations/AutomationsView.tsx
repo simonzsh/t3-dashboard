@@ -2,7 +2,7 @@ import { useMemo, useState, type ReactNode } from "react";
 import type { Automation, AutomationsResult, DashboardState, DashboardThread } from "../../../../shared/api.ts";
 import { agentStatus } from "../../../../shared/status.ts";
 import { useCopy } from "../../lib/useCopy.ts";
-import { ProjectIcon } from "../../lib/ProjectIcon.tsx";
+import { ProjectTag } from "../../lib/ProjectTag.tsx";
 import { StatusBadge } from "../../lib/StatusBadge.tsx";
 import { Badge, Button, Dropdown, Icon, IconButton, Loader, Pressable, TextInput } from "../../ui/index.ts";
 import { automationProjects, copyableUrl, filterAutomations, groupAutomations, isFinishedReminder, lastRunState, nextLabel, scheduleText, type AutomationGroup } from "./automations.ts";
@@ -20,7 +20,6 @@ interface Props {
   onNewAutomation: () => void;
 }
 
-const NONE: readonly string[] = [];
 const COLUMNS = 6;
 const GROUPS: ReadonlyArray<{ id: AutomationGroup; title: string }> = [
   { id: "attention", title: "Needs attention" },
@@ -68,10 +67,7 @@ function Row({ a, thread, projectIcon, now, onOpen, onRename, onDelete }: RowPro
         {hook && !a.webhook?.signed && <span className="auto-note">unsigned</span>}
       </td>
       <td data-label="Project">
-        <span className="project-tag">
-          <ProjectIcon icon={projectIcon} />
-          <span className="project-tag-text">{a.project}</span>
-        </span>
+        <ProjectTag icon={projectIcon} title={a.project} />
       </td>
       <td data-label="Schedule">{scheduleText(a)}</td>
       <td data-label="Next run">{next}</td>
@@ -149,7 +145,7 @@ export function AutomationsView({ state, now, onOpen, automations, automationsEr
   const [inactiveOpen, setInactiveOpen] = useState(false);
   const [deleting, setDeleting] = useState<Automation | null>(null);
   const [renaming, setRenaming] = useState<Automation | null>(null);
-  const setup = useSetupRows(state.threads, automations?.setupThreadIds ?? NONE, onAutomationsStale);
+  const setup = useSetupRows(state.threads, automations?.setupThreadIds, onAutomationsStale);
   const threads = useMemo(() => new Map(state.threads.map((t) => [t.id, t])), [state.threads]);
   const icons = useMemo(() => new Map(state.projects.map((p) => [p.id, p.icon])), [state.projects]);
   const all = automations?.automations ?? [];

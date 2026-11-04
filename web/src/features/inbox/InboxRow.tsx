@@ -5,7 +5,7 @@ import { relativeTime } from "../../lib/format.ts";
 import { tabSelector } from "../../lib/tabs.ts";
 import { threadTitle } from "../../lib/threads.ts";
 import { OpenInT3 } from "../../lib/OpenInT3.tsx";
-import { ProjectIcon } from "../../lib/ProjectIcon.tsx";
+import { ProjectTag } from "../../lib/ProjectTag.tsx";
 import { ProviderIcon } from "../../lib/ProviderIcon.tsx";
 import { StatusBadge } from "../../lib/StatusBadge.tsx";
 import { useAction } from "../../lib/useAction.ts";
@@ -52,12 +52,7 @@ function InboxRowView({ thread: t, project, now, actions, onDesk, t3EnvironmentI
       >
         <ProviderIcon provider={t.provider} />
         <span className="inbox-title">{threadTitle(t)}</span>
-        {project && (
-          <span className="project-tag">
-            <ProjectIcon icon={project.icon} />
-            <span className="project-tag-text">{project.title}</span>
-          </span>
-        )}
+        {project && <ProjectTag icon={project.icon} title={project.title} />}
         <span data-tooltip={status === "finished" ? (t.lastError ?? undefined) : undefined}>
           <StatusBadge thread={t} status={status} />
         </span>
