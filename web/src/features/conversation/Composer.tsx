@@ -5,6 +5,7 @@ import { STASH_LIMIT } from "../../../../shared/stash.ts";
 import { RUNTIME_MODE_LABELS, acceptFiles, applyTrigger, attachmentType, composerPlaceholder, currentEffort, dropTrigger, escapeBlurs, filterCommands, filterSkills, findModel, formatTokens, isSendKey, selectEffort, selectModel, showsCompact, triggerAt } from "./composer.ts";
 import { moveActive, type DropdownOption } from "../../lib/dropdown.ts";
 import { useApi } from "../../api/ApiContext.tsx";
+import { setStash, useStash } from "../../api/stashStore.ts";
 import { Button, Dropdown, FileInput, Icon, IconButton, Loader, Popover, Pressable, TextArea } from "../../ui/index.ts";
 import { ProviderIcon } from "../../lib/ProviderIcon.tsx";
 import { errorMessage } from "../../lib/format.ts";
@@ -108,7 +109,7 @@ export function Composer({ providers, selection, runtimeMode, running, stoppable
   const [caret, setCaret] = useState(0);
   const [available, setAvailable] = useState<{ provider: string; at: number; value: ComposerCommands } | null>(null);
   const [compacting, setCompacting] = useState(false);
-  const [stashed, setStashed] = useState<StashEntry[]>([]);
+  const stashed = useStash();
   const [stashOpen, setStashOpen] = useState(false);
   // The last entry gone: close the list so the next stash does not reopen it.
   useEffect(() => {
@@ -226,7 +227,7 @@ export function Composer({ providers, selection, runtimeMode, running, stoppable
     nextCaret.current = null;
   }, [draft]);
 
-  const reloadStash = () => api.getStash().then((r) => setStashed(r.entries), () => {});
+  const reloadStash = () => api.getStash().then((r) => setStash(r.entries), () => {});
   useEffect(() => {
     if (stash) void reloadStash();
   }, [stash === undefined]);
@@ -299,7 +300,7 @@ export function Composer({ providers, selection, runtimeMode, running, stoppable
     if (!settled) return setError("Wait for the uploads to finish before stashing this prompt.");
     const sent = await attempt(async () => {
       const { entry, evicted } = await api.createStash({ text: draft, uploads: files.map((f) => f.attachment!), threadId: stash.threadId, threadTitle: stash.title });
-      setStashed((list) => [entry, ...list].slice(0, STASH_LIMIT));
+      setStash((list) => [entry, ...list].slice(0, STASH_LIMIT));
       evicted.forEach((e) => free(e.uploads));
       if (evicted.length > 0) setError(`The stash holds ${STASH_LIMIT} prompts; the oldest was removed to make room.`);
     }, setStashing);
@@ -314,7 +315,7 @@ export function Composer({ providers, selection, runtimeMode, running, stoppable
   async function restoreStash(entry: StashEntry) {
     if (!(await attempt(() => api.deleteStash(entry.id)))) return void reloadStash();
     const { uploads, notes } = planRestore(entry, filesRef.current.length, new Date());
-    setStashed((list) => list.filter((e) => e.id !== entry.id));
+    setStash((list) => list.filter((e) => e.id !== entry.id));
     setStashOpen(false);
     onDraft(mergeDraft(draftRef.current, entry.text));
     setFiles((current) => [...current, ...uploads.map((attachment): Attached => ({ key: crypto.randomUUID(), name: attachment.name, type: attachment.mimeType, size: attachment.sizeBytes, file: null, preview: null, state: "ready", attachment }))]);
@@ -325,7 +326,7 @@ export function Composer({ providers, selection, runtimeMode, running, stoppable
   async function deleteStash(entry: StashEntry) {
     if (!(await attempt(() => api.deleteStash(entry.id)))) return void reloadStash();
     free(entry.uploads);
-    setStashed((list) => list.filter((e) => e.id !== entry.id));
+    setStash((list) => list.filter((e) => e.id !== entry.id));
   }
 
   function removeFile(item: Attached) {

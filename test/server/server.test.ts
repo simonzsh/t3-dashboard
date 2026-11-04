@@ -1304,3 +1304,13 @@ test("POST /api/stash/:id/delete removes the entry, then answers 404 for it", as
   assert.deepEqual((await call(server, "GET", "/api/stash")).json, { entries: [stashed("b")] });
   assert.equal((await post(server, "/api/stash/a/delete", {})).status, 404);
 });
+
+test("a stash change is broadcast to every open page, and a refused one is not", async () => {
+  const { server, events } = await start({ stash: [stashed("a")] });
+  await post(server, "/api/stash", { text: "draft", uploads: [], threadId: "t-9", threadTitle: "Other" });
+  await post(server, "/api/stash/a/delete", {});
+  await post(server, "/api/stash/missing/delete", {});
+  await post(server, "/api/stash", { text: " ", uploads: [], threadId: "t-9", threadTitle: "Other" });
+  const lists = events.filter((e) => e.type === "stash").map((e) => (e.data as StashEntry[]).map((x) => x.id));
+  assert.deepEqual(lists, [["stash-1", "a"], ["stash-1"]]);
+});

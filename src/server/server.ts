@@ -254,12 +254,21 @@ export function createDashboardServer(options: DashboardServerOptions): Dashboar
         return ok();
       },
     },
-    { method: "POST", path: "/api/stash", handle: ({ body }) => ok(stash.add(validStash(body))) },
+    {
+      method: "POST",
+      path: "/api/stash",
+      handle: ({ body }) => {
+        const added = stash.add(validStash(body));
+        hub.broadcast({ type: "stash", data: stash.list() });
+        return ok(added);
+      },
+    },
     {
       method: "POST",
       path: "/api/stash/:id/delete",
       handle: ({ params }) => {
         if (!stash.remove(params.id!)) throw new HttpError(404, "This stashed prompt is gone already");
+        hub.broadcast({ type: "stash", data: stash.list() });
         return ok();
       },
     },
