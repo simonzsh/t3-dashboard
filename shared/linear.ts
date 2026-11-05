@@ -1,4 +1,7 @@
-// The Linear board.
+// The Linear board and the assign action.
+
+import type { ImageAttachment, UploadedAttachment } from "./requests.ts";
+import type { ModelSelection, RuntimeMode } from "./threads.ts";
 
 export interface LinearIssue {
   id: string;
@@ -20,4 +23,17 @@ export interface BoardResult {
   ok: boolean;
   error: string | null;
   issues: LinearIssue[];
+}
+
+export interface AssignIssueBody {
+  issueId: string;
+  /** Empty: the thread goes to T3's "No project". */
+  projectId: string;
+  /** Extra instructions; the issue reference is always added. */
+  text: string;
+  modelSelection: ModelSelection;
+  runtimeMode?: RuntimeMode;
+  attachments?: ImageAttachment[];
+  /** Files already uploaded with POST /api/attachments. */
+  uploads?: UploadedAttachment[];
 }

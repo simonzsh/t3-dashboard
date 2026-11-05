@@ -1,8 +1,8 @@
 import { test } from "bun:test";
 import assert from "node:assert/strict";
-import type { LinearIssue } from "../../../../shared/api.ts";
+import type { DashboardProject, DashboardProvider, LinearIssue } from "../../../../shared/api.ts";
 import type { SeenState } from "../../../../shared/seen.ts";
-import { IDLE_RELAUNCH_MS, linkedIdentifiers, planTickets, ticketsWithoutAgent } from "../../../src/features/inbox/tickets.ts";
+import { IDLE_RELAUNCH_MS, linkedIdentifiers, planTickets, ticketStart, ticketsWithoutAgent } from "../../../src/features/inbox/tickets.ts";
 import { thread } from "../../fixtures.ts";
 
 function issue(identifier: string, over: Partial<LinearIssue> = {}): LinearIssue {
@@ -104,4 +104,34 @@ test("to relaunch sorts by priority, none last", () => {
   const [t1, t2] = [stale("t1", "A-1 one"), stale("t2", "A-2 two")];
   const plan = planTickets([issue("A-1", { state: started, priority: 0 }), issue("A-2", { state: started, priority: 2 })], [t1, t2], readAt(t1, t2), now);
   assert.deepEqual(keys(plan.relaunch), [["A-2", "t2"], ["A-1", "t1"]]);
+});
+
+const projects: DashboardProject[] = [{ id: "p1", title: "P1", defaultModelSelection: null, icon: null }];
+const providers: DashboardProvider[] = [{ instanceId: "i1", models: [{ slug: "m1" }] } as DashboardProvider];
+const defaults = { selection: null, runtimeMode: null };
+
+test("ticketStart opens the dialog without a saved project", () => {
+  assert.deepEqual(ticketStart(issue("ABC-1"), "", projects, providers, defaults), { kind: "dialog" });
+});
+
+test("ticketStart opens the dialog when the saved project is gone", () => {
+  assert.deepEqual(ticketStart(issue("ABC-1"), "ghost", projects, providers, defaults), { kind: "dialog" });
+});
+
+test("ticketStart opens the dialog when no model is offered", () => {
+  assert.deepEqual(ticketStart(issue("ABC-1"), "p1", projects, [], defaults), { kind: "dialog" });
+});
+
+test("ticketStart starts directly with the preset model and an empty prompt", () => {
+  const start = ticketStart(issue("ABC-1"), "p1", projects, providers, defaults);
+  assert.deepEqual(start, {
+    kind: "direct",
+    project: projects[0],
+    body: { issueId: "id-ABC-1", projectId: "p1", text: "", modelSelection: { instanceId: "i1", model: "m1" }, runtimeMode: "full-access" },
+  });
+});
+
+test("ticketStart uses the T3 default access mode", () => {
+  const start = ticketStart(issue("ABC-1"), "p1", projects, providers, { selection: null, runtimeMode: "approval-required" });
+  assert.equal(start.kind === "direct" && start.body.runtimeMode, "approval-required");
 });

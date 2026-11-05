@@ -9,7 +9,7 @@ import { useSetupRows } from "../automations/useSetupRows.ts";
 import { InboxRow } from "./InboxRow.tsx";
 import { Collapsible, Section } from "./InboxSection.tsx";
 import { inboxSections, inboxSummary, nothingToDo, settleCandidates } from "./inbox.ts";
-import { UpNextSection } from "./TicketsSection.tsx";
+import { TicketRow, UpNextSection } from "./TicketsSection.tsx";
 import { useTickets } from "./useTickets.ts";
 
 interface Props {
@@ -74,6 +74,7 @@ export function InboxView({ state, now, deskIds, onOpen, onToggleDesk, onSettle,
   );
   const rows = (threads: DashboardThread[]) => threads.map((t) => row(t));
   const summary = inboxSummary(sections.needsYou.length, sections.newResults.length, relaunch.length);
+  const ticketProps = { projects: state.projects, providers: state.providers, modelDefaults: state.modelDefaults, onOpen, onStarted: tickets.markStarted };
 
   return (
     <div className="inbox-page">
@@ -101,7 +102,7 @@ export function InboxView({ state, now, deskIds, onOpen, onToggleDesk, onSettle,
           {nothingToDo(sections, relaunch.length, upNext.length) && (
             <div className="empty-state">
               <strong>Nothing needs you</strong>
-              <span>Waiting agents, errors, new results and tickets to do show up here.</span>
+              <span>Waiting agents, errors, new results and tickets to start show up here.</span>
             </div>
           )}
           <Section id="inbox-needs-head" title="Needs you" count={sections.needsYou.length} limit={NEEDS_LIMIT}>
@@ -131,6 +132,7 @@ export function InboxView({ state, now, deskIds, onOpen, onToggleDesk, onSettle,
             failed={tickets.failed}
             tickets={upNext}
             onRefresh={() => void tickets.reload(true)}
+            {...ticketProps}
           />
           <Collapsible title="Running" count={sections.running.length}>
             {rows(sections.running)}

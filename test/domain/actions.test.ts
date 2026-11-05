@@ -1,11 +1,25 @@
 import assert from "node:assert/strict";
 import { test } from "bun:test";
+import type { BoardResult } from "../../shared/api.ts";
 import { createActions } from "../../src/domain/actions.ts";
 import { DomainError } from "../../src/domain/errors.ts";
 import type { ShellStore } from "../../src/domain/shellStore.ts";
 import { IntegrationError } from "../../src/integrations/errors.ts";
 import { FakePort } from "../helpers/fakePort.ts";
 import type { Command, RawBackgroundTask, RawConfig, RawProjection, T3Port } from "../../src/integrations/t3/schemas.ts";
+
+const issue = {
+  id: "issue-1",
+  identifier: "TEAM-1",
+  title: "Fix it",
+  url: "https://linear.example/TEAM-1",
+  state: { name: "Todo", type: "unstarted", color: "#ccc" },
+  priority: 2,
+  priorityLabel: "High",
+  project: null,
+  team: { key: "TEAM", name: "Team" },
+  updatedAt: "2026-03-20T10:00:00.000Z",
+};
 
 const searchMatch = (threadId: string) => ({ threadId, projectId: "project-1", source: "user" as const, snippet: `hit in ${threadId}`, messageCreatedAt: null });
 
@@ -18,13 +32,13 @@ function stopHarness(projections: Record<string, RawProjection>, config: RawConf
   } as unknown as T3Port;
   const store = { thread: () => undefined, project: () => undefined, backgroundTasks: () => tasks, workspaceOf: () => null };
   let counter = 0;
-  const actions = createActions({ port, store, newId: () => `id-${++counter}` });
+  const actions = createActions({ port, store, board: { get: async () => ({ configured: true, ok: true, error: null, issues: [] }) }, newId: () => `id-${++counter}` });
   return { actions, commands, port };
 }
 
 const delegated = { id: "sub-1", runId: "run-1", status: "running", origin: "app_owned", childThreadId: "child-1" };
 
-function harness({ searchResult = [] as ReturnType<typeof searchMatch>[], searchError = null as Error | null, dispatchError = null as Error | null } = {}) {
+function harness({ searchResult = [] as ReturnType<typeof searchMatch>[], searchError = null as Error | null, board = { configured: true, ok: true, error: null, issues: [issue] } as BoardResult, dispatchError = null as Error | null } = {}) {
   const commands: Command[] = [];
   const port: T3Port = {
     threadProjection: async () => ({}),
@@ -61,7 +75,7 @@ function harness({ searchResult = [] as ReturnType<typeof searchMatch>[], search
     workspaceOf: () => null,
   };
   let counter = 0;
-  const actions = createActions({ port, store, newId: () => `id-${++counter}` });
+  const actions = createActions({ port, store, board: { get: async () => board }, newId: () => `id-${++counter}` });
   return { actions, commands };
 }
 
@@ -94,6 +108,22 @@ test("interrupt without an active run, threadStop or background tasks is a confl
 test("a T3 failure of any kind comes back as a T3 integration error with its message", async () => {
   const { actions } = harness({ dispatchError: new Error("T3 down") });
   await assert.rejects(actions.dismiss("thread-1", "request-1"), (error: unknown) => error instanceof IntegrationError && error.system === "t3" && error.message === "T3 down");
+});
+
+test("assign names the thread after the issue and asks the agent to handle it", async () => {
+  const { actions, commands } = harness();
+  const threadId = await actions.assign({ issueId: "issue-1", projectId: "project-1", text: "", modelSelection: { instanceId: "i", model: "m" } }, []);
+  const create = commands.find((command) => command.type === "thread.create");
+  assert.equal(create?.threadId, threadId);
+  assert.equal(create?.title, "TEAM-1 Fix it");
+  const message = commands.find((command) => command.type === "message.dispatch");
+  assert.equal(message?.text, "Handle Linear issue TEAM-1: https://linear.example/TEAM-1");
+});
+
+test("assign refuses an unknown issue and an unknown project", async () => {
+  const { actions } = harness();
+  await assert.rejects(actions.assign({ issueId: "nope", projectId: "project-1", text: "", modelSelection: { instanceId: "i", model: "m" } }, []), rejectsWith("not-found"));
+  await assert.rejects(actions.assign({ issueId: "issue-1", projectId: "nope", text: "", modelSelection: { instanceId: "i", model: "m" } }, []), rejectsWith("conflict"));
 });
 
 test("search drops matches of threads the dashboard does not list and keeps T3's order", async () => {
@@ -185,7 +215,7 @@ function fakeHarness(workspaces: Record<string, string | null> = {}) {
   const port = new FakePort();
   const store = { thread: () => undefined, project: () => undefined, backgroundTasks: () => [], workspaceOf: (id: string) => workspaces[id] ?? null };
   let counter = 0;
-  const actions = createActions({ port, store, newId: () => `id-${++counter}` });
+  const actions = createActions({ port, store, board: { get: async () => ({ configured: true, ok: true, error: null, issues: [] }) }, newId: () => `id-${++counter}` });
   return { actions, port };
 }
 

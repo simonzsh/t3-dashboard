@@ -127,7 +127,7 @@ async function start(startOptions: StartOptions = {}) {
   const events: DashboardEvent[] = [];
   const broadcast = hub.broadcast.bind(hub);
   hub.broadcast = (event) => (events.push(event), broadcast(event));
-  const actions = createActions({ port, store, newId: () => `id-${++counter}` });
+  const actions = createActions({ port, store, board, newId: () => `id-${++counter}` });
   const server: DashboardHandler = createDashboardServer({
     actions,
     desk,
@@ -542,6 +542,7 @@ test("allowed hosts extend the local ones for Host and Origin, ports ignored", a
 test("every POST route refuses a body that is not JSON", async () => {
   const { server, port } = await start();
   const posts = [
+    "/api/board/assign",
     "/api/desk",
     "/api/stash",
     "/api/seen",
@@ -612,6 +613,8 @@ test("a site page is served for GET and never for other methods", async () => {
   assert.equal((await post(server, "/")).status, 404);
 });
 
+const assignBody = { issueId: "issue-1", projectId: "project-1", text: "", modelSelection: { instanceId: "claudeAgent", model: "claude-opus-5-5" } };
+
 test("GET /api/board returns the board and caches it until ?refresh=1", async () => {
   const { server, linearCalls } = await start({ linearKey: "key-1" });
   const first = await call(server, "GET", "/api/board");
@@ -626,12 +629,80 @@ test("GET /api/board returns the board and caches it until ?refresh=1", async ()
   assert.ok(!first.text.includes("key-1"));
 });
 
+test("POST /api/board/assign creates a thread on the issue with the chosen model", async () => {
+  const { server, port } = await start({ linearKey: "key-1" });
+  const reply = await post(server, "/api/board/assign", { ...assignBody, runtimeMode: "auto" });
+  assert.deepEqual(reply.json, { ok: true, threadId: "id-1" });
+  assert.deepEqual(
+    port.commands.map((command) => command.type),
+    ["thread.create", "message.dispatch"],
+  );
+  assert.equal(port.commands[0]!.projectId, "project-1");
+  assert.equal(port.commands[0]!.title, "TEAM-1 Issue 1");
+  assert.equal(port.commands[0]!.runtimeMode, "auto");
+  assert.equal(port.commands[1]!.text, "Handle Linear issue TEAM-1: https://linear.example/TEAM-1");
+  assert.deepEqual(port.commands[0]!.modelSelection, { instanceId: "claudeAgent", model: "claude-opus-5-5" });
+});
+
+test("assign puts the user's instructions first, then the issue link", async () => {
+  const { server, port } = await start({ linearKey: "key-1" });
+  await post(server, "/api/board/assign", { ...assignBody, text: "  Start with the tests.  " });
+  assert.equal(port.commands[1]!.text, "Start with the tests.\n\nLinear issue TEAM-1: https://linear.example/TEAM-1");
+});
+
+test("assign without a project goes to T3's No project", async () => {
+  const { server, port } = await start({ linearKey: "key-1" });
+  assert.equal((await post(server, "/api/board/assign", { ...assignBody, projectId: "" })).status, 200);
+  assert.equal(port.commands[0]!.projectId, "scratch-project");
+});
+
+test("assign finds the project by title as well as by id", async () => {
+  const { server, port } = await start({ linearKey: "key-1" });
+  assert.equal((await post(server, "/api/board/assign", { ...assignBody, projectId: "Project B" })).status, 200);
+  assert.equal(port.commands[0]!.projectId, "project-2");
+});
+
+test("assign errors: 400 invalid body, 404 unknown issue, 409 unknown T3 project", async () => {
+  const { server, port } = await start({ linearKey: "key-1" });
+  const { modelSelection: _model, ...withoutModel } = assignBody;
+  assert.equal((await post(server, "/api/board/assign", withoutModel)).status, 400);
+  assert.equal((await post(server, "/api/board/assign", { ...assignBody, issueId: "" })).status, 400);
+  assert.equal((await post(server, "/api/board/assign", { ...assignBody, text: 3 })).status, 400);
+  assert.equal((await post(server, "/api/board/assign", { ...assignBody, runtimeMode: "yolo" })).status, 400);
+  assert.equal((await post(server, "/api/board/assign", { ...assignBody, issueId: "nope" })).status, 404);
+  assert.equal((await post(server, "/api/board/assign", { ...assignBody, projectId: "missing" })).status, 409);
+  assert.deepEqual(port.commands, []);
+});
+
 test("the board shows the issues of every team", async () => {
   const teamNode = (n: number, key: string) => ({ ...linearNode(n), team: { key, name: `Team ${key}` } });
   const nodes = [teamNode(1, "ENG"), teamNode(2, "OPS"), teamNode(3, "HR")];
   const { server } = await start({ linearKey: "key-1", linearFetch: async () => linearPage(nodes) });
   const board = await call(server, "GET", "/api/board");
   assert.deepEqual(board.json.issues.map((issue: { id: string }) => issue.id), ["issue-1", "issue-2", "issue-3"]);
+});
+
+test("assign rereads Linear once when the issue is not in the cached board", async () => {
+  let nodes = [linearNode(1)];
+  const { server, linearCalls } = await start({
+    linearKey: "key-1",
+    linearFetch: async () => linearPage(nodes),
+  });
+  await call(server, "GET", "/api/board");
+  nodes = [linearNode(1), linearNode(2)];
+  const reply = await post(server, "/api/board/assign", { ...assignBody, issueId: "issue-2" });
+  assert.equal(reply.status, 200);
+  assert.equal(linearCalls.length, 2);
+});
+
+test("assign answers 502 when Linear fails and when T3 fails", async () => {
+  const down = await start({ linearKey: "key-1", linearFetch: async () => new Response("no", { status: 500 }) });
+  const linear = await post(down.server, "/api/board/assign", assignBody);
+  assert.equal(linear.status, 502);
+  assert.ok(!linear.text.includes("key-1"));
+  const { server, port } = await start({ linearKey: "key-1" });
+  port.dispatchError = new Error("T3 down");
+  assert.equal((await post(server, "/api/board/assign", assignBody)).status, 502);
 });
 
 test("GET /api/automations returns the automations listed at each call", async () => {
@@ -1250,6 +1321,13 @@ test("POST /api/threads takes uploads", async () => {
   assert.equal(reply.status, 200);
   assert.deepEqual(port.commands[1]!.attachments, [upload]);
   assert.equal((await post(server, "/api/threads", { projectId: "project-1", title: "t", text: "x", modelSelection: model, uploads: [{ ...upload, id: "" }] })).status, 400);
+});
+
+test("POST /api/board/assign takes uploads", async () => {
+  const { server, port } = await start({ linearKey: "key-1" });
+  assert.equal((await post(server, "/api/board/assign", { ...assignBody, uploads: [upload] })).status, 200);
+  assert.deepEqual(port.commands[1]!.attachments, [upload]);
+  assert.equal((await post(server, "/api/board/assign", { ...assignBody, uploads: [{ ...upload, id: "" }] })).status, 400);
 });
 
 test("GET /api/threads/:id/items/:itemId answers the step detail, 404 when T3 has no such item", async () => {

@@ -1,4 +1,5 @@
 import type {
+  AssignIssueBody,
   AutomationsResult,
   BoardResult,
   ConnectionStatus,
@@ -97,6 +98,7 @@ export function createApi(fetchImpl: Fetch) {
     renameAutomation: (id: string, title: string) => call<OkResult>(`/api/automations/${encodeURIComponent(id)}/rename`, { title }),
     deleteAutomation: (id: string) => call<OkResult>(`/api/automations/${encodeURIComponent(id)}/delete`, {}),
     getBoard: (refresh = false) => call<BoardResult>(refresh ? "/api/board?refresh=1" : "/api/board"),
+    assignIssue: (b: AssignIssueBody) => call<CreateThreadResult>("/api/board/assign", b),
     getSettings: () => call<SettingsResult>("/api/settings"),
     retrySetup: () => call<ConnectionStatus>("/api/setup/retry", {}),
     pasteToken: (token: string) => call<ConnectionStatus>("/api/setup/token", { token }),
