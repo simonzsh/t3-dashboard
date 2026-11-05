@@ -149,7 +149,8 @@ export function createAutomations(options: AutomationsOptions): Automations {
       // A bound task runs in its own thread, so its project stays.
       const projectId = (task.threadId ? task.projectId : body.projectId) || (await viaT3(port.ensureScratchProject()));
       // Mark before the call, so the guard cannot pause the reminder between T3's update and the mark.
-      const marked = body.kind === "reminder" && !!task.lastRunAt;
+      // Roll back only a mark this call added: an earlier edit's mark must stay.
+      const marked = body.kind === "reminder" && !!task.lastRunAt && !rearmed.has(id, task.lastRunAt);
       if (marked) rearmed.mark(id, task.lastRunAt!);
       try {
         await viaT3(

@@ -434,3 +434,20 @@ test("update marks a reminder that ran as re-armed, and a routine or a fresh rem
   await automations.update("task-3", { ...base, kind: "reminder", at });
   assert.equal(marks.length, 1);
 });
+
+test("a failed update rolls back only the mark it added", async () => {
+  const lastRunAt = "2026-11-03T09:00:00.000Z";
+  const at = new Date(2026, 10, 4, 15, 0).toISOString();
+  const port = new FakePort();
+  const make = (rearmed: RearmedStore) => createAutomations({ port, rearmed, store: { project: () => undefined, rawThreads: () => [] }, dedicated: { read: () => new Set() }, now: () => new Date(2026, 10, 4, 10, 0, 0) });
+  port.scheduledTasks = [task({ title: "Reminder: Call", enabled: false, lastRunAt })];
+  port.updateError = new Error("socket closed");
+
+  const fresh = new RearmedStore();
+  await assert.rejects(make(fresh).update("task-1", { ...base, kind: "reminder", at }));
+  assert.equal(fresh.has("task-1", lastRunAt), false);
+
+  const earlier = new RearmedStore({ "task-1": lastRunAt });
+  await assert.rejects(make(earlier).update("task-1", { ...base, kind: "reminder", at }));
+  assert.equal(earlier.has("task-1", lastRunAt), true);
+});

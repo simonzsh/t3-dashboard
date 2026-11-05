@@ -33,8 +33,13 @@ export class RearmedStore {
     if (kept.length !== Object.keys(this.marks).length) this.save(Object.fromEntries(kept));
   }
 
+  // A write error (full or read-only disk) must not stop the guard: keep the marks in memory.
   private save(next: Record<string, string>): void {
-    this.persist(next);
     this.marks = next;
+    try {
+      this.persist(next);
+    } catch (error) {
+      console.warn(`Could not save re-armed reminders: ${(error as Error).message}`);
+    }
   }
 }
