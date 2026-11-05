@@ -10,7 +10,7 @@ The Inbox tab shows what needs you. It is a list of rows, not a grid. It has no 
 
 - A summary line starts the page, for example "2 need you · 3 new results · 1 to relaunch". It shows only the parts that are not zero.
 - A row shows the provider (Claude or Codex), the title, the project tag, the status and the time of the last activity.
-- The sections are, from top to bottom: "Needs you", "New results", "To relaunch", "Up next", then three closed sections: "Running", "Read and idle" and "Recently settled". An empty section does not appear.
+- The sections are, from top to bottom: "Needs you", "New results", "To relaunch", "Running", "Up next", then two closed sections: "Read and idle" and "Recently settled". An empty section does not appear.
 - In each section, the agents pinned in T3 Code come first, with a small pin. Then the most recent activity comes first.
 - "Needs you" lists the agents that wait for an approval or an answer, and the agents that failed and that you did not settle. The badge tells which one. Point at the badge of a failed agent to read the error. The section shows 10 rows, then "Show N more".
 - "New results" lists the agents that stopped without error, that you did not settle and that you did not read. A click on the row opens the conversation and marks it read. "Mark all read" marks the whole section. The section shows 10 rows, then "Show N more".

@@ -125,6 +125,9 @@ export function InboxView({ state, now, deskIds, onOpen, onToggleDesk, onSettle,
           <Section id="inbox-relaunch-head" title="To relaunch" count={relaunch.length}>
             {relaunch.map(({ thread }) => row(thread))}
           </Section>
+          <Section id="inbox-running-head" title="Running" count={sections.running.length}>
+            {rows(sections.running)}
+          </Section>
           <UpNextSection
             board={tickets.board}
             needsKey={tickets.needsKey}
@@ -134,9 +137,6 @@ export function InboxView({ state, now, deskIds, onOpen, onToggleDesk, onSettle,
             onRefresh={() => void tickets.reload(true)}
             {...ticketProps}
           />
-          <Collapsible title="Running" count={sections.running.length}>
-            {rows(sections.running)}
-          </Collapsible>
           <Collapsible title="Read and idle" count={sections.readIdle.length}>
             {stale.length > 0 && (
               <Button

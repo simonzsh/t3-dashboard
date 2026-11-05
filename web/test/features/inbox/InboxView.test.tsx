@@ -29,7 +29,7 @@ test("an empty Inbox says nothing needs you", () => {
   assert.match(render([]), /Nothing needs you/);
 });
 
-test("sections show in urgency order, with a summary, the project as a tag and running closed", () => {
+test("sections show in urgency order, with a summary, the project as a tag and running open", () => {
   const out = render([
     thread("fin", { title: "Finished one", status: "completed" }),
     thread("wait", { title: "Waiting one", status: "waiting", pending: ask }),
@@ -39,8 +39,8 @@ test("sections show in urgency order, with a summary, the project as a tag and r
   assert.ok(out.indexOf("Needs you") < out.indexOf("New results"));
   assert.match(out, /Mark all read/);
   assert.match(out, /project-tag-text">Project A</);
-  assert.match(out, /Running \(1\)/);
-  assert.doesNotMatch(out, /Running one/);
+  assert.match(out, /Running one/);
+  assert.ok(out.indexOf("New results") < out.indexOf("Running"));
   assert.doesNotMatch(out, /Nothing needs you/);
 });
 
