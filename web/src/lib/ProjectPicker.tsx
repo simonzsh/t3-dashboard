@@ -24,7 +24,7 @@ export function ProjectPicker({ label, projects, value, onPick, allowNone = fals
       label={label}
       placeholder={allowNone ? "No project" : projects.length === 0 ? "No T3 project yet" : "Choose a project…"}
       value={value || null}
-      options={projectOptions(projects).map((o) => ({ ...o, icon: <ProjectIcon icon={icons.get(o.id) ?? null} /> }))}
+      options={projectOptions(projects).map((o) => ({ ...o, icon: <ProjectIcon icon={icons.get(o.id) ?? null} title={o.label} /> }))}
       filterable
       searchPlaceholder="Search projects…"
       disabled={!allowNone && projects.length === 0}

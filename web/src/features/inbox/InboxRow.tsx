@@ -50,7 +50,7 @@ function InboxRowView({ thread: t, project, modelName, now, onDesk, t3Environmen
         }}
       >
         <span className="inbox-row-head">
-          <ProjectIcon icon={project?.icon ?? null} />
+          <ProjectIcon icon={project?.icon ?? null} title={project?.title ?? ""} />
           <span className="inbox-title">{threadTitle(t)}</span>
           {t.pinned && <Icon name="pin" label="Pinned" className="inbox-pin" />}
         </span>

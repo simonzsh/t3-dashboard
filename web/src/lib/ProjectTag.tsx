@@ -5,7 +5,7 @@ import { ProjectIcon } from "./ProjectIcon.tsx";
 export function ProjectTag({ icon, title }: { icon: ProjectIconData | null; title: string }) {
   return (
     <span className="project-tag">
-      <ProjectIcon icon={icon} />
+      <ProjectIcon icon={icon} title={title} />
       <span className="project-tag-text">{title}</span>
     </span>
   );

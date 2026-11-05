@@ -46,7 +46,7 @@ export function SwitcherResults({ rows, selected, now, loading, error, label, se
                   <Highlight text={threadTitle(row.thread)} query={query} />
                 </span>
                 <span className="switcher-meta">
-                  <ProjectIcon icon={row.project.icon} />
+                  <ProjectIcon icon={row.project.icon} title={row.project.title} />
                   {row.project.title} · {relativeTime(row.thread.lastActivityAt, now)}
                 </span>
               </span>

@@ -50,7 +50,7 @@ function DeskWindowView({ id, thread, projectTitle, projectIcon, missing, focuse
       }}
     >
       <header className="desk-window-head">
-        {thread && <ProjectIcon icon={projectIcon} />}
+        {thread && <ProjectIcon icon={projectIcon} title={projectTitle ?? ""} />}
         <span className="dw-title" data-tooltip={title} data-tooltip-clipped>
           {title}
         </span>
