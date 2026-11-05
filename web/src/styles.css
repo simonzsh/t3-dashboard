@@ -579,7 +579,9 @@ ol.install-steps { padding-left: 18px; }
 .ticket-meta { display: flex; align-items: center; gap: 8px; min-width: 0; }
 /* Two lines at most, so every ticket card keeps the same height. */
 .ticket-title { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; line-clamp: 2; overflow: hidden; min-height: 2lh; font-weight: 500; color: inherit; text-decoration: none; }
-.ticket-actions { display: flex; align-items: center; justify-content: flex-end; gap: 6px; margin-top: auto; }
+.ticket-foot { display: flex; align-items: center; justify-content: flex-end; gap: 6px; min-width: 0; margin-top: auto; }
+/* The Linear project fills the left of the foot; the buttons stay on the right even without it. */
+.ticket-linear-project { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--text-secondary); font-size: 12px; }
 .ticket-title:hover { text-decoration: underline; }
 .auto-page { flex: 1; min-height: 0; display: flex; flex-direction: column; gap: 16px; }
 .auto-toolbar { flex: none; display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }

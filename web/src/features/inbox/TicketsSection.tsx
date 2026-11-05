@@ -45,7 +45,12 @@ export function TicketRow({ issue, projects, providers, modelDefaults, onOpen, o
       <a href={issue.url} target="_blank" rel="noreferrer" className="ticket-title" data-tooltip={issue.title} data-tooltip-clipped>
         {issue.title}
       </a>
-      <span className="ticket-actions">
+      <span className="ticket-foot">
+        {issue.project && (
+          <span className="ticket-linear-project" data-tooltip={issue.project.name} data-tooltip-clipped>
+            {issue.project.name}
+          </span>
+        )}
         <IconButton label="Copy issue link" tooltip={copied ? "Copied" : "Copy issue link"} size="sm" onClick={() => copy(issue.url)}>
           <Icon name={copied ? "check" : "copy"} />
         </IconButton>
