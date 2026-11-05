@@ -1,5 +1,5 @@
 import type { RoutineSchedule, WebhookFilter, WebhookSignature } from "../../shared/api.ts";
-import type { ScheduleInput } from "../integrations/t3/schemas.ts";
+import type { RawScheduledTask, ScheduleInput } from "../integrations/t3/schemas.ts";
 import { DomainError } from "./errors.ts";
 
 const MINUTE_MS = 60_000;
@@ -26,4 +26,26 @@ export function reminderSchedule(at: Date, now: Date): ScheduleInput {
 
 export function webhookSchedule(filters: WebhookFilter[], signature: (WebhookSignature & { secret: string }) | null): ScheduleInput {
   return { type: "webhook", signature, ...(filters.length > 0 && { filters }) };
+}
+
+/** The inverse of routineSchedule: a stored schedule in the units of the form, or null when it is not a routine's. */
+export function routineOf(schedule: RawScheduledTask["schedule"]): RoutineSchedule | null {
+  if (schedule?.type === "interval" && typeof schedule.everyMs === "number") return { type: "interval", everyMinutes: Math.max(1, Math.round(schedule.everyMs / MINUTE_MS)) };
+  if (schedule?.type === "fixed_time" && schedule.timeOfDay) return { type: "fixed_time", timeOfDay: schedule.timeOfDay, weekdays: schedule.weekdays ?? [] };
+  return null;
+}
+
+const isText = (value: unknown): value is string => typeof value === "string";
+
+/** The stored filters the form can show: a shape it does not know is left out, not guessed. */
+export function webhookFilters(raw: readonly unknown[] | null | undefined): WebhookFilter[] {
+  const filters: WebhookFilter[] = [];
+  for (const entry of raw ?? []) {
+    const { path, op, value } = (entry ?? {}) as Record<string, unknown>;
+    if (!isText(path)) continue;
+    if (op === "exists") filters.push({ path, op });
+    else if ((op === "equals" || op === "notEquals" || op === "startsWith") && isText(value)) filters.push({ path, op, value });
+    else if (op === "in" && Array.isArray(value) && value.every(isText)) filters.push({ path, op, value });
+  }
+  return filters;
 }

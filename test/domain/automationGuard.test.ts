@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "bun:test";
+import { RearmedStore } from "../../src/domain/rearmedStore.ts";
 import { AutomationGuard, guardActions } from "../../src/domain/automationGuard.ts";
 import type { RawScheduledTask } from "../../src/integrations/t3/schemas.ts";
 import { FakePort } from "../helpers/fakePort.ts";
@@ -153,4 +154,33 @@ test("retryNow wakes the wait before the next subscription", async () => {
   await flush();
   assert.equal(port.taskSubscriptions.length, 2);
   guard.stop();
+});
+
+test("a reminder edited after its run stays enabled until it runs again", async () => {
+  const rearmed = new RearmedStore();
+  const port = new FakePort();
+  const guard = new AutomationGuard({ port, rearmed, warn: () => {}, sleep: () => new Promise(() => {}) });
+  guard.start();
+  const ran = finished();
+  port.taskSubscriptions[0]!.onTasks([ran]);
+  await flush();
+  assert.deepEqual(port.enabledCalls, [{ id: "r1", enabled: false }]);
+  // Edited 30 minutes later: T3 enables it, bumps updatedAt and keeps lastRunAt.
+  rearmed.mark("r1", ran.lastRunAt!);
+  port.taskSubscriptions[0]!.onTasks([{ ...ran, enabled: true, updatedAt: "2026-11-05T09:30:00.000Z" }]);
+  await flush();
+  assert.equal(port.enabledCalls.length, 1);
+  // A new run changes lastRunAt: the pause happens again and the mark is pruned.
+  port.taskSubscriptions[0]!.onTasks([{ ...ran, lastRunAt: "2026-11-06T09:00:00.000Z" }]);
+  await flush();
+  assert.equal(port.enabledCalls.length, 2);
+  assert.equal(rearmed.has("r1", ran.lastRunAt), false);
+  guard.stop();
+});
+
+test("a re-armed mark is dropped with its task", () => {
+  const saved: Record<string, string>[] = [];
+  const rearmed = new RearmedStore({ r1: "a", gone: "b" }, (marks) => saved.push(marks));
+  rearmed.prune([{ id: "r1", lastRunAt: "a" }]);
+  assert.deepEqual(saved, [{ r1: "a" }]);
 });

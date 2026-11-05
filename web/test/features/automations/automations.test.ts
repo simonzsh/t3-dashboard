@@ -1,7 +1,7 @@
 import { test } from "bun:test";
 import assert from "node:assert/strict";
-import type { Automation, DashboardThread } from "../../../../shared/api.ts";
-import { automationGroup, automationProjects, copyableUrl, excludeRoutineThreads, filterAutomations, finishedSetups, groupAutomations, isFinishedReminder, lastRunState, nextLabel, reminderDate, scheduleText, setupThreads } from "../../../src/features/automations/automations.ts";
+import type { Automation, DashboardProvider, DashboardThread } from "../../../../shared/api.ts";
+import { automationGroup, automationProjects, copyableUrl, excludeRoutineThreads, filterAutomations, finishedSetups, groupAutomations, isEditable, isFinishedReminder, lastRunState, modelLabel, nextLabel, reminderDate, scheduleText, setupThreads } from "../../../src/features/automations/automations.ts";
 import { thread } from "../../fixtures.ts";
 
 function auto(id: string, over: Partial<Automation> = {}): Automation {
@@ -18,7 +18,11 @@ function auto(id: string, over: Partial<Automation> = {}): Automation {
     lastRunStatus: null,
     lastRunError: null,
     threadId: null,
-    model: null,
+    modelSelection: null,
+    prompt: "Do it",
+    schedule: null,
+    runtimeMode: null,
+    bound: false,
     webhook: null,
     ...over,
   };
@@ -108,12 +112,12 @@ test("finishedSetups lists the setup threads that stopped being active", () => {
   assert.deepEqual(finishedSetups(new Set(), active), []);
 });
 
-const hook = (id: string, over: Partial<Automation> = {}) => auto(id, { kind: "webhook", webhook: { url: null, signed: true }, ...over });
+const hook = (id: string, over: Partial<Automation> = {}) => auto(id, { kind: "webhook", webhook: { url: null, signed: true, filters: [], signature: null }, ...over });
 
 test("copyableUrl gives the URL of a webhook only", () => {
   const url = "https://relay.example.invalid/v1/hooks/k/t/token";
-  assert.equal(copyableUrl(hook("a", { webhook: { url, signed: true } })), url);
-  assert.equal(copyableUrl(hook("b", { webhook: { url: null, signed: false } })), null);
+  assert.equal(copyableUrl(hook("a", { webhook: { url, signed: true, filters: [], signature: null } })), url);
+  assert.equal(copyableUrl(hook("b", { webhook: { url: null, signed: false, filters: [], signature: null } })), null);
   assert.equal(copyableUrl(auto("c")), null);
 });
 
@@ -199,4 +203,23 @@ test("scheduleText: a reminder shows its date, a webhook says Webhook, a routine
   assert.equal(scheduleText(auto("a", { kind: "reminder", nextRunAt: null })), "");
   assert.equal(scheduleText(hook("h")), "Webhook");
   assert.equal(scheduleText(auto("a")), "Daily 9:00");
+});
+
+test("modelLabel gives the provider and the display name, or the raw id for an unknown model", () => {
+  const providers = [{ instanceId: "codex", displayName: "Codex", models: [{ slug: "gpt-x", name: "GPT X", effort: null, speed: null, favorite: null }] }] as unknown as DashboardProvider[];
+  assert.deepEqual(modelLabel(providers, { instanceId: "codex", model: "gpt-x" }), { instanceId: "codex", name: "GPT X" });
+  assert.deepEqual(modelLabel(providers, { instanceId: "codex", model: "gone" }), { instanceId: "codex", name: "gone" });
+  assert.deepEqual(modelLabel([], { instanceId: "claudeAgent", model: "m" }), { instanceId: "claudeAgent", name: "m" });
+  assert.equal(modelLabel(providers, null), null);
+});
+
+test("isEditable refuses a routine without a readable schedule and a signed webhook without a readable signature", () => {
+  const routine = { type: "interval", everyMinutes: 15 } as const;
+  const webhook = (signed: boolean, signature: { header: string; encoding: "hex"; prefix: string } | null) => ({ url: null, signed, filters: [], signature });
+  assert.equal(isEditable(auto("a", { kind: "routine", schedule: routine })), true);
+  assert.equal(isEditable(auto("a", { kind: "routine", schedule: null })), false);
+  assert.equal(isEditable(auto("a", { kind: "reminder", schedule: null })), true);
+  assert.equal(isEditable(auto("a", { kind: "webhook", webhook: webhook(true, null) })), false);
+  assert.equal(isEditable(auto("a", { kind: "webhook", webhook: webhook(true, { header: "X-Sig", encoding: "hex", prefix: "" }) })), true);
+  assert.equal(isEditable(auto("a", { kind: "webhook", webhook: webhook(false, null) })), true);
 });

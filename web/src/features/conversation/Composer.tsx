@@ -91,9 +91,11 @@ interface Props {
   onEscape?: () => void;
   /** Mod+S stashes the draft, labelled with this conversation. Without it, no stash. */
   stash?: { threadId: string; title: string };
+  /** No send button: the parent has its own (a dialog Save). Enter still calls onSend. */
+  hideSubmit?: boolean;
 }
 
-export function Composer({ providers, selection, runtimeMode, running, stoppable = running, draft, onDraft, onSend, onStop, onSettings, placeholder, autoFocus = false, focusKey, errorResetKey, allowEmpty = false, noImages = false, restore, searchFiles, loadCommands, contextUsage = null, onCompact, onEscape, stash }: Props) {
+export function Composer({ providers, selection, runtimeMode, running, stoppable = running, draft, onDraft, onSend, onStop, onSettings, placeholder, autoFocus = false, focusKey, errorResetKey, allowEmpty = false, noImages = false, restore, searchFiles, loadCommands, contextUsage = null, onCompact, onEscape, stash, hideSubmit = false }: Props) {
   const api = useApi();
   // Picks show at once, until new values come in the props or the change fails.
   // Each field has its own override: a model reload never drops a pending mode pick, and the reverse.
@@ -537,9 +539,11 @@ export function Composer({ providers, selection, runtimeMode, running, stoppable
                 <Icon name="stop" />
               </IconButton>
             )}
-            <IconButton type="submit" label={running ? "Queue" : "Send"} tooltip={running ? "Queue it: sent when the turn ends" : "Send"} shortcut={running ? undefined : "Enter"} variant="primary" className="composer-round send" disabled={!canSend}>
-              <Icon name="arrowUp" />
-            </IconButton>
+            {!hideSubmit && (
+              <IconButton type="submit" label={running ? "Queue" : "Send"} tooltip={running ? "Queue it: sent when the turn ends" : "Send"} shortcut={running ? undefined : "Enter"} variant="primary" className="composer-round send" disabled={!canSend}>
+                <Icon name="arrowUp" />
+              </IconButton>
+            )}
           </div>
         </div>
       </div>

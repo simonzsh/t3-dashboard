@@ -42,3 +42,6 @@ export const claudeRulesFile = (env: Env, homedir: string): string => join(env.C
 
 /** The user rules file of Codex. */
 export const codexRulesFile = (env: Env, homedir: string): string => join(env.CODEX_HOME ?? join(homedir, ".codex"), "AGENTS.md");
+
+/** Reminders re-armed from the dashboard after a run, so the guard does not pause them again. */
+export const rearmedFile = (env: Env, homedir: string): string => join(configDir(env, homedir), "rearmed-reminders.json");

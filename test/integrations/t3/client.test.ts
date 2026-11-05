@@ -177,47 +177,65 @@ test("createScheduledTask names the missing signing secret", async () => {
   assert.equal(failure?.message, "T3 needs a signing secret for this webhook.");
 });
 
-test("renameScheduledTask keeps a webhook task whole, with its creation source", async () => {
-  const { client } = setup();
-  const done = client.renameScheduledTask("hook-1", "New name");
-  const socket = await nextSocket();
-  const schedule = { type: "webhook", signature: { header: "x-hub-signature-256", encoding: "hex", prefix: "sha256=" }, filters: [{ path: "body.action", op: "equals", value: "opened" }], dedupe: { window: 60 } };
-  const raw = { id: "hook-1", title: "Old", prompt: "Do it", enabled: true, schedule, projectId: "p1", threadId: null, workspaceStrategy: { type: "root" }, modelSelection: { instanceId: "i", model: "m" }, runtimeMode: "full-access", interactionMode: "default", creationSource: "mcp", webhook: { path: "/x", url: null, hasSecret: true } };
-  socket.receive({ _tag: "Chunk", requestId: "1", values: [{ tasks: [raw] }] });
-  await tick();
-  const upsert = socket.sent.find((frame) => frame.tag === "scheduledTasks.upsert")!;
-  const { webhook, ...rest } = raw;
-  assert.deepEqual(upsert.payload, { ...rest, title: "New name", requireExisting: true });
-  assert.equal(webhook.hasSecret, true);
-  socket.receive({ _tag: "Exit", requestId: "2", exit: { _tag: "Success", value: {} } });
-  await done;
-});
+const change = {
+  title: "Reminder: New",
+  prompt: "Do the new thing",
+  enabled: true,
+  schedule: { type: "interval" as const, everyMs: 600_000 },
+  projectId: "p2",
+  modelSelection: { instanceId: "j", model: "n" },
+  runtimeMode: "approval-required" as const,
+};
 
-test("renameScheduledTask upserts the raw task with only the title changed", async () => {
+test("updateScheduledTask upserts the raw task with the change, and keeps the fields it does not edit", async () => {
   const { client } = setup();
-  const done = client.renameScheduledTask("task-1", "Reminder: New");
+  const done = client.updateScheduledTask("task-1", change);
   const socket = await nextSocket();
   assert.equal(socket.sent[0]!.tag, "scheduledTasks.subscribe");
-  const schedule = { type: "interval", everyMs: 900_000, step: { unit: "future-field" } };
-  const raw = { id: "task-1", title: "Reminder: Old", prompt: "Do it", enabled: false, schedule, projectId: "p1", threadId: null, workspaceStrategy: { kind: "local", extra: 1 }, modelSelection: { instanceId: "i", model: "m", options: [{ id: "o", value: 2 }] }, runtimeMode: "full-access", interactionMode: "plan", runCount: 4 };
+  const raw = { id: "task-1", title: "Reminder: Old", prompt: "Do it", enabled: false, schedule: { type: "interval", everyMs: 900_000 }, projectId: "p1", threadId: "t-1", workspaceStrategy: { kind: "local", extra: 1 }, modelSelection: { instanceId: "i", model: "m" }, runtimeMode: "full-access", interactionMode: "plan", creationSource: "mcp", runCount: 4 };
   socket.receive({ _tag: "Chunk", requestId: "1", values: [{ tasks: [{ id: "other", title: "x" }, raw] }] });
   await tick();
   const upsert = socket.sent.find((frame) => frame.tag === "scheduledTasks.upsert")!;
-  assert.ok(upsert);
-  const { runCount, title, ...rest } = raw;
-  assert.deepEqual(upsert.payload, { ...rest, title: "Reminder: New", requireExisting: true });
-  assert.equal(runCount, 4);
+  assert.deepEqual(upsert.payload, { ...change, id: "task-1", threadId: "t-1", workspaceStrategy: { kind: "local", extra: 1 }, interactionMode: "plan", creationSource: "mcp", requireExisting: true });
   socket.receive({ _tag: "Exit", requestId: "2", exit: { _tag: "Success", value: {} } });
   await done;
 });
 
-test("renameScheduledTask refuses an unknown task without upserting", async () => {
+test("updateScheduledTask keeps the delivery age and dedupe of a webhook, and sends no secret when none is given", async () => {
   const { client } = setup();
-  const done = client.renameScheduledTask("gone", "x");
+  const filters = [{ path: "body.action", op: "equals" as const, value: "closed" }];
+  const signature = { header: "x-hub-signature-256", encoding: "hex" as const, prefix: "sha256=" };
+  const done = client.updateScheduledTask("hook-1", { ...change, schedule: { type: "webhook", signature, filters } });
+  const socket = await nextSocket();
+  const stored = { type: "webhook", signature, filters: [], dedupe: { window: 60 }, maxDeliveryAgeMinutes: 5 };
+  socket.receive({ _tag: "Chunk", requestId: "1", values: [{ tasks: [{ id: "hook-1", title: "Hook", prompt: "p", schedule: stored, webhook: { hasSecret: true } }] }] });
+  await tick();
+  const upsert = socket.sent.find((frame) => frame.tag === "scheduledTasks.upsert")!;
+  assert.deepEqual((upsert.payload as { schedule: unknown }).schedule, { type: "webhook", signature, filters, dedupe: { window: 60 }, maxDeliveryAgeMinutes: 5 });
+  assert.equal("secret" in (upsert.payload as { schedule: { signature: object } }).schedule.signature, false);
+  socket.receive({ _tag: "Exit", requestId: "2", exit: { _tag: "Success", value: {} } });
+  await done;
+});
+
+test("updateScheduledTask refuses an unknown task without upserting", async () => {
+  const { client } = setup();
+  const done = client.updateScheduledTask("gone", change);
   const socket = await nextSocket();
   socket.receive({ _tag: "Chunk", requestId: "1", values: [{ tasks: [{ id: "task-1" }] }] });
   await assert.rejects(done, IntegrationError);
   assert.equal(socket.sent.filter((frame) => frame._tag === "Request").length, 1);
+});
+
+test("updateScheduledTask names the missing signing secret without echoing T3's message", async () => {
+  const { client } = setup();
+  const done = client.updateScheduledTask("task-1", change);
+  const socket = await nextSocket();
+  socket.receive({ _tag: "Chunk", requestId: "1", values: [{ tasks: [{ id: "task-1", prompt: "p" }] }] });
+  await tick();
+  const error = { _tag: "ScheduledTaskError", message: "A webhook signature check needs a signing secret. dummy-secret" };
+  socket.receive({ _tag: "Exit", requestId: "2", exit: { _tag: "Failure", cause: { _tag: "Fail", error } } });
+  const failure = await done.then(() => null, (e: IntegrationError) => e);
+  assert.equal(failure?.message, "T3 needs a signing secret for this webhook.");
 });
 
 test("setScheduledTaskWorkspace keeps every other field, a webhook schedule included", async () => {

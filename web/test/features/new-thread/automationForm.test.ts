@@ -1,7 +1,8 @@
 import assert from "node:assert/strict";
 import { test } from "bun:test";
 import type { FormBase } from "../../../src/features/new-thread/automationForm.ts";
-import { addFilter, emptyForm, promptPlaceholder, removeFilter, toCreateBody, toggleWeekday, updateFilter, type AutomationForm } from "../../../src/features/new-thread/automationForm.ts";
+import type { Automation } from "../../../../shared/api.ts";
+import { addFilter, emptyForm, formFromAutomation, promptPlaceholder, removeFilter, toCreateBody, toUpdateBody, toggleWeekday, updateFilter, type AutomationForm } from "../../../src/features/new-thread/automationForm.ts";
 
 const now = new Date(2026, 10, 4, 10, 0, 0);
 const base: FormBase = { prompt: "  Do it ", projectId: "p1", modelSelection: { instanceId: "i", model: "m" }, runtimeMode: "full-access" };
@@ -87,4 +88,61 @@ test("a signed webhook without a secret or a header gives an error that never ho
 test("the prompt placeholder of a webhook shows the template syntax", () => {
   assert.match(promptPlaceholder("webhook"), /\{\{body\.pull_request\.html_url\}\}/);
   assert.notEqual(promptPlaceholder("routine"), promptPlaceholder("reminder"));
+});
+
+const stored: Automation = {
+  id: "t", kind: "routine", title: "Inbox", projectId: "p1", project: "P", scheduleLabel: "", enabled: true, nextRunAt: null, lastRunAt: null, lastRunStatus: null, lastRunError: null, threadId: null,
+  modelSelection: null, prompt: "Do it", schedule: null, runtimeMode: null, bound: false, webhook: null,
+};
+const edit = (a: Partial<Automation>, change: Partial<AutomationForm> = {}, storedSecret = false) => {
+  const automation = { ...stored, ...a };
+  return toUpdateBody({ ...formFromAutomation(automation, now), ...change }, base, now, storedSecret);
+};
+
+test("editing a routine round-trips an interval and a fixed time", () => {
+  const interval = edit({ schedule: { type: "interval", everyMinutes: 45 } });
+  assert.deepEqual("body" in interval && interval.body.kind === "routine" && interval.body.schedule, { type: "interval", everyMinutes: 45 });
+  const fixed = edit({ schedule: { type: "fixed_time", timeOfDay: "07:15", weekdays: [2, 4] } });
+  assert.deepEqual("body" in fixed && fixed.body.kind === "routine" && fixed.body.schedule, { type: "fixed_time", timeOfDay: "07:15", weekdays: [2, 4] });
+  assert.equal(formFromAutomation({ ...stored, title: "Inbox" }, now).title, "Inbox");
+});
+
+test("editing a reminder starts with its next time, or empty once it ran or is past", () => {
+  const next = new Date(2026, 10, 5, 8, 30);
+  const pending = formFromAutomation({ ...stored, kind: "reminder", nextRunAt: next.toISOString() }, now);
+  assert.equal(pending.reminderAt, "2026-11-05T08:30");
+  const saved = edit({ kind: "reminder", nextRunAt: next.toISOString() });
+  assert.deepEqual("body" in saved && saved.body.kind === "reminder" && saved.body.at, next.toISOString());
+  for (const change of [{ enabled: false }, { nextRunAt: new Date(2026, 10, 4, 9, 0).toISOString() }, { nextRunAt: null }]) {
+    const form = formFromAutomation({ ...stored, kind: "reminder", nextRunAt: next.toISOString(), ...change }, now);
+    assert.equal(form.reminderAt, "", JSON.stringify(change));
+    assert.ok("error" in toUpdateBody(form, base, now, false));
+  }
+});
+
+test("editing a webhook shows its filters and signature, and an empty secret keeps the stored one", () => {
+  const signature = { header: "x-sig", encoding: "base64" as const, prefix: "" };
+  const filters = [{ path: "body.action", op: "in" as const, value: ["a", "b"] }, { path: "body.pr", op: "exists" as const }];
+  const form = formFromAutomation({ ...stored, kind: "webhook", webhook: { url: null, signed: true, filters, signature } }, now);
+  assert.deepEqual(form.filters, [{ id: 1, path: "body.action", op: "in", value: "a, b" }, { id: 2, path: "body.pr", op: "exists", value: "" }]);
+  assert.deepEqual([form.signed, form.header, form.encoding, form.prefix, form.secret], [true, "x-sig", "base64", "", ""]);
+  const kept = toUpdateBody(form, base, now, true);
+  assert.deepEqual("body" in kept && kept.body.kind === "webhook" && [kept.body.filters, kept.body.signature], [filters, signature]);
+  const replaced = toUpdateBody({ ...form, secret: "new-secret" }, base, now, true);
+  assert.deepEqual("body" in replaced && replaced.body.kind === "webhook" && replaced.body.signature, { ...signature, secret: "new-secret" });
+});
+
+test("an empty secret is an error when T3 holds none, and an unsigned webhook opens with the GitHub defaults", () => {
+  const signature = { header: "x-sig", encoding: "hex" as const, prefix: "" };
+  const form = formFromAutomation({ ...stored, kind: "webhook", webhook: { url: null, signed: true, filters: [], signature } }, now);
+  assert.ok("error" in toUpdateBody(form, base, now, false));
+  const unsigned = formFromAutomation({ ...stored, kind: "webhook", webhook: { url: null, signed: false, filters: [], signature: null } }, now);
+  assert.deepEqual([unsigned.signed, unsigned.header, unsigned.prefix], [false, "x-hub-signature-256", "sha256="]);
+  const off = toUpdateBody(unsigned, base, now, false);
+  assert.deepEqual("body" in off && off.body.kind === "webhook" && off.body.signature, null);
+  assert.ok("error" in toUpdateBody({ ...unsigned, signed: true }, base, now, false));
+});
+
+test("a creation never keeps a secret it was not given", () => {
+  assert.ok("error" in build({ kind: "webhook" }));
 });

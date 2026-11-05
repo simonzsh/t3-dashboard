@@ -1,12 +1,19 @@
 import { RUNNING_RUN_STATUSES } from "../../../shared/status.ts";
 import type { FetchLike } from "../../integrations/linear/client.ts";
-import type { AttachmentRef, Command, FileUpload, ImageUpload, NewScheduledTask, RawConfig, RawProjection, RawScheduledTask, RawSearchMatch, RawThread, RawTurnItem, SearchEntriesResponse, ShellItem, T3Port } from "../../integrations/t3/schemas.ts";
+import type { AttachmentRef, Command, FileUpload, ImageUpload, NewScheduledTask, RawConfig, RawProjection, RawScheduledTask, RawSearchMatch, RawThread, RawTurnItem, SearchEntriesResponse, ScheduledTaskChange, ShellItem, T3Port } from "../../integrations/t3/schemas.ts";
 import { searchEntries, searchProjections } from "./search.ts";
 import { DEMO_CONTEXT_TOKENS, demoFixtures, demoIssues, demoScheduledTasks, SCRATCH_PROJECT_ID } from "./fixtures.ts";
 
 const COMPACTED_TOKENS = 12_000;
 
 type Listener = (items: ShellItem[]) => void;
+
+// What T3 stores: a webhook schedule never holds the secret.
+function storedSchedule(schedule: ScheduledTaskChange["schedule"]): RawScheduledTask["schedule"] {
+  if (schedule.type !== "webhook") return schedule;
+  const { signature, filters } = schedule;
+  return { type: "webhook", signature: signature && { header: signature.header, encoding: signature.encoding, prefix: signature.prefix }, filters };
+}
 
 /** An in-memory T3 for the demo: it serves the fixtures and applies commands locally. */
 export class DemoPort implements T3Port {
@@ -19,7 +26,7 @@ export class DemoPort implements T3Port {
   private readonly deletedTasks = new Set<string>();
   private readonly createdTasks: RawScheduledTask[] = [];
   private readonly pausedTasks = new Set<string>();
-  private readonly renamedTasks = new Map<string, string>();
+  private readonly updatedTasks = new Map<string, Partial<RawScheduledTask>>();
   private sequence = 0;
   private uploads = 0;
 
@@ -67,7 +74,7 @@ export class DemoPort implements T3Port {
   async listScheduledTasks(): Promise<RawScheduledTask[]> {
     return [...demoScheduledTasks(this.now()), ...this.createdTasks]
       .filter((task) => !this.deletedTasks.has(task.id))
-      .map((task) => ({ ...task, title: this.renamedTasks.get(task.id) ?? task.title, ...(this.pausedTasks.has(task.id) && { enabled: false }) }));
+      .map((task) => ({ ...task, ...this.updatedTasks.get(task.id), ...(this.pausedTasks.has(task.id) && { enabled: false }) }));
   }
 
   // The demo keeps its tasks in the default workspace: nothing to move.
@@ -95,14 +102,15 @@ export class DemoPort implements T3Port {
       title: task.title,
       prompt: task.prompt,
       enabled: true,
-      schedule: schedule.type === "webhook" ? { type: "webhook" } : schedule,
+      schedule: storedSchedule(schedule),
       projectId: task.projectId,
       threadId: null,
       modelSelection: task.modelSelection,
+      runtimeMode: task.runtimeMode,
       createdBy: "user",
       creationSource: task.creationSource,
       createdAt: now,
-      nextRunAt: schedule.type === "interval" ? new Date(this.now().getTime() + schedule.everyMs).toISOString() : schedule.type === "fixed_time" ? new Date(this.now().getTime() + 86_400_000).toISOString() : null,
+      nextRunAt: this.nextRunAt(schedule),
       ...(schedule.type === "webhook" && { webhook: { url: `https://relay.example.invalid/v1/hooks/demo/${encodeURIComponent(task.id)}/token`, hasSecret: schedule.signature !== null } }),
     };
     this.createdTasks.push(created);
@@ -113,8 +121,29 @@ export class DemoPort implements T3Port {
     this.deletedTasks.add(id);
   }
 
-  async renameScheduledTask(id: string, title: string): Promise<void> {
-    this.renamedTasks.set(id, title);
+  // Like T3, the secret is dropped and only its presence stays.
+  async updateScheduledTask(id: string, change: ScheduledTaskChange): Promise<void> {
+    const task = (await this.listScheduledTasks()).find((entry) => entry.id === id);
+    const { schedule } = change;
+    const hasSecret = schedule.type === "webhook" && schedule.signature !== null && (!!schedule.signature.secret || task?.webhook?.hasSecret === true);
+    this.updatedTasks.set(id, {
+      title: change.title,
+      prompt: change.prompt,
+      enabled: change.enabled,
+      projectId: change.projectId,
+      modelSelection: change.modelSelection,
+      runtimeMode: change.runtimeMode,
+      schedule: storedSchedule(schedule),
+      nextRunAt: this.nextRunAt(schedule),
+      ...(schedule.type === "webhook" && { webhook: { url: task?.webhook?.url ?? null, hasSecret } }),
+    });
+    if (change.enabled) this.pausedTasks.delete(id);
+  }
+
+  // The demo schedules nothing: a plausible next run is enough.
+  private nextRunAt(schedule: ScheduledTaskChange["schedule"]): string | null {
+    if (schedule.type === "interval") return new Date(this.now().getTime() + schedule.everyMs).toISOString();
+    return schedule.type === "fixed_time" ? new Date(this.now().getTime() + 86_400_000).toISOString() : null;
   }
 
   async dispatch(command: Command): Promise<unknown> {

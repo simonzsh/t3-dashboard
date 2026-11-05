@@ -131,7 +131,8 @@ The Automations tab lists the scheduled tasks of T3 Code in a table. It needs T3
 - A webhook is a task that runs when a request arrives (see [Webhooks](#webhooks)).
 - After its run, the dashboard pauses a reminder, also when the run failed (the row keeps its error). The dashboard never deletes a reminder. The row then shows "Finished" with the time of the run. Finished reminders are at the bottom of the list, the most recent first.
 - Click a row to open the thread of the task.
-- Each row shows the project icon. To rename a task, click the pencil icon on its row, change the title, then push `Enter`. The dashboard also renames the linked thread. It keeps the prefix of a reminder.
+- Each row shows the project icon and the model (provider icon and model name). The Model column is empty when the task has no model.
+- To edit a task, click the pencil icon on its row. The creation form opens with the title, project, schedule, prompt, model and access mode of the task. Change what you need, then send. The kind of the task is fixed. A reminder needs a new time in the future: the form shows its next time, or no time when it already ran. Saving re-arms a paused reminder, and the dashboard keeps it enabled until its next run. A task linked to a thread runs there: its project is fixed, and a new title also renames the thread. A reminder keeps its "Reminder: " prefix.
 - To delete a task, click the trash icon on its row, then click "Delete". T3 Code deletes the task. You cannot undo this action.
 - When you delete a reminder, the dashboard also archives the threads of its runs. Without this, they would come back in the Inbox. A reminder linked to a conversation keeps that conversation.
 - If T3 Code is too old to list the tasks, the tab shows the error. The Inbox continues to work.
@@ -141,7 +142,7 @@ The Automations tab lists the scheduled tasks of T3 Code in a table. It needs T3
 1. Open a new automation. Click "New Automation" in the header, to the right of New Agent, or push `⇧` + `N`. A window opens with a form.
 2. Pick the kind: Routine, Reminder or Webhook.
 3. Select a project, or keep "No project". The dashboard keeps this selection for the next time.
-4. Set the schedule (see below), write the prompt, and pick the model. The first line of the prompt becomes the title. Rename the task later with the pencil icon.
+4. Set the schedule (see below), write the prompt, and pick the model. The first line of the prompt becomes the title.
 5. Send. The dashboard creates the task in T3 Code directly: no agent thread is involved. The task runs with full access unless you pick another mode in the model menu. If an error occurs, the window stays open and shows the error.
 
 - A routine repeats. Choose "At a time" (a time and the days; no day means every day) or "Every N minutes" (1 to 525600).
@@ -162,7 +163,7 @@ A webhook task runs when a service sends a request to its URL, for example a Git
 5. Send. A panel shows the GitHub settings: Payload URL (a copy button), content type `application/json`, the secret you typed, and the events to select (for example Pull requests).
 
 - The dashboard sends the secret once to T3 Code, which stores it. The dashboard never stores, logs or shows it again, and the field is empty after the send. An agent can still ask for a secret in a private card of a conversation.
-- The row shows the status of the last run. It has no next run. You can rename a webhook task: its URL, secret and filters stay.
+- The row shows the status of the last run. It has no next run. You can edit a webhook task: its URL stays. In the form, an empty signing secret keeps the stored secret, and a new value replaces it.
 - The public URL needs T3 Code Connect remote access. Without it, the panel says the access is off. Turn it on, then copy the URL from the Webhooks list.
 - The URL contains a token. Treat it as a secret. The dashboard never shows it as text.
 

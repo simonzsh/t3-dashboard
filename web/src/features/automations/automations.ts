@@ -1,5 +1,6 @@
-import type { Automation, DashboardThread } from "../../../../shared/api.ts";
+import type { Automation, DashboardProvider, DashboardThread, ModelSelection } from "../../../../shared/api.ts";
 import { ACTIVE_STATUSES, hasFailed } from "../../../../shared/status.ts";
+import { findModel } from "../conversation/composer.ts";
 
 export type LastRun = { kind: "waiting" } | { kind: "running" } | { kind: "failed"; error: string | null } | { kind: "done"; at: string };
 
@@ -32,6 +33,13 @@ export function finishedSetups(wasActive: ReadonlySet<string>, active: readonly 
 
 // A reminder disables itself after its run instead of deleting itself, so the table can show it as finished.
 export const isFinishedReminder = (a: Automation): boolean => a.kind === "reminder" && !a.enabled && a.lastRunAt !== null;
+
+// The form only knows a routine schedule and a webhook signature it can read: saving anything else would overwrite it with defaults.
+export function isEditable(a: Automation): boolean {
+  if (a.kind === "routine") return a.schedule !== null;
+  if (a.kind === "webhook") return !(a.webhook?.signed && !a.webhook.signature);
+  return true;
+}
 
 export type AutomationGroup = "attention" | "today" | "upcoming" | "inactive";
 
@@ -73,6 +81,12 @@ export function scheduleText(a: Automation): string {
   if (a.kind !== "reminder") return a.scheduleLabel;
   const at = isFinishedReminder(a) ? a.lastRunAt : a.nextRunAt;
   return at ? reminderDate(at) : "";
+}
+
+/** The provider and the display name of a model; the raw id while T3 does not list the model. */
+export function modelLabel(providers: DashboardProvider[], selection: ModelSelection | null): { instanceId: string; name: string } | null {
+  if (!selection) return null;
+  return { instanceId: selection.instanceId, name: findModel(providers, selection)?.model.name ?? selection.model };
 }
 
 // The URL holds a token: the UI copies it and never shows it.

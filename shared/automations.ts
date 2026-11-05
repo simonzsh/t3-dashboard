@@ -1,5 +1,7 @@
 // T3 Code scheduled tasks, as the Agents page shows them.
 
+import type { ModelSelection, RuntimeMode } from "./threads.ts";
+
 export type AutomationRunStatus = "running" | "succeeded" | "failed";
 
 export type AutomationKind = "routine" | "reminder" | "webhook";
@@ -9,6 +11,9 @@ export interface AutomationWebhook {
   url: string | null;
   /** T3 checks a signature (a secret is stored). */
   signed: boolean;
+  filters: WebhookFilter[];
+  /** How T3 reads the signature; the secret never leaves T3. Null when unsigned. */
+  signature: WebhookSignature | null;
 }
 
 export type WebhookFilter =
@@ -49,7 +54,14 @@ export interface Automation {
   lastRunError: string | null;
   /** The bound thread, else the newest run thread, else null. */
   threadId: string | null;
-  model: string | null;
+  modelSelection: ModelSelection | null;
+  /** The task prompt as stored in T3. */
+  prompt: string;
+  /** Routine only, in the units of the form. */
+  schedule: RoutineSchedule | null;
+  runtimeMode: RuntimeMode | null;
+  /** Bound to a thread: it runs there, so its project is fixed. */
+  bound: boolean;
   /** Set only for kind "webhook". */
   webhook: AutomationWebhook | null;
 }

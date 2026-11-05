@@ -1,9 +1,11 @@
-import type { Automation, AutomationRunStatus, AutomationsResult, CreateAutomationBody, CreateAutomationResult } from "../../shared/api.ts";
+import type { Automation, AutomationRunStatus, AutomationsResult, CreateAutomationBody, CreateAutomationResult, UpdateAutomationBody, WebhookSignature } from "../../shared/api.ts";
+import { isRuntimeMode } from "../../shared/limits.ts";
 import { IntegrationError } from "../integrations/errors.ts";
-import type { RawScheduledTask, RawThread, ScheduleInput, T3Port } from "../integrations/t3/schemas.ts";
+import type { RawScheduledTask, RawThread, ScheduleChange, ScheduleInput, T3Port } from "../integrations/t3/schemas.ts";
 import { archiveThreadCommand, renameThreadCommand } from "../integrations/t3/commands.ts";
-import { reminderSchedule, routineSchedule, webhookSchedule } from "./automationSchedule.ts";
+import { reminderSchedule, routineOf, routineSchedule, webhookFilters, webhookSchedule } from "./automationSchedule.ts";
 import { DomainError } from "./errors.ts";
+import { RearmedStore } from "./rearmedStore.ts";
 import { scheduleLabel } from "./scheduleLabel.ts";
 import type { ShellStore } from "./shellStore.ts";
 
@@ -14,6 +16,14 @@ const pauseInstruction = (id: string) => `call schedule_task with scheduledTaskI
 const pausesItself = (task: RawScheduledTask) => (task.prompt ?? "").includes(pauseInstruction(task.id));
 const isWebhook = (task: RawScheduledTask) => task.schedule?.type === "webhook";
 export const isReminder = (task: RawScheduledTask) => !isWebhook(task) && (pausesItself(task) || REMINDER_PREFIX.test(task.title ?? ""));
+const kindOf = (task: RawScheduledTask): Automation["kind"] => (isWebhook(task) ? "webhook" : isReminder(task) ? "reminder" : "routine");
+const displayTitle = (task: RawScheduledTask) => (isReminder(task) ? (task.title ?? "").replace(REMINDER_PREFIX, "") : (task.title ?? ""));
+
+function signatureOf(task: RawScheduledTask): WebhookSignature | null {
+  const signature = task.schedule?.signature;
+  if (!signature || typeof signature.header !== "string" || (signature.encoding !== "hex" && signature.encoding !== "base64")) return null;
+  return { header: signature.header, encoding: signature.encoding, prefix: signature.prefix ?? "" };
+}
 const TITLE_MAX = 60;
 const RUN_STATUSES = new Set<string>(["running", "succeeded", "failed"] satisfies AutomationRunStatus[]);
 
@@ -41,13 +51,11 @@ export function toAutomations(tasks: RawScheduledTask[], threads: RawThread[], d
     } else if (dedicated.has(threadId)) {
       hidden.add(threadId);
     }
-    const title = task.title ?? "";
-    const webhook = isWebhook(task);
-    const reminder = isReminder(task);
+    const kind = kindOf(task);
     return {
       id: task.id,
-      kind: webhook ? "webhook" : reminder ? "reminder" : "routine",
-      title: reminder ? title.replace(REMINDER_PREFIX, "") : title,
+      kind,
+      title: displayTitle(task),
       projectId: task.projectId ?? "",
       project: (task.projectId && projectTitle(task.projectId)) || "No project",
       scheduleLabel: scheduleLabel(task.schedule),
@@ -57,8 +65,12 @@ export function toAutomations(tasks: RawScheduledTask[], threads: RawThread[], d
       lastRunStatus: task.lastRunStatus && RUN_STATUSES.has(task.lastRunStatus) ? (task.lastRunStatus as AutomationRunStatus) : null,
       lastRunError: task.lastRunError ?? null,
       threadId,
-      model: task.modelSelection?.model ?? null,
-      webhook: webhook ? { url: task.webhook?.url ?? null, signed: task.webhook?.hasSecret === true } : null,
+      modelSelection: task.modelSelection ?? null,
+      prompt: task.prompt ?? "",
+      schedule: kind === "routine" ? routineOf(task.schedule) : null,
+      runtimeMode: isRuntimeMode(task.runtimeMode) ? task.runtimeMode : null,
+      bound: task.threadId != null,
+      webhook: kind === "webhook" ? { url: task.webhook?.url ?? null, signed: task.webhook?.hasSecret === true, filters: webhookFilters(task.schedule?.filters), signature: signatureOf(task) } : null,
     };
   });
   return { automations, hiddenThreadIds: [...hidden], setupThreadIds: [...dedicated].filter((id) => !bound.has(id)) };
@@ -70,13 +82,15 @@ function titleFromRequest(text: string): string {
 }
 
 export interface AutomationsOptions {
-  port: Pick<T3Port, "listScheduledTasks" | "deleteScheduledTask" | "renameScheduledTask" | "createScheduledTask" | "ensureScratchProject" | "dispatch">;
+  port: Pick<T3Port, "listScheduledTasks" | "deleteScheduledTask" | "updateScheduledTask" | "createScheduledTask" | "ensureScratchProject" | "dispatch">;
   store: Pick<ShellStore, "project" | "rawThreads">;
   /** The setup threads that older versions created: still hidden from the Agents grid. */
   dedicated: { read(): ReadonlySet<string> };
   warn?: (message: string) => void;
   newId?: () => string;
   now?: () => Date;
+  /** Marks an edited reminder that already ran, so the guard keeps it enabled. */
+  rearmed?: RearmedStore;
 }
 
 export interface Automations {
@@ -85,8 +99,8 @@ export interface Automations {
   create(body: CreateAutomationBody): Promise<CreateAutomationResult>;
   /** Deletes the T3 scheduled task, and archives the run threads of a reminder. */
   remove(id: string): Promise<void>;
-  /** Renames the T3 task, keeping a "Reminder:" prefix, and the thread it is bound to. */
-  rename(id: string, title: string): Promise<void>;
+  /** Applies the form to the T3 task. The kind cannot change. A new title also renames the bound thread. */
+  update(id: string, body: UpdateAutomationBody): Promise<void>;
 }
 
 async function viaT3<T>(work: Promise<T>): Promise<T> {
@@ -103,6 +117,7 @@ export function createAutomations(options: AutomationsOptions): Automations {
   const newId = options.newId ?? (() => crypto.randomUUID());
   const now = options.now ?? (() => new Date());
   const warn = options.warn ?? console.warn;
+  const rearmed = options.rearmed ?? new RearmedStore();
 
   return {
     async list() {
@@ -125,14 +140,36 @@ export function createAutomations(options: AutomationsOptions): Automations {
       }
     },
 
-    async rename(id, title) {
-      const name = title.trim();
-      if (name === "") throw new DomainError("invalid", "Write a title");
+    async update(id, body) {
       const task = (await viaT3(port.listScheduledTasks())).find((entry) => entry.id === id);
       if (!task) throw new DomainError("not-found", "This automation no longer exists");
-      const prefix = REMINDER_PREFIX.exec(task.title ?? "")?.[0] ?? "";
-      await viaT3(port.renameScheduledTask(id, `${prefix}${name}`));
-      if (task.threadId) await viaT3(port.dispatch({ ...renameThreadCommand(task.threadId, name), commandId: newId() }));
+      if (kindOf(task) !== body.kind) throw new DomainError("invalid", "The kind of an automation cannot change");
+      const name = body.title.trim() || titleFromRequest(body.prompt);
+      const schedule: ScheduleChange = body.kind === "routine" ? routineSchedule(body.schedule) : body.kind === "reminder" ? reminderSchedule(new Date(body.at), now()) : { type: "webhook", signature: body.signature, filters: body.filters };
+      // A bound task runs in its own thread, so its project stays.
+      const projectId = (task.threadId ? task.projectId : body.projectId) || (await viaT3(port.ensureScratchProject()));
+      // Mark before the call, so the guard cannot pause the reminder between T3's update and the mark.
+      // Roll back only a mark this call added: an earlier edit's mark must stay.
+      const marked = body.kind === "reminder" && !!task.lastRunAt && !rearmed.has(id, task.lastRunAt);
+      if (marked) rearmed.mark(id, task.lastRunAt!);
+      try {
+        await viaT3(
+          port.updateScheduledTask(id, {
+            title: body.kind === "reminder" ? `Reminder: ${name}` : name,
+            prompt: body.prompt.trim(),
+            // A new time re-arms a reminder that ran and paused.
+            enabled: body.kind === "reminder" || task.enabled !== false,
+            schedule,
+            projectId,
+            modelSelection: body.modelSelection,
+            runtimeMode: body.runtimeMode ?? (isRuntimeMode(task.runtimeMode) ? task.runtimeMode : "full-access"),
+          }),
+        );
+      } catch (error) {
+        if (marked) rearmed.unmark(id);
+        throw error;
+      }
+      if (task.threadId && name !== displayTitle(task)) await viaT3(port.dispatch({ ...renameThreadCommand(task.threadId, name), commandId: newId() }));
     },
 
     async create(body) {

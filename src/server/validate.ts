@@ -1,4 +1,4 @@
-import type { ApprovalDecision, AssignIssueBody, CreateAutomationBody, CreateThreadBody, RoutineSchedule, WebhookFilter, WebhookSignature, ModelSelection, RespondBody, RewindBody, SecretAnswerBody, SendMessageBody, ThreadSettingsBody, UploadedAttachment, UserInputAnswers } from "../../shared/api.ts";
+import type { ApprovalDecision, AssignIssueBody, CreateAutomationBody, CreateThreadBody, RoutineSchedule, WebhookFilter, WebhookSignature, ModelSelection, RespondBody, RewindBody, SecretAnswerBody, SendMessageBody, ThreadSettingsBody, UpdateAutomationBody, UploadedAttachment, UserInputAnswers } from "../../shared/api.ts";
 import { normalizeDesk, type DeskUpdate } from "../../shared/desk.ts";
 import { IMAGE_TYPES, MAX_ATTACHMENTS, MAX_FILE_BYTES, MAX_IMAGE_BYTES, MAX_IMAGES, MAX_SECRET_CHARS, isRuntimeMode } from "../../shared/limits.ts";
 import { isSeenId, isSeenTime, type SeenChange } from "../../shared/seen.ts";
@@ -56,15 +56,17 @@ function validFilter(entry: unknown): WebhookFilter {
   throw bad("A filter operator is not known");
 }
 
-function validSignature(value: unknown): (WebhookSignature & { secret: string }) | null {
+function validSignature(value: unknown, secretOptional: boolean): (WebhookSignature & { secret?: string }) | null {
   if (value === null) return null;
   if (!isObject(value) || typeof value.header !== "string" || !HEADER_NAME.test(value.header.trim()) || (value.encoding !== "hex" && value.encoding !== "base64") || typeof value.prefix !== "string" || value.prefix.length > 50) {
     throw bad("signature needs a header, an encoding (hex or base64) and a prefix");
   }
+  const header = value.header.trim().toLowerCase();
+  if (secretOptional && value.secret === undefined) return { header, encoding: value.encoding, prefix: value.prefix };
   if (!isText(value.secret) || value.secret.length > MAX_SECRET_CHARS) throw bad(`The signing secret must be 1 to ${MAX_SECRET_CHARS} characters`);
   // T3 trims the stored secret, so GitHub signatures would never match.
   if (value.secret !== value.secret.trim()) throw bad("The signing secret must not start or end with a space");
-  return { header: value.header.trim().toLowerCase(), encoding: value.encoding, prefix: value.prefix, secret: value.secret };
+  return { header, encoding: value.encoding, prefix: value.prefix, secret: value.secret };
 }
 
 function validRoutine(value: unknown): RoutineSchedule {
@@ -83,7 +85,7 @@ function validRoutine(value: unknown): RoutineSchedule {
 }
 
 // Messages name the field and never repeat a value: the body can hold a signing secret.
-export function validCreateAutomation(body: Record<string, unknown>): CreateAutomationBody {
+function validAutomation(body: Record<string, unknown>, secretOptional: boolean) {
   const modelSelection = validSelection(body.modelSelection);
   const projectId = body.projectId ?? "";
   const title = body.title ?? "";
@@ -92,24 +94,22 @@ export function validCreateAutomation(body: Record<string, unknown>): CreateAuto
   }
   if (body.runtimeMode !== undefined && !isRuntimeMode(body.runtimeMode)) throw bad("runtimeMode is not a known mode");
   const common = { title: title.trim(), prompt: body.prompt.trim(), projectId: projectId.trim(), modelSelection, ...(isRuntimeMode(body.runtimeMode) && { runtimeMode: body.runtimeMode }) };
-  if (body.kind === "routine") return { ...common, kind: "routine", schedule: validRoutine(body.schedule) };
+  if (body.kind === "routine") return { ...common, kind: "routine" as const, schedule: validRoutine(body.schedule) };
   if (body.kind === "reminder") {
     if (typeof body.at !== "string" || Number.isNaN(Date.parse(body.at))) throw bad("at must be an ISO date and time");
-    return { ...common, kind: "reminder", at: body.at };
+    return { ...common, kind: "reminder" as const, at: body.at };
   }
   if (body.kind === "webhook") {
     if (!Array.isArray(body.filters) || body.filters.length > MAX_FILTERS) throw bad(`filters must be a list of at most ${MAX_FILTERS}`);
-    return { ...common, kind: "webhook", filters: body.filters.map(validFilter), signature: validSignature(body.signature ?? null) };
+    return { ...common, kind: "webhook" as const, filters: body.filters.map(validFilter), signature: validSignature(body.signature ?? null, secretOptional) };
   }
   throw bad("kind must be routine, reminder or webhook");
 }
 
-const MAX_RENAME = 120;
+export const validCreateAutomation = (body: Record<string, unknown>) => validAutomation(body, false) as CreateAutomationBody;
 
-export function validRename(body: Record<string, unknown>): string {
-  if (!isText(body.title) || body.title.trim().length > MAX_RENAME) throw new HttpError(400, `title (1 to ${MAX_RENAME} characters) is required`);
-  return body.title.trim();
-}
+/** Like a creation, except that a signed webhook may omit the secret: T3 keeps the stored one. */
+export const validUpdateAutomation = (body: Record<string, unknown>) => validAutomation(body, true) as UpdateAutomationBody;
 
 export function validCreate(body: Record<string, unknown>): CreateThreadBody {
   const modelSelection = validSelection(body.modelSelection);
