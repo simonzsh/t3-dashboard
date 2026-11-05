@@ -91,9 +91,11 @@ interface Props {
   onEscape?: () => void;
   /** Mod+S stashes the draft, labelled with this conversation. Without it, no stash. */
   stash?: { threadId: string; title: string };
+  /** A text button (for example "Save") replaces the round send arrow, for a form that is not a message. */
+  submitLabel?: string;
 }
 
-export function Composer({ providers, selection, runtimeMode, running, stoppable = running, draft, onDraft, onSend, onStop, onSettings, placeholder, autoFocus = false, focusKey, errorResetKey, allowEmpty = false, noImages = false, restore, searchFiles, loadCommands, contextUsage = null, onCompact, onEscape, stash }: Props) {
+export function Composer({ providers, selection, runtimeMode, running, stoppable = running, draft, onDraft, onSend, onStop, onSettings, placeholder, autoFocus = false, focusKey, errorResetKey, allowEmpty = false, noImages = false, restore, searchFiles, loadCommands, contextUsage = null, onCompact, onEscape, stash, submitLabel }: Props) {
   const api = useApi();
   // Picks show at once, until new values come in the props or the change fails.
   // Each field has its own override: a model reload never drops a pending mode pick, and the reverse.
@@ -537,9 +539,15 @@ export function Composer({ providers, selection, runtimeMode, running, stoppable
                 <Icon name="stop" />
               </IconButton>
             )}
-            <IconButton type="submit" label={running ? "Queue" : "Send"} tooltip={running ? "Queue it: sent when the turn ends" : "Send"} shortcut={running ? undefined : "Enter"} variant="primary" className="composer-round send" disabled={!canSend}>
-              <Icon name="arrowUp" />
-            </IconButton>
+            {submitLabel ? (
+              <Button type="submit" variant="primary" size="sm" disabled={!canSend} loading={sending}>
+                {submitLabel}
+              </Button>
+            ) : (
+              <IconButton type="submit" label={running ? "Queue" : "Send"} tooltip={running ? "Queue it: sent when the turn ends" : "Send"} shortcut={running ? undefined : "Enter"} variant="primary" className="composer-round send" disabled={!canSend}>
+                <Icon name="arrowUp" />
+              </IconButton>
+            )}
           </div>
         </div>
       </div>

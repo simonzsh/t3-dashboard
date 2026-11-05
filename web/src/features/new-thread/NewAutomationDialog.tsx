@@ -231,6 +231,7 @@ export function NewAutomationDialog({ projects, providers, defaults, automation,
         placeholder={promptPlaceholder(form.kind)}
         noImages
         focusKey={picks || undefined}
+        submitLabel={automation ? "Save" : undefined}
       />
     </Dialog>
   );
