@@ -38,6 +38,15 @@ export type CreateAutomationBody = CreateAutomationBase &
     | { kind: "webhook"; filters: WebhookFilter[]; signature: (WebhookSignature & { secret: string }) | null }
   );
 
+/** The kind must match the stored one. A bound task keeps its project. */
+export type UpdateAutomationBody = CreateAutomationBase &
+  (
+    | { kind: "routine"; schedule: RoutineSchedule }
+    | { kind: "reminder"; at: string }
+    /** An absent secret keeps the stored one. */
+    | { kind: "webhook"; filters: WebhookFilter[]; signature: (WebhookSignature & { secret?: string }) | null }
+  );
+
 export interface CreateAutomationResult {
   ok: true;
   id: string;
