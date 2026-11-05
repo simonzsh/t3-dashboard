@@ -45,7 +45,7 @@ export const settleCandidates = (readIdle: DashboardThread[], now: Date): Dashbo
   return readIdle.filter((t) => t.lastActivityAt < before);
 };
 
-/** The Inbox tab badge: what needs you or has a new result, and was not read yet. */
+/** The Inbox tab badge: what needs you or has an unread result, and was not read yet. */
 export const unreadCount = (s: InboxSections, seen: SeenState): number => [...s.needsYou, ...s.newResults].filter((t) => isUnseen(t, seen)).length;
 
 const plural = (n: number, one: string, many: string) => `${n} ${n === 1 ? one : many}`;
@@ -53,7 +53,7 @@ const plural = (n: number, one: string, many: string) => `${n} ${n === 1 ? one :
 export function inboxSummary(needsYou: number, newResults: number, relaunch: number): string {
   const parts = [
     needsYou > 0 && `${needsYou} ${needsYou === 1 ? "needs" : "need"} you`,
-    newResults > 0 && plural(newResults, "new result", "new results"),
+    newResults > 0 && `${newResults} unread`,
     relaunch > 0 && `${relaunch} to relaunch`,
   ];
   return parts.filter(Boolean).join(" · ");

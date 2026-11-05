@@ -30,7 +30,7 @@ function InboxRowView({ thread: t, project, now, onDesk, t3EnvironmentId, onOpen
   const flyToDesk = () => {
     if (!onDesk && rowRef.current) fly(rowRef.current, document.querySelector(tabSelector("desk")));
   };
-  // Settling flies to the "Recently settled" line, unsettling back to the "New results" heading.
+  // Settling flies to the "Recently settled" line, unsettling back to the "Unread" heading.
   const flyToSettle = () => {
     if (rowRef.current) fly(rowRef.current, document.querySelector(t.settled ? ".inbox-finished-head" : ".inbox-settled-head"));
   };

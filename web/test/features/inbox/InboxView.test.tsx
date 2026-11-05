@@ -35,19 +35,19 @@ test("sections show in urgency order, with a summary, the project as a tag and r
     thread("wait", { title: "Waiting one", status: "waiting", pending: ask }),
     thread("run", { title: "Running one", status: "running" }),
   ]);
-  assert.match(out, /1 needs you · 1 new result/);
-  assert.ok(out.indexOf("Needs you") < out.indexOf("New results"));
+  assert.match(out, /1 needs you · 1 unread/);
+  assert.ok(out.indexOf("Needs you") < out.indexOf(">Unread"));
   assert.match(out, /Mark all read/);
   assert.match(out, /project-tag-text">Project A</);
   assert.match(out, /Running one/);
-  assert.ok(out.indexOf("New results") < out.indexOf("Running"));
+  assert.ok(out.indexOf(">Unread") < out.indexOf("Running"));
   assert.doesNotMatch(out, /Nothing needs you/);
 });
 
-test("a read result leaves new results and waits in read and idle", () => {
+test("a read result leaves unread and waits in read and idle", () => {
   const read = thread("fin", { title: "Finished one", status: "completed" });
   const out = render([read], { since: "2026-01-01T00:00:00.000Z", seen: { fin: read.lastActivityAt } });
-  assert.doesNotMatch(out, /New results/);
+  assert.doesNotMatch(out, />Unread/);
   assert.match(out, /Read and idle \(1\)/);
   assert.match(out, /Nothing needs you/);
 });

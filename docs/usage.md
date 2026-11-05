@@ -8,17 +8,17 @@ The dashboard has three tabs: Inbox, Desk and Automations. The header contains t
 
 The Inbox tab shows what needs you. It is a list of rows, not a grid. It has no grouping by project: each row shows its project as a small tag. The tab shows the number of unread items (waiting, failed or finished, not read yet). `Ctrl` + `B` opens the Inbox.
 
-- A summary line starts the page, for example "2 need you · 3 new results · 1 to relaunch". It shows only the parts that are not zero.
+- A summary line starts the page, for example "2 need you · 3 unread · 1 to relaunch". It shows only the parts that are not zero.
 - A row shows the provider (Claude or Codex), the title, the project tag, the status and the time of the last activity.
-- The sections are, from top to bottom: "Needs you", "New results", "To relaunch", "Running", "Up next", then two closed sections: "Read and idle" and "Recently settled". An empty section does not appear.
+- The sections are, from top to bottom: "Needs you", "Unread", "To relaunch", "Running", "Up next", then two closed sections: "Read and idle" and "Recently settled". An empty section does not appear.
 - In each section, the agents pinned in T3 Code come first, with a small pin. Then the most recent activity comes first.
 - "Needs you" lists the agents that wait for an approval or an answer, and the agents that failed and that you did not settle. The badge tells which one. Point at the badge of a failed agent to read the error. The section shows 10 rows, then "Show N more".
-- "New results" lists the agents that stopped without error, that you did not settle and that you did not read. A click on the row opens the conversation and marks it read. "Mark all read" marks the whole section. The section shows 10 rows, then "Show N more".
+- "Unread" lists the agents that stopped without error, that you did not settle and that you did not read. A click on the row opens the conversation and marks it read. "Mark all read" marks the whole section. The section shows 10 rows, then "Show N more".
 - "To relaunch" lists the agents of started tickets that stopped: the agent finished, you read it, and it has been idle for more than 24 hours.
 - "Up next" lists the tickets that have no agent, started ones first (see [Tickets](#tickets)). It shows 5 rows, then "Show N more".
 - "Running" lists the agents that work. "Read and idle" lists the finished agents that you read and that are not in "To relaunch". Its "Settle all older than 3 days" button settles the ones with no activity for 3 days. "Recently settled" disappears after 3 days without activity. Its rows have an "Unsettle" button.
 - The Inbox shows cards, several per line. Every agent card works the same way. A click on the card opens the conversation on the Desk and marks it read. `⇧` + click adds it to the Desk without leaving the Inbox. In the bottom right corner, the T3 Code logo opens the conversation in T3 Code, the archive button settles the agent (or unsettles it in "Recently settled") and `+` adds it to the Desk.
-- When "Needs you", "New results", "To relaunch" and "Up next" are empty, the Inbox shows "Nothing needs you".
+- When "Needs you", "Unread", "To relaunch" and "Up next" are empty, the Inbox shows "Nothing needs you".
 - Archived or deleted sessions, sub-agents and the threads of scheduled tasks, webhook runs included (see [Automations](#automations)), do not appear.
 - Click a row to open the conversation on the Desk. Shift + click adds it to the Desk and keeps the current tab.
 - The "Add to Desk" button adds the row to the Desk. A second click removes it.

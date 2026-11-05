@@ -22,7 +22,7 @@ The screenshots come from the demo mode: the projects, agents and conversations 
 
 **Inbox**
 
-- See what needs you at a glance: a summary line, agents that wait for a reply or failed, and new results. The Inbox tab shows the number of unread items.
+- See what needs you at a glance: a summary line, agents that wait for a reply or failed, and unread results. The Inbox tab shows the number of unread items.
 - See which Linear tickets to relaunch or to do next, assign a ticket to an agent or copy its link.
 - Open a conversation on the Desk with one click.
 - Press Ctrl+K (Cmd+K on Mac) to open the switcher and jump to a conversation by title, project or message, from any screen. The words you type are highlighted in the matching messages. Before you type, it suggests the agents that wait for you, then your recent ones.

@@ -102,7 +102,7 @@ export function InboxView({ state, now, deskIds, onOpen, onToggleDesk, onSettle,
           {nothingToDo(sections, relaunch.length, upNext.length) && (
             <div className="empty-state">
               <strong>Nothing needs you</strong>
-              <span>Waiting agents, errors, new results and tickets to start show up here.</span>
+              <span>Waiting agents, errors, unread results and tickets show up here.</span>
             </div>
           )}
           <Section id="inbox-needs-head" title="Needs you" count={sections.needsYou.length} limit={NEEDS_LIMIT}>
@@ -110,7 +110,7 @@ export function InboxView({ state, now, deskIds, onOpen, onToggleDesk, onSettle,
           </Section>
           <Section
             id="inbox-results-head"
-            title="New results"
+            title="Unread"
             count={sections.newResults.length}
             limit={RESULTS_LIMIT}
             headClass="inbox-finished-head"

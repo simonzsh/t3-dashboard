@@ -20,7 +20,7 @@ test("waiting threads and unsettled errors need you, whether read or not", () =>
   assert.equal(s.newResults.length + s.readIdle.length, 0);
 });
 
-test("unread finished threads are new results, read ones are read and idle", () => {
+test("unread finished threads are unread, read ones are read and idle", () => {
   const read = thread("read", { status: "completed" });
   const s = sectionsOf([thread("new", { status: "completed" }), thread("idle"), read], readAt(read));
   assert.deepEqual(new Set(ids(s.newResults)), new Set(["new", "idle"]));
@@ -80,15 +80,15 @@ test("settleCandidates keeps the read threads idle for more than 3 days", () => 
   assert.deepEqual(ids(settleCandidates([old, recent], now)), ["old"]);
 });
 
-test("unreadCount counts unread threads that need you or have a new result", () => {
+test("unreadCount counts unread threads that need you or have an unread result", () => {
   const readWait = thread("w", { status: "waiting", pending: ask });
   const s = sectionsOf([readWait, thread("err", { status: "failed", lastError: "x" }), thread("new", { status: "completed" }), thread("run", { status: "running" })], readAt(readWait));
   assert.equal(unreadCount(s, readAt(readWait)), 2);
 });
 
 test("inboxSummary names the non-zero parts only", () => {
-  assert.equal(inboxSummary(2, 3, 1), "2 need you · 3 new results · 1 to relaunch");
-  assert.equal(inboxSummary(1, 1, 0), "1 needs you · 1 new result");
+  assert.equal(inboxSummary(2, 3, 1), "2 need you · 3 unread · 1 to relaunch");
+  assert.equal(inboxSummary(1, 1, 0), "1 needs you · 1 unread");
   assert.equal(inboxSummary(0, 0, 4), "4 to relaunch");
   assert.equal(inboxSummary(0, 0, 0), "");
 });
