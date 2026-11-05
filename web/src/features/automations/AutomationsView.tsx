@@ -2,6 +2,7 @@ import { useMemo, useState, type ReactNode } from "react";
 import type { Automation, AutomationsResult, DashboardState, DashboardThread } from "../../../../shared/api.ts";
 import { agentStatus } from "../../../../shared/status.ts";
 import { useCopy } from "../../lib/useCopy.ts";
+import { ProjectIcon } from "../../lib/ProjectIcon.tsx";
 import { ProjectTag } from "../../lib/ProjectTag.tsx";
 import { StatusBadge } from "../../lib/StatusBadge.tsx";
 import { Badge, Button, Dropdown, Icon, IconButton, Loader, Pressable, TextInput } from "../../ui/index.ts";
@@ -154,7 +155,7 @@ export function AutomationsView({ state, now, onOpen, automations, automationsEr
   const all = automations?.automations ?? [];
   const shown = useMemo(() => filterAutomations(all, { projectId: projectId === ALL_PROJECTS ? null : projectId, query }), [all, projectId, query]);
   const groups = useMemo(() => groupAutomations(shown, threads, now), [shown, threads, now]);
-  const options = useMemo(() => [{ id: ALL_PROJECTS, label: "All projects" }, ...automationProjects(all).map((p) => ({ id: p.id, label: p.title }))], [all]);
+  const options = useMemo(() => [{ id: ALL_PROJECTS, label: "All projects" }, ...automationProjects(all).map((p) => ({ id: p.id, label: p.title, icon: <ProjectIcon icon={icons.get(p.id) ?? null} /> }))], [all, icons]);
 
   if (!available) {
     return (
