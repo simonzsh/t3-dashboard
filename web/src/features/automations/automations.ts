@@ -34,6 +34,13 @@ export function finishedSetups(wasActive: ReadonlySet<string>, active: readonly 
 // A reminder disables itself after its run instead of deleting itself, so the table can show it as finished.
 export const isFinishedReminder = (a: Automation): boolean => a.kind === "reminder" && !a.enabled && a.lastRunAt !== null;
 
+// The form only knows a routine schedule and a webhook signature it can read: saving anything else would overwrite it with defaults.
+export function isEditable(a: Automation): boolean {
+  if (a.kind === "routine") return a.schedule !== null;
+  if (a.kind === "webhook") return !(a.webhook?.signed && !a.webhook.signature);
+  return true;
+}
+
 export type AutomationGroup = "attention" | "today" | "upcoming" | "inactive";
 
 // Needs attention beats paused: a failed run stays visible until the user looks at it.

@@ -6,7 +6,7 @@ import { ProjectIcon } from "../../lib/ProjectIcon.tsx";
 import { ProjectTag } from "../../lib/ProjectTag.tsx";
 import { RunningBadge, StatusBadge } from "../../lib/StatusBadge.tsx";
 import { Badge, Button, Dropdown, Icon, IconButton, Loader, Pressable, TextInput } from "../../ui/index.ts";
-import { automationProjects, copyableUrl, filterAutomations, groupAutomations, isFinishedReminder, lastRunState, modelLabel, nextLabel, scheduleText, type AutomationGroup } from "./automations.ts";
+import { automationProjects, copyableUrl, filterAutomations, groupAutomations, isEditable, isFinishedReminder, lastRunState, modelLabel, nextLabel, scheduleText, type AutomationGroup } from "./automations.ts";
 import { DeleteAutomationDialog } from "./DeleteAutomationDialog.tsx";
 import { NewAutomationDialog } from "../new-thread/NewAutomationDialog.tsx";
 import { ProviderIcon } from "../../lib/ProviderIcon.tsx";
@@ -97,9 +97,18 @@ function Row({ a, thread, projectIcon, providers, now, onOpen, onEdit, onDelete 
       </td>
       <td className="auto-actions">
         {url && <CopyUrlButton url={url} />}
-        <IconButton label="Edit automation" tooltip="Edit" size="sm" variant="ghost" onClick={() => onEdit(a)}>
-          <Icon name="edit" />
-        </IconButton>
+        {isEditable(a) ? (
+          <IconButton label="Edit automation" tooltip="Edit" size="sm" variant="ghost" onClick={() => onEdit(a)}>
+            <Icon name="edit" />
+          </IconButton>
+        ) : (
+          // A disabled button gets no hover events: the wrapper carries the tooltip.
+          <span data-tooltip="This automation can't be edited here">
+            <IconButton label="Edit automation" size="sm" variant="ghost" disabled>
+              <Icon name="edit" />
+            </IconButton>
+          </span>
+        )}
         <IconButton label="Delete automation" tooltip="Delete" size="sm" variant="ghost" onClick={() => onDelete(a)}>
           <Icon name="trash" />
         </IconButton>
