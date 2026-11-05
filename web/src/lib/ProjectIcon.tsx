@@ -5,15 +5,26 @@ import { monogramColor, monogramText } from "./monogram.ts";
 // The server sends Lucide shapes; only plain SVG shapes are drawn.
 const SHAPES = new Set(["path", "circle", "rect", "line", "polyline", "polygon", "ellipse"]);
 
-/** The project icon, or T3's monogram of the title when the project has none. */
+function Monogram({ text, color }: { text: string; color: string }) {
+  return (
+    <svg className="project-icon" viewBox="0 0 16 16" aria-hidden="true" style={{ color }}>
+      <rect width="16" height="16" rx="4" fill="currentColor" fillOpacity={0.14} />
+      <text x="8" y="10.8" textAnchor="middle" fill="currentColor" fontSize="8.25" fontWeight={700} fontFamily="ui-monospace, monospace" textLength={Array.from(text).length > 1 ? 12 : 6} lengthAdjust="spacingAndGlyphs">
+        {text}
+      </text>
+    </svg>
+  );
+}
+
+/** The project icon; a project with none gets T3's monogram of its title. */
 export function ProjectIcon({ icon, title }: { icon: Icon | null; title: string }) {
-  if (!icon) {
-    const text = monogramText(title);
+  if (!icon) return <Monogram text={monogramText(title)} color={monogramColor(title)} />;
+  if (icon.kind === "monogram") return <Monogram text={icon.text} color={icon.color ?? monogramColor(title)} />;
+  if (icon.kind === "emoji") {
     return (
-      <svg className="project-icon" viewBox="0 0 16 16" aria-hidden="true" style={{ color: monogramColor(title) }}>
-        <rect width="16" height="16" rx="4" fill="currentColor" fillOpacity={0.14} />
-        <text x="8" y="10.8" textAnchor="middle" fill="currentColor" fontSize="8.25" fontWeight={700} fontFamily="ui-monospace, monospace" textLength={Array.from(text).length > 1 ? 12 : 6} lengthAdjust="spacingAndGlyphs">
-          {text}
+      <svg className="project-icon" viewBox="0 0 16 16" aria-hidden="true">
+        <text x="8" y="8" textAnchor="middle" dominantBaseline="central" fontSize="12">
+          {icon.emoji}
         </text>
       </svg>
     );

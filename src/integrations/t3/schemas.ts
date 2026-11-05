@@ -94,7 +94,7 @@ export const RawProject = s.object({
   title: text(),
   workspaceRoot: text(),
   defaultModelSelection: s.optional(s.nullable(ModelSelection)),
-  projectIcon: s.optional(s.nullable(s.object({ kind: text(), name: text(), color: text() }))),
+  projectIcon: s.optional(s.nullable(s.object({ kind: text(), name: s.optional(text()), color: s.optional(text()), text: s.optional(text()), emoji: s.optional(text()), monogramText: s.optional(text()), monogram: s.optional(text()) }))),
 });
 export type RawProject = Infer<typeof RawProject>;
 

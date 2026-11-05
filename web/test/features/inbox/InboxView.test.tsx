@@ -69,7 +69,7 @@ test("routine threads stay out of the Inbox", () => {
 
 const withProject = (threads: ReturnType<typeof thread>[]) => {
   const state = baseState(threads);
-  state.projects = [{ ...state.projects[0]!, icon: { shapes: [{ tag: "circle", attrs: { cx: "12", cy: "12", r: "9" } }], color: null } }];
+  state.projects = [{ ...state.projects[0]!, icon: { kind: "lucide", shapes: [{ tag: "circle", attrs: { cx: "12", cy: "12", r: "9" } }], color: null } }];
   state.providers = [
     { instanceId: "provider-a", displayName: "Provider A", runtimeModes: [], models: [{ slug: "model-x", name: "Model X", effort: null, speed: null, favorite: null }] },
   ];

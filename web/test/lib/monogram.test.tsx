@@ -48,3 +48,15 @@ test("a tag with noIcon draws no mark", () => {
   const out = renderToStaticMarkup(<ProjectTag icon={null} title="Project A" noIcon />);
   assert.doesNotMatch(out, /<svg/);
 });
+
+test("a monogram icon from T3 draws its own text and color, not the title's", () => {
+  const out = renderToStaticMarkup(<ProjectIcon icon={{ kind: "monogram", text: "AS", color: PROJECT_COLORS.purple! }} title="ai-agent" />);
+  assert.match(out, />AS<\/text>/);
+  assert.match(out, new RegExp(`color:${PROJECT_COLORS.purple}`));
+  assert.doesNotMatch(out, />AA<\/text>/);
+});
+
+test("an emoji icon draws the character", () => {
+  const out = renderToStaticMarkup(<ProjectIcon icon={{ kind: "emoji", emoji: "🚀" }} title="x" />);
+  assert.match(out, />🚀<\/text>/);
+});
