@@ -1,4 +1,5 @@
-import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import type { DashboardThread } from "../../shared/api.ts";
 import { AutomationsView } from "./features/automations/AutomationsView.tsx";
 import { InboxView } from "./features/inbox/InboxView.tsx";
 import { ConnectionBanner } from "./features/setup/ConnectionBanner.tsx";
@@ -8,8 +9,8 @@ import { NewThreadDialog } from "./features/new-thread/NewThreadDialog.tsx";
 import { NotificationToasts } from "./features/notifications/NotificationToasts.tsx";
 import { badgeText } from "./features/notifications/notifications.ts";
 import { useNotifications } from "./features/notifications/useNotifications.ts";
-import { excludeRoutineThreads } from "./features/automations/automations.ts";
-import { inboxSections, unreadCount } from "./features/inbox/inbox.ts";
+import { useSetupRows } from "./features/automations/useSetupRows.ts";
+import { inboxSections, inboxThreads, unreadCount } from "./features/inbox/inbox.ts";
 import { Switcher } from "./features/switcher/Switcher.tsx";
 import { useOpenHistory } from "./features/switcher/useOpenHistory.ts";
 import { SettingsDialog } from "./features/settings/SettingsDialog.tsx";
@@ -33,6 +34,7 @@ import { Button, Icon, IconButton, Kbd, Loader, Pressable, TooltipLayer } from "
 import { updateLabel } from "./features/update/updateFlow.ts";
 
 // Same breakpoint as the one-line header in styles.css.
+const NO_THREADS: DashboardThread[] = [];
 const COMPACT_HEADER = "(max-width: 700px)";
 
 function focusComposer(threadId: string) {
@@ -171,8 +173,13 @@ export function App() {
 
   const live = !sseDown && state?.connection.t3 === "live";
   const deskIds = new Set(desk.windows.map((w) => w.id));
-  // Same threads as the Inbox lists: run and setup threads of automations are left out.
-  const unread = state ? unreadCount(inboxSections(excludeRoutineThreads(state.threads, [...(automations.result?.hiddenThreadIds ?? []), ...(automations.result?.setupThreadIds ?? [])]), notify.seen, now), notify.seen) : 0;
+  const setup = useSetupRows(state?.threads ?? NO_THREADS, automations.result?.setupThreadIds, automations.reload);
+  // One list for the Inbox and its badge, so they cannot drift apart.
+  const visible = useMemo(
+    () => inboxThreads(state?.threads ?? NO_THREADS, automations.result?.hiddenThreadIds, setup.map((t) => t.id)),
+    [state?.threads, automations.result?.hiddenThreadIds, setup],
+  );
+  const unread = useMemo(() => unreadCount(inboxSections(visible, notify.seen, now), notify.seen), [visible, notify.seen, now]);
   const deskWaiting = state?.threads.some((t) => t.pending && deskIds.has(t.id)) ?? false;
 
   if (state?.connection.setup) {
@@ -249,6 +256,7 @@ export function App() {
           (state ? (
             <InboxView
               state={state}
+              visible={visible}
               now={now}
               deskIds={deskIds}
               onOpen={onOpen}
@@ -260,7 +268,6 @@ export function App() {
               onSwitcher={setSwitcherQuery}
               automations={automations.result}
               automationsError={automations.error}
-              onAutomationsStale={automations.reload}
               linearVersion={linearVersion}
             />
           ) : <Loader />)}
@@ -274,7 +281,7 @@ export function App() {
               automationsError={automations.error}
               onAutomationsStale={automations.reload}
               onNewAutomation={() => setCreatingAutomation(true)}
-              available={state.connection.t3 === "live"}
+              setup={setup}
             />
           ) : <Loader />)}
         {tab === "desk" &&

@@ -46,7 +46,7 @@ export function Section({ id, title, count, action, headClass, limit, children }
 }
 
 // Closed by default: these threads need no action from the user.
-export function Collapsible({ title, count, className, children }: { title: string; count: number; className?: string; children: ReactNode }) {
+export function Collapsible({ title, count, className, limit, before, children }: { title: string; count: number; className?: string; limit?: number; before?: ReactNode; children: ReactNode }) {
   const [open, setOpen] = useState(false);
   if (count === 0) return null;
   return (
@@ -55,7 +55,8 @@ export function Collapsible({ title, count, className, children }: { title: stri
         <span className={`chevron${open ? " open" : ""}`} aria-hidden="true" />
         {title} ({count})
       </Pressable>
-      {open && <div className="inbox-list">{children}</div>}
+      {open && before}
+      {open && <CappedList limit={limit}>{children}</CappedList>}
     </section>
   );
 }

@@ -1,4 +1,4 @@
-import { later, type SeenState } from "../../../../shared/seen.ts";
+import { later } from "../../../../shared/seen.ts";
 import { agentStatus, threadState, type AgentStatus } from "../../../../shared/status.ts";
 import type { DashboardThread } from "../../../../shared/threads.ts";
 import type { BadgeVariant } from "../../ui/index.ts";
@@ -21,10 +21,6 @@ function finishedLabel(t: DashboardThread): string {
   if (threadState(t) === "error") return "Failed";
   return t.status === "cancelled" || t.status === "interrupted" ? "Cancelled" : "Finished";
 }
-
-// A thread is unseen while its last activity is newer than the baseline and its read mark.
-// A read mark comes from opening the thread or from "Mark as read".
-export const isUnseen = (t: DashboardThread, seen: SeenState) => t.lastActivityAt.localeCompare(later(seen.since, seen.seen[t.id] ?? "")) > 0;
 
 function entryOf(t: DashboardThread, kind: NotifyKind): NotifyEntry {
   if (kind === "waiting") return { thread: t, kind, tone: "waiting", label: waitingLabel(t) };

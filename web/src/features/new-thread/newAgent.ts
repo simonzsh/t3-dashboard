@@ -1,10 +1,8 @@
-import type { DashboardProject, DashboardProvider, ModelSelection, RuntimeMode } from "../../../../shared/api.ts";
+import type { DashboardProject, DashboardProvider, ModelSelection } from "../../../../shared/api.ts";
 import { loadProjectChoice, saveProjectChoice } from "../../lib/projectChoice.ts";
 import type { Store } from "../../lib/storage.ts";
 
 const TITLE_MAX = 60;
-// Same default as the server when no mode is sent, used when T3 has none.
-export const DEFAULT_RUNTIME_MODE: RuntimeMode = "full-access";
 const KEY = "t3-dashboard-new-agent-project";
 
 export function titleFromMessage(text: string): string {

@@ -32,7 +32,7 @@ function InboxRowView({ thread: t, project, now, onDesk, t3EnvironmentId, onOpen
   };
   // Settling flies to the "Recently settled" line, unsettling back to the "Unread" heading.
   const flyToSettle = () => {
-    if (rowRef.current) fly(rowRef.current, document.querySelector(t.settled ? ".inbox-finished-head" : ".inbox-settled-head"));
+    if (rowRef.current) fly(rowRef.current, document.querySelector(t.settled ? ".inbox-unread-head" : ".inbox-settled-head"));
   };
   // T3 refuses to settle a thread that runs or waits; unsettling is always allowed.
   const settle = t.settled || status === "finished" || status === "idle";
@@ -46,13 +46,13 @@ function InboxRowView({ thread: t, project, now, onDesk, t3EnvironmentId, onOpen
           onOpen(t.id, e.shiftKey);
         }}
       >
-        <span className="inbox-card-head">
+        <span className="inbox-row-head">
           <ProviderIcon provider={t.provider} />
           <span className="inbox-title">{threadTitle(t)}</span>
           {t.pinned && <Icon name="pin" label="Pinned" className="inbox-pin" />}
         </span>
         {project && <ProjectTag icon={project.icon} title={project.title} />}
-        <span className="inbox-card-foot">
+        <span className="inbox-row-foot">
           <span data-tooltip={status === "finished" ? (t.lastError ?? undefined) : undefined}>
             <StatusBadge thread={t} status={status} />
           </span>

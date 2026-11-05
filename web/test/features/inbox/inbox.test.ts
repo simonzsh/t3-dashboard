@@ -1,7 +1,7 @@
 import { test } from "bun:test";
 import assert from "node:assert/strict";
 import type { SeenState } from "../../../../shared/seen.ts";
-import { RECENT_SETTLED_MS, inboxSections, inboxSummary, nothingToDo, settleCandidates, unreadCount } from "../../../src/features/inbox/inbox.ts";
+import { RECENT_SETTLED_MS, inboxSections, inboxThreads, inboxSummary, nothingToDo, settleCandidates, unreadCount } from "../../../src/features/inbox/inbox.ts";
 import { thread } from "../../fixtures.ts";
 
 const now = new Date("2026-01-12T12:00:00.000Z");
@@ -17,19 +17,19 @@ test("waiting threads and unsettled errors need you, whether read or not", () =>
   const err = thread("err", { status: "failed", lastError: "boom" });
   const s = sectionsOf([wait, err], readAt(wait, err));
   assert.deepEqual(new Set(ids(s.needsYou)), new Set(["wait", "err"]));
-  assert.equal(s.newResults.length + s.readIdle.length, 0);
+  assert.equal(s.unread.length + s.readIdle.length, 0);
 });
 
 test("unread finished threads are unread, read ones are read and idle", () => {
   const read = thread("read", { status: "completed" });
   const s = sectionsOf([thread("new", { status: "completed" }), thread("idle"), read], readAt(read));
-  assert.deepEqual(new Set(ids(s.newResults)), new Set(["new", "idle"]));
+  assert.deepEqual(new Set(ids(s.unread)), new Set(["new", "idle"]));
   assert.deepEqual(ids(s.readIdle), ["read"]);
 });
 
 test("a cancelled thread is a result, not an error", () => {
   const s = sectionsOf([thread("c", { status: "cancelled" })]);
-  assert.deepEqual(ids(s.newResults), ["c"]);
+  assert.deepEqual(ids(s.unread), ["c"]);
   assert.equal(s.needsYou.length, 0);
 });
 
@@ -70,7 +70,7 @@ test("each section lists pinned threads first, then the most recent", () => {
     thread("new", { lastActivityAt: "2026-01-11T10:00:00.000Z" }),
     thread("pin", { pinned: true, lastActivityAt: "2026-01-09T10:00:00.000Z" }),
   ]);
-  assert.deepEqual(ids(s.newResults), ["pin", "new", "old"]);
+  assert.deepEqual(ids(s.unread), ["pin", "new", "old"]);
 });
 
 test("settleCandidates keeps the read threads idle for more than 3 days", () => {
@@ -99,4 +99,10 @@ test("nothingToDo ignores running, read and settled threads", () => {
   assert.equal(nothingToDo(quiet, 1, 0), false);
   assert.equal(nothingToDo(quiet, 0, 1), false);
   assert.equal(nothingToDo(sectionsOf([thread("a")]), 0, 0), false);
+});
+
+test("inboxThreads leaves out hidden routine runs and setup threads", () => {
+  const list = [thread("a"), thread("routine"), thread("setup")];
+  assert.deepEqual(ids(inboxThreads(list, ["routine"], ["setup"])), ["a"]);
+  assert.deepEqual(ids(inboxThreads(list)), ["a", "routine", "setup"]);
 });

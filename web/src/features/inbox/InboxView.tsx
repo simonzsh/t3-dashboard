@@ -4,16 +4,16 @@ import type { SeenState } from "../../../../shared/seen.ts";
 import { useAction } from "../../lib/useAction.ts";
 import { useScrolled } from "../../lib/useScrolled.ts";
 import { Button, Icon, Kbd, Loader, TextInput } from "../../ui/index.ts";
-import { excludeRoutineThreads } from "../automations/automations.ts";
-import { useSetupRows } from "../automations/useSetupRows.ts";
 import { InboxRow } from "./InboxRow.tsx";
 import { Collapsible, Section } from "./InboxSection.tsx";
-import { inboxSections, inboxSummary, nothingToDo, settleCandidates } from "./inbox.ts";
-import { TicketRow, UpNextSection } from "./TicketsSection.tsx";
+import { SECTION_LIMIT, inboxSections, inboxSummary, nothingToDo, settleCandidates } from "./inbox.ts";
+import { UpNextSection } from "./TicketsSection.tsx";
 import { useTickets } from "./useTickets.ts";
 
 interface Props {
   state: DashboardState;
+  /** The threads the Inbox lists: see `inboxThreads`. */
+  visible: DashboardThread[];
   now: Date;
   deskIds: ReadonlySet<string>;
   // addOnly: put the agent on the Desk without leaving the Inbox.
@@ -27,12 +27,9 @@ interface Props {
   onSwitcher: (initialQuery: string) => void;
   automations: AutomationsResult | null;
   automationsError: string | null;
-  onAutomationsStale: () => Promise<void>;
   /** Changes when the Linear settings change: the tickets then load again. */
   linearVersion: number;
 }
-
-const NEEDS_LIMIT = 10;
 
 // Settles every thread even when some fail, then reports how many failed.
 async function settleEach(threads: DashboardThread[], onSettle: Props["onSettle"]): Promise<void> {
@@ -40,13 +37,9 @@ async function settleEach(threads: DashboardThread[], onSettle: Props["onSettle"
   const failed = results.filter((r) => r.status === "rejected").length;
   if (failed > 0) throw new Error(`${failed} of ${threads.length} failed.`);
 }
-const RESULTS_LIMIT = 10;
 
-export function InboxView({ state, now, deskIds, onOpen, onToggleDesk, onSettle, seen, seenReady, onMarkRead, onSwitcher, automations, automationsError, onAutomationsStale, linearVersion }: Props) {
+export function InboxView({ state, visible, now, deskIds, onOpen, onToggleDesk, onSettle, seen, seenReady, onMarkRead, onSwitcher, automations, automationsError, linearVersion }: Props) {
   const scrolled = useScrolled();
-  const hiddenIds = automations?.hiddenThreadIds;
-  const setup = useSetupRows(state.threads, automations?.setupThreadIds, onAutomationsStale);
-  const visible = useMemo(() => excludeRoutineThreads(state.threads, [...(hiddenIds ?? []), ...setup.map((t) => t.id)]), [state.threads, hiddenIds, setup]);
   const tickets = useTickets(linearVersion, visible, seen, now);
   const { relaunch, upNext } = tickets.plan;
   const sections = useMemo(
@@ -58,6 +51,19 @@ export function InboxView({ state, now, deskIds, onOpen, onToggleDesk, onSettle,
   const stale = settleCandidates(sections.readIdle, now);
   // Before the first automations answer, routine threads would flash in the lists.
   const loading = state.connection.t3 === "live" && ((automations === null && automationsError === null) || !seenReady);
+
+  const settleButton = stale.length > 0 && (
+    <Button
+      size="sm"
+      className="inbox-settle-all"
+      loading={settleAll.busy}
+      tooltip={settleAll.error ?? undefined}
+      variant={settleAll.error ? "danger" : "secondary"}
+      onClick={() => void settleAll.run(() => settleEach(stale, onSettle))}
+    >
+      Settle all older than 3 days ({stale.length})
+    </Button>
+  );
 
   const row = (t: DashboardThread) => (
     <InboxRow
@@ -72,8 +78,8 @@ export function InboxView({ state, now, deskIds, onOpen, onToggleDesk, onSettle,
       onSettle={onSettle}
     />
   );
-  const rows = (threads: DashboardThread[]) => threads.map((t) => row(t));
-  const summary = inboxSummary(sections.needsYou.length, sections.newResults.length, relaunch.length);
+  const rows = (threads: DashboardThread[]) => threads.map(row);
+  const summary = inboxSummary(sections.needsYou.length, sections.unread.length, relaunch.length);
   const ticketProps = { projects: state.projects, providers: state.providers, modelDefaults: state.modelDefaults, onOpen, onStarted: tickets.markStarted };
 
   return (
@@ -105,22 +111,22 @@ export function InboxView({ state, now, deskIds, onOpen, onToggleDesk, onSettle,
               <span>Waiting agents, errors, unread results and tickets show up here.</span>
             </div>
           )}
-          <Section id="inbox-needs-head" title="Needs you" count={sections.needsYou.length} limit={NEEDS_LIMIT}>
+          <Section id="inbox-needs-head" title="Needs you" count={sections.needsYou.length} limit={SECTION_LIMIT}>
             {rows(sections.needsYou)}
           </Section>
           <Section
-            id="inbox-results-head"
+            id="inbox-unread-head"
             title="Unread"
-            count={sections.newResults.length}
-            limit={RESULTS_LIMIT}
-            headClass="inbox-finished-head"
+            count={sections.unread.length}
+            limit={SECTION_LIMIT}
+            headClass="inbox-unread-head"
             action={
-              <Button variant="ghost" size="sm" onClick={() => sections.newResults.forEach((t) => onMarkRead(t.id))}>
+              <Button variant="ghost" size="sm" onClick={() => sections.unread.forEach((t) => onMarkRead(t.id))}>
                 Mark all read
               </Button>
             }
           >
-            {rows(sections.newResults)}
+            {rows(sections.unread)}
           </Section>
           <Section id="inbox-relaunch-head" title="To relaunch" count={relaunch.length}>
             {relaunch.map(({ thread }) => row(thread))}
@@ -137,22 +143,10 @@ export function InboxView({ state, now, deskIds, onOpen, onToggleDesk, onSettle,
             onRefresh={() => void tickets.reload(true)}
             {...ticketProps}
           />
-          <Collapsible title="Read and idle" count={sections.readIdle.length}>
-            {stale.length > 0 && (
-              <Button
-                size="sm"
-                className="inbox-settle-all"
-                loading={settleAll.busy}
-                tooltip={settleAll.error ?? undefined}
-                variant={settleAll.error ? "danger" : "secondary"}
-                onClick={() => void settleAll.run(() => settleEach(stale, onSettle))}
-              >
-                Settle all older than 3 days ({stale.length})
-              </Button>
-            )}
+          <Collapsible title="Read and idle" count={sections.readIdle.length} limit={SECTION_LIMIT} before={settleButton}>
             {rows(sections.readIdle)}
           </Collapsible>
-          <Collapsible title="Recently settled" count={sections.settled.length} className="inbox-settled-head">
+          <Collapsible title="Recently settled" count={sections.settled.length} className="inbox-settled-head" limit={SECTION_LIMIT}>
             {rows(sections.settled)}
           </Collapsible>
         </div>

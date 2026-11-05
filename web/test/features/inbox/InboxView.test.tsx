@@ -1,6 +1,7 @@
 import { test } from "bun:test";
 import assert from "node:assert/strict";
 import { renderToStaticMarkup } from "react-dom/server";
+import { inboxThreads } from "../../../src/features/inbox/inbox.ts";
 import { InboxView } from "../../../src/features/inbox/InboxView.tsx";
 import { baseState, thread } from "../../fixtures.ts";
 
@@ -9,6 +10,7 @@ const render = (threads: ReturnType<typeof thread>[], seen = { since: "2026-01-0
   renderToStaticMarkup(
     <InboxView
       state={baseState(threads)}
+      visible={inboxThreads(threads, ["t-routine"])}
       now={new Date("2026-01-10T12:00:00.000Z")}
       deskIds={new Set()}
       onOpen={() => {}}
@@ -20,7 +22,6 @@ const render = (threads: ReturnType<typeof thread>[], seen = { since: "2026-01-0
       onSwitcher={() => {}}
       automations={{ automations: [], hiddenThreadIds: ["t-routine"], setupThreadIds: [] }}
       automationsError={null}
-      onAutomationsStale={async () => {}}
       linearVersion={0}
     />,
   );

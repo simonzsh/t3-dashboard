@@ -4,12 +4,11 @@ import { agentStatus } from "../../../../shared/status.ts";
 import { useCopy } from "../../lib/useCopy.ts";
 import { ProjectIcon } from "../../lib/ProjectIcon.tsx";
 import { ProjectTag } from "../../lib/ProjectTag.tsx";
-import { StatusBadge } from "../../lib/StatusBadge.tsx";
+import { RunningBadge, StatusBadge } from "../../lib/StatusBadge.tsx";
 import { Badge, Button, Dropdown, Icon, IconButton, Loader, Pressable, TextInput } from "../../ui/index.ts";
 import { automationProjects, copyableUrl, filterAutomations, groupAutomations, isFinishedReminder, lastRunState, nextLabel, scheduleText, type AutomationGroup } from "./automations.ts";
 import { DeleteAutomationDialog } from "./DeleteAutomationDialog.tsx";
 import { RenameAutomationDialog } from "./RenameAutomationDialog.tsx";
-import { useSetupRows } from "./useSetupRows.ts";
 
 interface Props {
   state: DashboardState;
@@ -19,8 +18,8 @@ interface Props {
   automationsError: string | null;
   onAutomationsStale: () => Promise<void>;
   onNewAutomation: () => void;
-  /** T3 Code is live: automations load only then. */
-  available: boolean;
+  /** Setup rows from `useSetupRows`, owned by App. */
+  setup: DashboardThread[];
 }
 
 const COLUMNS = 6;
@@ -77,12 +76,7 @@ function Row({ a, thread, projectIcon, now, onOpen, onRename, onDelete }: RowPro
       <td data-label="Next run">{next}</td>
       <td data-label="Last result">
         {last?.kind === "waiting" && <Badge variant="waiting">Waiting</Badge>}
-        {last?.kind === "running" && (
-          <Badge variant="running">
-            <span className="pulse" aria-hidden="true" />
-            Running
-          </Badge>
-        )}
+        {last?.kind === "running" && <RunningBadge />}
         {last?.kind === "failed" && (
           <span data-tooltip={last.error ?? "The last run failed"}>
             <Badge variant="error">Error</Badge>
@@ -143,13 +137,12 @@ function GroupHead({ title, count, open, onToggle }: { title: string; count: num
   );
 }
 
-export function AutomationsView({ state, now, onOpen, automations, automationsError, onAutomationsStale, onNewAutomation, available }: Props) {
+export function AutomationsView({ state, now, onOpen, automations, automationsError, onAutomationsStale, onNewAutomation, setup }: Props) {
   const [query, setQuery] = useState("");
   const [projectId, setProjectId] = useState(ALL_PROJECTS);
   const [inactiveOpen, setInactiveOpen] = useState(false);
   const [deleting, setDeleting] = useState<Automation | null>(null);
   const [renaming, setRenaming] = useState<Automation | null>(null);
-  const setup = useSetupRows(state.threads, automations?.setupThreadIds, onAutomationsStale);
   const threads = useMemo(() => new Map(state.threads.map((t) => [t.id, t])), [state.threads]);
   const icons = useMemo(() => new Map(state.projects.map((p) => [p.id, p.icon])), [state.projects]);
   const all = automations?.automations ?? [];
@@ -157,7 +150,7 @@ export function AutomationsView({ state, now, onOpen, automations, automationsEr
   const groups = useMemo(() => groupAutomations(shown, threads, now), [shown, threads, now]);
   const options = useMemo(() => [{ id: ALL_PROJECTS, label: "All projects" }, ...automationProjects(all).map((p) => ({ id: p.id, label: p.title, icon: <ProjectIcon icon={icons.get(p.id) ?? null} /> }))], [all, icons]);
 
-  if (!available) {
+  if (state.connection.t3 !== "live") {
     return (
       <div className="empty-state">
         <strong>T3 Code is not connected</strong>

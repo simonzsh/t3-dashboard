@@ -1,7 +1,8 @@
 import { test } from "bun:test";
 import assert from "node:assert/strict";
 import { mergeSeen, type SeenState } from "../../../../shared/seen.ts";
-import { badgeText, baselineOf, isUnseen, statusMap, transitions } from "../../../src/features/notifications/notifications.ts";
+import { isUnseen } from "../../../../shared/seen.ts";
+import { badgeText, baselineOf, statusMap, transitions } from "../../../src/features/notifications/notifications.ts";
 import { thread } from "../../fixtures.ts";
 
 const at = (minute: number) => `2026-01-10T10:${String(minute).padStart(2, "0")}:00.000Z`;

@@ -5,9 +5,12 @@ import { browserStorage } from "../../lib/storage.ts";
 import { loadAssignProject, saveAssignProject } from "../../lib/assignProject.ts";
 import { findModel } from "../conversation/composer.ts";
 import { ProjectPicker } from "../../lib/ProjectPicker.tsx";
-import { DEFAULT_RUNTIME_MODE, loadNewAgentProject, presetSelection, saveNewAgentProject, titleFromMessage } from "./newAgent.ts";
+import { loadNewAgentProject, presetSelection, saveNewAgentProject, titleFromMessage } from "./newAgent.ts";
 import { Composer } from "../conversation/Composer.tsx";
 import { Dialog, Icon } from "../../ui/index.ts";
+
+// Same default as the server when no mode is sent, used when T3 has none.
+const DEFAULT_RUNTIME_MODE: RuntimeMode = "full-access";
 
 interface Props {
   projects: DashboardProject[];

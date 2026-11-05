@@ -1,6 +1,6 @@
 import type { SeenState } from "../../../../shared/seen.ts";
 import { threadState } from "../../../../shared/status.ts";
-import { isUnseen } from "../notifications/notifications.ts";
+import { isUnseen } from "../../../../shared/seen.ts";
 import type { DashboardThread, LinearIssue } from "../../../../shared/api.ts";
 
 const IDENTIFIER = /\b[A-Z][A-Z0-9]*-\d+\b/g;
@@ -58,6 +58,6 @@ export function planTickets(issues: LinearIssue[], threads: DashboardThread[], s
   });
   const once = stalled.filter((r, i) => stalled.findIndex((s) => s.thread === r.thread) === i);
   // A started ticket with no agent is often worked by hand: it leads Up next instead of claiming to be stalled.
-  const upNext = [...unlinked].sort((a, b) => Number(b.state.type === "started") - Number(a.state.type === "started") || byPriority(a, b));
+  const upNext = unlinked.sort((a, b) => Number(b.state.type === "started") - Number(a.state.type === "started") || byPriority(a, b));
   return { relaunch: once.sort((a, b) => byPriority(a.issue, b.issue)), upNext };
 }
