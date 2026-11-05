@@ -193,7 +193,7 @@ export function AutomationsView({ state, now, onOpen, automations, automationsEr
           <Icon name="search" />
           <TextInput aria-label="Search automations" placeholder="Search automations…" value={query} onChange={(e) => setQuery(e.target.value)} />
         </div>
-        <Dropdown label="Project" value={projectId} options={options} onPick={setProjectId} />
+        <Dropdown label="Project" value={projectId} options={options} onPick={setProjectId} filterable searchPlaceholder="Search projects…" />
       </div>
       {shown.length === 0 && setup.length === 0 ? (
         <div className="empty-state">
