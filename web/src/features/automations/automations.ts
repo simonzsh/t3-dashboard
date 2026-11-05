@@ -1,5 +1,6 @@
-import type { Automation, DashboardThread } from "../../../../shared/api.ts";
+import type { Automation, DashboardProvider, DashboardThread, ModelSelection } from "../../../../shared/api.ts";
 import { ACTIVE_STATUSES, hasFailed } from "../../../../shared/status.ts";
+import { findModel } from "../conversation/composer.ts";
 
 export type LastRun = { kind: "waiting" } | { kind: "running" } | { kind: "failed"; error: string | null } | { kind: "done"; at: string };
 
@@ -73,6 +74,12 @@ export function scheduleText(a: Automation): string {
   if (a.kind !== "reminder") return a.scheduleLabel;
   const at = isFinishedReminder(a) ? a.lastRunAt : a.nextRunAt;
   return at ? reminderDate(at) : "";
+}
+
+/** The provider and the display name of a model; the raw id while T3 does not list the model. */
+export function modelLabel(providers: DashboardProvider[], selection: ModelSelection | null): { instanceId: string; name: string } | null {
+  if (!selection) return null;
+  return { instanceId: selection.instanceId, name: findModel(providers, selection)?.model.name ?? selection.model };
 }
 
 // The URL holds a token: the UI copies it and never shows it.

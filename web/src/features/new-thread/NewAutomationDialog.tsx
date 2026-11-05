@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import type { CreateAutomationResult, DashboardProject, DashboardProvider, ModelDefaults, ModelSelection, RuntimeMode, ThreadSettingsBody } from "../../../../shared/api.ts";
+import type { Automation, CreateAutomationResult, DashboardProject, DashboardProvider, ModelDefaults, ModelSelection, RuntimeMode, ThreadSettingsBody } from "../../../../shared/api.ts";
 import { useApi } from "../../api/ApiContext.tsx";
 import { loadProjectChoice, saveProjectChoice } from "../../lib/projectChoice.ts";
 import { ProjectPicker } from "../../lib/ProjectPicker.tsx";
@@ -8,7 +8,7 @@ import { useCopy } from "../../lib/useCopy.ts";
 import { findModel } from "../conversation/composer.ts";
 import { Composer } from "../conversation/Composer.tsx";
 import { Button, Choice, Dialog, Dropdown, Icon, IconButton, Segmented, SecretInput, TextInput } from "../../ui/index.ts";
-import { FILTER_OPS, WEEKDAY_LABELS, WEEKDAY_ORDER, addFilter, emptyForm, promptPlaceholder, removeFilter, toCreateBody, toggleWeekday, updateFilter, type AutomationForm, type FilterOp, type FormKind } from "./automationForm.ts";
+import { FILTER_OPS, WEEKDAY_LABELS, WEEKDAY_ORDER, addFilter, emptyForm, formFromAutomation, promptPlaceholder, removeFilter, toCreateBody, toUpdateBody, toggleWeekday, updateFilter, type AutomationForm, type FilterOp, type FormKind } from "./automationForm.ts";
 import { presetSelection } from "./newAgent.ts";
 
 const KEY = "t3-dashboard-automation-project";
@@ -25,9 +25,11 @@ interface Props {
   projects: DashboardProject[];
   providers: DashboardProvider[];
   defaults: ModelDefaults;
+  /** Edit this automation instead of creating one. Its kind stays. */
+  automation?: Automation;
   onClose: () => void;
-  /** Called after T3 created the task, so the list can refresh. */
-  onCreated: () => void;
+  /** Called after T3 saved the task, so the list can refresh. */
+  onSaved: () => void;
 }
 
 function CopyButton({ text, label }: { text: string; label: string }) {
@@ -66,7 +68,7 @@ function WebhookCreated({ result, signed, onClose }: { result: CreateAutomationR
   );
 }
 
-function ScheduleFields({ form, onChange }: { form: AutomationForm; onChange: (form: AutomationForm) => void }) {
+function ScheduleFields({ form, keepSecret, onChange }: { form: AutomationForm; keepSecret: boolean; onChange: (form: AutomationForm) => void }) {
   const set = (change: Partial<AutomationForm>) => onChange({ ...form, ...change });
   if (form.kind === "reminder") {
     return (
@@ -133,8 +135,8 @@ function ScheduleFields({ form, onChange }: { form: AutomationForm; onChange: (f
               <Dropdown label="Encoding" className="field" value={form.encoding} options={[{ id: "hex", label: "hex" }, { id: "base64", label: "base64" }]} onPick={(encoding) => set({ encoding: encoding as "hex" | "base64" })} />
               <TextInput aria-label="Signature prefix" value={form.prefix} onChange={(e) => set({ prefix: e.target.value })} />
             </div>
-            <SecretInput aria-label="Signing secret" placeholder="Signing secret (the same one goes in GitHub)" value={form.secret} onChange={(e) => set({ secret: e.target.value })} />
-            <p className="hint">Sent once to T3, which stores it. The dashboard never keeps it.</p>
+            <SecretInput aria-label="Signing secret" placeholder={keepSecret ? "Unchanged" : "Signing secret (the same one goes in GitHub)"} value={form.secret} onChange={(e) => set({ secret: e.target.value })} />
+            <p className="hint">{keepSecret ? "Leave it empty to keep the stored secret. " : ""}Sent once to T3, which stores it. The dashboard never keeps it.</p>
           </>
         )}
       </div>
@@ -142,32 +144,46 @@ function ScheduleFields({ form, onChange }: { form: AutomationForm; onChange: (f
   );
 }
 
-/** New automation: a form that creates the routine, reminder or webhook in T3 directly. */
-export function NewAutomationDialog({ projects, providers, defaults, onClose, onCreated }: Props) {
+/** A form that creates the routine, reminder or webhook in T3, or edits an existing one. */
+export function NewAutomationDialog({ projects, providers, defaults, automation, onClose, onSaved }: Props) {
   const api = useApi();
-  const [projectId, setProjectId] = useState(() => loadProjectChoice(browserStorage(), KEY, projects));
-  const [selection, setSelection] = useState<ModelSelection | null>(() => presetSelection(projects.find((p) => p.id === projectId), providers, defaults.selection));
-  const [mode, setMode] = useState<RuntimeMode>(defaults.runtimeMode ?? DEFAULT_MODE);
-  const [draft, setDraft] = useState("");
-  const [form, setForm] = useState(emptyForm);
+  const editing = automation !== undefined;
+  // The project of an edited task may be gone from the list: show no project, not a wrong one.
+  const [projectId, setProjectId] = useState(() => (automation ? (projects.some((p) => p.id === automation.projectId) ? automation.projectId : "") : loadProjectChoice(browserStorage(), KEY, projects)));
+  const [selection, setSelection] = useState<ModelSelection | null>(() => automation?.modelSelection ?? presetSelection(projects.find((p) => p.id === projectId), providers, defaults.selection));
+  const [mode, setMode] = useState<RuntimeMode>(automation?.runtimeMode ?? defaults.runtimeMode ?? DEFAULT_MODE);
+  const [draft, setDraft] = useState(automation?.prompt ?? "");
+  const [form, setForm] = useState(() => (automation ? formFromAutomation(automation, new Date()) : emptyForm()));
   const [created, setCreated] = useState<{ result: CreateAutomationResult; signed: boolean } | null>(null);
   // Each project pick moves the focus to the message.
   const [picks, setPicks] = useState(0);
 
   // Providers can arrive after the dialog opens: pick a preset once the choice is no longer valid.
+  // An edit keeps its stored model until the providers are loaded and do not list it.
   useEffect(() => {
-    if (!findModel(providers, selection)) setSelection(presetSelection(projects.find((p) => p.id === projectId), providers, defaults.selection));
+    if (!findModel(providers, selection) && (!editing || providers.length > 0)) setSelection(presetSelection(projects.find((p) => p.id === projectId), providers, defaults.selection));
   }, [providers]);
 
   async function send(text: string): Promise<void> {
-    const built = toCreateBody(form, { prompt: text, projectId, modelSelection: selection, runtimeMode: mode }, new Date());
-    if ("error" in built) throw new Error(built.error);
+    const base = { prompt: text, projectId, modelSelection: selection, runtimeMode: mode };
     // The body holds the secret: the field is empty before the request leaves.
+    const clearSecret = () => setForm((current) => ({ ...current, secret: "" }));
+    if (automation) {
+      const built = toUpdateBody(form, base, new Date(), automation.webhook?.signed === true);
+      if ("error" in built) throw new Error(built.error);
+      clearSecret();
+      await api.updateAutomation(automation.id, built.body);
+      onSaved();
+      onClose();
+      return;
+    }
+    const built = toCreateBody(form, base, new Date());
+    if ("error" in built) throw new Error(built.error);
     const signed = built.body.kind === "webhook" && built.body.signature !== null;
-    setForm((current) => ({ ...current, secret: "" }));
+    clearSecret();
     const result = await api.createAutomation(built.body);
     saveProjectChoice(browserStorage(), KEY, projectId);
-    onCreated();
+    onSaved();
     if (built.body.kind === "webhook") setCreated({ result, signed });
     else onClose();
   }
@@ -180,9 +196,16 @@ export function NewAutomationDialog({ projects, providers, defaults, onClose, on
   if (created) return <WebhookCreated {...created} onClose={onClose} />;
 
   return (
-    <Dialog title="New automation" className="new-agent" onClose={onClose}>
+    <Dialog title={automation ? `Edit ${automation.kind}` : "New automation"} className="new-agent" onClose={onClose}>
       <div className="auto-form">
-        <Segmented label="Kind" value={form.kind} options={KINDS} onChange={(kind) => setForm({ ...form, kind })} />
+        {automation ? (
+          <div className="dialog-field">
+            <span>Title</span>
+            <TextInput aria-label="Title" maxLength={120} placeholder="First line of the prompt" value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} />
+          </div>
+        ) : (
+          <Segmented label="Kind" value={form.kind} options={KINDS} onChange={(kind) => setForm({ ...form, kind })} />
+        )}
         <div className="dialog-field">
           <span>Project</span>
           <ProjectPicker
@@ -190,14 +213,16 @@ export function NewAutomationDialog({ projects, providers, defaults, onClose, on
             projects={projects}
             value={projectId}
             allowNone
+            disabled={automation?.bound}
             onPicked={() => setPicks((n) => n + 1)}
             onPick={(id) => {
               setProjectId(id);
-              setSelection(presetSelection(projects.find((p) => p.id === id), providers, defaults.selection));
+              if (!editing) setSelection(presetSelection(projects.find((p) => p.id === id), providers, defaults.selection));
             }}
           />
+          {automation?.bound && <p className="hint">Runs in its own thread: the project is fixed.</p>}
         </div>
-        <ScheduleFields form={form} onChange={setForm} />
+        <ScheduleFields form={form} keepSecret={automation?.webhook?.signed === true} onChange={setForm} />
       </div>
       <Composer
         providers={providers}

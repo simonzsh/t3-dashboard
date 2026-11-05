@@ -315,7 +315,7 @@ export function App() {
           providers={state.providers}
           defaults={state.modelDefaults}
           onClose={() => setCreatingAutomation(false)}
-          onCreated={automations.reload}
+          onSaved={automations.reload}
         />
       )}
       {state && switcherQuery !== null && (

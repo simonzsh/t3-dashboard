@@ -1,5 +1,5 @@
 import { GITHUB_SIGNATURE, type WebhookFilter } from "../../../../shared/automations.ts";
-import type { CreateAutomationBody, ModelSelection, RuntimeMode } from "../../../../shared/api.ts";
+import type { Automation, CreateAutomationBody, ModelSelection, RuntimeMode, UpdateAutomationBody } from "../../../../shared/api.ts";
 
 export type FormKind = CreateAutomationBody["kind"];
 export type FilterOp = WebhookFilter["op"];
@@ -93,8 +93,37 @@ export interface FormBase {
   runtimeMode: RuntimeMode;
 }
 
-/** The request body, or the first thing the user must fix. The secret goes only into the body. */
-export function toCreateBody(form: AutomationForm, base: FormBase, now: Date): { body: CreateAutomationBody } | { error: string } {
+const pad = (value: number) => String(value).padStart(2, "0");
+
+/** A datetime-local value: local time to the minute. */
+const localInput = (at: Date) => `${at.getFullYear()}-${pad(at.getMonth() + 1)}-${pad(at.getDate())}T${pad(at.getHours())}:${pad(at.getMinutes())}`;
+
+function toRow(filter: WebhookFilter, id: number): FilterRow {
+  if (filter.op === "exists") return { id, path: filter.path, op: filter.op, value: "" };
+  return { id, path: filter.path, op: filter.op, value: Array.isArray(filter.value) ? filter.value.join(", ") : filter.value };
+}
+
+/** The form of an existing automation. A reminder that already ran (or is past) starts with no time. */
+export function formFromAutomation(a: Automation, now: Date): AutomationForm {
+  const form: AutomationForm = { ...emptyForm(), kind: a.kind, title: a.title };
+  if (a.kind === "routine" && a.schedule) {
+    if (a.schedule.type === "interval") return { ...form, routineMode: "interval", minutes: String(a.schedule.everyMinutes) };
+    return { ...form, routineMode: "fixed", timeOfDay: a.schedule.timeOfDay, weekdays: a.schedule.weekdays };
+  }
+  if (a.kind === "reminder") {
+    const next = a.enabled && a.nextRunAt ? new Date(a.nextRunAt) : null;
+    return { ...form, reminderAt: next && next.getTime() > now.getTime() ? localInput(next) : "" };
+  }
+  if (a.kind === "webhook" && a.webhook) {
+    const { signature, filters } = a.webhook;
+    const rows = filters.map((filter, index) => toRow(filter, index + 1));
+    return signature ? { ...form, filters: rows, signed: true, header: signature.header, encoding: signature.encoding, prefix: signature.prefix } : { ...form, filters: rows, signed: false };
+  }
+  return form;
+}
+
+// A secret field left empty keeps the stored secret only when the caller says T3 holds one.
+function buildBody(form: AutomationForm, base: FormBase, now: Date, keepSecret: boolean): { body: UpdateAutomationBody } | { error: string } {
   if (!base.modelSelection) return { error: "No model is available." };
   if (base.prompt.trim() === "") return { error: "Write what the automation does." };
   const common = { title: form.title.trim(), prompt: base.prompt.trim(), projectId: base.projectId, modelSelection: base.modelSelection, runtimeMode: base.runtimeMode };
@@ -128,8 +157,22 @@ export function toCreateBody(form: AutomationForm, base: FormBase, now: Date): {
   if (filters.length > MAX_FILTERS) return { error: `At most ${MAX_FILTERS} filters.` };
   if (!form.signed) return { body: { ...common, kind: "webhook", filters, signature: null } };
   if (form.header.trim() === "") return { error: "Write the signature header." };
+  const { encoding, prefix } = form;
+  const header = form.header.trim();
+  if (form.secret === "" && keepSecret) return { body: { ...common, kind: "webhook", filters, signature: { header, encoding, prefix } } };
   if (form.secret.trim() === "") return { error: "Type the signing secret, or turn the signature check off." };
   // T3 trims the stored secret: GitHub would sign a different value.
   if (form.secret !== form.secret.trim()) return { error: "The signing secret starts or ends with a space. Remove it here and in GitHub." };
-  return { body: { ...common, kind: "webhook", filters, signature: { header: form.header.trim(), encoding: form.encoding, prefix: form.prefix, secret: form.secret } } };
+  return { body: { ...common, kind: "webhook", filters, signature: { header, encoding, prefix, secret: form.secret } } };
+}
+
+/** The request body, or the first thing the user must fix. The secret goes only into the body. */
+export function toCreateBody(form: AutomationForm, base: FormBase, now: Date): { body: CreateAutomationBody } | { error: string } {
+  // Without a stored secret, a signed webhook body always carries one.
+  return buildBody(form, base, now, false) as { body: CreateAutomationBody } | { error: string };
+}
+
+/** Like toCreateBody for an edit. `storedSecret`: T3 holds a secret, so an empty field keeps it. */
+export function toUpdateBody(form: AutomationForm, base: FormBase, now: Date, storedSecret: boolean): { body: UpdateAutomationBody } | { error: string } {
+  return buildBody(form, base, now, storedSecret);
 }

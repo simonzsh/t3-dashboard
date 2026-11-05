@@ -1,14 +1,15 @@
 import { useMemo, useState, type ReactNode } from "react";
-import type { Automation, AutomationsResult, DashboardState, DashboardThread } from "../../../../shared/api.ts";
+import type { Automation, AutomationsResult, DashboardProvider, DashboardState, DashboardThread } from "../../../../shared/api.ts";
 import { agentStatus } from "../../../../shared/status.ts";
 import { useCopy } from "../../lib/useCopy.ts";
 import { ProjectIcon } from "../../lib/ProjectIcon.tsx";
 import { ProjectTag } from "../../lib/ProjectTag.tsx";
 import { RunningBadge, StatusBadge } from "../../lib/StatusBadge.tsx";
 import { Badge, Button, Dropdown, Icon, IconButton, Loader, Pressable, TextInput } from "../../ui/index.ts";
-import { automationProjects, copyableUrl, filterAutomations, groupAutomations, isFinishedReminder, lastRunState, nextLabel, scheduleText, type AutomationGroup } from "./automations.ts";
+import { automationProjects, copyableUrl, filterAutomations, groupAutomations, isFinishedReminder, lastRunState, modelLabel, nextLabel, scheduleText, type AutomationGroup } from "./automations.ts";
 import { DeleteAutomationDialog } from "./DeleteAutomationDialog.tsx";
-import { RenameAutomationDialog } from "./RenameAutomationDialog.tsx";
+import { NewAutomationDialog } from "../new-thread/NewAutomationDialog.tsx";
+import { ProviderIcon } from "../../lib/ProviderIcon.tsx";
 
 interface Props {
   state: DashboardState;
@@ -22,7 +23,7 @@ interface Props {
   setup: DashboardThread[];
 }
 
-const COLUMNS = 6;
+const COLUMNS = 7;
 const GROUPS: ReadonlyArray<{ id: AutomationGroup; title: string }> = [
   { id: "attention", title: "Needs attention" },
   { id: "today", title: "Today" },
@@ -45,17 +46,19 @@ interface RowProps {
   a: Automation;
   thread: DashboardThread | undefined;
   projectIcon: DashboardState["projects"][number]["icon"];
+  providers: DashboardProvider[];
   now: Date;
   onOpen: (id: string, addOnly: boolean) => void;
-  onRename: (a: Automation) => void;
+  onEdit: (a: Automation) => void;
   onDelete: (a: Automation) => void;
 }
 
-function Row({ a, thread, projectIcon, now, onOpen, onRename, onDelete }: RowProps) {
+function Row({ a, thread, projectIcon, providers, now, onOpen, onEdit, onDelete }: RowProps) {
   const last = lastRunState(a, thread);
   const hook = a.kind === "webhook";
   const url = copyableUrl(a);
   const { threadId } = a;
+  const model = modelLabel(providers, a.modelSelection);
   const next = isFinishedReminder(a) || (hook && a.enabled) ? "—" : a.enabled ? nextLabel(a.nextRunAt, now) || "—" : "paused";
   return (
     <tr className={last ? last.kind : undefined}>
@@ -72,6 +75,14 @@ function Row({ a, thread, projectIcon, now, onOpen, onRename, onDelete }: RowPro
       <td data-label="Project">
         <ProjectTag icon={projectIcon} title={a.project} />
       </td>
+      <td data-label="Model">
+        {model && (
+          <span className="auto-model">
+            <ProviderIcon provider={model.instanceId} />
+            {model.name}
+          </span>
+        )}
+      </td>
       <td data-label="Schedule">{scheduleText(a)}</td>
       <td data-label="Next run">{next}</td>
       <td data-label="Last result">
@@ -86,7 +97,7 @@ function Row({ a, thread, projectIcon, now, onOpen, onRename, onDelete }: RowPro
       </td>
       <td className="auto-actions">
         {url && <CopyUrlButton url={url} />}
-        <IconButton label="Rename automation" tooltip="Rename" size="sm" variant="ghost" onClick={() => onRename(a)}>
+        <IconButton label="Edit automation" tooltip="Edit" size="sm" variant="ghost" onClick={() => onEdit(a)}>
           <Icon name="edit" />
         </IconButton>
         <IconButton label="Delete automation" tooltip="Delete" size="sm" variant="ghost" onClick={() => onDelete(a)}>
@@ -142,7 +153,7 @@ export function AutomationsView({ state, now, onOpen, automations, automationsEr
   const [projectId, setProjectId] = useState(ALL_PROJECTS);
   const [inactiveOpen, setInactiveOpen] = useState(false);
   const [deleting, setDeleting] = useState<Automation | null>(null);
-  const [renaming, setRenaming] = useState<Automation | null>(null);
+  const [editing, setEditing] = useState<Automation | null>(null);
   const threads = useMemo(() => new Map(state.threads.map((t) => [t.id, t])), [state.threads]);
   const icons = useMemo(() => new Map(state.projects.map((p) => [p.id, p.icon])), [state.projects]);
   const all = automations?.automations ?? [];
@@ -178,7 +189,7 @@ export function AutomationsView({ state, now, onOpen, automations, automationsEr
       </div>
     );
   }
-  const rows = (list: Automation[]) => list.map((a) => <Row key={a.id} a={a} thread={a.threadId ? threads.get(a.threadId) : undefined} projectIcon={icons.get(a.projectId) ?? null} now={now} onOpen={onOpen} onRename={setRenaming} onDelete={setDeleting} />);
+  const rows = (list: Automation[]) => list.map((a) => <Row key={a.id} a={a} thread={a.threadId ? threads.get(a.threadId) : undefined} projectIcon={icons.get(a.projectId) ?? null} providers={state.providers} now={now} onOpen={onOpen} onEdit={setEditing} onDelete={setDeleting} />);
   return (
     <div className="auto-page">
       <div className="auto-toolbar">
@@ -198,7 +209,7 @@ export function AutomationsView({ state, now, onOpen, automations, automationsEr
           <table className="auto-table">
             <thead>
               <tr>
-                {["Name", "Project", "Schedule", "Next run", "Last result"].map((name) => (
+                {["Name", "Project", "Model", "Schedule", "Next run", "Last result"].map((name) => (
                   <th key={name} scope="col">
                     {name}
                   </th>
@@ -227,14 +238,14 @@ export function AutomationsView({ state, now, onOpen, automations, automationsEr
           </table>
         </div>
       )}
-      {renaming && (
-        <RenameAutomationDialog
-          automation={renaming}
-          onClose={() => setRenaming(null)}
-          onRenamed={() => {
-            setRenaming(null);
-            void onAutomationsStale();
-          }}
+      {editing && (
+        <NewAutomationDialog
+          projects={state.projects}
+          providers={state.providers}
+          defaults={state.modelDefaults}
+          automation={editing}
+          onClose={() => setEditing(null)}
+          onSaved={() => void onAutomationsStale()}
         />
       )}
       {deleting && (
