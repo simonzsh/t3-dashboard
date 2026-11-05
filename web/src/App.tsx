@@ -64,6 +64,14 @@ export function App() {
     remote: remoteSeen,
     connects,
   });
+  // The focused desk window on the visible Desk tab is read: on a click, a restore, and on each new activity.
+  // Only openOnDesk marked threads before, so a window already on the desk stayed unread in the Inbox.
+  const readId = tab === "desk" ? desk.focusedId : null;
+  const readAt = readId ? state?.threads.find((t) => t.id === readId)?.lastActivityAt : undefined;
+  const { markSeen, seenReady } = notify;
+  useEffect(() => {
+    if (readId && readAt && seenReady) markSeen(readId);
+  }, [readId, readAt, seenReady, markSeen]);
   const [creating, setCreating] = useState(false);
   const [creatingAutomation, setCreatingAutomation] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
