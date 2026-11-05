@@ -598,7 +598,8 @@ ol.install-steps { padding-left: 18px; }
 .auto-note { margin-left: 8px; font-size: 12px; color: var(--text-secondary); }
 .auto-table tr.waiting { background: color-mix(in srgb, var(--warn-bg) 40%, var(--surface-1)); }
 .auto-actions { text-align: right; white-space: nowrap; }
-.tabs .count { margin-left: 6px; font-size: 11px; padding: 0 6px; background: color-mix(in srgb, var(--accent) 18%, transparent); color: var(--accent); font-weight: 600; }
+/* Sits close to its label: the button gap alone would leave the badge floating between label and shortcut. */
+.tabs .count { margin: 0 -2px 0 -4px; font-size: 11px; line-height: 16px; padding: 0 5px; background: color-mix(in srgb, var(--accent) 18%, transparent); color: var(--accent); font-weight: 600; }
 .tab-alert { width: 8px; height: 8px; border-radius: 50%; background: var(--warn); box-shadow: 0 0 0 2px color-mix(in srgb, var(--warn) 30%, transparent); }
 .app { display: flex; flex-direction: column; height: 100dvh; overflow: hidden; }
 .app.desk-mode main { padding: 0; gap: 0; }
