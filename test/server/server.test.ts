@@ -38,7 +38,7 @@ interface StartOptions {
   site?: Site;
   linearKey?: string;
   linearFetch?: (url: string, init: RequestInit) => Promise<Response>;
-  automations?: Pick<Automations, "list" | "create" | "remove" | "rename">;
+  automations?: Pick<Automations, "list" | "create" | "remove" | "update">;
   // Content of the Linear file. Without it, `linearKey` feeds the board directly.
   linear?: unknown;
   pasteResult?: "ok" | "rejected" | "unreachable" | "locked";
@@ -52,7 +52,7 @@ interface StartOptions {
 const LINEAR_FILE = "/cfg/linear.json";
 
 async function start(startOptions: StartOptions = {}) {
-  const { site = { serve: async () => null }, linearKey = "", linearFetch, automations = { list: async () => ({ automations: [], hiddenThreadIds: [], setupThreadIds: [] }), create: async () => created, remove: async () => {}, rename: async () => {} } } = startOptions;
+  const { site = { serve: async () => null }, linearKey = "", linearFetch, automations = { list: async () => ({ automations: [], hiddenThreadIds: [], setupThreadIds: [] }), create: async () => created, remove: async () => {}, update: async () => {} } } = startOptions;
   const linearCalls: string[] = [];
   const files: Record<string, string> = startOptions.linear === undefined ? {} : { [LINEAR_FILE]: JSON.stringify(startOptions.linear) };
   const readFile = (path: string) => {
@@ -557,7 +557,7 @@ test("every POST route refuses a body that is not JSON", async () => {
     "/api/attachments/att-1/delete",
     "/api/automations",
     "/api/automations/task-1/delete",
-    "/api/automations/task-1/rename",
+    "/api/automations/task-1/update",
     "/api/threads/run-1/messages",
     "/api/threads/run-1/settings",
     "/api/threads/run-1/interrupt",
@@ -708,7 +708,7 @@ test("assign answers 502 when Linear fails and when T3 fails", async () => {
 test("GET /api/automations returns the automations listed at each call", async () => {
   let calls = 0;
   const result: AutomationsResult = { automations: [], hiddenThreadIds: ["thread-1"], setupThreadIds: ["thread-2"] };
-  const { server } = await start({ automations: { list: async () => (calls++, result), create: async () => created, remove: async () => {}, rename: async () => {} } });
+  const { server } = await start({ automations: { list: async () => (calls++, result), create: async () => created, remove: async () => {}, update: async () => {} } });
   const first = await call(server, "GET", "/api/automations");
   assert.equal(first.status, 200);
   assert.equal(first.headers["content-type"], "application/json; charset=utf-8");
@@ -720,10 +720,11 @@ test("GET /api/automations returns the automations listed at each call", async (
 test("GET /api/automations carries the kind and the webhook of each automation", async () => {
   const automation: Automation = {
     id: "task-1", kind: "webhook", title: "PR reviews", projectId: "p", project: "P", scheduleLabel: "Webhook", enabled: true,
-    nextRunAt: null, lastRunAt: null, lastRunStatus: null, lastRunError: null, threadId: null, model: null,
-    webhook: { url: "https://relay.example.invalid/v1/hooks/k/task-1/tok", signed: true },
+    nextRunAt: null, lastRunAt: null, lastRunStatus: null, lastRunError: null, threadId: null, modelSelection: null,
+    prompt: "Review", schedule: null, runtimeMode: null, bound: false,
+    webhook: { url: "https://relay.example.invalid/v1/hooks/k/task-1/tok", signed: true, filters: [{ path: "body.action", op: "exists" }], signature: { header: "x-hub-signature-256", encoding: "hex", prefix: "sha256=" } },
   };
-  const { server } = await start({ automations: { list: async () => ({ automations: [automation], hiddenThreadIds: [], setupThreadIds: [] }), create: async () => created, remove: async () => {}, rename: async () => {} } });
+  const { server } = await start({ automations: { list: async () => ({ automations: [automation], hiddenThreadIds: [], setupThreadIds: [] }), create: async () => created, remove: async () => {}, update: async () => {} } });
   const { json } = await call(server, "GET", "/api/automations");
   assert.deepEqual((json as AutomationsResult).automations, [automation]);
 });
@@ -732,7 +733,7 @@ test("an automations failure gives 502", async () => {
   const failing = async () => {
     throw new IntegrationError("T3 is down", { system: "t3", kind: "unreachable" });
   };
-  const { server } = await start({ automations: { list: failing, create: failing, remove: failing, rename: failing } });
+  const { server } = await start({ automations: { list: failing, create: failing, remove: failing, update: failing } });
   assert.equal((await call(server, "GET", "/api/automations")).status, 502);
   assert.equal((await post(server, "/api/automations", { ...routineBody })).status, 502);
   assert.equal((await post(server, "/api/automations/task-1/delete", {})).status, 502);
@@ -740,28 +741,53 @@ test("an automations failure gives 502", async () => {
 
 test("POST /api/automations/:id/delete removes the task", async () => {
   const removed: string[] = [];
-  const { server } = await start({ automations: { list: async () => ({ automations: [], hiddenThreadIds: [], setupThreadIds: [] }), create: async () => created, remove: async (id) => void removed.push(id), rename: async () => {} } });
+  const { server } = await start({ automations: { list: async () => ({ automations: [], hiddenThreadIds: [], setupThreadIds: [] }), create: async () => created, remove: async (id) => void removed.push(id), update: async () => {} } });
   const reply = await post(server, "/api/automations/task%2F1/delete", {});
   assert.equal(reply.status, 200);
   assert.deepEqual(reply.json, { ok: true });
   assert.deepEqual(removed, ["task/1"]);
 });
 
-test("POST /api/automations/:id/rename trims the title and passes it on", async () => {
-  const renamed: unknown[] = [];
-  const { server } = await start({ automations: { list: async () => ({ automations: [], hiddenThreadIds: [], setupThreadIds: [] }), create: async () => created, remove: async () => {}, rename: async (id, title) => void renamed.push([id, title]) } });
-  const reply = await post(server, "/api/automations/task%2F1/rename", { title: "  New name " });
+const updateStart = (updated: unknown[]) =>
+  start({ automations: { list: async () => ({ automations: [], hiddenThreadIds: [], setupThreadIds: [] }), create: async () => created, remove: async () => {}, update: async (id, body) => void updated.push([id, body]) } });
+
+test("POST /api/automations/:id/update validates the body and passes it on", async () => {
+  const updated: unknown[] = [];
+  const { server } = await updateStart(updated);
+  const reply = await post(server, "/api/automations/task%2F1/update", { ...routineBody });
   assert.equal(reply.status, 200);
   assert.deepEqual(reply.json, { ok: true });
-  assert.deepEqual(renamed, [["task/1", "New name"]]);
-  for (const body of [{}, { title: "   " }, { title: 5 }, { title: "x".repeat(121) }]) assert.equal((await post(server, "/api/automations/task-1/rename", body)).status, 400, JSON.stringify(body));
-  assert.equal((await post(server, "/api/automations/task-1/rename", { title: "x".repeat(120) })).status, 200);
+  assert.deepEqual(updated, [["task/1", { kind: "routine", title: "", prompt: "Triage", projectId: "project-1", modelSelection: model, schedule: { type: "interval", everyMinutes: 15 } }]]);
+  for (const body of [{}, { ...routineBody, prompt: "  " }, { ...routineBody, kind: "other" }, { ...routineBody, title: "x".repeat(121) }]) assert.equal((await post(server, "/api/automations/task-1/update", body)).status, 400, JSON.stringify(body));
 });
 
-test("rename errors map to 404, 409 and 502", async () => {
-  const fail = (error: Error) => ({ list: async () => ({ automations: [], hiddenThreadIds: [], setupThreadIds: [] }), create: async () => created, remove: async () => {}, rename: async () => Promise.reject(error) });
-  const status = async (error: Error) => (await post((await start({ automations: fail(error) })).server, "/api/automations/task-1/rename", { title: "x" })).status;
+test("an update may omit the signing secret, and a bad secret is refused without echoing it", async () => {
+  const updated: unknown[] = [];
+  const { server } = await updateStart(updated);
+  const unchanged = { header: signature.header, encoding: signature.encoding, prefix: signature.prefix };
+  assert.equal((await post(server, "/api/automations/task-1/update", { ...hookBody, signature: unchanged })).status, 200);
+  assert.deepEqual((updated[0] as [string, { signature: unknown }])[1].signature, { header: "x-hub-signature-256", encoding: "hex", prefix: "sha256=" });
+  const spaced = await post(server, "/api/automations/task-1/update", { ...hookBody, signature: { ...signature, secret: " has spaces " } });
+  assert.equal(spaced.status, 400);
+  assert.equal(spaced.text.includes("has spaces"), false);
+});
+
+test("a creation still needs the signing secret", async () => {
+  const { server } = await createStart([]);
+  const unchanged = { header: signature.header, encoding: signature.encoding, prefix: signature.prefix };
+  assert.equal((await post(server, "/api/automations", { ...hookBody, signature: unchanged })).status, 400);
+});
+
+test("the rename route is gone", async () => {
+  const { server } = await updateStart([]);
+  assert.notEqual((await post(server, "/api/automations/task-1/rename", { title: "x" })).status, 200);
+});
+
+test("update errors map to 404, 400, 409 and 502", async () => {
+  const fail = (error: Error) => ({ list: async () => ({ automations: [], hiddenThreadIds: [], setupThreadIds: [] }), create: async () => created, remove: async () => {}, update: async () => Promise.reject(error) });
+  const status = async (error: Error) => (await post((await start({ automations: fail(error) })).server, "/api/automations/task-1/update", { ...routineBody })).status;
   assert.equal(await status(new DomainError("not-found", "gone")), 404);
+  assert.equal(await status(new DomainError("invalid", "kind")), 400);
   assert.equal(await status(new DomainError("conflict", "webhook")), 409);
   assert.equal(await status(new IntegrationError("T3 is down", { system: "t3", kind: "unreachable" })), 502);
 });
@@ -772,7 +798,7 @@ const hookBody = { ...routineBody, kind: "webhook", filters: [{ path: "headers.x
 
 function createStart(requests: unknown[]) {
   const result = { ...created, webhookUrl: "https://relay.example.invalid/v1/hooks/k/t/token", nextRunAt: "2026-11-05T09:00:00.000Z" };
-  return start({ automations: { list: async () => ({ automations: [], hiddenThreadIds: [], setupThreadIds: [] }), create: async (body) => (requests.push(body), result), remove: async () => {}, rename: async () => {} } });
+  return start({ automations: { list: async () => ({ automations: [], hiddenThreadIds: [], setupThreadIds: [] }), create: async (body) => (requests.push(body), result), remove: async () => {}, update: async () => {} } });
 }
 
 test("POST /api/automations passes a routine on and returns the task", async () => {
