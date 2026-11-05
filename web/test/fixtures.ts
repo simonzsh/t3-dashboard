@@ -8,6 +8,7 @@ export function thread(id: string, over: Partial<DashboardThread> = {}): Dashboa
     projectId: "project-a",
     title: `Thread ${id}`,
     provider: "provider-a",
+    model: null,
     status: "idle",
     settled: false,
     pending: null,

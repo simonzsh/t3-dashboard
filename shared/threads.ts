@@ -15,6 +15,8 @@ export interface DashboardThread {
   projectId: string;
   title: string;
   provider: string;
+  /** Model slug, or null when T3 Code sent no selection. */
+  model: string | null;
   status: string;
   /** In the T3 Code sidebar's Settled section. */
   settled: boolean;

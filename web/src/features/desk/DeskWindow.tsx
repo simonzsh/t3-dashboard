@@ -1,12 +1,12 @@
 import { memo, type Dispatch } from "react";
-import type { DashboardProvider, DashboardThread } from "../../../../shared/api.ts";
+import type { DashboardProvider, DashboardThread, ProjectIcon as ProjectIconData } from "../../../../shared/api.ts";
 import { threadState, type ThreadState } from "../../../../shared/status.ts";
 import { threadTitle } from "../../lib/threads.ts";
 import { Badge, Button, Icon, IconButton } from "../../ui/index.ts";
 import type { DeskAction } from "./desk.ts";
 import { ConversationPanel } from "../conversation/ConversationPanel.tsx";
 import { OpenInT3 } from "../../lib/OpenInT3.tsx";
-import { ProviderIcon } from "../../lib/ProviderIcon.tsx";
+import { ProjectIcon } from "../../lib/ProjectIcon.tsx";
 import { ctrlLabel } from "../../lib/shortcuts.ts";
 
 const STATE_LABELS: Record<ThreadState, string> = { waiting: "Waiting", running: "Running", done: "Done", error: "Error", idle: "Idle" };
@@ -15,6 +15,7 @@ interface Props {
   id: string;
   thread: DashboardThread | null;
   projectTitle: string | null;
+  projectIcon: ProjectIconData | null;
   // The thread left the live state (archived or deleted) after this window saw it.
   missing: boolean;
   focused: boolean;
@@ -29,7 +30,7 @@ interface Props {
   dispatch: Dispatch<DeskAction>;
 }
 
-function DeskWindowView({ id, thread, projectTitle, missing, focused, maximized, compact, t3EnvironmentId, providers, childTitle, onTitle, dispatch }: Props) {
+function DeskWindowView({ id, thread, projectTitle, projectIcon, missing, focused, maximized, compact, t3EnvironmentId, providers, childTitle, onTitle, dispatch }: Props) {
   const onFocus = () => dispatch({ type: "focus", id });
   const onClose = () => dispatch({ type: "close", id });
   const onMinimize = () => dispatch({ type: "minimize", id });
@@ -49,7 +50,7 @@ function DeskWindowView({ id, thread, projectTitle, missing, focused, maximized,
       }}
     >
       <header className="desk-window-head">
-        {thread && <ProviderIcon provider={thread.provider} />}
+        {thread && <ProjectIcon icon={projectIcon} />}
         <span className="dw-title" data-tooltip={title} data-tooltip-clipped>
           {title}
         </span>

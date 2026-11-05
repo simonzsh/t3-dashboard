@@ -6,10 +6,14 @@ import { InboxView } from "../../../src/features/inbox/InboxView.tsx";
 import { baseState, thread } from "../../fixtures.ts";
 
 const ask = { category: "approval" as const };
-const render = (threads: ReturnType<typeof thread>[], seen = { since: "2026-01-01T00:00:00.000Z", seen: {} as Record<string, string> }) =>
+const render = (
+  threads: ReturnType<typeof thread>[],
+  seen = { since: "2026-01-01T00:00:00.000Z", seen: {} as Record<string, string> },
+  state = baseState(threads),
+) =>
   renderToStaticMarkup(
     <InboxView
-      state={baseState(threads)}
+      state={state}
       visible={inboxThreads(threads, ["t-routine"])}
       now={new Date("2026-01-10T12:00:00.000Z")}
       deskIds={new Set()}
@@ -61,4 +65,32 @@ test("the lists stop at 10 rows with a button for the rest", () => {
 
 test("routine threads stay out of the Inbox", () => {
   assert.doesNotMatch(render([thread("t-routine", { title: "Routine run" })]), /Routine run/);
+});
+
+const withProject = (threads: ReturnType<typeof thread>[]) => {
+  const state = baseState(threads);
+  state.projects = [{ ...state.projects[0]!, icon: { shapes: [{ tag: "circle", attrs: { cx: "12", cy: "12", r: "9" } }], color: null } }];
+  state.providers = [
+    { instanceId: "provider-a", displayName: "Provider A", runtimeModes: [], models: [{ slug: "model-x", name: "Model X", effort: null, speed: null, favorite: null }] },
+  ];
+  return state;
+};
+
+test("a card shows the project icon in its head, then provider icon, model name and project name", () => {
+  const threads = [thread("a", { title: "Card", status: "completed", model: "model-x" })];
+  const out = render(threads, undefined, withProject(threads));
+  const head = out.slice(out.indexOf("inbox-row-head"), out.indexOf("inbox-title"));
+  assert.match(head, /class="project-icon"/);
+  assert.doesNotMatch(head, /provider-icon/);
+  const meta = out.slice(out.indexOf("inbox-row-meta"), out.indexOf("inbox-row-foot"));
+  assert.ok(meta.indexOf("provider-icon") < meta.indexOf("Model X"));
+  assert.ok(meta.indexOf("Model X") < meta.indexOf("Project A"));
+});
+
+test("an unknown model shows its slug and a thread without a model shows only the project", () => {
+  const threads = [thread("a", { status: "completed", model: "model-y" }), thread("b", { status: "completed" })];
+  const out = render(threads, undefined, withProject(threads));
+  assert.match(out, /inbox-model">model-y</);
+  assert.equal(out.match(/inbox-model"/g)?.length, 1);
+  assert.equal(out.match(/inbox-row-meta/g)?.length, 2);
 });
