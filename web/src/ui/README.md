@@ -28,6 +28,7 @@ This folder contains the base components of the dashboard. The screens in `web/s
 | `Dropdown` | Choice menu. Use it in place of `<select>`. A filter field appears for long lists. |
 | `Popover` | Panel attached next to an element. Escape and outside click close it. |
 | `Segmented` | Single choice between some visible options (for example the theme). |
+| `ToggleGroup` | Several options that each turn on and off (for example the weekdays). The "on" look is the same gray as `Segmented`. |
 | `Kbd` | Keyboard shortcut. |
 | `TooltipLayer` | Dashboard tooltip, mounted one time in `App`. It shows immediately on hover and on keyboard focus of an element with `data-tooltip` (and `data-shortcut` for the shortcut, in a frame). It closes when the pointer leaves, on click, on scroll and with Escape. It does not exist on a touch screen. `Button`, `IconButton` and `Pressable` set these attributes with `tooltip` and `shortcut`. On a different element, write `data-tooltip`. |
 | `Loader` | Loading state: the animated logo, centered in the area. Use it in place of a "Loading…" text. |

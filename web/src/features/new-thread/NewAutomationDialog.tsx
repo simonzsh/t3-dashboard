@@ -7,7 +7,7 @@ import { browserStorage } from "../../lib/storage.ts";
 import { useCopy } from "../../lib/useCopy.ts";
 import { findModel } from "../conversation/composer.ts";
 import { Composer } from "../conversation/Composer.tsx";
-import { Button, Choice, Dialog, Dropdown, Icon, IconButton, Segmented, SecretInput, TextInput } from "../../ui/index.ts";
+import { Button, Choice, Dialog, Dropdown, Icon, IconButton, Segmented, SecretInput, TextInput, ToggleGroup } from "../../ui/index.ts";
 import { FILTER_OPS, WEEKDAY_LABELS, WEEKDAY_ORDER, addFilter, emptyForm, formFromAutomation, promptPlaceholder, removeFilter, toCreateBody, toUpdateBody, toggleWeekday, updateFilter, type AutomationForm, type FilterOp, type FormKind } from "./automationForm.ts";
 import { presetSelection } from "./newAgent.ts";
 
@@ -89,13 +89,7 @@ function ScheduleFields({ form, keepSecret, onChange }: { form: AutomationForm; 
         ) : (
           <>
             <TextInput aria-label="Time" type="time" value={form.timeOfDay} onChange={(e) => set({ timeOfDay: e.target.value })} />
-            <div className="auto-form-row auto-days" role="group" aria-label="Days">
-              {WEEKDAY_ORDER.map((day) => (
-                <Button key={day} size="sm" aria-pressed={form.weekdays.includes(day)} onClick={() => onChange(toggleWeekday(form, day))}>
-                  {WEEKDAY_LABELS[day]}
-                </Button>
-              ))}
-            </div>
+            <ToggleGroup label="Days" value={form.weekdays} options={WEEKDAY_ORDER.map((day) => ({ id: day, label: WEEKDAY_LABELS[day] }))} onToggle={(day) => onChange(toggleWeekday(form, day))} />
             <p className="hint">No day picked means every day. The time is read in the time zone of the machine that runs T3.</p>
           </>
         )}

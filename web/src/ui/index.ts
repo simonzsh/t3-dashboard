@@ -15,4 +15,5 @@ export { Pressable } from "./Pressable.tsx";
 export { TooltipLayer } from "./Tooltip.tsx";
 export { Segmented } from "./Segmented.tsx";
 export { Tabs } from "./Tabs.tsx";
+export { ToggleGroup } from "./ToggleGroup.tsx";
 export { SecretInput, TextArea, TextInput } from "./TextInput.tsx";
