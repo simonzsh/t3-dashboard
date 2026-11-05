@@ -5,6 +5,7 @@ import type { RawScheduledTask, RawThread, ScheduleChange, ScheduleInput, T3Port
 import { archiveThreadCommand, renameThreadCommand } from "../integrations/t3/commands.ts";
 import { reminderSchedule, routineOf, routineSchedule, webhookFilters, webhookSchedule } from "./automationSchedule.ts";
 import { DomainError } from "./errors.ts";
+import { RearmedStore } from "./rearmedStore.ts";
 import { scheduleLabel } from "./scheduleLabel.ts";
 import type { ShellStore } from "./shellStore.ts";
 
@@ -88,6 +89,8 @@ export interface AutomationsOptions {
   warn?: (message: string) => void;
   newId?: () => string;
   now?: () => Date;
+  /** Marks an edited reminder that already ran, so the guard keeps it enabled. */
+  rearmed?: RearmedStore;
 }
 
 export interface Automations {
@@ -114,6 +117,7 @@ export function createAutomations(options: AutomationsOptions): Automations {
   const newId = options.newId ?? (() => crypto.randomUUID());
   const now = options.now ?? (() => new Date());
   const warn = options.warn ?? console.warn;
+  const rearmed = options.rearmed ?? new RearmedStore();
 
   return {
     async list() {
@@ -144,18 +148,26 @@ export function createAutomations(options: AutomationsOptions): Automations {
       const schedule: ScheduleChange = body.kind === "routine" ? routineSchedule(body.schedule) : body.kind === "reminder" ? reminderSchedule(new Date(body.at), now()) : { type: "webhook", signature: body.signature, filters: body.filters };
       // A bound task runs in its own thread, so its project stays.
       const projectId = (task.threadId ? task.projectId : body.projectId) || (await viaT3(port.ensureScratchProject()));
-      await viaT3(
-        port.updateScheduledTask(id, {
-          title: body.kind === "reminder" ? `Reminder: ${name}` : name,
-          prompt: body.prompt.trim(),
-          // A new time re-arms a reminder that ran and paused.
-          enabled: body.kind === "reminder" || task.enabled !== false,
-          schedule,
-          projectId,
-          modelSelection: body.modelSelection,
-          runtimeMode: body.runtimeMode ?? (isRuntimeMode(task.runtimeMode) ? task.runtimeMode : "full-access"),
-        }),
-      );
+      // Mark before the call, so the guard cannot pause the reminder between T3's update and the mark.
+      const marked = body.kind === "reminder" && !!task.lastRunAt;
+      if (marked) rearmed.mark(id, task.lastRunAt!);
+      try {
+        await viaT3(
+          port.updateScheduledTask(id, {
+            title: body.kind === "reminder" ? `Reminder: ${name}` : name,
+            prompt: body.prompt.trim(),
+            // A new time re-arms a reminder that ran and paused.
+            enabled: body.kind === "reminder" || task.enabled !== false,
+            schedule,
+            projectId,
+            modelSelection: body.modelSelection,
+            runtimeMode: body.runtimeMode ?? (isRuntimeMode(task.runtimeMode) ? task.runtimeMode : "full-access"),
+          }),
+        );
+      } catch (error) {
+        if (marked) rearmed.unmark(id);
+        throw error;
+      }
       if (task.threadId && name !== displayTitle(task)) await viaT3(port.dispatch({ ...renameThreadCommand(task.threadId, name), commandId: newId() }));
     },
 

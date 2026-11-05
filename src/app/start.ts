@@ -20,8 +20,10 @@ import { readStash, stashText } from "../config/stashFile.ts";
 import { readSeen, seenText } from "../config/seenFile.ts";
 import { syncAgentRules } from "../config/agentRules.ts";
 import { readLinearKey } from "../config/linearFile.ts";
+import { readRearmed, rearmedText } from "../config/rearmedFile.ts";
+import { RearmedStore } from "../domain/rearmedStore.ts";
 import { readAutomationThreads } from "../config/automationThreads.ts";
-import { automationThreadsFile, deskFile as deskPath, linearFile, pidFile, seenFile as seenPath, stashFile as stashPath } from "../config/paths.ts";
+import { automationThreadsFile, deskFile as deskPath, linearFile, pidFile, rearmedFile, seenFile as seenPath, stashFile as stashPath } from "../config/paths.ts";
 import { redirectConsole, writePidFile } from "../config/runFiles.ts";
 import { writeSecret } from "../config/secretFile.ts";
 import { createDashboardServer } from "../server/server.ts";
@@ -108,7 +110,9 @@ export async function start({ port, log, env }: StartOptions): Promise<void> {
       hub.broadcast({ type: "modelDefaults", data: defaults });
     },
   });
-  const guard = new AutomationGuard({ port: client });
+  const rearmedPath = rearmedFile(env, home);
+  const rearmed = new RearmedStore(readRearmed(rearmedPath, readText), (marks) => writeSecret(rearmedPath, rearmedText(marks)));
+  const guard = new AutomationGuard({ port: client, rearmed });
   const getState = () => store.state(live.connection(), providers, readEnvironmentId(environmentId, readText), modelDefaults);
 
   const linearPath = linearFile(env, home);
@@ -150,6 +154,7 @@ export async function start({ port, log, env }: StartOptions): Promise<void> {
     port: client,
     store,
     dedicated: { read: () => readAutomationThreads(threadsFile, readText) },
+    rearmed,
   });
   const deskFile = deskPath(env, home);
   const desk = new DeskStore(readDesk(deskFile, readText), (value) => writeSecret(deskFile, deskText(value)));

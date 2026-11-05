@@ -2,6 +2,7 @@ import { setTimeout as delay } from "node:timers/promises";
 import type { RawScheduledTask, T3Port } from "../integrations/t3/schemas.ts";
 import { isReminder } from "./automations.ts";
 import { BACKOFF_MS } from "./liveSync.ts";
+import { RearmedStore } from "./rearmedStore.ts";
 
 export type GuardAction = { kind: "root" | "pause"; id: string; key: string };
 
@@ -18,14 +19,14 @@ function lastChangeIsTheRun(task: RawScheduledTask): boolean {
 }
 
 /** What to fix in a snapshot. A key in `done` was already tried: each state gets one attempt. */
-export function guardActions(tasks: RawScheduledTask[], done: ReadonlySet<string> = new Set()): GuardAction[] {
+export function guardActions(tasks: RawScheduledTask[], done: ReadonlySet<string> = new Set(), rearmed: Pick<RearmedStore, "has"> = new RearmedStore()): GuardAction[] {
   const actions: GuardAction[] = [];
   for (const task of tasks) {
     if (task.workspaceStrategy?.type === "worktree") {
       actions.push({ kind: "root", id: task.id, key: `root:${task.id}:${task.updatedAt ?? ""}:${JSON.stringify(task.workspaceStrategy)}` });
     }
     const ran = (task.runCount ?? (task.lastRunAt ? 1 : 0)) >= 1;
-    if (task.enabled !== false && isReminder(task) && RUN_DONE.has(task.lastRunStatus ?? "") && ran && lastChangeIsTheRun(task)) {
+    if (task.enabled !== false && isReminder(task) && RUN_DONE.has(task.lastRunStatus ?? "") && ran && lastChangeIsTheRun(task) && !rearmed.has(task.id, task.lastRunAt)) {
       actions.push({ kind: "pause", id: task.id, key: `pause:${task.id}:${task.lastRunAt}` });
     }
   }
@@ -37,6 +38,8 @@ export interface AutomationGuardOptions {
   warn?: (message: string) => void;
   sleep?: (ms: number) => Promise<void>;
   now?: () => number;
+  /** Reminders edited after their run: the guard leaves them enabled. */
+  rearmed?: RearmedStore;
 }
 
 /**
@@ -55,8 +58,10 @@ export class AutomationGuard {
   private queue: Promise<void> = Promise.resolve();
 
   private readonly now: () => number;
+  private readonly rearmed: RearmedStore;
 
-  constructor({ port, warn = console.warn, sleep = (ms) => delay(ms, undefined, { ref: false }), now = Date.now }: AutomationGuardOptions) {
+  constructor({ port, warn = console.warn, sleep = (ms) => delay(ms, undefined, { ref: false }), now = Date.now, rearmed = new RearmedStore() }: AutomationGuardOptions) {
+    this.rearmed = rearmed;
     this.port = port;
     this.now = now;
     this.warn = warn;
@@ -104,7 +109,8 @@ export class AutomationGuard {
   }
 
   private async handle(tasks: RawScheduledTask[]): Promise<void> {
-    const wanted = guardActions(tasks);
+    this.rearmed.prune(tasks);
+    const wanted = guardActions(tasks, new Set(), this.rearmed);
     const live = new Set(wanted.map((action) => action.key));
     for (const key of this.done) if (!live.has(key)) this.done.delete(key);
     for (const { kind, id, key } of wanted.filter((action) => !this.done.has(action.key))) {

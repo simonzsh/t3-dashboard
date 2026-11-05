@@ -3,6 +3,7 @@ import { test } from "bun:test";
 import type { CreateAutomationBody, UpdateAutomationBody } from "../../shared/api.ts";
 import { createAutomations, toAutomations } from "../../src/domain/automations.ts";
 import { DomainError } from "../../src/domain/errors.ts";
+import { RearmedStore } from "../../src/domain/rearmedStore.ts";
 import { IntegrationError } from "../../src/integrations/errors.ts";
 import type { RawScheduledTask, RawThread } from "../../src/integrations/t3/schemas.ts";
 import { FakePort } from "../helpers/fakePort.ts";
@@ -416,4 +417,20 @@ test("update keeps the thread as it is when T3 refuses the task update, and wrap
   assert.deepEqual(port.commands, []);
   port.updateError = new Error("socket closed");
   await assert.rejects(automations.update("task-1", edit), (error) => error instanceof IntegrationError && error.kind === "unreachable");
+});
+
+test("update marks a reminder that ran as re-armed, and a routine or a fresh reminder as nothing", async () => {
+  const marks: Record<string, string>[] = [];
+  const rearmed = new RearmedStore({}, (next) => marks.push(next));
+  const port = new FakePort();
+  const automations = createAutomations({ port, rearmed, store: { project: () => undefined, rawThreads: () => [] }, dedicated: { read: () => new Set() }, now: () => new Date(2026, 10, 4, 10, 0, 0) });
+  const at = new Date(2026, 10, 4, 15, 0).toISOString();
+  port.scheduledTasks = [task({ title: "Reminder: Call", enabled: false, lastRunAt: "2026-11-03T09:00:00.000Z" }), task({ id: "task-2", title: "Fresh", lastRunAt: null })];
+  await automations.update("task-1", { ...base, kind: "reminder", at });
+  assert.deepEqual(marks, [{ "task-1": "2026-11-03T09:00:00.000Z" }]);
+  port.scheduledTasks = [task({ title: "Triage", lastRunAt: "2026-11-03T09:00:00.000Z" })];
+  await automations.update("task-1", edit);
+  port.scheduledTasks = [task({ id: "task-3", title: "Reminder: New", lastRunAt: null })];
+  await automations.update("task-3", { ...base, kind: "reminder", at });
+  assert.equal(marks.length, 1);
 });
