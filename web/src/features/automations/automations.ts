@@ -7,14 +7,15 @@ const DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 const DAY_MS = 86_400_000;
 
-// Dedicated threads and run threads of scheduled tasks live in the automations column only.
+// Dedicated threads and run threads of scheduled tasks live in the Automations tab only.
 export function excludeRoutineThreads(threads: DashboardThread[], hiddenThreadIds: readonly string[]): DashboardThread[] {
   if (hiddenThreadIds.length === 0) return threads;
   const hidden = new Set(hiddenThreadIds);
-  return threads.filter((t) => !hidden.has(t.id));
+  // A run that waits for an answer needs the user: it stays in the Inbox.
+  return threads.filter((t) => !hidden.has(t.id) || t.pending !== null);
 }
 
-// A setup thread shows as a row only while the agent works or waits; idle with no task, it returns to the grid.
+// A setup thread shows as a row only while the agent works or waits; idle with no task, it returns to the Inbox.
 export function setupThreads(threads: DashboardThread[], setupThreadIds: readonly string[]): DashboardThread[] {
   const byId = new Map(threads.map((t) => [t.id, t]));
   return setupThreadIds.flatMap((id) => {
@@ -29,23 +30,49 @@ export function finishedSetups(wasActive: ReadonlySet<string>, active: readonly 
   return [...wasActive].filter((id) => !still.has(id));
 }
 
-const byNextRun = (a: Automation, b: Automation) => Number(a.nextRunAt === null) - Number(b.nextRunAt === null) || (a.nextRunAt ?? "").localeCompare(b.nextRunAt ?? "");
-
-// A reminder disables itself after its run instead of deleting itself, so the column can show it as finished.
+// A reminder disables itself after its run instead of deleting itself, so the table can show it as finished.
 export const isFinishedReminder = (a: Automation): boolean => a.kind === "reminder" && !a.enabled && a.lastRunAt !== null;
 
+export type AutomationGroup = "attention" | "today" | "upcoming" | "inactive";
+
+// Needs attention beats paused: a failed run stays visible until the user looks at it.
+export function automationGroup(a: Automation, thread: DashboardThread | undefined, now: Date): AutomationGroup {
+  const last = lastRunState(a, thread);
+  if (last?.kind === "failed" || last?.kind === "waiting") return "attention";
+  if (!a.enabled) return "inactive";
+  const endOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1).getTime();
+  if (last?.kind === "running" || (a.nextRunAt !== null && new Date(a.nextRunAt).getTime() < endOfToday)) return "today";
+  return "upcoming";
+}
+
+const byNextRun = (a: Automation, b: Automation) => Number(a.nextRunAt === null) - Number(b.nextRunAt === null) || (a.nextRunAt ?? "").localeCompare(b.nextRunAt ?? "");
 const byLastRunDesc = (a: Automation, b: Automation) => (b.lastRunAt ?? "").localeCompare(a.lastRunAt ?? "");
 
-// Enabled hooks first: a paused one waits for the user.
-const byEnabledThenLastRun = (a: Automation, b: Automation) => Number(b.enabled) - Number(a.enabled) || byLastRunDesc(a, b);
+export function groupAutomations(list: Automation[], threads: Map<string, DashboardThread>, now: Date): Record<AutomationGroup, Automation[]> {
+  const groups: Record<AutomationGroup, Automation[]> = { attention: [], today: [], upcoming: [], inactive: [] };
+  for (const a of list) groups[automationGroup(a, a.threadId ? threads.get(a.threadId) : undefined, now)].push(a);
+  groups.attention.sort(byLastRunDesc);
+  groups.inactive.sort(byLastRunDesc);
+  groups.today.sort(byNextRun);
+  groups.upcoming.sort(byNextRun);
+  return groups;
+}
 
-export function splitAutomations(list: Automation[]): { routines: Automation[]; reminders: Automation[]; webhooks: Automation[] } {
-  const reminders = list.filter((a) => a.kind === "reminder");
-  return {
-    routines: list.filter((a) => a.kind === "routine").sort(byNextRun),
-    reminders: [...reminders.filter((a) => !isFinishedReminder(a)).sort(byNextRun), ...reminders.filter(isFinishedReminder).sort(byLastRunDesc)],
-    webhooks: list.filter((a) => a.kind === "webhook").sort(byEnabledThenLastRun),
-  };
+export function filterAutomations(list: Automation[], filter: { projectId: string | null; query: string }): Automation[] {
+  const query = filter.query.trim().toLowerCase();
+  return list.filter((a) => (filter.projectId === null || a.projectId === filter.projectId) && (query === "" || [a.title, a.project, a.scheduleLabel].some((text) => text.toLowerCase().includes(query))));
+}
+
+export function automationProjects(list: Automation[]): Array<{ id: string; title: string }> {
+  const byId = new Map(list.map((a) => [a.projectId, a.project]));
+  return [...byId].map(([id, title]) => ({ id, title })).sort((a, b) => a.title.localeCompare(b.title));
+}
+
+export function scheduleText(a: Automation): string {
+  if (a.kind === "webhook") return "Webhook";
+  if (a.kind !== "reminder") return a.scheduleLabel;
+  const at = isFinishedReminder(a) ? a.lastRunAt : a.nextRunAt;
+  return at ? reminderDate(at) : "";
 }
 
 // The URL holds a token: the UI copies it and never shows it.

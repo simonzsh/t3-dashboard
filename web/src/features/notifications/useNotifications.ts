@@ -3,7 +3,7 @@ import { joinSeen, mergeSeen, type SeenState } from "../../../../shared/seen.ts"
 import type { AgentStatus } from "../../../../shared/status.ts";
 import type { DashboardThread } from "../../../../shared/threads.ts";
 import { useApi } from "../../api/ApiContext.tsx";
-import { baselineOf, notifyEntries, statusMap, transitions, unseenCount, unseenThreads, type NotifyEntry } from "./notifications.ts";
+import { baselineOf, statusMap, transitions, type NotifyEntry } from "./notifications.ts";
 
 const MAX_TOASTS = 3;
 const TOAST_MS = 6000;
@@ -19,7 +19,7 @@ interface Options {
   connects: number;
 }
 
-/** Bell entries, the unseen count and the toasts. The seen state lives on the server, shared by every device. */
+/** The seen state, the read marks and the toasts. The seen state lives on the server, shared by every device. */
 export function useNotifications({ threads, quiet, remote, connects }: Options) {
   const api = useApi();
   const [seen, setSeen] = useState<SeenState | null>(null);
@@ -90,12 +90,6 @@ export function useNotifications({ threads, quiet, remote, connects }: Options) 
     [api, dismiss],
   );
 
-  // One mark per thread: the server takes one change per request.
-  const markAllSeen = useCallback(() => {
-    const { threads: live, seen: current } = latest.current;
-    if (live && current) for (const t of unseenThreads(live, current)) markSeen(t.id);
-  }, [markSeen]);
-
   useEffect(() => {
     if (!threads) return;
     const fresh = transitions(previous.current, threads);
@@ -118,13 +112,6 @@ export function useNotifications({ threads, quiet, remote, connects }: Options) 
   }, []);
 
   // Until the server state is known, finished threads count as seen: no full badge on a first visit.
-  const ready = seen ?? { since: "9999", seen: {} };
-  const entries = useMemo(() => notifyEntries(threads ?? [], ready), [threads, ready]);
-  const count = useMemo(() => unseenCount(threads ?? [], ready), [threads, ready]);
-  const clearToasts = useCallback(() => {
-    timers.current.forEach(clearTimeout);
-    timers.current.clear();
-    setToasts([]);
-  }, []);
-  return { entries, count, toasts, dismiss, markSeen, markAllSeen, clearToasts };
+  const ready = useMemo(() => seen ?? { since: "9999", seen: {} }, [seen]);
+  return { seen: ready, seenReady: seen !== null, toasts, dismiss, markSeen };
 }

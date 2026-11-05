@@ -3,7 +3,6 @@ type Part = string | { solid: string };
 
 // Icon paths from Lucide (ISC), plus the assign robot and the stop square.
 const ICONS = {
-  bell: ["M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9", "M10.3 21a1.94 1.94 0 0 0 3.4 0"],
   chevron: ["m6 9 6 6 6-6"],
   chevronRight: ["m9 18 6-6-6-6"],
   brain: [

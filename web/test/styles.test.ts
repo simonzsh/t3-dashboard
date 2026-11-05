@@ -12,7 +12,7 @@ test("the shimmer animates transform only, never background-position", () => {
 });
 
 test("both shimmer bars are half-width compositor layers", () => {
-  for (const selector of [".agent.working::after", ".desk-window.state-running .desk-window-head::after"]) {
+  for (const selector of [".inbox-row.working::after", ".desk-window.state-running .desk-window-head::after"]) {
     const line = rule(selector);
     assert.match(line, /width: 50%;/, selector);
     assert.match(line, /will-change: transform;/, selector);
@@ -33,7 +33,7 @@ test("messages are never skipped by the renderer: estimated heights make the scr
 
 test("reduced motion still stops both shimmer bars", () => {
   const block = css.slice(css.indexOf("prefers-reduced-motion"));
-  assert.match(block, /\.agent\.working::after/);
+  assert.match(block, /\.inbox-row\.working::after/);
   assert.match(block, /\.desk-window\.state-running \.desk-window-head::after/);
 });
 

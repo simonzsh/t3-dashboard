@@ -8,5 +8,6 @@ export function useScrolled(): boolean {
       return () => window.removeEventListener("scroll", onChange);
     },
     () => window.scrollY > 0,
+    () => false,
   );
 }

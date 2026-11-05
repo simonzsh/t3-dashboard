@@ -1,3 +1,5 @@
+import type { DashboardThread } from "./threads.ts";
+
 // Which notifications the user has read (opened, or marked as read). Every device shares it, so a thread opened
 // on one device stops counting as unread on the others.
 
@@ -27,6 +29,10 @@ export const isSeenId = (value: unknown): value is string => isSeenText(value, M
 export const isSeenTime = (value: unknown): value is string => isSeenText(value, MAX_TIME) && /^\d{4}-\d{2}-\d{2}T/.test(value) && !Number.isNaN(Date.parse(value));
 
 export const later = (a: string, b: string) => (a.localeCompare(b) >= 0 ? a : b);
+
+// A thread is unseen while its last activity is newer than the baseline and its read mark.
+// A read mark comes from opening the thread or from "Mark as read".
+export const isUnseen = (t: DashboardThread, seen: SeenState) => t.lastActivityAt.localeCompare(later(seen.since, seen.seen[t.id] ?? "")) > 0;
 
 /** Drops marks the baseline hides and keeps the newest ones. Dropped marks move the baseline up, so they stay seen. */
 export function prune({ since, seen }: SeenState): SeenState {

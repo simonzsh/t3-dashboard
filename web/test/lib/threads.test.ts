@@ -1,6 +1,6 @@
 import { test } from "bun:test";
 import assert from "node:assert/strict";
-import { groupAgents, pendingLabel, providerKind, threadTitle } from "../../src/lib/threads.ts";
+import { pendingLabel, providerKind, threadTitle } from "../../src/lib/threads.ts";
 import { agentStatus, runActive, threadState } from "../../../shared/status.ts";
 import { thread } from "../fixtures.ts";
 
@@ -27,101 +27,6 @@ test("agentStatus: finished threads stay, whatever their age", () => {
 
 test("agentStatus: other threads are idle", () => {
   assert.equal(agentStatus(thread("1", { status: "idle", lastActivityAt: hoursAgo(1) })), "idle");
-});
-
-const projects = [
-  { id: "p1", title: "Alpha", defaultModelSelection: null, icon: null },
-  { id: "p2", title: "Beta", defaultModelSelection: null, icon: null },
-  { id: "p3", title: "Gamma", defaultModelSelection: null, icon: null },
-  { id: "p4", title: "Empty", defaultModelSelection: null, icon: null },
-];
-
-test("groupAgents keeps idle threads as cards", () => {
-  const [group] = groupAgents([thread("1", { projectId: "p1", status: "idle" })], projects, now);
-  assert.deepEqual(group?.cards.map((c) => c.status), ["idle"]);
-  assert.deepEqual(group?.settled, []);
-});
-
-test("groupAgents puts recent settled threads in their own list, most recent first", () => {
-  const ts = [
-    thread("older", { projectId: "p1", status: "completed", settled: true, lastActivityAt: hoursAgo(24 * 2.5) }),
-    thread("card", { projectId: "p1", status: "completed", lastActivityAt: hoursAgo(1) }),
-    thread("new", { projectId: "p1", status: "idle", settled: true, lastActivityAt: hoursAgo(24 * 2) }),
-  ];
-  const [group] = groupAgents(ts, projects, now);
-  assert.deepEqual(group?.cards.map((c) => c.thread.id), ["card"]);
-  assert.deepEqual(group?.settled.map((t) => t.id), ["new", "older"]);
-});
-
-test("groupAgents hides settled threads older than 3 days, and projects left empty", () => {
-  const ts = [
-    thread("old", { projectId: "p1", status: "completed", settled: true, lastActivityAt: hoursAgo(24 * 3 + 1) }),
-    thread("gone", { projectId: "p2", status: "idle", settled: true, lastActivityAt: hoursAgo(24 * 9) }),
-    thread("card", { projectId: "p1", status: "completed", lastActivityAt: hoursAgo(24 * 9) }),
-  ];
-  const groups = groupAgents(ts, projects, now);
-  assert.deepEqual(groups.map((g) => g.project.id), ["p1"]);
-  assert.deepEqual(groups[0]?.settled, []);
-  assert.deepEqual(groups[0]?.cards.map((c) => c.thread.id), ["card"]);
-});
-
-test("groupAgents keeps a waiting or working thread as a card even if settled", () => {
-  const ts = [thread("w", { projectId: "p1", pending, settled: true }), thread("r", { projectId: "p1", status: "running", settled: true })];
-  const [group] = groupAgents(ts, projects, now);
-  assert.deepEqual(group?.cards.map((c) => c.thread.id), ["w", "r"]);
-  assert.deepEqual(group?.settled, []);
-});
-
-test("groupAgents orders projects by title, whatever the activity or the status", () => {
-  const ts = [
-    thread("a", { projectId: "p2", pending, lastActivityAt: hoursAgo(0.1) }),
-    thread("b", { projectId: "p1", status: "completed", settled: true, lastActivityAt: hoursAgo(24 * 2) }),
-    thread("c", { projectId: "p3", status: "idle", lastActivityAt: hoursAgo(24 * 5) }),
-  ];
-  const ids = (list: typeof ts) => groupAgents(list, projects, now).map((g) => g.project.id);
-  assert.deepEqual(ids(ts), ids([...ts].reverse()));
-  assert.deepEqual(ids(ts), [...ids(ts)].sort((x, y) => (projects.find((p) => p.id === x)?.title ?? x).localeCompare(projects.find((p) => p.id === y)?.title ?? y)));
-  const settledOnly = groupAgents([ts[1]!], projects, now);
-  assert.deepEqual(settledOnly[0]?.cards, []);
-});
-
-test("groupAgents sorts cards waiting > working > finished > idle, then recency", () => {
-  const ts = [
-    thread("fin-new", { status: "completed", lastActivityAt: hoursAgo(1) }),
-    thread("fin-old", { status: "completed", lastActivityAt: hoursAgo(5) }),
-    thread("work-old", { status: "running", lastActivityAt: hoursAgo(3) }),
-    thread("work-new", { status: "running", lastActivityAt: hoursAgo(2) }),
-    thread("wait", { pending, status: "running", lastActivityAt: hoursAgo(10) }),
-    thread("idle", { status: "idle", lastActivityAt: hoursAgo(0.5) }),
-  ];
-  const [group] = groupAgents(ts, projects, now);
-  assert.deepEqual(group?.cards.map((c) => c.thread.id), ["wait", "work-new", "work-old", "fin-new", "fin-old", "idle"]);
-  assert.deepEqual(group?.cards.map((c) => c.status), ["waiting", "working", "working", "finished", "finished", "idle"]);
-});
-
-test("groupAgents puts pinned cards first within a project", () => {
-  const ts = [
-    thread("waiting", { projectId: "p1", pending, lastActivityAt: hoursAgo(1) }),
-    thread("pinned", { projectId: "p1", status: "completed", pinned: true, lastActivityAt: hoursAgo(5) }),
-    thread("working", { projectId: "p2", status: "running", lastActivityAt: hoursAgo(0) }),
-  ];
-  const groups = groupAgents(ts, projects, now);
-  assert.deepEqual(groups.map((g) => g.cards.map((c) => c.thread.id)), [["pinned", "waiting"], ["working"]]);
-});
-
-test("groupAgents sorts projects by title: status and activity do not move them", () => {
-  const ts = [
-    thread("a", { projectId: "p3", pending, lastActivityAt: hoursAgo(0.1) }),
-    thread("b", { projectId: "p2", status: "running", lastActivityAt: hoursAgo(9) }),
-    thread("c", { projectId: "p1", status: "completed", lastActivityAt: hoursAgo(20) }),
-  ];
-  assert.deepEqual(groupAgents(ts, projects, now).map((g) => g.project.id), ["p1", "p2", "p3"]);
-  assert.deepEqual(groupAgents([...ts].reverse(), projects, now).map((g) => g.project.id), ["p1", "p2", "p3"]);
-});
-
-test("groupAgents falls back to the project id when the project is unknown", () => {
-  const [group] = groupAgents([thread("1", { projectId: "ghost", status: "running" })], projects, now);
-  assert.equal(group?.project.title, "ghost");
 });
 
 test("providerKind recognises the two providers and falls back", () => {

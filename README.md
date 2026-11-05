@@ -1,6 +1,6 @@
 # t3-dashboard
 
-t3-dashboard is a web dashboard on top of T3 Code. It shows all your Claude and Codex agents on one screen. You follow their work, reply to them and start new agents. The Board shows your Linear issues: one click gives an issue to an agent. The dashboard runs in the background on your computer and opens in your browser.
+t3-dashboard is a web dashboard on top of T3 Code. It shows all your Claude and Codex agents on one screen. You follow their work, reply to them and start new agents. The Inbox shows what needs you, what to relaunch and your next Linear tickets: you can assign a ticket to an agent or copy its link. The dashboard runs in the background on your computer and opens in your browser.
 
 ## Screenshots
 
@@ -20,10 +20,10 @@ The screenshots come from the demo mode: the projects, agents and conversations 
 
 ## What you can do
 
-**Agents**
+**Inbox**
 
-- See one card per T3 Code session, grouped by project, with the project icon.
-- See pinned agents first, then the agents that wait for a reply, then the agents that work.
+- See what needs you at a glance: a summary line, agents that wait for a reply or failed, and unread results. The Inbox tab shows the number of unread items.
+- See which Linear tickets to relaunch or to do next, assign a ticket to an agent or copy its link.
 - Open a conversation on the Desk with one click.
 - Press Ctrl+K (Cmd+K on Mac) to open the switcher and jump to a conversation by title, project or message, from any screen. The words you type are highlighted in the matching messages. Before you type, it suggests the agents that wait for you, then your recent ones.
 
@@ -34,14 +34,9 @@ The screenshots come from the demo mode: the projects, agents and conversations 
 - Reply to the approvals and questions of the agents.
 - See the images, videos and HTML pages that the agent shows.
 
-**Board**
-
-- See the Linear issues assigned to you, by status and by project.
-- Give an issue to an agent: the New Agent window opens with the issue.
-
 **Automations**
 
-- See the routines, reminders and webhooks (T3 Code scheduled tasks), and create one with a form. The dashboard pauses a reminder after its run and keeps tasks out of worktrees.
+- See the routines, reminders and webhooks (T3 Code scheduled tasks) in a table that you can search and filter by project, and create one with a form. The dashboard pauses a reminder after its run and keeps tasks out of worktrees.
 
 The New Agent button (key `N`) starts an agent in a T3 project, or in "No project". It uses the default model and the favorites of T3 Code. Each screen is described in [docs/usage.md](docs/usage.md).
 
@@ -68,7 +63,7 @@ The script downloads the binary and checks its SHA-256 sum. Then it registers a 
 1. The dashboard creates its own access token for T3 Code. You do nothing.
 2. If T3 Code is not running, a screen tells you. Start T3 Code, then click "Retry".
 3. If the token cannot be created, the screen gives a command. Run it, then paste the token.
-4. Optional: in the Board tab, paste a Linear API key to see your issues.
+4. Optional: in the Inbox tab, paste a Linear API key to see your tickets.
 
 More details in [docs/install.md](docs/install.md).
 
@@ -77,7 +72,7 @@ More details in [docs/install.md](docs/install.md).
 | System | Required | Use |
 | --- | --- | --- |
 | T3 Code local API | Yes | Reads the projects, sessions, conversations and scheduled tasks. Sends the messages, the replies and the new agents. |
-| Linear API key | No | Reads the issues assigned to you, for the Board. |
+| Linear API key | No | Reads the issues assigned to you, for the Inbox. |
 | GitHub Releases | No | Looks for a new version and downloads it when you click. |
 
 ## How it works

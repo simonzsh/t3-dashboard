@@ -2,27 +2,40 @@
 
 [Back to the README](../README.md)
 
-The dashboard has three tabs: Agents, Desk and Board. The header contains the New Agent and New Automation buttons and the settings (Settings).
+The dashboard has three tabs: Inbox, Desk and Automations. The header contains the New Agent and New Automation buttons and the settings (Settings).
 
-## Agents
+## Inbox
 
-The Agents tab shows one card for each T3 Code session.
+The Inbox tab shows what needs you. It is a list of rows, not a grid. It has no grouping by project: each row shows its project as a small tag. The tab shows the number of unread items (waiting, failed or finished, not read yet). `Ctrl` + `B` opens the Inbox.
 
-- The cards are grouped by T3 project. Each group shows the icon and the name of the project.
-- In a group, the agents pinned in T3 Code come first, with a small pin. Then the order is: waiting, working, finished, idle.
-- The groups follow the alphabetical order of the projects. This order never changes. A yellow dot near the name shows that an agent in the group is waiting.
-- A card shows the provider (Claude or Codex), the title, the status and the time of the last activity. If the agent waits for an approval or an answer, the card tells you.
-- A finished agent ("settled" in T3 Code) goes into a collapsed section below its group. It disappears after 3 days without activity.
-- Archived or deleted sessions, sub-agents and the threads of scheduled tasks (see [Automations](#automations)) do not appear.
-- Click a card to open the conversation on the Desk. Shift + click adds it to the Desk and keeps the current tab.
-- The "Add to Desk" button adds the card to the Desk. A second click removes it.
+- A summary line starts the page, for example "2 need you · 3 unread · 1 to relaunch". It shows only the parts that are not zero.
+- A row shows the provider (Claude or Codex), the title, the project tag, the status and the time of the last activity.
+- The sections are, from top to bottom: "Needs you", "Unread", "To relaunch", "Running", "Up next", then two closed sections: "Read and idle" and "Recently settled". An empty section does not appear.
+- In each section, the agents pinned in T3 Code come first, with a small pin. Then the most recent activity comes first.
+- "Needs you" lists the agents that wait for an approval or an answer, and the agents that failed and that you did not settle. The badge tells which one. Point at the badge of a failed agent to read the error. The section shows 10 rows, then "Show N more".
+- "Unread" lists the agents that stopped without error, that you did not settle and that you did not read. A click on the row opens the conversation and marks it read. "Mark all read" marks the whole section. The section shows 10 rows, then "Show N more".
+- "To relaunch" lists the agents of started tickets that stopped: the agent finished, you read it, and it has been idle for more than 24 hours.
+- "Up next" lists the tickets that have no agent, started ones first (see [Tickets](#tickets)). It shows 5 rows, then "Show N more".
+- "Running" lists the agents that work. "Read and idle" lists the finished agents that you read and that are not in "To relaunch". Its "Settle all older than 3 days" button settles the ones with no activity for 3 days. "Recently settled" disappears after 3 days without activity. Its rows have an "Unsettle" button.
+- The Inbox shows cards, several per line. Every agent card works the same way. A click on the card opens the conversation on the Desk and marks it read. `⇧` + click adds it to the Desk without leaving the Inbox. In the bottom right corner, the T3 Code logo opens the conversation in T3 Code, the archive button settles the agent (or unsettles it in "Recently settled") and `+` adds it to the Desk.
+- When "Needs you", "Unread", "To relaunch" and "Up next" are empty, the Inbox shows "Nothing needs you".
+- Archived or deleted sessions, sub-agents and the threads of scheduled tasks, webhook runs included (see [Automations](#automations)), do not appear.
+- Click a row to open the conversation on the Desk. Shift + click adds it to the Desk and keeps the current tab.
+- The "Add to Desk" button adds the row to the Desk. A second click removes it.
 - The "Open in T3 Code" link opens the session in T3 Code.
-- The buttons are at the bottom right of the card, after the status and the time: T3 (icon only), Settle, then Add to Desk.
-- The "Settle" button (box icon) moves a finished agent to "Recently settled", as T3 Code does. It does not exist for an agent that works or waits.
-- The cards in "Recently settled" are grayed out. You can see the difference from the other cards immediately.
-- In "Recently settled", the "Unsettle" button puts the agent back in the list.
+- The "Settle" button (box icon) moves an agent to "Recently settled", as T3 Code does. It does not exist for an agent that works or waits.
 
-The cards change status live, without a page reload.
+The rows change status live, without a page reload. The toasts and the browser notifications still tell you when an agent waits or finishes. A click on a toast opens the conversation.
+
+### Tickets
+
+The Linear tickets feed "To relaunch" and "Up next". They need a Linear API key: see [install.md](install.md#linear). Only the tickets assigned to you in the states "Todo" and "In Progress" count. The other states (triage, backlog, done, canceled) never show.
+
+- A ticket has an agent when the title of a session contains its number, for example `ABC-123`. A session that you archive in T3 Code no longer counts: its ticket comes back.
+- "Up next" holds the tickets in the "Todo" and "In Progress" states with no agent. "In Progress" tickets come first, then the tickets are sorted by priority (urgent first, no priority last), then by update date.
+- The foot of a ticket card shows its Linear project on the left and 2 buttons on the right. The copy button copies the link of the issue. The robot button opens the New Agent window with the ticket: choose the project, the model and the instructions, then create the session. The window selects the last project that you chose for the Linear team. The session goes onto the Desk, and the ticket leaves the list.
+- Click a ticket card to open the issue in Linear. The "Refresh" button of "Up next" reads the tickets again immediately.
+- The browser keeps the project selection in its `localStorage`, not on the server.
 
 ## Desk
 
@@ -32,7 +45,7 @@ The Desk shows many conversations side by side, in a grid.
 - Click a window in the dock to open it again.
 - Drag the dividers to change the size of the columns and rows. The browser keeps these sizes for each number of windows.
 - Each window has three buttons: full screen, minimize, close.
-- The server keeps which finished conversations you opened, for the notification bell, in `~/.config/t3-dashboard/seen.json`. A conversation read on one device is read on all of them.
+- The server keeps which finished conversations you opened, for the Inbox and the Inbox badge, in `~/.config/t3-dashboard/seen.json`. A conversation read on one device is read on all of them.
 - The server keeps which conversations are on the Desk in `~/.config/t3-dashboard/desk.json`. Every device shows the same conversations, and an opened or closed window appears on the other open tabs at once. Each device keeps its own window order, minimized windows, focused window, full screen window, sizes and Jump to history.
 - In Settings, select a background for the Desk: a gradient or your own image.
 
@@ -103,29 +116,15 @@ The New Agent button (key `N`) starts a new agent.
 - The favorite models of T3 Code are at the top of the list.
 - The browser keeps the last project that you selected.
 
-## Board
-
-The Board tab shows the Linear tickets that are assigned to you. It needs a Linear API key: see [install.md](install.md#linear).
-
-- There is one column for each Linear status. In a column, the tickets are grouped by Linear project. The tickets without a project go into "No project".
-- In a group, the tickets are sorted by priority, then by update date.
-- Click a ticket to open it in Linear.
-- The "Refresh" button reads the tickets again immediately.
-
-### Give a ticket to an agent
-
-1. Click the "Assign to an agent" button of the ticket. The New Agent window opens with the ticket.
-2. Select the T3 project. The browser keeps the last project for each Linear team and selects it first.
-3. Select the model and the access mode.
-4. If necessary, add instructions or files.
-5. Send. The session has the number and the title of the ticket. It goes onto the Desk, and the Board stays visible.
-6. Click "View on Desk" to see the conversation.
-
-The browser keeps the project selection in its `localStorage`, not on the server.
-
 ## Automations
 
-The right column of the Agents tab lists the scheduled tasks of T3 Code. It appears when T3 Code is connected. It updates every 30 s while the tab is open.
+The Automations tab lists the scheduled tasks of T3 Code in a table. It needs T3 Code to be connected. The list updates every 30 s while T3 Code is connected.
+
+- The columns are: name, project, schedule, next run, last result and actions.
+- The groups are: "Needs attention" (last run failed or waiting), "Today", "Upcoming" and "Paused / finished" (closed). An empty group does not appear.
+- Search by name, project or schedule. The project list filters by project.
+- Click a name to open the thread of the task on the Desk. Shift + click adds it to the Desk.
+- Without a task, the tab shows "No automations yet" and a New Automation button.
 
 - A routine runs at each occurrence. The row shows the project, the frequency, the next run and the status of the last run. A paused task shows "paused".
 - A reminder is a task whose title starts with "Reminder: " or "Rappel : ". The prefix is not shown. T3 Code has no one-time type, so the dashboard pauses the task after its run. Older reminders paused themselves from their prompt: the dashboard still detects them. The row shows the date of the reminder.
@@ -134,8 +133,8 @@ The right column of the Agents tab lists the scheduled tasks of T3 Code. It appe
 - Click a row to open the thread of the task.
 - Each row shows the project icon. To rename a task, click the pencil icon on its row, change the title, then push `Enter`. The dashboard also renames the linked thread. It keeps the prefix of a reminder.
 - To delete a task, click the trash icon on its row, then click "Delete". T3 Code deletes the task. You cannot undo this action.
-- When you delete a reminder, the dashboard also archives the threads of its runs. Without this, they would come back in the agent grid. A reminder linked to a conversation keeps that conversation.
-- If T3 Code is too old to list the tasks, the column shows the error. The agent grid continues to work.
+- When you delete a reminder, the dashboard also archives the threads of its runs. Without this, they would come back in the Inbox. A reminder linked to a conversation keeps that conversation.
+- If T3 Code is too old to list the tasks, the tab shows the error. The Inbox continues to work.
 
 ### Create an automation
 
@@ -150,7 +149,7 @@ The right column of the Agents tab lists the scheduled tasks of T3 Code. It appe
 - A reminder time is in your browser's time zone. A routine time is in the time zone of the machine that runs T3 Code. The row shows the next run: check it.
 - If T3 Code is off for more than 10 minutes at the time of a reminder set less than 7 days ahead, T3 Code moves it one week later.
 - The new task is not linked to a thread: each run opens its own thread.
-- Setup threads from older versions still show on a setup row while their agent works. The dashboard reads `~/.config/t3-dashboard/automation-threads.json` to hide their grid entries. It no longer writes to this file.
+- Setup threads from older versions still show on a setup row while their agent works. The dashboard reads `~/.config/t3-dashboard/automation-threads.json` to hide their Inbox entries. It no longer writes to this file.
 
 ### Webhooks
 
@@ -177,7 +176,7 @@ You can also ask for a task in a normal conversation. `t3-dashboard install` add
 
 ### Threads of tasks without a linked conversation
 
-A task without a linked thread creates a new thread at each run. The dashboard hides these threads from the grid. It identifies them by the project, the title, the origin and the creation date of the task. You open the thread of the last run from the row of the task.
+A task without a linked thread creates a new thread at each run. The dashboard hides these threads from the Inbox. It identifies them by the project, the title, the origin and the creation date of the task. You open the thread of the last run from the row of the task.
 
 ### T3 Code limits
 
@@ -202,13 +201,13 @@ The shortcuts use `Ctrl`, also on a Mac, and they work while you type in a field
 
 | Key | Action |
 | --- | --- |
-| `Ctrl` + `1`, `2`, `3` | Opens Agents, Desk or Board. |
+| `Ctrl` + `1`, `2`, `3` | Opens Inbox, Desk or Automations. |
 | `Ctrl` + `K` or `⌘` + `K` | Opens or closes the "Jump to" switcher. It finds a conversation by title, project or message. Without text, it shows the agents that wait for an answer, then your recent conversations. `↑` `↓` select, `Enter` opens in the Desk. |
 | `Ctrl` + `S` | In the message field of a conversation: stashes the draft. |
 | `Ctrl` + `N` | Opens New Agent. |
 | `Ctrl` + `⇧` + `N` | Opens a new automation (New Automation). |
 | `Ctrl` + `,` | Opens Settings. |
-| `Ctrl` + `B` | Opens or closes the notifications (the bell). The menu takes the focus: `↑` `↓` move between rows, `Enter` opens one, `Esc` closes. |
+| `Ctrl` + `B` | Opens the Inbox. |
 | `Ctrl` + `X` | Desk: closes the active window. |
 | `Ctrl` + `F` | Desk: puts the active window in full screen, or takes it out of full screen. |
 | `Ctrl` + `M` | Desk: minimizes the active window. |

@@ -60,8 +60,9 @@ function allowed(from: string, to: string): boolean {
 const FEATURE_EDGES = new Map([
   ["features/desk -> features/conversation", "a desk window holds a conversation"],
   ["features/new-thread -> features/conversation", "the new thread dialog reuses the composer"],
-  ["features/board -> features/settings", "the board setup card reuses the Linear key form"],
-  ["features/board -> features/new-thread", "assigning an issue opens the New Agent dialog"],
+  ["features/inbox -> features/automations", "the inbox hides routine and setup threads"],
+  ["features/inbox -> features/settings", "the Linear setup card reuses the key form"],
+  ["features/inbox -> features/new-thread", "assigning a ticket opens the New Agent dialog"],
   ["features/settings -> features/update", "the Updates tab shows the update status"],
   ["features/settings -> features/desk", "settings pick the desk background"],
 ]);
@@ -113,8 +114,8 @@ test("the rules catch a forbidden import", () => {
   assert.equal(allowed("integrations/t3/", "domain"), false);
   assert.equal(allowed("integrations/t3/", "integrations/linear/"), false);
   assert.equal(allowed("server", "integrations/t3/"), false);
-  assert.equal(allowed("ui", "features/board"), false);
-  assert.equal(allowed("lib", "features/board"), false);
-  assert.equal(allowed("features/board", "features/desk"), false);
+  assert.equal(allowed("ui", "features/inbox"), false);
+  assert.equal(allowed("lib", "features/inbox"), false);
+  assert.equal(allowed("features/inbox", "features/desk"), false);
   assert.equal(allowed("shared", "domain"), false);
 });

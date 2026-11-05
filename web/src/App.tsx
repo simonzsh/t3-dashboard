@@ -1,20 +1,23 @@
-import type { ModelDefaults } from "../../shared/api.ts";
-import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
-import { AgentsView } from "./features/agents/AgentsView.tsx";
-import { BoardView } from "./features/board/BoardView.tsx";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import type { DashboardThread } from "../../shared/api.ts";
+import { AutomationsView } from "./features/automations/AutomationsView.tsx";
+import { InboxView } from "./features/inbox/InboxView.tsx";
 import { ConnectionBanner } from "./features/setup/ConnectionBanner.tsx";
 import { DeskView } from "./features/desk/DeskView.tsx";
 import { NewAutomationDialog } from "./features/new-thread/NewAutomationDialog.tsx";
 import { NewThreadDialog } from "./features/new-thread/NewThreadDialog.tsx";
-import { NotificationBell, NotificationToasts } from "./features/notifications/NotificationBell.tsx";
+import { NotificationToasts } from "./features/notifications/NotificationToasts.tsx";
+import { badgeText } from "./features/notifications/notifications.ts";
 import { useNotifications } from "./features/notifications/useNotifications.ts";
+import { useSetupRows } from "./features/automations/useSetupRows.ts";
+import { inboxSections, inboxThreads, unreadCount } from "./features/inbox/inbox.ts";
 import { Switcher } from "./features/switcher/Switcher.tsx";
 import { useOpenHistory } from "./features/switcher/useOpenHistory.ts";
 import { SettingsDialog } from "./features/settings/SettingsDialog.tsx";
 import { SetupScreen } from "./features/setup/SetupScreen.tsx";
 import { UpdateDialog } from "./features/update/UpdateDialog.tsx";
 import { gridWindows, neighborId, type Direction } from "./features/desk/desk.ts";
-import { useAutomations } from "./features/agents/useAutomations.ts";
+import { useAutomations } from "./features/automations/useAutomations.ts";
 import { api } from "./api/client.ts";
 import { useDashboard } from "./api/events.ts";
 import { useDesk } from "./features/desk/useDesk.ts";
@@ -30,9 +33,8 @@ import { useUpdate } from "./features/update/useUpdate.ts";
 import { Button, Icon, IconButton, Kbd, Loader, Pressable, TooltipLayer } from "./ui/index.ts";
 import { updateLabel } from "./features/update/updateFlow.ts";
 
-const NO_DEFAULTS: ModelDefaults = { selection: null, runtimeMode: null };
-
 // Same breakpoint as the one-line header in styles.css.
+const NO_THREADS: DashboardThread[] = [];
 const COMPACT_HEADER = "(max-width: 700px)";
 
 function focusComposer(threadId: string) {
@@ -42,7 +44,8 @@ function focusComposer(threadId: string) {
 export function App() {
   const { state, sseDown, remoteDesk, remoteSeen, connects } = useDashboard();
   const [tab, setTab] = useTab();
-  const automations = useAutomations(tab === "agents" && state?.connection.t3 === "live");
+  // Always loaded while live: the Inbox badge must leave out automation run threads.
+  const automations = useAutomations(state?.connection.t3 === "live");
   const [desk, dispatchDesk] = useDesk();
   const [openHistory, recordOpened] = useOpenHistory();
   useDeskSync({
@@ -64,17 +67,11 @@ export function App() {
   const [creating, setCreating] = useState(false);
   const [creatingAutomation, setCreatingAutomation] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
-  const [bellOpen, setBellOpen] = useState(false);
-  // The menu lists every toast: clear them rather than cover the menu.
-  const showBell = (open: boolean) => {
-    if (open) notify.clearToasts();
-    setBellOpen(open);
-  };
   const [confirmingUpdate, setConfirmingUpdate] = useState(false);
   // null: closed; a string: open, seeded with that query.
   const [switcherQuery, setSwitcherQuery] = useState<string | null>(null);
   const update = useUpdate();
-  const [boardVersion, setBoardVersion] = useState(0);
+  const [linearVersion, setLinearVersion] = useState(0);
   const [theme, setTheme] = useTheme();
   const [deskBackground, setDeskBackground] = useDeskBackground();
   const [now, setNow] = useState(() => new Date());
@@ -114,7 +111,7 @@ export function App() {
     else openOnDesk(id, false);
   }
 
-  // The cards are memoized: these callbacks keep one identity and call the latest handlers.
+  // The rows are memoized: these callbacks keep one identity and call the latest handlers.
   const handlers = useRef({ openOnDesk, toggleOnDesk });
   handlers.current = { openOnDesk, toggleOnDesk };
   const onOpen = useCallback((id: string, addOnly: boolean) => handlers.current.openOnDesk(id, !addOnly), []);
@@ -124,9 +121,8 @@ export function App() {
   const blocked = creating || creatingAutomation || settingsOpen || confirmingUpdate || switcherQuery !== null;
   useShortcuts(
     (action) => {
-      if (action === "agents" || action === "board" || action === "desk") setTab(action);
+      if (action === "desk" || action === "inbox" || action === "automations") setTab(action);
       else if (action === "settings") setSettingsOpen(true);
-      else if (action === "notifications") showBell(!bellOpen);
       else if (action === "switcher") {
         if (state && !creating && !creatingAutomation && !settingsOpen && !confirmingUpdate) setSwitcherQuery((open) => (open === null ? "" : null));
       } else if (action === "new-agent") {
@@ -177,6 +173,13 @@ export function App() {
 
   const live = !sseDown && state?.connection.t3 === "live";
   const deskIds = new Set(desk.windows.map((w) => w.id));
+  const setup = useSetupRows(state?.threads ?? NO_THREADS, automations.result?.setupThreadIds, automations.reload);
+  // One list for the Inbox and its badge, so they cannot drift apart.
+  const visible = useMemo(
+    () => inboxThreads(state?.threads ?? NO_THREADS, automations.result?.hiddenThreadIds, setup.map((t) => t.id)),
+    [state?.threads, automations.result?.hiddenThreadIds, setup],
+  );
+  const unread = useMemo(() => unreadCount(inboxSections(visible, notify.seen, now), notify.seen), [visible, notify.seen, now]);
   const deskWaiting = state?.threads.some((t) => t.pending && deskIds.has(t.id)) ?? false;
 
   if (state?.connection.setup) {
@@ -204,6 +207,7 @@ export function App() {
           {TABS.map(({ id, label, key }) => (
             <Pressable key={id} role="tab" data-tab={id} aria-selected={tab === id} className={tab === id ? "active" : ""} onClick={() => setTab(id)}>
               {label}
+              {id === "inbox" && unread > 0 && <span className="count" role="img" aria-label={`${unread} unread`}>{badgeText(unread)}</span>}
               {id === "desk" && deskWaiting && <span className="tab-alert" role="img" aria-label="An agent is waiting for your reply" />}
               <Kbd>{ctrlLabel(key)}</Kbd>
             </Pressable>
@@ -240,7 +244,6 @@ export function App() {
                 New Automation
               </Button>
             ))}
-          <NotificationBell entries={notify.entries} count={notify.count} now={now} onOpen={(id) => openOnDesk(id, true)} onMarkRead={notify.markSeen} onMarkAllRead={notify.markAllSeen} open={bellOpen} onOpenChange={showBell} />
           <IconButton label="Settings" kbd={ctrlLabel(",")} onClick={() => setSettingsOpen(true)}>
             <Icon name="settings" strokeWidth={1.8} />
           </IconButton>
@@ -249,22 +252,38 @@ export function App() {
       <ConnectionBanner connection={state?.connection ?? null} sseDown={sseDown} />
       <NotificationToasts toasts={notify.toasts} onOpen={(id) => openOnDesk(id, true)} onDismiss={notify.dismiss} />
       <main>
-        {tab === "agents" &&
+        {tab === "inbox" &&
           (state ? (
-            <AgentsView
+            <InboxView
               state={state}
+              visible={visible}
               now={now}
               deskIds={deskIds}
               onOpen={onOpen}
               onToggleDesk={onToggleDesk}
               onSettle={onSettle}
+              seen={notify.seen}
+              seenReady={notify.seenReady}
+              onMarkRead={notify.markSeen}
               onSwitcher={setSwitcherQuery}
               automations={automations.result}
               automationsError={automations.error}
-              onAutomationsStale={automations.reload}
+              linearVersion={linearVersion}
             />
           ) : <Loader />)}
-        {tab === "board" && <BoardView projects={state?.projects ?? []} providers={state?.providers ?? []} modelDefaults={state?.modelDefaults ?? NO_DEFAULTS} version={boardVersion} onAssigned={(id) => openOnDesk(id, false)} onShowDesk={() => setTab("desk")} />}
+        {tab === "automations" &&
+          (state ? (
+            <AutomationsView
+              state={state}
+              now={now}
+              onOpen={onOpen}
+              automations={automations.result}
+              automationsError={automations.error}
+              onAutomationsStale={automations.reload}
+              onNewAutomation={() => setCreatingAutomation(true)}
+              setup={setup}
+            />
+          ) : <Loader />)}
         {tab === "desk" &&
           (state ? (
             <DeskView
@@ -330,7 +349,7 @@ export function App() {
           onThemeChange={setTheme}
           background={deskBackground}
           onBackgroundChange={setDeskBackground}
-          onLinearChange={() => setBoardVersion((version) => version + 1)}
+          onLinearChange={() => setLinearVersion((version) => version + 1)}
           update={update}
           onUpdate={() => {
             setSettingsOpen(false);
