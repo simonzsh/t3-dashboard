@@ -47,6 +47,7 @@ export function toDashboardThread(raw: RawThread, now: Date): DashboardThread {
     projectId: raw.projectId ?? "",
     title: raw.title ?? "",
     provider: raw.providerInstanceId ?? raw.modelSelection?.instanceId ?? "",
+    model: raw.modelSelection?.model ?? null,
     status: raw.status ?? "idle",
     settled: isSettled(raw, now),
     pending: pending ? { category: categoryOf(pending.kind) } : null,

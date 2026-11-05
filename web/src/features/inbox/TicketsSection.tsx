@@ -1,9 +1,6 @@
 import { useState } from "react";
 import { createPortal } from "react-dom";
 import type { BoardResult, DashboardProject, DashboardProvider, LinearIssue, ModelDefaults } from "../../../../shared/api.ts";
-import { loadAssignProject } from "../../lib/assignProject.ts";
-import { ProjectTag } from "../../lib/ProjectTag.tsx";
-import { browserStorage } from "../../lib/storage.ts";
 import { useCopy } from "../../lib/useCopy.ts";
 import { Icon, IconButton } from "../../ui/index.ts";
 import { NewThreadDialog } from "../new-thread/NewThreadDialog.tsx";
@@ -27,8 +24,6 @@ export interface RowProps {
 export function TicketRow({ issue, projects, providers, modelDefaults, onOpen, onStarted }: RowProps) {
   const [choosing, setChoosing] = useState(false);
   const { copied, copy } = useCopy("copy the issue link");
-  const saved = loadAssignProject(browserStorage(), issue.team.key, projects);
-  const project = projects.find((p) => p.id === saved);
 
   const started = (threadId: string) => {
     onStarted(issue.id);
@@ -40,7 +35,6 @@ export function TicketRow({ issue, projects, providers, modelDefaults, onOpen, o
       <span className="ticket-meta">
         <PriorityIcon priority={issue.priority} label={issue.priorityLabel} />
         <span className="ident">{issue.identifier}</span>
-        {project && <ProjectTag icon={project.icon} title={project.title} />}
       </span>
       <a href={issue.url} target="_blank" rel="noreferrer" className="ticket-title" data-tooltip={issue.title} data-tooltip-clipped>
         {issue.title}

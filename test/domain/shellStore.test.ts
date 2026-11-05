@@ -173,7 +173,7 @@ test("project.updated and project.removed", () => {
   const { store, projects } = live();
   store.apply([{ kind: "project.updated", project: { id: "project-2", title: "Project B", defaultModelSelection: { instanceId: "provider-a", model: "model-x" }, projectIcon: { kind: "lucide", name: "minus", color: "blue" } } }]);
   assert.deepEqual(projects[0], {
-    upserted: [{ id: "project-2", title: "Project B", defaultModelSelection: { instanceId: "provider-a", model: "model-x" }, icon: { shapes: [{ tag: "path", attrs: { d: "M5 12h14" } }], color: "#3b82f6" } }],
+    upserted: [{ id: "project-2", title: "Project B", defaultModelSelection: { instanceId: "provider-a", model: "model-x" }, icon: { kind: "lucide", shapes: [{ tag: "path", attrs: { d: "M5 12h14" } }], color: "#3b82f6" } }],
     removed: [],
   });
   store.apply([{ kind: "project.removed", projectId: "project-1" }]);

@@ -15,6 +15,8 @@ export interface DashboardThread {
   projectId: string;
   title: string;
   provider: string;
+  /** Model slug, or null when T3 Code sent no selection. */
+  model: string | null;
   status: string;
   /** In the T3 Code sidebar's Settled section. */
   settled: boolean;
@@ -29,11 +31,11 @@ export interface DashboardThread {
   lastActivityAt: string;
 }
 
-/** The project's icon in T3 Code: SVG shapes on a 24×24 grid, drawn with a stroke. */
-export interface ProjectIcon {
-  shapes: Array<{ tag: string; attrs: Record<string, string> }>;
-  color: string | null;
-}
+/** The project's icon in T3 Code: Lucide shapes (24×24 grid, stroked), a monogram or an emoji. */
+export type ProjectIcon =
+  | { kind: "lucide"; shapes: Array<{ tag: string; attrs: Record<string, string> }>; color: string | null }
+  | { kind: "monogram"; text: string; color: string | null }
+  | { kind: "emoji"; emoji: string };
 
 export interface DashboardProject {
   id: string;

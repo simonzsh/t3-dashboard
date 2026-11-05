@@ -189,7 +189,7 @@ function useWindowDrag(enabled: boolean, dispatch: Dispatch<DeskAction>) {
 export function DeskView({ desk, dispatch, threads, projects, background, t3EnvironmentId, providers }: Props) {
   const narrow = useMediaQuery("(max-width: 899px)");
   const byId = useMemo(() => new Map(threads.map((t) => [t.id, t])), [threads]);
-  const projectTitles = useMemo(() => new Map(projects.map((p) => [p.id, p.title])), [projects]);
+  const projectsById = useMemo(() => new Map(projects.map((p) => [p.id, p])), [projects]);
   // Names of subagent threads, which the shell does not list.
   const [childTitles, setChildTitles] = useState<Record<string, string>>({});
   const setChildTitle = useCallback((id: string, title: string) => setChildTitles((titles) => (titles[id] === title ? titles : { ...titles, [id]: title })), []);
@@ -234,13 +234,15 @@ export function DeskView({ desk, dispatch, threads, projects, background, t3Envi
 
   const renderWindow = (w: Win, compact = false) => {
     const thread = byId.get(w.id) ?? null;
+    const project = thread ? projectsById.get(thread.projectId) : undefined;
     // The key remounts the window when the narrow view switches tabs: no state leaks between threads.
     return (
       <DeskWindow
         key={w.id}
         id={w.id}
         thread={thread}
-        projectTitle={thread ? (projectTitles.get(thread.projectId) ?? null) : null}
+        projectTitle={project?.title ?? null}
+        projectIcon={project?.icon ?? null}
         missing={!thread && seen.current.has(w.id)}
         focused={desk.focusedId === w.id}
         maximized={!compact && desk.maximizedId === w.id}

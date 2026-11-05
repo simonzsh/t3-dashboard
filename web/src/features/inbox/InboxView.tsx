@@ -47,6 +47,7 @@ export function InboxView({ state, visible, now, deskIds, onOpen, onToggleDesk, 
     [visible, seen, now, relaunch],
   );
   const projects = useMemo(() => new Map(state.projects.map((p) => [p.id, p])), [state.projects]);
+  const modelNames = useMemo(() => new Map(state.providers.flatMap((p) => p.models).map((m) => [m.slug, m.name])), [state.providers]);
   const settleAll = useAction("settle the threads");
   const stale = settleCandidates(sections.readIdle, now);
   // Before the first automations answer, routine threads would flash in the lists.
@@ -70,6 +71,7 @@ export function InboxView({ state, visible, now, deskIds, onOpen, onToggleDesk, 
       key={t.id}
       thread={t}
       project={projects.get(t.projectId)}
+      modelName={t.model && (modelNames.get(t.model) ?? t.model)}
       now={now}
       onDesk={deskIds.has(t.id)}
       t3EnvironmentId={state.t3EnvironmentId}

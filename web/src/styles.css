@@ -553,7 +553,11 @@ ol.install-steps { padding-left: 18px; }
 .inbox-row { position: relative; width: 100%; height: 100%; min-width: 0; display: flex; flex-direction: column; align-items: flex-start; gap: 6px; padding: 14px 16px; border-radius: 14px; box-shadow: var(--shadow); text-align: left; transition: transform 0.12s, border-color 0.12s, box-shadow 0.12s; }
 .inbox-row:hover:not(:disabled) { transform: translateY(-1px); }
 .inbox-row-head { display: flex; align-items: center; gap: 10px; min-width: 0; width: 100%; }
-.inbox-row > .project-tag { max-width: 100%; }
+.inbox-row-head .project-icon { width: 18px; height: 18px; }
+.inbox-row-meta { display: flex; align-items: center; gap: 6px; min-width: 0; max-width: 100%; color: var(--text-secondary); font-size: 12px; }
+.inbox-row-meta .provider-icon { width: 14px; height: 14px; margin: 0; }
+.inbox-model { flex: 0 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.inbox-model + .project-tag::before { content: "·"; margin-right: 1px; }
 /* The actions sit in the bottom right corner of the card: the foot keeps room for all three. */
 .inbox-row-foot { display: flex; align-items: center; gap: 8px; min-width: 0; margin-top: auto; padding-right: 100px; white-space: nowrap; }
 .inbox-row.on-desk { border-color: color-mix(in srgb, var(--accent) 55%, var(--line)); }
@@ -663,7 +667,7 @@ ol.install-steps { padding-left: 18px; }
 .desk-window.dragging { opacity: 0.45; }
 .desk-window.drop-target { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent); }
 .desk-drag-ghost { position: fixed; left: 0; top: 0; z-index: 50; pointer-events: none; max-width: 360px; border: 1px solid var(--line); border-radius: 10px; box-shadow: var(--shadow); opacity: 0.95; }
-.desk-window-head .provider-icon { width: 16px; height: 16px; margin: 0; }
+.desk-window-head .project-icon { width: 16px; height: 16px; }
 .dw-title { min-width: 0; flex: 0 1 auto; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 600; }
 .dw-project { flex: 0 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--text-secondary); font-size: 12px; }
 .dw-state.waiting { box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--warn) 50%, transparent); }

@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { renderToStaticMarkup } from "react-dom/server";
 import { DeskWindow } from "../../../src/features/desk/DeskWindow.tsx";
 
-const base = { id: "t1", thread: null, projectTitle: null, focused: true, maximized: false, compact: false, t3EnvironmentId: null, providers: [], dispatch: () => {} };
+const base = { id: "t1", thread: null, projectTitle: null, projectIcon: null, focused: true, maximized: false, compact: false, t3EnvironmentId: null, providers: [], dispatch: () => {} };
 
 test("a missing window keeps its classes and shows the message with a close button", () => {
   const html = renderToStaticMarkup(<DeskWindow {...base} missing />);

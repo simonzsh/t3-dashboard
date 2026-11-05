@@ -5,6 +5,7 @@ import { relativeTime } from "../../lib/format.ts";
 import { tabSelector } from "../../lib/tabs.ts";
 import { threadTitle } from "../../lib/threads.ts";
 import { OpenInT3 } from "../../lib/OpenInT3.tsx";
+import { ProjectIcon } from "../../lib/ProjectIcon.tsx";
 import { ProjectTag } from "../../lib/ProjectTag.tsx";
 import { ProviderIcon } from "../../lib/ProviderIcon.tsx";
 import { StatusBadge } from "../../lib/StatusBadge.tsx";
@@ -14,6 +15,8 @@ import { Icon, IconButton, Pressable, fly } from "../../ui/index.ts";
 interface Props {
   thread: DashboardThread;
   project: DashboardProject | undefined;
+  // The model label, resolved by the parent so the row stays memoizable.
+  modelName: string | null;
   now: Date;
   onDesk: boolean;
   t3EnvironmentId: string | null;
@@ -23,7 +26,7 @@ interface Props {
   onSettle: (id: string, settle: boolean) => Promise<unknown>;
 }
 
-function InboxRowView({ thread: t, project, now, onDesk, t3EnvironmentId, onOpen, onToggleDesk, onSettle }: Props) {
+function InboxRowView({ thread: t, project, modelName, now, onDesk, t3EnvironmentId, onOpen, onToggleDesk, onSettle }: Props) {
   const status = agentStatus(t);
   const { busy, error, run } = useAction("update the agent");
   const rowRef = useRef<HTMLButtonElement>(null);
@@ -47,11 +50,21 @@ function InboxRowView({ thread: t, project, now, onDesk, t3EnvironmentId, onOpen
         }}
       >
         <span className="inbox-row-head">
-          <ProviderIcon provider={t.provider} />
+          {project && <ProjectIcon icon={project.icon} title={project.title} />}
           <span className="inbox-title">{threadTitle(t)}</span>
           {t.pinned && <Icon name="pin" label="Pinned" className="inbox-pin" />}
         </span>
-        {project && <ProjectTag icon={project.icon} title={project.title} />}
+        {(modelName || project) && (
+          <span className="inbox-row-meta">
+            {modelName && (
+              <>
+                <ProviderIcon provider={t.provider} />
+                <span className="inbox-model">{modelName}</span>
+              </>
+            )}
+            {project && <ProjectTag icon={null} title={project.title} noIcon />}
+          </span>
+        )}
         <span className="inbox-row-foot">
           <span data-tooltip={status === "finished" ? (t.lastError ?? undefined) : undefined}>
             <StatusBadge thread={t} status={status} />

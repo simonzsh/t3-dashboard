@@ -50,6 +50,7 @@ test("field mapping with fallbacks", () => {
   );
   assert.equal(full.title, "Thread 1");
   assert.equal(full.provider, "provider-a");
+  assert.equal(full.model, "model-x");
   assert.equal(full.activeRunId, "run-1");
   assert.equal(full.lastError, "oops");
   assert.equal(full.pinned, true);
@@ -57,6 +58,7 @@ test("field mapping with fallbacks", () => {
   const bare = toDashboardThread({ id: "thread-2" }, now);
   assert.equal(bare.title, "");
   assert.equal(bare.provider, "");
+  assert.equal(bare.model, null);
   assert.equal(bare.pinned, false);
   assert.equal(bare.projectId, "");
   assert.equal(bare.backgroundWork, false);
