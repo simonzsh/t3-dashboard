@@ -1,6 +1,6 @@
 # t3-dashboard
 
-t3-dashboard is a web dashboard on top of T3 Code. It shows all your Claude and Codex agents on one screen. You follow their work, reply to them and start new agents. The Inbox shows what needs you, what to relaunch and your next Linear tickets: one click starts an agent on a ticket. The dashboard runs in the background on your computer and opens in your browser.
+t3-dashboard is a web dashboard on top of T3 Code. It shows all your Claude and Codex agents on one screen. You follow their work, reply to them and start new agents. The Inbox shows what needs you, what to relaunch and your next Linear tickets: you can assign a ticket to an agent or copy its link. The dashboard runs in the background on your computer and opens in your browser.
 
 ## Screenshots
 
@@ -23,7 +23,7 @@ The screenshots come from the demo mode: the projects, agents and conversations 
 **Inbox**
 
 - See what needs you at a glance: a summary line, agents that wait for a reply or failed, and new results. The Inbox tab shows the number of unread items.
-- See which Linear tickets to relaunch or to do next, and start an agent on a ticket with one click.
+- See which Linear tickets to relaunch or to do next, assign a ticket to an agent or copy its link.
 - Open a conversation on the Desk with one click.
 - Press Ctrl+K (Cmd+K on Mac) to open the switcher and jump to a conversation by title, project or message, from any screen. The words you type are highlighted in the matching messages. Before you type, it suggests the agents that wait for you, then your recent ones.
 

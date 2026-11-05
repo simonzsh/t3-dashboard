@@ -33,10 +33,8 @@ The Linear tickets feed "To relaunch" and "Up next". They need a Linear API key:
 
 - A ticket has an agent when the title of a session contains its number, for example `ABC-123`. A session that you archive in T3 Code no longer counts: its ticket comes back.
 - "Up next" holds the tickets in the "Todo" and "In Progress" states with no agent. "In Progress" tickets come first, then the tickets are sorted by priority (urgent first, no priority last), then by update date.
+- Each ticket card has 2 buttons. The copy button copies the link of the issue. The robot button opens the New Agent window with the ticket: choose the project, the model and the instructions, then create the session. The window selects the last project that you chose for the Linear team. The session goes onto the Desk, and the ticket leaves the list.
 - Click the title of a ticket to open it in Linear. The "Refresh" button of "Up next" reads the tickets again immediately.
-- The "Start" button starts an agent on the ticket at once, with the default prompt "Handle Linear issue ...". It uses the last project that you selected for the Linear team, and the default model of this project. The session goes onto the Desk and the Inbox stays visible.
-- Without a saved project for the team, "Start" opens the New Agent window with the ticket. After one session, the browser remembers the project and "Start" works at once.
-- The "Choose project and instructions" button always opens the New Agent window: select the project, the model and the access mode, and add instructions or files.
 - The browser keeps the project selection in its `localStorage`, not on the server.
 
 ## Desk

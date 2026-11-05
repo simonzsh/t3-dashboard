@@ -1,8 +1,7 @@
 import type { SeenState } from "../../../../shared/seen.ts";
 import { threadState } from "../../../../shared/status.ts";
 import { isUnseen } from "../notifications/notifications.ts";
-import type { AssignIssueBody, DashboardProject, DashboardProvider, DashboardThread, LinearIssue, ModelDefaults } from "../../../../shared/api.ts";
-import { DEFAULT_RUNTIME_MODE, presetSelection } from "../new-thread/newAgent.ts";
+import type { DashboardThread, LinearIssue } from "../../../../shared/api.ts";
 
 const IDENTIFIER = /\b[A-Z][A-Z0-9]*-\d+\b/g;
 
@@ -61,14 +60,4 @@ export function planTickets(issues: LinearIssue[], threads: DashboardThread[], s
   // A started ticket with no agent is often worked by hand: it leads Up next instead of claiming to be stalled.
   const upNext = [...unlinked].sort((a, b) => Number(b.state.type === "started") - Number(a.state.type === "started") || byPriority(a, b));
   return { relaunch: once.sort((a, b) => byPriority(a.issue, b.issue)), upNext };
-}
-
-export type TicketStart = { kind: "direct"; project: DashboardProject; body: AssignIssueBody } | { kind: "dialog" };
-
-// Direct only when the team has a saved project and a model is offered; else the user picks in the dialog.
-export function ticketStart(issue: LinearIssue, savedProjectId: string, projects: DashboardProject[], providers: DashboardProvider[], defaults: ModelDefaults): TicketStart {
-  const project = savedProjectId === "" ? undefined : projects.find((p) => p.id === savedProjectId);
-  const modelSelection = project && presetSelection(project, providers, defaults.selection);
-  if (!project || !modelSelection) return { kind: "dialog" };
-  return { kind: "direct", project, body: { issueId: issue.id, projectId: project.id, text: "", modelSelection, runtimeMode: defaults.runtimeMode ?? DEFAULT_RUNTIME_MODE } };
 }
