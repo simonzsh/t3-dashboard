@@ -149,6 +149,8 @@ export function NewAutomationDialog({ projects, providers, defaults, automation,
   const [draft, setDraft] = useState(automation?.prompt ?? "");
   const [form, setForm] = useState(() => (automation ? formFromAutomation(automation, new Date()) : emptyForm()));
   const [created, setCreated] = useState<{ result: CreateAutomationResult; signed: boolean } | null>(null);
+  const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
   // Each project pick moves the focus to the message.
   const [picks, setPicks] = useState(0);
 
@@ -182,6 +184,18 @@ export function NewAutomationDialog({ projects, providers, defaults, automation,
     else onClose();
   }
 
+  // Edit mode saves from the dialog footer: the Composer has no send button there.
+  async function save() {
+    setSaving(true);
+    setSaveError(null);
+    try {
+      await send(draft.trim());
+    } catch (e) {
+      setSaveError((e as Error).message);
+      setSaving(false);
+    }
+  }
+
   function changeSettings(change: ThreadSettingsBody) {
     if (change.modelSelection) setSelection(change.modelSelection);
     if (change.runtimeMode) setMode(change.runtimeMode);
@@ -190,7 +204,12 @@ export function NewAutomationDialog({ projects, providers, defaults, automation,
   if (created) return <WebhookCreated {...created} onClose={onClose} />;
 
   return (
-    <Dialog title={automation ? `Edit ${automation.kind}` : "New automation"} className="new-agent" onClose={onClose}>
+    <Dialog
+      title={automation ? `Edit ${automation.kind}` : "New automation"}
+      className="new-agent"
+      onClose={onClose}
+      {...(automation && { onCancel: onClose, primary: { label: saving ? "Saving…" : "Save", onClick: () => void save(), disabled: saving || draft.trim() === "" } })}
+    >
       <div className="auto-form">
         {automation ? (
           <div className="dialog-field">
@@ -231,8 +250,9 @@ export function NewAutomationDialog({ projects, providers, defaults, automation,
         placeholder={promptPlaceholder(form.kind)}
         noImages
         focusKey={picks || undefined}
-        submitLabel={automation ? "Save" : undefined}
+        hideSubmit={automation !== undefined}
       />
+      {saveError && <p className="auto-error" role="alert">{saveError}</p>}
     </Dialog>
   );
 }

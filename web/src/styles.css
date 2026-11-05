@@ -775,6 +775,7 @@ ol.install-steps { padding-left: 18px; }
 .auto-form .hint, .auto-result .hint { color: var(--text-secondary); font-size: 12px; margin: 0; }
 .toggle-group { display: flex; flex-wrap: wrap; gap: 8px; }
 .toggle-group button { border: 1px solid var(--line); background: none; padding: 3px 8px; border-radius: 7px; color: var(--text-secondary); font-weight: 500; }
+.auto-error { margin: 0; color: var(--err-text); font-size: 13px; }
 .auto-result { display: flex; flex-direction: column; gap: 10px; }
 .auto-result dl { display: grid; grid-template-columns: max-content 1fr; gap: 6px 12px; margin: 0; }
 .auto-result dt { color: var(--text-secondary); }
