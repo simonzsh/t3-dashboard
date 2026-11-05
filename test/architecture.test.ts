@@ -60,6 +60,8 @@ function allowed(from: string, to: string): boolean {
 const FEATURE_EDGES = new Map([
   ["features/desk -> features/conversation", "a desk window holds a conversation"],
   ["features/new-thread -> features/conversation", "the new thread dialog reuses the composer"],
+  ["features/automations -> features/new-thread", "a row opens the automation dialog to edit the task"],
+  ["features/automations -> features/conversation", "the Model column reuses the model lookup of the composer"],
   ["features/inbox -> features/automations", "the inbox hides routine and setup threads"],
   ["features/inbox -> features/settings", "the Linear setup card reuses the key form"],
   ["features/inbox -> features/new-thread", "assigning a ticket opens the New Agent dialog"],
