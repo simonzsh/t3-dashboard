@@ -2,7 +2,7 @@ import { describe, issues, parse, type Schema } from "../contract.ts";
 import { IntegrationError } from "../errors.ts";
 import { RpcConnection } from "./rpc.ts";
 import { AssetUrl, PersistedAttachments, ScratchProject, ProjectionResponse, RawConfig, SearchEntriesResponse, SearchThreadsResponse, DeletedScheduledTask, ScheduledTasksResponse, UpsertedScheduledTask, ShellItem, TurnItemResponse, UploadUrl, WebSocketTicket } from "./schemas.ts";
-import type { AssetResource, AttachmentRef, Command, FileUpload, ImageUpload, RawProjection, RawScheduledTask, RawSearchMatch, NewScheduledTask, RawTurnItem, SecretAnswer, T3Port } from "./schemas.ts";
+import type { AssetResource, AttachmentRef, Command, FileUpload, ImageUpload, RawProjection, RawScheduledTask, RawSearchMatch, NewScheduledTask, RawTurnItem, ScheduledTaskChange, SecretAnswer, T3Port } from "./schemas.ts";
 
 export const ORCHESTRATION_PROTOCOL = "2";
 // Images go up as data URLs of up to 10 MB each: give T3 time to write them.
@@ -78,6 +78,13 @@ interface SharedSocket {
   origin: string;
 }
 
+// A webhook keeps the stored extras (delivery age, dedupe) that the dashboard does not edit.
+function mergedSchedule(stored: unknown, change: ScheduledTaskChange["schedule"]): unknown {
+  if (change.type !== "webhook") return change;
+  const extras = (stored as { type?: unknown } | undefined)?.type === "webhook" ? (stored as Record<string, unknown>) : {};
+  return { ...extras, ...change };
+}
+
 const read = <T>(schema: Schema<T>, value: unknown, what: string): T => parse(schema, value, { system: "t3", what: `T3 ${what}` });
 
 export class T3Client implements T3Port {
@@ -115,21 +122,12 @@ export class T3Client implements T3Port {
     read(DeletedScheduledTask, await this.call(RPC.deleteScheduledTask, { id }), "scheduledTasks.delete");
   }
 
-  // T3's own message can echo the payload, so a refusal is rebuilt without it: the payload may hold a signing secret.
   async createScheduledTask(task: NewScheduledTask): Promise<RawScheduledTask> {
-    let answer: unknown;
-    try {
-      answer = await this.call(RPC.upsertScheduledTask, task);
-    } catch (error) {
-      if (!(error instanceof IntegrationError) || error.kind !== "refused") throw error;
-      const signing = error.message.includes("needs a signing secret");
-      throw new IntegrationError(signing ? "T3 needs a signing secret for this webhook." : "T3 refused the scheduled task.", { system: "t3", kind: "refused", ...(error.reason && { reason: error.reason }) });
-    }
-    return read(UpsertedScheduledTask, answer, "scheduledTasks.upsert").task;
+    return read(UpsertedScheduledTask, await this.upsert(task, "T3 refused the scheduled task."), "scheduledTasks.upsert").task;
   }
 
-  async renameScheduledTask(id: string, title: string): Promise<void> {
-    await this.upsertKeeping(id, { title });
+  async updateScheduledTask(id: string, change: ScheduledTaskChange): Promise<void> {
+    await this.upsertKeeping(id, (task) => ({ ...change, schedule: mergedSchedule(task.schedule, change.schedule) }));
   }
 
   async setScheduledTaskWorkspace(id: string, workspaceStrategy: { type: "root" }): Promise<void> {
@@ -141,18 +139,23 @@ export class T3Client implements T3Port {
   }
 
   // The upsert replaces the whole task, so every field comes from T3's raw answer: the reduced schema would drop some.
-  // A refusal is rebuilt without T3's message: it can echo the payload, which may hold a signing secret.
-  private async upsertKeeping(id: string, patch: Record<string, unknown>): Promise<void> {
+  private async upsertKeeping(id: string, patch: Record<string, unknown> | ((task: Record<string, unknown>) => Record<string, unknown>)): Promise<void> {
     const answer = await this.scheduledTasksSnapshot();
     read(ScheduledTasksResponse, answer, RPC.subscribeScheduledTasks);
     const task = (answer as { tasks: Record<string, unknown>[] }).tasks.find((entry) => entry.id === id);
     if (!task) throw new IntegrationError("T3 has no scheduled task with this id", { system: "t3", kind: "refused" });
     const keep = Object.fromEntries(["title", ...UPSERT_FIELDS].map((key) => [key, task[key]]));
+    await this.upsert({ ...keep, ...(typeof patch === "function" ? patch(task) : patch), id, requireExisting: true }, "T3 refused the scheduled task update.");
+  }
+
+  // T3's own message can echo the payload, so a refusal is rebuilt without it: the payload may hold a signing secret.
+  private async upsert(payload: unknown, refused: string): Promise<unknown> {
     try {
-      await this.call(RPC.upsertScheduledTask, { ...keep, ...patch, id, requireExisting: true });
+      return await this.call(RPC.upsertScheduledTask, payload);
     } catch (error) {
       if (!(error instanceof IntegrationError) || error.kind !== "refused") throw error;
-      throw new IntegrationError("T3 refused the scheduled task update.", { system: "t3", kind: "refused", ...(error.reason && { reason: error.reason }) });
+      const signing = error.message.includes("needs a signing secret");
+      throw new IntegrationError(signing ? "T3 needs a signing secret for this webhook." : refused, { system: "t3", kind: "refused", ...(error.reason && { reason: error.reason }) });
     }
   }
 

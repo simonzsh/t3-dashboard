@@ -66,6 +66,9 @@ export const RawScheduledTask = s.object({
       everyMs: s.optional(s.number()),
       timeOfDay: text(),
       weekdays: s.optional(s.nullable(s.array(s.number()))),
+      // Webhook only. The secret is never part of a stored task.
+      signature: s.optional(s.nullable(s.object({ header: text(), encoding: text(), prefix: text() }))),
+      filters: s.optional(s.nullable(s.array(s.unknown()))),
     }),
   ),
   // The URL holds a token: it is a credential.
@@ -73,6 +76,7 @@ export const RawScheduledTask = s.object({
   projectId: text(),
   threadId: text(),
   modelSelection: s.optional(s.nullable(ModelSelection)),
+  runtimeMode: text(),
   workspaceStrategy: s.optional(s.nullable(s.object({ type: text() }))),
   runCount: s.optional(s.nullable(s.number())),
   createdBy: text(),
@@ -392,6 +396,20 @@ export type ScheduleInput =
   /** The secret is only ever held in memory, and only sent to T3. */
   | { type: "webhook"; signature: (WebhookSignature & { secret: string }) | null; filters?: WebhookFilter[] };
 
+/** The schedule of an update. A webhook without a secret keeps the stored one. */
+export type ScheduleChange = Exclude<ScheduleInput, { type: "webhook" }> | { type: "webhook"; signature: (WebhookSignature & { secret?: string }) | null; filters?: WebhookFilter[] };
+
+/** What an edit sets on a scheduled task. T3 keeps every other field as it is. */
+export interface ScheduledTaskChange {
+  title: string;
+  prompt: string;
+  enabled: boolean;
+  schedule: ScheduleChange;
+  projectId: string;
+  modelSelection: SharedModelSelection;
+  runtimeMode: RuntimeMode;
+}
+
 /** A scheduled task the dashboard creates: an unbound task that runs in the project root. */
 export interface NewScheduledTask {
   id: string;
@@ -416,8 +434,8 @@ export interface T3Port {
   deleteScheduledTask(id: string): Promise<void>;
   /** Creates the task in T3. Never retried: a second send could make a duplicate. */
   createScheduledTask(task: NewScheduledTask): Promise<RawScheduledTask>;
-  /** Sets the title of a scheduled task and leaves every other field as T3 has it. */
-  renameScheduledTask(id: string, title: string): Promise<void>;
+  /** Applies an edit to a scheduled task and leaves every other field as T3 has it. */
+  updateScheduledTask(id: string, change: ScheduledTaskChange): Promise<void>;
   /** Sets the workspace of a scheduled task and leaves every other field as T3 has it. */
   setScheduledTaskWorkspace(id: string, workspaceStrategy: { type: "root" }): Promise<void>;
   /** Pauses or resumes a scheduled task. */

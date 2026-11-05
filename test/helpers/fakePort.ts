@@ -1,4 +1,4 @@
-import type { AssetResource, Command, FileUpload, ImageUpload, NewScheduledTask, RawConfig, RawProjection, RawScheduledTask, RawSearchMatch, RawTurnItem, SearchEntriesResponse, SecretAnswer, ShellItem, T3Port } from "../../src/integrations/t3/schemas.ts";
+import type { AssetResource, Command, FileUpload, ImageUpload, NewScheduledTask, RawConfig, RawProjection, RawScheduledTask, RawSearchMatch, RawTurnItem, SearchEntriesResponse, ScheduledTaskChange, SecretAnswer, ShellItem, T3Port } from "../../src/integrations/t3/schemas.ts";
 
 /** In-memory T3: records commands, uploads and shell subscriptions; each answer can be swapped. */
 export class FakePort implements T3Port {
@@ -25,8 +25,8 @@ export class FakePort implements T3Port {
   createdTasks: NewScheduledTask[] = [];
   createError: Error | null = null;
   createdWebhookUrl: string | null = null;
-  renamedTasks: { id: string; title: string }[] = [];
-  renameError: Error | null = null;
+  updatedTasks: ({ id: string } & ScheduledTaskChange)[] = [];
+  updateError: Error | null = null;
   workspaceCalls: { id: string; workspaceStrategy: { type: "root" } }[] = [];
   workspaceError: Error | null = null;
   enabledCalls: { id: string; enabled: boolean }[] = [];
@@ -73,9 +73,9 @@ export class FakePort implements T3Port {
     return { id: task.id, title: task.title, nextRunAt: "2026-11-05T09:00:00.000Z", ...(webhook && { webhook }) };
   }
 
-  async renameScheduledTask(id: string, title: string) {
-    if (this.renameError) throw this.renameError;
-    this.renamedTasks.push({ id, title });
+  async updateScheduledTask(id: string, change: ScheduledTaskChange) {
+    if (this.updateError) throw this.updateError;
+    this.updatedTasks.push({ id, ...change });
   }
 
   async setScheduledTaskWorkspace(id: string, workspaceStrategy: { type: "root" }) {

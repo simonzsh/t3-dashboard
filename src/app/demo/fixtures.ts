@@ -481,7 +481,7 @@ const hoursFrom = (now: Date, hours: number) => new Date(now.getTime() + hours *
 
 /** Scheduled tasks as T3 lists them: one bound to a dedicated thread, one unbound, one reminder on a normal conversation. */
 export function demoScheduledTasks(now: Date): RawScheduledTask[] {
-  const common = { enabled: true, createdBy: "agent", creationSource: "mcp", createdAt: hoursFrom(now, -72) };
+  const common = { enabled: true, createdBy: "agent", creationSource: "mcp", createdAt: hoursFrom(now, -72), runtimeMode: "full-access" };
   return [
     {
       ...common,
@@ -514,6 +514,7 @@ export function demoScheduledTasks(now: Date): RawScheduledTask[] {
       id: "dependency-check",
       title: "Dependency update check",
       prompt: "Check for dependency updates and list the risky ones.",
+      runtimeMode: "approval-required",
       schedule: { type: "interval", everyMs: 6 * 3_600_000 },
       projectId: "demo-atlas-api",
       threadId: null,
@@ -551,7 +552,7 @@ export function demoScheduledTasks(now: Date): RawScheduledTask[] {
       id: "pr-review",
       title: "PR review requests",
       prompt: "Review the pull request {{body.pull_request.html_url}} and list the risky changes.",
-      schedule: { type: "webhook" },
+      schedule: { type: "webhook", signature: { header: "x-hub-signature-256", encoding: "hex", prefix: "sha256=" }, filters: [{ path: "body.action", op: "equals", value: "opened" }] },
       webhook: { url: "https://relay.example.invalid/v1/hooks/demo/pr-review/token", hasSecret: true },
       projectId: "demo-atlas-api",
       threadId: null,
