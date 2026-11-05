@@ -1,7 +1,8 @@
 import assert from "node:assert/strict";
 import { test } from "bun:test";
 import { renderToStaticMarkup } from "react-dom/server";
-import { PROJECT_COLORS } from "../../../shared/projectColors.ts";
+import { PROJECT_COLORS, PROJECT_COLOR_NAMES } from "../../../shared/projectColors.ts";
+import { ProjectTag } from "../../src/lib/ProjectTag.tsx";
 import { ProjectIcon } from "../../src/lib/ProjectIcon.tsx";
 import { monogramColor, monogramText } from "../../src/lib/monogram.ts";
 
@@ -37,4 +38,13 @@ test("a project with no icon still shows a monogram mark", () => {
   assert.match(out, />PA<\/text>/);
   assert.match(out, /textLength="12"/);
   assert.match(out, new RegExp(`color:${PROJECT_COLORS.green}`));
+});
+
+test("the ordered names and the color map hold the same 18 colors", () => {
+  assert.deepEqual([...PROJECT_COLOR_NAMES].sort(), Object.keys(PROJECT_COLORS).sort());
+});
+
+test("a tag with noIcon draws no mark", () => {
+  const out = renderToStaticMarkup(<ProjectTag icon={null} title="Project A" noIcon />);
+  assert.doesNotMatch(out, /<svg/);
 });

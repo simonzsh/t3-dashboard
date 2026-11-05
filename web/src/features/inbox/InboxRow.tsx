@@ -50,7 +50,7 @@ function InboxRowView({ thread: t, project, modelName, now, onDesk, t3Environmen
         }}
       >
         <span className="inbox-row-head">
-          <ProjectIcon icon={project?.icon ?? null} title={project?.title ?? ""} />
+          {project && <ProjectIcon icon={project.icon} title={project.title} />}
           <span className="inbox-title">{threadTitle(t)}</span>
           {t.pinned && <Icon name="pin" label="Pinned" className="inbox-pin" />}
         </span>
@@ -62,7 +62,7 @@ function InboxRowView({ thread: t, project, modelName, now, onDesk, t3Environmen
                 <span className="inbox-model">{modelName}</span>
               </>
             )}
-            {project && <ProjectTag icon={null} title={project.title} />}
+            {project && <ProjectTag icon={null} title={project.title} noIcon />}
           </span>
         )}
         <span className="inbox-row-foot">

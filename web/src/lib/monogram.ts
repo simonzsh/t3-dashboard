@@ -1,7 +1,7 @@
-import { PROJECT_COLORS } from "../../../shared/projectColors.ts";
+import { PROJECT_COLORS, PROJECT_COLOR_NAMES } from "../../../shared/projectColors.ts";
 
 // Same algorithm as the T3 Code monogram, so a project looks alike in both apps.
-const NAMES = Object.keys(PROJECT_COLORS);
+const NAMES = PROJECT_COLOR_NAMES;
 const clean = (s: string) => s.normalize("NFKC").trim();
 
 /** One or two characters: the first letter, then a later digit, the last word's initial or the last letter. */
