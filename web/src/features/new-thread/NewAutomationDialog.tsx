@@ -159,9 +159,9 @@ export function NewAutomationDialog({ projects, providers, defaults, automation,
   const [picks, setPicks] = useState(0);
 
   // Providers can arrive after the dialog opens: pick a preset once the choice is no longer valid.
-  // An edit keeps its stored model until the providers are loaded and do not list it.
+  // An edit never replaces its stored model, even when the providers do not list it.
   useEffect(() => {
-    if (!findModel(providers, selection) && (!editing || providers.length > 0)) setSelection(presetSelection(projects.find((p) => p.id === projectId), providers, defaults.selection));
+    if (editing ? selection === null : !findModel(providers, selection)) setSelection(presetSelection(projects.find((p) => p.id === projectId), providers, defaults.selection));
   }, [providers]);
 
   async function send(text: string): Promise<void> {
