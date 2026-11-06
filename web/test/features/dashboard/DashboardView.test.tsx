@@ -57,10 +57,12 @@ interface Options {
   threads?: ReturnType<typeof thread>[];
   layout?: DashboardLayout;
   editing?: boolean;
+  panelOpen?: boolean;
+  sheet?: boolean;
   seen?: typeof fresh;
   providers?: DashboardState["providers"];
 }
-const render = (activity: ReadState<UsageOverview>, { limits = limitsState(), threads = [thread("a", { status: "running" })], layout = DEFAULT_LAYOUT, editing = false, seen = fresh, providers = [] }: Options = {}) =>
+const render = (activity: ReadState<UsageOverview>, { limits = limitsState(), threads = [thread("a", { status: "running" })], layout = DEFAULT_LAYOUT, editing = false, panelOpen = true, sheet = false, seen = fresh, providers = [] }: Options = {}) =>
   renderToStaticMarkup(
     <DashboardView
       state={{ ...baseState(threads), providers }}
@@ -73,6 +75,9 @@ const render = (activity: ReadState<UsageOverview>, { limits = limitsState(), th
       running={agentCounts(threads).running}
       layout={layout}
       editing={editing}
+      panelOpen={panelOpen}
+      sheet={sheet}
+      onCloseSheet={() => {}}
       onLayout={() => {}}
       onOpen={() => {}}
       onSettle={async () => {}}
@@ -136,33 +141,41 @@ test("the chart has one labelled bar slot per day, today last, and a table for s
   assert.match(out, /<table class="sr-only">/);
 });
 
-test("the default layout puts Usage, Activity, Server, Running and Up next left and Notifications right", () => {
+test("the default layout draws the cards in order inside one grid", () => {
   const out = render(state());
-  const right = out.indexOf('class="dashboard-col right pinned"');
-  assert.ok(right > 0);
-  assert.ok(out.indexOf('id="dashboard-usage-head"') < out.indexOf('id="dashboard-activity-head"'));
-  assert.ok(out.indexOf('id="dashboard-activity-head"') < out.indexOf('id="dashboard-server-head"'));
-  assert.ok(out.indexOf('id="dashboard-server-head"') < out.indexOf('id="running-head"'));
-  assert.ok(out.indexOf('id="running-head"') < out.indexOf('id="up-next-head"'));
-  assert.ok(out.indexOf('id="up-next-head"') < right);
-  assert.ok(right < out.indexOf('id="notifications-head"'));
+  const grid = out.indexOf('class="dashboard-cards"');
+  assert.ok(grid > 0);
+  const heads = ["dashboard-usage-head", "dashboard-activity-head", "dashboard-server-head", "running-head", "up-next-head"].map((id) => out.indexOf(`id="${id}"`));
+  assert.ok(grid < Math.min(...heads));
+  assert.deepEqual([...heads].sort((x, y) => x - y), heads);
+  assert.doesNotMatch(out, /dashboard-col/);
 });
 
-test("the right column is pinned only while it holds Notifications alone", () => {
-  assert.doesNotMatch(render(state(), { layout: moveCard(DEFAULT_LAYOUT, "running", "right") }), /dashboard-col right pinned/);
+test("an open panel sits beside the cards and holds Notifications", () => {
+  const out = render(state());
+  assert.match(out, /<div class="dashboard with-panel">/);
+  const aside = out.indexOf('<aside data-dash-item="notifications" class="dashboard-panel" aria-label="Notifications">');
+  assert.ok(aside > out.indexOf('id="up-next-head"'));
+  assert.ok(aside < out.indexOf('id="notifications-head"'));
+  assert.equal(out.match(/id="notifications-head"/g)?.length, 1);
+});
+
+test("a closed panel is not drawn and the cards stay", () => {
+  const out = render(state(), { panelOpen: false });
+  assert.match(out, /<div class="dashboard">/);
+  assert.doesNotMatch(out, /dashboard-panel|notifications-head/);
+  assert.match(out, /id="up-next-head"/);
+});
+
+test("edit mode hides the panel even when it is open, and Notifications has no edit bar", () => {
+  const out = render(state(), { editing: true });
+  assert.doesNotMatch(out, /dashboard-panel|notifications-head|with-panel|Move Notifications/);
 });
 
 test("a moved card follows the layout, and a hidden card is not drawn", () => {
-  const moved = render(state(), { layout: moveCard(DEFAULT_LAYOUT, "running", "right", 0) });
-  assert.ok(moved.indexOf('class="dashboard-col right"') < moved.indexOf('id="running-head"'));
-  assert.ok(moved.indexOf('id="running-head"') < moved.indexOf('id="notifications-head"'));
+  const moved = render(state(), { layout: moveCard(DEFAULT_LAYOUT, "running", 0) });
+  assert.ok(moved.indexOf('id="running-head"') < moved.indexOf('id="dashboard-usage-head"'));
   assert.doesNotMatch(render(state(), { layout: setHidden(DEFAULT_LAYOUT, "running", true) }), /running-head/);
-});
-
-test("each slot carries its place for the one-column layout", () => {
-  const out = render(state());
-  assert.match(out, /dashboard-slot notifications" style="--stack:1"/);
-  assert.match(out, /dashboard-slot running" style="--stack:4"/);
 });
 
 test("before the first answer the Activity card shows a skeleton, with the thread cards already there", () => {
@@ -191,15 +204,14 @@ test("without edit mode there is no edit bar", () => {
 
 test("edit mode shows a bar with a drag handle and the move buttons on every card, and locks the card", () => {
   const out = render(state(), { editing: true });
-  assert.equal(out.match(/class="card-edit-bar"/g)?.length, 6);
-  assert.equal(out.match(/class="card-edit-bar" draggable="true"/g)?.length, 6);
-  assert.match(out, /aria-label="Move Running to the right column"/);
-  assert.match(out, /aria-label="Move Notifications to the left column"/);
+  assert.equal(out.match(/class="card-edit-bar"/g)?.length, 5);
+  assert.equal(out.match(/class="card-edit-bar" draggable="true"/g)?.length, 5);
+  assert.doesNotMatch(out, /column"/);
   assert.match(out, /aria-label="Hide Up next"/);
-  assert.equal(out.match(/class="dashboard-slot-body" inert=""/g)?.length, 6);
+  assert.equal(out.match(/class="dashboard-slot-body" inert=""/g)?.length, 5);
 });
 
-test("the first card of a column cannot move up and the last cannot move down", () => {
+test("the first card cannot move up and the last cannot move down", () => {
   const out = render(state(), { editing: true });
   assert.match(out, /<button disabled=""[^>]*aria-label="Move Usage up"/);
   assert.match(out, /<button disabled=""[^>]*aria-label="Move Up next down"/);
@@ -276,6 +288,30 @@ test("the Running card lists working agents with a pulsing dot, model and projec
 
 test("routine threads stay out of every card", () => {
   assert.doesNotMatch(render(state(), { threads: [thread("t-routine", { title: "Routine run" })] }), /Routine run/);
+});
+
+test("in sheet mode the panel is a dialog sheet with a backdrop, and it takes no room", () => {
+  const out = render(state(), { sheet: true });
+  assert.match(out, /<div class="dashboard-backdrop open" aria-hidden="true">/);
+  assert.match(out, /<aside tabindex="-1" class="dashboard-panel open" role="dialog" aria-modal="true" aria-label="Notifications">/);
+  assert.doesNotMatch(out, /with-panel|data-dash-item="notifications"/);
+  assert.equal(out.match(/id="notifications-head"/g)?.length, 1);
+});
+
+test("a closed sheet stays mounted for its slide-out, but inert", () => {
+  const out = render(state(), { sheet: true, panelOpen: false });
+  assert.match(out, /<aside tabindex="-1" class="dashboard-panel" role="dialog"[^>]* inert=""/);
+  assert.doesNotMatch(out, /dashboard-backdrop open|dashboard-panel open/);
+});
+
+test("edit mode removes the sheet and its backdrop", () => {
+  assert.doesNotMatch(render(state(), { sheet: true, editing: true }), /dashboard-panel|dashboard-backdrop|notifications-head/);
+});
+
+test("the wide panel is a plain aside: no dialog role, no close button, nothing inert", () => {
+  const out = render(state());
+  assert.doesNotMatch(out, /role="dialog"|aria-modal|Close notifications/);
+  assert.doesNotMatch(out, /class="dashboard-main" inert/);
 });
 
 test("the Server card sits in a full-width slot, and its stats show", () => {

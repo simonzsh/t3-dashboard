@@ -2,28 +2,26 @@ import { readJson, writeKey, type Store } from "../../lib/storage.ts";
 
 export const DASHBOARD_LAYOUT_KEY = "t3-dashboard-layout";
 
-const CARDS = ["usage", "activity", "server", "notifications", "running", "up-next"] as const;
+const CARDS = ["usage", "activity", "server", "running", "up-next"] as const;
 export type DashboardCard = (typeof CARDS)[number];
-export type Column = "left" | "right";
 
-export const CARD_TITLES: Record<DashboardCard, string> = { usage: "Usage", server: "Server", activity: "Activity", notifications: "Notifications", running: "Running", "up-next": "Up next" };
+export const CARD_TITLES: Record<DashboardCard, string> = { usage: "Usage", server: "Server", activity: "Activity", running: "Running", "up-next": "Up next" };
 
-/** Two columns of ordered card ids, and the cards the user hid. */
+/** One ordered list of the shown cards, and the cards the user hid. */
 export interface DashboardLayout {
-  left: DashboardCard[];
-  right: DashboardCard[];
+  order: DashboardCard[];
   hidden: DashboardCard[];
 }
 
-export const DEFAULT_LAYOUT: DashboardLayout = { left: ["usage", "activity", "server", "running", "up-next"], right: ["notifications"], hidden: [] };
-const DEFAULT_COLUMN: Record<DashboardCard, Column> = { usage: "left", server: "left", activity: "left", running: "left", "up-next": "left", notifications: "right" };
+export const DEFAULT_LAYOUT: DashboardLayout = { order: [...CARDS], hidden: [] };
 
 const isCard = (v: unknown): v is DashboardCard => CARDS.includes(v as DashboardCard);
-const without = (l: DashboardLayout, id: DashboardCard): DashboardLayout => ({ left: l.left.filter((c) => c !== id), right: l.right.filter((c) => c !== id), hidden: l.hidden.filter((c) => c !== id) });
+const without = (l: DashboardLayout, id: DashboardCard): DashboardLayout => ({ order: l.order.filter((c) => c !== id), hidden: l.hidden.filter((c) => c !== id) });
 
-/** Keeps known cards once each, and puts the missing ones back in their default column. */
+/** Keeps known cards once each, and appends the missing ones to the order. A stored value of another shape gives the default. */
 export function validateLayout(raw: unknown): DashboardLayout {
   const input = (raw && typeof raw === "object" ? raw : {}) as Record<string, unknown>;
+  if (!Array.isArray(input.order)) return DEFAULT_LAYOUT;
   const seen = new Set<DashboardCard>();
   const take = (value: unknown): DashboardCard[] =>
     (Array.isArray(value) ? value : []).filter((id): id is DashboardCard => {
@@ -31,47 +29,37 @@ export function validateLayout(raw: unknown): DashboardLayout {
       seen.add(id);
       return true;
     });
-  const layout: DashboardLayout = { left: take(input.left), right: take(input.right), hidden: take(input.hidden) };
-  for (const id of CARDS) if (!seen.has(id)) layout[DEFAULT_COLUMN[id]].push(id);
-  return layout;
+  const order = take(input.order);
+  const hidden = take(input.hidden);
+  return { order: [...order, ...CARDS.filter((id) => !seen.has(id))], hidden };
 }
 
-/** Puts the card in a column at an index (the end when omitted); a hidden card becomes visible. */
-export function moveCard(layout: DashboardLayout, id: DashboardCard, column: Column, index?: number): DashboardLayout {
+/** Puts the card at an index of the order (the end when omitted); a hidden card becomes visible. */
+export function moveCard(layout: DashboardLayout, id: DashboardCard, index?: number): DashboardLayout {
   const next = without(layout, id);
-  next[column].splice(index ?? next[column].length, 0, id);
+  next.order.splice(index ?? next.order.length, 0, id);
   return next;
 }
 
 /** Drops a card before the slot `index` of the layout as shown; the same layout when that changes nothing. */
-export function dropCard(layout: DashboardLayout, id: DashboardCard, column: Column, index: number): DashboardLayout {
-  const from = layout[column].indexOf(id);
+export function dropCard(layout: DashboardLayout, id: DashboardCard, index: number): DashboardLayout {
+  const from = layout.order.indexOf(id);
   if (from !== -1 && (index === from || index === from + 1)) return layout;
-  // moveCard removes the card first: a lower slot in its own column shifts up by one.
-  return moveCard(layout, id, column, from !== -1 && from < index ? index - 1 : index);
+  // moveCard removes the card first: a lower slot shifts up by one.
+  return moveCard(layout, id, from !== -1 && from < index ? index - 1 : index);
 }
 
-/** One step up (-1) or down (+1) inside its column. */
+/** One step up (-1) or down (+1); the same layout at the ends or when the card is hidden. */
 export function shiftCard(layout: DashboardLayout, id: DashboardCard, step: -1 | 1): DashboardLayout {
-  const column = columnOf(layout, id);
-  const to = column ? layout[column].indexOf(id) + step : -1;
-  return column && to >= 0 && to < layout[column].length ? moveCard(layout, id, column, to) : layout;
-}
-
-function columnOf(layout: DashboardLayout, id: DashboardCard): Column | null {
-  return layout.left.includes(id) ? "left" : layout.right.includes(id) ? "right" : null;
+  const from = layout.order.indexOf(id);
+  const to = from + step;
+  return from === -1 || to < 0 || to >= layout.order.length ? layout : moveCard(layout, id, to);
 }
 
 export function setHidden(layout: DashboardLayout, id: DashboardCard, hide: boolean): DashboardLayout {
   if (hide === layout.hidden.includes(id)) return layout;
-  if (!hide) return moveCard(layout, id, DEFAULT_COLUMN[id]);
+  if (!hide) return moveCard(layout, id);
   return { ...without(layout, id), hidden: [...layout.hidden, id] };
-}
-
-/** One-column order on a phone: the first card, the right column, then the rest of the left one. */
-export function stackedOrder(layout: DashboardLayout): DashboardCard[] {
-  const [first, ...rest] = layout.left;
-  return [...(first ? [first] : []), ...layout.right, ...rest];
 }
 
 export const isDefaultLayout = (layout: DashboardLayout): boolean => JSON.stringify(layout) === JSON.stringify(DEFAULT_LAYOUT);

@@ -1,6 +1,7 @@
 import type { Tab } from "../../lib/tabs.ts";
 import type { SessionLayout } from "../../lib/sessionLayout.ts";
 import { ctrlLabel } from "../../lib/shortcuts.ts";
+import { badgeText } from "./AppNav.tsx";
 import { Button, Icon, IconButton, type ButtonVariant, type IconName } from "../../ui/index.ts";
 
 interface Props {
@@ -27,6 +28,10 @@ interface Props {
   onEditLayout: () => void;
   onDoneLayout: () => void;
   onResetLayout: () => void;
+  /** Unread notifications: the bell badge. */
+  unread: number;
+  notificationsOpen: boolean;
+  onToggleNotifications: () => void;
 }
 
 interface ActionProps {
@@ -65,8 +70,8 @@ function Action({ compact, label, icon, variant = "secondary", withIcon = false,
   );
 }
 
-/** The header buttons of a page: Sessions hides the list, picks its layout and starts a session, Automations a task, Dashboard edits its layout. */
-export function PageActions({ tab, compact, ready, editingLayout, layoutIsDefault, layout, onLayoutChange, listHidden, onToggleList, onNewSession, onNewAutomation, onSearch, onSettings, updateReady, onEditLayout, onDoneLayout, onResetLayout }: Props) {
+/** The header buttons of a page: Sessions hides the list, picks its layout and starts a session, Automations a task, Dashboard shows the Notifications bell and edits its layout. */
+export function PageActions({ tab, compact, ready, editingLayout, layoutIsDefault, layout, onLayoutChange, listHidden, onToggleList, onNewSession, onNewAutomation, onSearch, onSettings, updateReady, onEditLayout, onDoneLayout, onResetLayout, unread, notificationsOpen, onToggleNotifications }: Props) {
   let main = null;
   if (tab === "dashboard" && editingLayout) {
     main = (
@@ -76,7 +81,20 @@ export function PageActions({ tab, compact, ready, editingLayout, layoutIsDefaul
       </>
     );
   } else if (tab === "dashboard") {
-    main = <Action compact={compact} label="Edit layout" icon="layoutPanels" withIcon onClick={onEditLayout} />;
+    const bell = notificationsOpen ? "Hide notifications" : "Show notifications";
+    main = (
+      <>
+        <IconButton variant="ghost" className="notif-bell" label={unread > 0 ? `Notifications, ${unread} unread` : "Notifications"} tooltip={bell} aria-pressed={notificationsOpen} onClick={onToggleNotifications}>
+          <Icon name="bell" />
+          {unread > 0 && (
+            <span className="nav-badge" aria-hidden="true">
+              {badgeText(unread)}
+            </span>
+          )}
+        </IconButton>
+        <Action compact={compact} label="Edit layout" icon="layoutPanels" withIcon onClick={onEditLayout} />
+      </>
+    );
   } else if (tab === "sessions" && ready) {
     // One button: its icon and label name the view it switches to.
     const toLayout = layout === "columns" ? "grid" : "columns";
