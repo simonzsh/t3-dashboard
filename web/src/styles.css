@@ -657,7 +657,9 @@ ol.install-steps { padding-left: 18px; }
 /* Home: two columns of cards in one scroll area; the layout model decides which card goes where. */
 .home { flex: 1; min-height: 0; overflow-y: auto; box-sizing: border-box; display: grid; grid-template-columns: minmax(0, 2fr) minmax(260px, 1fr); align-items: start; gap: 16px; padding: 4px; margin: -4px; }
 .home-col { min-width: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); align-items: start; gap: 16px; }
-.home-col.right { grid-template-columns: minmax(0, 1fr); position: sticky; top: 0; }
+.home-col.right { grid-template-columns: minmax(0, 1fr); }
+/* Sticky only for the capped Notifications card alone: a taller column would hide its lower cards. */
+.home-col.pinned { position: sticky; top: 0; }
 .home-slot { min-width: 0; }
 .home-slot.usage { grid-column: 1 / -1; }
 /* Edit mode: each card has a bar on top, and a column accepts drops even when it is empty. */

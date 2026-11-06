@@ -79,11 +79,16 @@ test("the chart has one labelled bar slot per day, today last, and a table for s
 
 test("the default layout puts usage, Running and Up next left and Notifications right", () => {
   const out = render(state());
-  const right = out.indexOf('class="home-col right"');
+  const right = out.indexOf('class="home-col right pinned"');
+  assert.ok(right > 0);
   assert.ok(out.indexOf('aria-label="Usage"') < out.indexOf('id="card-running"'));
   assert.ok(out.indexOf('id="card-running"') < out.indexOf('id="card-up-next"'));
   assert.ok(out.indexOf('id="card-up-next"') < right);
   assert.ok(right < out.indexOf('id="card-notifications"'));
+});
+
+test("the right column is pinned only while it holds Notifications alone", () => {
+  assert.doesNotMatch(render(state(), undefined, moveCard(DEFAULT_LAYOUT, "running", "right")), /home-col right pinned/);
 });
 
 test("the Today and Needs you cards are gone", () => {

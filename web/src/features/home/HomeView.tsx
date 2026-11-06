@@ -105,7 +105,7 @@ export function HomeView({ usage, threads, now, layout, cards, editing = false, 
     setDragged(null);
   };
   const column = (id: Column) => (
-    <div className={`home-col ${id}${editing ? " editing" : ""}`} onDragOver={editing && dragged ? (e) => e.preventDefault() : undefined} onDrop={editing ? (e) => drop(e, id) : undefined}>
+    <div className={`home-col ${id}${editing ? " editing" : ""}${id === "right" && layout.right.length === 1 && layout.right[0] === "notifications" ? " pinned" : ""}`} onDragOver={editing && dragged ? (e) => e.preventDefault() : undefined} onDrop={editing ? (e) => drop(e, id) : undefined}>
       {layout[id].map((card, index) => (
         <div
           key={card}
