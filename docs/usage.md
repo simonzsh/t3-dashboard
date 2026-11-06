@@ -2,7 +2,7 @@
 
 [Back to the README](../README.md)
 
-The dashboard has three pages: Home, Desk and Automations. A sidebar on the left lists them, with a search button (`⌘` + `K`). Its last row shows the connection state, Settings and a button that collapses the sidebar to icons (`Ctrl` + `B`). The theme and the accent color are in Settings. The sidebar remembers its state. The page header is one line: the title and a short description. Its button depends on the page: Desk has New Agent (`Ctrl` + `N`), Automations has New Automation (`Ctrl` + `⇧` + `N`), and Home has Edit layout. The two shortcuts work on every page. On a phone, a bar at the bottom of the screen replaces the sidebar: Home, Desk, Automations and Settings. The header then shows the page button as an icon, and a search button.
+The dashboard has three pages: Home, Sessions and Automations. A sidebar on the left lists them, with a search button (`⌘` + `K`). Its last row shows the connection state, Settings and a button that collapses the sidebar to icons (`Ctrl` + `B`). The theme and the accent color are in Settings. The sidebar remembers its state. The page header is one line: the title and a short description. Its button depends on the page: Sessions has a Column view and Grid view toggle and New Session (`Ctrl` + `N`), Automations has New Automation (`Ctrl` + `⇧` + `N`), and Home has Edit layout. The two shortcuts work on every page. On a phone, a bar at the bottom of the screen replaces the sidebar: Home, Sessions, Automations and Settings. The header then shows the page button as an icon, and a search button.
 
 ## Home
 
@@ -19,13 +19,13 @@ Home opens first. At the top, a usage card shows three numbers for the last 7 da
 The Inbox is made of three Home cards: Notifications, Running and Up next. The Home entry in the sidebar shows the number of unread items (waiting, failed or finished, not read yet). `Ctrl` + `1` opens Home.
 
 - Notifications lists, newest first in each group: the agents that need you (waiting for an approval or an answer, or failed and not settled), then the unread results, then the recent read agents, greyed. A status icon shows the kind: warning (waits for you), alert (failed), check (finished). Each item shows the title, one line of detail (what it waits for, the error, or the model), the project and the time. Items that need you or are unread have a tint and a dot. The badge in the header counts them.
-- Point at an unread item to see its one button: the check marks it read. An agent that waits or failed has no button: it still needs you. The Running card rows keep their buttons: the T3 Code logo opens the conversation in T3 Code, the archive button settles the agent (when allowed) and `+` adds it to the Desk. A click on a notification opens the conversation on the Desk and marks it read. `⇧` + click adds it to the Desk without leaving Home.
+- Point at an unread item to see its one button: the check marks it read. An agent that waits or failed has no button: it still needs you. The Running card rows keep their buttons: the T3 Code logo opens the conversation in T3 Code, the archive button settles the agent (when allowed) and `+` opens it in Sessions. A click on a notification opens the conversation in Sessions and marks it read. `⇧` + click opens it in Sessions without leaving Home.
 - The "Mark all read" button of the header marks all unread results read.
 - "See all" shows every read agent, also the ones with no activity for 3 days or more, and the "Settle all older than 3 days" button. When nothing needs you, the card says "Nothing needs you". Settled agents are not listed: find them with `⌘` + `K`.
-- Running lists the agents that work, with the model, the project and the time. A click opens the conversation on the Desk.
+- Running lists the agents that work, with the model, the project and the time. A click opens the conversation in Sessions.
 - Up next lists the agents of started tickets that stopped ("To relaunch": the agent finished, you read it, and it has been idle for more than 24 hours), then the tickets that have no agent, started ones first (see [Tickets](#tickets)). It shows 5 tickets, then "Show N more". It also shows the Linear connection and the setup card when you have no key.
 - Archived or deleted sessions, sub-agents and the threads of scheduled tasks, webhook runs included (see [Automations](#automations)), do not appear.
-- The "Add to Desk" button adds the row to the Desk. A second click removes it.
+- The "Open in Sessions" button opens the row in Sessions. A second click closes it.
 - The "Open in T3 Code" link opens the session in T3 Code.
 - The "Settle" button (box icon) moves an agent to "Recently settled", as T3 Code does. It does not exist for an agent that works or waits.
 
@@ -37,25 +37,24 @@ The Linear tickets feed "To relaunch" and "Up next". They need a Linear API key:
 
 - A ticket has an agent when the title of a session contains its number, for example `ABC-123`. A session that you archive in T3 Code no longer counts: its ticket comes back.
 - "Up next" holds the tickets in the "Todo" and "In Progress" states with no agent. "In Progress" tickets come first, then the tickets are sorted by priority (urgent first, no priority last), then by update date.
-- The foot of a ticket card shows its Linear project on the left. Point at the ticket to see 2 buttons on the right (on a touch screen they always show). The copy button copies the link of the issue. The robot button opens the New Agent window with the ticket: choose the project, the model and the instructions, then create the session. The window selects the last project that you chose for the Linear team. The session goes onto the Desk, and the ticket leaves the list.
+- The foot of a ticket card shows its Linear project on the left. Point at the ticket to see 2 buttons on the right (on a touch screen they always show). The copy button copies the link of the issue. The robot button opens the New Session window with the ticket: choose the project, the model and the instructions, then create the session. The window selects the last project that you chose for the Linear team. The session opens in Sessions, and the ticket leaves the list.
 - Click a ticket card to open the issue in Linear. The "Refresh" button of "Up next" reads the tickets again immediately.
 - The browser keeps the project selection in its `localStorage`, not on the server.
 
-## Desk
+## Sessions
 
-The Desk shows many conversations side by side, in a grid.
+Sessions shows your open conversations side by side. Each session is a column of 380 px that fills the height of the page. A hairline separates the columns.
 
-- At most six windows stay visible. When you open a seventh window, the oldest window goes into the dock.
-- Click a window in the dock to open it again.
-- Drag the dividers to change the size of the columns and rows. The browser keeps these sizes for each number of windows.
-- Each window has three buttons: full screen, minimize, close.
+- There is no limit on the number of open sessions. The strip scrolls sideways. A new session opens at the right end and scrolls into view.
+- The toggle in the page header chooses the view. Column view shows one session per column. Grid view stacks two sessions in each column, and the strip still scrolls sideways. Each browser keeps its choice.
+- Each session has a header with a drag handle, its title, its state, the project name, and three buttons: open in T3 Code, full screen, close. Drag the header onto another session to swap them.
+- Close a session with the x button. Open it again from Home or from the switcher.
 - The server keeps which finished conversations you opened, for the Inbox and the Inbox badge, in `~/.config/t3-dashboard/seen.json`. A conversation read on one device is read on all of them.
-- The server keeps which conversations are on the Desk in `~/.config/t3-dashboard/desk.json`. Every device shows the same conversations, and an opened or closed window appears on the other open tabs at once. Each device keeps its own window order, minimized windows, focused window, full screen window, sizes and Jump to history.
-- In Settings, select a background for the Desk: a gradient or your own image.
+- The server keeps which conversations are open in Sessions in `~/.config/t3-dashboard/sessions.json`. Every device shows the same conversations, and an opened or closed session appears on the other open tabs at once. Each device keeps its own session order, focused session, full screen session, layout and Jump to history.
 
 ### Conversation
 
-Each Desk window contains a conversation.
+Each session contains a conversation.
 
 - Write a message and send it with `Enter`. During a run, the message waits in the "Up next" list (dashed border). T3 Code sends it when the turn ends.
 - Under each queued message, three icons: "Send now" (the same arrow as Send), edit, remove. During a run, "Send now" steers: the message goes into the current run now. After a Stop, T3 Code holds the queue, and "Send now" starts a turn with this message.
@@ -64,7 +63,7 @@ Each Desk window contains a conversation.
 - Type `/` at the start of the message to list the commands of the provider. Type `$` after a space to list its skills. The lists follow the thread folder. The menus work like the `@` list and insert `/command ` or `$skill `. Built-in T3 Code commands (`/model`, `/plan`, `/side`) are not in the lists.
 - The Compact button shows the context size, for example `Compact 722k`. It appears as in T3 Code: on a Claude thread of 200k tokens or more whose prompt cache has expired (70 minutes after the last turn by default), and never during a run. `/compact` stays in the `/` list at any size. Click it, or pick `/compact`, to compact the thread.
 - Stash a draft: press `Ctrl+S` in the composer (`Ctrl`, also on a Mac). On a touch screen, tap the stash button next to Attach. The text and the ready attachments go to the stash and the composer empties. A "Stash" button with the count then shows next to Attach. Click it to open the "Stashed prompts" list: each row has the first line, the age, the conversation and the number of files. Click a row, or use the arrow keys and `Enter`, to restore it: the text goes after your draft and the files return as chips. The "x" deletes an entry and frees its files. `Escape` closes the list. The stash holds 20 prompts and drops the oldest. T3 Code 0.1.6 keeps its own stash in the browser only, so the two are separate. This one is in `~/.config/t3-dashboard/stash.json` and is the same on every device: a change shows at once in every open window. T3 keeps an unsent upload for 24 hours: a restored entry older than that gets its text back and a message names the files to attach again.
-- `Escape` in the message field, with no list open, leaves the field and puts the focus on the conversation. The `Ctrl` shortcuts work in the field too. Press `Escape` again on the Desk to restore a full-screen window.
+- `Escape` in the message field, with no list open, leaves the field and puts the focus on the conversation. The `Ctrl` shortcuts work in the field too. Press `Escape` again in Sessions to restore a full-screen session.
 - Change the model, its options and the access mode with one chip in the composer. The chip shows the provider icon, the model, the reasoning level and a bolt when Fast is on. Click it to open the panel above it:
   - The panel opens on your favorites (or on the current provider when you have none). The left rail has the favorites (star) and one icon per provider. Type in "Search models..." to search all providers.
   - Click a model, or use `↑` `↓` and `Enter`: the panel closes. `Escape` also closes it.
@@ -77,7 +76,7 @@ Each Desk window contains a conversation.
 - Follow the steps of the run in the conversation. Consecutive steps (reasoning, commands, tools, file changes, searches) form one group. The group of the active run shows its last 4 steps under "Working for …". Other groups are closed: click one to see its steps.
 - Click a command to see its output and exit code. Click a file change to see its diff. Click a tool or a search to see its input and results. A note says when T3 Code cut a long text.
 - A to-do list, a proposed plan and a notice (checkpoint, compaction, error) have their own block.
-- Like T3 Code, a subagent has a row with its provider logo, title, latest line, status and time. Two or more subagents of one turn share a "N subagents" header that opens a card of rows. Click a row to open its thread in a Desk window. The window takes its name from the thread, follows a running subagent, and stays on the Desk after a reload. It goes full screen or closes, but it does not minimize. Like T3 Code, it has no message field: a bar shows the model, the run time, "Runs on its own" and "Open parent", which opens the parent thread. `@` search there uses the folder of the parent thread. The stop icon stops a running subagent.
+- Like T3 Code, a subagent has a row with its provider logo, title, latest line, status and time. Two or more subagents of one turn share a "N subagents" header that opens a card of rows. Click a row to open its thread in a session. The session takes its name from the thread, follows a running subagent, and stays open after a reload. Like T3 Code, it has no message field: a bar shows the model, the run time, "Runs on its own" and "Open parent", which opens the parent thread. `@` search there uses the folder of the parent thread. The stop icon stops a running subagent.
 - Between your message and the first step, a "Working…" row shows while the run is active.
 - Point at a message (or tab to it) to see a row of icons under it. On a touch screen, the row always shows. The copy icon copies the text of the message (Markdown) and shows "Copied".
 - The "Edit from here" icon (your messages only) opens a dialog. Choose "Revert files too" to rewind the conversation to before this message and also undo the file edits of the agent, or "Revert and keep changes" to rewind the conversation only: your files stay as they are. In both cases your text and attachments return to the composer. The icon is disabled during a run. A message with no ready checkpoint before it has no icon.
@@ -107,14 +106,14 @@ The web page uses these routes of the dashboard server.
 
 Attachments show inside the message: in the bubble of your messages, above the text of an agent message. A click on an image, a PDF, an HTML file or a text file opens a preview dialog with "Download" and "Open in new tab". An image that an agent cites opens in the same dialog.
 
-## New Agent
+## New Session
 
-The New Agent button (key `N`) starts a new agent.
+The New Session button (key `N`) starts a new session.
 
 1. Select a T3 project, or keep "No project". Without a project, the session goes into the "No project" project of T3 Code.
 2. Write the task. The first line becomes the title of the session.
 3. If necessary, change the model or the access mode, or attach files. `@` search does not work here: the thread does not exist yet.
-4. Send. The conversation opens on the Desk.
+4. Send. The conversation opens in Sessions.
 
 - The proposed model is the default model of the project. If there is none, it is the default model of T3 Code.
 - The favorite models of T3 Code are at the top of the list.
@@ -127,7 +126,7 @@ The Automations tab lists the scheduled tasks of T3 Code in a table. It needs T3
 - The columns are: name, project, schedule, next run, last result and actions.
 - The groups are: "Needs attention" (last run failed or waiting), "Today", "Upcoming" and "Paused / finished" (closed). An empty group does not appear.
 - Search by name, project or schedule. The project list filters by project.
-- Click a name to open the thread of the task on the Desk. Shift + click adds it to the Desk.
+- Click a name to open the thread of the task in Sessions. Shift + click opens it in Sessions without leaving the page.
 - Without a task, the tab shows "No automations yet" and a New Automation button.
 
 - A routine runs at each occurrence. The row shows the project, the frequency, the next run and the status of the last run. A paused task shows "paused".
@@ -195,7 +194,7 @@ A task without a linked thread creates a new thread at each run. The dashboard h
 
 Open Settings with the header button or the `,` key. A sidebar on the left lists the tabs. Only one tab is visible at a time.
 
-- Appearance: "System", "Light" or "Dark" theme, the accent color (blue by default; purple, pink, red, orange, yellow or green), and Desk background. The accent color paints the buttons, the links, the focus ring, the logo and the tab icon. Each browser keeps its own choice.
+- Appearance: "System", "Light" or "Dark" theme, the accent color (blue by default; purple, pink, red, orange, yellow or green). The accent color paints the buttons, the links, the focus ring, the logo and the tab icon. Each browser keeps its own choice.
 - Connections: status of the Linear key, change or removal of the key.
 - App: how to install the dashboard as an application (Dock, Launchpad, Start menu, home screen). The steps change with the browser and the device: Safari, Chrome, Edge, iPhone and iPad, Android. Dia and Firefox do not install web apps.
 - Updates: installed version, check for and installation of an update. See [install.md](install.md#updates).
@@ -206,21 +205,21 @@ The shortcuts use `Ctrl`, also on a Mac, and they work while you type in a field
 
 | Key | Action |
 | --- | --- |
-| `Ctrl` + `1`, `2`, `3` | Opens Home, Desk or Automations. |
-| `Ctrl` + `K` or `⌘` + `K` | Opens or closes the "Jump to" switcher. It finds a conversation by title, project or message. Without text, it shows the agents that wait for an answer, then your recent conversations. `↑` `↓` select, `Enter` opens in the Desk. |
+| `Ctrl` + `1`, `2`, `3` | Opens Home, Sessions or Automations. |
+| `Ctrl` + `K` or `⌘` + `K` | Opens or closes the "Jump to" switcher. It finds a conversation by title, project or message. Without text, it shows the agents that wait for an answer, then your recent conversations. `↑` `↓` select, `Enter` opens in Sessions. |
 | `Ctrl` + `S` | In the message field of a conversation: stashes the draft. |
-| `Ctrl` + `N` | Opens New Agent. |
+| `Ctrl` + `N` | Opens New Session. |
 | `Ctrl` + `⇧` + `N` | Opens a new automation (New Automation). |
 | `Ctrl` + `,` | Opens Settings. |
 | `Ctrl` + `B` | Collapses or expands the sidebar. |
-| `Ctrl` + `X` | Desk: closes the active window. |
-| `Ctrl` + `F` | Desk: puts the active window in full screen, or takes it out of full screen. |
-| `Ctrl` + `M` | Desk: minimizes the active window. |
-| `Ctrl` + `Alt` + `1` to `6` | Desk: activates window 1 to 6 and puts the cursor in its message field. |
-| `Esc` | Desk, outside a field: exits full screen. In the message field, it leaves the field. |
-| `←` `→` `↑` `↓` | Desk, outside a field: moves the focus to the next window. |
+| `Ctrl` + `X` | Sessions: closes the active session. |
+| `Ctrl` + `F` | Sessions: puts the active session in full screen, or takes it out of full screen. |
+| `Ctrl` + `Alt` + `1` to `9` | Sessions: goes to column 1 to 9, scrolls it into view and puts the cursor in its message field. |
+| `Esc` | Sessions, outside a field: exits full screen. In the message field, it leaves the field. |
+| `←` `→` | Sessions, outside a field: moves the focus to the next column and scrolls it into view. |
+| `↑` `↓` | Sessions, grid view, outside a field: moves the focus between the two sessions of a column. |
 
-On the Desk, typing a letter outside any field writes it in the message field of the active window: no click needed first.
+In Sessions, typing a letter outside any field writes it in the message field of the active session: no click needed first.
 
 On Windows and Linux, the browser keeps `Ctrl` + `N`, `Ctrl` + `⇧` + `N` and `Ctrl` + `1` to `3` for itself: use the buttons there.
 
