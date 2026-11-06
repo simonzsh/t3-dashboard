@@ -15,6 +15,7 @@ import { T3Client, validateWith } from "../integrations/t3/client.ts";
 import { environmentIdFile, readEnvironmentId, readServerVersion, resolveOrigin, runtimeFile } from "../integrations/t3/runtime.ts";
 import { LiveSync } from "../domain/liveSync.ts";
 import { LinearBoard } from "../domain/linearBoard.ts";
+import { createUsage } from "../domain/usage.ts";
 import { deskText, readDesk } from "../config/deskFile.ts";
 import { readStash, stashText } from "../config/stashFile.ts";
 import { readSeen, seenText } from "../config/seenFile.ts";
@@ -122,6 +123,8 @@ export async function start({ port, log, env }: StartOptions): Promise<void> {
     now: () => new Date(),
   });
 
+  const usage = createUsage({ port: client, threads: () => getState().threads, now: () => new Date(), serverTimeZone: Intl.DateTimeFormat().resolvedOptions().timeZone });
+
   const settings = createSettings({ file: linearPath, readFile: readText, writeSecret, board });
   const wake = () => {
     live.retryNow();
@@ -162,7 +165,7 @@ export async function start({ port, log, env }: StartOptions): Promise<void> {
   const stash = new StashStore(readStash(stashFile, readText), (entries) => writeSecret(stashFile, stashText(entries)), { now: () => new Date(), newId: () => crypto.randomUUID() });
   const seenFile = seenPath(env, home);
   const seen = new SeenStore(readSeen(seenFile, readText), (value) => writeSecret(seenFile, seenText(value)));
-  const handler = createDashboardServer({ actions, desk, stash, seen, hub, board, automations, getState, connection: () => live.connection(), site, settings, setup, updates, allowedHosts: envAllowedHosts(env) });
+  const handler = createDashboardServer({ actions, desk, stash, seen, hub, board, usage, automations, getState, connection: () => live.connection(), site, settings, setup, updates, allowedHosts: envAllowedHosts(env) });
 
   const reclassifier = setInterval(() => store.reclassify(new Date()), RECLASSIFY_MS);
   // A dev build has no version to compare, and its runs must not call GitHub.

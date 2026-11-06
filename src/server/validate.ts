@@ -130,6 +130,17 @@ export function validSearch(params: URLSearchParams): { query: string; limit: nu
   return { query, limit };
 }
 
+/** The IANA zone of `?tz=`, or undefined when absent (the server zone then applies). */
+export function validTimeZone(value: string | null): string | undefined {
+  if (value === null) return undefined;
+  try {
+    new Intl.DateTimeFormat("en-CA", { timeZone: value });
+  } catch {
+    throw new HttpError(400, "tz must be an IANA time zone, such as Europe/Paris");
+  }
+  return value;
+}
+
 export function validSettings(body: Record<string, unknown>): ThreadSettingsBody {
   const modelSelection = "modelSelection" in body ? validSelection(body.modelSelection) : undefined;
   const runtimeMode = body.runtimeMode;

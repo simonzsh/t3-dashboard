@@ -7,6 +7,7 @@ import type { StashStore } from "../domain/stashStore.ts";
 import type { SeenStore } from "../domain/seenStore.ts";
 import type { Automations } from "../domain/automations.ts";
 import type { LinearBoard } from "../domain/linearBoard.ts";
+import type { Usage } from "../domain/usage.ts";
 import type { Settings } from "../domain/settings.ts";
 import type { UpdateManager } from "../domain/updates.ts";
 import { VERSION } from "../config/version.ts";
@@ -16,7 +17,7 @@ import { matchesEtag } from "./etag.ts";
 import { servePwa } from "./pwa.ts";
 import type { Site } from "./site.ts";
 import type { SseHub } from "./sse.ts";
-import { isObject, isText, validAssign, validAttachments, validCreateAutomation, validDesk, validCreate, validFileSearch, validItemId, validMessage, validProvider, validQueuedEdit, validRespond, validRewind, validSearch, validSecretAnswer, validSeen, validSettings, validStash, validUpdateAutomation, validUpload } from "./validate.ts";
+import { isObject, isText, validAssign, validAttachments, validCreateAutomation, validDesk, validCreate, validFileSearch, validItemId, validMessage, validProvider, validQueuedEdit, validRespond, validRewind, validSearch, validSecretAnswer, validSeen, validSettings, validStash, validTimeZone, validUpdateAutomation, validUpload } from "./validate.ts";
 
 export interface SetupControl {
   /** Resolves the token again. */
@@ -29,6 +30,7 @@ export interface SetupControl {
 export interface DashboardServerOptions {
   actions: Actions;
   board: Pick<LinearBoard, "get">;
+  usage: Pick<Usage, "get">;
   automations: Pick<Automations, "list" | "create" | "remove" | "update">;
   desk: Pick<DeskStore, "get" | "set">;
   stash: Pick<StashStore, "list" | "add" | "remove">;
@@ -144,7 +146,7 @@ function matchRoute(pattern: string[], segments: string[]): Record<string, strin
 }
 
 export function createDashboardServer(options: DashboardServerOptions): DashboardHandler {
-  const { actions, desk, stash, seen, hub, board, automations, getState, connection, site, settings, setup, updates } = options;
+  const { actions, desk, stash, seen, hub, board, usage, automations, getState, connection, site, settings, setup, updates } = options;
   const allowedHosts = new Set([...LOCAL_HOSTS, ...(options.allowedHosts ?? [])]);
   const ok = (extra: Record<string, unknown> = {}) => json(200, { ok: true, ...extra });
   const done = async (work: Promise<unknown>) => (await work, ok());
@@ -179,6 +181,14 @@ export function createDashboardServer(options: DashboardServerOptions): Dashboar
   const routes: Route[] = [
     { method: "GET", path: "/api/health", handle: () => json(200, { ok: true, t3: connection().t3, version: VERSION }) },
     { method: "GET", path: "/api/board", handle: async ({ req }) => json(200, await board.get(new URL(req.url).searchParams.get("refresh") === "1")) },
+    {
+      method: "GET",
+      path: "/api/usage",
+      handle: async ({ req }) => {
+        const params = new URL(req.url).searchParams;
+        return json(200, await usage.get(validTimeZone(params.get("tz")), params.get("refresh") === "1"));
+      },
+    },
     { method: "GET", path: "/api/automations", handle: async () => json(200, await automations.list()) },
     { method: "GET", path: "/api/settings", handle: () => json(200, settings.get()) },
     { method: "GET", path: "/api/desk", handle: () => json(200, { desk: desk.get() }) },

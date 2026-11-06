@@ -95,6 +95,13 @@ test("getBoard reads the cache by default and forces a refresh on demand", async
   assert.equal(calls[0]?.init?.method ?? "GET", "GET");
 });
 
+test("getUsage sends the encoded time zone and forces a refresh on demand", async () => {
+  const { calls, api } = fake(200, {});
+  await api.getUsage("America/Port-au-Prince");
+  await api.getUsage("Europe/Paris", true);
+  assert.deepEqual(calls.map((c) => c.url), ["/api/usage?tz=America%2FPort-au-Prince", "/api/usage?tz=Europe%2FParis&refresh=1"]);
+});
+
 test("assignIssue posts the body to the assign route", async () => {
   const { calls, api } = fake(200, { ok: true, threadId: "thread-7" });
   const body = { issueId: "i1", projectId: "p1", text: "", modelSelection: { instanceId: "codex", model: "m" } };

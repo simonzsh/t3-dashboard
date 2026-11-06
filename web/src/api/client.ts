@@ -33,6 +33,7 @@ import type {
   UpdateStatus,
   UploadBody,
   UploadResult,
+  UsageOverview,
 } from "../../../shared/api.ts";
 
 // The server sends its own message when it has one; these cover the rest.
@@ -99,6 +100,7 @@ export function createApi(fetchImpl: Fetch) {
     updateAutomation: (id: string, b: UpdateAutomationBody) => call<OkResult>(`/api/automations/${encodeURIComponent(id)}/update`, b),
     deleteAutomation: (id: string) => call<OkResult>(`/api/automations/${encodeURIComponent(id)}/delete`, {}),
     getBoard: (refresh = false) => call<BoardResult>(refresh ? "/api/board?refresh=1" : "/api/board"),
+    getUsage: (timeZone: string, refresh = false) => call<UsageOverview>(`/api/usage?tz=${encodeURIComponent(timeZone)}${refresh ? "&refresh=1" : ""}`),
     assignIssue: (b: AssignIssueBody) => call<CreateThreadResult>("/api/board/assign", b),
     getSettings: () => call<SettingsResult>("/api/settings"),
     retrySetup: () => call<ConnectionStatus>("/api/setup/retry", {}),

@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { afterEach, test } from "bun:test";
-import type { Automation, AutomationsResult, ConnectionStatus, DashboardEvent, DashboardState } from "../../shared/api.ts";
+import type { UsageOverview, Automation, AutomationsResult, ConnectionStatus, DashboardEvent, DashboardState } from "../../shared/api.ts";
 import { LinearClient } from "../../src/integrations/linear/client.ts";
 import { createActions } from "../../src/domain/actions.ts";
 import type { Automations } from "../../src/domain/automations.ts";
@@ -49,6 +49,19 @@ interface StartOptions {
   seen?: SeenState | null;
 }
 
+const usageTotals = { turns: 0, costUsd: 0, inputTokens: 0, cachedInputTokens: 0, outputTokens: 0 };
+const usageOverview: UsageOverview = {
+  timeZone: "UTC",
+  days: Array.from({ length: 14 }, (_, index) => ({ day: `2026-03-${String(7 + index).padStart(2, "0")}`, ...usageTotals })),
+  thisWeek: usageTotals,
+  lastWeek: usageTotals,
+  total: usageTotals,
+  activeThreads: 0,
+  turnsPartial: false,
+  cost: { status: "ok", detail: null, refreshing: false },
+  readAt: now.toISOString(),
+};
+
 const LINEAR_FILE = "/cfg/linear.json";
 
 async function start(startOptions: StartOptions = {}) {
@@ -93,6 +106,8 @@ async function start(startOptions: StartOptions = {}) {
     run: () => (updateRuns.push("run"), new Promise<boolean>(() => {})),
   });
   const port = new FakePort();
+  const usageCalls: Array<{ timeZone: string | undefined; refresh: boolean }> = [];
+  const usage = { get: async (timeZone: string | undefined, refresh: boolean) => (usageCalls.push({ timeZone, refresh }), { ...usageOverview, timeZone: timeZone ?? "UTC" }) };
   const hub = new SseHub({ batchMs: 10, pingMs: 60_000 });
   let counter = 0;
   const store: ShellStore = new ShellStore({
@@ -135,6 +150,7 @@ async function start(startOptions: StartOptions = {}) {
     seen,
     hub,
     board,
+    usage,
     automations,
     getState,
     connection: () => connection,
@@ -145,7 +161,7 @@ async function start(startOptions: StartOptions = {}) {
     allowedHosts: startOptions.allowedHosts,
   });
   running.push(async () => hub.close());
-  return { port, store, hub, server, savedDesks, savedStashes, savedSeen, events, linearCalls, files, setupCalls, updateRuns };
+  return { port, store, hub, server, usageCalls, savedDesks, savedStashes, savedSeen, events, linearCalls, files, setupCalls, updateRuns };
 }
 
 interface Reply {
@@ -627,6 +643,25 @@ test("GET /api/board returns the board and caches it until ?refresh=1", async ()
   await call(server, "GET", "/api/board?refresh=1");
   assert.equal(linearCalls.length, 2);
   assert.ok(!first.text.includes("key-1"));
+});
+
+test("GET /api/usage returns the overview for the zone and passes ?refresh=1", async () => {
+  const { server, usageCalls } = await start();
+  const first = await call(server, "GET", "/api/usage?tz=Europe%2FParis");
+  assert.equal(first.status, 200);
+  assert.equal(first.json.timeZone, "Europe/Paris");
+  assert.equal(first.json.days.length, 14);
+  await call(server, "GET", "/api/usage?tz=Europe%2FParis&refresh=1");
+  await call(server, "GET", "/api/usage");
+  assert.deepEqual(usageCalls, [{ timeZone: "Europe/Paris", refresh: false }, { timeZone: "Europe/Paris", refresh: true }, { timeZone: undefined, refresh: false }]);
+});
+
+test("GET /api/usage refuses an unknown time zone with the usual error shape", async () => {
+  const { server, usageCalls } = await start();
+  const reply = await call(server, "GET", "/api/usage?tz=Mars%2FBase");
+  assert.equal(reply.status, 400);
+  assert.match(reply.json.error, /tz must be an IANA time zone/);
+  assert.equal(usageCalls.length, 0);
 });
 
 test("POST /api/board/assign creates a thread on the issue with the chosen model", async () => {
