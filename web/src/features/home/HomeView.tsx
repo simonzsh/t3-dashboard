@@ -1,9 +1,10 @@
-import { useState, type CSSProperties, type ReactNode } from "react";
+import { useState, type CSSProperties, type DragEvent, type ReactNode } from "react";
 import type { DashboardThread, UsageOverview } from "../../../../shared/api.ts";
 import { agentCounts } from "../../lib/navBadges.ts";
-import { stackedOrder, type HomeCard, type HomeLayout } from "./layout.ts";
+import { CardEditBar } from "./CardEditBar.tsx";
+import { CARD_TITLES, moveCard, setHidden, shiftCard, stackedOrder, type Column, type HomeCard, type HomeLayout } from "./layout.ts";
 import { relativeTime } from "../../lib/format.ts";
-import { IconButton, Icon, Loader, Segmented } from "../../ui/index.ts";
+import { Button, IconButton, Icon, Loader, Segmented } from "../../ui/index.ts";
 import { UsageChart } from "./UsageChart.tsx";
 import { delta, formatUsd, METRICS, type Metric } from "./usageView.ts";
 import type { UsageState } from "./useUsage.ts";
@@ -88,22 +89,66 @@ interface Props {
   layout: HomeLayout;
   /** The cards of the Inbox: the Home layout places them. */
   cards: HomeCards;
+  /** Edit mode: each card gets a bar to move or hide it. */
+  editing?: boolean;
+  onLayout?: (layout: HomeLayout) => void;
 }
 
-export function HomeView({ usage, threads, now, layout, cards }: Props) {
+export function HomeView({ usage, threads, now, layout, cards, editing = false, onLayout = () => {} }: Props) {
+  const [dragged, setDragged] = useState<HomeCard | null>(null);
   const body: Record<HomeCard, ReactNode> = { usage: <UsageCard state={usage} threads={threads} now={now} />, ...cards };
   const order = stackedOrder(layout);
-  const column = (id: "left" | "right") => (
-    <div className={`home-col ${id}`}>
-      {layout[id].map((card) => (
-        <div key={card} className={`home-slot ${card}`} style={{ "--stack": order.indexOf(card) } as CSSProperties}>
-          {body[card]}
+  const drop = (e: DragEvent, column: Column, index?: number) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (dragged) onLayout(moveCard(layout, dragged, column, index));
+    setDragged(null);
+  };
+  const column = (id: Column) => (
+    <div className={`home-col ${id}${editing ? " editing" : ""}`} onDragOver={editing && dragged ? (e) => e.preventDefault() : undefined} onDrop={editing ? (e) => drop(e, id) : undefined}>
+      {layout[id].map((card, index) => (
+        <div
+          key={card}
+          className={`home-slot ${card}${dragged === card ? " dragging" : ""}`}
+          style={{ "--stack": order.indexOf(card) } as CSSProperties}
+          onDragOver={editing && dragged ? (e) => e.preventDefault() : undefined}
+          onDrop={editing ? (e) => drop(e, id, index) : undefined}
+        >
+          {editing && (
+            <CardEditBar
+              card={card}
+              layout={layout}
+              onDragStart={(e) => {
+                setDragged(card);
+                e.dataTransfer.effectAllowed = "move";
+                const slot = e.currentTarget.closest(".home-slot");
+                if (slot) e.dataTransfer.setDragImage(slot, 16, 16);
+              }}
+              onDragEnd={() => setDragged(null)}
+              onShift={(step) => onLayout(shiftCard(layout, card, step))}
+              onSwitch={() => onLayout(moveCard(layout, card, id === "left" ? "right" : "left"))}
+              onHide={() => onLayout(setHidden(layout, card, true))}
+            />
+          )}
+          <div className="home-slot-body" inert={editing}>
+            {body[card]}
+          </div>
         </div>
       ))}
     </div>
   );
   return (
     <div className="home">
+      {editing && layout.hidden.length > 0 && (
+        <div className="home-hidden">
+          <span>Hidden cards</span>
+          {layout.hidden.map((card) => (
+            <Button key={card} size="sm" onClick={() => onLayout(setHidden(layout, card, false))}>
+              <Icon name="eye" /> Show {CARD_TITLES[card]}
+            </Button>
+          ))}
+        </div>
+      )}
       {column("left")}
       {column("right")}
     </div>

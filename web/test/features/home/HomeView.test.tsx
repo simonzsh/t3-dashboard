@@ -42,8 +42,8 @@ const cards = {
   running: <div id="card-running">R</div>,
   "up-next": <div id="card-up-next">U</div>,
 };
-const render = (s: UsageState, threads = [thread("a", { status: "running" })], layout: HomeLayout = DEFAULT_LAYOUT) =>
-  renderToStaticMarkup(<HomeView usage={s} threads={threads} now={NOW} layout={layout} cards={cards} />);
+const render = (s: UsageState, threads = [thread("a", { status: "running" })], layout: HomeLayout = DEFAULT_LAYOUT, editing = false) =>
+  renderToStaticMarkup(<HomeView usage={s} threads={threads} now={NOW} layout={layout} cards={cards} editing={editing} />);
 
 test("the three tiles cover the last 7 days, each with its change", () => {
   const out = render(state());
@@ -133,4 +133,32 @@ test("a failed refresh keeps the last good data and shows the error", () => {
   const out = render(state({ error: "offline" }));
   assert.match(out, /Could not refresh usage\. offline/);
   assert.match(out, /stat-value">63/);
+});
+
+test("without edit mode there is no edit bar", () => {
+  assert.doesNotMatch(render(state()), /card-edit-bar|card-handle|inert/);
+});
+
+test("edit mode shows a bar with a drag handle and the move buttons on every card, and locks the card", () => {
+  const out = render(state(), undefined, DEFAULT_LAYOUT, true);
+  assert.equal(out.match(/class="card-edit-bar"/g)?.length, 4);
+  assert.equal(out.match(/class="card-handle" draggable="true"/g)?.length, 4);
+  assert.match(out, /aria-label="Move Running to the right column"/);
+  assert.match(out, /aria-label="Move Notifications to the left column"/);
+  assert.match(out, /aria-label="Hide Up next"/);
+  assert.equal(out.match(/class="home-slot-body" inert=""/g)?.length, 4);
+});
+
+test("the first card of a column cannot move up and the last cannot move down", () => {
+  const out = render(state(), undefined, DEFAULT_LAYOUT, true);
+  assert.match(out, /<button disabled=""[^>]*aria-label="Move Usage up"/);
+  assert.match(out, /<button disabled=""[^>]*aria-label="Move Up next down"/);
+  assert.doesNotMatch(out, /<button disabled=""[^>]*aria-label="Move Running up"/);
+});
+
+test("edit mode lists hidden cards so they can be shown again", () => {
+  const out = render(state(), undefined, setHidden(DEFAULT_LAYOUT, "running", true), true);
+  assert.match(out, /Hidden cards/);
+  assert.match(out, /Show Running/);
+  assert.doesNotMatch(render(state(), undefined, setHidden(DEFAULT_LAYOUT, "running", true)), /Hidden cards/);
 });
