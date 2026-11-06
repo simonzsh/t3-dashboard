@@ -37,11 +37,10 @@ test("an open dialog disables shortcuts", () => {
   assert.equal(matchShortcut(press("Escape"), true, true), null);
 });
 
-test("Ctrl+X, F and M act on the desk only", () => {
+test("Ctrl+X and F act on the desk only, and Ctrl+M does nothing", () => {
   assert.equal(matchShortcut(ctrl("x"), false, true), "close-window");
   assert.equal(matchShortcut(ctrl("F"), false, true), "toggle-fullscreen");
-  assert.equal(matchShortcut(ctrl("m"), false, true), "minimize-window");
-  assert.equal(matchShortcut(ctrl("m"), false), null);
+  assert.equal(matchShortcut(ctrl("m"), false, true), null);
   assert.equal(matchShortcut(ctrl("f"), false), null);
 });
 
@@ -56,11 +55,14 @@ test("Escape and the arrows stay plain keys, on the desk and outside fields", ()
   assert.equal(matchShortcut(press("Escape", { target: typing }), false, true), null);
 });
 
-test("Ctrl+Alt+1 to 6 focus a desk window, also from a field", () => {
+test("Ctrl+Alt+1 to 9 focus the n-th column, also from a field", () => {
   assert.equal(matchShortcut(ctrl("1", { altKey: true }), false, true), "window-1");
   assert.equal(matchShortcut(ctrl("¡", { altKey: true, code: "Digit6" }), false, true), "window-6");
   assert.equal(matchShortcut(ctrl("1", { altKey: true, target: typing }), false, true), "window-1");
-  assert.equal(matchShortcut(ctrl("7", { altKey: true, code: "Digit7" }), false, true), null);
+  assert.equal(matchShortcut(ctrl("7", { altKey: true, code: "Digit7" }), false, true), "window-7");
+  assert.equal(matchShortcut(ctrl("9", { altKey: true }), false, true), "window-9");
+  assert.equal(matchShortcut(ctrl("7", { altKey: true, code: "Digit7" }), false), null);
+  assert.equal(matchShortcut(ctrl("0", { altKey: true, code: "Digit0" }), false, true), null);
   assert.equal(matchShortcut(ctrl("1", { altKey: true }), false), null);
   assert.equal(matchShortcut(press("1", { altKey: true }), false, true), null, "Alt alone types a character");
   assert.equal(matchShortcut(ctrl("1", { altKey: true }), true, true), null);

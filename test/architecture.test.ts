@@ -64,9 +64,8 @@ const FEATURE_EDGES = new Map([
   ["features/automations -> features/conversation", "the Model column reuses the model lookup of the composer"],
   ["features/inbox -> features/automations", "the inbox hides routine and setup threads"],
   ["features/inbox -> features/settings", "the Linear setup card reuses the key form"],
-  ["features/inbox -> features/new-thread", "assigning a ticket opens the New Agent dialog"],
+  ["features/inbox -> features/new-thread", "assigning a ticket opens the New Session dialog"],
   ["features/settings -> features/update", "the Updates tab shows the update status"],
-  ["features/settings -> features/desk", "settings pick the desk background"],
 ]);
 
 // One file that breaks its folder's rule, with the reason.

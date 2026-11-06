@@ -33,7 +33,6 @@ interface Props {
 function DeskWindowView({ id, thread, projectTitle, projectIcon, missing, focused, maximized, compact, t3EnvironmentId, providers, childTitle, onTitle, dispatch }: Props) {
   const onFocus = () => dispatch({ type: "focus", id });
   const onClose = () => dispatch({ type: "close", id });
-  const onMinimize = () => dispatch({ type: "minimize", id });
   const onToggleMaximize = () => dispatch({ type: "maximize", id });
   const state = thread ? threadState(thread) : null;
   const title = thread || !childTitle ? threadTitle(thread) : childTitle;
@@ -50,35 +49,34 @@ function DeskWindowView({ id, thread, projectTitle, projectIcon, missing, focuse
       }}
     >
       <header className="desk-window-head">
-        {thread && projectTitle && <ProjectIcon icon={projectIcon} title={projectTitle} />}
-        <span className="dw-title" data-tooltip={title} data-tooltip-clipped>
-          {title}
-        </span>
-        {projectTitle && <span className="dw-project">{projectTitle}</span>}
-        {state && (
-          <Badge variant={state === "idle" ? "neutral" : state} className="dw-state">
-            {STATE_LABELS[state]}
-          </Badge>
-        )}
-        <span className="dw-buttons">
-          <OpenInT3 environmentId={t3EnvironmentId} threadId={id} />
-          {!compact && (
-            <>
+        <div className="sc-row">
+          {!compact && <Icon name="grip" className="icon sc-grip" />}
+          <span className="dw-title" data-tooltip={title} data-tooltip-clipped>
+            {title}
+          </span>
+          {state && (
+            <Badge variant={state === "idle" ? "neutral" : state} className="dw-state">
+              {STATE_LABELS[state]}
+            </Badge>
+          )}
+          <span className="dw-buttons">
+            <OpenInT3 environmentId={t3EnvironmentId} threadId={id} />
+            {!compact && (
               <IconButton variant="ghost" size="sm" label={maximized ? "Exit fullscreen" : "Fullscreen"} tooltip={maximized ? "Exit fullscreen" : "Fullscreen"} shortcut={maximized ? `${ctrlLabel("F")} / Esc` : ctrlLabel("F")} onClick={onToggleMaximize}>
                 <Icon name={maximized ? "exitFullscreen" : "fullscreen"} />
               </IconButton>
-              {/* A subagent window only goes full screen or closes. */}
-              {thread && (
-                <IconButton variant="ghost" size="sm" label="Minimize" tooltip="Minimize" shortcut={ctrlLabel("M")} onClick={onMinimize}>
-                  <Icon name="minimize" />
-                </IconButton>
-              )}
-            </>
-          )}
-          <IconButton variant="ghost" size="sm" label="Close" tooltip="Close" shortcut={ctrlLabel("X")} onClick={onClose}>
-            <Icon name="x" />
-          </IconButton>
-        </span>
+            )}
+            <IconButton variant="ghost" size="sm" label="Close" tooltip="Close" shortcut={ctrlLabel("X")} onClick={onClose}>
+              <Icon name="x" />
+            </IconButton>
+          </span>
+        </div>
+        {thread && projectTitle && (
+          <div className="sc-sub">
+            <ProjectIcon icon={projectIcon} title={projectTitle} />
+            <span className="dw-project">{projectTitle}</span>
+          </div>
+        )}
       </header>
       {missing ? (
         <div className="desk-missing">

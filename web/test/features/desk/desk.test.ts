@@ -2,20 +2,18 @@ import { test } from "bun:test";
 import assert from "node:assert/strict";
 import {
   DESK_KEY,
-  DESK_LIMIT,
   EMPTY_DESK,
   cellOf,
-  deskLayout,
+  columnLeadId,
   deskReducer,
   windowsToKeep,
-  equalSizes,
-  gridWindows,
   loadDesk,
   neighborId,
   parseDesk,
   saveDesk,
-  sizesFor,
+  spansRows,
   stepId,
+  stripLayout,
   type DeskState,
 } from "../../../src/features/desk/desk.ts";
 import { memoryStore } from "../../fixtures.ts";
@@ -23,26 +21,34 @@ import { memoryStore } from "../../fixtures.ts";
 const open = (s: DeskState, ...ids: string[]) => ids.reduce((acc, id) => deskReducer(acc, { type: "open", id }), s);
 const ids = (s: DeskState) => s.windows.map((w) => w.id);
 
-test("deskLayout follows the grid table", () => {
-  assert.deepEqual(deskLayout(0), { columns: 0, rows: 0 });
-  assert.deepEqual(deskLayout(1), { columns: 1, rows: 1 });
-  assert.deepEqual(deskLayout(2), { columns: 2, rows: 1 });
-  assert.deepEqual(deskLayout(3), { columns: 3, rows: 1 });
-  assert.deepEqual(deskLayout(4), { columns: 2, rows: 2 });
-  assert.deepEqual(deskLayout(5), { columns: 3, rows: 2 });
-  assert.deepEqual(deskLayout(6), { columns: 3, rows: 2 });
+test("stripLayout: one row of columns, or two rows of stacked sessions", () => {
+  assert.deepEqual(stripLayout(0, "columns"), { columns: 0, rows: 0 });
+  assert.deepEqual(stripLayout(0, "grid"), { columns: 0, rows: 0 });
+  assert.deepEqual(stripLayout(1, "columns"), { columns: 1, rows: 1 });
+  assert.deepEqual(stripLayout(7, "columns"), { columns: 7, rows: 1 });
+  assert.deepEqual(stripLayout(1, "grid"), { columns: 1, rows: 1 });
+  assert.deepEqual(stripLayout(2, "grid"), { columns: 1, rows: 2 });
+  assert.deepEqual(stripLayout(3, "grid"), { columns: 2, rows: 2 });
+  assert.deepEqual(stripLayout(7, "grid"), { columns: 4, rows: 2 });
 });
 
-test("cellOf fills left to right, then top to bottom", () => {
-  assert.deepEqual(cellOf(0, 3), { row: 0, column: 0 });
-  assert.deepEqual(cellOf(2, 3), { row: 0, column: 2 });
-  assert.deepEqual(cellOf(3, 3), { row: 1, column: 0 });
-  assert.deepEqual(cellOf(3, 2), { row: 1, column: 1 });
+test("cellOf: columns fill left to right, grid fills each column top then bottom", () => {
+  assert.deepEqual([0, 1, 5].map((i) => cellOf(i, "columns")), [{ column: 0, row: 0 }, { column: 1, row: 0 }, { column: 5, row: 0 }]);
+  assert.deepEqual([0, 1, 2, 3, 4].map((i) => cellOf(i, "grid")), [
+    { column: 0, row: 0 },
+    { column: 0, row: 1 },
+    { column: 1, row: 0 },
+    { column: 1, row: 1 },
+    { column: 2, row: 0 },
+  ]);
 });
 
-test("equalSizes splits 100 between the tracks", () => {
-  assert.deepEqual(equalSizes("c", 2), { c0: 50, c1: 50 });
-  assert.deepEqual(equalSizes("r", 1), { r0: 100 });
+test("in grid view only an odd last session spans both rows", () => {
+  assert.equal(spansRows(2, 3, "grid"), true);
+  assert.equal(spansRows(1, 3, "grid"), false);
+  assert.equal(spansRows(3, 4, "grid"), false);
+  assert.equal(spansRows(0, 1, "grid"), false);
+  assert.equal(spansRows(2, 3, "columns"), false);
 });
 
 test("open adds in order and focuses the new window", () => {
@@ -51,54 +57,37 @@ test("open adds in order and focuses the new window", () => {
   assert.equal(s.focusedId, "b");
 });
 
-test("open on an open window focuses it and restores it if minimized", () => {
+test("open on an open window focuses it without moving it", () => {
   let s = open(EMPTY_DESK, "a", "b");
-  s = deskReducer(s, { type: "minimize", id: "a" });
   s = deskReducer(s, { type: "open", id: "a" });
   assert.deepEqual(ids(s), ["a", "b"]);
   assert.equal(s.focusedId, "a");
-  assert.equal(s.windows[0]!.minimized, false);
 });
 
-test("a seventh visible window minimizes the oldest visible one", () => {
-  let s = open(EMPTY_DESK, "a", "b", "c", "d", "e", "f");
+test("sessions are never capped by the number visible: the last one opened keeps the focus", () => {
+  const all = ["a", "b", "c", "d", "e", "f", "g", "h", "i"];
+  let s = open(EMPTY_DESK, ...all);
   s = deskReducer(s, { type: "maximize", id: "a" });
-  s = open(s, "g");
-  assert.deepEqual(ids(s), ["a", "b", "c", "d", "e", "f", "g"]);
-  assert.deepEqual(s.windows.filter((w) => w.minimized).map((w) => w.id), ["a"]);
-  assert.equal(s.focusedId, "g");
+  s = open(s, "j");
+  assert.deepEqual(ids(s), [...all, "j"]);
+  assert.equal(s.focusedId, "j");
   assert.equal(s.maximizedId, null);
 });
 
-test("restoring a minimized window keeps six visible", () => {
-  let s = open(EMPTY_DESK, "a", "b", "c", "d", "e", "f", "g");
-  s = deskReducer(s, { type: "restore", id: "a" });
-  assert.equal(gridWindows(s).length, DESK_LIMIT);
-  assert.deepEqual(s.windows.filter((w) => w.minimized).map((w) => w.id), ["b"]);
-  assert.equal(s.focusedId, "a");
-});
-
-test("close removes the window and moves the focus to the last visible one", () => {
+test("close removes the window and moves the focus to the last one", () => {
   let s = open(EMPTY_DESK, "a", "b", "c");
-  s = deskReducer(s, { type: "minimize", id: "b" });
-  s = deskReducer(s, { type: "focus", id: "c" });
   s = deskReducer(s, { type: "close", id: "c" });
   assert.deepEqual(ids(s), ["a", "b"]);
-  assert.equal(s.focusedId, "a");
+  assert.equal(s.focusedId, "b");
   s = deskReducer(s, { type: "close", id: "a" });
+  s = deskReducer(s, { type: "close", id: "b" });
   assert.equal(s.focusedId, null);
 });
 
-test("minimize takes the window out of the grid and restore puts it back", () => {
+test("closing a window that is not focused keeps the focus", () => {
   let s = open(EMPTY_DESK, "a", "b", "c");
-  s = deskReducer(s, { type: "maximize", id: "b" });
-  s = deskReducer(s, { type: "minimize", id: "b" });
-  assert.deepEqual(gridWindows(s).map((w) => w.id), ["a", "c"]);
-  assert.equal(s.maximizedId, null);
-  assert.equal(s.focusedId, "c");
-  s = deskReducer(s, { type: "restore", id: "b" });
-  assert.deepEqual(gridWindows(s).map((w) => w.id), ["a", "b", "c"]);
-  assert.equal(s.focusedId, "b");
+  s = deskReducer(s, { type: "focus", id: "a" });
+  assert.equal(deskReducer(s, { type: "close", id: "c" }).focusedId, "a");
 });
 
 test("maximize toggles and focuses; unmaximize restores", () => {
@@ -138,51 +127,27 @@ test("windowsToKeep keeps live threads and subagent threads, drops the rest, eve
   assert.deepEqual([...kept].sort(), ["child", "live"]);
 });
 
-test("setSizes keeps one layout per window count", () => {
-  let s = deskReducer(EMPTY_DESK, { type: "setSizes", count: 2, sizes: { columns: { c0: 30, c1: 70 }, rows: { r0: 100 } } });
-  s = deskReducer(s, { type: "setSizes", count: 4, sizes: { columns: { c0: 50, c1: 50 }, rows: { r0: 40, r1: 60 } } });
-  assert.deepEqual(s.sizes["2"]?.columns, { c0: 30, c1: 70 });
-  assert.deepEqual(s.sizes["4"]?.rows, { r0: 40, r1: 60 });
-});
-
-test("a change in the visible window count resets the grid to equal tracks", () => {
-  let s = open(EMPTY_DESK, "a", "b", "c", "d");
-  s = deskReducer(s, { type: "setSizes", count: 4, sizes: { columns: { c0: 50, c1: 50 }, rows: { r0: 60, r1: 40 } } });
-  s = deskReducer(s, { type: "focus", id: "a" });
-  assert.deepEqual(s.sizes["4"]?.rows, { r0: 60, r1: 40 });
-  s = deskReducer(s, { type: "minimize", id: "d" });
-  s = deskReducer(s, { type: "restore", id: "d" });
-  assert.deepEqual(s.sizes, {});
-  assert.deepEqual(sizesFor(s, 4).rows, { r0: 50, r1: 50 });
-});
-
 test("parseDesk round-trips and falls back on bad input", () => {
   let s = open(EMPTY_DESK, "a", "b");
-  s = deskReducer(s, { type: "minimize", id: "a" });
   s = deskReducer(s, { type: "maximize", id: "b" });
   assert.deepEqual(parseDesk(JSON.stringify(s)), s);
   assert.deepEqual(parseDesk(null), EMPTY_DESK);
   assert.deepEqual(parseDesk("{not json"), EMPTY_DESK);
   assert.deepEqual(parseDesk("42"), EMPTY_DESK);
+  assert.deepEqual(parseDesk(JSON.stringify({ windows: "nope", focusedId: 3 })), EMPTY_DESK);
 });
 
-test("parseDesk repairs inconsistent data", () => {
-  const raw = JSON.stringify({
-    windows: [{ id: "a", minimized: false }, { id: "a", minimized: true }, { id: 3 }, { id: "b", minimized: "yes" }, ...["c", "d", "e", "f", "g", "h"].map((id) => ({ id, minimized: false }))],
-    focusedId: "zz",
-    maximizedId: "a",
-    sizes: { "4": { columns: { c0: 50, c1: 50 }, rows: { r0: 60, r1: 40 } } },
-  });
-  const s = parseDesk(raw);
-  // Minimized windows are kept; visible ones past the grid limit go to the dock.
-  assert.deepEqual(ids(s), ["a", "b", "c", "d", "e", "f", "g", "h"]);
-  assert.deepEqual(s.windows.filter((w) => w.minimized).map((w) => w.id), ["g", "h"]);
-  assert.equal(s.focusedId, "f");
-  assert.equal(s.maximizedId, "a");
-  assert.deepEqual(s.sizes, {});
-  const minimizedMax = parseDesk(JSON.stringify({ windows: [{ id: "a", minimized: true }], maximizedId: "a", focusedId: "a" }));
-  assert.equal(minimizedMax.maximizedId, null);
-  assert.equal(minimizedMax.focusedId, null);
+test("parseDesk keeps unique window ids in order and drops the rest", () => {
+  const raw = JSON.stringify({ windows: [{ id: "a" }, { id: "a" }, { id: 3 }, "x", { id: "b" }], focusedId: "zz", maximizedId: "b" });
+  assert.deepEqual(parseDesk(raw), { windows: [{ id: "a" }, { id: "b" }], focusedId: "b", maximizedId: "b" });
+});
+
+test("parseDesk caps the saved windows at 100", () => {
+  const windows = Array.from({ length: 130 }, (_, i) => ({ id: `t${i}` }));
+  const s = parseDesk(JSON.stringify({ windows, focusedId: "t120" }));
+  assert.equal(s.windows.length, 100);
+  assert.equal(s.windows.at(-1)!.id, "t99");
+  assert.equal(s.focusedId, "t99");
 });
 
 test("loadDesk and saveDesk use storage and survive errors", () => {
@@ -196,26 +161,48 @@ test("loadDesk and saveDesk use storage and survive errors", () => {
   assert.doesNotThrow(() => saveDesk(broken, s));
 });
 
-test("sizesFor uses saved sizes only when they match the layout", () => {
-  const saved = { columns: { c0: 30, c1: 70 }, rows: { r0: 100 } };
-  const s = deskReducer(EMPTY_DESK, { type: "setSizes", count: 2, sizes: saved });
-  assert.deepEqual(sizesFor(s, 2), saved);
-  assert.deepEqual(sizesFor(s, 4), { columns: { c0: 50, c1: 50 }, rows: { r0: 50, r1: 50 } });
-  const stale = deskReducer(EMPTY_DESK, { type: "setSizes", count: 2, sizes: { columns: { c0: 100 }, rows: { r0: 100 } } });
-  assert.deepEqual(sizesFor(stale, 2).columns, { c0: 50, c1: 50 });
+test("neighborId in column view moves one column and stops at the ends", () => {
+  const s = open(EMPTY_DESK, "a", "b", "c");
+  const at = (id: string) => deskReducer(s, { type: "focus", id });
+  assert.equal(neighborId(at("b"), "right", "columns"), "c");
+  assert.equal(neighborId(at("b"), "left", "columns"), "a");
+  assert.equal(neighborId(at("c"), "right", "columns"), null);
+  assert.equal(neighborId(at("a"), "left", "columns"), null);
+  assert.equal(neighborId(at("b"), "up", "columns"), null);
+  assert.equal(neighborId(at("b"), "down", "columns"), null);
+  assert.equal(neighborId(EMPTY_DESK, "right", "columns"), null);
 });
 
-test("neighborId wraps left and right and moves by rows up and down", () => {
+test("neighborId in grid view keeps the row across columns and moves inside a column", () => {
+  // Columns: [a b] [c d] [e]
   const s = open(EMPTY_DESK, "a", "b", "c", "d", "e");
   const at = (id: string) => deskReducer(s, { type: "focus", id });
-  assert.equal(neighborId(at("a"), "right"), "b");
-  assert.equal(neighborId(at("e"), "right"), "a");
-  assert.equal(neighborId(at("a"), "left"), "e");
-  assert.equal(neighborId(at("a"), "down"), "d");
-  assert.equal(neighborId(at("e"), "up"), "b");
-  assert.equal(neighborId(at("c"), "down"), null);
-  assert.equal(neighborId(at("a"), "up"), null);
-  assert.equal(neighborId(EMPTY_DESK, "right"), null);
+  assert.equal(neighborId(at("b"), "right", "grid"), "d");
+  assert.equal(neighborId(at("d"), "left", "grid"), "b");
+  assert.equal(neighborId(at("a"), "right", "grid"), "c");
+  assert.equal(neighborId(at("d"), "right", "grid"), "e", "the last column has no second row: take its first");
+  assert.equal(neighborId(at("e"), "left", "grid"), "c");
+  assert.equal(neighborId(at("a"), "left", "grid"), null);
+  assert.equal(neighborId(at("e"), "right", "grid"), null);
+  assert.equal(neighborId(at("a"), "down", "grid"), "b");
+  assert.equal(neighborId(at("d"), "up", "grid"), "c");
+  assert.equal(neighborId(at("a"), "up", "grid"), null);
+  assert.equal(neighborId(at("b"), "down", "grid"), null, "down does not leave the column");
+  assert.equal(neighborId(at("c"), "up", "grid"), null, "up does not leave the column");
+  assert.equal(neighborId(at("e"), "down", "grid"), null);
+});
+
+test("neighborId without a focused window gives the first session", () => {
+  const s = { ...open(EMPTY_DESK, "a", "b"), focusedId: null };
+  assert.equal(neighborId(s, "right", "columns"), "a");
+  assert.equal(neighborId(s, "down", "grid"), "a");
+});
+
+test("columnLeadId is the first session of the n-th column, or null past the last", () => {
+  const s = open(EMPTY_DESK, "a", "b", "c", "d", "e");
+  assert.deepEqual([1, 2, 5, 6].map((n) => columnLeadId(s, n, "columns")), ["a", "b", "e", null]);
+  assert.deepEqual([1, 2, 3, 4].map((n) => columnLeadId(s, n, "grid")), ["a", "c", "e", null]);
+  assert.equal(columnLeadId(EMPTY_DESK, 1, "columns"), null);
 });
 
 test("stepId moves along the opening order and stops at both ends", () => {
@@ -227,14 +214,11 @@ test("stepId moves along the opening order and stops at both ends", () => {
   assert.equal(stepId(s.windows, "x", 1), null);
 });
 
-test("swap exchanges two windows' cells, focuses the dragged one and keeps the grid sizes", () => {
+test("swap exchanges two windows' cells and focuses the dragged one", () => {
   let s = open(EMPTY_DESK, "a", "b", "c");
-  const sizes = { columns: { c0: 50, c1: 25, c2: 25 }, rows: { r0: 100 } };
-  s = deskReducer(s, { type: "setSizes", count: 3, sizes });
   s = deskReducer(s, { type: "swap", id: "a", with: "c" });
   assert.deepEqual(ids(s), ["c", "b", "a"]);
   assert.equal(s.focusedId, "a");
-  assert.deepEqual(sizesFor(s, 3), sizes);
 });
 
 test("swap ignores an unknown or identical window", () => {
@@ -243,9 +227,8 @@ test("swap ignores an unknown or identical window", () => {
   assert.equal(deskReducer(s, { type: "swap", id: "a", with: "a" }), s);
 });
 
-test("sync keeps the order and the minimized state of the windows this device already has", () => {
+test("sync keeps the order of the windows this device already has", () => {
   let s = open(EMPTY_DESK, "a", "b", "c");
-  s = deskReducer(s, { type: "minimize", id: "a" });
   s = deskReducer(s, { type: "maximize", id: "c" });
   const synced = deskReducer(s, { type: "sync", ids: ["c", "b", "a"] });
   assert.deepEqual(synced.windows, s.windows);
@@ -253,16 +236,12 @@ test("sync keeps the order and the minimized state of the windows this device al
   assert.equal(synced.maximizedId, "c");
 });
 
-test("sync drops removed windows and adds new ones at the end, in the dock once the grid is full", () => {
+test("sync drops removed windows and appends new ones without taking the focus", () => {
   let s = open(EMPTY_DESK, "a", "b", "c", "d", "e");
   s = deskReducer(s, { type: "focus", id: "b" });
-  const synced = deskReducer(s, { type: "sync", ids: ["b", "c", "d", "e", "x", "y"] });
-  assert.deepEqual(ids(synced), ["b", "c", "d", "e", "x", "y"]);
-  assert.deepEqual(synced.windows.filter((w) => w.minimized).map((w) => w.id), []);
+  const synced = deskReducer(s, { type: "sync", ids: ["b", "c", "d", "e", "x", "y", "z", "w"] });
+  assert.deepEqual(ids(synced), ["b", "c", "d", "e", "x", "y", "z", "w"]);
   assert.equal(synced.focusedId, "b");
-  const full = deskReducer(synced, { type: "sync", ids: ["b", "c", "d", "e", "x", "y", "z"] });
-  assert.deepEqual(full.windows.filter((w) => w.minimized).map((w) => w.id), ["z"]);
-  assert.equal(full.focusedId, "b");
 });
 
 test("sync moves focus and maximize off a window that is gone", () => {
@@ -271,5 +250,5 @@ test("sync moves focus and maximize off a window that is gone", () => {
   const gone = deskReducer(s, { type: "sync", ids: ["a"] });
   assert.equal(gone.maximizedId, null);
   assert.equal(gone.focusedId, "a");
-  assert.deepEqual(deskReducer(s, { type: "sync", ids: [] }), { ...EMPTY_DESK, sizes: {} });
+  assert.deepEqual(deskReducer(s, { type: "sync", ids: [] }), EMPTY_DESK);
 });

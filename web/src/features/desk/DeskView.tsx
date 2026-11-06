@@ -1,12 +1,12 @@
-import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type Dispatch, type MouseEvent, type PointerEvent, type ReactNode, type TouchEvent } from "react";
-import { Cell, Grid, Gridline, useGridRef, type GridLayout } from "react-resizable-panels";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type Dispatch, type PointerEvent, type ReactNode, type TouchEvent } from "react";
 import type { DashboardProject, DashboardProvider, DashboardThread } from "../../../../shared/api.ts";
 import { threadState } from "../../../../shared/status.ts";
 import { threadTitle } from "../../lib/threads.ts";
-import type { DeskBackground } from "./deskBackground.ts";
-import { cellOf, deskLayout, equalSizes, gridWindows, sizesFor, stepId, type DeskAction, type DeskState, type DeskWindow as Win } from "./desk.ts";
-import { enter, Icon, IconButton, Kbd, Pressable, useFlip } from "../../ui/index.ts";
+import { cellOf, spansRows, stepId, stripLayout, type DeskAction, type DeskState, type DeskWindow as Win } from "./desk.ts";
+import { enter, Kbd, Pressable, useFlip } from "../../ui/index.ts";
 import { useMediaQuery } from "../../lib/useMediaQuery.ts";
+import type { SessionLayout } from "../../lib/sessionLayout.ts";
+import { ctrlLabel } from "../../lib/shortcuts.ts";
 import { swipeDirection } from "../../lib/swipe.ts";
 import { DeskWindow } from "./DeskWindow.tsx";
 import { ProjectIcon } from "../../lib/ProjectIcon.tsx";
@@ -16,63 +16,28 @@ interface Props {
   dispatch: Dispatch<DeskAction>;
   threads: DashboardThread[];
   projects: DashboardProject[];
-  background: DeskBackground;
+  layout: SessionLayout;
   t3EnvironmentId: string | null;
   providers: DashboardProvider[];
 }
 
-const MIN_COLUMN_PX = 220;
-const MIN_ROW_PX = 160;
-
-export function DeskGrid({ windows, desk, dispatch, render }: { windows: Win[]; desk: DeskState; dispatch: Dispatch<DeskAction>; render: (w: Win) => ReactNode }) {
-  const count = windows.length;
-  const { columns, rows } = deskLayout(count);
-  // Un déplacement dans le DOM remet le défilement à zéro. Seules les coordonnées doivent changer.
-  const cells = windows.map((window, index) => ({ window, ...cellOf(index, columns) }))
-    .sort((a, b) => a.window.id.localeCompare(b.window.id));
-  const gridRef = useGridRef();
-  const sizes = sizesFor(desk, count);
-  const columnTracks = useMemo(() => Array.from({ length: columns }, (_, i) => ({ id: `c${i}`, minSize: MIN_COLUMN_PX })), [columns]);
-  const rowTracks = useMemo(() => Array.from({ length: rows }, (_, i) => ({ id: `r${i}`, minSize: MIN_ROW_PX })), [rows]);
-
-  // Tracks change with the window count: apply the sizes kept for the new layout.
-  useEffect(() => {
-    gridRef.current?.setLayout(sizes);
-  }, [count]);
-
-  const save = (layout: GridLayout) => dispatch({ type: "setSizes", count, sizes: layout });
-
-  function resetOnDoubleClick(e: MouseEvent<HTMLDivElement>) {
-    const separator = e.target instanceof Element ? e.target.closest("[data-separator]") : null;
-    if (!separator || !gridRef.current) return;
-    const vertical = separator.getAttribute("aria-orientation") === "vertical";
-    save(gridRef.current.setLayout(vertical ? { columns: equalSizes("c", columns) } : { rows: equalSizes("r", rows) }));
-  }
-
+/** Fixed-width columns in a strip that scrolls sideways; grid view stacks two sessions per column. */
+export function DeskStrip({ windows, layout, render }: { windows: Win[]; layout: SessionLayout; render: (w: Win) => ReactNode }) {
+  const { rows } = stripLayout(windows.length, layout);
+  // A move in the DOM resets the conversation scroll: cells stay sorted by id and only their coordinates change.
+  const cells = windows.map((window, index) => ({ window, index, ...cellOf(index, layout) })).sort((a, b) => a.window.id.localeCompare(b.window.id));
   return (
-    <Grid
-      className="desk-grid"
-      // The library clips the grid and its cells: that cut the window shadows into square boxes.
-      style={{ overflow: "visible" }}
-      gridRef={gridRef}
-      columns={columnTracks}
-      rows={rowTracks}
-      defaultLayout={sizes}
-      onLayoutChanged={(layout, meta) => {
-        if (meta.isUserInteraction) save(meta.requestedLayout ?? layout);
-      }}
-      onDoubleClick={resetOnDoubleClick}
-    >
-      {cells.map(({ window, row, column }) => (
-        <Cell key={window.id} className="desk-cell" style={{ overflow: "visible" }} row={row} column={column}>
+    <div className="desk-strip" style={{ gridTemplateRows: `repeat(${rows}, minmax(0, 1fr))` }}>
+      {cells.map(({ window, index, column, row }) => (
+        <div
+          key={window.id}
+          className={`desk-cell${row === 0 && rows > 1 && index + 1 < windows.length ? " has-below" : ""}`}
+          style={{ gridColumn: column + 1, gridRow: spansRows(index, windows.length, layout) ? "1 / -1" : row + 1 }}
+        >
           {render(window)}
-        </Cell>
+        </div>
       ))}
-      {Array.from({ length: columns - 1 }, (_, i) => (
-        <Gridline key={`c${i + 1}`} type="column" column={i + 1} className="desk-gutter" />
-      ))}
-      {rows > 1 && <Gridline type="row" row={1} className="desk-gutter" />}
-    </Grid>
+    </div>
   );
 }
 
@@ -115,7 +80,7 @@ function useWindowSwipe(enabled: boolean, windows: readonly Win[], activeId: str
       const id = stepId(windows, activeId, step);
       if (!id) return;
       from.current = step;
-      dispatch({ type: "restore", id });
+      dispatch({ type: "focus", id });
     },
   };
   return { area, swipe };
@@ -186,7 +151,7 @@ function useWindowDrag(enabled: boolean, dispatch: Dispatch<DeskAction>) {
   };
 }
 
-export function DeskView({ desk, dispatch, threads, projects, background, t3EnvironmentId, providers }: Props) {
+export function DeskView({ desk, dispatch, threads, projects, layout, t3EnvironmentId, providers }: Props) {
   const narrow = useMediaQuery("(max-width: 899px)");
   const byId = useMemo(() => new Map(threads.map((t) => [t.id, t])), [threads]);
   const projectsById = useMemo(() => new Map(projects.map((p) => [p.id, p])), [projects]);
@@ -196,13 +161,12 @@ export function DeskView({ desk, dispatch, threads, projects, background, t3Envi
   const seen = useRef(new Set<string>());
   for (const w of desk.windows) if (byId.has(w.id)) seen.current.add(w.id);
   const root = useRef<HTMLDivElement>(null);
-  const visible = gridWindows(desk);
-  // Windows slide, open, close and fly to the dock when the grid changes; the narrow view swaps tabs without motion.
-  useFlip(root, `${narrow}|${visible.map((w) => w.id).join(",")}|${desk.maximizedId}`, { item: "data-desk-window", origin: "data-desk-chip", enabled: !narrow });
+  // Windows slide, open and close when the strip changes; the narrow view swaps tabs without motion.
+  useFlip(root, `${narrow}|${layout}|${desk.windows.map((w) => w.id).join(",")}|${desk.maximizedId}`, { item: "data-desk-window", enabled: !narrow });
 
   const activeId = (desk.windows.find((w) => w.id === desk.focusedId) ?? desk.windows[0])?.id ?? "";
   const { area, swipe } = useWindowSwipe(narrow, desk.windows, activeId, dispatch);
-  const drag = useWindowDrag(!narrow && visible.length > 1 && !desk.maximizedId, dispatch);
+  const drag = useWindowDrag(!narrow && desk.windows.length > 1 && !desk.maximizedId, dispatch);
 
   // Keeps the open tab centered in the bar, whether a swipe or a tap changed it.
   const tabs = useRef<HTMLElement>(null);
@@ -215,17 +179,21 @@ export function DeskView({ desk, dispatch, threads, projects, background, t3Envi
     bar.scrollTo({ left: bar.scrollLeft + t.left - b.left - (b.width - t.width) / 2, behavior: "smooth" });
   }, [narrow, activeId]);
 
-  const bgClass = background.kind === "preset" ? ` desk-bg-${background.id} has-bg` : background.kind === "image" ? " has-bg" : "";
-  const bgStyle = background.kind === "image" ? { backgroundImage: `url("${background.dataUrl}")` } : undefined;
+  // A focused session that sits off screen scrolls into view, whether a key, a click or a new open focused it.
+  useEffect(() => {
+    if (narrow || !desk.focusedId || desk.maximizedId) return;
+    const behavior = window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth";
+    root.current?.querySelector(`[data-desk-window="${CSS.escape(desk.focusedId)}"]`)?.scrollIntoView({ inline: "nearest", block: "nearest", behavior });
+  }, [narrow, desk.focusedId]);
 
   if (desk.windows.length === 0) {
     return (
-      <div ref={root} className={`desk${bgClass}`} style={bgStyle}>
+      <div ref={root} className="desk">
         <div className="empty-state desk-empty">
-          <strong>Your Desk is empty</strong>
-          <span>Click an agent card to open it here, or use its + button to add it without leaving the list.</span>
+          <strong>No sessions open</strong>
+          <span>Open one from Home, or start one with New Session.</span>
           <span className="shortcut-hint">
-            Press <Kbd>1</Kbd> to go back to the agents.
+            Press <Kbd>{ctrlLabel("K")}</Kbd> to search every session.
           </span>
         </div>
       </div>
@@ -256,39 +224,24 @@ export function DeskView({ desk, dispatch, threads, projects, background, t3Envi
     );
   };
 
-  const chip = (w: Win, active: boolean, closable = false) => {
+  const chip = (w: Win, active: boolean) => {
     const thread = byId.get(w.id);
     const project = thread ? projectsById.get(thread.projectId) : undefined;
     const title = thread || !childTitles[w.id] ? threadTitle(thread) : childTitles[w.id];
-    const button = (
-      <Pressable
-        key={w.id}
-        className={`desk-chip${active ? " active" : ""}`}
-        data-desk-chip={closable ? w.id : undefined}
-        onClick={() => dispatch({ type: "restore", id: w.id })}
-      >
+    return (
+      <Pressable key={w.id} className={`desk-chip${active ? " active" : ""}`} onClick={() => dispatch({ type: "focus", id: w.id })}>
         <span className={`state-dot ${thread ? threadState(thread) : "idle"}`} aria-hidden="true" />
         {project && <ProjectIcon icon={project.icon ?? null} title={project.title} />}
         <span className="desk-chip-title" data-tooltip={title} data-tooltip-clipped>{title}</span>
       </Pressable>
-    );
-    if (!closable) return button;
-    // A sibling, not a child: a button cannot hold another button.
-    return (
-      <span key={w.id} className="desk-chip-wrap">
-        {button}
-        <IconButton size="sm" variant="ghost" className="desk-chip-close" label="Remove from Desk" tooltip="Remove from Desk" onClick={() => dispatch({ type: "close", id: w.id })}>
-          <Icon name="x" />
-        </IconButton>
-      </span>
     );
   };
 
   if (narrow) {
     const active = desk.windows.find((w) => w.id === activeId)!;
     return (
-      <div ref={root} className={`desk compact${bgClass}`} style={bgStyle}>
-        <nav ref={tabs} className="desk-tabs" aria-label="Desk windows">
+      <div ref={root} className="desk compact">
+        <nav ref={tabs} className="desk-tabs" aria-label="Open sessions">
           {desk.windows.map((w) => chip(w, w.id === active.id))}
         </nav>
         <div ref={area} className="desk-area" {...swipe}>
@@ -298,24 +251,11 @@ export function DeskView({ desk, dispatch, threads, projects, background, t3Envi
     );
   }
 
-  const minimized = desk.windows.filter((w) => w.minimized);
   return (
-    <div ref={root} className={`desk${bgClass}`} style={bgStyle}>
+    <div ref={root} className="desk">
       <div className="desk-area" {...drag}>
-        {visible.length > 0 ? (
-          <DeskGrid windows={visible} desk={desk} dispatch={dispatch} render={(w) => renderWindow(w)} />
-        ) : (
-          <div className="empty-state desk-empty">
-            <strong>All windows are minimized</strong>
-            <span>Click a window in the bar below to restore it.</span>
-          </div>
-        )}
+        <DeskStrip windows={desk.windows} layout={layout} render={(w) => renderWindow(w)} />
       </div>
-      {minimized.length > 0 && (
-        <nav className="desk-dock" aria-label="Minimized windows">
-          {minimized.map((w) => chip(w, false, true))}
-        </nav>
-      )}
     </div>
   );
 }

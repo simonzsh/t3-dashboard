@@ -22,16 +22,16 @@ import { useOpenHistory } from "./features/switcher/useOpenHistory.ts";
 import { SettingsDialog } from "./features/settings/SettingsDialog.tsx";
 import { SetupScreen } from "./features/setup/SetupScreen.tsx";
 import { UpdateDialog } from "./features/update/UpdateDialog.tsx";
-import { gridWindows, neighborId, type Direction } from "./features/desk/desk.ts";
+import { columnLeadId, neighborId, type Direction } from "./features/desk/desk.ts";
 import { useAutomations } from "./features/automations/useAutomations.ts";
 import { api } from "./api/client.ts";
 import { useDashboard } from "./api/events.ts";
 import { useDesk } from "./features/desk/useDesk.ts";
 import { useDeskSync } from "./features/desk/useDeskSync.ts";
-import { useDeskBackground } from "./features/desk/useDeskBackground.ts";
 import { useMediaQuery } from "./lib/useMediaQuery.ts";
 import { useShortcuts } from "./lib/useShortcuts.ts";
 import { browserStorage } from "./lib/storage.ts";
+import { useSessionLayout } from "./lib/sessionLayout.ts";
 import { loadSidebarCollapsed, saveSidebarCollapsed } from "./lib/sidebar.ts";
 import { navBadges } from "./lib/navBadges.ts";
 import { TABS } from "./lib/tabs.ts";
@@ -92,7 +92,9 @@ export function App() {
   const [linearVersion, setLinearVersion] = useState(0);
   const [theme, setTheme] = useTheme();
   const [accent, setAccent] = useAccent();
-  const [deskBackground, setDeskBackground] = useDeskBackground();
+  const [layout, setLayout] = useSessionLayout();
+  // The grid toggle needs room for two-row columns side by side: not on a phone.
+  const showLayoutToggle = !useMediaQuery("(max-width: 899px)");
   const [now, setNow] = useState(() => new Date());
   const compact = useMediaQuery(PHONE);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(() => loadSidebarCollapsed(browserStorage()));
@@ -161,21 +163,18 @@ export function App() {
       } else if (action === "unmaximize") dispatchDesk({ type: "unmaximize" });
       else if (action.startsWith("focus-")) {
         // A maximized window hides its neighbors: arrows do nothing there.
-        const id = desk.maximizedId ? null : neighborId(desk, action.slice("focus-".length) as Direction);
+        const id = desk.maximizedId ? null : neighborId(desk, action.slice("focus-".length) as Direction, layout);
         if (!id) return;
         // No composer focus: a focused textarea would block the next arrow.
         dispatchDesk({ type: "focus", id });
       }
-      else if (action === "close-window" || action === "toggle-fullscreen" || action === "minimize-window") {
-        const type = action === "close-window" ? "close" : action === "minimize-window" ? "minimize" : "maximize";
-        // A subagent window (not in the shell) only goes full screen or closes.
-        if (type === "minimize" && !state?.threads.some((t) => t.id === desk.focusedId)) return;
-        if (desk.focusedId) dispatchDesk({ type, id: desk.focusedId });
+      else if (action === "close-window" || action === "toggle-fullscreen") {
+        if (desk.focusedId) dispatchDesk({ type: action === "close-window" ? "close" : "maximize", id: desk.focusedId });
       } else {
-        const target = gridWindows(desk)[Number(action.slice("window-".length)) - 1];
+        const target = columnLeadId(desk, Number(action.slice("window-".length)), layout);
         if (!target) return;
-        dispatchDesk({ type: "focus", id: target.id });
-        focusComposer(target.id);
+        dispatchDesk({ type: "focus", id: target });
+        focusComposer(target);
       }
     },
     blocked,
@@ -254,7 +253,10 @@ export function App() {
               ready={state !== null}
               editingLayout={homeLayout.editing}
               layoutIsDefault={isDefaultLayout(homeLayout.layout)}
-              onNewAgent={() => setCreating(true)}
+              layout={layout}
+              onLayoutChange={setLayout}
+              showLayoutToggle={showLayoutToggle}
+              onNewSession={() => setCreating(true)}
               onNewAutomation={() => setCreatingAutomation(true)}
               onSearch={() => setSwitcherQuery("")}
               onEditLayout={() => homeLayout.setEditing(true)}
@@ -308,7 +310,7 @@ export function App() {
                 dispatch={dispatchDesk}
                 threads={state.threads}
                 projects={state.projects}
-                background={deskBackground}
+                layout={layout}
                 t3EnvironmentId={state.t3EnvironmentId}
                 providers={state.providers}
               />
@@ -342,7 +344,7 @@ export function App() {
           projects={state.projects}
           now={now}
           history={openHistory}
-          onDesk={new Set(gridWindows(desk).map((w) => w.id))}
+          onDesk={deskIds}
           initialQuery={switcherQuery}
           onClose={() => setSwitcherQuery(null)}
           onOpen={(id) => {
@@ -367,8 +369,6 @@ export function App() {
           onThemeChange={setTheme}
           accent={accent}
           onAccentChange={setAccent}
-          background={deskBackground}
-          onBackgroundChange={setDeskBackground}
           onLinearChange={() => setLinearVersion((version) => version + 1)}
           update={update}
           onUpdate={() => {

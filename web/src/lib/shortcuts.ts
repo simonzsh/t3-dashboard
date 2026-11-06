@@ -1,4 +1,4 @@
-export type WindowShortcut = `window-${1 | 2 | 3 | 4 | 5 | 6}`;
+export type WindowShortcut = `window-${1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9}`;
 
 export type ShortcutAction =
   | "home"
@@ -11,7 +11,6 @@ export type ShortcutAction =
   | "switcher"
   | "close-window"
   | "toggle-fullscreen"
-  | "minimize-window"
   | "unmaximize"
   | "focus-left"
   | "focus-right"
@@ -32,7 +31,7 @@ export interface KeyInfo {
 
 // Ctrl+key works everywhere, fields included, like Ctrl+S for the stash. Cmd stays the browser's.
 const CTRL_KEYS: Record<string, ShortcutAction> = { "1": "home", "2": "desk", "3": "automations", n: "new-agent", ",": "settings", b: "toggle-sidebar" };
-const CTRL_DESK_KEYS: Record<string, ShortcutAction> = { x: "close-window", f: "toggle-fullscreen", m: "minimize-window" };
+const CTRL_DESK_KEYS: Record<string, ShortcutAction> = { x: "close-window", f: "toggle-fullscreen" };
 // Plain keys that a field needs for itself: they act only outside fields.
 const PLAIN_DESK_KEYS: Record<string, ShortcutAction> = {
   escape: "unmaximize",
@@ -48,7 +47,7 @@ const isMac = typeof navigator !== "undefined" && /Mac|iPhone|iPad/.test(navigat
 export const ctrlLabel = (key: string): string => (isMac ? `⌃${key}` : `Ctrl+${key}`);
 
 function windowShortcut(e: KeyInfo): WindowShortcut | null {
-  const digit = /^Digit([1-6])$/.exec(e.code ?? "")?.[1] ?? (/^[1-6]$/.test(e.key) ? e.key : null);
+  const digit = /^Digit([1-9])$/.exec(e.code ?? "")?.[1] ?? (/^[1-9]$/.test(e.key) ? e.key : null);
   return digit ? (`window-${digit}` as WindowShortcut) : null;
 }
 
@@ -68,7 +67,7 @@ export function matchShortcut(e: KeyInfo, dialogOpen: boolean, onDesk = false): 
   return PLAIN_DESK_KEYS[key] ?? null;
 }
 
-/** A plain character typed outside any field: on the Desk it goes to the focused window's message field. */
+/** A plain character typed outside any field: on the Sessions page it goes to the focused window's message field. */
 export function startsTyping(e: KeyInfo): boolean {
   if (e.ctrlKey || e.metaKey || e.altKey || e.key.length !== 1 || e.key === " ") return false;
   return !(e.target && (TYPING.has(e.target.tagName) || e.target.isContentEditable));
