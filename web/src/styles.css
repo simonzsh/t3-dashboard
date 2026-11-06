@@ -687,7 +687,7 @@ ol.install-steps { padding-left: 18px; }
 .desk.has-bg .desk-chip:not(.active) { background: color-mix(in srgb, var(--surface-1) 88%, transparent); }
 .desk-chip { flex: none; display: inline-flex; align-items: center; gap: 6px; max-width: 240px; padding: 4px 10px; border-radius: 999px; font-size: 12px; }
 .desk-chip.active { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 12%, var(--surface-1)); }
-.desk-chip .provider-icon { width: 14px; height: 14px; margin: 0; }
+.desk-chip .project-icon { width: 14px; height: 14px; }
 .desk-chip-title { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 /* The close cross shows on hover or keyboard focus, over the end of the chip. */
 .desk-chip-wrap { position: relative; flex: none; display: inline-flex; }
