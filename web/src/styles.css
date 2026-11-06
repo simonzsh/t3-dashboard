@@ -783,7 +783,9 @@ ol.install-steps { padding-left: 18px; }
 /* Hover only with a real pointer: a tap on a phone would leave the row grey. */
 @media (hover: hover) { .slist-row:hover { background: color-mix(in srgb, var(--text-primary) 5%, transparent); } }
 .slist-row.focused { background: color-mix(in srgb, var(--text-primary) 10%, transparent); }
-/* A thread open as a column: a thin accent bar on its left. */
+/* A thread open as a column: a thin accent bar, a bold title; closed ones are muted. */
+.slist-row:not(.open) .slist-title { color: var(--text-secondary); }
+.slist-row.open .slist-title { font-weight: 500; }
 .slist-row.open::before { content: ""; position: absolute; left: 1px; top: 6px; bottom: 6px; width: 2px; border-radius: 1px; background: var(--accent); }
 .slist-mark { flex: none; width: 8px; height: 8px; margin-top: 6px; border-radius: 50%; }
 .slist-mark.running { background: var(--work); animation: pulse 1.4s ease-in-out infinite; }
