@@ -77,7 +77,7 @@ Each session contains a conversation.
   - A star on a model shows a T3 Code favorite. Change favorites in T3 Code: the dashboard does not change them.
 - Stop a run with the "Stop" button.
 - Answer an approval: "Accept", "Accept for session" or "Decline". The dashboard does not offer "Always accept".
-- Answer a question from the agent, or click "Dismiss".
+- Answer a question from the agent: it shows above the message field, one question at a time. Pick an option (click it or press its number), or type your own answer in the field. Then click "Next", and "Submit" on the last question. The cross dismisses the question when T3 allows it; the stop button stops the turn. The chevron hides the question.
 - Follow the steps of the run in the conversation. Consecutive steps (reasoning, commands, tools, file changes, searches) form one group. The group of the active run shows its last 4 steps under "Working for …". Other groups are closed: click one to see its steps.
 - Click a command to see its output and exit code. Click a file change to see its diff. Click a tool or a search to see its input and results. A note says when T3 Code cut a long text.
 - A to-do list, a proposed plan and a notice (checkpoint, compaction, error) have their own block.

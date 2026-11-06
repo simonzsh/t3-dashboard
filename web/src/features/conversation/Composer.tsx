@@ -93,9 +93,13 @@ interface Props {
   stash?: { threadId: string; title: string };
   /** No send button: the parent has its own (a dialog Save). Enter still calls onSend. */
   hideSubmit?: boolean;
+  /** A text send button in place of the arrow, e.g. "Next" while answering a question. */
+  submitLabel?: string;
+  /** The field takes no text, e.g. a question with options only. */
+  readOnly?: boolean;
 }
 
-export function Composer({ providers, selection, runtimeMode, running, stoppable = running, draft, onDraft, onSend, onStop, onSettings, placeholder, autoFocus = false, focusKey, errorResetKey, allowEmpty = false, noImages = false, restore, searchFiles, loadCommands, contextUsage = null, onCompact, onEscape, stash, hideSubmit = false }: Props) {
+export function Composer({ providers, selection, runtimeMode, running, stoppable = running, draft, onDraft, onSend, onStop, onSettings, placeholder, autoFocus = false, focusKey, errorResetKey, allowEmpty = false, noImages = false, restore, searchFiles, loadCommands, contextUsage = null, onCompact, onEscape, stash, hideSubmit = false, submitLabel, readOnly = false }: Props) {
   const api = useApi();
   // Picks show at once, until new values come in the props or the change fails.
   // Each field has its own override: a model reload never drops a pending mode pick, and the reverse.
@@ -475,6 +479,7 @@ export function Composer({ providers, selection, runtimeMode, running, stoppable
             blurTimer.current = setTimeout(() => setFocused(false), 200);
           }}
           autoFocus={autoFocus}
+          readOnly={readOnly}
           placeholder={placeholder ?? composerPlaceholder(running, [...(searchFiles ? ["@ files"] : []), ...(loadCommands ? ["$ skills", "/ commands"] : [])])}
           aria-label="Message"
         />
@@ -539,7 +544,12 @@ export function Composer({ providers, selection, runtimeMode, running, stoppable
                 <Icon name="stop" />
               </IconButton>
             )}
-            {!hideSubmit && (
+            {!hideSubmit && submitLabel && (
+              <Button type="submit" size="sm" variant="primary" className="composer-next" disabled={!canSend}>
+                {submitLabel}
+              </Button>
+            )}
+            {!hideSubmit && !submitLabel && (
               <IconButton type="submit" label={running ? "Queue" : "Send"} tooltip={running ? "Queue it: sent when the turn ends" : "Send"} shortcut={running ? undefined : "Enter"} variant="primary" className="composer-round send" disabled={!canSend}>
                 <Icon name="arrowUp" />
               </IconButton>

@@ -13,6 +13,7 @@ import { MessageActions } from "./MessageActions.tsx";
 import { RewindDialog } from "./RewindDialog.tsx";
 import { attachmentFiles, mergeDraft } from "./rewind.ts";
 import { PendingRequestView } from "./PendingRequestView.tsx";
+import { dockedRequest, useQuestionDock } from "./QuestionDock.tsx";
 import { WorkGroup } from "./Steps.tsx";
 import { SecretRequestCard } from "./SecretRequestCard.tsx";
 import { SubagentRows } from "./SubagentRows.tsx";
@@ -247,6 +248,8 @@ function Conversation({ threadId, thread, providers, onOpenThread, onTitle }: Pr
   }, [title]);
 
   const messageEditing = useMemo(() => ({ onEdit: setEditing, disabled: running }), [running]);
+  const docked = detail ? dockedRequest(detail.pendingRequests) : null;
+  const question = useQuestionDock(threadId, docked, load);
 
   const polling = useRef(false);
   polling.current = delay !== null;
@@ -395,9 +398,9 @@ function Conversation({ threadId, thread, providers, onOpenThread, onTitle }: Pr
           {!detail && !loadError && <Loader />}
           {detail && <Timeline detail={detail} threadId={threadId} running={running} editing={messageEditing} onOpenThread={onOpenThread} onChanged={load} />}
           {detail && !running && pending.map((p) => <PendingBubble key={p.id} message={p} />)}
-          {detail && detail.pendingRequests.length > 0 && (
+          {detail && detail.pendingRequests.some((r) => r !== docked) && (
             <div className="requests">
-              {detail.pendingRequests.map((r) => (
+              {detail.pendingRequests.filter((r) => r !== docked).map((r) => (
                 <PendingRequestView key={r.requestId} threadId={threadId} request={r} />
               ))}
             </div>
@@ -423,6 +426,30 @@ function Conversation({ threadId, thread, providers, onOpenThread, onTitle }: Pr
       </div>
       {detail?.subagentThread ? (
         <SubagentBar detail={detail} providers={providers} onOpenThread={onOpenThread} />
+      ) : question.composer ? (
+        // The question sits on the Composer, whose field is the free answer.
+        <div className="question-docked" onKeyDown={question.onKeyDown}>
+          {question.card}
+          <Composer
+            providers={providers}
+            selection={detail?.modelSelection ?? null}
+            runtimeMode={detail?.runtimeMode ?? null}
+            running={false}
+            stoppable
+            draft={question.composer.draft}
+            onDraft={question.composer.onDraft}
+            onSend={question.composer.onSend}
+            allowEmpty={question.composer.allowEmpty}
+            readOnly={question.composer.readOnly}
+            placeholder={question.composer.placeholder}
+            submitLabel={question.composer.submitLabel}
+            focusKey={question.composer.focusKey}
+            noImages
+            onEscape={() => frame.current?.focus({ preventScroll: true })}
+            onStop={() => api.interrupt(threadId)}
+            onSettings={updateSettings}
+          />
+        </div>
       ) : (
       <Composer
         providers={providers}
