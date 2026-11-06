@@ -98,13 +98,14 @@ input.field { height: var(--control-md); padding-block: 0; }
 .icon-button.sm { min-width: var(--control-sm); height: var(--control-sm); }
 .notif-bell { position: relative; }
 .notif-bell .nav-badge { position: absolute; top: 2px; right: 2px; min-width: 16px; height: 16px; padding: 0 4px; font-size: 10px; }
-.icon-button.ghost[aria-pressed="true"] { background: color-mix(in srgb, var(--text-primary) 10%, transparent); color: var(--text-primary); }
 .icon-button:has(kbd) { gap: 6px; padding: 0 6px; }
 .icon-button:not(.primary):hover:not(:disabled) { color: var(--text-primary); }
 button.primary { background: var(--accent); border-color: var(--accent); color: var(--on-accent); font-weight: 500; }
 button.primary:hover:not(:disabled) { filter: brightness(1.08); }
 button.ghost { border-color: transparent; background: none; }
 button.ghost:hover:not(:disabled) { border-color: transparent; background: var(--surface-0); }
+/* Beats the ghost hover: a touch screen keeps :hover after a tap, which hid the pressed state until the next tap. */
+button.icon-button.ghost[aria-pressed="true"]:not(:disabled) { background: color-mix(in srgb, var(--text-primary) 10%, transparent); color: var(--text-primary); }
 button.danger { border-color: var(--danger); }
 button.danger:hover:not(:disabled) { border-color: var(--danger); color: var(--danger); }
 button.link, .btn.link { display: inline-block; height: auto; border: 0; background: none; padding: 0; color: var(--accent); text-decoration: underline; }
