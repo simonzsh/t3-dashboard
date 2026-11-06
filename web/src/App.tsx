@@ -2,7 +2,7 @@ import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } fr
 import type { DashboardThread } from "../../shared/api.ts";
 import { AutomationsView } from "./features/automations/AutomationsView.tsx";
 import { DashboardView } from "./features/dashboard/DashboardView.tsx";
-import { isDefaultLayout } from "./features/dashboard/layout.ts";
+import { isDefaultLayout, type DashboardCard } from "./features/dashboard/layout.ts";
 import { useDashboardLayout } from "./features/dashboard/useDashboardLayout.ts";
 import { useActivity } from "./features/dashboard/useActivity.ts";
 import { useLimits } from "./features/dashboard/useLimits.ts";
@@ -187,8 +187,10 @@ export function App() {
   const sessionsBadge = useMemo(() => ({ count: sessionsBadgeCount(visible, notify.seen), waiting: agents.waiting > 0 }), [visible, notify.seen, agents.waiting]);
   const dashboardLayout = useDashboardLayout(tab === "dashboard");
   const dashboardOpen = tab === "dashboard" && state !== null;
-  const activity = useActivity(dashboardOpen);
-  const limits = useLimits(dashboardOpen);
+  // A hidden card reads nothing; showing it again reads at once.
+  const cardShown = (id: DashboardCard) => dashboardOpen && !dashboardLayout.layout.hidden.includes(id);
+  const activity = useActivity(cardShown("activity"));
+  const limits = useLimits(cardShown("usage"));
   const page = TABS.find((t) => t.id === tab)!;
   const updateNav = update.status?.available && update.status.canUpdate ? { label: updateLabel(update.status), busy: update.updating || update.status.updating } : null;
 

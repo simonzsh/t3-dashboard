@@ -24,7 +24,8 @@ export function DashboardView({ limits, activity, running, layout, editing, onLa
   // Where the dragged card would land, shown as a placeholder of its size.
   const [target, setTarget] = useState<{ column: Column; index: number } | null>(null);
   const [dragHeight, setDragHeight] = useState(0);
-  const cards = useDashboardCards(input);
+  // A hidden Up next reads no tickets.
+  const cards = useDashboardCards(input, !layout.hidden.includes("up-next"));
   const body: Record<DashboardCard, ReactNode> = { usage: <UsageCard state={limits} now={input.now} />, activity: <ActivityCard state={activity} running={running} now={input.now} />, ...cards };
   const order = stackedOrder(layout);
   const endDrag = () => {

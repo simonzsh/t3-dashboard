@@ -8,7 +8,7 @@ import { boardNeedsKey } from "../settings/linearSettings.ts";
 import { planTickets } from "./tickets.ts";
 
 /** The Linear tickets to relaunch or do next. `version` changes with the Linear settings: the issues then load again. */
-export function useTickets(version: number, threads: DashboardThread[], seen: SeenState, now: Date) {
+export function useTickets(version: number, enabled: boolean, threads: DashboardThread[], seen: SeenState, now: Date) {
   const api = useApi();
   const notify = useNotify();
   const [board, setBoard] = useState<BoardResult | null>(null);
@@ -27,9 +27,10 @@ export function useTickets(version: number, threads: DashboardThread[], seen: Se
   // Bypass the server cache only for a settings change, not on each visit to the Dashboard.
   const loadedVersion = useRef(version);
   useEffect(() => {
+    if (!enabled) return;
     void load(version !== loadedVersion.current);
     loadedVersion.current = version;
-  }, [load, version]);
+  }, [load, version, enabled]);
 
   const needsKey = board !== null && boardNeedsKey(board);
   const linearError = board && !needsKey && !board.ok ? board.error : null;
