@@ -74,23 +74,31 @@ test("the three tiles cover the last 7 days, each with its change", () => {
   const out = render(state());
   // 63 turns this week against 49 the week before.
   assert.match(out, /Turns<\/span><span class="stat-value">63<span class="stat-delta">\+29 %/);
-  assert.match(out, /messages sent to agents · last 7 days/);
+  const text = out.replace(/<[^>]+>/g, "");
+  assert.match(text, /messages sent to agents · last 7 days/);
   assert.match(out, /Sessions<\/span><span class="stat-value">9<span class="stat-delta">\+50 %/);
-  assert.match(out, /1 running · last 7 days/);
-  assert.match(out, /Spend \(API equiv\.\)<\/span><span class="stat-value">\$[\d.]+<span class="stat-delta">/);
-  assert.match(out, /last 7 days · all usage on this machine/);
+  assert.match(text, /1 running · last 7 days/);
+  assert.match(out, /Spend<span class="stat-more"> \(API equiv\.\)<\/span><\/span><span class="stat-value">\$[\d.]+<span class="stat-delta">/);
+  assert.match(text, /last 7 days · all usage on this machine/);
   assert.doesNotMatch(out, /last 14 days ·/);
+});
+
+test("on a phone the tiles keep only the short label and caption", () => {
+  const out = render(state());
+  assert.match(out, /Spend<span class="stat-more">/);
+  assert.match(out, /<span class="stat-more">messages sent to agents · <\/span>last 7 days/);
 });
 
 test("a partial turn count and unpriced models are said in the captions", () => {
   const out = render(state({ usage: overview({ turnsPartial: true, cost: { status: "partial", detail: null, refreshing: false } }) }));
-  assert.match(out, /last 7 days \(partial\)/);
-  assert.match(out, /last 7 days · some models unpriced · all usage on this machine/);
+  const text = out.replace(/<[^>]+>/g, "");
+  assert.match(text, /last 7 days \(partial\)/);
+  assert.match(text, /last 7 days · some models unpriced · all usage on this machine/);
 });
 
 test("unavailable cost shows a dash and T3's reason, and does not crash", () => {
   const out = render(state({ usage: overview({ cost: { status: "unavailable", detail: "This T3 Code version does not report usage.", refreshing: false } }) }));
-  assert.match(out, /Spend \(API equiv\.\)<\/span><span class="stat-value">—</);
+  assert.match(out, /\(API equiv\.\)<\/span><\/span><span class="stat-value">—</);
   assert.match(out, /This T3 Code version does not report usage\./);
 });
 

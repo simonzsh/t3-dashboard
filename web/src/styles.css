@@ -773,6 +773,7 @@ ol.install-steps { padding-left: 18px; }
   /* Three compact tiles in one row; the chart is lower (see UsageChart). */
   .stat-tile { gap: 2px; padding: 12px; }
   .stat-label, .stat-caption { font-size: 11px; line-height: 1.3; }
+  .stat-more { display: none; }
   .stat-value { font-size: 20px; }
   .stat-delta { display: block; margin-left: 0; font-size: 11px; }
   .stat-skeleton-value { height: 24px; }
