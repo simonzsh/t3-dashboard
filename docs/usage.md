@@ -12,7 +12,7 @@ Dashboard opens first. At the top, a usage card shows three numbers for the last
 - Click "Done" to leave edit mode. "Reset" restores the default layout. The browser saves the layout (`t3-dashboard-layout` in local storage), so each browser has its own.
 
 - Turns are the runs of your T3 Code threads. Spend and tokens come from T3 Code and cover all usage on this machine, not only these threads. The spend is the API equivalent.
-- If T3 Code is too old to report usage, the spend shows "—" and the reason. The rest of Dashboard keeps working.
+- If T3 Code is too old to report usage, the spend shows "—" and the reason. The rest of the Dashboard keeps working.
 
 ## Inbox
 
@@ -48,7 +48,7 @@ Sessions shows your open conversations side by side. Each session is a column of
 - There is no limit on the number of open sessions. The strip scrolls sideways. A new session opens at the right end and scrolls into view.
 - The toggle in the page header chooses the view. Column view shows one session per column. Grid view stacks two sessions in each column, and the strip still scrolls sideways. Each browser keeps its choice.
 - Each session has a header with a drag handle, its title, its state, the project name, and three buttons: open in T3 Code, full screen, close. Drag the header onto another session to swap them.
-- Close a session with the x button. Open it again from Dashboard or from the switcher.
+- Close a session with the x button. Open it again from the Dashboard or from the switcher.
 - The server keeps which finished conversations you opened, for the Inbox and the Inbox badge, in `~/.config/t3-dashboard/seen.json`. A conversation read on one device is read on all of them.
 - The server keeps which conversations are open in Sessions in `~/.config/t3-dashboard/sessions.json`. Every device shows the same conversations, and an opened or closed session appears on the other open tabs at once. Each device keeps its own session order, focused session, full screen session, layout and Jump to history.
 
