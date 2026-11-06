@@ -40,6 +40,9 @@ test("a collapsed project hides its threads; flat mode has no project rows", () 
   const flat = renderToStaticMarkup(<SessionList {...base} prefs={{ ...DEFAULT_LIST_PREFS, mode: "flat" }} />);
   assert.doesNotMatch(flat, /slist-project/);
   assert.match(flat, /Fix login/);
+  // Flat rows name the project instead of the model.
+  assert.match(flat, /5 min ago · <svg[^>]*project-icon[^]*?<\/svg>Project A/);
+  assert.doesNotMatch(flat, /Model One/);
 });
 
 test("the top band, on the right: collapse all, view toggle, close all, and no hide button", () => {

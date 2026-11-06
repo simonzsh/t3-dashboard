@@ -37,10 +37,12 @@ export function SessionList({ threads, projects, seen, modelNames, now, openIds,
   const toMode = grouped ? "flat" : "grouped";
   const modeLabel = grouped ? "Show one list by recent activity" : "Group by project";
   const foldLabel = anyOpen ? "Collapse all projects" : "Expand all projects";
+  const projectsById = useMemo(() => new Map(projects.map((p) => [p.id, p])), [projects]);
 
   const row = (t: DashboardThread) => {
     const mark = statusMark(t, seen);
     const model = modelLabel(t.model, modelNames);
+    const project = projectsById.get(t.projectId);
     const title = threadTitle(t);
     return (
       <Pressable key={t.id} className={`slist-row${openIds.has(t.id) ? " open" : ""}${t.id === focusedId ? " focused" : ""}`} aria-current={t.id === focusedId || undefined} onClick={() => onOpen(t.id)}>
@@ -49,13 +51,22 @@ export function SessionList({ threads, projects, seen, modelNames, now, openIds,
           <span className="slist-title">{title}</span>
           <span className="slist-meta">
             {relativeTime(t.lastActivityAt, now)}
-            {model && (
-              <>
-                {" · "}
-                <ProviderIcon provider={t.provider} />
-                {model}
-              </>
-            )}
+            {/* Grouped rows sit under their project, so they name the model; flat rows name the project. */}
+            {grouped
+              ? model && (
+                  <>
+                    {" · "}
+                    <ProviderIcon provider={t.provider} />
+                    {model}
+                  </>
+                )
+              : project && (
+                  <>
+                    {" · "}
+                    <ProjectIcon icon={project.icon} title={project.title} />
+                    {project.title}
+                  </>
+                )}
           </span>
         </span>
       </Pressable>
