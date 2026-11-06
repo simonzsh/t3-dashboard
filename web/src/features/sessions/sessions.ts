@@ -24,9 +24,6 @@ export type SessionsAction =
 
 export const EMPTY_SESSIONS: SessionsState = { ids: [], focusedId: null, maximized: false };
 
-/** Below this width the strip becomes one window with a tab bar. */
-export const NARROW_STRIP = "(max-width: 899px)";
-
 /** Sessions stacked in one column: grid view stacks two. */
 export const perColumn = (layout: SessionLayout): number => (layout === "grid" ? 2 : 1);
 

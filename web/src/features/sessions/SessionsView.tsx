@@ -1,25 +1,37 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type Dispatch, type PointerEvent, type ReactNode, type TouchEvent } from "react";
 import type { DashboardProject, DashboardProvider, DashboardThread } from "../../../../shared/api.ts";
-import { threadState } from "../../../../shared/status.ts";
+import type { SeenState } from "../../../../shared/seen.ts";
 import { threadTitle } from "../../lib/threads.ts";
-import { cellOf, neighborId, NARROW_STRIP, perColumn, spansRows, type SessionsAction, type SessionsState } from "./sessions.ts";
+import { cellOf, neighborId, perColumn, spansRows, type SessionsAction, type SessionsState } from "./sessions.ts";
 import { focusSessionField, sessionWindowEl } from "./dom.ts";
-import { enter, Kbd, Pressable, reducedMotion, useFlip } from "../../ui/index.ts";
-import { useMediaQuery } from "../../lib/useMediaQuery.ts";
+import { enter, Icon, IconButton, Kbd, reducedMotion, useFlip } from "../../ui/index.ts";
 import type { SessionLayout } from "../../lib/sessionLayout.ts";
 import { ctrlLabel, startsTyping } from "../../lib/shortcuts.ts";
 import { swipeDirection } from "../../lib/swipe.ts";
 import { SessionWindow } from "./SessionWindow.tsx";
-import { ProjectIcon } from "../../lib/ProjectIcon.tsx";
+import { SessionList } from "./SessionList.tsx";
+import { useListPrefs } from "./sessionList.ts";
 
 interface Props {
   sessions: SessionsState;
   dispatch: Dispatch<SessionsAction>;
   threads: DashboardThread[];
+  /** The threads the list may show: automation runs and setup threads are already out. */
+  listed: DashboardThread[];
   projects: DashboardProject[];
+  seen: SeenState;
+  now: Date;
   layout: SessionLayout;
   t3EnvironmentId: string | null;
   providers: DashboardProvider[];
+  /** The phone layout: the list fills the page, and a session opens over it. */
+  phone: boolean;
+  /** On a phone: the focused session is open over the list. */
+  sessionShown: boolean;
+  onBack: () => void;
+  /** Opens a thread as a session and focuses it. */
+  onOpen: (id: string) => void;
+  onNewSession: (projectId: string) => void;
 }
 
 /** Fixed-width columns in a strip that scrolls sideways; grid view stacks two sessions per column. */
@@ -198,34 +210,33 @@ function useWindowDrag(enabled: boolean, dispatch: Dispatch<SessionsAction>) {
   };
 }
 
-export function SessionsView({ sessions, dispatch, threads, projects, layout, t3EnvironmentId, providers }: Props) {
-  const narrow = useMediaQuery(NARROW_STRIP);
+export function SessionsView({ sessions, dispatch, threads, listed, projects, seen, now, layout, t3EnvironmentId, providers, phone, sessionShown, onBack, onOpen, onNewSession }: Props) {
+  const [prefs, setPrefs] = useListPrefs();
+  const modelNames = useMemo(() => new Map(providers.flatMap((p) => p.models).map((m) => [m.slug, m.name])), [providers]);
+  const openIds = useMemo(() => new Set(sessions.ids), [sessions.ids]);
+  // On a phone, closing the open session goes back to the list.
+  const phoneDispatch = useCallback(
+    (action: SessionsAction) => {
+      dispatch(action);
+      if (action.type === "close") onBack();
+    },
+    [dispatch, onBack],
+  );
   const byId = useMemo(() => new Map(threads.map((t) => [t.id, t])), [threads]);
   const projectsById = useMemo(() => new Map(projects.map((p) => [p.id, p])), [projects]);
   // Names of subagent threads, which the shell does not list.
   const [childTitles, setChildTitles] = useState<Record<string, string>>({});
   const setChildTitle = useCallback((id: string, title: string) => setChildTitles((titles) => (titles[id] === title ? titles : { ...titles, [id]: title })), []);
-  const seen = useRef(new Set<string>());
-  for (const id of sessions.ids) if (byId.has(id)) seen.current.add(id);
+  const wasLive = useRef(new Set<string>());
+  for (const id of sessions.ids) if (byId.has(id)) wasLive.current.add(id);
   const root = useRef<HTMLDivElement>(null);
   const { focusedId, maximized } = sessions;
-  // Windows slide, open and close when the strip changes; the narrow view swaps tabs without motion.
-  useFlip(root, `${layout}|${sessions.ids.join(",")}|${maximized}`, { item: "data-session-window", enabled: !narrow });
+  // Windows slide, open and close when the strip changes; the phone shows one session, with no motion.
+  useFlip(root, `${layout}|${sessions.ids.join(",")}|${maximized}`, { item: "data-session-window", enabled: !phone });
 
   const activeId = focusedId ?? "";
-  const { area, swipe } = useWindowSwipe(narrow, sessions, dispatch);
-  const drag = useWindowDrag(!narrow && sessions.ids.length > 1 && !maximized, dispatch);
-
-  // Keeps the open tab centered in the bar, whether a swipe or a tap changed it.
-  const tabs = useRef<HTMLElement>(null);
-  useEffect(() => {
-    const bar = tabs.current;
-    const tab = bar?.querySelector<HTMLElement>(".sessions-chip.active");
-    if (!bar || !tab) return;
-    const b = bar.getBoundingClientRect();
-    const t = tab.getBoundingClientRect();
-    bar.scrollTo({ left: bar.scrollLeft + t.left - b.left - (b.width - t.width) / 2, behavior: "smooth" });
-  }, [narrow, activeId]);
+  const { area, swipe } = useWindowSwipe(phone, sessions, dispatch);
+  const drag = useWindowDrag(!phone && sessions.ids.length > 1 && !maximized, dispatch);
 
   // A press focuses its window here: the pointer is already on it, so that focus must not scroll.
   const pressFocus = useRef(false);
@@ -239,9 +250,9 @@ export function SessionsView({ sessions, dispatch, threads, projects, layout, t3
   useEffect(() => {
     const byPointer = pressFocus.current;
     pressFocus.current = false;
-    if (byPointer || narrow || !focusedId || maximized) return;
+    if (byPointer || phone || !focusedId || maximized) return;
     sessionWindowEl(focusedId)?.scrollIntoView({ inline: "nearest", block: "nearest", behavior: reducedMotion() ? "auto" : "smooth" });
-  }, [narrow, focusedId, maximized, layout]);
+  }, [phone, focusedId, maximized, layout]);
 
   // Shortcuts use Ctrl, so a plain character typed outside a field goes to the focused session's message field.
   useEffect(() => {
@@ -256,19 +267,28 @@ export function SessionsView({ sessions, dispatch, threads, projects, layout, t3
     return () => window.removeEventListener("keydown", onKey);
   }, [focusedId]);
 
-  if (sessions.ids.length === 0) {
-    return (
-      <div ref={root} className="sessions">
-        <div className="empty-state sessions-empty">
-          <strong>No sessions open</strong>
-          <span>Open one from Dashboard, or start one with New Session.</span>
-          <span className="shortcut-hint">
-            Press <Kbd>{ctrlLabel("K")}</Kbd> to search every session.
-          </span>
-        </div>
-      </div>
-    );
-  }
+  // A click on the focused session's row still brings its column back into view.
+  const openFromList = (id: string) => {
+    if (id === focusedId && !phone) sessionWindowEl(id)?.scrollIntoView({ inline: "nearest", block: "nearest", behavior: reducedMotion() ? "auto" : "smooth" });
+    onOpen(id);
+  };
+  const list = (onHide?: () => void) => (
+    <SessionList
+      threads={listed}
+      projects={projects}
+      seen={seen}
+      modelNames={modelNames}
+      now={now}
+      openIds={openIds}
+      focusedId={focusedId}
+      prefs={prefs}
+      onPrefs={setPrefs}
+      onOpen={openFromList}
+      onNewSession={onNewSession}
+      onCloseAll={() => dispatch({ type: "closeAll" })}
+      onHide={onHide}
+    />
+  );
 
   const info = (id: string) => {
     const thread = byId.get(id) ?? null;
@@ -278,7 +298,7 @@ export function SessionsView({ sessions, dispatch, threads, projects, layout, t3
 
   const renderWindow = (id: string, compact = false, live = true) => {
     const { thread, project, title } = info(id);
-    // The key remounts the window when the narrow view switches tabs: no state leaks between threads.
+    // The key remounts the window when a swipe on a phone changes the session: no state leaks between threads.
     return (
       <SessionWindow
         key={id}
@@ -287,7 +307,7 @@ export function SessionsView({ sessions, dispatch, threads, projects, layout, t3
         title={title}
         projectTitle={project?.title ?? null}
         projectIcon={project?.icon ?? null}
-        missing={!thread && seen.current.has(id)}
+        missing={!thread && wasLive.current.has(id)}
         focused={focusedId === id}
         maximized={!compact && maximized && focusedId === id}
         compact={compact}
@@ -295,40 +315,50 @@ export function SessionsView({ sessions, dispatch, threads, projects, layout, t3
         t3EnvironmentId={t3EnvironmentId}
         providers={providers}
         onTitle={setChildTitle}
-        dispatch={dispatch}
+        onBack={compact ? onBack : undefined}
+        dispatch={compact ? phoneDispatch : dispatch}
       />
     );
   };
 
-  const chip = (id: string) => {
-    const { thread, project, title } = info(id);
-    return (
-      <Pressable key={id} className={`sessions-chip${id === activeId ? " active" : ""}`} onClick={() => dispatch({ type: "focus", id })}>
-        <span className={`state-dot ${thread ? threadState(thread) : "idle"}`} aria-hidden="true" />
-        {project && <ProjectIcon icon={project.icon ?? null} title={project.title} />}
-        <span className="sessions-chip-title" data-tooltip={title} data-tooltip-clipped>{title}</span>
-      </Pressable>
-    );
-  };
-
-  if (narrow) {
-    return (
+  if (phone) {
+    return sessionShown && focusedId ? (
       <div ref={root} className="sessions compact">
-        <nav ref={tabs} className="sessions-tabs" aria-label="Open sessions">
-          {sessions.ids.map(chip)}
-        </nav>
         <div ref={area} className="sessions-area" {...swipe}>
           {renderWindow(activeId, true)}
         </div>
+      </div>
+    ) : (
+      <div ref={root} className="sessions phone-list">
+        {list()}
       </div>
     );
   }
 
   return (
     <div ref={root} className="sessions">
-      <div className="sessions-area" onPointerDownCapture={onPressCapture} {...drag}>
-        <SessionsStrip ids={sessions.ids} layout={layout} pinned={focusedId} render={(id, near) => renderWindow(id, false, near)} />
-      </div>
+      {prefs.hidden ? (
+        <div className="slist-rail">
+          <IconButton variant="ghost" size="sm" label="Show the list" tooltip="Show the list" onClick={() => setPrefs({ hidden: false })}>
+            <Icon name="panelLeft" />
+          </IconButton>
+        </div>
+      ) : (
+        list(() => setPrefs({ hidden: true }))
+      )}
+      {sessions.ids.length === 0 ? (
+        <div className="empty-state sessions-empty">
+          <strong>No sessions open</strong>
+          <span>Pick a session in the list, or start one with New Session.</span>
+          <span className="shortcut-hint">
+            Press <Kbd>{ctrlLabel("K")}</Kbd> to search every session.
+          </span>
+        </div>
+      ) : (
+        <div className="sessions-area" onPointerDownCapture={onPressCapture} {...drag}>
+          <SessionsStrip ids={sessions.ids} layout={layout} pinned={focusedId} render={(id, near) => renderWindow(id, false, near)} />
+        </div>
+      )}
     </div>
   );
 }

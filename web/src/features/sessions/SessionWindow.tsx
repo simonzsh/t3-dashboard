@@ -28,11 +28,13 @@ interface Props {
   t3EnvironmentId: string | null;
   providers: DashboardProvider[];
   onTitle?: (id: string, title: string) => void;
+  /** On a phone: the arrow back to the list. */
+  onBack?: () => void;
   // Stable across renders, so a window rerenders only when its own props change.
   dispatch: Dispatch<SessionsAction>;
 }
 
-function SessionWindowView({ id, thread, title, projectTitle, projectIcon, missing, focused, maximized, compact, live, t3EnvironmentId, providers, onTitle, dispatch }: Props) {
+function SessionWindowView({ id, thread, title, projectTitle, projectIcon, missing, focused, maximized, compact, live, t3EnvironmentId, providers, onTitle, onBack, dispatch }: Props) {
   const onFocus = () => dispatch({ type: "focus", id });
   const onClose = () => dispatch({ type: "close", id });
   const onToggleMaximize = () => dispatch({ type: "maximize", id });
@@ -51,6 +53,11 @@ function SessionWindowView({ id, thread, title, projectTitle, projectIcon, missi
       <header className="session-window-head">
         <div className="sc-row">
           {!compact && <Icon name="grip" className="icon sc-grip" />}
+          {onBack && (
+            <IconButton variant="ghost" size="sm" className="sc-back" label="Back to the list" onClick={onBack}>
+              <Icon name="arrowLeft" />
+            </IconButton>
+          )}
           <span className="dw-title" data-tooltip={title} data-tooltip-clipped>
             {title}
           </span>

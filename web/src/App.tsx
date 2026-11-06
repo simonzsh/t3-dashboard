@@ -20,7 +20,7 @@ import { useOpenHistory } from "./features/switcher/useOpenHistory.ts";
 import { SettingsDialog } from "./features/settings/SettingsDialog.tsx";
 import { SetupScreen } from "./features/setup/SetupScreen.tsx";
 import { UpdateDialog } from "./features/update/UpdateDialog.tsx";
-import { NARROW_STRIP, neighborId, type Direction } from "./features/sessions/sessions.ts";
+import { neighborId, type Direction } from "./features/sessions/sessions.ts";
 import { useAutomations } from "./features/automations/useAutomations.ts";
 import { api } from "./api/client.ts";
 import { useDashboard } from "./api/events.ts";
@@ -49,6 +49,12 @@ export function App() {
   // Always loaded while live: the Dashboard badge must leave out automation run threads.
   const automations = useAutomations(state?.connection.t3 === "live");
   const [sessions, dispatchSessions] = useSessions();
+  const compact = useMediaQuery(PHONE);
+  // On a phone the Sessions tab is a list; an opened session covers it, with no header or bottom bar.
+  const [phoneSession, setPhoneSession] = useState(false);
+  const sessionShown = compact && tab === "sessions" && phoneSession && sessions.focusedId !== null;
+  // Only a session in front of the user counts as read or watched: on a phone, not the list.
+  const inFront = tab === "sessions" && (!compact || sessionShown) ? sessions.focusedId : null;
   const [openHistory, recordOpened] = useOpenHistory();
   useSessionsSync({
     sessions,
@@ -59,7 +65,7 @@ export function App() {
   });
   // The focused sessions window on the visible Sessions tab is already in front of the user: no toast for it.
   const watching = useRef<(id: string) => boolean>(() => false);
-  watching.current = (id) => tab === "sessions" && sessions.focusedId === id;
+  watching.current = (id) => inFront === id;
   const notify = useNotifications({
     threads: state?.connection.t3 === "live" ? state.threads : null,
     quiet: useCallback((id: string) => watching.current(id), []),
@@ -68,13 +74,14 @@ export function App() {
   });
   // The focused sessions window on the visible Sessions tab is read: on a click, a restore, and on each new activity.
   // Only openInSessions marked threads before, so a session already open stayed unread on the Dashboard.
-  const readId = tab === "sessions" ? sessions.focusedId : null;
+  const readId = inFront;
   const readAt = readId ? state?.threads.find((t) => t.id === readId)?.lastActivityAt : undefined;
   const { markSeen, seenReady } = notify;
   useEffect(() => {
     if (readId && readAt && seenReady) markSeen(readId);
   }, [readId, readAt, seenReady, markSeen]);
-  const [creating, setCreating] = useState(false);
+  // null: closed; otherwise open, with the project to preselect, if any.
+  const [creating, setCreating] = useState<{ projectId: string | null } | null>(null);
   const [creatingAutomation, setCreatingAutomation] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [confirmingUpdate, setConfirmingUpdate] = useState(false);
@@ -85,10 +92,7 @@ export function App() {
   const [theme, setTheme] = useTheme();
   const [accent, setAccent] = useAccent();
   const [layout, setLayout] = useSessionLayout();
-  // The grid toggle needs room for two-row columns side by side: not on a phone.
-  const showLayoutToggle = !useMediaQuery(NARROW_STRIP);
   const [now, setNow] = useState(() => new Date());
-  const compact = useMediaQuery(PHONE);
   const [sidebarCollapsed, toggleSidebar] = useSidebarCollapsed();
 
   // The error banner starts under the header, whatever its height (one line on a phone).
@@ -117,8 +121,17 @@ export function App() {
     dispatchSessions({ type: "open", id });
     recordOpened(id);
     notify.markSeen(id);
-    if (showSessions) setTab("sessions");
+    if (!showSessions) return;
+    setPhoneSession(true);
+    setTab("sessions");
   }
+
+  // The bottom bar's Sessions entry shows the list.
+  const showTab = (next: typeof tab) => {
+    if (next === "sessions") setPhoneSession(false);
+    setTab(next);
+  };
+  const back = useCallback(() => setPhoneSession(false), []);
 
   // The rows are memoized: these callbacks keep one identity and call the latest handlers.
   const openRef = useRef(openInSessions);
@@ -130,7 +143,7 @@ export function App() {
     if (state) setSwitcherQuery("");
   };
 
-  const blocked = creating || creatingAutomation || settingsOpen || confirmingUpdate || switcherQuery !== null;
+  const blocked = creating !== null || creatingAutomation || settingsOpen || confirmingUpdate || switcherQuery !== null;
   useShortcuts(
     (action) => {
       if (action === "dashboard" || action === "sessions" || action === "automations") setTab(action);
@@ -138,9 +151,9 @@ export function App() {
       else if (action === "toggle-sidebar") {
         if (!compact) toggleSidebar();
       } else if (action === "switcher") {
-        if (state && !creating && !creatingAutomation && !settingsOpen && !confirmingUpdate) setSwitcherQuery((open) => (open === null ? "" : null));
+        if (state && creating === null && !creatingAutomation && !settingsOpen && !confirmingUpdate) setSwitcherQuery((open) => (open === null ? "" : null));
       } else if (action === "new-session") {
-        if (state) setCreating(true);
+        if (state) setCreating({ projectId: null });
       } else if (action === "new-automation") {
         if (state) setCreatingAutomation(true);
       } else if (action === "unmaximize") {
@@ -184,7 +197,7 @@ export function App() {
   }
 
   return (
-    <div className={`app${tab === "sessions" ? " sessions-mode" : ""}`}>
+    <div className={`app${tab === "sessions" ? " sessions-mode" : ""}${sessionShown ? " session-shown" : ""}`}>
       <TooltipLayer />
       <AppNav
         layout={compact ? "bottom" : "side"}
@@ -195,7 +208,7 @@ export function App() {
         badges={badges}
         live={live}
         update={updateNav}
-        onTab={setTab}
+        onTab={showTab}
         onSearch={openSearch}
         onSettings={() => setSettingsOpen(true)}
         onUpdate={() => setConfirmingUpdate(true)}
@@ -215,8 +228,8 @@ export function App() {
               layoutIsDefault={isDefaultLayout(dashboardLayout.layout)}
               layout={layout}
               onLayoutChange={setLayout}
-              showLayoutToggle={showLayoutToggle}
-              onNewSession={() => setCreating(true)}
+              showLayoutToggle={!compact}
+              onNewSession={() => setCreating({ projectId: null })}
               onNewAutomation={() => setCreatingAutomation(true)}
               onSearch={openSearch}
               onEditLayout={() => dashboardLayout.setEditing(true)}
@@ -268,10 +281,18 @@ export function App() {
                 sessions={sessions}
                 dispatch={dispatchSessions}
                 threads={state.threads}
+                listed={visible}
                 projects={state.projects}
+                seen={notify.seen}
+                now={now}
                 layout={layout}
                 t3EnvironmentId={state.t3EnvironmentId}
                 providers={state.providers}
+                phone={compact}
+                sessionShown={sessionShown}
+                onBack={back}
+                onOpen={(id) => openInSessions(id, true)}
+                onNewSession={(projectId) => setCreating({ projectId })}
               />
             ) : <Loader />)}
         </main>
@@ -281,9 +302,10 @@ export function App() {
           projects={state.projects}
           providers={state.providers}
           defaults={state.modelDefaults}
-          onClose={() => setCreating(false)}
+          projectId={creating.projectId}
+          onClose={() => setCreating(null)}
           onCreated={(id) => {
-            setCreating(false);
+            setCreating(null);
             openInSessions(id, true);
           }}
         />

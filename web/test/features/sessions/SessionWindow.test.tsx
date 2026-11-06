@@ -39,3 +39,8 @@ test("only running, waiting and error sessions show a state badge", () => {
   assert.doesNotMatch(badge({ status: "completed" }), /dw-state|>Done</);
   assert.doesNotMatch(badge({ status: "idle" }), /dw-state|>Idle</);
 });
+
+test("a back arrow shows only when the window can go back to the list", () => {
+  assert.match(renderToStaticMarkup(<SessionWindow {...base} compact onBack={() => {}} missing />), /aria-label="Back to the list"/);
+  assert.doesNotMatch(renderToStaticMarkup(<SessionWindow {...base} compact missing />), /Back to the list/);
+});

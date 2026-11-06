@@ -712,13 +712,14 @@ ol.install-steps { padding-left: 18px; }
 .usage-empty, .usage-error { margin: 0; padding: 20px; color: var(--text-secondary); }
 .usage-error { color: var(--err-text); }
 .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
-.sessions { flex: 1; min-height: 0; display: flex; flex-direction: column; background: var(--surface-0); }
-.sessions-area { position: relative; flex: 1; min-height: 0; display: flex; flex-direction: column; }
+.sessions { flex: 1; min-height: 0; display: flex; background: var(--surface-0); }
+.sessions.compact { flex-direction: column; }
+.sessions-area { position: relative; flex: 1; min-width: 0; min-height: 0; display: flex; flex-direction: column; }
 /* Columns at least 380 px wide that share the free width, then scroll sideways. The strip is not positioned: a fullscreen window sizes itself on .sessions-area and stays out of the scroll. */
 .sessions-strip { flex: 1; min-height: 0; display: grid; grid-auto-flow: column; grid-auto-columns: minmax(380px, 1fr); overflow-x: auto; overflow-y: hidden; overscroll-behavior-x: contain; }
 .sessions-cell { display: flex; min-width: 0; min-height: 0; border-right: 1px solid var(--line); }
 .sessions-cell.has-below { border-bottom: 1px solid var(--line); }
-.sessions-empty { margin: 24px; }
+.sessions-empty { flex: 1; align-self: flex-start; margin: 24px; }
 .sessions-placeholder { flex: 1; min-height: 0; background: var(--surface-0); }
 .session-window { flex: 1; min-width: 0; min-height: 0; display: flex; flex-direction: column; overflow: hidden; background: var(--surface-0); }
 .session-window.maximized { position: absolute; inset: 0; z-index: 3; }
@@ -746,17 +747,54 @@ ol.install-steps { padding-left: 18px; }
 .dw-buttons .icon-button { min-width: 0; height: auto; padding: 4px; border-radius: var(--radius-sm); }
 .dw-buttons .icon-button:hover { color: var(--text-primary); background: var(--surface-0); }
 .sessions-missing { flex: 1; display: flex; flex-direction: column; gap: 10px; align-items: center; justify-content: center; padding: 16px; text-align: center; color: var(--text-secondary); }
-/* On a phone the tab bar sits on the plain sessions; only the chips have a surface. */
-.sessions-tabs { display: flex; gap: 6px; padding: 8px 10px; overflow-x: auto; }
-.sessions-chip { flex: none; display: inline-flex; align-items: center; gap: 6px; max-width: 240px; padding: 4px 10px; border-radius: 999px; font-size: 12px; }
-.sessions-chip.active { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 12%, var(--surface-1)); }
-.sessions-chip .project-icon { width: 14px; height: 14px; }
-.sessions-chip-title { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.state-dot { flex: none; width: 8px; height: 8px; border-radius: 50%; background: var(--line); }
-.state-dot.waiting { background: var(--warn); }
-.state-dot.running { background: var(--work); }
-.state-dot.done { background: var(--ok); }
-.state-dot.error { background: var(--danger); }
+/* The sessions list: a panel left of the strip, or the whole page on a phone. */
+.slist { flex: none; width: 280px; min-height: 0; display: flex; flex-direction: column; border-right: 1px solid var(--line); background: var(--surface-0); }
+.slist-head { flex: none; display: flex; align-items: center; gap: 2px; height: 44px; padding: 0 8px; border-bottom: 1px solid var(--line); }
+.slist-head-space { flex: 1; }
+.slist-head .icon-button.active { color: var(--accent); background: color-mix(in srgb, var(--accent) 12%, transparent); }
+.slist-search { flex: none; padding: 8px; border-bottom: 1px solid var(--line); }
+.slist-search .field { width: 100%; }
+.slist-body { flex: 1; min-height: 0; overflow-y: auto; padding: 6px; }
+.slist-project { display: flex; align-items: center; border-radius: var(--radius-md); }
+.slist-project:hover { background: color-mix(in srgb, var(--text-primary) 5%, transparent); }
+.slist-project-toggle { flex: 1; min-width: 0; display: flex; align-items: center; gap: 6px; height: 30px; padding: 0 6px; border: 0; border-radius: var(--radius-md); background: none; color: var(--text-primary); font-size: 13px; font-weight: 600; text-align: left; }
+.slist-chevron { flex: none; width: 14px; height: 14px; color: var(--text-secondary); }
+.slist-project .project-icon { flex: none; width: 16px; height: 16px; }
+.slist-project-title { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.slist-count { flex: none; display: inline-grid; place-items: center; min-width: 18px; height: 18px; padding: 0 5px; border-radius: 999px; color: var(--text-secondary); font-size: 11px; font-weight: 600; }
+.slist-count.running { background: color-mix(in srgb, var(--accent) 20%, transparent); color: var(--work-text); }
+/* The + shows on hover and focus, always on touch screens. */
+.slist-new { opacity: 0; }
+.slist-project:hover .slist-new, .slist-new:focus-visible { opacity: 1; }
+.slist-row { position: relative; display: flex; align-items: flex-start; gap: 8px; width: 100%; padding: 5px 8px 5px 26px; border: 0; border-radius: var(--radius-md); background: none; color: var(--text-primary); text-align: left; }
+.slist-body > .slist-row { padding-left: 8px; }
+.slist-row:hover { background: color-mix(in srgb, var(--text-primary) 5%, transparent); }
+.slist-row.focused { background: color-mix(in srgb, var(--text-primary) 10%, transparent); }
+/* A thread open as a column: a thin accent bar on its left. */
+.slist-row.open::before { content: ""; position: absolute; left: 1px; top: 6px; bottom: 6px; width: 2px; border-radius: 1px; background: var(--accent); }
+.slist-mark { flex: none; width: 8px; height: 8px; margin-top: 6px; border-radius: 50%; }
+.slist-mark.running { background: var(--work); animation: pulse 1.4s ease-in-out infinite; }
+.slist-mark.waiting { background: var(--warn); }
+.slist-mark.error { background: var(--danger); }
+.slist-mark.unread { width: 6px; height: 6px; margin: 7px 1px 0; background: var(--accent); }
+.slist-text { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 1px; }
+.slist-title, .slist-meta { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.slist-title { font-size: 13px; }
+.slist-meta { color: var(--text-secondary); font-size: 11.5px; }
+.slist-empty { margin: 12px 8px; color: var(--text-secondary); font-size: 12px; }
+.slist-foot { flex: none; display: flex; align-items: center; height: 40px; padding: 0 8px; border-top: 1px solid var(--line); }
+.slist-rail { flex: none; display: flex; justify-content: center; width: 40px; padding-top: 8px; border-right: 1px solid var(--line); }
+.sessions.phone-list .slist { flex: 1; width: auto; min-width: 0; border-right: 0; }
+@media (pointer: coarse) {
+  .slist-new { opacity: 1; }
+  .slist-project-toggle, .slist-head .icon-button, .slist-new { min-height: 44px; min-width: 44px; }
+  .slist-row { padding-block: 10px; }
+}
+/* On a phone an opened session covers the page: no header, no bottom bar. */
+.app.session-shown :is(.page-header, .bottom-nav) { display: none; }
+.app.session-shown .app-column { padding-bottom: env(safe-area-inset-bottom); }
+.sessions.compact .session-window-head { padding-top: max(6px, env(safe-area-inset-top)); }
+.sessions.compact :is(.sc-back, .dw-buttons .icon-button) { min-width: 36px; height: 36px; }
 @media (max-width: 700px) {
   .switcher-meta { display: none; }
   .auto-scroll { overflow: visible; border: 0; background: none; box-shadow: none; }
@@ -856,7 +894,7 @@ ol.install-steps { padding-left: 18px; }
 .key-mask { font: 12px/1 var(--font-mono); padding: 4px 7px; border-radius: 6px; border: 1px solid var(--line); color: var(--text-secondary); background: var(--surface-0); }
 /* After every animated rule, so it wins on equal specificity. */
 @media (prefers-reduced-motion: reduce) {
-  .pulse, .run-row.working::after, .streaming, .step.running .icon, .todo.running .todo-mark, .spinning { animation: none; }
+  .pulse, .slist-mark.running, .run-row.working::after, .streaming, .step.running .icon, .todo.running .todo-mark, .spinning { animation: none; }
   .loader rect { animation: none; }
   .skeleton { animation: none; }
   .thread-actions { transition: none; }
