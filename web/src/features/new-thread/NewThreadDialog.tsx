@@ -33,7 +33,8 @@ export function NewThreadDialog({ projects, providers, defaults, onClose, onCrea
   const [mode, setMode] = useState<RuntimeMode>(defaults.runtimeMode ?? DEFAULT_RUNTIME_MODE);
   const [draft, setDraft] = useState("");
   // Each project pick moves the focus to the message.
-  const [picks, setPicks] = useState(0);
+  // A preset project needs no pick: the field gets the focus at once (focusKey 1).
+  const [picks, setPicks] = useState(preset ? 1 : 0);
 
   // Providers can arrive after the dialog opens: pick a preset once the choice is no longer valid.
   useEffect(() => {
@@ -76,7 +77,7 @@ export function NewThreadDialog({ projects, providers, defaults, onClose, onCrea
           projects={projects}
           value={projectId}
           allowNone
-          defaultOpen
+          defaultOpen={!preset}
           onPicked={() => setPicks((n) => n + 1)}
           onPick={(id) => {
             setProjectId(id);
