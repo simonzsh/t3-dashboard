@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { memo, useMemo } from "react";
 import type { DashboardProject, DashboardThread } from "../../../../shared/api.ts";
 import type { SeenState } from "../../../../shared/seen.ts";
 import { relativeTime } from "../../lib/format.ts";
@@ -28,7 +28,7 @@ interface Props {
 }
 
 /** Every listed thread, by project or by recent activity: a click opens it as a session. */
-export function SessionList({ threads, projects, seen, modelNames, now, openIds, focusedId, prefs, onPrefs, onOpen, onNewSession, onCloseAll }: Props) {
+function SessionListView({ threads, projects, seen, modelNames, now, openIds, focusedId, prefs, onPrefs, onOpen, onNewSession, onCloseAll }: Props) {
   const shown = useMemo(() => listableThreads(threads), [threads]);
   const collapsed = new Set(prefs.collapsed);
   const grouped = prefs.mode === "grouped";
@@ -79,7 +79,7 @@ export function SessionList({ threads, projects, seen, modelNames, now, openIds,
           const open = !collapsed.has(g.id);
           const toggle = () => onPrefs({ collapsed: open ? [...prefs.collapsed, g.id] : prefs.collapsed.filter((id) => id !== g.id) });
           return (
-            <section key={g.id} className="slist-group" aria-label={g.title}>
+            <section key={g.id} aria-label={g.title}>
               <div className="slist-project">
                 <Pressable className="slist-project-toggle" aria-expanded={open} onClick={toggle}>
                   <Icon name={open ? "chevron" : "chevronRight"} className="icon slist-chevron" />
@@ -120,3 +120,6 @@ export function SessionList({ threads, projects, seen, modelNames, now, openIds,
     </aside>
   );
 }
+
+// Memoized: SessionsView rerenders on every live event, and the list has a row per thread.
+export const SessionList = memo(SessionListView);

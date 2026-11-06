@@ -57,13 +57,13 @@ test("threads to relaunch leave read and idle", () => {
   assert.deepEqual(ids(s.readIdle), ["b"]);
 });
 
-test("each section lists pinned threads first, then the most recent", () => {
+test("running lists pinned threads first, then the most recent", () => {
   const s = sectionsOf([
-    thread("old", { lastActivityAt: "2026-01-10T10:00:00.000Z" }),
-    thread("new", { lastActivityAt: "2026-01-11T10:00:00.000Z" }),
-    thread("pin", { pinned: true, lastActivityAt: "2026-01-09T10:00:00.000Z" }),
+    thread("old", { status: "running", lastActivityAt: "2026-01-10T10:00:00.000Z" }),
+    thread("new", { status: "running", lastActivityAt: "2026-01-11T10:00:00.000Z" }),
+    thread("pin", { status: "running", pinned: true, lastActivityAt: "2026-01-09T10:00:00.000Z" }),
   ]);
-  assert.deepEqual(ids(s.unread), ["pin", "new", "old"]);
+  assert.deepEqual(ids(s.running), ["pin", "new", "old"]);
 });
 
 test("splitRead cuts the read threads at 3 days", () => {

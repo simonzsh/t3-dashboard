@@ -28,7 +28,7 @@ export function fitInto(box: Rect, target: Rect): Rect {
   return { left: target.left + (target.width - width) / 2, top: target.top + (target.height - height) / 2, width, height };
 }
 
-export type FlipStep = { id: string; kind: "move" | "enter" | "leave" };
+type FlipStep = { id: string; kind: "move" | "enter" | "leave" };
 
 export function flipPlan(before: Iterable<string>, after: Iterable<string>): FlipStep[] {
   const was = new Set(before);

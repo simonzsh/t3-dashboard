@@ -8,7 +8,7 @@ interface Notice {
 
 const MAX_NOTICES = 4;
 /** A conversation line goes by itself after this: it must not sit over the messages. */
-export const LOCAL_NOTICE_MS = 8000;
+const LOCAL_NOTICE_MS = 8000;
 
 const NoticeContext = createContext<(message: string) => void>(() => {});
 

@@ -15,7 +15,7 @@ Dashboard opens first. At the top, a usage card shows three numbers for the last
 
 ## Dashboard cards
 
-Three Dashboard cards list your agents and tickets: Notifications, Running and Up next. The Dashboard entry in the sidebar shows the number of unread items (waiting, failed or finished, not read yet). The Sessions entry shows the number of running agents, open as a column or not, and an orange dot when one waits for you. `Ctrl` + `1` opens Dashboard.
+Three Dashboard cards list your agents and tickets: Notifications, Running and Up next. The Dashboard entry in the sidebar shows the number of unread items (waiting, failed or finished, not read yet). The Sessions entry shows the number of running agents, open as a column or not, and an orange dot when one waits for you. The "running" line of the sessions number in the usage card and the Running card show the same count. `Ctrl` + `1` opens Dashboard.
 
 - Notifications lists, newest first in each group: the agents that need you (waiting for an approval or an answer, or failed and not settled), then the unread results, then the recent read agents, greyed. A status icon shows the kind: warning (waits for you), alert (failed), check (finished). Each item shows the title, one line of detail (what it waits for, the error, or the model), the project and the time. Items that need you or are unread have a tint and a dot. The badge in the header counts them.
 - Point at an unread item to see its one button: the check marks it read. An agent that waits or failed has no button: it still needs you. The Running card rows have no button. A click on a notification opens the conversation in Sessions and marks it read. `⇧` + click opens it in Sessions without leaving Dashboard.

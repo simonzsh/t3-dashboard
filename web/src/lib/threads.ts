@@ -12,3 +12,6 @@ export function pendingLabel(category: PendingCategory): string {
 }
 
 export const threadTitle = (thread: DashboardThread | null | undefined): string => thread?.title || "(untitled)";
+
+/** Sort comparator: the most recent activity first. */
+export const newestFirst = (a: DashboardThread, b: DashboardThread): number => b.lastActivityAt.localeCompare(a.lastActivityAt);

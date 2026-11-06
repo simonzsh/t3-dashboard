@@ -1,4 +1,4 @@
-import { useState, type ReactNode } from "react";
+import { useMemo, useState, type ReactNode } from "react";
 import type { DashboardThread } from "../../../../shared/api.ts";
 import { useAction } from "../../lib/useAction.ts";
 import { Button, CardHead, Icon, IconButton } from "../../ui/index.ts";
@@ -26,7 +26,7 @@ async function settleEach(threads: DashboardThread[], onSettle: Props["onSettle"
 export function NotificationsCard({ sections, recent, old, loading, renderItem, onMarkAllRead, onSettle }: Props) {
   const [all, setAll] = useState(false);
   const settleAll = useAction("settle the threads");
-  const items = notificationList(sections, all ? sections.readIdle : recent);
+  const items = useMemo(() => notificationList(sections, all ? sections.readIdle : recent), [sections, all, recent]);
   const attention = sections.needsYou.length + sections.unread.length;
   return (
     <section className="dashboard-card notifications-card" aria-labelledby="notifications-head">

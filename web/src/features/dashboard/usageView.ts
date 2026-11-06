@@ -1,4 +1,4 @@
-import { formatTokens } from "../../lib/format.ts";
+import { formatTokens, MONTHS } from "../../lib/format.ts";
 import type { UsageDay, UsageTotals } from "../../../../shared/api.ts";
 
 export type Metric = "turns" | "cost" | "tokens";
@@ -49,7 +49,7 @@ export function niceTicks(max: number): number[] {
   return Array.from({ length: count + 1 }, (_, i) => Number((i * step).toPrecision(12)));
 }
 
-export interface Bar {
+interface Bar {
   x: number;
   y: number;
   width: number;
@@ -68,8 +68,6 @@ export function barLayout(values: number[], top: number, height: number, width: 
 
 /** Cost is read again soon while T3 still scans. */
 export const pollDelay = (refreshing: boolean): number => (refreshing ? 10_000 : 60_000);
-
-const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
 /** "2026-01-05" -> "Jan 5", read as text so no time zone moves the day. */
 export function shortDay(day: string): string {

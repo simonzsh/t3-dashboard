@@ -3,9 +3,9 @@ import { hasFailed, type AgentStatus } from "../../../shared/status.ts";
 import { pendingLabel } from "./threads.ts";
 import { Badge } from "../ui/index.ts";
 
-export function RunningBadge() {
+export function RunningBadge({ className }: { className?: string }) {
   return (
-    <Badge variant="running">
+    <Badge variant="running" className={className}>
       <span className="pulse" aria-hidden="true" />
       Running
     </Badge>

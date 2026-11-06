@@ -6,7 +6,7 @@ import { AppNav } from "../../../src/features/shell/AppNav.tsx";
 const base = {
   tab: "sessions" as const,
   unread: 0,
-  badges: { sessionsRunning: 0, sessionsWaiting: false },
+  agents: { running: 0, waiting: 0 },
   live: true,
   update: null,
   collapsed: false,
@@ -32,7 +32,7 @@ test("the sidebar has the search button with its shortcut hint", () => {
 });
 
 test("the sidebar shows unread on Dashboard, running on Sessions and a dot for a waiting agent", () => {
-  const out = side({ unread: 12, badges: { sessionsRunning: 2, sessionsWaiting: true } });
+  const out = side({ unread: 12, agents: { running: 2, waiting: 1 } });
   assert.match(out, /aria-label="12 unread">9\+</);
   assert.match(out, /aria-label="2 running">2</);
   assert.match(out, /aria-label="An agent is waiting for your reply"/);
@@ -59,7 +59,7 @@ test("the bottom bar has the three pages only (Settings is in the phone header),
 });
 
 test("the bottom bar puts the badges on the icons", () => {
-  const out = bottom({ unread: 3, badges: { sessionsRunning: 0, sessionsWaiting: true } });
+  const out = bottom({ unread: 3, agents: { running: 0, waiting: 1 } });
   assert.match(out, /aria-label="3 unread">3</);
   assert.match(out, /aria-label="An agent is waiting for your reply"/);
 });

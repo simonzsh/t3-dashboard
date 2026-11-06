@@ -35,7 +35,7 @@ export function useDashboardCards({ state, visible, now, sessionIds, onOpen, onS
   const tickets = useTickets(linearVersion, visible, seen, now);
   const { relaunch, upNext } = tickets.plan;
   const sections = useMemo(() => threadSections(visible, seen, new Set(relaunch.map((r) => r.thread.id))), [visible, seen, relaunch]);
-  const { recent, old } = splitRead(sections.readIdle, now);
+  const { recent, old } = useMemo(() => splitRead(sections.readIdle, now), [sections, now]);
   const projects = useMemo(() => new Map(state.projects.map((p) => [p.id, p])), [state.projects]);
   const modelNames = useMemo(() => modelNameMap(state.providers), [state.providers]);
   // Before the first automations answer, routine threads would flash in the lists.
@@ -76,7 +76,6 @@ export function useDashboardCards({ state, visible, now, sessionIds, onOpen, onS
         failed={tickets.failed}
         tickets={upNext}
         relaunch={relaunch.map(({ thread }) => threadRow(thread))}
-        relaunchCount={relaunch.length}
         onRefresh={() => void tickets.reload(true)}
         projects={state.projects}
         providers={state.providers}

@@ -1,6 +1,6 @@
 import { ctrlLabel } from "../../lib/shortcuts.ts";
 import { TABS, type Tab } from "../../lib/tabs.ts";
-import { badgeText, type NavBadges } from "../../lib/navBadges.ts";
+import type { AgentCounts } from "../../lib/agents.ts";
 import { Icon, IconButton, Kbd, Logo, Pressable } from "../../ui/index.ts";
 
 interface NavUpdate {
@@ -14,7 +14,8 @@ interface Props {
   tab: Tab;
   /** Dashboard items that wait for you and were not read yet. */
   unread: number;
-  badges: NavBadges;
+  /** Every listed agent, open as a column or not, like the sessions list. */
+  agents: AgentCounts;
   live: boolean;
   update: NavUpdate | null;
   /** Sidebar only: App owns it so Ctrl+B can toggle it. */
@@ -28,20 +29,22 @@ interface Props {
 
 const WAITING = "An agent is waiting for your reply";
 
-function Badges({ id, unread, badges }: { id: Tab; unread: number; badges: NavBadges }) {
+const badgeText = (n: number): string => (n > 9 ? "9+" : String(n));
+
+function Badges({ id, unread, agents }: { id: Tab; unread: number; agents: AgentCounts }) {
   if (id === "dashboard" && unread > 0) {
-    return <span className="nav-badge ok" role="img" aria-label={`${unread} unread`}>{badgeText(unread)}</span>;
+    return <span className="nav-badge" role="img" aria-label={`${unread} unread`}>{badgeText(unread)}</span>;
   }
   if (id !== "sessions") return null;
   return (
     <>
-      {badges.sessionsWaiting && <span className="nav-alert" role="img" aria-label={WAITING} />}
-      {badges.sessionsRunning > 0 && <span className="nav-badge work" role="img" aria-label={`${badges.sessionsRunning} running`}>{badgeText(badges.sessionsRunning)}</span>}
+      {agents.waiting > 0 && <span className="nav-alert" role="img" aria-label={WAITING} />}
+      {agents.running > 0 && <span className="nav-badge" role="img" aria-label={`${agents.running} running`}>{badgeText(agents.running)}</span>}
     </>
   );
 }
 
-function Sidebar({ tab, unread, badges, live, update, collapsed, onToggleCollapsed, onTab, onSearch, onSettings, onUpdate }: Omit<Props, "layout">) {
+function Sidebar({ tab, unread, agents, live, update, collapsed, onToggleCollapsed, onTab, onSearch, onSettings, onUpdate }: Omit<Props, "layout">) {
   // Collapsed rows hold only an icon: the tooltip gives the name back.
   const hint = (text: string) => (collapsed ? text : undefined);
   const collapse = collapsed ? "Expand the sidebar" : "Collapse the sidebar";
@@ -61,7 +64,7 @@ function Sidebar({ tab, unread, badges, live, update, collapsed, onToggleCollaps
           <Pressable key={id} data-tab={id} className={`nav-row${tab === id ? " active" : ""}`} aria-current={tab === id ? "page" : undefined} tooltip={hint(label)} onClick={() => onTab(id)}>
             <Icon name={icon} className="nav-icon" />
             <span className="nav-label">{label}</span>
-            <Badges id={id} unread={unread} badges={badges} />
+            <Badges id={id} unread={unread} agents={agents} />
           </Pressable>
         ))}
       </div>
@@ -89,16 +92,16 @@ function Sidebar({ tab, unread, badges, live, update, collapsed, onToggleCollaps
   );
 }
 
-function BottomBar({ tab, unread, badges, onTab }: Pick<Props, "tab" | "unread" | "badges" | "onTab">) {
+function BottomBar({ tab, unread, agents, onTab }: Pick<Props, "tab" | "unread" | "agents" | "onTab">) {
   return (
     <nav className="bottom-nav" aria-label="Pages">
       {TABS.map(({ id, label, icon }) => (
         <Pressable key={id} data-tab={id} className={`bottom-item${tab === id ? " active" : ""}`} aria-current={tab === id ? "page" : undefined} onClick={() => onTab(id)}>
           <span className="bottom-icon">
             <Icon name={icon} className="bottom-glyph" />
-            <Badges id={id} unread={unread} badges={badges} />
+            <Badges id={id} unread={unread} agents={agents} />
           </span>
-          <span className="bottom-label">{label}</span>
+          <span>{label}</span>
         </Pressable>
       ))}
     </nav>

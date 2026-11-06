@@ -1,4 +1,4 @@
-/* Light theme and very dark zinc theme, both with one blue accent; data-theme is set on <html> before first paint. */
+/* Light theme and very dark zinc theme; data-theme is set on <html> before first paint, and data-accent picks the accent color. */
 :root, :root[data-theme="light"] {
   color-scheme: light;
   --surface-0: #fafafa;
@@ -144,7 +144,7 @@ main { flex: 1; min-height: 0; overflow: hidden; padding: 24px; display: flex; f
 .badge.error { background: var(--err-bg); color: var(--err-text); }
 .badge.neutral { background: var(--surface-0); color: var(--text-secondary); font-weight: 500; }
 /* A running badge carries a pulsing dot instead of a coloured header. */
-.dw-state .pulse { display: inline-block; vertical-align: middle; width: 6px; height: 6px; margin-right: 5px; background: currentColor; }
+.session-window-state .pulse { display: inline-block; vertical-align: middle; width: 6px; height: 6px; margin-right: 5px; background: currentColor; }
 .pulse { width: 8px; height: 8px; border-radius: 50%; background: var(--work); animation: pulse 1.4s ease-in-out infinite; }
 @keyframes pulse { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.35; transform: scale(0.7); } }
 @keyframes shimmer { from { transform: translateX(-50%); } to { transform: translateX(150%); } }
@@ -164,7 +164,7 @@ main { flex: 1; min-height: 0; overflow: hidden; padding: 24px; display: flex; f
 .prio-icon.urgent { color: var(--err-text); }
 .ident { flex: none; color: var(--text-secondary); font-variant-numeric: tabular-nums; font-size: 12px; }
 /* Small pills: a Badge with the colours of its variant. */
-.dw-state { flex: none; font-size: 11px; font-weight: 600; padding: 1px 8px; }
+.session-window-state { flex: none; font-size: 11px; font-weight: 600; padding: 1px 8px; }
 .icon { flex: none; width: 16px; height: 16px; }
 .tooltip { position: fixed; z-index: 60; pointer-events: none; display: flex; align-items: center; gap: 6px; max-width: min(320px, calc(100vw - 8px)); padding: 4px 8px; border-radius: var(--radius-sm); background: var(--text-primary); color: var(--surface-1); font-size: 12px; line-height: 1.3; overflow-wrap: anywhere; box-shadow: var(--shadow); }
 .tooltip kbd { flex: none; padding: 2px 4px; font-size: 10px; color: inherit; background: transparent; border-color: color-mix(in srgb, var(--surface-1) 45%, transparent); }
@@ -276,7 +276,7 @@ a.step-result-title { color: var(--accent); }
 .step-exit-line, .step-empty, .step-cut { margin: 0; font-size: 12px; color: var(--text-secondary); }
 .step-exit-line.failed, .step-error { color: var(--err-text); }
 .step-error { margin: 4px 0 4px 22px; font-size: 12px; }
-.todo-card, .plan-card, .subagent-block { border: 1px solid var(--line); border-radius: var(--radius-md); background: var(--surface-1); min-width: 0; font-size: 13px; }
+.todo-card, .plan-card { border: 1px solid var(--line); border-radius: var(--radius-md); background: var(--surface-1); min-width: 0; font-size: 13px; }
 .todo-card > header, .plan-card > header { display: flex; align-items: center; gap: 8px; padding: 8px 12px; font-weight: 500; border-bottom: 1px solid var(--line); }
 .todo-card header .icon, .plan-card header .icon { width: 14px; height: 14px; color: var(--text-secondary); }
 .todo-count { margin-left: auto; font-size: 12px; color: var(--text-secondary); font-variant-numeric: tabular-nums; }
@@ -447,9 +447,8 @@ input.dropdown-search { position: absolute; inset: 0 auto 0 0; z-index: 1; width
 /* Compact: the context size is a quiet number next to the label. */
 .composer-compact { gap: 6px; color: var(--text-secondary); }
 .compact-tokens { font-variant-numeric: tabular-nums; color: var(--text-primary); }
-.composer-icon { border-radius: var(--radius-md); }
+.composer-icon, .composer-round { border-radius: var(--radius-md); }
 .composer-icon .icon { width: 18px; height: 18px; }
-.composer-round { border-radius: var(--radius-md); }
 .composer-round .icon { width: 17px; height: 17px; }
 .composer-round.send:disabled { opacity: 0.4; }
 .composer-round.stop { color: var(--text-primary); background: var(--surface-0); }
@@ -626,9 +625,8 @@ ol.install-steps { padding-left: 18px; }
 .nav-row.active { background: color-mix(in srgb, var(--text-primary) 10%, transparent); color: var(--text-primary); }
 .nav-icon { flex: none; width: 18px; height: 18px; }
 .nav-label { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
-.nav-badge { flex: none; display: inline-grid; place-items: center; min-width: 20px; height: 20px; padding: 0 6px; border-radius: 999px; font-size: 11px; font-weight: 600; line-height: 1; }
 /* Both nav badges (unread, running) follow the accent color; the text is darkened or lightened to stay readable. */
-.nav-badge.ok, .nav-badge.work { background: color-mix(in srgb, var(--accent) 20%, transparent); color: var(--work-text); }
+.nav-badge { flex: none; display: inline-grid; place-items: center; min-width: 20px; height: 20px; padding: 0 6px; border-radius: 999px; font-size: 11px; font-weight: 600; line-height: 1; background: color-mix(in srgb, var(--accent) 20%, transparent); color: var(--work-text); }
 .nav-alert { flex: none; width: 8px; height: 8px; border-radius: 50%; background: var(--warn); box-shadow: 0 0 0 2px color-mix(in srgb, var(--warn) 30%, transparent); }
 .sidebar-foot { margin-top: auto; display: flex; flex-direction: column; gap: 8px; }
 .sidebar-foot .conn { flex: 1; min-width: 0; padding-inline: 10px; }
@@ -639,21 +637,22 @@ ol.install-steps { padding-left: 18px; }
 .sidebar.collapsed :is(.sidebar-search, .nav-row, .update-pill) { justify-content: center; padding: 0; }
 .sidebar.collapsed .sidebar-brand { justify-content: center; padding: 0; }
 .sidebar.collapsed .nav-row { position: relative; }
-.sidebar.collapsed .nav-badge { position: absolute; top: 0; right: 0; min-width: 16px; height: 16px; padding: 0 4px; font-size: 10px; }
+/* The collapsed sidebar and the bottom bar pin a smaller badge on the icon. */
+:is(.sidebar.collapsed, .bottom-icon) .nav-badge { position: absolute; min-width: 16px; height: 16px; padding: 0 4px; font-size: 10px; }
+.sidebar.collapsed .nav-badge { top: 0; right: 0; }
 .sidebar.collapsed .nav-alert { position: absolute; top: 4px; right: 4px; }
 .sidebar.collapsed .sidebar-foot .conn { flex: none; justify-content: center; height: 24px; padding: 0; }
 .sidebar.collapsed .sidebar-actions { flex-direction: column; align-items: stretch; }
 .sidebar.collapsed .sidebar-collapse { margin-left: 0; }
 /* Bottom bar: the sidebar on a phone. */
-.bottom-nav { position: fixed; z-index: 20; inset: auto 0 0; display: flex; height: calc(var(--bottom-bar) + env(safe-area-inset-bottom)); padding: 0 env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left); background: var(--surface-0); border-top: 1px solid var(--line); }
 /* No grey square and no callout on a long press: the active pill already shows the tab. */
-.bottom-nav { -webkit-touch-callout: none; user-select: none; }
+.bottom-nav { position: fixed; z-index: 20; inset: auto 0 0; display: flex; height: calc(var(--bottom-bar) + env(safe-area-inset-bottom)); padding: 0 env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left); background: var(--surface-0); border-top: 1px solid var(--line); -webkit-touch-callout: none; user-select: none; }
 .bottom-item { flex: 1; min-width: 0; min-height: 44px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; padding: 0; border: 0; border-radius: 0; background: none; color: var(--text-secondary); font-size: 12px; font-weight: 500; }
 .bottom-item.active { color: var(--accent); }
 .bottom-icon { position: relative; display: grid; place-items: center; width: 56px; height: 30px; border-radius: 15px; }
 .bottom-item.active .bottom-icon { background: color-mix(in srgb, var(--accent) 16%, transparent); }
 .bottom-glyph { width: 22px; height: 22px; }
-.bottom-icon .nav-badge { position: absolute; top: -3px; right: -2px; min-width: 16px; height: 16px; padding: 0 4px; font-size: 10px; }
+.bottom-icon .nav-badge { top: -3px; right: -2px; }
 .bottom-icon .nav-alert { position: absolute; top: 0; right: 14px; }
 /* Page header: title, one-line description, actions on the right. */
 .page-header { position: relative; z-index: 5; flex: none; display: flex; align-items: center; gap: 12px; min-height: 48px; padding: 6px 20px; border-bottom: 1px solid var(--line); background: color-mix(in srgb, var(--header-bg) 97%, transparent); }
@@ -739,12 +738,12 @@ ol.install-steps { padding-left: 18px; }
 .session-window { position: relative; flex: 1; min-width: 0; min-height: 0; display: flex; flex-direction: column; overflow: hidden; background: var(--surface-0); }
 .session-window.maximized { position: absolute; inset: 0; z-index: 3; }
 .session-window-head { display: flex; flex-direction: column; gap: 2px; min-width: 0; padding: 6px 6px 6px 8px; border-bottom: 1px solid var(--line); background: var(--surface-1); }
-.sc-row { display: flex; align-items: center; gap: 6px; min-width: 0; }
-.sc-grip { flex: none; width: 16px; height: 16px; color: var(--text-secondary); }
-.sc-sub { display: flex; align-items: center; gap: 6px; min-width: 0; padding-left: 22px; color: var(--text-secondary); font-size: 12px; }
+.session-window-row { display: flex; align-items: center; gap: 6px; min-width: 0; }
+.session-window-grip { flex: none; width: 16px; height: 16px; color: var(--text-secondary); }
+.session-window-sub { display: flex; align-items: center; gap: 6px; min-width: 0; padding-left: 22px; color: var(--text-secondary); font-size: 12px; }
 /* The session the keyboard acts on: a light tint of the accent color. */
 .session-window.focused .session-window-head { background: color-mix(in srgb, var(--accent) 12%, var(--surface-1)); }
-.session-window.focused .dw-title { color: var(--text-primary); font-weight: 600; }
+.session-window.focused .session-window-title { color: var(--text-primary); font-weight: 600; }
 /* Drag a window by its header onto another one to swap their cells. */
 .sessions:not(.compact) .session-window-head { cursor: grab; user-select: none; }
 .sessions:not(.compact) .session-window.maximized .session-window-head { cursor: default; }
@@ -754,14 +753,14 @@ ol.install-steps { padding-left: 18px; }
 .session-window.drop-target::after { content: ""; position: absolute; inset: 4px; z-index: 4; pointer-events: none; border: 2px dashed color-mix(in srgb, var(--accent) 60%, transparent); border-radius: var(--radius-lg); background: color-mix(in srgb, var(--accent) 8%, transparent); }
 .sessions-drag-ghost { position: fixed; left: 0; top: 0; z-index: 50; pointer-events: none; max-width: 360px; border: 1px solid var(--line); border-radius: 10px; box-shadow: var(--shadow); opacity: 0.95; }
 .session-window-head .project-icon { width: 14px; height: 14px; }
-.dw-title { min-width: 0; flex: 1 1 auto; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 600; }
-.dw-project { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.dw-state.waiting { box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--warn) 50%, transparent); }
-.dw-state.running { box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent) 50%, transparent); }
-.dw-state.error { box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--danger) 50%, transparent); }
-.dw-buttons { display: flex; gap: 2px; flex: none; }
-.dw-buttons .icon-button { min-width: 0; height: auto; padding: 4px; border-radius: var(--radius-sm); }
-.dw-buttons .icon-button:hover { color: var(--text-primary); background: var(--surface-0); }
+.session-window-title { min-width: 0; flex: 1 1 auto; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 600; }
+.session-window-project { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.session-window-state.waiting { box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--warn) 50%, transparent); }
+.session-window-state.running { box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent) 50%, transparent); }
+.session-window-state.error { box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--danger) 50%, transparent); }
+.session-window-buttons { display: flex; gap: 2px; flex: none; }
+.session-window-buttons .icon-button { min-width: 0; height: auto; padding: 4px; border-radius: var(--radius-sm); }
+.session-window-buttons .icon-button:hover { color: var(--text-primary); background: var(--surface-0); }
 .sessions-missing { flex: 1; display: flex; flex-direction: column; gap: 10px; align-items: center; justify-content: center; padding: 16px; text-align: center; color: var(--text-secondary); }
 /* The sessions list: a panel left of the strip, or the whole page on a phone. */
 /* Same slide as the app sidebar: the slot narrows, the list keeps its width inside. */
@@ -811,7 +810,7 @@ ol.install-steps { padding-left: 18px; }
 .app.session-shown :is(.page-header, .bottom-nav) { display: none; }
 .app.session-shown .app-column { padding-bottom: env(safe-area-inset-bottom); }
 .sessions.compact .session-window-head { padding-top: max(6px, env(safe-area-inset-top)); }
-.sessions.compact :is(.sc-back, .dw-buttons .icon-button) { min-width: 36px; height: 36px; }
+.sessions.compact :is(.session-window-back, .session-window-buttons .icon-button) { min-width: 36px; height: 36px; }
 @media (max-width: 700px) {
   .switcher-meta { display: none; }
   .auto-scroll { overflow: visible; border: 0; background: none; box-shadow: none; }

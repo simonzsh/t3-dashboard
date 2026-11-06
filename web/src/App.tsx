@@ -31,7 +31,7 @@ import { useMediaQuery } from "./lib/useMediaQuery.ts";
 import { useShortcuts } from "./lib/useShortcuts.ts";
 import { useSessionLayout } from "./lib/sessionLayout.ts";
 import { useSidebarCollapsed } from "./lib/sidebar.ts";
-import { navBadges } from "./lib/navBadges.ts";
+import { agentCounts } from "./lib/agents.ts";
 import { TABS } from "./lib/tabs.ts";
 import { useTab } from "./lib/useTab.ts";
 import { useTheme } from "./features/settings/useTheme.ts";
@@ -65,7 +65,6 @@ export function App() {
     remote: remoteSessions,
     connects,
   });
-  // The focused sessions window on the visible Sessions tab is already in front of the user: no toast for it.
   const watching = useRef<(id: string) => boolean>(() => false);
   watching.current = (id) => inFront === id;
   const notify = useNotifications({
@@ -74,14 +73,12 @@ export function App() {
     remote: remoteSeen,
     connects,
   });
-  // The focused sessions window on the visible Sessions tab is read: on a click, a restore, and on each new activity.
-  // Only openInSessions marked threads before, so a session already open stayed unread on the Dashboard.
-  const readId = inFront;
-  const readAt = readId ? state?.threads.find((t) => t.id === readId)?.lastActivityAt : undefined;
+  // The session in front of the user is read: on a click, a restore, and on each new activity.
+  const readAt = inFront ? state?.threads.find((t) => t.id === inFront)?.lastActivityAt : undefined;
   const { markSeen, seenReady } = notify;
   useEffect(() => {
-    if (readId && readAt && seenReady) markSeen(readId);
-  }, [readId, readAt, seenReady, markSeen]);
+    if (inFront && readAt && seenReady) markSeen(inFront);
+  }, [inFront, readAt, seenReady, markSeen]);
   // null: closed; otherwise open, with the project to preselect, if any.
   const [creating, setCreating] = useState<{ projectId: string | null } | null>(null);
   const [creatingAutomation, setCreatingAutomation] = useState(false);
@@ -139,6 +136,8 @@ export function App() {
   const openRef = useRef(openInSessions);
   openRef.current = openInSessions;
   const onOpen = useCallback((id: string, addOnly: boolean) => openRef.current(id, !addOnly), []);
+  const openSession = useCallback((id: string) => openRef.current(id, true), []);
+  const newSession = useCallback((projectId: string) => setCreating({ projectId }), []);
   const onSettle = useCallback((id: string, settle: boolean) => (settle ? api.settle(id) : api.unsettle(id)), []);
 
   const openSearch = () => {
@@ -183,7 +182,7 @@ export function App() {
     [state?.threads, automations.result?.hiddenThreadIds, setup],
   );
   const unread = useMemo(() => unreadCount(threadSections(visible, notify.seen), notify.seen), [visible, notify.seen]);
-  const badges = useMemo(() => navBadges(visible), [visible]);
+  const agents = useMemo(() => agentCounts(visible), [visible]);
   const dashboardLayout = useDashboardLayout(tab === "dashboard");
   const usage = useUsage(tab === "dashboard" && state !== null);
   const page = TABS.find((t) => t.id === tab)!;
@@ -207,7 +206,7 @@ export function App() {
         onToggleCollapsed={toggleSidebar}
         tab={tab}
         unread={unread}
-        badges={badges}
+        agents={agents}
         live={live}
         update={updateNav}
         onTab={showTab}
@@ -254,6 +253,7 @@ export function App() {
                 now={now}
                 sessionIds={sessionIds}
                 layout={dashboardLayout.layout}
+                running={agents.running}
                 editing={dashboardLayout.editing}
                 onLayout={dashboardLayout.setLayout}
                 onOpen={onOpen}
@@ -297,8 +297,8 @@ export function App() {
                 phone={compact}
                 sessionShown={sessionShown}
                 onBack={back}
-                onOpen={(id) => openInSessions(id, true)}
-                onNewSession={(projectId) => setCreating({ projectId })}
+                onOpen={openSession}
+                onNewSession={newSession}
               />
             ) : <Loader />)}
         </main>

@@ -1,15 +1,16 @@
 import { memo, type Dispatch } from "react";
 import type { DashboardProvider, DashboardThread, ProjectIcon as ProjectIconData } from "../../../../shared/api.ts";
-import { threadState } from "../../../../shared/status.ts";
 import { Badge, Button, Icon, IconButton } from "../../ui/index.ts";
+import { attentionState } from "./sessionList.ts";
 import type { SessionsAction } from "./sessions.ts";
 import { ConversationPanel } from "../conversation/ConversationPanel.tsx";
 import { OpenInT3 } from "../../lib/OpenInT3.tsx";
 import { ProjectIcon } from "../../lib/ProjectIcon.tsx";
+import { RunningBadge } from "../../lib/StatusBadge.tsx";
 import { ctrlLabel } from "../../lib/shortcuts.ts";
 
 // Only the states that ask for attention get a badge: a done or idle session shows none.
-const STATE_LABELS = { waiting: "Waiting", running: "Running", error: "Error" } as const;
+const STATE_LABELS = { waiting: "Waiting", error: "Error" } as const;
 
 interface Props {
   id: string;
@@ -38,9 +39,8 @@ function SessionWindowView({ id, thread, title, projectTitle, projectIcon, missi
   const onFocus = () => dispatch({ type: "focus", id });
   const onClose = () => dispatch({ type: "close", id });
   const onToggleMaximize = () => dispatch({ type: "maximize", id });
-  const state = thread ? threadState(thread) : null;
   const fullscreen = maximized ? "Exit fullscreen" : "Fullscreen";
-  const badge = state === "waiting" || state === "running" || state === "error" ? state : null;
+  const badge = thread ? attentionState(thread) : null;
   return (
     <section
       className={`session-window${focused ? " focused" : ""}${maximized ? " maximized" : ""}`}
@@ -51,23 +51,26 @@ function SessionWindowView({ id, thread, title, projectTitle, projectIcon, missi
       }}
     >
       <header className="session-window-head">
-        <div className="sc-row">
-          {!compact && <Icon name="grip" className="icon sc-grip" />}
+        <div className="session-window-row">
+          {!compact && <Icon name="grip" className="icon session-window-grip" />}
           {onBack && (
-            <IconButton variant="ghost" size="sm" className="sc-back" label="Back to the list" onClick={onBack}>
+            <IconButton variant="ghost" size="sm" className="session-window-back" label="Back to the list" onClick={onBack}>
               <Icon name="arrowLeft" />
             </IconButton>
           )}
-          <span className="dw-title" data-tooltip={title} data-tooltip-clipped>
+          <span className="session-window-title" data-tooltip={title} data-tooltip-clipped>
             {title}
           </span>
-          {badge && (
-            <Badge variant={badge} className="dw-state">
-              {badge === "running" && <span className="pulse" aria-hidden="true" />}
-              {STATE_LABELS[badge]}
-            </Badge>
+          {badge === "running" ? (
+            <RunningBadge className="session-window-state" />
+          ) : (
+            badge && (
+              <Badge variant={badge} className="session-window-state">
+                {STATE_LABELS[badge]}
+              </Badge>
+            )
           )}
-          <span className="dw-buttons">
+          <span className="session-window-buttons">
             <OpenInT3 environmentId={t3EnvironmentId} threadId={id} />
             {!compact && (
               <IconButton variant="ghost" size="sm" label={fullscreen} tooltip={fullscreen} shortcut={maximized ? `${ctrlLabel("F")} / Esc` : ctrlLabel("F")} onClick={onToggleMaximize}>
@@ -80,9 +83,9 @@ function SessionWindowView({ id, thread, title, projectTitle, projectIcon, missi
           </span>
         </div>
         {thread && projectTitle && (
-          <div className="sc-sub">
+          <div className="session-window-sub">
             <ProjectIcon icon={projectIcon} title={projectTitle} />
-            <span className="dw-project">{projectTitle}</span>
+            <span className="session-window-project">{projectTitle}</span>
           </div>
         )}
       </header>

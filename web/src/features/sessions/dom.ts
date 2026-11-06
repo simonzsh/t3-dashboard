@@ -1,5 +1,12 @@
+import { reducedMotion } from "../../ui/index.ts";
+
 /** The window of a session in the strip, when it is on screen. */
 export const sessionWindowEl = (id: string): HTMLElement | null => document.querySelector<HTMLElement>(`[data-session-window="${CSS.escape(id)}"]`);
+
+/** Scrolls a session window into view only as far as needed. */
+export function revealSessionWindow(id: string): void {
+  sessionWindowEl(id)?.scrollIntoView({ inline: "nearest", block: "nearest", behavior: reducedMotion() ? "auto" : "smooth" });
+}
 
 /** Puts the caret at the end of the message field of a session; false when it has no usable field. */
 export function focusSessionField(id: string): boolean {

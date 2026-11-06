@@ -4,7 +4,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <script>
-      // Mirrors src/theme.ts: sets data-theme before the first paint to avoid a flash.
+      // Mirrors web/src/features/settings/theme.ts: sets data-theme before the first paint to avoid a flash.
       (function () {
         var s = "system";
         try { s = localStorage.getItem("t3-dashboard-theme") || "system"; } catch (e) {}

@@ -2,7 +2,7 @@ import type { ReactNode } from "react";
 import { CardHead } from "../../ui/index.ts";
 import { SkeletonRows } from "./SkeletonRows.tsx";
 
-export function RunningCard({ count, loading = false, children }: { count: number; loading?: boolean; children: ReactNode }) {
+export function RunningCard({ count, loading, children }: { count: number; loading: boolean; children: ReactNode }) {
   return (
     <section className="dashboard-card" aria-labelledby="running-head">
       <CardHead id="running-head" icon="bolt" title="Running" count={count} />

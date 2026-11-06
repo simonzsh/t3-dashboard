@@ -1,11 +1,11 @@
 import type { Automation, DashboardProvider, DashboardThread, ModelSelection } from "../../../../shared/api.ts";
 import { ACTIVE_STATUSES, hasFailed } from "../../../../shared/status.ts";
+import { MONTHS } from "../../lib/format.ts";
 import { findModel } from "../conversation/composer.ts";
 
 export type LastRun = { kind: "waiting" } | { kind: "running" } | { kind: "failed"; error: string | null } | { kind: "done"; at: string };
 
 const DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
-const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 const DAY_MS = 86_400_000;
 
 // Dedicated threads and run threads of scheduled tasks live in the Automations tab only.

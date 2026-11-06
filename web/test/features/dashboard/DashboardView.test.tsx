@@ -4,6 +4,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import type { DashboardState, UsageDay, UsageOverview, UsageTotals } from "../../../../shared/api.ts";
 import { DashboardView } from "../../../src/features/dashboard/DashboardView.tsx";
 import { DEFAULT_LAYOUT, moveCard, setHidden, type DashboardLayout } from "../../../src/features/dashboard/layout.ts";
+import { agentCounts } from "../../../src/lib/agents.ts";
 import { listedThreads } from "../../../src/features/dashboard/sections.ts";
 import type { UsageState } from "../../../src/features/dashboard/useUsage.ts";
 import { baseState, thread } from "../../fixtures.ts";
@@ -52,8 +53,10 @@ const render = (usage: UsageState, { threads = [thread("a", { status: "running" 
       visible={listedThreads(threads, ["t-routine"])}
       now={NOW}
       sessionIds={new Set()}
+      running={agentCounts(threads).running}
       layout={layout}
       editing={editing}
+      onLayout={() => {}}
       onOpen={() => {}}
       onSettle={async () => {}}
       seen={seen}

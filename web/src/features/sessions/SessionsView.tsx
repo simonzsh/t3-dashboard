@@ -4,8 +4,8 @@ import type { SeenState } from "../../../../shared/seen.ts";
 import { threadTitle } from "../../lib/threads.ts";
 import { modelNameMap } from "../../lib/models.ts";
 import { cellOf, neighborId, perColumn, spansRows, type SessionsAction, type SessionsState } from "./sessions.ts";
-import { focusSessionField, sessionWindowEl } from "./dom.ts";
-import { enter, Kbd, reducedMotion, useFlip } from "../../ui/index.ts";
+import { focusSessionField, revealSessionWindow } from "./dom.ts";
+import { enter, Kbd, useFlip } from "../../ui/index.ts";
 import type { SessionLayout } from "../../lib/sessionLayout.ts";
 import { ctrlLabel, startsTyping } from "../../lib/shortcuts.ts";
 import { swipeDirection } from "../../lib/swipe.ts";
@@ -90,8 +90,7 @@ function startsInHorizontalScroll(target: EventTarget | null, boundary: Element)
 }
 
 /** On a phone, a horizontal swipe moves to the next or previous window; the new one slides in from its side. */
-function useWindowSwipe(enabled: boolean, sessions: SessionsState, dispatch: Dispatch<SessionsAction>) {
-  const activeId = sessions.focusedId ?? "";
+function useWindowSwipe(enabled: boolean, activeId: string, sessions: SessionsState, dispatch: Dispatch<SessionsAction>) {
   const area = useRef<HTMLDivElement>(null);
   const start = useRef<{ x: number; y: number } | null>(null);
   const shown = useRef(activeId);
@@ -240,7 +239,7 @@ export function SessionsView({ sessions, dispatch, threads, listed, projects, se
   useFlip(root, `${layout}|${sessions.ids.join(",")}|${maximized}`, { item: "data-session-window", enabled: !phone });
 
   const activeId = focusedId ?? "";
-  const { area, swipe, swipes } = useWindowSwipe(phone, sessions, dispatch);
+  const { area, swipe, swipes } = useWindowSwipe(phone, activeId, sessions, dispatch);
   const drag = useWindowDrag(!phone && sessions.ids.length > 1 && !maximized, dispatch);
 
   // A press focuses its window here: the pointer is already on it, so that focus must not scroll.
@@ -256,7 +255,7 @@ export function SessionsView({ sessions, dispatch, threads, listed, projects, se
     const byPointer = pressFocus.current;
     pressFocus.current = false;
     if (byPointer || phone || !focusedId || maximized) return;
-    sessionWindowEl(focusedId)?.scrollIntoView({ inline: "nearest", block: "nearest", behavior: reducedMotion() ? "auto" : "smooth" });
+    revealSessionWindow(focusedId);
   }, [phone, focusedId, maximized, layout]);
 
   // Shortcuts use Ctrl, so a plain character typed outside a field goes to the focused session's message field.
@@ -273,10 +272,14 @@ export function SessionsView({ sessions, dispatch, threads, listed, projects, se
   }, [focusedId]);
 
   // A click on the focused session's row still brings its column back into view.
-  const openFromList = (id: string) => {
-    if (id === focusedId && !phone) sessionWindowEl(id)?.scrollIntoView({ inline: "nearest", block: "nearest", behavior: reducedMotion() ? "auto" : "smooth" });
-    onOpen(id);
-  };
+  const openFromList = useCallback(
+    (id: string) => {
+      if (id === focusedId && !phone) revealSessionWindow(id);
+      onOpen(id);
+    },
+    [focusedId, phone, onOpen],
+  );
+  const closeAll = useCallback(() => dispatch({ type: "closeAll" }), [dispatch]);
   const list = () => (
     <SessionList
       threads={listed}
@@ -291,7 +294,7 @@ export function SessionsView({ sessions, dispatch, threads, listed, projects, se
       onPrefs={onPrefs}
       onOpen={openFromList}
       onNewSession={onNewSession}
-      onCloseAll={() => dispatch({ type: "closeAll" })}
+      onCloseAll={closeAll}
     />
   );
 
@@ -301,7 +304,7 @@ export function SessionsView({ sessions, dispatch, threads, listed, projects, se
     return { thread, project, title: thread || !childTitles[id] ? threadTitle(thread) : childTitles[id] };
   };
 
-  const renderWindow = (id: string, compact = false, live = true) => {
+  const renderWindow = (id: string, live = true) => {
     const { thread, project, title } = info(id);
     // The key remounts the window when a swipe on a phone changes the session: no state leaks between threads.
     return (
@@ -314,14 +317,14 @@ export function SessionsView({ sessions, dispatch, threads, listed, projects, se
         projectIcon={project?.icon ?? null}
         missing={!thread && wasLive.current.has(id)}
         focused={focusedId === id}
-        maximized={!compact && maximized && focusedId === id}
-        compact={compact}
+        maximized={!phone && maximized && focusedId === id}
+        compact={phone}
         live={live}
         t3EnvironmentId={t3EnvironmentId}
         providers={providers}
         onTitle={setChildTitle}
-        onBack={compact ? onBack : undefined}
-        dispatch={compact ? phoneDispatch : dispatch}
+        onBack={phone ? onBack : undefined}
+        dispatch={phone ? phoneDispatch : dispatch}
       />
     );
   };
@@ -330,7 +333,7 @@ export function SessionsView({ sessions, dispatch, threads, listed, projects, se
     return sessionShown ? (
       <div ref={root} className="sessions compact">
         <div ref={area} className="sessions-area" {...swipe}>
-          {renderWindow(activeId, true)}
+          {renderWindow(activeId)}
           {/* After a swipe: where this session sits among the open ones, then it fades out (the key replays it). */}
           {swipes > 0 && sessions.ids.length > 1 && (
             <div key={swipes} className="swipe-dots" aria-hidden="true">
@@ -364,7 +367,7 @@ export function SessionsView({ sessions, dispatch, threads, listed, projects, se
         </div>
       ) : (
         <div className="sessions-area" onPointerDownCapture={onPressCapture} {...drag}>
-          <SessionsStrip ids={sessions.ids} layout={layout} pinned={focusedId} render={(id, near) => renderWindow(id, false, near)} />
+          <SessionsStrip ids={sessions.ids} layout={layout} pinned={focusedId} render={renderWindow} />
         </div>
       )}
     </div>

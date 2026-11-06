@@ -1,6 +1,5 @@
 import { Fragment, useState, type CSSProperties, type DragEvent, type ReactNode } from "react";
-import type { DashboardThread, UsageOverview } from "../../../../shared/api.ts";
-import { agentCounts } from "../../lib/navBadges.ts";
+import type { UsageOverview } from "../../../../shared/api.ts";
 import { CardEditBar } from "./CardEditBar.tsx";
 import { CARD_TITLES, dropCard, moveCard, setHidden, shiftCard, stackedOrder, type Column, type DashboardCard, type DashboardLayout } from "./layout.ts";
 import { relativeTime } from "../../lib/format.ts";
@@ -31,7 +30,7 @@ function StatTile({ label, value, caption, change }: TileProps) {
   );
 }
 
-function Tiles({ usage, threads, costKnown }: { usage: UsageOverview; threads: readonly DashboardThread[]; costKnown: boolean }) {
+function Tiles({ usage, running, costKnown }: { usage: UsageOverview; running: number; costKnown: boolean }) {
   const { thisWeek, lastWeek, cost, sessions } = usage;
   // On a phone the tiles show only the short part; `.stat-more` holds the rest.
   const more = (text: string) => <span className="stat-more">{text}</span>;
@@ -41,7 +40,7 @@ function Tiles({ usage, threads, costKnown }: { usage: UsageOverview; threads: r
   return (
     <div className="stat-tiles">
       <StatTile label="Turns" value={String(thisWeek.turns)} change={delta(thisWeek.turns, lastWeek.turns)} caption={turnsCaption} />
-      <StatTile label="Sessions" value={String(sessions.thisWeek)} change={delta(sessions.thisWeek, sessions.lastWeek)} caption={<>{agentCounts(threads).running} running{more(" · last 7 days")}</>} />
+      <StatTile label="Sessions" value={String(sessions.thisWeek)} change={delta(sessions.thisWeek, sessions.lastWeek)} caption={<>{running} running{more(" · last 7 days")}</>} />
       <StatTile label={<>Spend{more(" (API equiv.)")}</>} value={costKnown ? formatUsd(thisWeek.costUsd) : "—"} change={costKnown ? delta(thisWeek.costUsd, lastWeek.costUsd) : null} caption={costCaption} />
     </div>
   );
@@ -75,7 +74,7 @@ function UsageSkeleton() {
   );
 }
 
-function UsageCard({ state, threads, now }: { state: UsageState; threads: readonly DashboardThread[]; now: Date }) {
+function UsageCard({ state, running, now }: { state: UsageState; running: number; now: Date }) {
   const [metric, setMetric] = useState<Metric>("turns");
   const { usage, error, loading, refresh } = state;
   const costKnown = usage !== null && usage.cost.status !== "unavailable";
@@ -98,7 +97,7 @@ function UsageCard({ state, threads, now }: { state: UsageState; threads: readon
         error ? <p className="usage-error" role="alert">{error}</p> : <UsageSkeleton />
       ) : (
         <>
-          <Tiles usage={usage} threads={threads} costKnown={costKnown} />
+          <Tiles usage={usage} running={running} costKnown={costKnown} />
           <div className="usage-chart-head">
             <h2>Last 14 days</h2>
             <Segmented label="Chart metric" value={metric} options={METRICS} onChange={setMetric} />
@@ -117,19 +116,21 @@ function UsageCard({ state, threads, now }: { state: UsageState; threads: readon
 
 interface Props extends CardsInput {
   usage: UsageState;
+  /** Agents at work among the listed threads: the same count as the Sessions badge and the Running card. */
+  running: number;
   layout: DashboardLayout;
   /** Edit mode: each card gets a bar to move or hide it. */
-  editing?: boolean;
-  onLayout?: (layout: DashboardLayout) => void;
+  editing: boolean;
+  onLayout: (layout: DashboardLayout) => void;
 }
 
-export function DashboardView({ usage, layout, editing = false, onLayout = () => {}, ...input }: Props) {
+export function DashboardView({ usage, running, layout, editing, onLayout, ...input }: Props) {
   const [dragged, setDragged] = useState<DashboardCard | null>(null);
   // Where the dragged card would land, shown as a placeholder of its size.
   const [target, setTarget] = useState<{ column: Column; index: number } | null>(null);
   const [dragHeight, setDragHeight] = useState(0);
   const cards = useDashboardCards(input);
-  const body: Record<DashboardCard, ReactNode> = { usage: <UsageCard state={usage} threads={input.state.threads} now={input.now} />, ...cards };
+  const body: Record<DashboardCard, ReactNode> = { usage: <UsageCard state={usage} running={running} now={input.now} />, ...cards };
   const order = stackedOrder(layout);
   const endDrag = () => {
     setDragged(null);

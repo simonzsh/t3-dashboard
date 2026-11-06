@@ -1,11 +1,12 @@
 import type { DashboardThread } from "../../../../shared/api.ts";
 import { isUnseen, type SeenState } from "../../../../shared/seen.ts";
 import { hasFailed, threadState } from "../../../../shared/status.ts";
+import { newestFirst } from "../../lib/threads.ts";
 import type { IconName } from "../../ui/index.ts";
 import { excludeRoutineThreads } from "../automations/automations.ts";
 
 /** Read threads older than this fold behind "See all", and "Settle all" settles them. */
-export const RECENT_SETTLED_MS = 3 * 24 * 3_600_000;
+const RECENT_SETTLED_MS = 3 * 24 * 3_600_000;
 
 export interface ThreadSections {
   /** Waiting for an answer, or failed and not settled. */
@@ -14,6 +15,7 @@ export interface ThreadSections {
   unread: DashboardThread[];
   /** Finished, not settled, read. */
   readIdle: DashboardThread[];
+  /** Pinned first, then the most recent; the other lists keep the input order. */
   running: DashboardThread[];
 }
 
@@ -33,7 +35,8 @@ export function threadSections(threads: DashboardThread[], seen: SeenState, rela
     else if (isUnseen(t, seen)) sections.unread.push(t);
     else if (!relaunch.has(t.id)) sections.readIdle.push(t);
   }
-  for (const list of Object.values(sections)) list.sort(byPinThenRecent);
+  // Only Running shows this order: notificationList sorts the other lists itself.
+  sections.running.sort(byPinThenRecent);
   return sections;
 }
 
@@ -47,8 +50,8 @@ export function splitRead(readIdle: DashboardThread[], now: Date): { recent: Das
   return { recent: readIdle.filter((t) => t.lastActivityAt >= before), old: readIdle.filter((t) => t.lastActivityAt < before) };
 }
 
-/** The Dashboard badge: what needs you or has an unread result, and was not read yet. */
-export const unreadCount = (s: ThreadSections, seen: SeenState): number => [...s.needsYou, ...s.unread].filter((t) => isUnseen(t, seen)).length;
+/** The Dashboard badge: what needs you or has an unread result, and was not read yet. `unread` is unseen already. */
+export const unreadCount = (s: ThreadSections, seen: SeenState): number => s.needsYou.filter((t) => isUnseen(t, seen)).length + s.unread.length;
 
 export type NotificationKind = "needs" | "unread" | "read";
 
@@ -56,8 +59,6 @@ export interface Notification {
   thread: DashboardThread;
   kind: NotificationKind;
 }
-
-const newestFirst = (a: DashboardThread, b: DashboardThread) => b.lastActivityAt.localeCompare(a.lastActivityAt);
 
 /** What needs you first, then unread results, then read threads; newest first in each group. */
 export function notificationList(s: ThreadSections, read: DashboardThread[]): Notification[] {

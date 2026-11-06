@@ -52,7 +52,7 @@ export function SettingsDialog({ theme, onThemeChange, accent, onAccentChange, o
                 tabIndex={accent === a.id ? 0 : -1}
                 aria-label={a.label}
                 tooltip={a.label}
-                className={`swatch accent-swatch${accent === a.id ? " active" : ""}`}
+                className={`swatch${accent === a.id ? " active" : ""}`}
                 style={{ background: `linear-gradient(135deg, ${a.light} 50%, ${a.dark} 50%)` }}
                 onClick={() => onAccentChange(a.id)}
               />

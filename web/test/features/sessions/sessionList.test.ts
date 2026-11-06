@@ -64,8 +64,8 @@ test("groupByProject: a thread of an unknown project gets its own group", () => 
 
 test("list prefs: defaults for missing or broken data, and a round trip through storage", () => {
   assert.deepEqual(parseListPrefs(null), DEFAULT_LIST_PREFS);
-  assert.deepEqual(parseListPrefs("{oops"), DEFAULT_LIST_PREFS);
-  assert.deepEqual(parseListPrefs(JSON.stringify({ hidden: "yes", mode: "tree", collapsed: [1, "p1", "p1"] })), { ...DEFAULT_LIST_PREFS, collapsed: ["p1"] });
+  assert.deepEqual(parseListPrefs("oops"), DEFAULT_LIST_PREFS);
+  assert.deepEqual(parseListPrefs({ hidden: "yes", mode: "tree", collapsed: [1, "p1", "p1"] }), { ...DEFAULT_LIST_PREFS, collapsed: ["p1"] });
   const store = memoryStore();
   const prefs = { hidden: true, mode: "flat" as const, collapsed: ["p2"] };
   saveListPrefs(store, prefs);

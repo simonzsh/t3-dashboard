@@ -95,16 +95,16 @@ interface Props extends Omit<RowProps, "issue"> {
   failed: boolean;
   tickets: LinearIssue[];
   /** Threads to relaunch, already rendered as rows. */
-  relaunch: ReactNode;
-  relaunchCount: number;
+  relaunch: ReactNode[];
   onRefresh: () => void;
 }
 
 // The Linear connection lives here: its status, refresh and setup card.
-export function UpNextCard({ board, needsKey, loading, failed, tickets, relaunch, relaunchCount, onRefresh, ...rowProps }: Props) {
+export function UpNextCard({ board, needsKey, loading, failed, tickets, relaunch, onRefresh, ...rowProps }: Props) {
+  const relaunchCount = relaunch.length;
   const empty = board !== null && tickets.length === 0 && relaunchCount === 0 && !needsKey;
   return (
-    <section className="dashboard-card up-next-card" aria-labelledby="up-next-head">
+    <section className="dashboard-card" aria-labelledby="up-next-head">
       <CardHead
         id="up-next-head"
         icon="listChecks"
