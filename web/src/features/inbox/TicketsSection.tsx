@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import type { BoardResult, DashboardProject, DashboardProvider, LinearIssue, ModelDefaults } from "../../../../shared/api.ts";
 import { useCopy } from "../../lib/useCopy.ts";
@@ -6,6 +6,7 @@ import { Icon, IconButton } from "../../ui/index.ts";
 import { NewThreadDialog } from "../new-thread/NewThreadDialog.tsx";
 import { linearConnected } from "../settings/linearSettings.ts";
 import { CappedList } from "./InboxSection.tsx";
+import { CardHead } from "./CardHead.tsx";
 import { LinearSetupCard } from "./LinearSetupCard.tsx";
 import { PriorityIcon } from "./PriorityIcon.tsx";
 
@@ -77,34 +78,56 @@ interface Props extends Omit<RowProps, "issue"> {
   loading: boolean;
   failed: boolean;
   tickets: LinearIssue[];
+  /** Threads to relaunch, already rendered as rows. */
+  relaunch: ReactNode;
+  relaunchCount: number;
   onRefresh: () => void;
 }
 
 // The Linear connection lives here: its status, refresh and setup card.
-export function UpNextSection({ board, needsKey, loading, failed, tickets, onRefresh, ...rowProps }: Props) {
-  if (!board) return failed ? <p className="empty">Tickets could not be loaded.</p> : null;
-  if (!needsKey && tickets.length === 0) return null;
+export function UpNextCard({ board, needsKey, loading, failed, tickets, relaunch, relaunchCount, onRefresh, ...rowProps }: Props) {
+  const empty = board !== null && tickets.length === 0 && relaunchCount === 0 && !needsKey;
   return (
-    <section className="inbox-section" aria-labelledby="inbox-up-next-head">
-      <div className="inbox-head">
-        <h2 id="inbox-up-next-head" className="inbox-heading">
-          Up next {tickets.length > 0 && <span className="count">{tickets.length}</span>}
-        </h2>
-        {linearConnected(board) && (
-          <span className="linear-source">
-            <span className="conn-dot" aria-hidden="true" /> Connected to Linear
-          </span>
-        )}
-        <IconButton label="Refresh" tooltip="Refresh data from Linear" size="sm" variant="ghost" aria-busy={loading} disabled={loading} onClick={onRefresh}>
-          <Icon name="refresh" className={`icon${loading ? " spinning" : ""}`} />
-        </IconButton>
-      </div>
-      {needsKey && <LinearSetupCard refused={board.configured} onConnected={onRefresh} />}
-      <CappedList limit={UP_NEXT_LIMIT}>
-        {tickets.map((issue) => (
-          <TicketRow key={issue.id} issue={issue} {...rowProps} />
-        ))}
-      </CappedList>
+    <section className="home-card up-next-card" aria-labelledby="up-next-head">
+      <CardHead
+        id="up-next-head"
+        icon="listChecks"
+        title="Up next"
+        count={tickets.length + relaunchCount}
+        actions={
+          board && (
+            <>
+              {linearConnected(board) && (
+                <span className="linear-source">
+                  <span className="conn-dot" aria-hidden="true" /> Linear
+                </span>
+              )}
+              <IconButton label="Refresh" tooltip="Refresh data from Linear" size="sm" variant="ghost" aria-busy={loading} disabled={loading} onClick={onRefresh}>
+                <Icon name="refresh" className={`icon${loading ? " spinning" : ""}`} />
+              </IconButton>
+            </>
+          )
+        }
+      />
+      {needsKey && board && <LinearSetupCard refused={board.configured} onConnected={onRefresh} />}
+      {relaunchCount > 0 && (
+        <>
+          <h3 className="card-subhead">To relaunch</h3>
+          <div className="run-list">{relaunch}</div>
+        </>
+      )}
+      {tickets.length > 0 && (
+        <>
+          {relaunchCount > 0 && <h3 className="card-subhead">Tickets</h3>}
+          <CappedList limit={UP_NEXT_LIMIT}>
+            {tickets.map((issue) => (
+              <TicketRow key={issue.id} issue={issue} {...rowProps} />
+            ))}
+          </CappedList>
+        </>
+      )}
+      {failed && !board && <p className="card-empty">Tickets could not be loaded.</p>}
+      {empty && <p className="card-empty">Nothing queued.</p>}
     </section>
   );
 }

@@ -1,11 +1,11 @@
-import { useState, type ReactNode } from "react";
+import { useState, type CSSProperties, type ReactNode } from "react";
 import type { DashboardThread, UsageOverview } from "../../../../shared/api.ts";
 import { agentCounts } from "../../lib/navBadges.ts";
+import { stackedOrder, type HomeCard, type HomeLayout } from "./layout.ts";
 import { relativeTime } from "../../lib/format.ts";
 import { IconButton, Icon, Loader, Segmented } from "../../ui/index.ts";
 import { UsageChart } from "./UsageChart.tsx";
-import { formatTokens } from "../../lib/format.ts";
-import { cacheShare, delta, formatUsd, METRICS, type Metric } from "./usageView.ts";
+import { delta, formatUsd, METRICS, type Metric } from "./usageView.ts";
 import type { UsageState } from "./useUsage.ts";
 
 interface TileProps {
@@ -75,55 +75,37 @@ function UsageCard({ state, threads, now }: { state: UsageState; threads: readon
   );
 }
 
-function TodayCard({ usage }: { usage: UsageOverview }) {
-  const today = usage.days.at(-1)!;
-  const costKnown = usage.cost.status !== "unavailable";
-  const cache = cacheShare(today);
-  return (
-    <section className="home-card small-card" aria-label="Today">
-      <h2>Today</h2>
-      <dl className="small-stats">
-        <div><dt>Turns</dt><dd>{today.turns}</dd></div>
-        <div><dt>Spend</dt><dd>{costKnown ? formatUsd(today.costUsd) : "—"}</dd></div>
-        <div><dt>Tokens in → out</dt><dd>{costKnown ? `${formatTokens(today.inputTokens)} → ${formatTokens(today.outputTokens)}` : "—"}</dd></div>
-        <div><dt>Cache</dt><dd>{costKnown && cache !== null ? `${cache} %` : "—"}</dd></div>
-      </dl>
-    </section>
-  );
-}
-
-function NeedsYouCard({ threads, unread }: { threads: readonly DashboardThread[]; unread: number }) {
-  const { waiting, running } = agentCounts(threads);
-  return (
-    <section className="home-card small-card" aria-label="Needs you">
-      <h2>Needs you</h2>
-      <dl className="small-stats">
-        <div><dt>Waiting</dt><dd>{waiting}</dd></div>
-        <div><dt>Running</dt><dd>{running}</dd></div>
-        <div><dt>Unread</dt><dd>{unread}</dd></div>
-      </dl>
-    </section>
-  );
+export interface HomeCards {
+  notifications: ReactNode;
+  running: ReactNode;
+  "up-next": ReactNode;
 }
 
 interface Props {
   usage: UsageState;
   threads: readonly DashboardThread[];
   now: Date;
-  unread: number;
-  /** The Inbox: it keeps every one of its features below the usage cards. */
-  children: ReactNode;
+  layout: HomeLayout;
+  /** The cards of the Inbox: the Home layout places them. */
+  cards: HomeCards;
 }
 
-export function HomeView({ usage, threads, now, unread, children }: Props) {
+export function HomeView({ usage, threads, now, layout, cards }: Props) {
+  const body: Record<HomeCard, ReactNode> = { usage: <UsageCard state={usage} threads={threads} now={now} />, ...cards };
+  const order = stackedOrder(layout);
+  const column = (id: "left" | "right") => (
+    <div className={`home-col ${id}`}>
+      {layout[id].map((card) => (
+        <div key={card} className={`home-slot ${card}`} style={{ "--stack": order.indexOf(card) } as CSSProperties}>
+          {body[card]}
+        </div>
+      ))}
+    </div>
+  );
   return (
     <div className="home">
-      <UsageCard state={usage} threads={threads} now={now} />
-      <div className="home-small-cards">
-        {usage.usage && <TodayCard usage={usage.usage} />}
-        <NeedsYouCard threads={threads} unread={unread} />
-      </div>
-      {children}
+      {column("left")}
+      {column("right")}
     </div>
   );
 }

@@ -1,7 +1,7 @@
 import { test } from "bun:test";
 import assert from "node:assert/strict";
 import type { SeenState } from "../../../../shared/seen.ts";
-import { RECENT_SETTLED_MS, inboxSections, inboxThreads, inboxSummary, nothingToDo, settleCandidates, unreadCount } from "../../../src/features/inbox/inbox.ts";
+import { RECENT_SETTLED_MS, inboxSections, inboxThreads, notificationDetail, notificationIcon, notificationList, recentRead, settleCandidates, unreadCount } from "../../../src/features/inbox/inbox.ts";
 import { thread } from "../../fixtures.ts";
 
 const now = new Date("2026-01-12T12:00:00.000Z");
@@ -36,25 +36,16 @@ test("a cancelled thread is a result, not an error", () => {
 test("running threads go to running, even when settled", () => {
   const s = sectionsOf([thread("a", { settled: true, status: "running" })]);
   assert.deepEqual(ids(s.running), ["a"]);
-  assert.equal(s.settled.length, 0);
 });
 
 test("a pending thread needs you even when settled", () => {
   const s = sectionsOf([thread("a", { settled: true, pending: ask, status: "waiting" })]);
   assert.deepEqual(ids(s.needsYou), ["a"]);
-  assert.equal(s.settled.length, 0);
 });
 
-test("a settled error goes to settled, not to needs you", () => {
-  const s = sectionsOf([thread("a", { settled: true, status: "failed", lastError: "x" })]);
-  assert.equal(s.needsYou.length, 0);
-  assert.deepEqual(ids(s.settled), ["a"]);
-});
-
-test("settled threads older than 3 days are dropped", () => {
-  const at = (ms: number) => new Date(now.getTime() - ms).toISOString();
-  const s = sectionsOf([thread("fresh", { settled: true, lastActivityAt: at(RECENT_SETTLED_MS - 1000) }), thread("stale", { settled: true, lastActivityAt: at(RECENT_SETTLED_MS + 1000) })]);
-  assert.deepEqual(ids(s.settled), ["fresh"]);
+test("a settled thread that does not run or wait is left out", () => {
+  const s = sectionsOf([thread("a", { settled: true, status: "failed", lastError: "x" }), thread("b", { settled: true, status: "completed" })]);
+  assert.deepEqual([...s.needsYou, ...s.unread, ...s.readIdle, ...s.running], []);
 });
 
 test("threads to relaunch leave read and idle", () => {
@@ -86,19 +77,37 @@ test("unreadCount counts unread threads that need you or have an unread result",
   assert.equal(unreadCount(s, readAt(readWait)), 2);
 });
 
-test("inboxSummary names the non-zero parts only", () => {
-  assert.equal(inboxSummary(2, 3, 1), "2 need you · 3 unread · 1 to relaunch");
-  assert.equal(inboxSummary(1, 1, 0), "1 needs you · 1 unread");
-  assert.equal(inboxSummary(0, 0, 4), "4 to relaunch");
-  assert.equal(inboxSummary(0, 0, 0), "");
+const at = (ms: number) => new Date(now.getTime() - ms).toISOString();
+
+test("the notification list puts what needs you first, then unread, then recent read threads, newest first", () => {
+  const readOld = thread("readOld", { status: "completed", lastActivityAt: at(RECENT_SETTLED_MS + 1000) });
+  const readNew = thread("readNew", { status: "completed", lastActivityAt: at(1000) });
+  const list = [
+    thread("u1", { status: "completed", lastActivityAt: at(5000) }),
+    thread("u2", { status: "completed", lastActivityAt: at(2000) }),
+    thread("w", { status: "waiting", pending: ask, lastActivityAt: at(9000) }),
+    readOld,
+    readNew,
+  ];
+  const s = sectionsOf(list, readAt(readOld, readNew));
+  assert.deepEqual(notificationList(s, now, false).map((n) => `${n.kind}:${n.thread.id}`), ["needs:w", "unread:u2", "unread:u1", "read:readNew"]);
+  assert.deepEqual(notificationList(s, now, true).map((n) => n.thread.id), ["w", "u2", "u1", "readNew", "readOld"]);
+  assert.deepEqual(ids(recentRead(s.readIdle, now)), ["readNew"]);
 });
 
-test("nothingToDo ignores running, read and settled threads", () => {
-  const quiet = sectionsOf([thread("run", { status: "running" }), thread("s", { settled: true })]);
-  assert.equal(nothingToDo(quiet, 0, 0), true);
-  assert.equal(nothingToDo(quiet, 1, 0), false);
-  assert.equal(nothingToDo(quiet, 0, 1), false);
-  assert.equal(nothingToDo(sectionsOf([thread("a")]), 0, 0), false);
+test("a notification shows a warning when it waits, an alert on error, a check when done", () => {
+  assert.deepEqual(notificationIcon(thread("a", { status: "waiting", pending: ask })), { icon: "alertTriangle", tone: "warn" });
+  assert.deepEqual(notificationIcon(thread("b", { status: "failed", lastError: "x" })), { icon: "alert", tone: "err" });
+  assert.deepEqual(notificationIcon(thread("c", { status: "completed" })), { icon: "circleCheck", tone: "ok" });
+  assert.deepEqual(notificationIcon(thread("d", { status: "idle" })), { icon: "info", tone: "info" });
+});
+
+test("the detail line says what the agent waits for, the error, or the model", () => {
+  assert.equal(notificationDetail(thread("a", { status: "waiting", pending: ask }), null), "Waiting for your approval");
+  assert.equal(notificationDetail(thread("b", { status: "failed", lastError: "Disk full" }), "M"), "Disk full");
+  assert.equal(notificationDetail(thread("b2", { status: "failed" }), null), "The run failed");
+  assert.equal(notificationDetail(thread("c", { status: "completed" }), "Model X"), "Finished · Model X");
+  assert.equal(notificationDetail(thread("d", { status: "completed" }), null), "Finished");
 });
 
 test("inboxThreads leaves out hidden routine runs and setup threads", () => {

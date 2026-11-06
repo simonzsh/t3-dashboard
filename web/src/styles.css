@@ -522,56 +522,60 @@ ol.install-steps { padding-left: 18px; }
 .segmented button { border: 0; background: none; padding: 4px 14px; border-radius: 7px; color: var(--text-secondary); font-weight: 500; }
 /* One "selected" look for single and multiple choice: a gray, not the accent. */
 .segmented button.active, .toggle-group button[aria-pressed="true"] { background: color-mix(in srgb, var(--text-primary) 10%, transparent); color: var(--text-primary); }
-.inbox-page { flex: 1; min-height: 0; display: flex; flex-direction: column; gap: 20px; }
-/* Padding keeps row shadows and focus rings inside the scroll area. */
-.inbox-sections { flex: 1; min-height: 0; overflow-y: auto; box-sizing: border-box; display: flex; flex-direction: column; gap: 24px; padding: 4px; margin: -4px; }
-.inbox-section { display: flex; flex-direction: column; }
-.inbox-heading { display: flex; align-items: baseline; gap: 8px; margin: 0; font-size: 13px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-secondary); }
-.inbox-head { display: flex; align-items: center; gap: 12px; margin-bottom: 10px; }
-.linear-source { display: inline-flex; align-items: center; gap: 6px; margin-right: auto; font-size: 12px; color: var(--text-secondary); }
+.linear-source { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; color: var(--text-secondary); }
 .linear-source .conn-dot { background: var(--ok); }
-/* Cards, several per row: a wide list wasted the space right of the titles. */
-.inbox-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(280px, 100%), 1fr)); gap: 12px; }
-.inbox-list > .inbox-more { grid-column: 1 / -1; justify-self: start; }
-.inbox-settle-all { align-self: flex-start; }
-.inbox-summary { margin: 0; font-size: 15px; font-weight: 600; }
-.inbox-section > .inbox-list, .inbox-section > .inbox-settle-all { margin-top: 8px; }
-.inbox-collapse-head { align-self: flex-start; display: inline-flex; align-items: center; gap: 8px; padding: 4px 6px; border: 0; background: none; color: var(--text-secondary); font-size: 12px; font-weight: 500; }
-.inbox-collapse-head:hover:not(:disabled) { color: var(--text-primary); }
-.inbox-item { position: relative; min-width: 0; }
-.inbox-row { position: relative; width: 100%; height: 100%; min-width: 0; display: flex; flex-direction: column; align-items: flex-start; gap: 6px; padding: 14px 16px; border-radius: var(--radius-lg); box-shadow: var(--shadow); text-align: left; transition: transform 0.12s, border-color 0.12s, box-shadow 0.12s; }
-.inbox-row:hover:not(:disabled) { transform: translateY(-1px); }
-.inbox-row-head { display: flex; align-items: center; gap: 10px; min-width: 0; width: 100%; }
-.inbox-row-head .project-icon { width: 18px; height: 18px; }
-.inbox-row-meta { display: flex; align-items: center; gap: 6px; min-width: 0; max-width: 100%; color: var(--text-secondary); font-size: 12px; }
-.inbox-row-meta .provider-icon { width: 14px; height: 14px; margin: 0; }
-.inbox-model { flex: 0 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.inbox-model + .project-tag::before { content: "·"; margin-right: 1px; }
-/* The actions sit in the bottom right corner of the card: the foot keeps room for all three. */
-.inbox-row-foot { display: flex; align-items: center; gap: 8px; min-width: 0; margin-top: auto; padding-right: 100px; white-space: nowrap; }
-.inbox-row.on-desk { border-color: color-mix(in srgb, var(--accent) 55%, var(--line)); }
-/* One line: a long title must not make the row taller. */
-.inbox-title { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 600; }
-.inbox-time { flex: none; color: var(--text-secondary); font-size: 12px; white-space: nowrap; }
-.inbox-pin { width: 13px; height: 13px; flex: none; color: var(--text-secondary); }
-.inbox-actions { position: absolute; right: 10px; bottom: 10px; display: flex; align-items: center; gap: 4px; }
+.inbox-list { display: flex; flex-direction: column; }
+.inbox-list > .inbox-more { align-self: flex-start; margin: 4px 12px 8px; }
 .inbox-open-t3 { border-radius: var(--radius-md); }
 .inbox-open-t3:hover { color: var(--text-primary); background: var(--surface-0); }
 .project-tag { flex: 0 1 auto; display: inline-flex; align-items: center; gap: 5px; min-width: 0; max-width: 180px; color: var(--text-secondary); font-size: 12px; }
 .project-tag .project-icon { width: 14px; height: 14px; }
 .project-tag-text { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.inbox-row.waiting { border-color: var(--warn); background: color-mix(in srgb, var(--warn-bg) 55%, var(--surface-1)); box-shadow: 0 0 0 1px var(--warn), var(--shadow); }
-.inbox-row.working { border-color: color-mix(in srgb, var(--work) 45%, var(--line)); overflow: hidden; }
-.inbox-row.working::after { content: ""; position: absolute; left: 0; bottom: 0; height: 3px; width: 50%; background: linear-gradient(90deg, transparent, var(--work), transparent); will-change: transform; animation: shimmer 1.8s ease-in-out infinite; }
-.inbox-row.finished { background: color-mix(in srgb, var(--done-bg) 40%, var(--surface-1)); box-shadow: none; }
-.inbox-row.finished .inbox-title { font-weight: 500; }
-.inbox-row.is-settled { background: var(--surface-0); border-color: var(--line); box-shadow: none; }
-.inbox-row.is-settled > * { opacity: 0.6; filter: grayscale(1); }
-.ticket-row { position: relative; display: flex; flex-direction: column; gap: 8px; min-width: 0; padding: 12px 14px; border: 1px solid var(--line); border-radius: 14px; background: var(--surface-1); box-shadow: var(--shadow); transition: transform 0.12s, border-color 0.12s; }
-.ticket-row:hover { border-color: var(--accent); transform: translateY(-1px); }
+/* Home cards: a header with an icon, a title, a count and icon buttons. */
+.card-head { display: flex; align-items: center; gap: 8px; min-height: 44px; padding: 0 12px 0 16px; border-bottom: 1px solid var(--line); }
+.card-head > .icon { flex: none; width: 16px; height: 16px; color: var(--text-secondary); }
+.card-head h2 { margin: 0; font-size: 13px; font-weight: 600; }
+.card-head .count { background: color-mix(in srgb, var(--accent) 18%, transparent); color: var(--accent); font-weight: 600; }
+.card-actions { margin-left: auto; display: flex; align-items: center; gap: 6px; }
+.card-empty { margin: 0; padding: 16px; color: var(--text-secondary); font-size: 13px; }
+.card-empty strong { color: var(--text-primary); font-weight: 600; }
+.card-subhead { margin: 0; padding: 10px 16px 4px; color: var(--text-secondary); font-size: 11px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; }
+/* Notifications: its own scroll, so the card stays beside the left column. */
+.notifications-card { display: flex; flex-direction: column; max-height: calc(100dvh - 120px); }
+.notif-list { flex: 1; min-height: 0; overflow-y: auto; display: flex; flex-direction: column; }
+.notif-foot { flex: none; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; padding: 8px 12px; border-top: 1px solid var(--line); }
+.notif-item, .run-item { position: relative; min-width: 0; border-bottom: 1px solid var(--line); }
+.notif-item:last-child, .run-item:last-child { border-bottom: 0; }
+.notif-row, .run-row { position: relative; width: 100%; min-width: 0; display: flex; gap: 10px; padding: 10px 16px; border: 0; background: none; color: inherit; text-align: left; }
+.notif-row:hover, .run-row:hover { background: color-mix(in srgb, var(--text-primary) 5%, transparent); }
+.notif-item.needs, .notif-item.unread { background: color-mix(in srgb, var(--accent) 7%, transparent); }
+.notif-item.needs { background: color-mix(in srgb, var(--warn) 9%, transparent); }
+.notif-item.read .notif-row { opacity: 0.6; }
+.notif-icon { flex: none; width: 18px; height: 18px; margin-top: 1px; }
+.notif-icon.ok { color: var(--ok); }
+.notif-icon.warn { color: var(--warn); }
+.notif-icon.err { color: var(--danger); }
+.notif-icon.info { color: var(--accent); }
+.notif-body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.notif-title { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 600; font-size: 13px; }
+.notif-detail { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; line-clamp: 2; overflow: hidden; color: var(--text-secondary); font-size: 12px; overflow-wrap: anywhere; }
+.notif-meta { display: flex; align-items: center; gap: 4px; min-width: 0; overflow: hidden; white-space: nowrap; color: var(--text-secondary); font-size: 12px; }
+.notif-meta .provider-icon { width: 13px; height: 13px; margin: 0; }
+.notif-dot { flex: none; width: 8px; height: 8px; margin-top: 5px; border-radius: 50%; background: var(--accent); }
+/* The buttons replace the dot corner on hover and keyboard focus; touch screens show them at once. */
+.thread-actions { position: absolute; right: 8px; bottom: 6px; display: flex; align-items: center; gap: 4px; padding: 2px; border-radius: var(--radius-md); background: var(--surface-1); box-shadow: 0 0 0 1px var(--line); opacity: 0; pointer-events: none; transition: opacity 0.12s; }
+.notif-item:hover .thread-actions, .run-item:hover .thread-actions, .thread-actions:focus-within { opacity: 1; pointer-events: auto; }
+@media (pointer: coarse) { .thread-actions { opacity: 1; pointer-events: auto; } }
+.run-row { flex-direction: column; gap: 2px; overflow: hidden; }
+.run-row.working::after { content: ""; position: absolute; left: 0; bottom: 0; height: 2px; width: 50%; background: linear-gradient(90deg, transparent, var(--work), transparent); will-change: transform; animation: shimmer 1.8s ease-in-out infinite; }
+.run-list { display: flex; flex-direction: column; }
+.up-next-card .inbox-list { gap: 0; }
+.ticket-row { position: relative; display: flex; flex-direction: column; gap: 6px; min-width: 0; padding: 10px 16px; border-bottom: 1px solid var(--line); }
+.ticket-row:last-child { border-bottom: 0; }
+.ticket-row:hover { background: color-mix(in srgb, var(--text-primary) 5%, transparent); }
 .ticket-meta { display: flex; align-items: center; gap: 8px; min-width: 0; }
-/* Two lines at most, so every ticket card keeps the same height. */
-.ticket-title { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; line-clamp: 2; overflow: hidden; min-height: 2lh; font-weight: 500; color: inherit; text-decoration: none; }
+/* Two lines at most. */
+.ticket-title { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; line-clamp: 2; overflow: hidden; font-weight: 500; color: inherit; text-decoration: none; }
 /* Stretched link: the whole card opens the issue, like an Inbox row opens its conversation. */
 .ticket-title::after { content: ""; position: absolute; inset: 0; border-radius: inherit; }
 .ticket-foot > * { position: relative; z-index: 1; }
@@ -650,10 +654,12 @@ ol.install-steps { padding-left: 18px; }
 .page-description { margin: 2px 0 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--text-secondary); font-size: 13px; }
 .page-actions { flex: none; display: flex; align-items: center; gap: 8px; }
 .page-actions .icon { width: 18px; height: 18px; }
-/* Home: the usage card, two small cards, then the Inbox, in one scroll area. */
-.home { flex: 1; min-height: 0; overflow-y: auto; box-sizing: border-box; display: flex; flex-direction: column; gap: 16px; padding: 4px; margin: -4px; }
-.home > * { flex: none; }
-.home .inbox-page, .home .inbox-sections { flex: none; overflow: visible; }
+/* Home: two columns of cards in one scroll area; the layout model decides which card goes where. */
+.home { flex: 1; min-height: 0; overflow-y: auto; box-sizing: border-box; display: grid; grid-template-columns: minmax(0, 2fr) minmax(260px, 1fr); align-items: start; gap: 16px; padding: 4px; margin: -4px; }
+.home-col { min-width: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); align-items: start; gap: 16px; }
+.home-col.right { grid-template-columns: minmax(0, 1fr); position: sticky; top: 0; }
+.home-slot { min-width: 0; }
+.home-slot.usage { grid-column: 1 / -1; }
 .home-card { background: var(--surface-1); border: 1px solid var(--line); border-radius: var(--radius-lg); }
 .usage-card { overflow: hidden; }
 .stat-tiles { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); }
@@ -664,7 +670,7 @@ ol.install-steps { padding-left: 18px; }
 .stat-delta { margin-left: 8px; font-size: 13px; font-weight: 500; letter-spacing: 0; color: var(--ok); }
 .stat-delta.down { color: var(--text-secondary); }
 .usage-chart-head { display: flex; align-items: center; flex-wrap: wrap; gap: 12px; padding: 12px 20px 0; border-top: 1px solid var(--line); }
-.usage-chart-head h2, .small-card h2 { margin: 0; font-size: 13px; font-weight: 600; }
+.usage-chart-head h2 { margin: 0; font-size: 13px; font-weight: 600; }
 .usage-chart-head h2 { margin-right: auto; }
 .usage-updated { color: var(--text-secondary); font-size: 12px; }
 .usage-chart { position: relative; overflow: hidden; padding: 8px 0 12px; }
@@ -683,12 +689,6 @@ ol.install-steps { padding-left: 18px; }
 .usage-tip b { margin-left: 6px; color: var(--text-primary); font-weight: 600; font-variant-numeric: tabular-nums; }
 .usage-empty, .usage-error { margin: 0; padding: 20px; color: var(--text-secondary); }
 .usage-error { color: var(--err-text); }
-.home-small-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 16px; }
-.small-card { padding: 16px 20px; }
-.small-card h2 { margin-bottom: 10px; }
-.small-stats { margin: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(110px, 1fr)); gap: 12px; }
-.small-stats dt { color: var(--text-secondary); font-size: 12px; }
-.small-stats dd { margin: 2px 0 0; white-space: nowrap; font-size: 18px; font-weight: 600; font-variant-numeric: tabular-nums; }
 .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
 .desk { flex: 1; min-height: 0; display: flex; flex-direction: column; background-color: var(--surface-0); background-size: cover; background-position: center; }
 .desk-bg-none { background-color: var(--surface-0); }
@@ -793,6 +793,11 @@ ol.install-steps { padding-left: 18px; }
   .notif-toasts { left: 12px; right: 12px; width: auto; }
   .stat-tiles { grid-template-columns: 1fr; }
   .stat-tile + .stat-tile { border-left: 0; border-top: 1px solid var(--line); }
+  /* One column: the columns dissolve and the cards follow the stacked order of the layout. */
+  .home { display: flex; flex-direction: column; gap: 16px; }
+  .home-col { display: contents; }
+  .home-slot { order: var(--stack); }
+  .notifications-card { max-height: 70dvh; }
   /* The bottom bar replaces the sidebar. The header is one line; its insets keep it clear of the iPhone notch in landscape. */
   .page-header { position: sticky; top: 0; gap: 10px; padding: max(8px, env(safe-area-inset-top)) max(12px, env(safe-area-inset-right)) 8px max(12px, env(safe-area-inset-left)); }
   .page-header .logo { width: 30px; height: 30px; }
@@ -806,7 +811,7 @@ ol.install-steps { padding-left: 18px; }
   .app:not(.desk-mode) { height: auto; min-height: 100dvh; overflow: visible; }
   .app:not(.desk-mode) :is(main, .home) { flex: none; overflow: visible; }
   .app:not(.desk-mode) main { padding-bottom: 24px; }
-  .app:not(.desk-mode) :is(.inbox-page, .auto-page) { flex: none; overflow: visible; }
+  .app:not(.desk-mode) .auto-page { flex: none; overflow: visible; }
   /* The search stays under the sticky top bar, as on desktop where the list scrolls below it. */
   /* Stuck 12px under the top bar; the band shows only once the page scrolls, with 12px above and below the search. */
 }
@@ -867,9 +872,9 @@ ol.install-steps { padding-left: 18px; }
 .key-mask { font: 12px/1 var(--font-mono); padding: 4px 7px; border-radius: 6px; border: 1px solid var(--line); color: var(--text-secondary); background: var(--surface-0); }
 /* After every animated rule, so it wins on equal specificity. */
 @media (prefers-reduced-motion: reduce) {
-  .pulse, .inbox-row.working::after, .desk-window.state-running .desk-window-head::after, .streaming, .step.running .icon, .todo.running .todo-mark, .spinning { animation: none; }
+  .pulse, .run-row.working::after, .desk-window.state-running .desk-window-head::after, .streaming, .step.running .icon, .todo.running .todo-mark, .spinning { animation: none; }
   .loader rect { animation: none; }
-  .inbox-row, .ticket-row { transition: none; }
+  .thread-actions { transition: none; }
 }
 .queue { display: flex; flex-direction: column; gap: 10px; }
 .queue-head { font-size: 12px; color: var(--text-secondary); text-align: right; }

@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import { renderToStaticMarkup } from "react-dom/server";
 import type { UsageDay, UsageOverview, UsageTotals } from "../../../../shared/api.ts";
 import { HomeView } from "../../../src/features/home/HomeView.tsx";
+import { DEFAULT_LAYOUT, moveCard, setHidden, type HomeLayout } from "../../../src/features/home/layout.ts";
 import type { UsageState } from "../../../src/features/home/useUsage.ts";
 import { thread } from "../../fixtures.ts";
 
@@ -36,12 +37,13 @@ const overview = (over: Partial<UsageOverview> = {}): UsageOverview => ({
   ...over,
 });
 const state = (over: Partial<UsageState> = {}): UsageState => ({ usage: overview(), error: null, loading: false, refresh: () => {}, ...over });
-const render = (s: UsageState, threads = [thread("a", { status: "running" })]) =>
-  renderToStaticMarkup(
-    <HomeView usage={s} threads={threads} now={NOW} unread={2}>
-      <div id="inbox-child">Inbox</div>
-    </HomeView>,
-  );
+const cards = {
+  notifications: <div id="card-notifications">N</div>,
+  running: <div id="card-running">R</div>,
+  "up-next": <div id="card-up-next">U</div>,
+};
+const render = (s: UsageState, threads = [thread("a", { status: "running" })], layout: HomeLayout = DEFAULT_LAYOUT) =>
+  renderToStaticMarkup(<HomeView usage={s} threads={threads} now={NOW} layout={layout} cards={cards} />);
 
 test("the three tiles cover the last 7 days, each with its change", () => {
   const out = render(state());
@@ -75,21 +77,38 @@ test("the chart has one labelled bar slot per day, today last, and a table for s
   assert.match(out, /<table class="sr-only">/);
 });
 
-test("the small cards show today and what needs you", () => {
-  const out = render(state(), [thread("a", { pending: { category: "approval" } }), thread("b", { status: "running" })]);
-  assert.match(out, /aria-label="Today"[\s\S]*?Cache<\/dt><dd>75 %/);
-  assert.match(out, /aria-label="Needs you"[\s\S]*?Waiting<\/dt><dd>1<\/dd>[\s\S]*?Running<\/dt><dd>1<\/dd>[\s\S]*?Unread<\/dt><dd>2</);
+test("the default layout puts usage, Running and Up next left and Notifications right", () => {
+  const out = render(state());
+  const right = out.indexOf('class="home-col right"');
+  assert.ok(out.indexOf('aria-label="Usage"') < out.indexOf('id="card-running"'));
+  assert.ok(out.indexOf('id="card-running"') < out.indexOf('id="card-up-next"'));
+  assert.ok(out.indexOf('id="card-up-next"') < right);
+  assert.ok(right < out.indexOf('id="card-notifications"'));
 });
 
-test("the Inbox children render below the usage cards", () => {
+test("the Today and Needs you cards are gone", () => {
   const out = render(state());
-  assert.ok(out.indexOf('id="inbox-child"') > out.indexOf('aria-label="Needs you"'));
+  assert.doesNotMatch(out, /aria-label="Today"|aria-label="Needs you"/);
+});
+
+test("a moved card follows the layout, and a hidden card is not drawn", () => {
+  const moved = render(state(), undefined, moveCard(DEFAULT_LAYOUT, "running", "right", 0));
+  assert.ok(moved.indexOf('class="home-col right"') < moved.indexOf('id="card-running"'));
+  assert.ok(moved.indexOf('id="card-running"') < moved.indexOf('id="card-notifications"'));
+  const hidden = render(state(), undefined, setHidden(DEFAULT_LAYOUT, "running", true));
+  assert.doesNotMatch(hidden, /card-running/);
+});
+
+test("each slot carries its place for the one-column layout", () => {
+  const out = render(state());
+  assert.match(out, /home-slot notifications" style="--stack:1"/);
+  assert.match(out, /home-slot running" style="--stack:2"/);
 });
 
 test("before the first answer Home shows a loader, with the live cards already there", () => {
   const out = render(state({ usage: null }));
   assert.match(out, /class="loader"/);
-  assert.match(out, /aria-label="Needs you"/);
+  assert.match(out, /id="card-notifications"/);
   assert.doesNotMatch(out, /stat-tiles/);
 });
 

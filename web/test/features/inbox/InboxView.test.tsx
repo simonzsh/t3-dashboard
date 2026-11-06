@@ -26,70 +26,83 @@ const render = (
       automations={{ automations: [], hiddenThreadIds: ["t-routine"], setupThreadIds: [] }}
       automationsError={null}
       linearVersion={0}
-    />,
+    >
+      {(cards) => (
+        <>
+          <div id="n">{cards.notifications}</div>
+          <div id="r">{cards.running}</div>
+          <div id="u">{cards.upNext}</div>
+        </>
+      )}
+    </InboxView>,
   );
+const part = (out: string, id: "n" | "r" | "u") => out.slice(out.indexOf(`<div id="${id}">`), out.indexOf("</section>", out.indexOf(`<div id="${id}">`)));
 
-test("an empty Inbox says nothing needs you", () => {
-  assert.match(render([]), /Nothing needs you/);
+test("an empty Home says nothing needs you and that no agent runs", () => {
+  const out = render([]);
+  assert.match(part(out, "n"), /Nothing needs you/);
+  assert.match(part(out, "r"), /No agent is running/);
+  assert.doesNotMatch(out, /inbox-summary|Recently settled|Read and idle/);
 });
 
-test("sections show in urgency order, with a summary, the project as a tag and running open", () => {
-  const out = render([
-    thread("fin", { title: "Finished one", status: "completed" }),
-    thread("wait", { title: "Waiting one", status: "waiting", pending: ask }),
-    thread("run", { title: "Running one", status: "running" }),
-  ]);
-  assert.match(out, /1 needs you · 1 unread/);
-  assert.ok(out.indexOf("Needs you") < out.indexOf(">Unread"));
-  assert.match(out, /Mark all read/);
-  assert.match(out, /project-tag-text">Project A</);
-  assert.match(out, /Running one/);
-  assert.ok(out.indexOf(">Unread") < out.indexOf("Running"));
+test("notifications list what needs you first, then unread, with a count and Mark all read", () => {
+  const out = part(
+    render([
+      thread("fin", { title: "Finished one", status: "completed", model: "model-x" }),
+      thread("wait", { title: "Waiting one", status: "waiting", pending: ask }),
+      thread("bad", { title: "Failed one", status: "failed", lastError: "Disk full" }),
+    ]),
+    "n",
+  );
+  assert.match(out, /Notifications<\/h2><span class="count">3</);
+  assert.ok(out.indexOf("notif-item needs") < out.indexOf("notif-item unread"));
+  assert.ok(out.indexOf("Waiting one") < out.indexOf("Finished one"));
+  assert.match(out, /Waiting for your approval/);
+  assert.match(out, /Disk full/);
+  assert.match(out, /aria-label="Mark all read"/);
+  assert.match(out, /Project A · /);
   assert.doesNotMatch(out, /Nothing needs you/);
 });
 
-test("a read result leaves unread and waits in read and idle", () => {
+test("a read result stays in the list without a dot and greyed, under Nothing needs you", () => {
   const read = thread("fin", { title: "Finished one", status: "completed" });
-  const out = render([read], { since: "2026-01-01T00:00:00.000Z", seen: { fin: read.lastActivityAt } });
-  assert.doesNotMatch(out, />Unread/);
-  assert.match(out, /Read and idle \(1\)/);
+  const out = part(render([read], { since: "2026-01-01T00:00:00.000Z", seen: { fin: read.lastActivityAt } }), "n");
   assert.match(out, /Nothing needs you/);
+  assert.match(out, /notif-item read/);
+  assert.doesNotMatch(out, /notif-dot/);
+  assert.match(out, /<button disabled=""[^>]*aria-label="Mark all read"/);
 });
 
-test("the lists stop at 10 rows with a button for the rest", () => {
-  const out = render(Array.from({ length: 12 }, (_, i) => thread(`w${i}`, { title: `Wait ${i}`, status: "waiting", pending: ask })));
-  assert.match(out, /Show 2 more/);
-  assert.equal(out.match(/inbox-title/g)?.length, 10);
+test("read threads older than 3 days wait behind See all", () => {
+  const old = thread("old", { title: "Old one", status: "completed", lastActivityAt: "2026-01-01T10:00:00.000Z" });
+  const out = part(render([old], { since: "2025-12-01T00:00:00.000Z", seen: { old: old.lastActivityAt } }), "n");
+  assert.doesNotMatch(out, /Old one/);
+  assert.match(out, /See all \(1 more\)/);
 });
 
-test("routine threads stay out of the Inbox", () => {
+test("every row keeps its buttons: open in T3, settle when allowed, add to Desk", () => {
+  const out = render([thread("fin", { status: "completed" }), thread("run", { status: "running" })]);
+  assert.match(part(out, "n"), /aria-label="Settle"/);
+  assert.match(part(out, "n"), /aria-label="Add to Desk"/);
+  assert.doesNotMatch(part(out, "r"), /aria-label="Settle"/);
+  assert.match(part(out, "r"), /aria-label="Add to Desk"/);
+});
+
+test("the Running card lists working agents with a shimmer, model and project", () => {
+  const threads = [thread("run", { title: "Running one", status: "running", model: "model-x" })];
+  const state = baseState(threads);
+  state.providers = [{ instanceId: "provider-a", displayName: "Provider A", runtimeModes: [], models: [{ slug: "model-x", name: "Model X", effort: null, speed: null, favorite: null }] }];
+  const out = part(render(threads, undefined, state), "r");
+  assert.match(out, /run-row working/);
+  assert.match(out, /Running one/);
+  assert.match(out, /Model X · Project A/);
+  assert.match(out, /Running<\/h2><span class="count">1</);
+});
+
+test("routine threads stay out of every card", () => {
   assert.doesNotMatch(render([thread("t-routine", { title: "Routine run" })]), /Routine run/);
 });
 
-const withProject = (threads: ReturnType<typeof thread>[]) => {
-  const state = baseState(threads);
-  state.projects = [{ ...state.projects[0]!, icon: { kind: "lucide", shapes: [{ tag: "circle", attrs: { cx: "12", cy: "12", r: "9" } }], color: null } }];
-  state.providers = [
-    { instanceId: "provider-a", displayName: "Provider A", runtimeModes: [], models: [{ slug: "model-x", name: "Model X", effort: null, speed: null, favorite: null }] },
-  ];
-  return state;
-};
-
-test("a card shows the project icon in its head, then provider icon, model name and project name", () => {
-  const threads = [thread("a", { title: "Card", status: "completed", model: "model-x" })];
-  const out = render(threads, undefined, withProject(threads));
-  const head = out.slice(out.indexOf("inbox-row-head"), out.indexOf("inbox-title"));
-  assert.match(head, /class="project-icon"/);
-  assert.doesNotMatch(head, /provider-icon/);
-  const meta = out.slice(out.indexOf("inbox-row-meta"), out.indexOf("inbox-row-foot"));
-  assert.ok(meta.indexOf("provider-icon") < meta.indexOf("Model X"));
-  assert.ok(meta.indexOf("Model X") < meta.indexOf("Project A"));
-});
-
-test("an unknown model shows its slug and a thread without a model shows only the project", () => {
-  const threads = [thread("a", { status: "completed", model: "model-y" }), thread("b", { status: "completed" })];
-  const out = render(threads, undefined, withProject(threads));
-  assert.match(out, /inbox-model">model-y</);
-  assert.equal(out.match(/inbox-model"/g)?.length, 1);
-  assert.equal(out.match(/inbox-row-meta/g)?.length, 2);
+test("Up next says nothing is queued while the tickets load or when there are none", () => {
+  assert.match(part(render([]), "u"), /Up next/);
 });

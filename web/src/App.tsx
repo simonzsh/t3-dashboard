@@ -2,6 +2,7 @@ import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } fr
 import type { DashboardThread } from "../../shared/api.ts";
 import { AutomationsView } from "./features/automations/AutomationsView.tsx";
 import { HomeView } from "./features/home/HomeView.tsx";
+import { loadLayout } from "./features/home/layout.ts";
 import { useUsage } from "./features/home/useUsage.ts";
 import { InboxView } from "./features/inbox/InboxView.tsx";
 import { AppNav } from "./features/shell/AppNav.tsx";
@@ -205,6 +206,7 @@ export function App() {
   );
   const unread = useMemo(() => unreadCount(inboxSections(visible, notify.seen, now), notify.seen), [visible, notify.seen, now]);
   const badges = navBadges(state?.threads ?? NO_THREADS, deskIds, unread);
+  const homeLayout = useMemo(() => loadLayout(browserStorage()), []);
   const usage = useUsage(tab === "home" && state !== null);
   const page = TABS.find((t) => t.id === tab)!;
   const updateNav = update.status?.available && update.status.canUpdate ? { label: updateLabel(update.status), busy: update.updating || update.status.updating } : null;
@@ -275,23 +277,25 @@ export function App() {
         <main>
           {tab === "home" &&
             (state ? (
-              <HomeView usage={usage} threads={state.threads} now={now} unread={unread}>
-                <InboxView
-                  state={state}
-                  visible={visible}
-                  now={now}
-                  deskIds={deskIds}
-                  onOpen={onOpen}
-                  onToggleDesk={onToggleDesk}
-                  onSettle={onSettle}
-                  seen={notify.seen}
-                  seenReady={notify.seenReady}
-                  onMarkRead={notify.markSeen}
-                  automations={automations.result}
-                  automationsError={automations.error}
-                  linearVersion={linearVersion}
-                />
-              </HomeView>
+              <InboxView
+                state={state}
+                visible={visible}
+                now={now}
+                deskIds={deskIds}
+                onOpen={onOpen}
+                onToggleDesk={onToggleDesk}
+                onSettle={onSettle}
+                seen={notify.seen}
+                seenReady={notify.seenReady}
+                onMarkRead={notify.markSeen}
+                automations={automations.result}
+                automationsError={automations.error}
+                linearVersion={linearVersion}
+              >
+                {(cards) => (
+                  <HomeView usage={usage} threads={state.threads} now={now} layout={homeLayout} cards={{ notifications: cards.notifications, running: cards.running, "up-next": cards.upNext }} />
+                )}
+              </InboxView>
             ) : <Loader />)}
           {tab === "automations" &&
             (state ? (
