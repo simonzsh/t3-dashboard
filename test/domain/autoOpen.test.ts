@@ -1,8 +1,8 @@
 import assert from "node:assert/strict";
 import { test } from "bun:test";
-import type { DashboardThread, SessionsUpdate, SharedSessions } from "../../shared/api.ts";
+import type { Automation, DashboardThread, SessionsUpdate, SharedSessions } from "../../shared/api.ts";
 import { SESSIONS_MAX } from "../../shared/sessions.ts";
-import { AutoOpen } from "../../src/domain/autoOpen.ts";
+import { AutoOpen, automationThreadIds } from "../../src/domain/autoOpen.ts";
 import { SessionsStore } from "../../src/domain/sessionsStore.ts";
 
 const thread = (id: string, activeRunId: string | null): DashboardThread => ({
@@ -123,4 +123,14 @@ test("full sessions skip the new thread and keep every open one", async () => {
   await settle();
   assert.deepEqual(sessions.get()?.ids, full);
   assert.deepEqual(saved, []);
+});
+
+test("automation threads: run and setup threads, and the own thread of a bound task (a webhook's conversation)", () => {
+  const task = (id: string, threadId: string | null, bound: boolean) => ({ id, threadId, bound }) as Automation;
+  const ids = automationThreadIds({
+    automations: [task("webhook", "pr-review", true), task("routine", "latest-run", false)],
+    hiddenThreadIds: ["latest-run", "older-run"],
+    setupThreadIds: ["setup"],
+  });
+  assert.deepEqual([...ids].sort(), ["latest-run", "older-run", "pr-review", "setup"]);
 });

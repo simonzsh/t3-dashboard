@@ -4,7 +4,7 @@ import { setTimeout as sleep } from "node:timers/promises";
 import index from "../../web/index.html";
 import type { DashboardProvider } from "../../shared/api.ts";
 import { createActions } from "../domain/actions.ts";
-import { AutoOpen } from "../domain/autoOpen.ts";
+import { AutoOpen, automationThreadIds } from "../domain/autoOpen.ts";
 import { AutomationGuard } from "../domain/automationGuard.ts";
 import { createAutomations } from "../domain/automations.ts";
 import { TokenManager } from "../domain/tokenManager.ts";
@@ -172,10 +172,7 @@ export async function start({ port, log, env }: StartOptions): Promise<void> {
   const sessions = new SessionsStore(readSessions(sessionsFile, readText), (value) => writeSecret(sessionsFile, sessionsText(value)));
   const autoOpen = new AutoOpen({
     sessions,
-    excluded: async () => {
-      const { hiddenThreadIds, setupThreadIds } = await automations.list();
-      return new Set([...hiddenThreadIds, ...setupThreadIds]);
-    },
+    excluded: async () => automationThreadIds(await automations.list()),
     broadcast: (update) => hub.broadcast({ type: "sessions", data: update }),
   });
   const stashFile = stashPath(env, home);

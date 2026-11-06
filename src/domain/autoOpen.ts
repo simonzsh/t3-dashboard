@@ -1,13 +1,19 @@
-import type { DashboardThread, SessionsUpdate, SharedSessions } from "../../shared/api.ts";
+import type { AutomationsResult, DashboardThread, SessionsUpdate, SharedSessions } from "../../shared/api.ts";
 import { SESSIONS_MAX } from "../../shared/sessions.ts";
 import type { SessionsStore } from "./sessionsStore.ts";
 
 export interface AutoOpenOptions {
   sessions: Pick<SessionsStore, "get" | "set">;
-  /** The ids of automation run and setup threads, which never open by themselves. */
+  /** The ids of automation threads, which never open by themselves: see automationThreadIds. */
   excluded(): Promise<ReadonlySet<string>>;
   broadcast(update: SessionsUpdate): void;
   warn?: (message: string) => void;
+}
+
+/** Threads an automation runs in never open by themselves: run and setup threads, and a task's own thread (a webhook posting in its conversation). */
+export function automationThreadIds({ automations, hiddenThreadIds, setupThreadIds }: AutomationsResult): Set<string> {
+  const bound = automations.flatMap((a) => (a.bound && a.threadId ? [a.threadId] : []));
+  return new Set([...hiddenThreadIds, ...setupThreadIds, ...bound]);
 }
 
 /** Marks the `sessions` events that the server itself sends, so no browser treats one as its own echo. */
