@@ -299,8 +299,12 @@ test("runScheduledTaskNow sends the id and is not retried on a dropped socket", 
   const socket = await nextSocket();
   assert.equal(socket.sent[0]!.tag, "scheduledTasks.runNow");
   assert.deepEqual(socket.sent[0]!.payload, { id: "task-1" });
-  socket.receive({ _tag: "Exit", requestId: "1", exit: { _tag: "Success", value: { task: { id: "task-1" } } } });
-  await done;
+  socket.close();
+  // A run started twice would run the agent twice: a cut fails the call instead.
+  assert.equal(await done.then(() => "resolved", () => "rejected"), "rejected");
+  for (let i = 0; i < 20 && FakeSocket.instances.length < 2; i++) await tick();
+  const resent = FakeSocket.instances.slice(1).some((s) => s.sent.some((frame) => frame.tag === "scheduledTasks.runNow"));
+  assert.equal(resent, false);
 });
 
 test("setScheduledTaskEnabled sends the id and the flag, and is sent again after a cut", async () => {
