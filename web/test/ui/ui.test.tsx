@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { test } from "bun:test";
 import { renderToStaticMarkup } from "react-dom/server";
 import { nextRadioIndex } from "../../src/ui/radioKeys.ts";
-import { Badge, Button, Choice, Dialog, Segmented, FileInput, Icon, IconButton, Pressable, SecretInput, Tabs, TextArea, TextInput } from "../../src/ui/index.ts";
+import { Badge, Button, Choice, Dialog, Segmented, FileInput, Icon, IconButton, PageHeader, Pressable, SecretInput, Skeleton, SkeletonGroup, Tabs, TextArea, TextInput } from "../../src/ui/index.ts";
 
 const html = renderToStaticMarkup;
 
@@ -154,4 +154,33 @@ test("Tabs is a tab list with the active tab selected and the only tab stop", ()
   assert.match(out, /role="tablist" aria-label="Sections"/);
   assert.match(out, /role="tab" id="s-a" aria-selected="false" aria-controls="s-panel" tabindex="-1"/);
   assert.match(out, /role="tab" id="s-b" aria-selected="true" aria-controls="s-panel" tabindex="0" class="active"/);
+});
+
+test("the shell icons exist and draw a path", () => {
+  for (const name of ["messagesSquare", "layoutPanels", "panelLeft", "chart"] as const) assert.match(html(<Icon name={name} />), /<path d="/, name);
+});
+
+test("a PageHeader is a header with a title, a description and its actions", () => {
+  const out = html(<PageHeader title="Dashboard" description="Usage and agents." actions={<Button>New</Button>} />);
+  assert.match(out, /^<header class="page-header">/);
+  assert.match(out, /<h1 class="page-title">Dashboard<\/h1>/);
+  assert.match(out, /<p class="page-description">Usage and agents\.<\/p>/);
+  assert.match(out, /<div class="page-actions"><button/);
+});
+
+test("a PageHeader shows its leading element first and no empty actions", () => {
+  const out = html(<PageHeader title="Sessions" description="x" leading={<i id="logo" />} />);
+  assert.ok(out.indexOf('id="logo"') < out.indexOf("<h1"));
+  assert.doesNotMatch(out, /page-actions/);
+});
+
+test("a Skeleton is an aria-hidden block of the given size", () => {
+  const out = html(<Skeleton width={40} height="2rem" radius="50%" />);
+  assert.match(out, /class="skeleton"/);
+  assert.match(out, /aria-hidden="true"/);
+  assert.match(out, /width:40px;height:2rem;border-radius:50%/);
+});
+
+test("a SkeletonGroup is one busy, labelled region", () => {
+  assert.match(html(<SkeletonGroup label="Loading usage"><Skeleton /></SkeletonGroup>), /role="status" aria-busy="true" aria-label="Loading usage"/);
 });

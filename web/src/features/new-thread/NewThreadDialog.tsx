@@ -21,17 +21,20 @@ interface Props {
   onCreated: (threadId: string) => void;
   /** Set when the agent is assigned to a Linear issue: the thread is named after it and links it. */
   issue?: LinearIssue;
+  /** The project to preselect, in place of the last one chosen. */
+  projectId?: string | null;
 }
 
-export function NewThreadDialog({ projects, providers, defaults, onClose, onCreated, issue }: Props) {
+export function NewThreadDialog({ projects, providers, defaults, onClose, onCreated, issue, projectId: preset = null }: Props) {
   const api = useApi();
   // A Linear issue preselects the last project chosen for its team.
-  const [projectId, setProjectId] = useState(() => (issue ? loadAssignProject(browserStorage(), issue.team.key, projects) : loadNewAgentProject(browserStorage(), projects)));
+  const [projectId, setProjectId] = useState(() => (issue ? loadAssignProject(browserStorage(), issue.team.key, projects) : (preset ?? loadNewAgentProject(browserStorage(), projects))));
   const [selection, setSelection] = useState<ModelSelection | null>(() => presetSelection(projects.find((p) => p.id === projectId), providers, defaults.selection));
   const [mode, setMode] = useState<RuntimeMode>(defaults.runtimeMode ?? DEFAULT_RUNTIME_MODE);
   const [draft, setDraft] = useState("");
   // Each project pick moves the focus to the message.
-  const [picks, setPicks] = useState(0);
+  // A preset project needs no pick: the field gets the focus at once (focusKey 1).
+  const [picks, setPicks] = useState(preset ? 1 : 0);
 
   // Providers can arrive after the dialog opens: pick a preset once the choice is no longer valid.
   useEffect(() => {
@@ -59,7 +62,7 @@ export function NewThreadDialog({ projects, providers, defaults, onClose, onCrea
   }
 
   return (
-    <Dialog title={issue ? "Assign to an agent" : "New Agent"} className="new-agent" onClose={onClose}>
+    <Dialog title={issue ? "Assign to an agent" : "New Session"} className="new-agent" onClose={onClose}>
       {issue && (
         <a className="issue-banner" href={issue.url} target="_blank" rel="noreferrer">
           <span className="issue-banner-id">{issue.identifier}</span>
@@ -74,7 +77,7 @@ export function NewThreadDialog({ projects, providers, defaults, onClose, onCrea
           projects={projects}
           value={projectId}
           allowNone
-          defaultOpen
+          defaultOpen={!preset}
           onPicked={() => setPicks((n) => n + 1)}
           onPick={(id) => {
             setProjectId(id);

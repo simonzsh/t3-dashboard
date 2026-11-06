@@ -15,7 +15,8 @@ import { T3Client, validateWith } from "../integrations/t3/client.ts";
 import { environmentIdFile, readEnvironmentId, readServerVersion, resolveOrigin, runtimeFile } from "../integrations/t3/runtime.ts";
 import { LiveSync } from "../domain/liveSync.ts";
 import { LinearBoard } from "../domain/linearBoard.ts";
-import { deskText, readDesk } from "../config/deskFile.ts";
+import { createUsage } from "../domain/usage.ts";
+import { readSessions, sessionsText } from "../config/sessionsFile.ts";
 import { readStash, stashText } from "../config/stashFile.ts";
 import { readSeen, seenText } from "../config/seenFile.ts";
 import { syncAgentRules } from "../config/agentRules.ts";
@@ -23,11 +24,11 @@ import { readLinearKey } from "../config/linearFile.ts";
 import { readRearmed, rearmedText } from "../config/rearmedFile.ts";
 import { RearmedStore } from "../domain/rearmedStore.ts";
 import { readAutomationThreads } from "../config/automationThreads.ts";
-import { automationThreadsFile, deskFile as deskPath, linearFile, pidFile, rearmedFile, seenFile as seenPath, stashFile as stashPath } from "../config/paths.ts";
+import { automationThreadsFile, linearFile, pidFile, rearmedFile, seenFile as seenPath, sessionsFile as sessionsPath, stashFile as stashPath } from "../config/paths.ts";
 import { redirectConsole, writePidFile } from "../config/runFiles.ts";
 import { writeSecret } from "../config/secretFile.ts";
 import { createDashboardServer } from "../server/server.ts";
-import { DeskStore } from "../domain/deskStore.ts";
+import { SessionsStore } from "../domain/sessionsStore.ts";
 import { StashStore } from "../domain/stashStore.ts";
 import { SeenStore } from "../domain/seenStore.ts";
 import { createSettings } from "../domain/settings.ts";
@@ -122,6 +123,8 @@ export async function start({ port, log, env }: StartOptions): Promise<void> {
     now: () => new Date(),
   });
 
+  const usage = createUsage({ port: client, threads: () => getState().threads, now: () => new Date() });
+
   const settings = createSettings({ file: linearPath, readFile: readText, writeSecret, board });
   const wake = () => {
     live.retryNow();
@@ -156,13 +159,13 @@ export async function start({ port, log, env }: StartOptions): Promise<void> {
     dedicated: { read: () => readAutomationThreads(threadsFile, readText) },
     rearmed,
   });
-  const deskFile = deskPath(env, home);
-  const desk = new DeskStore(readDesk(deskFile, readText), (value) => writeSecret(deskFile, deskText(value)));
+  const sessionsFile = sessionsPath(env, home);
+  const sessions = new SessionsStore(readSessions(sessionsFile, readText), (value) => writeSecret(sessionsFile, sessionsText(value)));
   const stashFile = stashPath(env, home);
   const stash = new StashStore(readStash(stashFile, readText), (entries) => writeSecret(stashFile, stashText(entries)), { now: () => new Date(), newId: () => crypto.randomUUID() });
   const seenFile = seenPath(env, home);
   const seen = new SeenStore(readSeen(seenFile, readText), (value) => writeSecret(seenFile, seenText(value)));
-  const handler = createDashboardServer({ actions, desk, stash, seen, hub, board, automations, getState, connection: () => live.connection(), site, settings, setup, updates, allowedHosts: envAllowedHosts(env) });
+  const handler = createDashboardServer({ actions, sessions, stash, seen, hub, board, usage, automations, getState, connection: () => live.connection(), site, settings, setup, updates, allowedHosts: envAllowedHosts(env) });
 
   const reclassifier = setInterval(() => store.reclassify(new Date()), RECLASSIFY_MS);
   // A dev build has no version to compare, and its runs must not call GitHub.

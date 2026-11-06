@@ -366,6 +366,29 @@ export type AssetResource = { _tag: "attachment"; attachmentId: string } | { _ta
 export const AssetUrl = s.object({ relativeUrl: s.string() });
 export const ScratchProject = s.object({ projectId: s.string() });
 
+/** T3's usage scan: one bucket per day, provider and model. Only the fields the dashboard sums are listed. */
+export const UsageSummaryResponse = s.object({
+  buckets: s.array(
+    s.object({
+      day: s.string(),
+      costUsd: s.optional(s.number()),
+      costSource: s.optional(s.string()),
+      unpricedRecords: s.optional(s.number()),
+      totals: s.optional(
+        s.object({
+          uncachedInputTokens: s.optional(s.number()),
+          cachedInputTokens: s.optional(s.number()),
+          cacheCreationTokens: s.optional(s.number()),
+          outputTokens: s.optional(s.number()),
+        }),
+      ),
+    }),
+  ),
+  // A source still scanning says so: a later call may hold more.
+  sources: s.optional(s.array(s.object({ refreshing: s.optional(s.nullable(s.boolean())) }))),
+});
+export type RawUsageSummary = Infer<typeof UsageSummaryResponse>;
+
 export const UploadUrl = s.object({ attachmentId: s.string(), relativeUrl: s.string() });
 
 /** A file that goes to T3 through attachments.createUploadUrl. */
@@ -428,6 +451,8 @@ export interface NewScheduledTask {
 
 export interface T3Port {
   threadProjection(threadId: string): Promise<RawProjection>;
+  /** Cost and tokens per day, from T3's scan of the provider session files on this machine. */
+  usageSummary(range: { sinceDay: string; untilDay: string; timeZone: string }): Promise<RawUsageSummary>;
   dispatch(command: Command): Promise<unknown>;
   getConfig(): Promise<RawConfig>;
   listScheduledTasks(): Promise<RawScheduledTask[]>;

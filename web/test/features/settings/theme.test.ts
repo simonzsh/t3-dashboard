@@ -28,9 +28,3 @@ test("loadTheme and saveTheme round-trip through storage", () => {
   assert.equal(loadTheme(s), "dark");
   assert.equal(loadTheme(store("garbage")), "system");
 });
-
-test("loadTheme survives a storage that throws", () => {
-  const broken = { getItem: () => { throw new Error("denied"); }, setItem: () => { throw new Error("denied"); } };
-  assert.equal(loadTheme(broken), "system");
-  assert.doesNotThrow(() => saveTheme(broken, "light"));
-});

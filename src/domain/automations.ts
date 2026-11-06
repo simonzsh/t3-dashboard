@@ -37,7 +37,7 @@ function runThreads(task: RawScheduledTask, threads: RawThread[]): RawThread[] {
     .sort((a, b) => stamp(b.createdAt) - stamp(a.createdAt));
 }
 
-/** The tasks of T3 as rows, plus the threads the Inbox leaves out. */
+/** The tasks of T3 as rows, plus the threads the Dashboard leaves out. */
 export function toAutomations(tasks: RawScheduledTask[], threads: RawThread[], dedicated: ReadonlySet<string>, projectTitle: (id: string) => string | null): AutomationsResult {
   const hidden = new Set<string>();
   const bound = new Set<string>();

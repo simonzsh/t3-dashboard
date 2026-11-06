@@ -4,7 +4,7 @@ import type { PreviewTarget } from "./attachmentPreview.ts";
 
 type Props = { target: PreviewTarget; onClose: () => void };
 
-// Portal: a desk panel makes a stacking context, so the app header would cover the tall dialog.
+// Portal: a session panel makes a stacking context, so the app header would cover the tall dialog.
 export function AttachmentPreview(props: Props) {
   return createPortal(<PreviewDialog {...props} />, document.body);
 }

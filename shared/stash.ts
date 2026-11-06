@@ -1,3 +1,4 @@
+import { isObject } from "./guards.ts";
 import { MAX_ATTACHMENTS } from "./limits.ts";
 import type { UploadedAttachment } from "./requests.ts";
 
@@ -36,8 +37,6 @@ export interface StashCreated {
   /** Entries the limit pushed out: the caller frees their uploads. */
   evicted: StashEntry[];
 }
-
-const isObject = (value: unknown): value is Record<string, unknown> => typeof value === "object" && value !== null && !Array.isArray(value);
 
 function toUpload(value: unknown): UploadedAttachment | null {
   if (!isObject(value) || (value.type !== "image" && value.type !== "file")) return null;

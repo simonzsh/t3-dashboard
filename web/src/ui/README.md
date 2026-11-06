@@ -24,6 +24,7 @@ This folder contains the base components of the dashboard. The screens in `web/s
 | `Choice` | Checkbox or radio button (`type="checkbox"` or `type="radio"`). |
 | `FileInput` | Hidden file field. A button opens it with `ref.current.click()`. |
 | `Dialog` | Modal window: title, close cross at the top right, Escape and outside click to close. `onCancel`, `secondary` and `primary` add the action row. |
+| `CardHead` | Header of a card: icon, title, count and icon buttons on the right. |
 | `Badge` | Status label: `waiting`, `running`, `done`, `error`, `neutral`. |
 | `Dropdown` | Choice menu. Use it in place of `<select>`. A filter field appears for long lists. |
 | `Popover` | Panel attached next to an element. Escape and outside click close it. |
@@ -31,8 +32,10 @@ This folder contains the base components of the dashboard. The screens in `web/s
 | `ToggleGroup` | Several options that each turn on and off (for example the weekdays). The "on" look is the same gray as `Segmented`. |
 | `Kbd` | Keyboard shortcut. |
 | `TooltipLayer` | Dashboard tooltip, mounted one time in `App`. It shows immediately on hover and on keyboard focus of an element with `data-tooltip` (and `data-shortcut` for the shortcut, in a frame). It closes when the pointer leaves, on click, on scroll and with Escape. It does not exist on a touch screen. `Button`, `IconButton` and `Pressable` set these attributes with `tooltip` and `shortcut`. On a different element, write `data-tooltip`. |
+| `PageHeader` | Top of a page: title, one-line description, at most three actions on the right. `leading` goes before the title (the logo on a phone). |
 | `Loader` | Loading state: the animated logo, centered in the area. Use it in place of a "Loading…" text. |
 | `Icon` | Lucide icon by its name. |
+| `Logo` | The app mark, drawn with the current text colour. |
 
 ## Animations
 
@@ -40,8 +43,8 @@ The animations use the Web Animations API (`element.animate`), without a library
 
 | Tool | Use |
 | --- | --- |
-| `fly(source, target)` | A light copy of `source` (its frame and its first line) flies to `target` and shrinks. The target then bounces a little. Example: the + button of an agent card to the Desk tab. |
-| `useFlip(root, key, { item, origin })` | Animates the `[item]` elements of `root` at each change of `key` (FLIP technique). A kept element slides to its new position. A new element fades in. A removed element fades out, or flies to the `[origin]` element with the same id if it exists (a dock pill). It comes back from this pill. The animations stop at unmount. |
+| `fly(source, target)` | A light copy of `source` (its frame and its first line) flies to `target` and shrinks. The target then bounces a little. Example: the + button of an agent card to the Sessions tab. |
+| `useFlip(root, key, { item })` | Animates the `[item]` elements of `root` at each change of `key` (FLIP technique). A kept element slides to its new position. A new element fades in. A removed element fades out. The animations stop at unmount. |
 | `Dialog`, `Popover` | They have their own open animation. Do not add one in a dialog or a menu. |
 
 The pure calculations (FLIP offset, target, plan) are in `flip.ts` and have unit tests.

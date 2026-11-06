@@ -67,7 +67,7 @@ export function Dropdown({ label, value, options, onPick, icon, placeholder, dis
     onPicked?.();
   }
 
-  // Escape is handled by the Popover, which stops it from reaching a dialog or the Desk.
+  // Escape is handled by the Popover, which stops it from reaching a dialog or the Sessions page.
   function onKeyDown(e: KeyboardEvent) {
     if (!open) {
       if (e.key === "ArrowDown" || e.key === "ArrowUp") {

@@ -4,44 +4,31 @@ import { test } from "bun:test";
 const css = await Bun.file(new URL("../src/styles.css", import.meta.url)).text();
 const rule = (selector: string) => css.split("\n").find((line) => line.startsWith(`${selector} {`)) ?? "";
 
-test("the shimmer animates transform only, never background-position", () => {
-  const frames = css.match(/@keyframes shimmer \{.*\}/)?.[0] ?? "";
-  assert.match(frames, /transform: translateX\(-50%\)/);
-  assert.match(frames, /transform: translateX\(150%\)/);
-  assert.doesNotMatch(frames, /background-position/);
-});
-
-test("both shimmer bars are half-width compositor layers", () => {
-  for (const selector of [".inbox-row.working::after", ".desk-window.state-running .desk-window-head::after"]) {
-    const line = rule(selector);
-    assert.match(line, /width: 50%;/, selector);
-    assert.match(line, /will-change: transform;/, selector);
-    assert.match(line, /animation: shimmer 1\.8s/, selector);
-    assert.doesNotMatch(line, /background-size|background-repeat/, selector);
-  }
-});
-
-test("the topbar has no backdrop blur and a near-opaque background", () => {
-  const line = rule(".topbar");
+test("the page header has no backdrop blur and a near-opaque background", () => {
+  const line = rule(".page-header");
   assert.doesNotMatch(line, /backdrop-filter/);
   assert.match(line, /var\(--header-bg\) 97%/);
+});
+
+test("the bottom bar clears the iPhone home indicator", () => {
+  assert.match(rule(".bottom-nav"), /env\(safe-area-inset-bottom\)/);
 });
 
 test("messages are never skipped by the renderer: estimated heights make the scroll jump", () => {
   assert.doesNotMatch(css, /content-visibility/);
 });
 
-test("reduced motion still stops both shimmer bars", () => {
+test("reduced motion still stops the pulse", () => {
   const block = css.slice(css.indexOf("prefers-reduced-motion"));
-  assert.match(block, /\.inbox-row\.working::after/);
-  assert.match(block, /\.desk-window\.state-running \.desk-window-head::after/);
+  assert.match(block, /\.pulse/);
+  assert.doesNotMatch(css, /\.session-window[^{]*state-running[^{]*::after/);
 });
 
 test("fields and the composer card share one focus ring and radius", () => {
   assert.match(rule(":where(.field):focus-visible"), /box-shadow: var\(--field-ring\)/);
   assert.match(rule(".composer-card:focus-within"), /var\(--field-ring\)/);
-  assert.match(rule("textarea.field"), /border-radius: var\(--radius-composer\)/);
-  assert.match(rule(".composer-card"), /border-radius: var\(--radius-composer\)/);
+  assert.match(rule("textarea.field"), /border-radius: var\(--radius-lg\)/);
+  assert.match(rule(".composer-card"), /border-radius: var\(--radius-lg\)/);
   assert.match(rule(".field::placeholder"), /var\(--text-secondary\)/);
 });
 
@@ -54,4 +41,17 @@ test("textareas cannot be resized by hand and stop growing at a max height", () 
 
 test("a queued message has a dashed bubble", () => {
   assert.match(rule(".msg.user.queued .bubble"), /border-style: dashed;/);
+});
+
+test("on a phone every dashboard card slot is full width and may shrink", () => {
+  const phone = css.slice(css.indexOf("@media (max-width: 700px)"));
+  assert.match(phone, /\.dashboard \{[^}]*align-items: stretch/);
+  assert.match(phone, /\.dashboard-slot \{[^}]*width: 100%; min-width: 0/);
+});
+
+test("on a phone the three stat tiles stay in one row", () => {
+  const phone = css.slice(css.indexOf("@media (max-width: 700px)"));
+  assert.doesNotMatch(phone, /\.stat-tiles \{/);
+  assert.match(phone, /\.stat-value \{ font-size: 20px/);
+  assert.match(phone, /\.skeleton-bars \{ height: 140px/);
 });

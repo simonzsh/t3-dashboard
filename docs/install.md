@@ -85,19 +85,19 @@ Without a command, `t3-dashboard` runs `start`. `install` and `update` refuse to
 1. The dashboard looks for `t3`. It creates its own access token with `t3 auth session issue`. It keeps this token in `~/.config/t3-dashboard/auth.json` (mode 600). You do not have to do anything.
 2. If T3 Code is stopped or not installed, a full screen tells you what to do. Start or install T3 Code, then click "Retry". The dashboard appears without a page reload.
 3. If the token creation fails, the screen gives the exact command. Run it, then paste the token in the field.
-4. In the Inbox tab, a card tells you how to connect Linear.
+4. On Dashboard, a card tells you how to connect Linear.
 
 ## Linear
 
-Linear is optional. Only the Inbox uses it. You configure everything from the dashboard.
+Linear is optional. Only the Dashboard uses it. You configure everything from the dashboard.
 
 1. In Linear, open Settings, Account, Security & access. In "Personal API keys", click "New API key". Direct link: <https://linear.app/settings/account/security>.
-2. In the Inbox tab, paste the key and click "Connect". The server verifies the key with Linear before it saves it.
+2. On Dashboard, paste the key and click "Connect". The server verifies the key with Linear before it saves it.
 3. In Settings, the Linear section shows the status of the key. You can change or remove the key there.
 
-The key is the only setting. The Inbox shows the assigned tickets that have no agent, for all the teams in the Linear workspace. If the key covers many companies, their tickets appear together.
+The key is the only setting. The Dashboard shows the assigned tickets that have no agent, for all the teams in the Linear workspace. If the key covers many companies, their tickets appear together.
 
-The server keeps the key in `~/.config/t3-dashboard/linear.json` (mode 600). It never sends the key back to the browser, only its last 4 characters. It keeps the tickets in memory for 60 s. The Inbox "Refresh" button reads the tickets again immediately.
+The server keeps the key in `~/.config/t3-dashboard/linear.json` (mode 600). It never sends the key back to the browser, only its last 4 characters. It keeps the tickets in memory for 60 s. The "Refresh" button of the Up next card reads the tickets again immediately.
 
 File format:
 

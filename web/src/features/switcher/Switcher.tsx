@@ -11,14 +11,14 @@ interface Props {
   projects: DashboardProject[];
   now: Date;
   history: readonly string[];
-  /** Threads already in a visible Desk window: not worth suggesting. */
-  onDesk: ReadonlySet<string>;
+  /** Threads already in a visible Sessions window: not worth suggesting. */
+  inSessions: ReadonlySet<string>;
   initialQuery: string;
   onOpen: (threadId: string) => void;
   onClose: () => void;
 }
 
-export function Switcher({ threads, projects, now, history, onDesk, initialQuery, onOpen, onClose }: Props) {
+export function Switcher({ threads, projects, now, history, inSessions, initialQuery, onOpen, onClose }: Props) {
   const [query, setQuery] = useState(initialQuery);
   const [index, setIndex] = useState(0);
   const content = useThreadSearch(query);
@@ -27,7 +27,7 @@ export function Switcher({ threads, projects, now, history, onDesk, initialQuery
     if (content.error) notify(content.error);
   }, [content.error]);
   const suggesting = query.trim() === "";
-  const rows = suggesting ? suggestThreads(threads, projects, history, onDesk) : mergeResults(titleMatches(threads, projects, query), content.matches, threads, projects);
+  const rows = suggesting ? suggestThreads(threads, projects, history, inSessions) : mergeResults(titleMatches(threads, projects, query), content.matches, threads, projects);
   const selectedIndex = Math.min(index, rows.length - 1);
   const selected = rows[selectedIndex];
 

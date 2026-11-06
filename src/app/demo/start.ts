@@ -2,10 +2,11 @@ import index from "../../../web/index.html";
 import type { DashboardProvider } from "../../../shared/api.ts";
 import { createActions } from "../../domain/actions.ts";
 import { createAutomations } from "../../domain/automations.ts";
-import { DeskStore } from "../../domain/deskStore.ts";
+import { SessionsStore } from "../../domain/sessionsStore.ts";
 import { StashStore } from "../../domain/stashStore.ts";
 import { SeenStore } from "../../domain/seenStore.ts";
 import { LinearBoard } from "../../domain/linearBoard.ts";
+import { createUsage } from "../../domain/usage.ts";
 import { LiveSync } from "../../domain/liveSync.ts";
 import { NO_MODEL_DEFAULTS } from "../../domain/providers.ts";
 import { createSettings } from "../../domain/settings.ts";
@@ -15,6 +16,7 @@ import { LinearClient } from "../../integrations/linear/client.ts";
 import { createDashboardServer } from "../../server/server.ts";
 import { siteFromBundle } from "../../server/site.ts";
 import { SseHub } from "../../server/sse.ts";
+import { envAllowedHosts } from "../../config/config.ts";
 import { readLinearKey } from "../../config/linearFile.ts";
 import { VERSION } from "../../config/version.ts";
 import { DEMO_ENVIRONMENT_ID } from "./fixtures.ts";
@@ -71,11 +73,12 @@ export async function startDemo(env: Record<string, string | undefined>): Promis
   const automations = createAutomations({ port, store, dedicated: { read: () => dedicated } });
   const handler = createDashboardServer({
     actions,
-    desk: new DeskStore(null, () => {}),
+    sessions: new SessionsStore(null, () => {}),
     stash: new StashStore([], () => {}, { now: () => new Date(), newId: () => crypto.randomUUID() }),
     seen: new SeenStore(null, () => {}),
     hub,
     board,
+    usage: createUsage({ port, threads: () => getState().threads, now: () => new Date() }),
     automations,
     getState,
     connection: () => live.connection(),
@@ -83,6 +86,7 @@ export async function startDemo(env: Record<string, string | undefined>): Promis
     settings,
     setup,
     updates,
+    allowedHosts: envAllowedHosts(env),
   });
 
   const reclassifier = setInterval(() => store.reclassify(new Date()), RECLASSIFY_MS);

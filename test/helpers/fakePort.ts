@@ -1,4 +1,4 @@
-import type { AssetResource, Command, FileUpload, ImageUpload, NewScheduledTask, RawConfig, RawProjection, RawScheduledTask, RawSearchMatch, RawTurnItem, SearchEntriesResponse, ScheduledTaskChange, SecretAnswer, ShellItem, T3Port } from "../../src/integrations/t3/schemas.ts";
+import type { AssetResource, Command, FileUpload, ImageUpload, NewScheduledTask, RawConfig, RawProjection, RawScheduledTask, RawSearchMatch, RawTurnItem, RawUsageSummary, SearchEntriesResponse, ScheduledTaskChange, SecretAnswer, ShellItem, T3Port } from "../../src/integrations/t3/schemas.ts";
 
 /** In-memory T3: records commands, uploads and shell subscriptions; each answer can be swapped. */
 export class FakePort implements T3Port {
@@ -37,12 +37,38 @@ export class FakePort implements T3Port {
   dispatchError: Error | null = null;
   projectionError: Error | null = null;
   projectionCalls = 0;
+  /** Per-thread answers; a thread not listed gets `projection`. */
+  projections: Record<string, RawProjection> = {};
+  projectionFailures = new Set<string>();
+  /** Holds every projection read until it settles: tests use it to count reads in flight. */
+  projectionGate: (() => Promise<void>) | null = null;
+  projectionsInFlight = 0;
+  peakProjectionsInFlight = 0;
+  usage: RawUsageSummary = { buckets: [] };
+  usageError: Error | null = null;
+  usageCalls: Array<{ sinceDay: string; untilDay: string; timeZone: string }> = [];
+  /** Holds each usage read until it settles. */
+  usageGate: (() => Promise<void>) | null = null;
   config: () => Promise<RawConfig> = async () => ({ providers: [], environment: { serverVersion: "1.0.0", orchestrationProtocolVersion: 2 } });
 
-  async threadProjection(): Promise<RawProjection> {
+  async threadProjection(threadId?: string): Promise<RawProjection> {
     this.projectionCalls++;
-    if (this.projectionError) throw this.projectionError;
-    return this.projection;
+    this.projectionsInFlight++;
+    this.peakProjectionsInFlight = Math.max(this.peakProjectionsInFlight, this.projectionsInFlight);
+    try {
+      await this.projectionGate?.();
+      if (this.projectionError || (threadId !== undefined && this.projectionFailures.has(threadId))) throw this.projectionError ?? new Error("T3 is unreachable");
+      return (threadId !== undefined && this.projections[threadId]) || this.projection;
+    } finally {
+      this.projectionsInFlight--;
+    }
+  }
+
+  async usageSummary(range: { sinceDay: string; untilDay: string; timeZone: string }): Promise<RawUsageSummary> {
+    this.usageCalls.push(range);
+    await this.usageGate?.();
+    if (this.usageError) throw this.usageError;
+    return this.usage;
   }
 
   async dispatch(command: Command) {

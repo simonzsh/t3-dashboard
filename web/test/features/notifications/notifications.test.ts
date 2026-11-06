@@ -2,7 +2,7 @@ import { test } from "bun:test";
 import assert from "node:assert/strict";
 import { mergeSeen, type SeenState } from "../../../../shared/seen.ts";
 import { isUnseen } from "../../../../shared/seen.ts";
-import { badgeText, baselineOf, statusMap, transitions } from "../../../src/features/notifications/notifications.ts";
+import { baselineOf, statusMap, transitions } from "../../../src/features/notifications/notifications.ts";
 import { thread } from "../../fixtures.ts";
 
 const at = (minute: number) => `2026-01-10T10:${String(minute).padStart(2, "0")}:00.000Z`;
@@ -38,12 +38,6 @@ test("history older than the baseline is not unseen", () => {
   const seen: SeenState = { since: at(10), seen: {} };
   assert.equal(isUnseen(finished("old", 5), seen), false);
   assert.equal(isUnseen(finished("new", 15), seen), true);
-});
-
-test("the badge caps at 9+", () => {
-  assert.equal(badgeText(3), "3");
-  assert.equal(badgeText(9), "9");
-  assert.equal(badgeText(10), "9+");
 });
 
 test("transitions: nothing on the first snapshot", () => {

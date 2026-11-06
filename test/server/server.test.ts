@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { afterEach, test } from "bun:test";
-import type { Automation, AutomationsResult, ConnectionStatus, DashboardEvent, DashboardState } from "../../shared/api.ts";
+import type { UsageOverview, Automation, AutomationsResult, ConnectionStatus, DashboardEvent, DashboardState } from "../../shared/api.ts";
 import { LinearClient } from "../../src/integrations/linear/client.ts";
 import { createActions } from "../../src/domain/actions.ts";
 import type { Automations } from "../../src/domain/automations.ts";
@@ -8,10 +8,10 @@ import { IntegrationError } from "../../src/integrations/errors.ts";
 import { DomainError } from "../../src/domain/errors.ts";
 import { LinearBoard } from "../../src/domain/linearBoard.ts";
 import { readLinearKey } from "../../src/config/linearFile.ts";
-import { DeskStore } from "../../src/domain/deskStore.ts";
+import { SessionsStore } from "../../src/domain/sessionsStore.ts";
 import { StashStore } from "../../src/domain/stashStore.ts";
 import type { StashEntry } from "../../shared/stash.ts";
-import type { SharedDesk } from "../../shared/desk.ts";
+import type { SharedSessions } from "../../shared/sessions.ts";
 import type { SeenState } from "../../shared/seen.ts";
 import { SeenStore } from "../../src/domain/seenStore.ts";
 import { createSettings } from "../../src/domain/settings.ts";
@@ -44,10 +44,21 @@ interface StartOptions {
   pasteResult?: "ok" | "rejected" | "unreachable" | "locked";
   update?: { unavailable?: string | null; tag?: string };
   allowedHosts?: string[];
-  desk?: SharedDesk | null;
+  sessions?: SharedSessions | null;
   stash?: StashEntry[];
   seen?: SeenState | null;
 }
+
+const usageTotals = { turns: 0, costUsd: 0, inputTokens: 0, cachedInputTokens: 0, outputTokens: 0 };
+const usageOverview: UsageOverview = {
+  days: Array.from({ length: 14 }, (_, index) => ({ day: `2026-03-${String(7 + index).padStart(2, "0")}`, ...usageTotals })),
+  thisWeek: usageTotals,
+  lastWeek: usageTotals,
+  sessions: { thisWeek: 0, lastWeek: 0 },
+  turnsPartial: false,
+  cost: { status: "ok", detail: null, refreshing: false },
+  readAt: now.toISOString(),
+};
 
 const LINEAR_FILE = "/cfg/linear.json";
 
@@ -93,6 +104,8 @@ async function start(startOptions: StartOptions = {}) {
     run: () => (updateRuns.push("run"), new Promise<boolean>(() => {})),
   });
   const port = new FakePort();
+  const usageCalls: Array<{ timeZone: string; refresh: boolean }> = [];
+  const usage = { get: async (timeZone: string, refresh: boolean) => (usageCalls.push({ timeZone, refresh }), usageOverview) };
   const hub = new SseHub({ batchMs: 10, pingMs: 60_000 });
   let counter = 0;
   const store: ShellStore = new ShellStore({
@@ -117,8 +130,8 @@ async function start(startOptions: StartOptions = {}) {
     },
     { kind: "synchronized" },
   ]);
-  const savedDesks: SharedDesk[] = [];
-  const desk = new DeskStore(startOptions.desk ?? null, (value) => void savedDesks.push(value));
+  const savedSessions: SharedSessions[] = [];
+  const sessions = new SessionsStore(startOptions.sessions ?? null, (value) => void savedSessions.push(value));
   const savedStashes: StashEntry[][] = [];
   let stashed = 0;
   const stash = new StashStore(startOptions.stash ?? [], (entries) => void savedStashes.push(entries), { now: () => new Date("2026-11-04T10:00:00Z"), newId: () => `stash-${++stashed}` });
@@ -130,11 +143,12 @@ async function start(startOptions: StartOptions = {}) {
   const actions = createActions({ port, store, board, newId: () => `id-${++counter}` });
   const server: DashboardHandler = createDashboardServer({
     actions,
-    desk,
+    sessions,
     stash,
     seen,
     hub,
     board,
+    usage,
     automations,
     getState,
     connection: () => connection,
@@ -145,7 +159,7 @@ async function start(startOptions: StartOptions = {}) {
     allowedHosts: startOptions.allowedHosts,
   });
   running.push(async () => hub.close());
-  return { port, store, hub, server, savedDesks, savedStashes, savedSeen, events, linearCalls, files, setupCalls, updateRuns };
+  return { port, store, hub, server, usageCalls, savedSessions, savedStashes, savedSeen, events, linearCalls, files, setupCalls, updateRuns };
 }
 
 interface Reply {
@@ -543,7 +557,7 @@ test("every POST route refuses a body that is not JSON", async () => {
   const { server, port } = await start();
   const posts = [
     "/api/board/assign",
-    "/api/desk",
+    "/api/sessions",
     "/api/stash",
     "/api/seen",
     "/api/setup/retry",
@@ -627,6 +641,31 @@ test("GET /api/board returns the board and caches it until ?refresh=1", async ()
   await call(server, "GET", "/api/board?refresh=1");
   assert.equal(linearCalls.length, 2);
   assert.ok(!first.text.includes("key-1"));
+});
+
+test("GET /api/usage returns the overview for the zone and passes ?refresh=1", async () => {
+  const { server, usageCalls } = await start();
+  const first = await call(server, "GET", "/api/usage?tz=Europe%2FParis");
+  assert.equal(first.status, 200);
+  assert.equal(first.json.days.length, 14);
+  await call(server, "GET", "/api/usage?tz=Europe%2FParis&refresh=1");
+  assert.deepEqual(usageCalls, [{ timeZone: "Europe/Paris", refresh: false }, { timeZone: "Europe/Paris", refresh: true }]);
+});
+
+test("GET /api/usage without a time zone is a 400", async () => {
+  const { server, usageCalls } = await start();
+  const reply = await call(server, "GET", "/api/usage");
+  assert.equal(reply.status, 400);
+  assert.match(reply.json.error, /tz is required/);
+  assert.equal(usageCalls.length, 0);
+});
+
+test("GET /api/usage refuses an unknown time zone with the usual error shape", async () => {
+  const { server, usageCalls } = await start();
+  const reply = await call(server, "GET", "/api/usage?tz=Mars%2FBase");
+  assert.equal(reply.status, 400);
+  assert.match(reply.json.error, /tz must be an IANA time zone/);
+  assert.equal(usageCalls.length, 0);
 });
 
 test("POST /api/board/assign creates a thread on the issue with the chosen model", async () => {
@@ -1229,40 +1268,37 @@ test("stopping a subagent sends subagent.stop, 404 when unknown", async () => {
   assert.equal((await post(server, "/api/threads/run-1/subagents/other/stop")).status, 404);
 });
 
-test("GET /api/desk is null until a desk is saved, then returns it", async () => {
+test("GET /api/sessions is null until sessions are saved, then returns them", async () => {
   const fresh = await start();
-  assert.deepEqual((await call(fresh.server, "GET", "/api/desk")).json, { desk: null });
+  assert.deepEqual((await call(fresh.server, "GET", "/api/sessions")).json, { sessions: null });
   const saved = { ids: ["idle-1", "run-1"] };
-  const known = await start({ desk: saved });
-  assert.deepEqual((await call(known.server, "GET", "/api/desk")).json, { desk: saved });
+  const known = await start({ sessions: saved });
+  assert.deepEqual((await call(known.server, "GET", "/api/sessions")).json, { sessions: saved });
 });
 
-test("POST /api/desk stores the desk, serves it back and broadcasts it with its origin", async () => {
-  const { server, savedDesks, events } = await start();
-  const desk = { ids: ["a", "b"] };
-  const reply = await post(server, "/api/desk", { desk, origin: "tab-1" });
+test("POST /api/sessions stores the set, serves it back and broadcasts it with its origin", async () => {
+  const { server, savedSessions, events } = await start();
+  const sessions = { ids: ["a", "b"] };
+  const reply = await post(server, "/api/sessions", { sessions, origin: "tab-1" });
   assert.deepEqual(reply.json, { ok: true });
-  assert.deepEqual(savedDesks, [desk]);
-  assert.deepEqual((await call(server, "GET", "/api/desk")).json, { desk });
-  assert.deepEqual(events, [{ type: "desk", data: { desk, origin: "tab-1" } }]);
+  assert.deepEqual(savedSessions, [sessions]);
+  assert.deepEqual((await call(server, "GET", "/api/sessions")).json, { sessions });
+  assert.deepEqual(events, [{ type: "sessions", data: { sessions, origin: "tab-1" } }]);
 });
 
-test("POST /api/desk keeps unique string ids, up to 100, and stores no window state", async () => {
-  const { server, savedDesks } = await start();
-  await post(server, "/api/desk", { desk: { ids: ["a", "a", 7, "b", ...Array.from({ length: 120 }, (_, i) => `t${i}`)] }, origin: "tab-1" });
-  assert.deepEqual(savedDesks[0]!.ids.slice(0, 3), ["a", "b", "t0"]);
-  assert.equal(savedDesks[0]!.ids.length, 100);
-  // An old client still sends windows with their state: only the ids are kept.
-  await post(server, "/api/desk", { desk: { windows: [{ id: "a", minimized: true }], history: ["a"] }, origin: "tab-2" });
-  assert.deepEqual(savedDesks[1], { ids: ["a"] });
+test("POST /api/sessions keeps unique string ids, up to 100", async () => {
+  const { server, savedSessions } = await start();
+  await post(server, "/api/sessions", { sessions: { ids: ["a", "a", 7, "b", ...Array.from({ length: 120 }, (_, i) => `t${i}`)] }, origin: "tab-1" });
+  assert.deepEqual(savedSessions[0]!.ids.slice(0, 3), ["a", "b", "t0"]);
+  assert.equal(savedSessions[0]!.ids.length, 100);
 });
 
-test("POST /api/desk refuses a body without a desk or an origin, and saves nothing", async () => {
-  const { server, savedDesks, events } = await start();
-  const desk = { ids: [] };
-  const bad = [{}, { desk }, { origin: "x" }, { desk: {}, origin: "x" }, { desk: { ids: "a" }, origin: "x" }, { desk, origin: "" }, { desk, origin: 3 }, { desk: [], origin: "x" }];
-  for (const body of bad) assert.equal((await post(server, "/api/desk", body)).status, 400, JSON.stringify(body));
-  assert.deepEqual(savedDesks, []);
+test("POST /api/sessions refuses a body without sessions or an origin, and saves nothing", async () => {
+  const { server, savedSessions, events } = await start();
+  const set = { ids: [] };
+  const bad = [{}, { sessions: set }, { origin: "x" }, { sessions: {}, origin: "x" }, { sessions: { ids: "a" }, origin: "x" }, { sessions: { windows: [{ id: "a" }] }, origin: "x" }, { sessions: set, origin: "" }, { sessions: set, origin: 3 }, { sessions: [], origin: "x" }];
+  for (const body of bad) assert.equal((await post(server, "/api/sessions", body)).status, 400, JSON.stringify(body));
+  assert.deepEqual(savedSessions, []);
   assert.deepEqual(events, []);
 });
 

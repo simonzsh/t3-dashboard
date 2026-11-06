@@ -9,7 +9,7 @@ const BASE = 240;
 const LONG = 320;
 
 /** Every helper does nothing when the user asks for less motion. */
-function reducedMotion(): boolean {
+export function reducedMotion(): boolean {
   return typeof matchMedia !== "function" || matchMedia("(prefers-reduced-motion: reduce)").matches;
 }
 
@@ -56,9 +56,10 @@ function bounce(el: Element): Animation | null {
   return el.animate([{ scale: "1" }, { scale: "1.12" }, { scale: "1" }], { duration: BASE, easing: EASE });
 }
 
-/** A ghost of `source` flies from `from` into `target` and shrinks; the target bounces when it lands. */
-export function fly(source: Element, target: Element | null, from: Rect = source.getBoundingClientRect()): Animation | null {
+/** A ghost of `source` flies from its place into `target` and shrinks; the target bounces when it lands. */
+export function fly(source: Element, target: Element | null): Animation | null {
   if (!target || reducedMotion()) return null;
+  const from = source.getBoundingClientRect();
   const g = ghost(source, from);
   const end = fitInto(from, target.getBoundingClientRect());
   const anim = g.animate([{ ...AT_REST, opacity: 1 }, { ...placed(end, from), opacity: 0.4 }], { duration: LONG, easing: EASE });
@@ -87,14 +88,14 @@ export function enter(el: Element, { x = 0, y = 0, scale = 1, duration = BASE, s
 }
 
 /** Slides an element from its old rect to the one it has now (FLIP), above its neighbours while it moves. */
-function flip(el: Element, before: Rect, { delay = 0, fade = false } = {}): Animation | null {
+function flip(el: Element, before: Rect, delay: number): Animation | null {
   if (reducedMotion()) return null;
   const after = el.getBoundingClientRect();
   if (!moved(before, after)) return null;
   return el.animate(
     [
-      { ...placed(before, after), transformOrigin: "0 0", opacity: fade ? 0.5 : 1, zIndex: 4 },
-      { ...AT_REST, transformOrigin: "0 0", opacity: 1, zIndex: 4 },
+      { ...placed(before, after), transformOrigin: "0 0", zIndex: 4 },
+      { ...AT_REST, transformOrigin: "0 0", zIndex: 4 },
     ],
     { duration: LONG, delay, easing: SPRING, fill: "backwards" },
   );
@@ -102,31 +103,20 @@ function flip(el: Element, before: Rect, { delay = 0, fade = false } = {}): Anim
 
 type Measured = Map<string, { el: Element; rect: Rect }>;
 
-interface Snapshot {
-  items: Measured;
-  origins: Measured;
-}
-
-function measure(root: Element, attr?: string): Measured {
-  if (!attr) return new Map();
+function measure(root: Element, attr: string): Measured {
   return new Map(Array.from(root.querySelectorAll(`[${attr}]`), (el) => [el.getAttribute(attr)!, { el, rect: el.getBoundingClientRect() }]));
 }
 
-/**
- * Animates the `[item]` elements under `root` each time `key` changes: kept ones slide to their new rect,
- * new ones fade in, removed ones fade out. An `[origin]` element with the same id (a dock chip) is where
- * an item flies to when it leaves and comes from when it returns.
- */
-export function useFlip(root: RefObject<HTMLElement | null>, key: string, { item, origin, enabled = true }: { item: string; origin?: string; enabled?: boolean }) {
+/** Animates the `[item]` elements under `root` each time `key` changes: kept ones slide to their new rect, new ones fade in, removed ones fade out. */
+export function useFlip(root: RefObject<HTMLElement | null>, key: string, { item, enabled = true }: { item: string; enabled?: boolean }) {
   const committed = useRef<{ key: string; enabled: boolean } | null>(null);
-  const snapshot = useRef<Snapshot | null>(null);
+  const snapshot = useRef<Measured | null>(null);
   const running = useRef(new Set<Animation>());
-  const pending = useRef<() => void>(() => {});
 
   // Measured during render, while the DOM still shows the old layout (the getSnapshotBeforeUpdate idea).
   const last = committed.current;
   if (last && last.enabled && enabled && key !== last.key && !snapshot.current && root.current) {
-    snapshot.current = { items: measure(root.current, item), origins: measure(root.current, origin) };
+    snapshot.current = measure(root.current, item);
   }
 
   useLayoutEffect(() => {
@@ -136,54 +126,28 @@ export function useFlip(root: RefObject<HTMLElement | null>, key: string, { item
     const el = root.current;
     if (!before || !el || reducedMotion()) return;
     // The snapshot already holds where things looked; a running move would skew the new rects.
-    pending.current();
     running.current.forEach((anim) => anim.cancel());
     const items = measure(el, item);
-    const origins = measure(el, origin);
-    const plan = flipPlan({ items: before.items.keys(), origins: before.origins.keys() }, { items: items.keys(), origins: origins.keys() });
+    const plan = flipPlan(before.keys(), items.keys());
     // A closed item fades first, then the others slide into its place.
-    const leaving = plan.some((s) => s.kind === "leave" && !s.toOrigin);
+    const leaving = plan.some((s) => s.kind === "leave");
     const track = (anim: Animation | null) => {
       if (!anim) return;
       running.current.add(anim);
       const done = () => running.current.delete(anim);
       anim.finished.then(done, done);
     };
-    // Resizable panels settle their sizes a frame later: hold each moving item where it was, measure
-    // its real place once the grid has settled, then slide. A new cell measured too early is tiny.
-    const held: Array<{ el: HTMLElement; start: () => Animation | null }> = [];
-    const hold = (el: Element, from: Rect, start: () => Animation | null) => {
-      const box = el as HTMLElement;
-      Object.assign(box.style, { ...placed(from, el.getBoundingClientRect()), transformOrigin: "0 0" });
-      held.push({ el: box, start });
-    };
     for (const step of plan) {
       const now = items.get(step.id)?.el;
-      const was = before.items.get(step.id);
-      if (step.kind === "move" && now && was) hold(now, was.rect, () => flip(now, was.rect, { delay: leaving ? SHORT / 2 : 0 }));
-      else if (step.kind === "enter" && now) {
-        const chip = before.origins.get(step.id)?.rect;
-        if (chip) hold(now, fitInto(now.getBoundingClientRect(), chip), () => flip(now, fitInto(now.getBoundingClientRect(), chip), { fade: true }));
-        else track(enter(now, { scale: 0.96 }));
-      } else if (step.kind === "leave" && was) track(step.toOrigin ? fly(was.el, origins.get(step.id)!.el, was.rect) : exit(was.el, was.rect));
+      const was = before.get(step.id);
+      if (step.kind === "move" && now && was) track(flip(now, was.rect, leaving ? SHORT / 2 : 0));
+      else if (step.kind === "enter" && now) track(enter(now, { scale: 0.96 }));
+      else if (step.kind === "leave" && was) track(exit(was.el, was.rect));
     }
-    const release = () => held.forEach(({ el }) => Object.assign(el.style, { translate: "", scale: "", transformOrigin: "" }));
-    let frame = requestAnimationFrame(() => {
-      frame = requestAnimationFrame(() => {
-        release();
-        held.forEach(({ start }) => track(start()));
-        pending.current = () => {};
-      });
-    });
-    pending.current = () => {
-      cancelAnimationFrame(frame);
-      release();
-    };
   }, [key, enabled]);
 
   useEffect(
     () => () => {
-      pending.current();
       running.current.forEach((anim) => anim.cancel());
     },
     [],

@@ -3,16 +3,16 @@ import { hasFailed, type AgentStatus } from "../../../shared/status.ts";
 import { pendingLabel } from "./threads.ts";
 import { Badge } from "../ui/index.ts";
 
-export function RunningBadge() {
+export function RunningBadge({ className }: { className?: string }) {
   return (
-    <Badge variant="running">
+    <Badge variant="running" className={className}>
       <span className="pulse" aria-hidden="true" />
       Running
     </Badge>
   );
 }
 
-/** The status of an agent as a badge: shared by the Inbox rows and the automation rows. */
+/** The status of an agent as a badge: shared by the Dashboard rows and the automation rows. */
 export function StatusBadge({ thread, status }: { thread: DashboardThread; status: AgentStatus }) {
   if (status === "waiting") return <Badge variant="waiting">{thread.pending ? pendingLabel(thread.pending.category) : "Waiting"}</Badge>;
   if (status === "working") {

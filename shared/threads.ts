@@ -176,7 +176,7 @@ export type SubagentState = "queued" | "running" | "waiting" | "idle" | "complet
 export interface SubagentStep {
   /** For POST /api/threads/:id/subagents/:subagentId/stop. */
   subagentId: string;
-  /** GET /api/threads/:childThreadId shows its steps; the desk can open it. Null when T3 has none. */
+  /** GET /api/threads/:childThreadId shows its steps; the Sessions page can open it. Null when T3 has none. */
   childThreadId: string | null;
   /** Last progress line while running; null once finished. */
   progress: string | null;
@@ -268,7 +268,7 @@ export interface ThreadDetail {
   threadId: string;
   /** The thread's name in T3: it titles a window of a subagent thread, which the shell hides. */
   title: string | null;
-  /** A provider's subagent thread: not in the shell, but a Desk window may show it. */
+  /** A provider's subagent thread: not in the shell, but a Sessions window may show it. */
   subagentThread: boolean;
   /** The thread that started this subagent; null for any other thread. */
   parentThreadId: string | null;

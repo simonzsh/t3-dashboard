@@ -501,6 +501,38 @@ test("searchEntries sends the folder, query and limit", async () => {
   assert.deepEqual(await done, { entries: [{ path: "README.md", kind: "file" }], truncated: false });
 });
 
+test("usageSummary asks for one bucket per day and accepts a minimal answer", async () => {
+  const { client } = setup();
+  const done = client.usageSummary({ sinceDay: "2026-10-24", untilDay: "2026-11-06", timeZone: "Europe/Paris" });
+  const socket = await nextSocket();
+  assert.equal(socket.sent[0]!.tag, "server.getUsageSummary");
+  assert.deepEqual(socket.sent[0]!.payload, { sinceDay: "2026-10-24", untilDay: "2026-11-06", timeZone: "Europe/Paris", resolution: "day" });
+  socket.receive(success({ buckets: [{ day: "2026-11-06" }] }));
+  assert.deepEqual(await done, { buckets: [{ day: "2026-11-06" }] });
+});
+
+test("usageSummary keeps the full bucket and source fields", async () => {
+  const { client } = setup();
+  const done = client.usageSummary({ sinceDay: "2026-11-06", untilDay: "2026-11-06", timeZone: "UTC" });
+  const socket = await nextSocket();
+  const answer = {
+    buckets: [{ day: "2026-11-06", provider: "claude", model: "m", costUsd: 1.5, costSource: "modelPriced", unpricedRecords: 0, totals: { uncachedInputTokens: 1, cachedInputTokens: 2, cacheCreationTokens: 3, outputTokens: 4, reasoningTokens: 5 } }],
+    sources: [{ status: "ok", refreshing: true }],
+  };
+  socket.receive(success(answer));
+  const summary = await done;
+  assert.equal(summary.buckets[0]!.totals?.cacheCreationTokens, 3);
+  assert.equal(summary.sources?.[0]?.refreshing, true);
+});
+
+test("a usage answer without buckets is a protocol error that names the field", async () => {
+  const { client } = setup();
+  const done = protocolError(client.usageSummary({ sinceDay: "2026-11-06", untilDay: "2026-11-06", timeZone: "UTC" }));
+  const socket = await nextSocket();
+  socket.receive(success({ buckets: "none" }));
+  assert.match((await done).message, /buckets/);
+});
+
 function uploadSetup(answer: () => Response) {
   const posts: Array<{ url: string; headers: Record<string, string>; body: Blob }> = [];
   const fakeFetch = (async (url: string, init: RequestInit) => {

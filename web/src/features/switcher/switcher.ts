@@ -1,6 +1,6 @@
 import type { DashboardProject, DashboardThread, ThreadSearchMatch } from "../../../../shared/api.ts";
 import { agentStatus } from "../../../../shared/status.ts";
-import { threadTitle } from "../../lib/threads.ts";
+import { newestFirst, threadTitle } from "../../lib/threads.ts";
 
 export interface SwitcherRow {
   thread: DashboardThread;
@@ -70,16 +70,15 @@ export function mergeResults(titleHits: SwitcherRow[], content: ThreadSearchMatc
   return [...rows.values()];
 }
 
-export const SUGGESTION_LIMIT = 8;
+const SUGGESTION_LIMIT = 8;
 
 // Empty query: threads that wait for the user, then recently opened ones, then the latest activity.
-export function suggestThreads(threads: DashboardThread[], projects: DashboardProject[], history: readonly string[], onDesk: ReadonlySet<string>, limit = SUGGESTION_LIMIT): SwitcherRow[] {
-  const byId = new Map(threads.filter((t) => !onDesk.has(t.id)).map((t) => [t.id, t]));
-  const latest = (a: DashboardThread, b: DashboardThread) => b.lastActivityAt.localeCompare(a.lastActivityAt);
+export function suggestThreads(threads: DashboardThread[], projects: DashboardProject[], history: readonly string[], inSessions: ReadonlySet<string>, limit = SUGGESTION_LIMIT): SwitcherRow[] {
+  const byId = new Map(threads.filter((t) => !inSessions.has(t.id)).map((t) => [t.id, t]));
   const ordered = [
-    ...[...byId.values()].filter((t) => agentStatus(t) === "waiting").sort(latest),
+    ...[...byId.values()].filter((t) => agentStatus(t) === "waiting").sort(newestFirst),
     ...history.flatMap((id) => byId.get(id) ?? []),
-    ...[...byId.values()].sort(latest),
+    ...[...byId.values()].sort(newestFirst),
   ];
   return [...new Set(ordered)].slice(0, limit).map((t) => rowOf(t, projects));
 }

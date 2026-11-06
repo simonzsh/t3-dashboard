@@ -1,78 +1,86 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import type { DashboardThread } from "../../shared/api.ts";
 import { AutomationsView } from "./features/automations/AutomationsView.tsx";
-import { InboxView } from "./features/inbox/InboxView.tsx";
+import { DashboardView } from "./features/dashboard/DashboardView.tsx";
+import { isDefaultLayout } from "./features/dashboard/layout.ts";
+import { useDashboardLayout } from "./features/dashboard/useDashboardLayout.ts";
+import { useUsage } from "./features/dashboard/useUsage.ts";
+import { AppNav } from "./features/shell/AppNav.tsx";
+import { PageActions } from "./features/shell/PageActions.tsx";
 import { ConnectionBanner } from "./features/setup/ConnectionBanner.tsx";
-import { DeskView } from "./features/desk/DeskView.tsx";
+import { SessionsView } from "./features/sessions/SessionsView.tsx";
 import { NewAutomationDialog } from "./features/new-thread/NewAutomationDialog.tsx";
 import { NewThreadDialog } from "./features/new-thread/NewThreadDialog.tsx";
 import { NotificationToasts } from "./features/notifications/NotificationToasts.tsx";
-import { badgeText } from "./features/notifications/notifications.ts";
 import { useNotifications } from "./features/notifications/useNotifications.ts";
 import { useSetupRows } from "./features/automations/useSetupRows.ts";
-import { inboxSections, inboxThreads, unreadCount } from "./features/inbox/inbox.ts";
+import { listedThreads, threadSections, unreadCount } from "./features/dashboard/sections.ts";
 import { Switcher } from "./features/switcher/Switcher.tsx";
 import { useOpenHistory } from "./features/switcher/useOpenHistory.ts";
 import { SettingsDialog } from "./features/settings/SettingsDialog.tsx";
 import { SetupScreen } from "./features/setup/SetupScreen.tsx";
 import { UpdateDialog } from "./features/update/UpdateDialog.tsx";
-import { gridWindows, neighborId, type Direction } from "./features/desk/desk.ts";
+import { neighborId, type Direction } from "./features/sessions/sessions.ts";
 import { useAutomations } from "./features/automations/useAutomations.ts";
 import { api } from "./api/client.ts";
 import { useDashboard } from "./api/events.ts";
-import { useDesk } from "./features/desk/useDesk.ts";
-import { useDeskSync } from "./features/desk/useDeskSync.ts";
-import { useDeskBackground } from "./features/desk/useDeskBackground.ts";
+import { useSessions } from "./features/sessions/useSessions.ts";
+import { sessionsBadgeCount, useListPrefs } from "./features/sessions/sessionList.ts";
+import { useSessionsSync } from "./features/sessions/useSessionsSync.ts";
 import { useMediaQuery } from "./lib/useMediaQuery.ts";
 import { useShortcuts } from "./lib/useShortcuts.ts";
+import { useSessionLayout } from "./lib/sessionLayout.ts";
+import { useSidebarCollapsed } from "./lib/sidebar.ts";
+import { agentCounts } from "./lib/agents.ts";
 import { TABS } from "./lib/tabs.ts";
-import { ctrlLabel, startsTyping } from "./lib/shortcuts.ts";
 import { useTab } from "./lib/useTab.ts";
 import { useTheme } from "./features/settings/useTheme.ts";
+import { useAccent } from "./features/settings/useAccent.ts";
 import { useUpdate } from "./features/update/useUpdate.ts";
-import { Button, Icon, IconButton, Kbd, Loader, Pressable, TooltipLayer } from "./ui/index.ts";
+import { Loader, Logo, PageHeader, TooltipLayer } from "./ui/index.ts";
 import { updateLabel } from "./features/update/updateFlow.ts";
 
-// Same breakpoint as the one-line header in styles.css.
 const NO_THREADS: DashboardThread[] = [];
-const COMPACT_HEADER = "(max-width: 700px)";
-
-function focusComposer(threadId: string) {
-  requestAnimationFrame(() => document.querySelector<HTMLTextAreaElement>(`[data-desk-window="${CSS.escape(threadId)}"] textarea`)?.focus());
-}
+// Same breakpoint as the bottom bar in styles.css.
+const PHONE = "(max-width: 700px)";
 
 export function App() {
-  const { state, sseDown, remoteDesk, remoteSeen, connects } = useDashboard();
+  const { state, sseDown, remoteSessions, remoteSeen, connects } = useDashboard();
   const [tab, setTab] = useTab();
-  // Always loaded while live: the Inbox badge must leave out automation run threads.
+  // Always loaded while live: the Dashboard badge must leave out automation run threads.
   const automations = useAutomations(state?.connection.t3 === "live");
-  const [desk, dispatchDesk] = useDesk();
+  const [sessions, dispatchSessions] = useSessions();
+  const compact = useMediaQuery(PHONE);
+  const [listPrefs, setListPrefs] = useListPrefs();
+  // On a phone the Sessions tab is a list; an opened session covers it, with no header or bottom bar.
+  const [phoneSession, setPhoneSession] = useState(false);
+  const sessionShown = compact && tab === "sessions" && phoneSession && sessions.focusedId !== null;
+  // Only a session in front of the user counts as read or watched: on a phone, not the list.
+  const inFront = tab === "sessions" && (!compact || sessionShown) ? sessions.focusedId : null;
   const [openHistory, recordOpened] = useOpenHistory();
-  useDeskSync({
-    desk,
-    dispatch: dispatchDesk,
+  useSessionsSync({
+    sessions,
+    dispatch: dispatchSessions,
     threads: state?.connection.t3 === "live" ? state.threads : null,
-    remote: remoteDesk,
+    remote: remoteSessions,
     connects,
   });
-  // The focused desk window on the visible Desk tab is already in front of the user: no toast for it.
   const watching = useRef<(id: string) => boolean>(() => false);
-  watching.current = (id) => tab === "desk" && desk.focusedId === id;
+  watching.current = (id) => inFront === id;
   const notify = useNotifications({
     threads: state?.connection.t3 === "live" ? state.threads : null,
     quiet: useCallback((id: string) => watching.current(id), []),
     remote: remoteSeen,
     connects,
   });
-  // The focused desk window on the visible Desk tab is read: on a click, a restore, and on each new activity.
-  // Only openOnDesk marked threads before, so a window already on the desk stayed unread in the Inbox.
-  const readId = tab === "desk" ? desk.focusedId : null;
-  const readAt = readId ? state?.threads.find((t) => t.id === readId)?.lastActivityAt : undefined;
+  // The session in front of the user is read: on a click, a restore, and on each new activity.
+  const readAt = inFront ? state?.threads.find((t) => t.id === inFront)?.lastActivityAt : undefined;
   const { markSeen, seenReady } = notify;
   useEffect(() => {
-    if (readId && readAt && seenReady) markSeen(readId);
-  }, [readId, readAt, seenReady, markSeen]);
-  const [creating, setCreating] = useState(false);
+    if (inFront && readAt && seenReady) markSeen(inFront);
+  }, [inFront, readAt, seenReady, markSeen]);
+  // null: closed; otherwise open, with the project to preselect, if any.
+  const [creating, setCreating] = useState<{ projectId: string | null } | null>(null);
   const [creatingAutomation, setCreatingAutomation] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [confirmingUpdate, setConfirmingUpdate] = useState(false);
@@ -81,9 +89,10 @@ export function App() {
   const update = useUpdate();
   const [linearVersion, setLinearVersion] = useState(0);
   const [theme, setTheme] = useTheme();
-  const [deskBackground, setDeskBackground] = useDeskBackground();
+  const [accent, setAccent] = useAccent();
+  const [layout, setLayout] = useSessionLayout();
   const [now, setNow] = useState(() => new Date());
-  const compact = useMediaQuery(COMPACT_HEADER);
+  const [sidebarCollapsed, toggleSidebar] = useSidebarCollapsed();
 
   // The error banner starts under the header, whatever its height (one line on a phone).
   const header = useRef<HTMLElement>(null);
@@ -91,13 +100,13 @@ export function App() {
   useLayoutEffect(() => {
     const el = header.current;
     if (!el) return;
-    const set = () => document.documentElement.style.setProperty("--topbar-h", `${el.offsetHeight}px`);
+    const set = () => document.documentElement.style.setProperty("--header-h", `${el.offsetHeight}px`);
     set();
     const observer = new ResizeObserver(set);
     observer.observe(el);
     return () => {
       observer.disconnect();
-      document.documentElement.style.removeProperty("--topbar-h");
+      document.documentElement.style.removeProperty("--header-h");
     };
   }, [hasHeader]);
 
@@ -107,88 +116,78 @@ export function App() {
     return () => clearInterval(id);
   }, []);
 
-  function openOnDesk(id: string, showDesk: boolean) {
-    dispatchDesk({ type: "open", id });
+  function openInSessions(id: string, showSessions: boolean) {
+    dispatchSessions({ type: "open", id });
     recordOpened(id);
     notify.markSeen(id);
-    if (showDesk) setTab("desk");
+    if (!showSessions) return;
+    setPhoneSession(true);
+    setTab("sessions");
   }
 
-  function toggleOnDesk(id: string) {
-    if (desk.windows.some((w) => w.id === id)) dispatchDesk({ type: "close", id });
-    else openOnDesk(id, false);
-  }
+  // The bottom bar's Sessions entry shows the list.
+  const showTab = (next: typeof tab) => {
+    if (next === "sessions") setPhoneSession(false);
+    setTab(next);
+  };
+  const back = useCallback(() => setPhoneSession(false), []);
 
   // The rows are memoized: these callbacks keep one identity and call the latest handlers.
-  const handlers = useRef({ openOnDesk, toggleOnDesk });
-  handlers.current = { openOnDesk, toggleOnDesk };
-  const onOpen = useCallback((id: string, addOnly: boolean) => handlers.current.openOnDesk(id, !addOnly), []);
-  const onToggleDesk = useCallback((id: string) => handlers.current.toggleOnDesk(id), []);
+  const openRef = useRef(openInSessions);
+  openRef.current = openInSessions;
+  const onOpen = useCallback((id: string, addOnly: boolean) => openRef.current(id, !addOnly), []);
+  const openSession = useCallback((id: string) => openRef.current(id, true), []);
+  const newSession = useCallback((projectId: string) => setCreating({ projectId }), []);
   const onSettle = useCallback((id: string, settle: boolean) => (settle ? api.settle(id) : api.unsettle(id)), []);
 
-  const blocked = creating || creatingAutomation || settingsOpen || confirmingUpdate || switcherQuery !== null;
+  const openSearch = () => {
+    if (state) setSwitcherQuery("");
+  };
+
+  const blocked = creating !== null || creatingAutomation || settingsOpen || confirmingUpdate || switcherQuery !== null;
   useShortcuts(
     (action) => {
-      if (action === "desk" || action === "inbox" || action === "automations") setTab(action);
+      if (action === "dashboard" || action === "sessions" || action === "automations") setTab(action);
       else if (action === "settings") setSettingsOpen(true);
-      else if (action === "switcher") {
-        if (state && !creating && !creatingAutomation && !settingsOpen && !confirmingUpdate) setSwitcherQuery((open) => (open === null ? "" : null));
-      } else if (action === "new-agent") {
-        if (state) setCreating(true);
+      else if (action === "toggle-sidebar") {
+        if (!compact) toggleSidebar();
+      } else if (action === "switcher") {
+        if (state && creating === null && !creatingAutomation && !settingsOpen && !confirmingUpdate) setSwitcherQuery((open) => (open === null ? "" : null));
+      } else if (action === "new-session") {
+        if (state) setCreating({ projectId: null });
       } else if (action === "new-automation") {
         if (state) setCreatingAutomation(true);
-      } else if (action === "unmaximize") dispatchDesk({ type: "unmaximize" });
-      else if (action.startsWith("focus-")) {
+      } else if (action === "unmaximize") {
+        if (sessions.maximized && sessions.focusedId) dispatchSessions({ type: "maximize", id: sessions.focusedId });
+      } else if (action.startsWith("focus-")) {
         // A maximized window hides its neighbors: arrows do nothing there.
-        const id = desk.maximizedId ? null : neighborId(desk, action.slice("focus-".length) as Direction);
+        const id = sessions.maximized ? null : neighborId(sessions, action.slice("focus-".length) as Direction, layout);
         if (!id) return;
         // No composer focus: a focused textarea would block the next arrow.
-        dispatchDesk({ type: "focus", id });
-      }
-      else if (action === "close-window" || action === "toggle-fullscreen" || action === "minimize-window") {
-        const type = action === "close-window" ? "close" : action === "minimize-window" ? "minimize" : "maximize";
-        // A subagent window (not in the shell) only goes full screen or closes.
-        if (type === "minimize" && !state?.threads.some((t) => t.id === desk.focusedId)) return;
-        if (desk.focusedId) dispatchDesk({ type, id: desk.focusedId });
-      } else {
-        const target = gridWindows(desk)[Number(action.slice("window-".length)) - 1];
-        if (!target) return;
-        dispatchDesk({ type: "focus", id: target.id });
-        focusComposer(target.id);
+        dispatchSessions({ type: "focus", id });
+      } else if (sessions.focusedId) {
+        dispatchSessions({ type: action === "close-window" ? "close" : "maximize", id: sessions.focusedId });
       }
     },
     blocked,
-    tab === "desk",
+    tab === "sessions",
   );
-
-  // Shortcuts use Ctrl now, so plain typing on the Desk can go straight to the focused window's field.
-  useEffect(() => {
-    if (tab !== "desk" || blocked || !desk.focusedId) return;
-    const id = desk.focusedId;
-    const onKey = (e: KeyboardEvent) => {
-      const el = e.target instanceof HTMLElement ? e.target : null;
-      if (!startsTyping({ key: e.key, ctrlKey: e.ctrlKey, metaKey: e.metaKey, altKey: e.altKey, target: el })) return;
-      if (el?.closest('[role="dialog"], [role="menu"], [role="listbox"]')) return;
-      const field = document.querySelector<HTMLTextAreaElement>(`[data-desk-window="${CSS.escape(id)}"] textarea`);
-      if (!field || field.disabled) return;
-      // Focused during keydown: the browser then types this key into the field.
-      field.focus();
-      field.setSelectionRange(field.value.length, field.value.length);
-    };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [tab, blocked, desk.focusedId]);
 
   const live = !sseDown && state?.connection.t3 === "live";
-  const deskIds = new Set(desk.windows.map((w) => w.id));
+  const sessionIds = useMemo(() => new Set(sessions.ids), [sessions.ids]);
   const setup = useSetupRows(state?.threads ?? NO_THREADS, automations.result?.setupThreadIds, automations.reload);
-  // One list for the Inbox and its badge, so they cannot drift apart.
+  // One list for the Dashboard cards and the badge, so they cannot drift apart.
   const visible = useMemo(
-    () => inboxThreads(state?.threads ?? NO_THREADS, automations.result?.hiddenThreadIds, setup.map((t) => t.id)),
+    () => listedThreads(state?.threads ?? NO_THREADS, automations.result?.hiddenThreadIds, setup.map((t) => t.id)),
     [state?.threads, automations.result?.hiddenThreadIds, setup],
   );
-  const unread = useMemo(() => unreadCount(inboxSections(visible, notify.seen, now), notify.seen), [visible, notify.seen, now]);
-  const deskWaiting = state?.threads.some((t) => t.pending && deskIds.has(t.id)) ?? false;
+  const unread = useMemo(() => unreadCount(threadSections(visible, notify.seen), notify.seen), [visible, notify.seen]);
+  const agents = useMemo(() => agentCounts(visible), [visible]);
+  const sessionsBadge = useMemo(() => ({ count: sessionsBadgeCount(visible, notify.seen), waiting: agents.waiting > 0 }), [visible, notify.seen, agents.waiting]);
+  const dashboardLayout = useDashboardLayout(tab === "dashboard");
+  const usage = useUsage(tab === "dashboard" && state !== null);
+  const page = TABS.find((t) => t.id === tab)!;
+  const updateNav = update.status?.available && update.status.canUpdate ? { label: updateLabel(update.status), busy: update.updating || update.status.updating } : null;
 
   if (state?.connection.setup) {
     return (
@@ -200,120 +199,121 @@ export function App() {
   }
 
   return (
-    <div className={`app${tab === "desk" ? " desk-mode" : ""}`}>
+    <div className={`app${tab === "sessions" ? " sessions-mode" : ""}${sessionShown ? " session-shown" : ""}`}>
       <TooltipLayer />
-      <header className="topbar" ref={header}>
-        <div className="topbar-left">
-          <h1>
-            T3<span className="title-rest"> Dashboard</span>
-          </h1>
-          <span className={`conn ${live ? "up" : "down"}`} data-tooltip={live ? "Connected to T3 Code" : "Connection lost"}>
-            <span className="conn-dot" /> <span className="conn-label">{live ? "Connected" : "Offline"}</span>
-          </span>
-        </div>
-        <nav className="tabs" role="tablist">
-          {TABS.map(({ id, label, key }) => (
-            <Pressable key={id} role="tab" data-tab={id} aria-selected={tab === id} className={tab === id ? "active" : ""} onClick={() => setTab(id)}>
-              {label}
-              {id === "inbox" && unread > 0 && <span className="count" role="img" aria-label={`${unread} unread`}>{badgeText(unread)}</span>}
-              {id === "desk" && deskWaiting && <span className="tab-alert" role="img" aria-label="An agent is waiting for your reply" />}
-              <Kbd>{ctrlLabel(key)}</Kbd>
-            </Pressable>
-          ))}
-        </nav>
-        <div className="topbar-right">
-          {update.status?.available && update.status.canUpdate &&
-            (compact ? (
-              <IconButton className="update-pill" label={updateLabel(update.status)} tooltip={updateLabel(update.status)} disabled={update.updating || update.status.updating} onClick={() => setConfirmingUpdate(true)}>
-                <Icon name="arrowUp" strokeWidth={1.8} />
-              </IconButton>
-            ) : (
-              <Button className="update-pill" loading={(update.updating || update.status.updating) && "Updating…"} onClick={() => setConfirmingUpdate(true)}>
-                {updateLabel(update.status)}
-              </Button>
-            ))}
-          {state &&
-            (compact ? (
-              <IconButton variant="primary" label="New Agent" onClick={() => setCreating(true)}>
-                <Icon name="assignBot" />
-              </IconButton>
-            ) : (
-              <Button variant="primary" kbd={ctrlLabel("N")} onClick={() => setCreating(true)}>
-                New Agent
-              </Button>
-            ))}
-          {state &&
-            (compact ? (
-              <IconButton label="New Automation" onClick={() => setCreatingAutomation(true)}>
-                <Icon name="calendarClock" />
-              </IconButton>
-            ) : (
-              <Button kbd={ctrlLabel("⇧N")} onClick={() => setCreatingAutomation(true)}>
-                New Automation
-              </Button>
-            ))}
-          <IconButton label="Settings" kbd={ctrlLabel(",")} onClick={() => setSettingsOpen(true)}>
-            <Icon name="settings" strokeWidth={1.8} />
-          </IconButton>
-        </div>
-      </header>
-      <ConnectionBanner connection={state?.connection ?? null} sseDown={sseDown} />
-      <NotificationToasts toasts={notify.toasts} onOpen={(id) => openOnDesk(id, true)} onDismiss={notify.dismiss} />
-      <main>
-        {tab === "inbox" &&
-          (state ? (
-            <InboxView
-              state={state}
-              visible={visible}
-              now={now}
-              deskIds={deskIds}
-              onOpen={onOpen}
-              onToggleDesk={onToggleDesk}
-              onSettle={onSettle}
-              seen={notify.seen}
-              seenReady={notify.seenReady}
-              onMarkRead={notify.markSeen}
-              onSwitcher={setSwitcherQuery}
-              automations={automations.result}
-              automationsError={automations.error}
-              linearVersion={linearVersion}
-            />
-          ) : <Loader />)}
-        {tab === "automations" &&
-          (state ? (
-            <AutomationsView
-              state={state}
-              now={now}
-              onOpen={onOpen}
-              automations={automations.result}
-              automationsError={automations.error}
-              onAutomationsStale={automations.reload}
+      <AppNav
+        layout={compact ? "bottom" : "side"}
+        collapsed={sidebarCollapsed}
+        onToggleCollapsed={toggleSidebar}
+        tab={tab}
+        unread={unread}
+        sessions={sessionsBadge}
+        live={live}
+        update={updateNav}
+        onTab={showTab}
+        onSearch={openSearch}
+        onSettings={() => setSettingsOpen(true)}
+        onUpdate={() => setConfirmingUpdate(true)}
+      />
+      <div className="app-column">
+        <PageHeader
+          ref={header}
+          title={page.label}
+          description={page.description}
+          leading={compact ? <Logo /> : undefined}
+          actions={
+            <PageActions
+              tab={tab}
+              compact={compact}
+              ready={state !== null}
+              editingLayout={dashboardLayout.editing}
+              layoutIsDefault={isDefaultLayout(dashboardLayout.layout)}
+              layout={layout}
+              onLayoutChange={setLayout}
+              listHidden={listPrefs.hidden}
+              onToggleList={() => setListPrefs({ hidden: !listPrefs.hidden })}
+              onNewSession={() => setCreating({ projectId: null })}
               onNewAutomation={() => setCreatingAutomation(true)}
-              setup={setup}
+              onSearch={openSearch}
+              onSettings={() => setSettingsOpen(true)}
+              onEditLayout={() => dashboardLayout.setEditing(true)}
+              onDoneLayout={() => dashboardLayout.setEditing(false)}
+              onResetLayout={dashboardLayout.reset}
             />
-          ) : <Loader />)}
-        {tab === "desk" &&
-          (state ? (
-            <DeskView
-              desk={desk}
-              dispatch={dispatchDesk}
-              threads={state.threads}
-              projects={state.projects}
-              background={deskBackground}
-              t3EnvironmentId={state.t3EnvironmentId}
-              providers={state.providers}
-            />
-          ) : <Loader />)}
-      </main>
+          }
+        />
+        <ConnectionBanner connection={state?.connection ?? null} sseDown={sseDown} />
+        <NotificationToasts toasts={notify.toasts} onOpen={(id) => openInSessions(id, true)} onDismiss={notify.dismiss} />
+        <main>
+          {tab === "dashboard" &&
+            (state ? (
+              <DashboardView
+                state={state}
+                usage={usage}
+                visible={visible}
+                now={now}
+                sessionIds={sessionIds}
+                layout={dashboardLayout.layout}
+                running={agents.running}
+                editing={dashboardLayout.editing}
+                onLayout={dashboardLayout.setLayout}
+                onOpen={onOpen}
+                onSettle={onSettle}
+                seen={notify.seen}
+                seenReady={notify.seenReady}
+                onMarkRead={notify.markSeen}
+                automations={automations.result}
+                automationsError={automations.error}
+                linearVersion={linearVersion}
+              />
+            ) : <Loader />)}
+          {tab === "automations" &&
+            (state ? (
+              <AutomationsView
+                state={state}
+                now={now}
+                onOpen={onOpen}
+                automations={automations.result}
+                automationsError={automations.error}
+                onAutomationsStale={automations.reload}
+                onNewAutomation={() => setCreatingAutomation(true)}
+                setup={setup}
+              />
+            ) : <Loader />)}
+          {tab === "sessions" &&
+            (state ? (
+              <SessionsView
+                sessions={sessions}
+                dispatch={dispatchSessions}
+                threads={state.threads}
+                listed={visible}
+                projects={state.projects}
+                seen={notify.seen}
+                now={now}
+                layout={layout}
+                prefs={listPrefs}
+                onPrefs={setListPrefs}
+                t3EnvironmentId={state.t3EnvironmentId}
+                providers={state.providers}
+                phone={compact}
+                sessionShown={sessionShown}
+                onBack={back}
+                onOpen={openSession}
+                onNewSession={newSession}
+              />
+            ) : <Loader />)}
+        </main>
+      </div>
       {state && creating && (
         <NewThreadDialog
           projects={state.projects}
           providers={state.providers}
           defaults={state.modelDefaults}
-          onClose={() => setCreating(false)}
+          projectId={creating.projectId}
+          onClose={() => setCreating(null)}
           onCreated={(id) => {
-            setCreating(false);
-            openOnDesk(id, true);
+            setCreating(null);
+            openInSessions(id, true);
           }}
         />
       )}
@@ -332,12 +332,12 @@ export function App() {
           projects={state.projects}
           now={now}
           history={openHistory}
-          onDesk={new Set(gridWindows(desk).map((w) => w.id))}
+          inSessions={sessionIds}
           initialQuery={switcherQuery}
           onClose={() => setSwitcherQuery(null)}
           onOpen={(id) => {
             setSwitcherQuery(null);
-            openOnDesk(id, true);
+            openInSessions(id, true);
           }}
         />
       )}
@@ -355,8 +355,8 @@ export function App() {
         <SettingsDialog
           theme={theme}
           onThemeChange={setTheme}
-          background={deskBackground}
-          onBackgroundChange={setDeskBackground}
+          accent={accent}
+          onAccentChange={setAccent}
           onLinearChange={() => setLinearVersion((version) => version + 1)}
           update={update}
           onUpdate={() => {

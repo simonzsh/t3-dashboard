@@ -1,22 +1,22 @@
 import type { Automation, DashboardProvider, DashboardThread, ModelSelection } from "../../../../shared/api.ts";
 import { ACTIVE_STATUSES, hasFailed } from "../../../../shared/status.ts";
+import { MONTHS } from "../../lib/format.ts";
 import { findModel } from "../conversation/composer.ts";
 
 export type LastRun = { kind: "waiting" } | { kind: "running" } | { kind: "failed"; error: string | null } | { kind: "done"; at: string };
 
 const DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
-const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 const DAY_MS = 86_400_000;
 
 // Dedicated threads and run threads of scheduled tasks live in the Automations tab only.
 export function excludeRoutineThreads(threads: DashboardThread[], hiddenThreadIds: readonly string[]): DashboardThread[] {
   if (hiddenThreadIds.length === 0) return threads;
   const hidden = new Set(hiddenThreadIds);
-  // A run that waits for an answer needs the user: it stays in the Inbox.
+  // A run that waits for an answer needs the user: it stays in the Dashboard lists.
   return threads.filter((t) => !hidden.has(t.id) || t.pending !== null);
 }
 
-// A setup thread shows as a row only while the agent works or waits; idle with no task, it returns to the Inbox.
+// A setup thread shows as a row only while the agent works or waits; idle with no task, it returns to the Dashboard lists.
 export function setupThreads(threads: DashboardThread[], setupThreadIds: readonly string[]): DashboardThread[] {
   const byId = new Map(threads.map((t) => [t.id, t]));
   return setupThreadIds.flatMap((id) => {

@@ -55,7 +55,7 @@ test("runActive: an active status or run id, but not background work alone", () 
   assert.equal(runActive(thread("1", { status: "completed", backgroundWork: true })), false);
 });
 
-test("threadState gives the desk window colour", () => {
+test("threadState gives the sessions window colour", () => {
   assert.equal(threadState(thread("1", { pending, status: "running" })), "waiting");
   assert.equal(threadState(thread("1", { status: "running" })), "running");
   assert.equal(threadState(thread("1", { status: "completed" })), "done");

@@ -58,15 +58,14 @@ function allowed(from: string, to: string): boolean {
 
 // A feature that shows part of another one. The list stays short and has no cycle.
 const FEATURE_EDGES = new Map([
-  ["features/desk -> features/conversation", "a desk window holds a conversation"],
+  ["features/sessions -> features/conversation", "a session window holds a conversation"],
   ["features/new-thread -> features/conversation", "the new thread dialog reuses the composer"],
   ["features/automations -> features/new-thread", "a row opens the automation dialog to edit the task"],
   ["features/automations -> features/conversation", "the Model column reuses the model lookup of the composer"],
-  ["features/inbox -> features/automations", "the inbox hides routine and setup threads"],
-  ["features/inbox -> features/settings", "the Linear setup card reuses the key form"],
-  ["features/inbox -> features/new-thread", "assigning a ticket opens the New Agent dialog"],
+  ["features/dashboard -> features/automations", "the cards hide routine and setup threads"],
+  ["features/dashboard -> features/settings", "the Linear setup card reuses the key form"],
+  ["features/dashboard -> features/new-thread", "assigning a ticket opens the New Session dialog"],
   ["features/settings -> features/update", "the Updates tab shows the update status"],
-  ["features/settings -> features/desk", "settings pick the desk background"],
 ]);
 
 // One file that breaks its folder's rule, with the reason.
@@ -116,8 +115,8 @@ test("the rules catch a forbidden import", () => {
   assert.equal(allowed("integrations/t3/", "domain"), false);
   assert.equal(allowed("integrations/t3/", "integrations/linear/"), false);
   assert.equal(allowed("server", "integrations/t3/"), false);
-  assert.equal(allowed("ui", "features/inbox"), false);
-  assert.equal(allowed("lib", "features/inbox"), false);
-  assert.equal(allowed("features/inbox", "features/desk"), false);
+  assert.equal(allowed("ui", "features/dashboard"), false);
+  assert.equal(allowed("lib", "features/dashboard"), false);
+  assert.equal(allowed("features/dashboard", "features/sessions"), false);
   assert.equal(allowed("shared", "domain"), false);
 });

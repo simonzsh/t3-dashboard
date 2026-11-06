@@ -1,20 +1,18 @@
-import { useRef, useState, type ReactNode } from "react";
-import { BACKGROUND_PRESETS, type DeskBackground } from "../desk/deskBackground.ts";
-import { imageFileToDataUrl } from "../desk/deskImage.ts";
+import { useState, type ReactNode } from "react";
 import { THEME_SETTINGS, type ThemeSetting } from "./theme.ts";
+import { ACCENTS, type Accent } from "./accent.ts";
 import type { UpdateControl } from "../update/useUpdate.ts";
 import { InstallSettings } from "./InstallSettings.tsx";
 import { LinearSettings } from "./LinearSettings.tsx";
 import { UpdateSettings } from "./UpdateSettings.tsx";
 import { onRadioKeyDown } from "../../ui/radioKeys.ts";
-import { Button, Dialog, FileInput, Pressable, Segmented, Tabs } from "../../ui/index.ts";
-import { useAction } from "../../lib/useAction.ts";
+import { Dialog, Icon, Pressable, Segmented, Tabs, type IconName } from "../../ui/index.ts";
 
 interface Props {
   theme: ThemeSetting;
   onThemeChange: (theme: ThemeSetting) => void;
-  background: DeskBackground;
-  onBackgroundChange: (background: DeskBackground) => string | null;
+  accent: Accent;
+  onAccentChange: (accent: Accent) => void;
   onLinearChange: () => void;
   update: UpdateControl;
   onUpdate: () => void;
@@ -31,56 +29,34 @@ const SECTIONS = [
 type SectionId = (typeof SECTIONS)[number]["id"];
 
 const LABELS: Record<ThemeSetting, string> = { system: "System", light: "Light", dark: "Dark" };
+const THEME_ICONS: Record<ThemeSetting, IconName> = { system: "monitor", light: "sun", dark: "moon" };
 
-export function SettingsDialog({ theme, onThemeChange, background, onBackgroundChange, onLinearChange, update, onUpdate, onClose }: Props) {
-  const fileInput = useRef<HTMLInputElement>(null);
-  const { busy, setError, run } = useAction();
+export function SettingsDialog({ theme, onThemeChange, accent, onAccentChange, onLinearChange, update, onUpdate, onClose }: Props) {
   const [section, setSection] = useState<SectionId>("appearance");
-  const presetId = background.kind === "preset" ? background.id : background.kind === "none" ? "none" : null;
-
-  // onBackgroundChange returns its refusal instead of throwing.
-  const upload = (file: File) => run(async () => setError(onBackgroundChange({ kind: "image", dataUrl: await imageFileToDataUrl(file) })));
 
   const panels: Record<SectionId, ReactNode> = {
     appearance: (
       <>
         <div className="settings-row">
           <span>Theme</span>
-          <Segmented label="Theme" value={theme} options={THEME_SETTINGS.map((id) => ({ id, label: LABELS[id] }))} onChange={onThemeChange} />
+          <Segmented label="Theme" value={theme} options={THEME_SETTINGS.map((id) => ({ id, label: LABELS[id], icon: <Icon name={THEME_ICONS[id]} /> }))} onChange={onThemeChange} />
         </div>
         <div className="settings-row">
-          <span>Desk background</span>
-          <div className="bg-choices">
-            <div className="swatches" role="radiogroup" aria-label="Background" onKeyDown={onRadioKeyDown}>
-              {BACKGROUND_PRESETS.map((p) => (
-                <Pressable
-                  key={p.id}
-                  role="radio"
-                  aria-checked={presetId === p.id}
-                  tabIndex={presetId === p.id || (presetId === null && p.id === BACKGROUND_PRESETS[0]?.id) ? 0 : -1}
-                  aria-label={p.label}
-                  tooltip={p.label}
-                  className={`swatch desk-bg-${p.id}${presetId === p.id ? " active" : ""}`}
-                  onClick={() => setError(onBackgroundChange(p.id === "none" ? { kind: "none" } : { kind: "preset", id: p.id }))}
-                />
-              ))}
-              {background.kind === "image" && (
-                <span className="swatch active" role="img" aria-label="Uploaded image" style={{ backgroundImage: `url("${background.dataUrl}")` }} />
-              )}
-            </div>
-            <div className="buttons">
-              <Button loading={busy && "Loading…"} onClick={() => fileInput.current?.click()}>
-                Upload image…
-              </Button>
-              {background.kind === "image" && <Button onClick={() => setError(onBackgroundChange({ kind: "none" }))}>Remove image</Button>}
-              <FileInput
-                ref={fileInput}
-                accept="image/*"
-                onFiles={([file]) => {
-                  if (file) void upload(file);
-                }}
+          <span>Accent color</span>
+          <div className="swatches" role="radiogroup" aria-label="Accent color" onKeyDown={onRadioKeyDown}>
+            {ACCENTS.map((a) => (
+              <Pressable
+                key={a.id}
+                role="radio"
+                aria-checked={accent === a.id}
+                tabIndex={accent === a.id ? 0 : -1}
+                aria-label={a.label}
+                tooltip={a.label}
+                className={`swatch${accent === a.id ? " active" : ""}`}
+                style={{ background: `linear-gradient(135deg, ${a.light} 50%, ${a.dark} 50%)` }}
+                onClick={() => onAccentChange(a.id)}
               />
-            </div>
+            ))}
           </div>
         </div>
       </>

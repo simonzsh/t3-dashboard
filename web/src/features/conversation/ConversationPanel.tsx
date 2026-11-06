@@ -29,7 +29,7 @@ import { LIVE_RELOAD_MS, SEND_POLL_WINDOW_MS, detailRunning, pollDelay } from ".
 import { SubagentBar } from "./SubagentBar.tsx";
 
 const ROLE_LABELS: Record<string, string> = { user: "You", assistant: "Agent", system: "System" };
-// Windows remount when they move between grid, minimized bar and mobile view: keep what they showed.
+// A window remounts when the narrow view switches tabs: keep what it showed.
 const detailCache = new Map<string, ThreadDetail>();
 const drafts = new Map<string, string>();
 const NEAR_BOTTOM_PX = 40;
@@ -372,7 +372,7 @@ function Conversation({ threadId, thread, providers, onOpenThread, onTitle }: Pr
             const el = e.currentTarget;
             const gap = el.scrollHeight - el.scrollTop - el.clientHeight;
             // Only the user can leave the bottom. A scroll with no input just before it comes from the layout
-            // (the desk grid changed, content moved): it keeps the bottom, or the place, as it was.
+            // (the sessions grid changed, content moved): it keeps the bottom, or the place, as it was.
             if (performance.now() - lastInput.current > USER_SCROLL_MS) {
               lastTop.current = el.scrollTop;
               if (smoothing.current) {

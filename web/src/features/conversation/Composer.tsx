@@ -2,12 +2,12 @@ import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import type { ComposerCommands, ContextUsage, DashboardProvider, FileEntry, ModelSelection, RuntimeMode, ThreadSettingsBody, UploadedAttachment } from "../../../../shared/api.ts";
 import type { StashEntry } from "../../../../shared/stash.ts";
 import { STASH_LIMIT } from "../../../../shared/stash.ts";
-import { RUNTIME_MODE_LABELS, acceptFiles, applyTrigger, attachmentType, composerPlaceholder, dropTrigger, escapeBlurs, filterCommands, filterSkills, findModel, formatTokens, isSendKey, suggestsCompact, triggerAt } from "./composer.ts";
+import { RUNTIME_MODE_LABELS, acceptFiles, applyTrigger, attachmentType, composerPlaceholder, dropTrigger, escapeBlurs, filterCommands, filterSkills, findModel, isSendKey, suggestsCompact, triggerAt } from "./composer.ts";
 import { moveActive } from "../../lib/dropdown.ts";
 import { useApi } from "../../api/ApiContext.tsx";
 import { setStash, useStash } from "../../api/stashStore.ts";
 import { Button, FileInput, Icon, IconButton, Loader, Pressable, TextArea } from "../../ui/index.ts";
-import { errorMessage } from "../../lib/format.ts";
+import { errorMessage, formatTokens } from "../../lib/format.ts";
 import { useAction } from "../../lib/useAction.ts";
 import { useDebouncedValue } from "../../lib/useDebouncedValue.ts";
 import { useMediaQuery } from "../../lib/useMediaQuery.ts";
@@ -214,7 +214,7 @@ export function Composer({ providers, selection, runtimeMode, running, stoppable
     const box = menuBox.current;
     const top = card.current?.getBoundingClientRect().top;
     if (!box || top === undefined) return;
-    const frame = card.current!.closest(".desk-window")?.getBoundingClientRect().top ?? 0;
+    const frame = card.current!.closest(".session-window")?.getBoundingClientRect().top ?? 0;
     box.style.maxHeight = `${Math.max(96, Math.min(260, top - frame - 12))}px`;
   });
 
@@ -424,7 +424,7 @@ export function Composer({ providers, selection, runtimeMode, running, stoppable
         )}
         <TextArea
           ref={textarea}
-          rows={2}
+          rows={1}
           value={draft}
           onChange={(e) => {
             onDraft(e.target.value);
@@ -435,7 +435,7 @@ export function Composer({ providers, selection, runtimeMode, running, stoppable
           onKeyDown={(e) => {
             if (menuOpen && !e.nativeEvent.isComposing) {
               if (e.key === "Escape") {
-                // Stop here: a dialog or the desk must not also react to this Escape.
+                // Stop here: a dialog or the sessions must not also react to this Escape.
                 e.preventDefault();
                 e.stopPropagation();
                 return setDismissed(trigger!.start);

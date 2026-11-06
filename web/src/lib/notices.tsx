@@ -7,6 +7,8 @@ interface Notice {
 }
 
 const MAX_NOTICES = 4;
+/** A conversation line goes by itself after this: it must not sit over the messages. */
+const LOCAL_NOTICE_MS = 8000;
 
 const NoticeContext = createContext<(message: string) => void>(() => {});
 
@@ -18,10 +20,16 @@ export function NoticeProvider({ children, local = false }: { children: ReactNod
   const [notices, setNotices] = useState<Notice[]>([]);
   const nextId = useRef(0);
   // The same message twice is one line: a poll that keeps failing must not stack banners.
-  const notify = useCallback((message: string) => {
-    setNotices((current) => (current.some((n) => n.message === message) ? current : [...current.slice(1 - MAX_NOTICES), { id: ++nextId.current, message }]));
-  }, []);
-  const dismiss = (id: number) => setNotices((current) => current.filter((n) => n.id !== id));
+  const dismiss = useCallback((id: number) => setNotices((current) => current.filter((n) => n.id !== id)), []);
+  const notify = useCallback(
+    (message: string) => {
+      const id = ++nextId.current;
+      setNotices((current) => (current.some((n) => n.message === message) ? current : [...current.slice(1 - MAX_NOTICES), { id, message }]));
+      // A duplicate never gets this id, so its timer removes nothing.
+      if (local) setTimeout(() => dismiss(id), LOCAL_NOTICE_MS);
+    },
+    [local, dismiss],
+  );
   return (
     <NoticeContext.Provider value={notify}>
       {local ? (

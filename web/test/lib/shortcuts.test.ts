@@ -7,23 +7,23 @@ const ctrl = (key: string, over: Partial<KeyInfo> = {}) => press(key, { ctrlKey:
 const typing = { tagName: "TEXTAREA", isContentEditable: false };
 
 test("Ctrl+key maps to the actions", () => {
-  assert.equal(matchShortcut(ctrl("1"), false), "inbox");
-  assert.equal(matchShortcut(ctrl("2"), false), "desk");
+  assert.equal(matchShortcut(ctrl("1"), false), "dashboard");
+  assert.equal(matchShortcut(ctrl("2"), false), "sessions");
   assert.equal(matchShortcut(ctrl("3"), false), "automations");
-  assert.equal(matchShortcut(ctrl("n"), false), "new-agent");
-  assert.equal(matchShortcut(ctrl("N"), false), "new-agent");
+  assert.equal(matchShortcut(ctrl("n"), false), "new-session");
+  assert.equal(matchShortcut(ctrl("N"), false), "new-session");
   assert.equal(matchShortcut(ctrl(","), false), "settings");
-  assert.equal(matchShortcut(ctrl("b"), false), "inbox");
+  assert.equal(matchShortcut(ctrl("b"), false), "toggle-sidebar");
   assert.equal(matchShortcut(ctrl("N", { shiftKey: true }), false), "new-automation");
 });
 
 test("Ctrl shortcuts work while typing in a field", () => {
-  for (const tagName of ["INPUT", "TEXTAREA", "SELECT"]) assert.equal(matchShortcut(ctrl("1", { target: { tagName, isContentEditable: false } }), false), "inbox", tagName);
-  assert.equal(matchShortcut(ctrl("n", { target: { tagName: "DIV", isContentEditable: true } }), false), "new-agent");
+  for (const tagName of ["INPUT", "TEXTAREA", "SELECT"]) assert.equal(matchShortcut(ctrl("1", { target: { tagName, isContentEditable: false } }), false), "dashboard", tagName);
+  assert.equal(matchShortcut(ctrl("n", { target: { tagName: "DIV", isContentEditable: true } }), false), "new-session");
   assert.equal(matchShortcut(ctrl("x", { target: typing }), false, true), "close-window");
 });
 
-test("plain keys and Cmd no longer trigger the shortcuts", () => {
+test("plain keys and Cmd do not trigger the shortcuts", () => {
   for (const key of ["1", "2", "3", "n", ","]) assert.equal(matchShortcut(press(key), false), null, key);
   assert.equal(matchShortcut(press("N", { shiftKey: true }), false), null);
   assert.equal(matchShortcut(press("n", { metaKey: true }), false), null);
@@ -37,15 +37,14 @@ test("an open dialog disables shortcuts", () => {
   assert.equal(matchShortcut(press("Escape"), true, true), null);
 });
 
-test("Ctrl+X, F and M act on the desk only", () => {
+test("Ctrl+X and F act on the sessions only, and Ctrl+M does nothing", () => {
   assert.equal(matchShortcut(ctrl("x"), false, true), "close-window");
   assert.equal(matchShortcut(ctrl("F"), false, true), "toggle-fullscreen");
-  assert.equal(matchShortcut(ctrl("m"), false, true), "minimize-window");
-  assert.equal(matchShortcut(ctrl("m"), false), null);
+  assert.equal(matchShortcut(ctrl("m"), false, true), null);
   assert.equal(matchShortcut(ctrl("f"), false), null);
 });
 
-test("Escape and the arrows stay plain keys, on the desk and outside fields", () => {
+test("Escape and the arrows stay plain keys, on the sessions and outside fields", () => {
   assert.equal(matchShortcut(press("Escape"), false, true), "unmaximize");
   assert.equal(matchShortcut(press("ArrowLeft"), false, true), "focus-left");
   assert.equal(matchShortcut(press("ArrowRight"), false, true), "focus-right");
@@ -56,14 +55,9 @@ test("Escape and the arrows stay plain keys, on the desk and outside fields", ()
   assert.equal(matchShortcut(press("Escape", { target: typing }), false, true), null);
 });
 
-test("Ctrl+Alt+1 to 6 focus a desk window, also from a field", () => {
-  assert.equal(matchShortcut(ctrl("1", { altKey: true }), false, true), "window-1");
-  assert.equal(matchShortcut(ctrl("¡", { altKey: true, code: "Digit6" }), false, true), "window-6");
-  assert.equal(matchShortcut(ctrl("1", { altKey: true, target: typing }), false, true), "window-1");
-  assert.equal(matchShortcut(ctrl("7", { altKey: true, code: "Digit7" }), false, true), null);
-  assert.equal(matchShortcut(ctrl("1", { altKey: true }), false), null);
-  assert.equal(matchShortcut(press("1", { altKey: true }), false, true), null, "Alt alone types a character");
-  assert.equal(matchShortcut(ctrl("1", { altKey: true }), true, true), null);
+test("Ctrl+Alt+digit is no shortcut: AltGr types a character", () => {
+  assert.equal(matchShortcut(ctrl("1", { altKey: true }), false, true), null);
+  assert.equal(matchShortcut(ctrl("7", { altKey: true }), false), null);
 });
 
 test("Ctrl+K and Cmd+K open the switcher, even while typing or with a dialog open", () => {

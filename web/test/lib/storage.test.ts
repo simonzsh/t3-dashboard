@@ -1,9 +1,7 @@
 import { afterEach, test } from "bun:test";
 import assert from "node:assert/strict";
-import { loadBackground, saveBackground } from "../../src/features/desk/deskBackground.ts";
-import { EMPTY_DESK, loadDesk, saveDesk } from "../../src/features/desk/desk.ts";
-import { browserStorage } from "../../src/lib/storage.ts";
-import { loadTheme, saveTheme } from "../../src/features/settings/theme.ts";
+import { browserStorage, readJson, readKey, writeKey } from "../../src/lib/storage.ts";
+import { memoryStore } from "../fixtures.ts";
 
 const original = Object.getOwnPropertyDescriptor(globalThis, "localStorage");
 afterEach(() => {
@@ -21,11 +19,25 @@ test("browserStorage returns null when reading the localStorage global throws", 
   assert.equal(browserStorage(), null);
 });
 
-test("theme, desk and background fall back without storage", () => {
-  assert.equal(loadTheme(null), "system");
-  assert.doesNotThrow(() => saveTheme(null, "dark"));
-  assert.deepEqual(loadDesk(null), EMPTY_DESK);
-  assert.doesNotThrow(() => saveDesk(null, EMPTY_DESK));
-  assert.deepEqual(loadBackground(null), { kind: "none" });
-  assert.match(saveBackground(null, { kind: "none" }) ?? "", /Could not save/);
+test("readKey and writeKey read and write a store", () => {
+  const store = memoryStore();
+  assert.equal(readKey(store, "k"), null);
+  writeKey(store, "k", "v");
+  assert.equal(readKey(store, "k"), "v");
+});
+
+test("without a working storage a read finds nothing and a write does not throw", () => {
+  const blocked = { getItem: () => { throw new Error("blocked"); }, setItem: () => { throw new Error("blocked"); } };
+  for (const storage of [blocked, null]) {
+    assert.equal(readKey(storage, "k"), null);
+    assert.doesNotThrow(() => writeKey(storage, "k", "v"));
+  }
+});
+
+test("readJson parses a key and gives null when it is missing or broken", () => {
+  const store = memoryStore({ ok: '{"a":[1]}', broken: "{oops" });
+  assert.deepEqual(readJson(store, "ok"), { a: [1] });
+  assert.equal(readJson(store, "broken"), null);
+  assert.equal(readJson(store, "missing"), null);
+  assert.equal(readJson(null, "ok"), null);
 });

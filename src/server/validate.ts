@@ -1,5 +1,6 @@
 import type { ApprovalDecision, AssignIssueBody, CreateAutomationBody, CreateThreadBody, RoutineSchedule, WebhookFilter, WebhookSignature, ModelSelection, RespondBody, RewindBody, SecretAnswerBody, SendMessageBody, ThreadSettingsBody, UpdateAutomationBody, UploadedAttachment, UserInputAnswers } from "../../shared/api.ts";
-import { normalizeDesk, type DeskUpdate } from "../../shared/desk.ts";
+import { isObject } from "../../shared/guards.ts";
+import { normalizeSessions, type SessionsUpdate } from "../../shared/sessions.ts";
 import { IMAGE_TYPES, MAX_ATTACHMENTS, MAX_FILE_BYTES, MAX_IMAGE_BYTES, MAX_IMAGES, MAX_SECRET_CHARS, isRuntimeMode } from "../../shared/limits.ts";
 import { isSeenId, isSeenTime, type SeenChange } from "../../shared/seen.ts";
 import { STASH_TEXT_MAX, type StashBody } from "../../shared/stash.ts";
@@ -18,7 +19,6 @@ const MAX_FILE_SEARCH_LIMIT = 50;
 const DEFAULT_FILE_SEARCH_LIMIT = 20;
 const DECISIONS = new Set<string>(["accept", "acceptForSession", "decline"]);
 
-export const isObject = (value: unknown): value is Record<string, unknown> => typeof value === "object" && value !== null && !Array.isArray(value);
 export const isText = (value: unknown): value is string => typeof value === "string" && value.trim() !== "";
 
 function validSelection(selection: unknown): ModelSelection | null {
@@ -128,6 +128,17 @@ export function validSearch(params: URLSearchParams): { query: string; limit: nu
   const limit = raw === null ? MAX_SEARCH_LIMIT : Number(raw);
   if (raw === "" || !Number.isInteger(limit) || limit < 1 || limit > MAX_SEARCH_LIMIT) throw new HttpError(400, `limit must be an integer from 1 to ${MAX_SEARCH_LIMIT}`);
   return { query, limit };
+}
+
+/** The IANA zone of `?tz=`, or undefined when absent (the server zone then applies). */
+export function validTimeZone(value: string | null): string {
+  if (value === null) throw new HttpError(400, "tz is required: an IANA time zone, such as Europe/Paris");
+  try {
+    new Intl.DateTimeFormat("en-CA", { timeZone: value });
+  } catch {
+    throw new HttpError(400, "tz must be an IANA time zone, such as Europe/Paris");
+  }
+  return value;
 }
 
 export function validSettings(body: Record<string, unknown>): ThreadSettingsBody {
@@ -280,12 +291,12 @@ export function validMessage(body: Record<string, unknown>): { message: Omit<Sen
 
 const MAX_ORIGIN = 100;
 
-export function validDesk(body: Record<string, unknown>): DeskUpdate {
-  const desk = normalizeDesk(body.desk);
-  if (!desk || !isText(body.origin) || body.origin.length > MAX_ORIGIN) {
-    throw new HttpError(400, `desk (an ids list) and origin (1 to ${MAX_ORIGIN} characters) are required`);
+export function validSessions(body: Record<string, unknown>): SessionsUpdate {
+  const sessions = normalizeSessions(body.sessions);
+  if (!sessions || !isText(body.origin) || body.origin.length > MAX_ORIGIN) {
+    throw new HttpError(400, `sessions (an ids list) and origin (1 to ${MAX_ORIGIN} characters) are required`);
   }
-  return { desk, origin: body.origin };
+  return { sessions, origin: body.origin };
 }
 
 const MAX_THREAD_TITLE = 500;

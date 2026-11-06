@@ -2,11 +2,12 @@ import type { Server } from "bun";
 import type { ConnectionStatus, DashboardState } from "../../shared/api.ts";
 import { MAX_MESSAGE_BODY_BYTES, MAX_UPLOAD_BODY_BYTES } from "../../shared/limits.ts";
 import type { Actions, AssetRequest } from "../domain/actions.ts";
-import type { DeskStore } from "../domain/deskStore.ts";
+import type { SessionsStore } from "../domain/sessionsStore.ts";
 import type { StashStore } from "../domain/stashStore.ts";
 import type { SeenStore } from "../domain/seenStore.ts";
 import type { Automations } from "../domain/automations.ts";
 import type { LinearBoard } from "../domain/linearBoard.ts";
+import type { Usage } from "../domain/usage.ts";
 import type { Settings } from "../domain/settings.ts";
 import type { UpdateManager } from "../domain/updates.ts";
 import { VERSION } from "../config/version.ts";
@@ -16,7 +17,8 @@ import { matchesEtag } from "./etag.ts";
 import { servePwa } from "./pwa.ts";
 import type { Site } from "./site.ts";
 import type { SseHub } from "./sse.ts";
-import { isObject, isText, validAssign, validAttachments, validCreateAutomation, validDesk, validCreate, validFileSearch, validItemId, validMessage, validProvider, validQueuedEdit, validRespond, validRewind, validSearch, validSecretAnswer, validSeen, validSettings, validStash, validUpdateAutomation, validUpload } from "./validate.ts";
+import { isObject } from "../../shared/guards.ts";
+import { isText, validAssign, validAttachments, validCreateAutomation, validCreate, validFileSearch, validItemId, validMessage, validProvider, validQueuedEdit, validRespond, validRewind, validSearch, validSecretAnswer, validSeen, validSessions, validSettings, validStash, validTimeZone, validUpdateAutomation, validUpload } from "./validate.ts";
 
 export interface SetupControl {
   /** Resolves the token again. */
@@ -29,8 +31,9 @@ export interface SetupControl {
 export interface DashboardServerOptions {
   actions: Actions;
   board: Pick<LinearBoard, "get">;
+  usage: Pick<Usage, "get">;
   automations: Pick<Automations, "list" | "create" | "remove" | "update">;
-  desk: Pick<DeskStore, "get" | "set">;
+  sessions: Pick<SessionsStore, "get" | "set">;
   stash: Pick<StashStore, "list" | "add" | "remove">;
   seen: Pick<SeenStore, "get" | "apply">;
   hub: SseHub;
@@ -45,6 +48,8 @@ export interface DashboardServerOptions {
 }
 
 const MAX_BODY_BYTES = 1024 * 1024;
+// The first usage read walks every recent thread: it can stay silent longer than Bun's 10 s idle default.
+const USAGE_IDLE_TIMEOUT_S = 60;
 const LOCAL_HOSTS = new Set(["127.0.0.1", "localhost"]);
 
 const SECURITY_HEADERS = {
@@ -144,7 +149,7 @@ function matchRoute(pattern: string[], segments: string[]): Record<string, strin
 }
 
 export function createDashboardServer(options: DashboardServerOptions): DashboardHandler {
-  const { actions, desk, stash, seen, hub, board, automations, getState, connection, site, settings, setup, updates } = options;
+  const { actions, sessions, stash, seen, hub, board, usage, automations, getState, connection, site, settings, setup, updates } = options;
   const allowedHosts = new Set([...LOCAL_HOSTS, ...(options.allowedHosts ?? [])]);
   const ok = (extra: Record<string, unknown> = {}) => json(200, { ok: true, ...extra });
   const done = async (work: Promise<unknown>) => (await work, ok());
@@ -179,9 +184,18 @@ export function createDashboardServer(options: DashboardServerOptions): Dashboar
   const routes: Route[] = [
     { method: "GET", path: "/api/health", handle: () => json(200, { ok: true, t3: connection().t3, version: VERSION }) },
     { method: "GET", path: "/api/board", handle: async ({ req }) => json(200, await board.get(new URL(req.url).searchParams.get("refresh") === "1")) },
+    {
+      method: "GET",
+      path: "/api/usage",
+      handle: async ({ req, server }) => {
+        server?.timeout(req, USAGE_IDLE_TIMEOUT_S);
+        const params = new URL(req.url).searchParams;
+        return json(200, await usage.get(validTimeZone(params.get("tz")), params.get("refresh") === "1"));
+      },
+    },
     { method: "GET", path: "/api/automations", handle: async () => json(200, await automations.list()) },
     { method: "GET", path: "/api/settings", handle: () => json(200, settings.get()) },
-    { method: "GET", path: "/api/desk", handle: () => json(200, { desk: desk.get() }) },
+    { method: "GET", path: "/api/sessions", handle: () => json(200, { sessions: sessions.get() }) },
     { method: "GET", path: "/api/stash", handle: () => json(200, { entries: stash.list() }) },
     { method: "GET", path: "/api/seen", handle: () => json(200, { seen: seen.get() }) },
     { method: "GET", path: "/api/update", handle: () => json(200, updates.status()) },
@@ -256,11 +270,11 @@ export function createDashboardServer(options: DashboardServerOptions): Dashboar
     },
     {
       method: "POST",
-      path: "/api/desk",
+      path: "/api/sessions",
       handle: ({ body }) => {
-        const update = validDesk(body);
-        desk.set(update.desk);
-        hub.broadcast({ type: "desk", data: update });
+        const update = validSessions(body);
+        sessions.set(update.sessions);
+        hub.broadcast({ type: "sessions", data: update });
         return ok();
       },
     },

@@ -46,6 +46,17 @@ test("a call that throws does not end the loop", async () => {
   assert.ok(calls >= 2, `calls: ${calls}`);
 });
 
+test("a delay function is read after each call", async () => {
+  const delays = [5, 30];
+  const starts: number[] = [];
+  const begin = Date.now();
+  const stop = startPoll(async () => void starts.push(Date.now() - begin), () => delays.shift() ?? 1000);
+  await wait(60);
+  stop();
+  assert.equal(starts.length, 2, `calls: ${starts.length}`);
+  assert.ok(starts[1]! - starts[0]! >= 28, "the second delay comes from the function");
+});
+
 function fakePage(hidden: boolean) {
   const state = { hidden, listeners: new Set<() => void>() };
   return {

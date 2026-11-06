@@ -1,5 +1,5 @@
 import type { LinearIssueNode } from "../../integrations/linear/schemas.ts";
-import type { RawConfig, RawProject, RawProjection, RawScheduledTask, RawSubagent, RawThread, RawTurnItem } from "../../integrations/t3/schemas.ts";
+import type { RawConfig, RawProject, RawProjection, RawScheduledTask, RawSubagent, RawThread, RawTurnItem, RawUsageSummary } from "../../integrations/t3/schemas.ts";
 
 // Invented data for `bun run demo`: a small team building "Atlas", no real names.
 // Times are minutes before `now`, so the page always reads "2 min ago", "yesterday"...
@@ -234,10 +234,14 @@ const SPECS: ThreadSpec[] = [
     model: CODEX,
     status: "completed",
     messages: [
+      ["user", 10000, "The webhook test failed on CI again. Is it the same cause?"],
+      ["assistant", 9980, "No. This time the fixture reused a port. Each test now asks the system for a free port."],
+      ["user", 4400, "Add a retry log to the webhook test so we see the next flaky failure."],
+      ["assistant", 4380, "Done: a failed attempt now logs the event order before the test retries."],
       ["user", 190, "`payments/webhook.test.ts` fails about once in ten runs on CI. Find out why."],
       ["assistant", 171, "The test depended on the order of two async events. It now waits for both events before it checks the result. 200 runs in a row pass on CI."],
     ],
-    runs: [{ id: "run-flaky-1", status: "completed", started: 189, completed: 171 }],
+    runs: [{ id: "run-flaky-test-old0", status: "completed", started: 9999, completed: 9980 }, { id: "run-flaky-test-old1", status: "completed", started: 4399, completed: 4380 }, { id: "run-flaky-1", status: "completed", started: 189, completed: 171 }],
   },
   {
     id: "demo-charts",
@@ -247,6 +251,8 @@ const SPECS: ThreadSpec[] = [
     model: CLAUDE,
     status: "completed",
     messages: [
+      ["user", 2900, "List the charts the analytics page needs."],
+      ["assistant", 2880, "Four charts: revenue by day, signups, retention and a funnel."],
       ["user", 140, "Compare three charting libraries for the analytics page."],
       [
         "assistant",
@@ -254,7 +260,7 @@ const SPECS: ThreadSpec[] = [
         "| Library | Bundle | Accessibility | Notes |\n| --- | --- | --- | --- |\n| Recharts | 95 kB | Partial | Easy React API |\n| Visx | 40 kB | Manual | Flexible, more code |\n| ECharts | 320 kB | Good | Many chart types |\n\nI recommend **Visx**: smallest bundle, and we already build our own components.",
       ],
     ],
-    runs: [{ id: "run-charts-1", status: "completed", started: 139, completed: 128 }],
+    runs: [{ id: "run-charts-old0", status: "completed", started: 2899, completed: 2880 }, { id: "run-charts-1", status: "completed", started: 139, completed: 128 }],
   },
   {
     id: "demo-digest",
@@ -263,10 +269,12 @@ const SPECS: ThreadSpec[] = [
     model: SONNET,
     status: "completed",
     messages: [
+      ["user", 11000, "Write last week's product digest."],
+      ["assistant", 10990, "Last week: 11 pull requests merged, 5 bugs closed. The digest is in the team channel."],
       ["user", 1500, "Write this week's product digest."],
       ["assistant", 1490, "This week: 14 pull requests merged, 3 bugs closed, and the 2.4 release is ready for review. Full digest posted in the team channel."],
     ],
-    runs: [{ id: "run-digest-1", status: "completed", started: 1499, completed: 1490 }],
+    runs: [{ id: "run-digest-old0", status: "completed", started: 10999, completed: 10990 }, { id: "run-digest-1", status: "completed", started: 1499, completed: 1490 }],
     thread: { settledOverride: "settled", settledAt: LAST },
   },
   {
@@ -276,10 +284,14 @@ const SPECS: ThreadSpec[] = [
     model: CLAUDE,
     status: "completed",
     messages: [
+      ["user", 13000, "Which screens can a notification open today?"],
+      ["assistant", 12980, "Three screens: the inbox, an order and the settings. Other routes fall back to the home screen."],
+      ["user", 3000, "Add the order route to the notification payload."],
+      ["assistant", 2980, "Done: the payload carries `orderId`, and the app opens the order after login."],
       ["user", 1700, "Notification taps should open the right screen, not the home screen."],
       ["assistant", 1650, "Done: each notification now carries a route, and the app opens it after login. Tested on iOS and Android simulators."],
     ],
-    runs: [{ id: "run-links-1", status: "completed", started: 1695, completed: 1650 }],
+    runs: [{ id: "run-deep-links-old0", status: "completed", started: 12999, completed: 12980 }, { id: "run-deep-links-old1", status: "completed", started: 2999, completed: 2980 }, { id: "run-links-1", status: "completed", started: 1695, completed: 1650 }],
     thread: { settledOverride: "settled", settledAt: LAST },
   },
   {
@@ -289,10 +301,12 @@ const SPECS: ThreadSpec[] = [
     model: CLAUDE,
     status: "completed",
     messages: [
+      ["user", 4000, "How long does the product page build take today?"],
+      ["assistant", 3990, "The cold build takes 41 s. A warm build takes 6 s."],
       ["user", 30, "Profile the product page build and keep the dev server up while you look."],
       ["assistant", 25, "The dev server runs in the background on port 5173. The run is over, but the server still runs."],
     ],
-    runs: [{ id: "run-profile-1", status: "completed", started: 29, completed: 25 }],
+    runs: [{ id: "run-dev-server-old0", status: "completed", started: 3999, completed: 3990 }, { id: "run-profile-1", status: "completed", started: 29, completed: 25 }],
     thread: { pendingBackgroundTasks: [{ taskId: "bg-dev-server", kind: "shell", description: "bun run dev (port 5173)" }] },
   },
 ];
@@ -573,4 +587,37 @@ export function demoScheduledTasks(now: Date): RawScheduledTask[] {
       modelSelection: null,
     },
   ];
+}
+
+const USAGE_MODELS = [
+  { share: 0.55, price: 1.6, costSource: "modelPriced" },
+  { share: 0.3, price: 0.9, costSource: "modelPriced" },
+  // A model T3 has no rate for: the demo shows the "partial" cost state.
+  { share: 0.15, price: 0, costSource: "unpriced" },
+] as const;
+
+// Fixed per-day weights (Monday-ish peaks), so the chart is the same on every run.
+const USAGE_LOAD = [0.4, 0.7, 1, 0.9, 0.6, 0.2, 0.1, 0.5, 0.8, 1.1, 1, 0.7, 0.9, 0.8];
+
+/** Usage buckets for the days `sinceDay` to `untilDay`, as T3's scan reports them, one per day and model. */
+export function demoUsageBuckets(sinceDay: string, untilDay: string): RawUsageSummary {
+  const buckets: RawUsageSummary["buckets"] = [];
+  const end = Date.parse(`${untilDay}T00:00:00Z`);
+  const count = Math.round((end - Date.parse(`${sinceDay}T00:00:00Z`)) / 86_400_000) + 1;
+  for (let index = 0; index < count; index++) {
+    const day = new Date(end - (count - 1 - index) * 86_400_000).toISOString().slice(0, 10);
+    const load = USAGE_LOAD[index % USAGE_LOAD.length]!;
+    for (const { share, price, costSource } of USAGE_MODELS) {
+      const input = Math.round(load * share * 4_000_000);
+      const cached = Math.round(input * 0.7);
+      buckets.push({
+        day,
+        costUsd: Math.round(load * share * price * 3_000) / 100,
+        costSource,
+        unpricedRecords: costSource === "unpriced" ? Math.ceil(load * 12) : 0,
+        totals: { uncachedInputTokens: input - cached, cachedInputTokens: cached, cacheCreationTokens: Math.round(input * 0.05), outputTokens: Math.round(load * share * 300_000) },
+      });
+    }
+  }
+  return { buckets };
 }
