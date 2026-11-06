@@ -277,14 +277,13 @@ export function createActions(options: ActionsOptions): Actions {
       const root = path === undefined ? undefined : normalizeFolder(path, home);
       const other = root === undefined ? undefined : store.projectByRoot(root);
       if (other && other.id !== projectId && !other.archived) throw new DomainError("conflict", "Another T3 project already uses this folder");
-      const mutation = {
-        type: "project.update" as const,
-        projectId,
+      const fields = {
         ...(title !== undefined && { title }),
         ...(root !== undefined && root !== normalizeFolder(current.workspaceRoot ?? "", "") && { workspaceRoot: root }),
         ...(icon !== undefined && { projectIcon: icon }),
       };
-      if (Object.keys(mutation).length === 2) return;
+      if (Object.keys(fields).length === 0) return;
+      const mutation = { type: "project.update" as const, projectId, ...fields };
       try {
         await t3(port.mutateProject(mutation, newId()));
       } catch (error) {
