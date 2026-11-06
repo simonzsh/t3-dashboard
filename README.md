@@ -84,7 +84,7 @@ More details in [docs/install.md](docs/install.md).
 
 ## Update
 
-The dashboard looks for a new version every hour. When one is available, click the "Update vX.Y.Z" button in the header. In a terminal: `t3-dashboard update`.
+The dashboard looks for a new version every hour. When one is available, click the "Update vX.Y.Z" button at the bottom of the sidebar. On a phone, a dot on the Settings button shows it: open Settings, then Updates. In a terminal: `t3-dashboard update`.
 
 ## Uninstall
 

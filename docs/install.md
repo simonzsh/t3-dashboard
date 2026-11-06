@@ -114,7 +114,7 @@ File format:
 
 The dashboard looks for a new GitHub release at startup, then every hour. A network error or a missing release shows nothing.
 
-1. When a more recent version exists, the "Update vX.Y.Z" button appears in the header.
+1. When a more recent version exists, the "Update vX.Y.Z" button appears at the bottom of the sidebar. On a phone, the Settings button of the header shows a dot instead: the update is in Settings, Updates.
 2. Click this button, then confirm.
 3. The dashboard does the same update as `t3-dashboard update`, then restarts.
 4. The page waits for the new dashboard and reloads automatically. If the update fails, the page shows the error.

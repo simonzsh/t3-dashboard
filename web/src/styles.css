@@ -92,6 +92,8 @@ input.field { height: var(--control-md); padding-block: 0; }
 .btn.md { height: var(--control-md); padding: 0 12px; }
 .btn.sm { height: var(--control-sm); padding: 0 10px; font-size: 12px; }
 .icon-button { padding: 0; color: var(--text-secondary); }
+.icon-button.has-update { position: relative; }
+.icon-button.has-update::after { content: ""; position: absolute; top: 8px; right: 8px; width: 8px; height: 8px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 0 2px var(--surface-0); }
 .icon-button.md { min-width: var(--control-md); height: var(--control-md); }
 .icon-button.sm { min-width: var(--control-sm); height: var(--control-sm); }
 .icon-button:has(kbd) { gap: 6px; padding: 0 6px; }
