@@ -1,7 +1,7 @@
 import { ctrlLabel } from "../../lib/shortcuts.ts";
 import { TABS, type Tab } from "../../lib/tabs.ts";
 import { badgeText, type NavBadges } from "../../lib/navBadges.ts";
-import { Icon, IconButton, Kbd, Logo, Pressable, type IconName } from "../../ui/index.ts";
+import { Icon, IconButton, Kbd, Logo, Pressable } from "../../ui/index.ts";
 
 interface NavUpdate {
   label: string;
@@ -89,20 +89,18 @@ function Sidebar({ tab, unread, badges, live, update, collapsed, onToggleCollaps
   );
 }
 
-function BottomBar({ tab, unread, badges, onTab, onSettings }: Pick<Props, "tab" | "unread" | "badges" | "onTab" | "onSettings">) {
-  const item = (icon: IconName, label: string, props: { id?: Tab; onClick: () => void }) => (
-    <Pressable key={label} data-tab={props.id} className={`bottom-item${props.id && tab === props.id ? " active" : ""}`} aria-current={props.id && tab === props.id ? "page" : undefined} onClick={props.onClick}>
-      <span className="bottom-icon">
-        <Icon name={icon} className="bottom-glyph" />
-        {props.id && <Badges id={props.id} unread={unread} badges={badges} />}
-      </span>
-      <span className="bottom-label">{label}</span>
-    </Pressable>
-  );
+function BottomBar({ tab, unread, badges, onTab }: Pick<Props, "tab" | "unread" | "badges" | "onTab">) {
   return (
     <nav className="bottom-nav" aria-label="Pages">
-      {TABS.map(({ id, label, icon }) => item(icon, label, { id, onClick: () => onTab(id) }))}
-      {item("settings", "Settings", { onClick: onSettings })}
+      {TABS.map(({ id, label, icon }) => (
+        <Pressable key={id} data-tab={id} className={`bottom-item${tab === id ? " active" : ""}`} aria-current={tab === id ? "page" : undefined} onClick={() => onTab(id)}>
+          <span className="bottom-icon">
+            <Icon name={icon} className="bottom-glyph" />
+            <Badges id={id} unread={unread} badges={badges} />
+          </span>
+          <span className="bottom-label">{label}</span>
+        </Pressable>
+      ))}
     </nav>
   );
 }

@@ -49,12 +49,12 @@ test("the sidebar shows the update button only when an update is ready", () => {
   assert.match(side({ update: { label: "Update v1.2.3", busy: false } }), /update-pill[^>]*>[\s\S]*?Update v1\.2\.3/);
 });
 
-test("the bottom bar has the three pages and Settings, and no sidebar", () => {
+test("the bottom bar has the three pages only (Settings is in the phone header), and no sidebar", () => {
   const out = bottom();
   assert.match(out, /<nav class="bottom-nav"/);
   assert.doesNotMatch(out, /sidebar|Search…/);
   assert.deepEqual([...out.matchAll(/data-tab="(\w+)"/g)].map((m) => m[1]), ["dashboard", "sessions", "automations"]);
-  assert.match(out, />Settings</);
+  assert.doesNotMatch(out, /Settings/);
   assert.equal(out.match(/aria-current="page"/g)?.length, 1);
 });
 

@@ -20,6 +20,8 @@ interface Props {
   onNewSession: () => void;
   onNewAutomation: () => void;
   onSearch: () => void;
+  /** Phone only: Settings sits in the header, the bottom bar holds the pages. */
+  onSettings: () => void;
   onEditLayout: () => void;
   onDoneLayout: () => void;
   onResetLayout: () => void;
@@ -62,7 +64,7 @@ function Action({ compact, label, icon, variant = "secondary", withIcon = false,
 }
 
 /** The header buttons of a page: Sessions hides the list, picks its layout and starts a session, Automations a task, Dashboard edits its layout. */
-export function PageActions({ tab, compact, ready, editingLayout, layoutIsDefault, layout, onLayoutChange, listHidden, onToggleList, onNewSession, onNewAutomation, onSearch, onEditLayout, onDoneLayout, onResetLayout }: Props) {
+export function PageActions({ tab, compact, ready, editingLayout, layoutIsDefault, layout, onLayoutChange, listHidden, onToggleList, onNewSession, onNewAutomation, onSearch, onSettings, onEditLayout, onDoneLayout, onResetLayout }: Props) {
   let main = null;
   if (tab === "dashboard" && editingLayout) {
     main = (
@@ -100,9 +102,14 @@ export function PageActions({ tab, compact, ready, editingLayout, layoutIsDefaul
     <>
       {main}
       {compact && ready && (
-        <IconButton variant="ghost" label="Search" onClick={onSearch}>
-          <Icon name="search" />
-        </IconButton>
+        <>
+          <IconButton variant="ghost" label="Search" onClick={onSearch}>
+            <Icon name="search" />
+          </IconButton>
+          <IconButton variant="ghost" label="Settings" onClick={onSettings}>
+            <Icon name="settings" strokeWidth={1.8} />
+          </IconButton>
+        </>
       )}
     </>
   );

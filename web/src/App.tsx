@@ -235,6 +235,7 @@ export function App() {
               onNewSession={() => setCreating({ projectId: null })}
               onNewAutomation={() => setCreatingAutomation(true)}
               onSearch={openSearch}
+              onSettings={() => setSettingsOpen(true)}
               onEditLayout={() => dashboardLayout.setEditing(true)}
               onDoneLayout={() => dashboardLayout.setEditing(false)}
               onResetLayout={dashboardLayout.reset}

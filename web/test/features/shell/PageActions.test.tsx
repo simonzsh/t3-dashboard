@@ -7,7 +7,7 @@ import type { Tab } from "../../../src/lib/tabs.ts";
 const noop = () => {};
 const render = (tab: Tab, over: Partial<Parameters<typeof PageActions>[0]> = {}) =>
   renderToStaticMarkup(
-    <PageActions tab={tab} compact={false} ready editingLayout={false} layoutIsDefault={false} layout="columns" onLayoutChange={noop} listHidden={false} onToggleList={noop} onNewSession={noop} onNewAutomation={noop} onSearch={noop} onEditLayout={noop} onDoneLayout={noop} onResetLayout={noop} {...over} />,
+    <PageActions tab={tab} compact={false} ready editingLayout={false} layoutIsDefault={false} layout="columns" onLayoutChange={noop} listHidden={false} onToggleList={noop} onNewSession={noop} onNewAutomation={noop} onSearch={noop} onSettings={noop} onEditLayout={noop} onDoneLayout={noop} onResetLayout={noop} {...over} />,
   );
 
 test("Sessions shows the list toggle, then the layout toggle, then New Session", () => {
@@ -91,4 +91,12 @@ test("on a phone Dashboard has Edit layout as an icon, then Reset and Done while
   const editing = render("dashboard", { compact: true, editingLayout: true });
   assert.match(editing, /aria-label="Reset"/);
   assert.match(editing, /aria-label="Done"/);
+});
+
+test("on a phone every page header ends with Search and Settings", () => {
+  for (const tab of ["dashboard", "sessions", "automations"] as const) {
+    const out = render(tab, { compact: true });
+    assert.ok(out.indexOf('aria-label="Search"') < out.indexOf('aria-label="Settings"'), tab);
+  }
+  assert.doesNotMatch(render("dashboard"), /aria-label="Settings"/);
 });
