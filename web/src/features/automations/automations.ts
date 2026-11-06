@@ -149,16 +149,16 @@ const TONES: Record<AutomationRunOutcome, RunTone> = { succeeded: "ok", failed: 
 export const runTone = (status: AutomationRunOutcome): RunTone => TONES[status];
 export const RUN_LABELS: Record<AutomationRunOutcome, string> = { succeeded: "Succeeded", failed: "Failed", running: "Running", waiting: "Waiting for you", unknown: "Unknown" };
 
-/** "2 h ago · 3 min": when a run started and how long it took. */
-export function runWhen(run: AutomationRun, now: Date): string {
-  return [relativeTime(run.startedAt, now), runDuration(run, now)].filter(Boolean).join(" · ");
+/** "2 h ago · 3 min": when a run started and how long it took. A bound chat goes on after the run: no duration. */
+export function runWhen(run: AutomationRun, now: Date, bound = false): string {
+  return [relativeTime(run.startedAt, now), bound ? null : runDuration(run, now)].filter(Boolean).join(" · ");
 }
 
 /** The latest run in words, read through its thread: T3 marks a run "succeeded" once it is sent. */
 export function lastRunLine(a: Automation, threads: Threads, now: Date): { tone: RunTone; label: string; detail: string } {
   const run = liveRuns(a, threads)[0];
   if (!run) return { tone: "none", label: "Never run", detail: "" };
-  return { tone: runTone(run.status), label: RUN_LABELS[run.status], detail: runWhen(run, now) };
+  return { tone: runTone(run.status), label: RUN_LABELS[run.status], detail: runWhen(run, now, a.bound) };
 }
 
 export const isRunning = (a: Automation, threads: Threads): boolean => liveRuns(a, threads)[0]?.status === "running";

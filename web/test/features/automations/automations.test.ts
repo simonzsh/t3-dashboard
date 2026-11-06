@@ -1,7 +1,7 @@
 import { test } from "bun:test";
 import assert from "node:assert/strict";
 import type { Automation, AutomationRun, DashboardProvider, DashboardThread } from "../../../../shared/api.ts";
-import { automationGroup, automationsBadge, capitalize, copyableUrl, filterAutomations, finishedSetups, isEditable, isFinishedReminder, isRunning, lastRunLine, latestFinished, latestUnread, liveRun, liveRuns, modelLabel, nextRunLine, nextRunText, recentRuns, runDuration, runUnread, scheduleText, sortAutomations } from "../../../src/features/automations/automations.ts";
+import { automationGroup, automationsBadge, capitalize, copyableUrl, filterAutomations, finishedSetups, isEditable, isFinishedReminder, isRunning, runWhen, lastRunLine, latestFinished, latestUnread, liveRun, liveRuns, modelLabel, nextRunLine, nextRunText, recentRuns, runDuration, runUnread, scheduleText, sortAutomations } from "../../../src/features/automations/automations.ts";
 import { thread } from "../../fixtures.ts";
 
 function auto(id: string, over: Partial<Automation> = {}): Automation {
@@ -273,4 +273,11 @@ test("nextRunLine: relative next run, paused, webhook and finished", () => {
 test("capitalize raises the first letter only", () => {
   assert.equal(capitalize("every 15 minutes"), "Every 15 minutes");
   assert.equal(capitalize(""), "");
+});
+
+test("runWhen leaves the duration out for a bound chat", () => {
+  const done = run("chat", at(9), { finishedAt: at(12) });
+  const now = new Date(at(13));
+  assert.match(runWhen(done, now), /3 h/);
+  assert.doesNotMatch(runWhen(done, now, true), /·/);
 });

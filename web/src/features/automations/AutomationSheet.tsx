@@ -33,7 +33,7 @@ export function AutomationSheet({ automation: a, threads, project, providers, se
   const model = modelLabel(providers, a.modelSelection);
   const runs = liveRuns(a, threads);
   const last = lastRunLine(a, threads, now);
-  const session = a.threadId && threads.has(a.threadId) ? a.threadId : null;
+  const session = a.bound && a.threadId && threads.has(a.threadId) ? a.threadId : null;
   const busy = isRunning(a, threads) || starting;
   const finished = isFinishedReminder(a);
 

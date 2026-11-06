@@ -28,7 +28,7 @@ export function RunRow({ automation, run, threads, seen, now, onOpen, variant }:
           <span className="run-date">{reminderDate(run.startedAt)}</span>
           {runUnread(automation, run, threads, seen) && <span className="notif-dot" role="img" aria-label="Unread" />}
         </span>
-        <span className="run-when">{runWhen(run, now)}</span>
+        <span className="run-when">{runWhen(run, now, automation.bound)}</span>
         {run.status === "failed" && run.error && <span className="run-error">{run.error}</span>}
       </span>
     </>
