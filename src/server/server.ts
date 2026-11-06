@@ -1,5 +1,5 @@
 import type { Server } from "bun";
-import type { ConnectionStatus, DashboardState, SharedSessions } from "../../shared/api.ts";
+import type { ConnectionStatus, DashboardState } from "../../shared/api.ts";
 import { MAX_MESSAGE_BODY_BYTES, MAX_UPLOAD_BODY_BYTES } from "../../shared/limits.ts";
 import type { Actions, AssetRequest } from "../domain/actions.ts";
 import type { SessionsStore } from "../domain/sessionsStore.ts";
@@ -17,7 +17,7 @@ import { matchesEtag } from "./etag.ts";
 import { servePwa } from "./pwa.ts";
 import type { Site } from "./site.ts";
 import type { SseHub } from "./sse.ts";
-import { isObject, isText, validAssign, validAttachments, validCreateAutomation, validCreate, validFileSearch, validLegacyDesk, validItemId, validMessage, validProvider, validQueuedEdit, validRespond, validRewind, validSearch, validSecretAnswer, validSeen, validSessions, validSettings, validStash, validTimeZone, validUpdateAutomation, validUpload } from "./validate.ts";
+import { isObject, isText, validAssign, validAttachments, validCreateAutomation, validCreate, validFileSearch, validItemId, validMessage, validProvider, validQueuedEdit, validRespond, validRewind, validSearch, validSecretAnswer, validSeen, validSessions, validSettings, validStash, validTimeZone, validUpdateAutomation, validUpload } from "./validate.ts";
 
 export interface SetupControl {
   /** Resolves the token again. */
@@ -149,12 +149,6 @@ export function createDashboardServer(options: DashboardServerOptions): Dashboar
   const { actions, sessions, stash, seen, hub, board, usage, automations, getState, connection, site, settings, setup, updates } = options;
   const allowedHosts = new Set([...LOCAL_HOSTS, ...(options.allowedHosts ?? [])]);
   const ok = (extra: Record<string, unknown> = {}) => json(200, { ok: true, ...extra });
-  // Tabs on an older build only listen for the legacy `desk` event, so both go out.
-  const saveAndBroadcast = (shared: SharedSessions, origin: string) => {
-    sessions.set(shared);
-    hub.broadcast({ type: "sessions", data: { sessions: shared, origin } });
-    hub.broadcast({ type: "desk", data: { desk: shared, origin } });
-  };
   const done = async (work: Promise<unknown>) => (await work, ok());
 
   // Images keep T3's type; a rendered page is served sandboxed, so its scripts get an opaque origin and cannot call /api.
@@ -198,7 +192,6 @@ export function createDashboardServer(options: DashboardServerOptions): Dashboar
     { method: "GET", path: "/api/automations", handle: async () => json(200, await automations.list()) },
     { method: "GET", path: "/api/settings", handle: () => json(200, settings.get()) },
     { method: "GET", path: "/api/sessions", handle: () => json(200, { sessions: sessions.get() }) },
-    { method: "GET", path: "/api/desk", handle: () => json(200, { desk: sessions.get() }) },
     { method: "GET", path: "/api/stash", handle: () => json(200, { entries: stash.list() }) },
     { method: "GET", path: "/api/seen", handle: () => json(200, { seen: seen.get() }) },
     { method: "GET", path: "/api/update", handle: () => json(200, updates.status()) },
@@ -276,16 +269,8 @@ export function createDashboardServer(options: DashboardServerOptions): Dashboar
       path: "/api/sessions",
       handle: ({ body }) => {
         const update = validSessions(body);
-        saveAndBroadcast(update.sessions, update.origin);
-        return ok();
-      },
-    },
-    {
-      method: "POST",
-      path: "/api/desk",
-      handle: ({ body }) => {
-        const update = validLegacyDesk(body);
-        saveAndBroadcast(update.desk, update.origin);
+        sessions.set(update.sessions);
+        hub.broadcast({ type: "sessions", data: update });
         return ok();
       },
     },

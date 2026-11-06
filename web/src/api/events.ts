@@ -26,7 +26,6 @@ export function applyEvent(state: DashboardState | null, event: DashboardEvent):
     case "connection":
       return { ...state, connection: event.data };
     case "sessions":
-    case "desk":
     case "stash":
     case "seen":
       return state;

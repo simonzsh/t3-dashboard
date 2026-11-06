@@ -24,7 +24,7 @@ import { readLinearKey } from "../config/linearFile.ts";
 import { readRearmed, rearmedText } from "../config/rearmedFile.ts";
 import { RearmedStore } from "../domain/rearmedStore.ts";
 import { readAutomationThreads } from "../config/automationThreads.ts";
-import { automationThreadsFile, legacyDeskFile, linearFile, pidFile, rearmedFile, seenFile as seenPath, sessionsFile as sessionsPath, stashFile as stashPath } from "../config/paths.ts";
+import { automationThreadsFile, linearFile, pidFile, rearmedFile, seenFile as seenPath, sessionsFile as sessionsPath, stashFile as stashPath } from "../config/paths.ts";
 import { redirectConsole, writePidFile } from "../config/runFiles.ts";
 import { writeSecret } from "../config/secretFile.ts";
 import { createDashboardServer } from "../server/server.ts";
@@ -160,7 +160,7 @@ export async function start({ port, log, env }: StartOptions): Promise<void> {
     rearmed,
   });
   const sessionsFile = sessionsPath(env, home);
-  const sessions = new SessionsStore(readSessions(sessionsFile, legacyDeskFile(env, home), readText), (value) => writeSecret(sessionsFile, sessionsText(value)));
+  const sessions = new SessionsStore(readSessions(sessionsFile, readText), (value) => writeSecret(sessionsFile, sessionsText(value)));
   const stashFile = stashPath(env, home);
   const stash = new StashStore(readStash(stashFile, readText), (entries) => writeSecret(stashFile, stashText(entries)), { now: () => new Date(), newId: () => crypto.randomUUID() });
   const seenFile = seenPath(env, home);

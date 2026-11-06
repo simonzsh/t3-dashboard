@@ -561,7 +561,6 @@ test("every POST route refuses a body that is not JSON", async () => {
   const posts = [
     "/api/board/assign",
     "/api/sessions",
-    "/api/desk",
     "/api/stash",
     "/api/seen",
     "/api/setup/retry",
@@ -1266,67 +1265,39 @@ test("stopping a subagent sends subagent.stop, 404 when unknown", async () => {
   assert.equal((await post(server, "/api/threads/run-1/subagents/other/stop")).status, 404);
 });
 
-test("GET /api/sessions and the legacy GET /api/desk are null until sessions are saved, then return them", async () => {
+test("GET /api/sessions is null until sessions are saved, then returns them", async () => {
   const fresh = await start();
   assert.deepEqual((await call(fresh.server, "GET", "/api/sessions")).json, { sessions: null });
-  assert.deepEqual((await call(fresh.server, "GET", "/api/desk")).json, { desk: null });
   const saved = { ids: ["idle-1", "run-1"] };
   const known = await start({ sessions: saved });
   assert.deepEqual((await call(known.server, "GET", "/api/sessions")).json, { sessions: saved });
-  assert.deepEqual((await call(known.server, "GET", "/api/desk")).json, { desk: saved });
 });
 
-test("POST /api/sessions stores the set and broadcasts it as `sessions` and as the legacy `desk` event", async () => {
+test("POST /api/sessions stores the set, serves it back and broadcasts it with its origin", async () => {
   const { server, savedSessions, events } = await start();
   const sessions = { ids: ["a", "b"] };
   const reply = await post(server, "/api/sessions", { sessions, origin: "tab-1" });
   assert.deepEqual(reply.json, { ok: true });
   assert.deepEqual(savedSessions, [sessions]);
   assert.deepEqual((await call(server, "GET", "/api/sessions")).json, { sessions });
-  assert.deepEqual(events, [
-    { type: "sessions", data: { sessions, origin: "tab-1" } },
-    { type: "desk", data: { desk: sessions, origin: "tab-1" } },
-  ]);
+  assert.deepEqual(events, [{ type: "sessions", data: { sessions, origin: "tab-1" } }]);
 });
 
-test("POST /api/desk (legacy) shares the store with /api/sessions and broadcasts both events", async () => {
+test("POST /api/sessions keeps unique string ids, up to 100", async () => {
+  const { server, savedSessions } = await start();
+  await post(server, "/api/sessions", { sessions: { ids: ["a", "a", 7, "b", ...Array.from({ length: 120 }, (_, i) => `t${i}`)] }, origin: "tab-1" });
+  assert.deepEqual(savedSessions[0]!.ids.slice(0, 3), ["a", "b", "t0"]);
+  assert.equal(savedSessions[0]!.ids.length, 100);
+});
+
+test("POST /api/sessions refuses a body without sessions or an origin, and saves nothing", async () => {
   const { server, savedSessions, events } = await start();
-  const desk = { ids: ["a", "b"] };
-  assert.deepEqual((await post(server, "/api/desk", { desk, origin: "tab-1" })).json, { ok: true });
-  assert.deepEqual(savedSessions, [desk]);
-  assert.deepEqual((await call(server, "GET", "/api/sessions")).json, { sessions: desk });
-  assert.deepEqual((await call(server, "GET", "/api/desk")).json, { desk });
-  assert.deepEqual(events, [
-    { type: "sessions", data: { sessions: desk, origin: "tab-1" } },
-    { type: "desk", data: { desk, origin: "tab-1" } },
-  ]);
+  const set = { ids: [] };
+  const bad = [{}, { sessions: set }, { origin: "x" }, { sessions: {}, origin: "x" }, { sessions: { ids: "a" }, origin: "x" }, { sessions: { windows: [{ id: "a" }] }, origin: "x" }, { sessions: set, origin: "" }, { sessions: set, origin: 3 }, { sessions: [], origin: "x" }];
+  for (const body of bad) assert.equal((await post(server, "/api/sessions", body)).status, 400, JSON.stringify(body));
+  assert.deepEqual(savedSessions, []);
+  assert.deepEqual(events, []);
 });
-
-const SESSION_ROUTES = [
-  { path: "/api/sessions", field: "sessions" },
-  { path: "/api/desk", field: "desk" },
-];
-
-for (const { path, field } of SESSION_ROUTES) {
-  test(`POST ${path} keeps unique string ids, up to 100, and stores no window state`, async () => {
-    const { server, savedSessions } = await start();
-    await post(server, path, { [field]: { ids: ["a", "a", 7, "b", ...Array.from({ length: 120 }, (_, i) => `t${i}`)] }, origin: "tab-1" });
-    assert.deepEqual(savedSessions[0]!.ids.slice(0, 3), ["a", "b", "t0"]);
-    assert.equal(savedSessions[0]!.ids.length, 100);
-    // An old client still sends windows with their state: only the ids are kept.
-    await post(server, path, { [field]: { windows: [{ id: "a", minimized: true }], history: ["a"] }, origin: "tab-2" });
-    assert.deepEqual(savedSessions[1], { ids: ["a"] });
-  });
-
-  test(`POST ${path} refuses a body without its set or an origin, and saves nothing`, async () => {
-    const { server, savedSessions, events } = await start();
-    const set = { ids: [] };
-    const bad = [{}, { [field]: set }, { origin: "x" }, { [field]: {}, origin: "x" }, { [field]: { ids: "a" }, origin: "x" }, { [field]: set, origin: "" }, { [field]: set, origin: 3 }, { [field]: [], origin: "x" }];
-    for (const body of bad) assert.equal((await post(server, path, body)).status, 400, JSON.stringify(body));
-    assert.deepEqual(savedSessions, []);
-    assert.deepEqual(events, []);
-  });
-}
 
 // "hello" in base64.
 const textFile = { name: " notes.txt ", mimeType: "text/plain", dataUrl: "data:text/plain;base64,aGVsbG8=" };
