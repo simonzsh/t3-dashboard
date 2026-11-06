@@ -263,7 +263,8 @@ export function createActions(options: ActionsOptions): Actions {
     async browseFolders(path) {
       const root = normalizeFolder(path, home);
       const [browsed, [kind]] = await Promise.all([
-        t3(port.browseFolders(expandHome(path, home))).catch((error) => {
+        // A bare "~" lists the home folder, not its siblings.
+        t3(port.browseFolders(expandHome(path.trim() === "~" ? "~/" : path, home))).catch((error) => {
           if (error instanceof IntegrationError && error.reason === "read_directory_failed") return { entries: [] };
           throw error;
         }),

@@ -362,6 +362,13 @@ test("browseFolders lists visible folders by name, with the kind of the typed pa
   assert.deepEqual(result, { path: "/home/demo/src", kind: "missing", entries: ["a", "b", "C"].map((name) => ({ name, path: `/home/demo/src/${name}` })) });
 });
 
+test("browseFolders lists the home folder for a bare ~", async () => {
+  const { actions, port } = projectHarness();
+  port.kinds = ["directory"];
+  await actions.browseFolders("~");
+  assert.deepEqual(port.browseCalls, ["/home/demo/"]);
+});
+
 test("browseFolders keeps hidden folders when the typed segment starts with a dot", async () => {
   const { actions, port } = projectHarness();
   port.browseResult = { parentPath: "/home/demo", entries: [{ name: ".config", fullPath: "/home/demo/.config" }] };
