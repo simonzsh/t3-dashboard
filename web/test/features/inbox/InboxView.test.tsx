@@ -23,7 +23,6 @@ const render = (
       seen={seen}
       seenReady
       onMarkRead={() => {}}
-      onSwitcher={() => {}}
       automations={{ automations: [], hiddenThreadIds: ["t-routine"], setupThreadIds: [] }}
       automationsError={null}
       linearVersion={0}

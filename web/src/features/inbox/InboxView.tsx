@@ -2,8 +2,7 @@ import { useMemo } from "react";
 import type { AutomationsResult, DashboardState, DashboardThread } from "../../../../shared/api.ts";
 import type { SeenState } from "../../../../shared/seen.ts";
 import { useAction } from "../../lib/useAction.ts";
-import { useScrolled } from "../../lib/useScrolled.ts";
-import { Button, Icon, Kbd, Loader, TextInput } from "../../ui/index.ts";
+import { Button, Loader } from "../../ui/index.ts";
 import { InboxRow } from "./InboxRow.tsx";
 import { Collapsible, Section } from "./InboxSection.tsx";
 import { SECTION_LIMIT, inboxSections, inboxSummary, nothingToDo, settleCandidates } from "./inbox.ts";
@@ -24,7 +23,6 @@ interface Props {
   /** False until the server answers: every thread would look read, and "Settle all" could settle unread ones. */
   seenReady: boolean;
   onMarkRead: (id: string) => void;
-  onSwitcher: (initialQuery: string) => void;
   automations: AutomationsResult | null;
   automationsError: string | null;
   /** Changes when the Linear settings change: the tickets then load again. */
@@ -38,8 +36,7 @@ async function settleEach(threads: DashboardThread[], onSettle: Props["onSettle"
   if (failed > 0) throw new Error(`${failed} of ${threads.length} failed.`);
 }
 
-export function InboxView({ state, visible, now, deskIds, onOpen, onToggleDesk, onSettle, seen, seenReady, onMarkRead, onSwitcher, automations, automationsError, linearVersion }: Props) {
-  const scrolled = useScrolled();
+export function InboxView({ state, visible, now, deskIds, onOpen, onToggleDesk, onSettle, seen, seenReady, onMarkRead, automations, automationsError, linearVersion }: Props) {
   const tickets = useTickets(linearVersion, visible, seen, now);
   const { relaunch, upNext } = tickets.plan;
   const sections = useMemo(
@@ -86,22 +83,6 @@ export function InboxView({ state, visible, now, deskIds, onOpen, onToggleDesk, 
 
   return (
     <div className="inbox-page">
-      <div className={`inbox-switcher${scrolled ? " scrolled" : ""}`}>
-        <Icon name="search" />
-        {/* No onFocus: the dialog gives focus back here on close and would reopen. */}
-        <TextInput
-          readOnly
-          aria-label="Jump to a conversation"
-          placeholder="Jump to a conversation…"
-          onClick={() => onSwitcher("")}
-          onKeyDown={(e) => {
-            if (e.ctrlKey || e.metaKey || e.altKey || (e.key !== "Enter" && e.key.length !== 1)) return;
-            e.preventDefault();
-            onSwitcher(e.key === "Enter" ? "" : e.key);
-          }}
-        />
-        <Kbd>{navigator.platform.startsWith("Mac") ? "⌘K" : "Ctrl K"}</Kbd>
-      </div>
       {loading ? (
         <Loader />
       ) : (

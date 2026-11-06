@@ -522,10 +522,6 @@ ol.install-steps { padding-left: 18px; }
 /* One "selected" look for single and multiple choice: a gray, not the accent. */
 .segmented button.active, .toggle-group button[aria-pressed="true"] { background: color-mix(in srgb, var(--text-primary) 10%, transparent); color: var(--text-primary); }
 .inbox-page { flex: 1; min-height: 0; display: flex; flex-direction: column; gap: 20px; }
-.inbox-switcher { position: relative; flex: none; display: flex; align-items: center; max-width: 420px; }
-.inbox-switcher .icon { position: absolute; left: 12px; width: 15px; height: 15px; color: var(--text-secondary); pointer-events: none; }
-.inbox-switcher .field { width: 100%; height: 40px; padding-left: 34px; padding-right: 64px; cursor: pointer; }
-.inbox-switcher kbd { position: absolute; right: 11px; font-size: 10px; padding: 2px 5px; pointer-events: none; }
 /* Padding keeps row shadows and focus rings inside the scroll area. */
 .inbox-sections { flex: 1; min-height: 0; overflow-y: auto; box-sizing: border-box; display: flex; flex-direction: column; gap: 24px; padding: 4px; margin: -4px; }
 .inbox-section { display: flex; flex-direction: column; }
@@ -782,7 +778,6 @@ ol.install-steps { padding-left: 18px; }
 .desk.compact .desk-area { padding: 0; }
 .desk.compact .desk-window { border-radius: 0; border: 0; box-shadow: none; }
 @media (max-width: 700px) {
-  .inbox-switcher { max-width: none; }
   .switcher-meta { display: none; }
   .auto-scroll { overflow: visible; border: 0; background: none; box-shadow: none; }
   .auto-table, .auto-table tbody, .auto-table tr, .auto-table td, .auto-table th { display: block; }
@@ -813,13 +808,10 @@ ol.install-steps { padding-left: 18px; }
   .app:not(.desk-mode) :is(.inbox-page, .auto-page) { flex: none; overflow: visible; }
   /* The search stays under the sticky top bar, as on desktop where the list scrolls below it. */
   /* Stuck 12px under the top bar; the band shows only once the page scrolls, with 12px above and below the search. */
-  .app:not(.desk-mode) .inbox-switcher { position: sticky; top: calc(var(--topbar-h, 60px) + 12px); z-index: 4; }
-  .app:not(.desk-mode) .inbox-switcher.scrolled::before { content: ""; position: absolute; z-index: -1; inset: -12px -24px; background: var(--surface-0); border-bottom: 1px solid var(--line); }
 }
 @media (max-width: 899px), (pointer: coarse) {
   /* No keyboard shortcuts on phones and tablets. */
-  button kbd, .inbox-switcher kbd, .shortcut-hint { display: none; }
-  .inbox-switcher .field { padding-right: 12px; }
+  button kbd, .shortcut-hint { display: none; }
 }
 @media (pointer: coarse) {
   .notif-toast-body { min-height: 44px; }

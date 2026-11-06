@@ -61,7 +61,7 @@ function Sidebar({ tab, badges, badgeText, live, theme, update, onTab, onSearch,
       <Pressable className="sidebar-search" tooltip={hint("Search")} onClick={onSearch} aria-label="Search">
         <Icon name="search" className="nav-icon" />
         <span className="nav-label">Search…</span>
-        <Kbd>{ctrlLabel("K")}</Kbd>
+        <Kbd>⌘K</Kbd>
       </Pressable>
       <div className="sidebar-items">
         {TABS.map(({ id, label, icon }) => (

@@ -277,7 +277,6 @@ export function App() {
                   seen={notify.seen}
                   seenReady={notify.seenReady}
                   onMarkRead={notify.markSeen}
-                  onSwitcher={setSwitcherQuery}
                   automations={automations.result}
                   automationsError={automations.error}
                   linearVersion={linearVersion}
