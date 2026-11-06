@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { afterEach, test } from "bun:test";
-import type { LimitsOverview, UsageOverview, Automation, AutomationsResult, ConnectionStatus, DashboardEvent, DashboardState } from "../../shared/api.ts";
+import type { LimitsOverview, ServerStats, UsageOverview, Automation, AutomationsResult, ConnectionStatus, DashboardEvent, DashboardState } from "../../shared/api.ts";
 import { LinearClient } from "../../src/integrations/linear/client.ts";
 import { createActions } from "../../src/domain/actions.ts";
 import type { Automations } from "../../src/domain/automations.ts";
@@ -50,6 +50,15 @@ interface StartOptions {
   seen?: SeenState | null;
 }
 
+const SERVER_STATS: ServerStats = {
+  host: "box",
+  os: "Linux",
+  uptimeSeconds: 3600,
+  cpu: { usedPercent: 12.5, cores: 4 },
+  memory: { usedBytes: 4, totalBytes: 16, usedPercent: 25 },
+  disk: null,
+  readAt: "2026-03-07T10:00:00.000Z",
+};
 const usageTotals = { turns: 0, costUsd: 0, inputTokens: 0, cachedInputTokens: 0, outputTokens: 0 };
 const usageOverview: UsageOverview = {
   days: Array.from({ length: 14 }, (_, index) => ({ day: `2026-03-${String(7 + index).padStart(2, "0")}`, ...usageTotals })),
@@ -115,6 +124,7 @@ async function start(startOptions: StartOptions = {}) {
       return { supported: true, providers: [], readAt: "2026-03-07T10:00:00.000Z" };
     },
   };
+  const serverStats = { get: async (): Promise<ServerStats> => SERVER_STATS };
   const hub = new SseHub({ batchMs: 10, pingMs: 60_000 });
   let counter = 0;
   const store: ShellStore = new ShellStore({
@@ -159,6 +169,7 @@ async function start(startOptions: StartOptions = {}) {
     board,
     usage,
     limits,
+    serverStats,
     automations,
     getState,
     connection: () => connection,
@@ -1587,4 +1598,11 @@ test("secret answer: T3 reasons become 404, 409 and 502, without the secret", as
     assert.equal(reply.status, status, reason);
     assert.equal(reply.text.includes("dummy-secret"), false);
   }
+});
+
+test("GET /api/server-stats returns the machine's stats", async () => {
+  const { server } = await start();
+  const reply = await call(server, "GET", "/api/server-stats");
+  assert.equal(reply.status, 200);
+  assert.deepEqual(reply.json, SERVER_STATS);
 });

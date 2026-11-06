@@ -20,7 +20,7 @@ import { SseHub } from "../../server/sse.ts";
 import { envAllowedHosts } from "../../config/config.ts";
 import { readLinearKey } from "../../config/linearFile.ts";
 import { VERSION } from "../../config/version.ts";
-import { DEMO_ENVIRONMENT_ID } from "./fixtures.ts";
+import { DEMO_ENVIRONMENT_ID, demoServerStats } from "./fixtures.ts";
 import { DemoPort, demoLinearFetch } from "./port.ts";
 
 const DEMO_PORT = 3001;
@@ -81,6 +81,7 @@ export async function startDemo(env: Record<string, string | undefined>): Promis
     board,
     usage: createUsage({ port, threads: () => getState().threads, now: () => new Date() }),
     limits: createProviderLimits({ port, now: () => new Date() }),
+    serverStats: { get: async () => demoServerStats(new Date()) },
     automations,
     getState,
     connection: () => live.connection(),
