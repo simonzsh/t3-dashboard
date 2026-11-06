@@ -6,6 +6,7 @@ import { issues } from "../../src/integrations/contract.ts";
 import { LinearClient } from "../../src/integrations/linear/client.ts";
 import { RawConfig, RawProjection, RawProject, RawThread, UsageSummaryResponse } from "../../src/integrations/t3/schemas.ts";
 import { ShellStore } from "../../src/domain/shellStore.ts";
+import { toLimitsOverview } from "../../src/domain/providerLimits.ts";
 import { toProviders } from "../../src/domain/providers.ts";
 import { createActions } from "../../src/domain/actions.ts";
 import { createAutomations } from "../../src/domain/automations.ts";
@@ -27,6 +28,25 @@ test("the demo fixtures match the T3 schemas", () => {
   for (const [id, projection] of Object.entries(projections)) assert.deepEqual(issues(RawProjection, projection), [], id);
   assert.deepEqual(issues(RawConfig, config), []);
   assert.deepEqual(toProviders(config).map((provider) => provider.displayName), ["Claude", "Codex"]);
+});
+
+test("the demo config carries usage limits that show every pace", async () => {
+  const config = await new DemoPort(() => NOW).getConfig();
+  assert.deepEqual(issues(RawConfig, config), []);
+  const { supported, providers } = toLimitsOverview(config, NOW);
+  assert.equal(supported, true);
+  const byId = Object.fromEntries(providers.map((p) => [p.instanceId, p]));
+  assert.deepEqual([byId.codex!.windows.length, byId.codex!.resetCredits], [2, 2]);
+  assert.deepEqual([byId.claudeAgent!.windows.length, byId.claudeAgent!.resetCredits], [3, 0]);
+  const share = (id: string, provider: string) => {
+    const w = byId[provider]!.windows.find((window) => window.id === id)!;
+    const total = w.windowMinutes! * 60_000;
+    return Math.round(w.usedPercent - ((total - (Date.parse(w.resetsAt!) - NOW.getTime())) / total) * 100);
+  };
+  // Used share minus elapsed share: over +5 is ahead, under -5 is headroom.
+  assert.ok(share("primary", "codex") > 5);
+  assert.ok(Math.abs(share("seven_day", "claudeAgent")) <= 5);
+  assert.ok(share("five_hour", "claudeAgent") < -5);
 });
 
 test("the demo usage matches the T3 schema and shows a partial cost over 14 days", async () => {

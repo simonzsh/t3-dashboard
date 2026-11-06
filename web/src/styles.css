@@ -706,13 +706,13 @@ ol.install-steps { padding-left: 18px; }
 /* Sticky only for the capped Notifications card alone: a taller column would hide its lower cards. */
 .dashboard-col.pinned { position: sticky; top: 0; }
 .dashboard-slot { min-width: 0; }
-.dashboard-slot.usage, .dashboard-drop.usage { grid-column: 1 / -1; }
+.dashboard-slot:is(.usage, .activity), .dashboard-drop:is(.usage, .activity) { grid-column: 1 / -1; }
 /* Wide screens: Up next takes 3/5 of the left column, the other cards 2/5. */
 @media (min-width: 1100px) {
   .dashboard-col.left { grid-template-columns: repeat(5, minmax(0, 1fr)); }
   .dashboard-col.left > :is(.dashboard-slot, .dashboard-drop) { grid-column: span 2; }
   .dashboard-col.left > :is(.dashboard-slot, .dashboard-drop).up-next { grid-column: span 3; }
-  .dashboard-col.left > :is(.dashboard-slot, .dashboard-drop).usage { grid-column: 1 / -1; }
+  .dashboard-col.left > :is(.dashboard-slot, .dashboard-drop):is(.usage, .activity) { grid-column: 1 / -1; }
 }
 /* Drop preview: the size of the dragged card, where it will land. */
 .dashboard-drop { min-height: 64px; border: 2px dashed color-mix(in srgb, var(--accent) 60%, transparent); border-radius: var(--radius-lg); background: color-mix(in srgb, var(--accent) 8%, transparent); }
@@ -730,7 +730,23 @@ ol.install-steps { padding-left: 18px; }
 /* The edit buttons take the place of the card's own header buttons. */
 .dashboard-col.editing .card-actions { visibility: hidden; }
 .dashboard-card { background: var(--surface-1); border: 1px solid var(--line); border-radius: var(--radius-lg); }
-.usage-card { overflow: hidden; }
+.activity-card { overflow: hidden; }
+.limits-card { overflow: hidden; }
+.limits-provider + .limits-provider { border-top: 1px solid var(--line); }
+.limits-provider-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 12px 20px 0; }
+.limits-provider-head h2 { display: flex; align-items: center; gap: 8px; margin: 0; font-size: 13px; font-weight: 600; }
+.limits-provider-head .provider-icon { width: 16px; height: 16px; margin: 0; }
+.limits-credits { display: inline-flex; align-items: center; gap: 4px; color: var(--text-secondary); font-size: 12px; }
+.limits-credits .icon { width: 14px; height: 14px; }
+.limits-tiles { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.limits-tile.stat-tile + .limits-tile { border-left: 1px solid var(--line); }
+.limits-tiles > .limits-tile:nth-child(3n + 1) { border-left: 0; }
+.limits-used { margin-left: 4px; color: var(--text-secondary); font-size: 12px; font-weight: 400; letter-spacing: 0; }
+.limits-meter { --meter: var(--accent); position: relative; height: 8px; margin: 4px 0; border-radius: 999px; background: color-mix(in srgb, var(--meter) 18%, transparent); }
+.limits-meter.warn { --meter: var(--warn); }
+.limits-meter.danger { --meter: var(--danger); }
+.limits-fill { position: absolute; inset-block: 0; left: 0; border-radius: 999px; background: var(--meter); }
+.limits-tick { position: absolute; top: -2px; bottom: -2px; width: 2px; translate: -50% 0; background: var(--text-secondary); }
 .stat-tiles { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); }
 .stat-tile { display: flex; flex-direction: column; gap: 4px; min-width: 0; padding: 16px 20px; }
 .stat-tile + .stat-tile { border-left: 1px solid var(--line); }
@@ -739,25 +755,25 @@ ol.install-steps { padding-left: 18px; }
 .stat-value { font-size: 28px; font-weight: 600; line-height: 1.15; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; }
 .stat-delta { margin-left: 8px; font-size: 13px; font-weight: 500; letter-spacing: 0; color: var(--ok); }
 .stat-delta.down { color: var(--text-secondary); }
-.usage-chart-head { display: flex; align-items: center; flex-wrap: wrap; gap: 12px; padding: 12px 20px 0; border-top: 1px solid var(--line); }
-.usage-chart-head h2 { margin: 0 auto 0 0; font-size: 13px; font-weight: 600; }
-.usage-updated { color: var(--text-secondary); font-size: 12px; }
-.usage-chart { position: relative; overflow: hidden; padding: 8px 0 12px; }
-.usage-chart svg { display: block; }
-.usage-grid { stroke: var(--line); stroke-width: 1; }
-.usage-axis { fill: var(--text-secondary); font-size: 11px; font-variant-numeric: tabular-nums; }
-.usage-axis.today { fill: var(--text-primary); font-weight: 600; }
-.usage-bar { fill: var(--accent); opacity: 0.6; }
-.usage-bar.today { opacity: 1; }
-.usage-zero { fill: var(--line); }
-.usage-hover { fill: color-mix(in srgb, var(--text-primary) 7%, transparent); }
-.usage-hit { fill: transparent; }
-.usage-hit:focus-visible { outline: var(--focus-ring); outline-offset: -2px; }
-.usage-tip { position: absolute; top: 12px; z-index: 2; display: flex; flex-direction: column; gap: 2px; padding: 8px 10px; border: 1px solid var(--line); border-radius: var(--radius-md); background: var(--surface-1); box-shadow: var(--shadow); font-size: 12px; white-space: nowrap; pointer-events: none; }
-.usage-tip span { color: var(--text-secondary); }
-.usage-tip b { margin-left: 6px; color: var(--text-primary); font-weight: 600; font-variant-numeric: tabular-nums; }
-.usage-empty, .usage-error { margin: 0; padding: 20px; color: var(--text-secondary); }
-.usage-error { color: var(--err-text); }
+.activity-chart-head { display: flex; align-items: center; flex-wrap: wrap; gap: 12px; padding: 12px 20px 0; border-top: 1px solid var(--line); }
+.activity-chart-head h2 { margin: 0 auto 0 0; font-size: 13px; font-weight: 600; }
+.card-updated { color: var(--text-secondary); font-size: 12px; }
+.activity-chart { position: relative; overflow: hidden; padding: 8px 0 12px; }
+.activity-chart svg { display: block; }
+.activity-grid { stroke: var(--line); stroke-width: 1; }
+.activity-axis { fill: var(--text-secondary); font-size: 11px; font-variant-numeric: tabular-nums; }
+.activity-axis.today { fill: var(--text-primary); font-weight: 600; }
+.activity-bar { fill: var(--accent); opacity: 0.6; }
+.activity-bar.today { opacity: 1; }
+.activity-zero { fill: var(--line); }
+.activity-hover { fill: color-mix(in srgb, var(--text-primary) 7%, transparent); }
+.activity-hit { fill: transparent; }
+.activity-hit:focus-visible { outline: var(--focus-ring); outline-offset: -2px; }
+.activity-tip { position: absolute; top: 12px; z-index: 2; display: flex; flex-direction: column; gap: 2px; padding: 8px 10px; border: 1px solid var(--line); border-radius: var(--radius-md); background: var(--surface-1); box-shadow: var(--shadow); font-size: 12px; white-space: nowrap; pointer-events: none; }
+.activity-tip span { color: var(--text-secondary); }
+.activity-tip b { margin-left: 6px; color: var(--text-primary); font-weight: 600; font-variant-numeric: tabular-nums; }
+.dashboard-note { margin: 0; padding: 20px; color: var(--text-secondary); }
+.dashboard-note.error { color: var(--err-text); }
 .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
 .sessions { flex: 1; min-height: 0; display: flex; background: var(--surface-0); }
 .sessions.compact { flex-direction: column; }
@@ -870,14 +886,17 @@ ol.install-steps { padding-left: 18px; }
   .auto-table td.auto-actions::before { content: none; }
   .auto-group th { padding-inline: 0; }
   .notif-toasts { left: 12px; right: 12px; width: auto; }
-  /* Three compact tiles in one row; the chart is lower (see UsageChart). */
+  /* Three compact tiles in one row; the chart is lower (see ActivityChart). */
   .stat-tile { gap: 2px; padding: 12px; }
   .stat-label, .stat-caption { font-size: 11px; line-height: 1.3; }
   .stat-more { display: none; }
   .stat-value { font-size: 20px; }
   .stat-delta { display: block; margin-left: 0; font-size: 11px; }
   .stat-skeleton-value { height: 24px; }
-  .usage-chart-head { padding: 12px 12px 0; }
+  .activity-chart-head { padding: 12px 12px 0; }
+  .limits-provider-head { padding: 12px 16px 0; }
+  .limits-tiles { grid-template-columns: minmax(0, 1fr); }
+  .limits-tile.stat-tile + .limits-tile { border-left: 0; border-top: 1px solid var(--line); }
   .skeleton-bars { height: 140px; padding-right: 12px; }
   /* One column: the columns dissolve and every card is as wide as the page, never wider. */
   .dashboard { display: flex; flex-direction: column; align-items: stretch; gap: 16px; }

@@ -311,6 +311,23 @@ const RawSkill = s.object({
   userInvocable: s.optional(s.nullable(s.boolean())),
 });
 
+const RawLimitWindow = s.object({
+  id: s.string(),
+  // "session" | "weekly" | "monthly" | "other"; left open so a new kind cannot fail getConfig.
+  kind: text(),
+  label: text(),
+  usedPercent: s.optional(s.nullable(s.number())),
+  resetsAt: text(),
+  windowDurationMins: s.optional(s.nullable(s.number())),
+});
+export const RawUsageLimits = s.object({
+  checkedAt: text(),
+  windows: s.optional(s.array(RawLimitWindow)),
+  resetCredits: s.optional(s.nullable(s.object({ availableCount: s.optional(s.nullable(s.number())) }))),
+  unavailable: s.optional(s.nullable(s.object({ reason: text(), message: text() }))),
+});
+export type RawUsageLimits = Infer<typeof RawUsageLimits>;
+
 export const RawProvider = s.object({
   instanceId: s.string(),
   // The provider kind, e.g. claudeAgent: an instance id can be anything.
@@ -318,6 +335,7 @@ export const RawProvider = s.object({
   displayName: text(),
   enabled: s.optional(s.boolean()),
   status: s.optional(s.string()),
+  usageLimits: s.optional(s.nullable(RawUsageLimits)),
   supportedRuntimeModes: s.optional(s.array(s.string())),
   slashCommands: s.optional(s.array(RawSlashCommand)),
   skills: s.optional(s.array(RawSkill)),

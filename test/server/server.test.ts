@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { afterEach, test } from "bun:test";
-import type { UsageOverview, Automation, AutomationsResult, ConnectionStatus, DashboardEvent, DashboardState } from "../../shared/api.ts";
+import type { LimitsOverview, UsageOverview, Automation, AutomationsResult, ConnectionStatus, DashboardEvent, DashboardState } from "../../shared/api.ts";
 import { LinearClient } from "../../src/integrations/linear/client.ts";
 import { createActions } from "../../src/domain/actions.ts";
 import type { Automations } from "../../src/domain/automations.ts";
@@ -35,6 +35,7 @@ afterEach(async () => {
 });
 
 interface StartOptions {
+  limitsError?: Error;
   site?: Site;
   linearKey?: string;
   linearFetch?: (url: string, init: RequestInit) => Promise<Response>;
@@ -106,6 +107,14 @@ async function start(startOptions: StartOptions = {}) {
   const port = new FakePort();
   const usageCalls: Array<{ timeZone: string; refresh: boolean }> = [];
   const usage = { get: async (timeZone: string, refresh: boolean) => (usageCalls.push({ timeZone, refresh }), usageOverview) };
+  const limitsCalls: boolean[] = [];
+  const limits = {
+    get: async (refresh: boolean): Promise<LimitsOverview> => {
+      limitsCalls.push(refresh);
+      if (startOptions.limitsError) throw startOptions.limitsError;
+      return { supported: true, providers: [], readAt: "2026-03-07T10:00:00.000Z" };
+    },
+  };
   const hub = new SseHub({ batchMs: 10, pingMs: 60_000 });
   let counter = 0;
   const store: ShellStore = new ShellStore({
@@ -149,6 +158,7 @@ async function start(startOptions: StartOptions = {}) {
     hub,
     board,
     usage,
+    limits,
     automations,
     getState,
     connection: () => connection,
@@ -159,7 +169,7 @@ async function start(startOptions: StartOptions = {}) {
     allowedHosts: startOptions.allowedHosts,
   });
   running.push(async () => hub.close());
-  return { port, store, hub, server, usageCalls, savedSessions, savedStashes, savedSeen, events, linearCalls, files, setupCalls, updateRuns };
+  return { port, store, hub, server, usageCalls, limitsCalls, savedSessions, savedStashes, savedSeen, events, linearCalls, files, setupCalls, updateRuns };
 }
 
 interface Reply {
@@ -650,6 +660,22 @@ test("GET /api/usage returns the overview for the zone and passes ?refresh=1", a
   assert.equal(first.json.days.length, 14);
   await call(server, "GET", "/api/usage?tz=Europe%2FParis&refresh=1");
   assert.deepEqual(usageCalls, [{ timeZone: "Europe/Paris", refresh: false }, { timeZone: "Europe/Paris", refresh: true }]);
+});
+
+test("GET /api/limits returns the overview and passes ?refresh=1", async () => {
+  const { server, limitsCalls } = await start();
+  const first = await call(server, "GET", "/api/limits");
+  assert.equal(first.status, 200);
+  assert.deepEqual(first.json, { supported: true, providers: [], readAt: "2026-03-07T10:00:00.000Z" });
+  await call(server, "GET", "/api/limits?refresh=1");
+  assert.deepEqual(limitsCalls, [false, true]);
+});
+
+test("GET /api/limits answers 502 with T3's message when the read fails", async () => {
+  const { server } = await start({ limitsError: new IntegrationError("T3 Code is not running", { system: "t3", kind: "unreachable" }) });
+  const reply = await call(server, "GET", "/api/limits");
+  assert.equal(reply.status, 502);
+  assert.equal(reply.json.error, "T3 Code is not running");
 });
 
 test("GET /api/usage without a time zone is a 400", async () => {

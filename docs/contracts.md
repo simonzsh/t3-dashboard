@@ -10,7 +10,7 @@
 | --- | --- |
 | `t3` | `server-runtime.json` contains `origin` and `serverVersion`. |
 | `t3` | `POST /api/auth/websocket-ticket` gives `{ ticket }`. This ticket has a short lifetime, as in normal use. |
-| `t3` | `server.getConfig` passes the `RawConfig` schema. The orchestration protocol is `2`. Each runtime mode is known. |
+| `t3` | `server.getConfig` passes the `RawConfig` schema, with `providers[].usageLimits` optional. The orchestration protocol is `2`. Each runtime mode is known. |
 | `t3` | `orchestration.subscribeShell`: the script reads the stream until `synchronized`, then stops it. Each item passes the `ShellItem` schema. Each thread status is known. |
 | `t3` | `scheduledTasks.subscribe`: the first snapshot passes the `ScheduledTasksResponse` schema. A T3 version without this method gives "could not run". |
 | `t3` | `server.getUsageSummary` is optional. The script checks only that its tag exists in the T3 web client. A T3 version without it gives the Dashboard page no cost and no tokens, and nothing breaks. |

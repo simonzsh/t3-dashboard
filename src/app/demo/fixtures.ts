@@ -1,5 +1,5 @@
 import type { LinearIssueNode } from "../../integrations/linear/schemas.ts";
-import type { RawConfig, RawProject, RawProjection, RawScheduledTask, RawSubagent, RawThread, RawTurnItem, RawUsageSummary } from "../../integrations/t3/schemas.ts";
+import type { RawConfig, RawProject, RawProjection, RawScheduledTask, RawSubagent, RawThread, RawTurnItem, RawUsageLimits, RawUsageSummary } from "../../integrations/t3/schemas.ts";
 
 // Invented data for `bun run demo`: a small team building "Atlas", no real names.
 // Times are minutes before `now`, so the page always reads "2 min ago", "yesterday"...
@@ -434,6 +434,38 @@ const CONFIG: RawConfig = {
   },
   environment: { serverVersion: "demo", orchestrationProtocolVersion: 2, capabilities: { threadStop: true } },
 };
+
+const MIN = 60_000;
+const SESSION_MINUTES = 300;
+const WEEK_MINUTES = 10_080;
+
+/** Limit windows by instance id, timed from `now`: one under, two on and two ahead of the pace. */
+export function demoUsageLimits(now: Date): Record<string, RawUsageLimits> {
+  const checkedAt = new Date(now.getTime() - MIN).toISOString();
+  const window = (id: string, kind: string, label: string, usedPercent: number, windowDurationMins: number, leftMinutes: number) => ({
+    id,
+    kind,
+    label,
+    usedPercent,
+    windowDurationMins,
+    resetsAt: new Date(now.getTime() + leftMinutes * MIN).toISOString(),
+  });
+  return {
+    claudeAgent: {
+      checkedAt,
+      windows: [
+        window("five_hour", "session", "Session", 38, SESSION_MINUTES, 131),
+        window("seven_day", "weekly", "Weekly", 41, WEEK_MINUTES, 4 * 1440 + 3 * 60),
+        window("seven_day_sonnet", "weekly", "Weekly · Sonnet", 72, WEEK_MINUTES, 4 * 1440 + 3 * 60),
+      ],
+    },
+    codex: {
+      checkedAt,
+      windows: [window("primary", "session", "Session", 91, SESSION_MINUTES, 150), window("secondary", "weekly", "Weekly", 23, WEEK_MINUTES, 5 * 1440 + 6 * 60)],
+      resetCredits: { availableCount: 2 },
+    },
+  };
+}
 
 export interface DemoFixtures {
   projects: RawProject[];

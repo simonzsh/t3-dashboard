@@ -86,6 +86,25 @@ test("getConfig uses the server.getConfig tag", async () => {
   await done;
 });
 
+test("getConfig keeps usageLimits, and accepts a provider without them or with an unknown window kind", async () => {
+  const { client } = setup();
+  const done = client.getConfig();
+  const socket = await nextSocket();
+  const limits = { checkedAt: "2026-11-06T10:00:00Z", windows: [{ id: "w", kind: "hourly", label: "Hourly", usedPercent: 12, windowDurationMins: 60 }], resetCredits: { availableCount: 1 } };
+  socket.receive({ _tag: "Exit", requestId: "1", exit: { _tag: "Success", value: { providers: [{ instanceId: "a", usageLimits: limits }, { instanceId: "b" }, { instanceId: "c", usageLimits: { checkedAt: "x", windows: [], unavailable: { reason: "unsupported" } } }] } } });
+  const config = await done;
+  assert.deepEqual(config.providers![0]!.usageLimits, limits);
+  assert.equal(config.providers![1]!.usageLimits, undefined);
+});
+
+test("getConfig rejects a usageLimits window without an id", async () => {
+  const { client } = setup();
+  const config = client.getConfig();
+  const socket = await nextSocket();
+  socket.receive({ _tag: "Exit", requestId: "1", exit: { _tag: "Success", value: { providers: [{ instanceId: "a", usageLimits: { windows: [{ kind: "session" }] } }] } } });
+  assert.match((await protocolError(config)).message, /providers\[0\]\.usageLimits\.windows\[0\]\.id should be string/);
+});
+
 test("listScheduledTasks sends an empty payload and returns the tasks", async () => {
   const { client } = setup();
   const done = client.listScheduledTasks();

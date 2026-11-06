@@ -1,121 +1,16 @@
+import type { LimitsOverview, UsageOverview } from "../../../../shared/api.ts";
 import { Fragment, useState, type CSSProperties, type DragEvent, type ReactNode } from "react";
-import type { UsageOverview } from "../../../../shared/api.ts";
 import { CardEditBar } from "./CardEditBar.tsx";
 import { CARD_TITLES, dropCard, moveCard, setHidden, shiftCard, stackedOrder, type Column, type DashboardCard, type DashboardLayout } from "./layout.ts";
-import { relativeTime } from "../../lib/format.ts";
-import { Button, CardHead, IconButton, Icon, Segmented, Skeleton, SkeletonGroup } from "../../ui/index.ts";
-import { UsageChart } from "./UsageChart.tsx";
-import { delta, formatUsd, METRICS, type Metric } from "./usageView.ts";
+import { Button, Icon } from "../../ui/index.ts";
+import { ActivityCard } from "./ActivityCard.tsx";
+import { UsageCard } from "./UsageCard.tsx";
 import { useDashboardCards, type CardsInput } from "./useDashboardCards.tsx";
-import type { UsageState } from "./useUsage.ts";
-
-interface TileProps {
-  label: ReactNode;
-  value: string;
-  caption: ReactNode;
-  /** The week-over-week change, shown beside the number. */
-  change?: string | null;
-}
-
-function StatTile({ label, value, caption, change }: TileProps) {
-  return (
-    <div className="stat-tile">
-      <span className="stat-label">{label}</span>
-      <span className="stat-value">
-        {value}
-        {change && <span className={`stat-delta${change.startsWith("−") ? " down" : ""}`}>{change}</span>}
-      </span>
-      <span className="stat-caption">{caption}</span>
-    </div>
-  );
-}
-
-function Tiles({ usage, running, costKnown }: { usage: UsageOverview; running: number; costKnown: boolean }) {
-  const { thisWeek, lastWeek, cost, sessions } = usage;
-  // On a phone the tiles show only the short part; `.stat-more` holds the rest.
-  const more = (text: string) => <span className="stat-more">{text}</span>;
-  const costCaption = !costKnown ? (cost.detail ?? "No usage reported by T3 Code") : <>last 7 days{more(cost.status === "partial" ? " · some models unpriced · all usage on this machine" : " · all usage on this machine")}</>;
-  // A turn is one agent run: each message sent to an agent, by you or by an automation.
-  const turnsCaption = <>{more("messages sent to agents · ")}last 7 days{usage.turnsPartial ? " (partial)" : ""}</>;
-  return (
-    <div className="stat-tiles">
-      <StatTile label="Turns" value={String(thisWeek.turns)} change={delta(thisWeek.turns, lastWeek.turns)} caption={turnsCaption} />
-      <StatTile label="Sessions" value={String(sessions.thisWeek)} change={delta(sessions.thisWeek, sessions.lastWeek)} caption={<>{running} running{more(" · last 7 days")}</>} />
-      <StatTile label={<>Spend{more(" (API equiv.)")}</>} value={costKnown ? formatUsd(thisWeek.costUsd) : "—"} change={costKnown ? delta(thisWeek.costUsd, lastWeek.costUsd) : null} caption={costCaption} />
-    </div>
-  );
-}
-
-const BAR_HEIGHTS = [40, 62, 35, 78, 55, 90, 48, 70, 30, 85, 60, 45, 72, 52];
-
-// Same footprint as the tiles and the chart, so the card keeps its height.
-function UsageSkeleton() {
-  return (
-    <SkeletonGroup label="Loading usage">
-      <div className="stat-tiles">
-        {[0, 1, 2].map((i) => (
-          <div className="stat-tile" key={i}>
-            <Skeleton height={12} width="45%" />
-            <div className="stat-skeleton-value"><Skeleton height="100%" width="55%" /></div>
-            <Skeleton height={12} width="80%" />
-          </div>
-        ))}
-      </div>
-      <div className="usage-chart-head">
-        <Skeleton height={13} width={96} />
-        <Skeleton height={28} width={150} radius={8} />
-      </div>
-      <div className="skeleton-bars">
-        {BAR_HEIGHTS.map((h, i) => (
-          <Skeleton key={i} height={`${h}%`} radius="4px 4px 0 0" />
-        ))}
-      </div>
-    </SkeletonGroup>
-  );
-}
-
-function UsageCard({ state, running, now }: { state: UsageState; running: number; now: Date }) {
-  const [metric, setMetric] = useState<Metric>("turns");
-  const { usage, error, loading, refresh } = state;
-  const costKnown = usage !== null && usage.cost.status !== "unavailable";
-  return (
-    <section className="dashboard-card usage-card" aria-labelledby="dashboard-usage-head">
-      <CardHead
-        id="dashboard-usage-head"
-        icon="chart"
-        title="Usage"
-        actions={
-          <>
-            {usage && <span className="usage-updated">Updated {relativeTime(usage.readAt, now)}</span>}
-            <IconButton size="sm" variant="ghost" label="Refresh usage" tooltip="Refresh usage" disabled={loading} onClick={refresh}>
-              <Icon name="refresh" className={loading ? "icon spinning" : "icon"} />
-            </IconButton>
-          </>
-        }
-      />
-      {!usage ? (
-        error ? <p className="usage-error" role="alert">{error}</p> : <UsageSkeleton />
-      ) : (
-        <>
-          <Tiles usage={usage} running={running} costKnown={costKnown} />
-          <div className="usage-chart-head">
-            <h2>Last 14 days</h2>
-            <Segmented label="Chart metric" value={metric} options={METRICS} onChange={setMetric} />
-          </div>
-          {metric !== "turns" && !costKnown ? (
-            <p className="usage-empty">{usage.cost.detail ?? "T3 Code sent no usage."}</p>
-          ) : (
-            <UsageChart days={usage.days} metric={metric} costKnown={costKnown} />
-          )}
-          {error && <p className="usage-error" role="alert">Could not refresh usage. {error}</p>}
-        </>
-      )}
-    </section>
-  );
-}
+import type { ReadState } from "./pollRead.ts";
 
 interface Props extends CardsInput {
-  usage: UsageState;
+  limits: ReadState<LimitsOverview>;
+  activity: ReadState<UsageOverview>;
   /** Agents at work among the listed threads: the same count as the Sessions badge and the Running card. */
   running: number;
   layout: DashboardLayout;
@@ -124,13 +19,14 @@ interface Props extends CardsInput {
   onLayout: (layout: DashboardLayout) => void;
 }
 
-export function DashboardView({ usage, running, layout, editing, onLayout, ...input }: Props) {
+export function DashboardView({ limits, activity, running, layout, editing, onLayout, ...input }: Props) {
   const [dragged, setDragged] = useState<DashboardCard | null>(null);
   // Where the dragged card would land, shown as a placeholder of its size.
   const [target, setTarget] = useState<{ column: Column; index: number } | null>(null);
   const [dragHeight, setDragHeight] = useState(0);
-  const cards = useDashboardCards(input);
-  const body: Record<DashboardCard, ReactNode> = { usage: <UsageCard state={usage} running={running} now={input.now} />, ...cards };
+  // A hidden Up next reads no tickets.
+  const cards = useDashboardCards(input, !layout.hidden.includes("up-next"));
+  const body: Record<DashboardCard, ReactNode> = { usage: <UsageCard state={limits} now={input.now} />, activity: <ActivityCard state={activity} running={running} now={input.now} />, ...cards };
   const order = stackedOrder(layout);
   const endDrag = () => {
     setDragged(null);
