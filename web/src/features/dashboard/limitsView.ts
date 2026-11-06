@@ -7,18 +7,12 @@ const PACE_BAND = 5;
 const MINUTE = 60_000;
 
 export type Pace = "ahead" | "on" | "under";
-export type Severity = "ok" | "warn" | "danger";
 
 const PACE_LABEL: Record<Pace, string> = { ahead: "Ahead of pace", on: "On pace", under: "Under pace" };
-const WARN_AT = 75;
-const DANGER_AT = 90;
 
 const clamp = (value: number, low: number, high: number): number => Math.min(high, Math.max(low, value));
 
 export const usedPercent = (w: LimitWindow): number => Math.round(clamp(w.usedPercent, 0, 100));
-
-/** The fill colour step; the number and the caption carry the same state in text. */
-export const severity = (w: LimitWindow): Severity => (w.usedPercent >= DANGER_AT ? "danger" : w.usedPercent >= WARN_AT ? "warn" : "ok");
 
 /** The share of the window already gone, 0..1; null when the window has no end or no length. */
 export function elapsedShare(w: LimitWindow, now: Date): number | null {

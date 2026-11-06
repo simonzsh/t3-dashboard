@@ -715,11 +715,11 @@ ol.install-steps { padding-left: 18px; }
 .limits-tile.stat-tile + .limits-tile { border-left: 1px solid var(--line); }
 .limits-tiles > .limits-tile:nth-child(3n + 1) { border-left: 0; }
 .limits-used { margin-left: 4px; color: var(--text-secondary); font-size: 12px; font-weight: 400; letter-spacing: 0; }
-.limits-meter { --meter: var(--accent); position: relative; height: 8px; margin: 4px 0; border-radius: 999px; background: color-mix(in srgb, var(--meter) 18%, transparent); }
-.limits-meter.warn { --meter: var(--warn); }
-.limits-meter.danger { --meter: var(--danger); }
-.limits-fill { position: absolute; inset-block: 0; left: 0; border-radius: 999px; background: var(--meter); }
-.limits-tick { position: absolute; top: -2px; bottom: -2px; width: 2px; translate: -50% 0; background: var(--text-secondary); }
+.meter { --meter: var(--accent); position: relative; height: 8px; margin: 4px 0; border-radius: 999px; background: color-mix(in srgb, var(--meter) 18%, transparent); }
+.meter.warn { --meter: var(--warn); }
+.meter.danger { --meter: var(--danger); }
+.meter-fill { position: absolute; inset-block: 0; left: 0; border-radius: 999px; background: var(--meter); }
+.meter-tick { position: absolute; top: -2px; bottom: -2px; width: 2px; translate: -50% 0; background: var(--text-secondary); }
 .stat-tiles { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); }
 .stat-tile { display: flex; flex-direction: column; gap: 4px; min-width: 0; padding: 16px 20px; }
 .stat-tile + .stat-tile { border-left: 1px solid var(--line); }

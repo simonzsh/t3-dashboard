@@ -34,15 +34,15 @@ test("a tile shows the percent used, the meter fill, the elapsed tick and the ca
   // 38% used, 131 min left of 300: tick at 56%, under pace.
   const out = render([provider("claudeAgent", [win()])]);
   assert.match(out, /class="stat-value">38%<span class="limits-used"> used<\/span>/);
-  assert.match(out, /class="limits-fill" style="width:38%"/);
-  assert.match(out, /class="limits-tick" style="left:56%"/);
+  assert.match(out, /class="meter-fill" style="width:38%"/);
+  assert.match(out, /class="meter-tick" style="left:56%"/);
   assert.match(out, /class="stat-caption">Resets in 2h 11m · Under pace</);
 });
 
 test("the meter colour follows the severity", () => {
-  assert.match(render([provider("codex", [win({ usedPercent: 74 })])]), /class="limits-meter ok"/);
-  assert.match(render([provider("codex", [win({ usedPercent: 75 })])]), /class="limits-meter warn"/);
-  assert.match(render([provider("codex", [win({ usedPercent: 90 })])]), /class="limits-meter danger"/);
+  assert.match(render([provider("codex", [win({ usedPercent: 74 })])]), /class="meter ok"/);
+  assert.match(render([provider("codex", [win({ usedPercent: 75 })])]), /class="meter warn"/);
+  assert.match(render([provider("codex", [win({ usedPercent: 90 })])]), /class="meter danger"/);
 });
 
 test("the meter has one text label for screen readers and the same tooltip", () => {
@@ -54,8 +54,8 @@ test("the meter has one text label for screen readers and the same tooltip", () 
 
 test("without a reset time there is no tick and no caption", () => {
   const out = render([provider("codex", [win({ resetsAt: null })])]);
-  assert.doesNotMatch(out, /limits-tick|stat-caption/);
-  assert.match(out, /limits-fill/);
+  assert.doesNotMatch(out, /meter-tick|stat-caption/);
+  assert.match(out, /meter-fill/);
 });
 
 test("the provider head shows the banked reset credits only when there are some", () => {
