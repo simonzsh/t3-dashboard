@@ -2,7 +2,7 @@ import index from "../../../web/index.html";
 import type { DashboardProvider } from "../../../shared/api.ts";
 import { createActions } from "../../domain/actions.ts";
 import { createAutomations } from "../../domain/automations.ts";
-import { DeskStore } from "../../domain/deskStore.ts";
+import { SessionsStore } from "../../domain/sessionsStore.ts";
 import { StashStore } from "../../domain/stashStore.ts";
 import { SeenStore } from "../../domain/seenStore.ts";
 import { LinearBoard } from "../../domain/linearBoard.ts";
@@ -73,7 +73,7 @@ export async function startDemo(env: Record<string, string | undefined>): Promis
   const automations = createAutomations({ port, store, dedicated: { read: () => dedicated } });
   const handler = createDashboardServer({
     actions,
-    desk: new DeskStore(null, () => {}),
+    sessions: new SessionsStore(null, () => {}),
     stash: new StashStore([], () => {}, { now: () => new Date(), newId: () => crypto.randomUUID() }),
     seen: new SeenStore(null, () => {}),
     hub,

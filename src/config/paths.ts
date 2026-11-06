@@ -31,8 +31,10 @@ export const automationThreadsFile = (env: Env, homedir: string): string => join
 /** The finished threads each device has opened, shared by every device. */
 export const seenFile = (env: Env, homedir: string): string => join(configDir(env, homedir), "seen.json");
 
-/** The Desk windows and the switcher history, shared by every device. */
-export const deskFile = (env: Env, homedir: string): string => join(configDir(env, homedir), "desk.json");
+/** The open sessions and the switcher history, shared by every device. */
+export const sessionsFile = (env: Env, homedir: string): string => join(configDir(env, homedir), "sessions.json");
+/** Where the open sessions lived before the rename: read as a fallback, never written. */
+export const legacyDeskFile = (env: Env, homedir: string): string => join(configDir(env, homedir), "desk.json");
 
 /** Stashed composer drafts, shared by every device. */
 export const stashFile = (env: Env, homedir: string): string => join(configDir(env, homedir), "stash.json");

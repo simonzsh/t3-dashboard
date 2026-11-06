@@ -1,5 +1,5 @@
 import type { ApprovalDecision, AssignIssueBody, CreateAutomationBody, CreateThreadBody, RoutineSchedule, WebhookFilter, WebhookSignature, ModelSelection, RespondBody, RewindBody, SecretAnswerBody, SendMessageBody, ThreadSettingsBody, UpdateAutomationBody, UploadedAttachment, UserInputAnswers } from "../../shared/api.ts";
-import { normalizeDesk, type DeskUpdate } from "../../shared/desk.ts";
+import { normalizeSessions, type LegacyDeskUpdate, type SessionsUpdate } from "../../shared/sessions.ts";
 import { IMAGE_TYPES, MAX_ATTACHMENTS, MAX_FILE_BYTES, MAX_IMAGE_BYTES, MAX_IMAGES, MAX_SECRET_CHARS, isRuntimeMode } from "../../shared/limits.ts";
 import { isSeenId, isSeenTime, type SeenChange } from "../../shared/seen.ts";
 import { STASH_TEXT_MAX, type StashBody } from "../../shared/stash.ts";
@@ -291,8 +291,16 @@ export function validMessage(body: Record<string, unknown>): { message: Omit<Sen
 
 const MAX_ORIGIN = 100;
 
-export function validDesk(body: Record<string, unknown>): DeskUpdate {
-  const desk = normalizeDesk(body.desk);
+export function validSessions(body: Record<string, unknown>): SessionsUpdate {
+  const sessions = normalizeSessions(body.sessions);
+  if (!sessions || !isText(body.origin) || body.origin.length > MAX_ORIGIN) {
+    throw new HttpError(400, `sessions (an ids list) and origin (1 to ${MAX_ORIGIN} characters) are required`);
+  }
+  return { sessions, origin: body.origin };
+}
+
+export function validLegacyDesk(body: Record<string, unknown>): LegacyDeskUpdate {
+  const desk = normalizeSessions(body.desk);
   if (!desk || !isText(body.origin) || body.origin.length > MAX_ORIGIN) {
     throw new HttpError(400, `desk (an ids list) and origin (1 to ${MAX_ORIGIN} characters) are required`);
   }

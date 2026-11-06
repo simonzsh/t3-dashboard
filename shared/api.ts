@@ -8,7 +8,7 @@ export type * from "./linear.ts";
 export type * from "./settings.ts";
 export type * from "./automations.ts";
 export type * from "./search.ts";
-export type * from "./desk.ts";
+export type * from "./sessions.ts";
 export type * from "./stash.ts";
 export type * from "./seen.ts";
 export type * from "./usage.ts";
