@@ -101,7 +101,12 @@ export function HomeView({ usage, threads, now, layout, cards, editing = false, 
   const drop = (e: DragEvent, column: Column, index?: number) => {
     e.preventDefault();
     e.stopPropagation();
-    if (dragged) onLayout(moveCard(layout, dragged, column, index));
+    if (dragged) {
+      // Dropped on a slot: land before that card. moveCard removes the card first, so a lower slot in its own column shifts up by one.
+      const from = layout[column].indexOf(dragged);
+      const at = index !== undefined && from !== -1 && from < index ? index - 1 : index;
+      onLayout(moveCard(layout, dragged, column, at));
+    }
     setDragged(null);
   };
   const column = (id: Column) => (
