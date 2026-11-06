@@ -13,23 +13,22 @@ const render = (tab: Tab, over: Partial<Parameters<typeof PageActions>[0]> = {})
 test("Sessions shows the layout toggle, then New Session with its icon and key", () => {
   const out = render("sessions");
   assert.match(out, /class="btn md primary"[^>]*><svg[^>]*>.*<\/svg> New Session<kbd/);
-  assert.ok(out.indexOf('aria-label="Layout"') < out.indexOf("New Session"));
+  assert.ok(out.indexOf('aria-label="Switch to grid view"') < out.indexOf("New Session"));
   assert.doesNotMatch(out, /New Automation|Edit layout/);
 });
 
-test("the layout toggle marks the active view", () => {
+test("one layout button names the view it switches to", () => {
   const columns = render("sessions", { layout: "columns" });
-  assert.match(columns, /aria-pressed="true"[^>]*aria-label="Column view"/);
-  assert.match(columns, /aria-pressed="false"[^>]*aria-label="Grid view"/);
-  const grid = render("sessions", { layout: "grid" });
-  assert.match(grid, /aria-pressed="false"[^>]*aria-label="Column view"/);
-  assert.match(grid, /aria-pressed="true"[^>]*aria-label="Grid view"/);
+  assert.match(columns, /aria-label="Switch to grid view"/);
+  assert.doesNotMatch(columns, /Switch to column view/);
+  assert.equal(columns.match(/layout-toggle/g)?.length, 1);
+  assert.match(render("sessions", { layout: "grid" }), /aria-label="Switch to column view"/);
 });
 
 test("the layout toggle is hidden when it is off, and on other pages", () => {
-  assert.doesNotMatch(render("sessions", { showLayoutToggle: false }), /Layout|Column view/);
+  assert.doesNotMatch(render("sessions", { showLayoutToggle: false }), /Switch to (grid|column) view/);
   assert.match(render("sessions", { showLayoutToggle: false }), /New Session/);
-  for (const tab of ["dashboard", "automations"] as const) assert.doesNotMatch(render(tab), /Column view|Grid view/);
+  for (const tab of ["dashboard", "automations"] as const) assert.doesNotMatch(render(tab), /Switch to (grid|column) view/);
 });
 
 test("Automations shows New Automation only", () => {

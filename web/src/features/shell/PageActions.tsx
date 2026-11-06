@@ -60,14 +60,16 @@ export function PageActions({ tab, compact, ready, editingLayout, layoutIsDefaul
     main = (
       <>
         {showLayoutToggle && (
-          <div className="layout-toggle" role="group" aria-label="Layout">
-            <IconButton variant="ghost" label="Column view" tooltip="Column view" aria-pressed={layout === "columns"} onClick={() => onLayoutChange("columns")}>
-              <Icon name="columns" />
-            </IconButton>
-            <IconButton variant="ghost" label="Grid view" tooltip="Grid view" aria-pressed={layout === "grid"} onClick={() => onLayoutChange("grid")}>
-              <Icon name="layoutGrid" />
-            </IconButton>
-          </div>
+          // One button: its icon and label name the view it switches to.
+          <IconButton
+            variant="ghost"
+            className="layout-toggle"
+            label={layout === "columns" ? "Switch to grid view" : "Switch to column view"}
+            tooltip={layout === "columns" ? "Switch to grid view" : "Switch to column view"}
+            onClick={() => onLayoutChange(layout === "columns" ? "grid" : "columns")}
+          >
+            <Icon name={layout === "columns" ? "layoutGrid" : "columns"} />
+          </IconButton>
         )}
         {compact ? (
           <IconButton variant="primary" className="header-new" label="New Session" onClick={onNewSession}>

@@ -2,7 +2,7 @@
 
 [Back to the README](../README.md)
 
-The dashboard has three pages: Dashboard, Sessions and Automations. A sidebar on the left lists them, with a search button (`⌘` + `K`). Its last row shows the connection state, Settings and a button that collapses the sidebar to icons (`Ctrl` + `B`). The theme and the accent color are in Settings. The sidebar remembers its state. The page header is one line: the title and a short description. Its button depends on the page: Sessions has a Column view and Grid view toggle and New Session (`Ctrl` + `N`), Automations has New Automation (`Ctrl` + `⇧` + `N`), and Dashboard has Edit layout. The two shortcuts work on every page. On a phone, a bar at the bottom of the screen replaces the sidebar: Dashboard, Sessions, Automations and Settings. The header then shows the page button as an icon, and a search button.
+The dashboard has three pages: Dashboard, Sessions and Automations. A sidebar on the left lists them, with a search button (`⌘` + `K`). Its last row shows the connection state, Settings and a button that collapses the sidebar to icons (`Ctrl` + `B`). The theme and the accent color are in Settings. The sidebar remembers its state. The page header is one line: the title and a short description. Its button depends on the page: Sessions has a layout button and New Session (`Ctrl` + `N`), Automations has New Automation (`Ctrl` + `⇧` + `N`), and Dashboard has Edit layout. The two shortcuts work on every page. On a phone, a bar at the bottom of the screen replaces the sidebar: Dashboard, Sessions, Automations and Settings. The header then shows the page button as an icon, and a search button.
 
 ## Dashboard
 
@@ -46,7 +46,7 @@ The Linear tickets feed "To relaunch" and "Up next". They need a Linear API key:
 Sessions shows your open conversations side by side. Each session is a column of 380 px that fills the height of the page. A hairline separates the columns.
 
 - There is no limit on the number of open sessions. The strip scrolls sideways. A new session opens at the right end and scrolls into view.
-- The toggle in the page header chooses the view. Column view shows one session per column. Grid view stacks two sessions in each column, and the strip still scrolls sideways. Each browser keeps its choice.
+- One button in the page header switches between the two views: its icon and tooltip name the view it switches to. Column view shows one session per column. Grid view stacks two sessions in each column, and the strip still scrolls sideways. Each browser keeps its choice.
 - Each session has a header with a drag handle, its title, its state, the project name, and three buttons: open in T3 Code, full screen, close. Drag the header onto another session to swap them.
 - Close a session with the x button. Open it again from the Dashboard or from the switcher.
 - The server keeps which finished conversations you opened, for the Inbox and the Inbox badge, in `~/.config/t3-dashboard/seen.json`. A conversation read on one device is read on all of them.
