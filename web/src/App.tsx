@@ -1,7 +1,10 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import type { DashboardThread } from "../../shared/api.ts";
 import { AutomationsView } from "./features/automations/AutomationsView.tsx";
+import { HomeView } from "./features/home/HomeView.tsx";
+import { useUsage } from "./features/home/useUsage.ts";
 import { InboxView } from "./features/inbox/InboxView.tsx";
+import { AppNav } from "./features/shell/AppNav.tsx";
 import { ConnectionBanner } from "./features/setup/ConnectionBanner.tsx";
 import { DeskView } from "./features/desk/DeskView.tsx";
 import { NewAutomationDialog } from "./features/new-thread/NewAutomationDialog.tsx";
@@ -25,17 +28,20 @@ import { useDeskSync } from "./features/desk/useDeskSync.ts";
 import { useDeskBackground } from "./features/desk/useDeskBackground.ts";
 import { useMediaQuery } from "./lib/useMediaQuery.ts";
 import { useShortcuts } from "./lib/useShortcuts.ts";
+import { navBadges } from "./lib/navBadges.ts";
 import { TABS } from "./lib/tabs.ts";
 import { ctrlLabel, startsTyping } from "./lib/shortcuts.ts";
 import { useTab } from "./lib/useTab.ts";
 import { useTheme } from "./features/settings/useTheme.ts";
+import { resolveTheme } from "./features/settings/theme.ts";
 import { useUpdate } from "./features/update/useUpdate.ts";
-import { Button, Icon, IconButton, Kbd, Loader, Pressable, TooltipLayer } from "./ui/index.ts";
+import { Button, Icon, IconButton, Loader, Logo, PageHeader, TooltipLayer } from "./ui/index.ts";
 import { updateLabel } from "./features/update/updateFlow.ts";
 
-// Same breakpoint as the one-line header in styles.css.
 const NO_THREADS: DashboardThread[] = [];
-const COMPACT_HEADER = "(max-width: 700px)";
+// Same breakpoint as the bottom bar in styles.css.
+const PHONE = "(max-width: 700px)";
+const PREFERS_DARK = "(prefers-color-scheme: dark)";
 
 function focusComposer(threadId: string) {
   requestAnimationFrame(() => document.querySelector<HTMLTextAreaElement>(`[data-desk-window="${CSS.escape(threadId)}"] textarea`)?.focus());
@@ -83,7 +89,8 @@ export function App() {
   const [theme, setTheme] = useTheme();
   const [deskBackground, setDeskBackground] = useDeskBackground();
   const [now, setNow] = useState(() => new Date());
-  const compact = useMediaQuery(COMPACT_HEADER);
+  const compact = useMediaQuery(PHONE);
+  const prefersDark = useMediaQuery(PREFERS_DARK);
 
   // The error banner starts under the header, whatever its height (one line on a phone).
   const header = useRef<HTMLElement>(null);
@@ -129,7 +136,7 @@ export function App() {
   const blocked = creating || creatingAutomation || settingsOpen || confirmingUpdate || switcherQuery !== null;
   useShortcuts(
     (action) => {
-      if (action === "desk" || action === "inbox" || action === "automations") setTab(action);
+      if (action === "home" || action === "desk" || action === "automations") setTab(action);
       else if (action === "settings") setSettingsOpen(true);
       else if (action === "switcher") {
         if (state && !creating && !creatingAutomation && !settingsOpen && !confirmingUpdate) setSwitcherQuery((open) => (open === null ? "" : null));
@@ -188,7 +195,10 @@ export function App() {
     [state?.threads, automations.result?.hiddenThreadIds, setup],
   );
   const unread = useMemo(() => unreadCount(inboxSections(visible, notify.seen, now), notify.seen), [visible, notify.seen, now]);
-  const deskWaiting = state?.threads.some((t) => t.pending && deskIds.has(t.id)) ?? false;
+  const badges = navBadges(state?.threads ?? NO_THREADS, deskIds, unread);
+  const usage = useUsage(tab === "home" && state?.connection.t3 === "live");
+  const page = TABS.find((t) => t.id === tab)!;
+  const updateNav = update.status?.available && update.status.canUpdate ? { label: updateLabel(update.status), busy: update.updating || update.status.updating } : null;
 
   if (state?.connection.setup) {
     return (
@@ -202,109 +212,105 @@ export function App() {
   return (
     <div className={`app${tab === "desk" ? " desk-mode" : ""}`}>
       <TooltipLayer />
-      <header className="topbar" ref={header}>
-        <div className="topbar-left">
-          <h1>
-            T3<span className="title-rest"> Dashboard</span>
-          </h1>
-          <span className={`conn ${live ? "up" : "down"}`} data-tooltip={live ? "Connected to T3 Code" : "Connection lost"}>
-            <span className="conn-dot" /> <span className="conn-label">{live ? "Connected" : "Offline"}</span>
-          </span>
-        </div>
-        <nav className="tabs" role="tablist">
-          {TABS.map(({ id, label, key }) => (
-            <Pressable key={id} role="tab" data-tab={id} aria-selected={tab === id} className={tab === id ? "active" : ""} onClick={() => setTab(id)}>
-              {label}
-              {id === "inbox" && unread > 0 && <span className="count" role="img" aria-label={`${unread} unread`}>{badgeText(unread)}</span>}
-              {id === "desk" && deskWaiting && <span className="tab-alert" role="img" aria-label="An agent is waiting for your reply" />}
-              <Kbd>{ctrlLabel(key)}</Kbd>
-            </Pressable>
-          ))}
-        </nav>
-        <div className="topbar-right">
-          {update.status?.available && update.status.canUpdate &&
-            (compact ? (
-              <IconButton className="update-pill" label={updateLabel(update.status)} tooltip={updateLabel(update.status)} disabled={update.updating || update.status.updating} onClick={() => setConfirmingUpdate(true)}>
-                <Icon name="arrowUp" strokeWidth={1.8} />
-              </IconButton>
+      <AppNav
+        layout={compact ? "bottom" : "side"}
+        tab={tab}
+        badges={badges}
+        badgeText={badgeText}
+        live={live}
+        theme={resolveTheme(theme, prefersDark)}
+        update={updateNav}
+        onTab={setTab}
+        onSearch={() => setSwitcherQuery("")}
+        onSettings={() => setSettingsOpen(true)}
+        onTheme={setTheme}
+        onUpdate={() => setConfirmingUpdate(true)}
+      />
+      <div className="app-column">
+        <PageHeader
+          ref={header}
+          title={page.label}
+          description={page.description}
+          leading={compact ? <Logo /> : undefined}
+          actions={
+            compact ? (
+              state && (
+                <>
+                  <IconButton variant="primary" className="header-new" label="New Agent" onClick={() => setCreating(true)}>
+                    <Icon name="assignBot" />
+                  </IconButton>
+                  <IconButton variant="ghost" label="Search" onClick={() => setSwitcherQuery("")}>
+                    <Icon name="search" />
+                  </IconButton>
+                </>
+              )
             ) : (
-              <Button className="update-pill" loading={(update.updating || update.status.updating) && "Updating…"} onClick={() => setConfirmingUpdate(true)}>
-                {updateLabel(update.status)}
-              </Button>
-            ))}
-          {state &&
-            (compact ? (
-              <IconButton variant="primary" label="New Agent" onClick={() => setCreating(true)}>
-                <Icon name="assignBot" />
-              </IconButton>
-            ) : (
-              <Button variant="primary" kbd={ctrlLabel("N")} onClick={() => setCreating(true)}>
-                New Agent
-              </Button>
-            ))}
-          {state &&
-            (compact ? (
-              <IconButton label="New Automation" onClick={() => setCreatingAutomation(true)}>
-                <Icon name="calendarClock" />
-              </IconButton>
-            ) : (
-              <Button kbd={ctrlLabel("⇧N")} onClick={() => setCreatingAutomation(true)}>
-                New Automation
-              </Button>
-            ))}
-          <IconButton label="Settings" kbd={ctrlLabel(",")} onClick={() => setSettingsOpen(true)}>
-            <Icon name="settings" strokeWidth={1.8} />
-          </IconButton>
-        </div>
-      </header>
-      <ConnectionBanner connection={state?.connection ?? null} sseDown={sseDown} />
-      <NotificationToasts toasts={notify.toasts} onOpen={(id) => openOnDesk(id, true)} onDismiss={notify.dismiss} />
-      <main>
-        {tab === "inbox" &&
-          (state ? (
-            <InboxView
-              state={state}
-              visible={visible}
-              now={now}
-              deskIds={deskIds}
-              onOpen={onOpen}
-              onToggleDesk={onToggleDesk}
-              onSettle={onSettle}
-              seen={notify.seen}
-              seenReady={notify.seenReady}
-              onMarkRead={notify.markSeen}
-              onSwitcher={setSwitcherQuery}
-              automations={automations.result}
-              automationsError={automations.error}
-              linearVersion={linearVersion}
-            />
-          ) : <Loader />)}
-        {tab === "automations" &&
-          (state ? (
-            <AutomationsView
-              state={state}
-              now={now}
-              onOpen={onOpen}
-              automations={automations.result}
-              automationsError={automations.error}
-              onAutomationsStale={automations.reload}
-              onNewAutomation={() => setCreatingAutomation(true)}
-              setup={setup}
-            />
-          ) : <Loader />)}
-        {tab === "desk" &&
-          (state ? (
-            <DeskView
-              desk={desk}
-              dispatch={dispatchDesk}
-              threads={state.threads}
-              projects={state.projects}
-              background={deskBackground}
-              t3EnvironmentId={state.t3EnvironmentId}
-              providers={state.providers}
-            />
-          ) : <Loader />)}
-      </main>
+              state && (
+                <>
+                  {tab !== "desk" && (
+                    <Button kbd={ctrlLabel("⇧N")} onClick={() => setCreatingAutomation(true)}>
+                      New Automation
+                    </Button>
+                  )}
+                  <Button variant="primary" kbd={ctrlLabel("N")} onClick={() => setCreating(true)}>
+                    New Agent
+                  </Button>
+                </>
+              )
+            )
+          }
+        />
+        <ConnectionBanner connection={state?.connection ?? null} sseDown={sseDown} />
+        <NotificationToasts toasts={notify.toasts} onOpen={(id) => openOnDesk(id, true)} onDismiss={notify.dismiss} />
+        <main>
+          {tab === "home" &&
+            (state ? (
+              <HomeView usage={usage} threads={state.threads} now={now} unread={unread}>
+                <InboxView
+                  state={state}
+                  visible={visible}
+                  now={now}
+                  deskIds={deskIds}
+                  onOpen={onOpen}
+                  onToggleDesk={onToggleDesk}
+                  onSettle={onSettle}
+                  seen={notify.seen}
+                  seenReady={notify.seenReady}
+                  onMarkRead={notify.markSeen}
+                  onSwitcher={setSwitcherQuery}
+                  automations={automations.result}
+                  automationsError={automations.error}
+                  linearVersion={linearVersion}
+                />
+              </HomeView>
+            ) : <Loader />)}
+          {tab === "automations" &&
+            (state ? (
+              <AutomationsView
+                state={state}
+                now={now}
+                onOpen={onOpen}
+                automations={automations.result}
+                automationsError={automations.error}
+                onAutomationsStale={automations.reload}
+                onNewAutomation={() => setCreatingAutomation(true)}
+                setup={setup}
+              />
+            ) : <Loader />)}
+          {tab === "desk" &&
+            (state ? (
+              <DeskView
+                desk={desk}
+                dispatch={dispatchDesk}
+                threads={state.threads}
+                projects={state.projects}
+                background={deskBackground}
+                t3EnvironmentId={state.t3EnvironmentId}
+                providers={state.providers}
+              />
+            ) : <Loader />)}
+        </main>
+      </div>
       {state && creating && (
         <NewThreadDialog
           projects={state.projects}

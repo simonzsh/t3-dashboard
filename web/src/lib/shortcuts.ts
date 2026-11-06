@@ -1,8 +1,8 @@
 export type WindowShortcut = `window-${1 | 2 | 3 | 4 | 5 | 6}`;
 
 export type ShortcutAction =
+  | "home"
   | "desk"
-  | "inbox"
   | "automations"
   | "new-agent"
   | "new-automation"
@@ -30,7 +30,7 @@ export interface KeyInfo {
 }
 
 // Ctrl+key works everywhere, fields included, like Ctrl+S for the stash. Cmd stays the browser's.
-const CTRL_KEYS: Record<string, ShortcutAction> = { "1": "inbox", "2": "desk", "3": "automations", n: "new-agent", ",": "settings", b: "inbox" };
+const CTRL_KEYS: Record<string, ShortcutAction> = { "1": "home", "2": "desk", "3": "automations", n: "new-agent", ",": "settings", b: "home" };
 const CTRL_DESK_KEYS: Record<string, ShortcutAction> = { x: "close-window", f: "toggle-fullscreen", m: "minimize-window" };
 // Plain keys that a field needs for itself: they act only outside fields.
 const PLAIN_DESK_KEYS: Record<string, ShortcutAction> = {

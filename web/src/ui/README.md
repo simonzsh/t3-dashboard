@@ -34,6 +34,7 @@ This folder contains the base components of the dashboard. The screens in `web/s
 | `PageHeader` | Top of a page: title, one-line description, at most three actions on the right. `leading` goes before the title (the logo on a phone). |
 | `Loader` | Loading state: the animated logo, centered in the area. Use it in place of a "Loading…" text. |
 | `Icon` | Lucide icon by its name. |
+| `Logo` | The app mark, drawn with the current text colour. |
 
 ## Animations
 

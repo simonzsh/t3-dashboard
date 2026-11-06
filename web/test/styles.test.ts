@@ -21,10 +21,14 @@ test("both shimmer bars are half-width compositor layers", () => {
   }
 });
 
-test("the topbar has no backdrop blur and a near-opaque background", () => {
-  const line = rule(".topbar");
+test("the page header has no backdrop blur and a near-opaque background", () => {
+  const line = rule(".page-header");
   assert.doesNotMatch(line, /backdrop-filter/);
   assert.match(line, /var\(--header-bg\) 97%/);
+});
+
+test("the bottom bar clears the iPhone home indicator", () => {
+  assert.match(rule(".bottom-nav"), /env\(safe-area-inset-bottom\)/);
 });
 
 test("messages are never skipped by the renderer: estimated heights make the scroll jump", () => {
