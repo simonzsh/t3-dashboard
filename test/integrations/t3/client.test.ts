@@ -855,6 +855,24 @@ test("mutateProject sends an update as is and is not retried after a cut", async
   assert.equal(FakeSocket.instances.length, 1);
 });
 
+test("mutateProject sends an edit with only the given fields, and a null icon", async () => {
+  const { client } = setup();
+  const done = client.mutateProject({ type: "project.update", projectId: "p1", title: "Atlas 2", projectIcon: null }, "c3");
+  const socket = await nextSocket();
+  assert.deepEqual(socket.sent[0]!.payload, { type: "project.update", projectId: "p1", title: "Atlas 2", projectIcon: null, commandId: "c3" });
+  socket.receive(ok("1", projectRow));
+  await done;
+});
+
+test("mutateProject sends a delete with force and reads the deleted row", async () => {
+  const { client } = setup();
+  const done = client.mutateProject({ type: "project.delete", projectId: "p1", force: true }, "c4");
+  const socket = await nextSocket();
+  assert.deepEqual(socket.sent[0]!.payload, { type: "project.delete", projectId: "p1", force: true, commandId: "c4" });
+  socket.receive(ok("1", { ...projectRow, deletedAt: "2026-11-06T10:00:00Z" }));
+  assert.equal((await done).deletedAt, "2026-11-06T10:00:00Z");
+});
+
 test("browseFolders sends the partial path and is retried after a cut", async () => {
   const { client } = setup();
   const done = client.browseFolders("/home/demo/s");

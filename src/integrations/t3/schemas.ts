@@ -1,5 +1,5 @@
 import type { WebhookFilter, WebhookSignature } from "../../../shared/automations.ts";
-import type { ModelSelection as SharedModelSelection, RuntimeMode } from "../../../shared/threads.ts";
+import type { ModelSelection as SharedModelSelection, ProjectIconSpec, RuntimeMode } from "../../../shared/threads.ts";
 import { s, type Infer } from "../contract.ts";
 
 // Raw T3 shapes, limited to the fields the dashboard reads.
@@ -98,6 +98,7 @@ export const RawProject = s.object({
   title: text(),
   workspaceRoot: text(),
   archivedAt: text(),
+  deletedAt: text(),
   defaultModelSelection: s.optional(s.nullable(ModelSelection)),
   projectIcon: s.optional(s.nullable(s.object({ kind: text(), name: s.optional(text()), color: s.optional(text()), text: s.optional(text()), emoji: s.optional(text()), monogramText: s.optional(text()), monogram: s.optional(text()) }))),
 });
@@ -388,7 +389,8 @@ export const FolderBrowseResponse = s.object({ parentPath: s.string(), entries: 
 export const PathMetadataResponse = s.object({ entries: s.array(s.nullable(s.object({ kind: s.string() }))) });
 export type ProjectMutation =
   | { type: "project.create"; projectId: string; title: string; workspaceRoot: string; createWorkspaceRootIfMissing: boolean }
-  | { type: "project.update"; projectId: string; archived: boolean };
+  | { type: "project.update"; projectId: string; title?: string; workspaceRoot?: string; projectIcon?: ProjectIconSpec | null; archived?: boolean }
+  | { type: "project.delete"; projectId: string; force: boolean };
 
 /** T3's usage scan: one bucket per day, provider and model. Only the fields the dashboard sums are listed. */
 export const UsageSummaryResponse = s.object({
