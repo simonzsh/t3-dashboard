@@ -6,28 +6,25 @@ The dashboard has three pages: Dashboard, Sessions and Automations. A sidebar on
 
 ## Dashboard
 
-Dashboard opens first. At the top, a usage card shows three numbers for the last 7 days, each with its change from the 7 days before: turns (the messages sent to agents, by you or by an automation), sessions with at least one turn, and spend (API equivalent, all usage on this machine). A chart shows turns, spend or tokens for each of the last 14 days. Dashboard has two columns. The usage card and the Running and Up next cards are on the left. The Notifications card is on the right and stays in view while the page scrolls. On a phone, the cards stack in one column: usage, Notifications, Running, Up next.
+Dashboard opens first. At the top, a usage card shows three numbers for the last 7 days, each with its change from the 7 days before: turns (the runs of your T3 Code threads: the messages sent to agents, by you or by an automation), sessions with at least one turn, and spend (the API equivalent). Spend and tokens come from T3 Code and cover all usage on this machine, not only these threads. A chart shows turns, spend or tokens for each of the last 14 days. Dashboard has two columns. The usage card and the Running and Up next cards are on the left. The Notifications card is on the right and stays in view while the page scrolls. On a phone, the cards stack in one column: usage, Notifications, Running, Up next.
 
 - Click "Edit layout" to move the cards. Drag a card by its header to another place, also into the other column. The arrow buttons move the card up, down or to the other column: use them with the keyboard or on a touch screen. The eye button hides the card. A list of hidden cards shows at the top, with a button to show each one.
 - Click "Done" to leave edit mode. "Reset" restores the default layout. The browser saves the layout (`t3-dashboard-layout` in local storage), so each browser has its own.
 
-- Turns are the runs of your T3 Code threads. Spend and tokens come from T3 Code and cover all usage on this machine, not only these threads. The spend is the API equivalent.
 - If T3 Code is too old to report usage, the spend shows "—" and the reason. The rest of the Dashboard keeps working.
 
-## Inbox
+## Dashboard cards
 
-The Inbox is made of three Dashboard cards: Notifications, Running and Up next. The Dashboard entry in the sidebar shows the number of unread items (waiting, failed or finished, not read yet). `Ctrl` + `1` opens Dashboard.
+Three Dashboard cards list your agents and tickets: Notifications, Running and Up next. The Dashboard entry in the sidebar shows the number of unread items (waiting, failed or finished, not read yet). `Ctrl` + `1` opens Dashboard.
 
 - Notifications lists, newest first in each group: the agents that need you (waiting for an approval or an answer, or failed and not settled), then the unread results, then the recent read agents, greyed. A status icon shows the kind: warning (waits for you), alert (failed), check (finished). Each item shows the title, one line of detail (what it waits for, the error, or the model), the project and the time. Items that need you or are unread have a tint and a dot. The badge in the header counts them.
-- Point at an unread item to see its one button: the check marks it read. An agent that waits or failed has no button: it still needs you. The Running card rows keep their buttons: the T3 Code logo opens the conversation in T3 Code, the archive button settles the agent (when allowed) and `+` opens it in Sessions. A click on a notification opens the conversation in Sessions and marks it read. `⇧` + click opens it in Sessions without leaving Dashboard.
+- Point at an unread item to see its one button: the check marks it read. An agent that waits or failed has no button: it still needs you. The Running card rows keep their buttons: the T3 Code logo opens the conversation in T3 Code, the archive button settles the agent (when allowed) and `+` opens it in Sessions (a second click closes it). A click on a notification opens the conversation in Sessions and marks it read. `⇧` + click opens it in Sessions without leaving Dashboard.
 - The "Mark all read" button of the header marks all unread results read.
 - "See all" shows every read agent, also the ones with no activity for 3 days or more, and the "Settle all older than 3 days" button. When nothing needs you, the card says "Nothing needs you". Settled agents are not listed: find them with `⌘` + `K`.
 - Running lists the agents that work, with the model, the project and the time. A click opens the conversation in Sessions.
 - Up next lists the agents of started tickets that stopped ("To relaunch": the agent finished, you read it, and it has been idle for more than 24 hours), then the tickets that have no agent, started ones first (see [Tickets](#tickets)). It shows 5 tickets, then "Show N more". It also shows the Linear connection and the setup card when you have no key.
 - Archived or deleted sessions, sub-agents and the threads of scheduled tasks, webhook runs included (see [Automations](#automations)), do not appear.
-- The "Open in Sessions" button opens the row in Sessions. A second click closes it.
-- The "Open in T3 Code" link opens the session in T3 Code.
-- The "Settle" button (box icon) moves an agent to "Recently settled", as T3 Code does. It does not exist for an agent that works or waits.
+- The "Settle" button (box icon) settles an agent, as T3 Code does: it leaves the lists. It does not exist for an agent that works or waits.
 
 The rows change status live, without a page reload. The toasts and the browser notifications still tell you when an agent waits or finishes. A click on a toast opens the conversation.
 
@@ -45,11 +42,11 @@ The Linear tickets feed "To relaunch" and "Up next". They need a Linear API key:
 
 Sessions shows your open conversations side by side. Each session is a column at least 380 px wide that fills the height of the page. When the columns do not fill the width, they widen to share it; when they need more room, the strip scrolls sideways. A hairline separates the columns.
 
-- There is no limit on the number of open sessions. The strip scrolls sideways. A new session opens at the right end and scrolls into view.
+- A new session opens at the right end and scrolls into view.
 - One button in the page header switches between the two views: its icon and tooltip name the view it switches to. Column view shows one session per column. Grid view stacks two sessions in each column, and the strip still scrolls sideways. Each browser keeps its choice.
 - Each session has a header with a drag handle, its title, a state badge when it runs (with a pulsing dot), waits for you or failed (none when it is done or idle), the project name, and three buttons: open in T3 Code, full screen, close. Drag the header onto another session to swap them.
 - Close a session with the x button. Open it again from the Dashboard or from the switcher.
-- The server keeps which finished conversations you opened, for the Inbox and the Inbox badge, in `~/.config/t3-dashboard/seen.json`. A conversation read on one device is read on all of them.
+- The server keeps which finished conversations you opened, for the Dashboard lists and the Dashboard badge, in `~/.config/t3-dashboard/seen.json`. A conversation read on one device is read on all of them.
 - The server keeps which conversations are open in Sessions in `~/.config/t3-dashboard/sessions.json`. Every device shows the same conversations, and an opened or closed session appears on the other open tabs at once. Each device keeps its own session order, focused session, full screen session, layout and Jump to history.
 
 ### Conversation
@@ -137,8 +134,8 @@ The Automations tab lists the scheduled tasks of T3 Code in a table. It needs T3
 - Each row shows the project icon and the model (provider icon and model name). The Model column is empty when the task has no model.
 - To edit a task, click the pencil icon on its row. The creation form opens with the title, project, schedule, prompt, model and access mode of the task. Change what you need, then send. The kind of the task is fixed. A reminder needs a new time in the future: the form shows its next time, or no time when it already ran. Saving re-arms a paused reminder, and the dashboard keeps it enabled until its next run. A task linked to a thread runs there: its project is fixed, and a new title also renames the thread. A reminder keeps its "Reminder: " prefix.
 - To delete a task, click the trash icon on its row, then click "Delete". T3 Code deletes the task. You cannot undo this action.
-- When you delete a reminder, the dashboard also archives the threads of its runs. Without this, they would come back in the Inbox. A reminder linked to a conversation keeps that conversation.
-- If T3 Code is too old to list the tasks, the tab shows the error. The Inbox continues to work.
+- When you delete a reminder, the dashboard also archives the threads of its runs. Without this, they would come back on the Dashboard. A reminder linked to a conversation keeps that conversation.
+- If T3 Code is too old to list the tasks, the tab shows the error. The Dashboard continues to work.
 
 ### Create an automation
 
@@ -153,7 +150,7 @@ The Automations tab lists the scheduled tasks of T3 Code in a table. It needs T3
 - A reminder time is in your browser's time zone. A routine time is in the time zone of the machine that runs T3 Code. The row shows the next run: check it.
 - If T3 Code is off for more than 10 minutes at the time of a reminder set less than 7 days ahead, T3 Code moves it one week later.
 - The new task is not linked to a thread: each run opens its own thread.
-- Setup threads from older versions still show on a setup row while their agent works. The dashboard reads `~/.config/t3-dashboard/automation-threads.json` to hide their Inbox entries. It no longer writes to this file.
+- Setup threads from older versions still show on a setup row while their agent works. The dashboard reads `~/.config/t3-dashboard/automation-threads.json` to hide their Dashboard entries. It no longer writes to this file.
 
 ### Webhooks
 
@@ -180,7 +177,7 @@ You can also ask for a task in a normal conversation. `t3-dashboard install` add
 
 ### Threads of tasks without a linked conversation
 
-A task without a linked thread creates a new thread at each run. The dashboard hides these threads from the Inbox. It identifies them by the project, the title, the origin and the creation date of the task. You open the thread of the last run from the row of the task.
+A task without a linked thread creates a new thread at each run. The dashboard hides these threads from the Dashboard. It identifies them by the project, the title, the origin and the creation date of the task. You open the thread of the last run from the row of the task.
 
 ### T3 Code limits
 

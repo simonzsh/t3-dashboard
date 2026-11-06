@@ -72,7 +72,7 @@ More details in [docs/install.md](docs/install.md).
 | System | Required | Use |
 | --- | --- | --- |
 | T3 Code local API | Yes | Reads the projects, sessions, conversations and scheduled tasks. Sends the messages, the replies and the new agents. |
-| Linear API key | No | Reads the issues assigned to you, for the Inbox. |
+| Linear API key | No | Reads the issues assigned to you, for the Dashboard. |
 | GitHub Releases | No | Looks for a new version and downloads it when you click. |
 
 ## How it works
