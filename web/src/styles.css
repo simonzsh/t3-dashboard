@@ -685,6 +685,13 @@ ol.install-steps { padding-left: 18px; }
 .home-col.pinned { position: sticky; top: 0; }
 .home-slot { min-width: 0; }
 .home-slot.usage, .home-drop.usage { grid-column: 1 / -1; }
+/* Wide screens: Up next takes 3/5 of the left column, the other cards 2/5. */
+@media (min-width: 1100px) {
+  .home-col.left { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+  .home-col.left > :is(.home-slot, .home-drop) { grid-column: span 2; }
+  .home-col.left > :is(.home-slot, .home-drop).up-next { grid-column: span 3; }
+  .home-col.left > :is(.home-slot, .home-drop).usage { grid-column: 1 / -1; }
+}
 /* Drop preview: the size of the dragged card, where it will land. */
 .home-drop { min-height: 64px; border: 2px dashed color-mix(in srgb, var(--accent) 60%, transparent); border-radius: var(--radius-lg); background: color-mix(in srgb, var(--accent) 8%, transparent); }
 /* Edit mode: each card has a bar on top, and a column accepts drops even when it is empty. */
