@@ -1,0 +1,45 @@
+import type { Store } from "../../lib/storage.ts";
+
+export type Accent = "blue" | "purple" | "pink" | "red" | "orange" | "yellow" | "green";
+
+export const ACCENT_KEY = "t3-dashboard-accent";
+export const DEFAULT_ACCENT: Accent = "blue";
+
+/** Light and dark values; mirrored in styles.css (`data-accent`) and index.html. */
+export const ACCENTS: { id: Accent; label: string; light: string; dark: string }[] = [
+  { id: "blue", label: "Blue", light: "#2563eb", dark: "#3b82f6" },
+  { id: "purple", label: "Purple", light: "#7c3aed", dark: "#8b5cf6" },
+  { id: "pink", label: "Pink", light: "#db2777", dark: "#ec4899" },
+  { id: "red", label: "Red", light: "#dc2626", dark: "#ef4444" },
+  { id: "orange", label: "Orange", light: "#ea580c", dark: "#f97316" },
+  { id: "yellow", label: "Yellow", light: "#ca8a04", dark: "#eab308" },
+  { id: "green", label: "Green", light: "#16a34a", dark: "#22c55e" },
+];
+
+export function parseAccent(raw: string | null): Accent {
+  return ACCENTS.some((a) => a.id === raw) ? (raw as Accent) : DEFAULT_ACCENT;
+}
+
+// Storage can throw (private mode): the accent then resets on reload.
+export function loadAccent(storage: Store | null): Accent {
+  try {
+    return parseAccent(storage?.getItem(ACCENT_KEY) ?? null);
+  } catch {
+    return DEFAULT_ACCENT;
+  }
+}
+
+export function saveAccent(storage: Store | null, accent: Accent): void {
+  try {
+    storage?.setItem(ACCENT_KEY, accent);
+  } catch {
+    // Ignored on purpose: see loadAccent.
+  }
+}
+
+/** The tab icon: the logo's four tiles in the accent color. */
+export function faviconSvg(color: string): string {
+  const tile = (x: number, y: number, opacity: number) => `<rect x='${x}' y='${y}' width='128' height='128' rx='30' fill='${color}' opacity='${opacity}'/>`;
+  const svg = `<svg xmlns='http://www.w3.org/2000/svg' viewBox='104 104 304 304'>${tile(112, 112, 1)}${tile(272, 112, 0.35)}${tile(112, 272, 0.35)}${tile(272, 272, 0.65)}</svg>`;
+  return `data:image/svg+xml,${encodeURIComponent(svg)}`;
+}

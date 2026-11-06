@@ -2,6 +2,7 @@ import { useRef, useState, type ReactNode } from "react";
 import { BACKGROUND_PRESETS, type DeskBackground } from "../desk/deskBackground.ts";
 import { imageFileToDataUrl } from "../desk/deskImage.ts";
 import { THEME_SETTINGS, type ThemeSetting } from "./theme.ts";
+import { ACCENTS, type Accent } from "./accent.ts";
 import type { UpdateControl } from "../update/useUpdate.ts";
 import { InstallSettings } from "./InstallSettings.tsx";
 import { LinearSettings } from "./LinearSettings.tsx";
@@ -13,6 +14,8 @@ import { useAction } from "../../lib/useAction.ts";
 interface Props {
   theme: ThemeSetting;
   onThemeChange: (theme: ThemeSetting) => void;
+  accent: Accent;
+  onAccentChange: (accent: Accent) => void;
   background: DeskBackground;
   onBackgroundChange: (background: DeskBackground) => string | null;
   onLinearChange: () => void;
@@ -32,7 +35,7 @@ type SectionId = (typeof SECTIONS)[number]["id"];
 
 const LABELS: Record<ThemeSetting, string> = { system: "System", light: "Light", dark: "Dark" };
 
-export function SettingsDialog({ theme, onThemeChange, background, onBackgroundChange, onLinearChange, update, onUpdate, onClose }: Props) {
+export function SettingsDialog({ theme, onThemeChange, accent, onAccentChange, background, onBackgroundChange, onLinearChange, update, onUpdate, onClose }: Props) {
   const fileInput = useRef<HTMLInputElement>(null);
   const { busy, setError, run } = useAction();
   const [section, setSection] = useState<SectionId>("appearance");
@@ -47,6 +50,24 @@ export function SettingsDialog({ theme, onThemeChange, background, onBackgroundC
         <div className="settings-row">
           <span>Theme</span>
           <Segmented label="Theme" value={theme} options={THEME_SETTINGS.map((id) => ({ id, label: LABELS[id] }))} onChange={onThemeChange} />
+        </div>
+        <div className="settings-row">
+          <span>Accent color</span>
+          <div className="swatches" role="radiogroup" aria-label="Accent color" onKeyDown={onRadioKeyDown}>
+            {ACCENTS.map((a) => (
+              <Pressable
+                key={a.id}
+                role="radio"
+                aria-checked={accent === a.id}
+                tabIndex={accent === a.id ? 0 : -1}
+                aria-label={a.label}
+                tooltip={a.label}
+                className={`swatch accent-swatch${accent === a.id ? " active" : ""}`}
+                style={{ background: `linear-gradient(135deg, ${a.light} 50%, ${a.dark} 50%)` }}
+                onClick={() => onAccentChange(a.id)}
+              />
+            ))}
+          </div>
         </div>
         <div className="settings-row">
           <span>Desk background</span>

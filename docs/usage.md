@@ -2,7 +2,7 @@
 
 [Back to the README](../README.md)
 
-The dashboard has three pages: Home, Desk and Automations. A sidebar on the left lists them, with a search button (`⌘` + `K`). Its last row shows the connection state, Settings and a button that collapses the sidebar to icons (`Ctrl` + `B`). The theme is in Settings. The sidebar remembers its state. The page header is one line: the title and a short description. Its button depends on the page: Desk has New Agent (`Ctrl` + `N`), Automations has New Automation (`Ctrl` + `⇧` + `N`), and Home has Edit layout. The two shortcuts work on every page. On a phone, a bar at the bottom of the screen replaces the sidebar: Home, Desk, Automations and Settings. The header then shows the page button as an icon, and a search button.
+The dashboard has three pages: Home, Desk and Automations. A sidebar on the left lists them, with a search button (`⌘` + `K`). Its last row shows the connection state, Settings and a button that collapses the sidebar to icons (`Ctrl` + `B`). The theme and the accent color are in Settings. The sidebar remembers its state. The page header is one line: the title and a short description. Its button depends on the page: Desk has New Agent (`Ctrl` + `N`), Automations has New Automation (`Ctrl` + `⇧` + `N`), and Home has Edit layout. The two shortcuts work on every page. On a phone, a bar at the bottom of the screen replaces the sidebar: Home, Desk, Automations and Settings. The header then shows the page button as an icon, and a search button.
 
 ## Home
 
@@ -195,7 +195,7 @@ A task without a linked thread creates a new thread at each run. The dashboard h
 
 Open Settings with the header button or the `,` key. A sidebar on the left lists the tabs. Only one tab is visible at a time.
 
-- Appearance: "System", "Light" or "Dark" theme, and Desk background.
+- Appearance: "System", "Light" or "Dark" theme, the accent color (blue by default; purple, pink, red, orange, yellow or green), and Desk background. The accent color paints the buttons, the links, the focus ring, the logo and the tab icon. Each browser keeps its own choice.
 - Connections: status of the Linear key, change or removal of the key.
 - App: how to install the dashboard as an application (Dock, Launchpad, Start menu, home screen). The steps change with the browser and the device: Safari, Chrome, Edge, iPhone and iPad, Android. Dia and Firefox do not install web apps.
 - Updates: installed version, check for and installation of an update. See [install.md](install.md#updates).

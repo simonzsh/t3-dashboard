@@ -10,6 +10,10 @@
         try { s = localStorage.getItem("t3-dashboard-theme") || "system"; } catch (e) {}
         var dark = s === "dark" || (s !== "light" && matchMedia("(prefers-color-scheme: dark)").matches);
         document.documentElement.setAttribute("data-theme", dark ? "dark" : "light");
+        // Mirrors features/settings/accent.ts.
+        var a = null;
+        try { a = localStorage.getItem("t3-dashboard-accent"); } catch (e) {}
+        if (/^(blue|purple|pink|red|orange|yellow|green)$/.test(a || "")) document.documentElement.setAttribute("data-accent", a);
       })();
     </script>
     <meta name="theme-color" content="#ffffff" />

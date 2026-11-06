@@ -38,6 +38,7 @@ import { TABS } from "./lib/tabs.ts";
 import { startsTyping } from "./lib/shortcuts.ts";
 import { useTab } from "./lib/useTab.ts";
 import { useTheme } from "./features/settings/useTheme.ts";
+import { useAccent } from "./features/settings/useAccent.ts";
 import { useUpdate } from "./features/update/useUpdate.ts";
 import { Loader, Logo, PageHeader, TooltipLayer } from "./ui/index.ts";
 import { updateLabel } from "./features/update/updateFlow.ts";
@@ -90,6 +91,7 @@ export function App() {
   const update = useUpdate();
   const [linearVersion, setLinearVersion] = useState(0);
   const [theme, setTheme] = useTheme();
+  const [accent, setAccent] = useAccent();
   const [deskBackground, setDeskBackground] = useDeskBackground();
   const [now, setNow] = useState(() => new Date());
   const compact = useMediaQuery(PHONE);
@@ -363,6 +365,8 @@ export function App() {
         <SettingsDialog
           theme={theme}
           onThemeChange={setTheme}
+          accent={accent}
+          onAccentChange={setAccent}
           background={deskBackground}
           onBackgroundChange={setDeskBackground}
           onLinearChange={() => setLinearVersion((version) => version + 1)}

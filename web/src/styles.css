@@ -82,6 +82,19 @@
   --bottom-bar: 60px;
   accent-color: var(--accent);
 }
+/* Accent color (Settings > Appearance): mirrors ACCENTS in features/settings/accent.ts. */
+:root[data-accent="purple"] { --accent: #7c3aed; }
+:root[data-theme="dark"][data-accent="purple"] { --accent: #8b5cf6; }
+:root[data-accent="pink"] { --accent: #db2777; }
+:root[data-theme="dark"][data-accent="pink"] { --accent: #ec4899; }
+:root[data-accent="red"] { --accent: #dc2626; }
+:root[data-theme="dark"][data-accent="red"] { --accent: #ef4444; }
+:root[data-accent="orange"] { --accent: #ea580c; }
+:root[data-theme="dark"][data-accent="orange"] { --accent: #f97316; --on-accent: #18181b; }
+:root[data-accent="yellow"] { --accent: #ca8a04; --on-accent: #18181b; }
+:root[data-theme="dark"][data-accent="yellow"] { --accent: #eab308; --on-accent: #18181b; }
+:root[data-accent="green"] { --accent: #16a34a; }
+:root[data-theme="dark"][data-accent="green"] { --accent: #22c55e; --on-accent: #052e16; }
 * { box-sizing: border-box; }
 body { margin: 0; font: 14px/1.45 Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif; background: var(--surface-0); color: var(--text-primary); -webkit-font-smoothing: antialiased; }
 ::selection { background: color-mix(in srgb, var(--accent) 28%, transparent); }
