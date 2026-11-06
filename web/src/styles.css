@@ -856,6 +856,9 @@ ol.install-steps { padding-left: 18px; }
 .app.session-shown :is(.page-header, .bottom-nav) { display: none; }
 .app.session-shown .app-column { padding-bottom: env(safe-area-inset-bottom); }
 .sessions.compact .session-window-head { padding-top: max(6px, env(safe-area-inset-top)); }
+/* With the header hidden, a banner is the top of the page: it clears the status bar, and the session head below it no longer does. */
+.app.session-shown .banner { padding-top: max(8px, env(safe-area-inset-top)); }
+.app.session-shown .banner ~ main .sessions.compact .session-window-head { padding-top: 6px; }
 .sessions.compact :is(.session-window-back, .session-window-buttons .icon-button) { min-width: 36px; height: 36px; }
 @media (max-width: 700px) {
   .switcher-meta { display: none; }
