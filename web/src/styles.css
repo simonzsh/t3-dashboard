@@ -489,6 +489,7 @@ input.dropdown-search { position: absolute; inset: 0 auto 0 0; z-index: 1; width
 .file-chip span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .file-chip button { display: grid; place-items: center; padding: 2px; border: 0; background: none; color: var(--text-secondary); border-radius: 4px; }
 .file-chip button:hover { color: var(--text-primary); }
+.file-chip .file-chip-open { display: flex; align-items: center; gap: 6px; min-width: 0; padding: 0; color: inherit; cursor: zoom-in; }
 .file-chip .icon { width: 13px; height: 13px; }
 .error { color: var(--danger); }
 /* Masks secrets without a password field; browsers without it show the text. */
