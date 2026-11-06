@@ -20,16 +20,19 @@ function ThreadRowView({ thread: t, project, modelName, now, inSessions, onOpen 
   const working = agentStatus(t) === "working";
   return (
     <div className="run-item">
-      <Pressable className={`run-row${working ? " working" : ""}`} onClick={(e) => openRow(e, t.id, inSessions, onOpen)}>
-        <span className="notif-title">{threadTitle(t)}</span>
-        <span className="notif-meta">
-          {modelName && (
-            <>
-              <ProviderIcon provider={t.provider} />
-              {modelName} ·{" "}
-            </>
-          )}
-          {threadMeta(t, project, now)}
+      <Pressable className="run-row" onClick={(e) => openRow(e, t.id, inSessions, onOpen)}>
+        {working && <span className="pulse run-pulse" role="img" aria-label="Running" />}
+        <span className="run-text">
+          <span className="notif-title">{threadTitle(t)}</span>
+          <span className="notif-meta">
+            {modelName && (
+              <>
+                <ProviderIcon provider={t.provider} />
+                {modelName} ·{" "}
+              </>
+            )}
+            {threadMeta(t, project, now)}
+          </span>
         </span>
       </Pressable>
     </div>

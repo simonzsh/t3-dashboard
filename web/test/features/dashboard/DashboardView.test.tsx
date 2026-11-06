@@ -240,10 +240,10 @@ test("an unread notification offers only Mark as read; Running rows have no butt
   assert.match(card(out, "running-head"), /<button[^>]*class="run-row/);
 });
 
-test("the Running card lists working agents with a shimmer, model and project", () => {
+test("the Running card lists working agents with a pulsing dot, model and project", () => {
   const providers = [{ instanceId: "provider-a", displayName: "Provider A", runtimeModes: [], models: [{ slug: "model-x", name: "Model X", effort: null, speed: null, favorite: null }] }];
   const out = card(render(state(), { threads: [thread("run", { title: "Running one", status: "running", model: "model-x" })], providers }), "running-head");
-  assert.match(out, /run-row working/);
+  assert.match(out, /class="pulse run-pulse"/);
   assert.match(out, /Running one/);
   assert.match(out, /Model X · Project A/);
   assert.match(out, /Running<\/h2><span class="count">1</);

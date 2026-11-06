@@ -21,7 +21,7 @@ Three Dashboard cards list your agents and tickets: Notifications, Running and U
 - Point at an unread item to see its one button: the check marks it read. An agent that waits or failed has no button: it still needs you. The Running card rows have no button. A click on a notification opens the conversation in Sessions and marks it read. `⇧` + click opens it in Sessions without leaving Dashboard.
 - The "Mark all read" button of the header marks all unread results read.
 - "See all" shows every read agent, also the ones with no activity for 3 days or more, and the "Settle all older than 3 days" button. When nothing needs you, the card says "Nothing needs you". Settled agents are not listed: find them with `⌘` + `K`.
-- Running lists the agents that work, with the model, the project and the time. A click opens the conversation in Sessions, or goes to it when it is already open.
+- Running lists the agents that work, each with a pulsing dot, the model, the project and the time. A click opens the conversation in Sessions, or goes to it when it is already open.
 - Up next lists the agents of started tickets that stopped ("To relaunch": the agent finished, you read it, and it has been idle for more than 24 hours), then the tickets that have no agent, started ones first (see [Tickets](#tickets)). It shows 5 tickets, then "Show N more". It also shows the Linear connection and the setup card when you have no key.
 - Archived or deleted sessions, sub-agents and the threads of scheduled tasks, webhook runs included (see [Automations](#automations)), do not appear.
 - The "Settle" button (box icon) settles an agent, as T3 Code does: it leaves the lists. It does not exist for an agent that works or waits.
