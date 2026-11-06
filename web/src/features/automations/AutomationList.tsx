@@ -72,7 +72,7 @@ export function AutomationList({ groups, open, onToggle, setup, threads, project
       {setup.length > 0 && (
         <Group title="Setting up" count={setup.length}>
           {setup.map((t) => (
-            <Pressable key={t.id} className="auto-row setup" onClick={(e) => onOpen(t.id, e.shiftKey)}>
+            <Pressable key={t.id} className="auto-row auto-row-setup" onClick={(e) => onOpen(t.id, e.shiftKey)}>
               <span className="auto-row-title">{t.title}</span>
               <span className="auto-row-result">
                 <StatusBadge thread={t} status={agentStatus(t)} />

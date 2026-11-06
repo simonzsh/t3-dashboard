@@ -663,7 +663,7 @@ ol.install-steps { padding-left: 18px; }
 .auto-row-name { overflow: hidden; text-overflow: ellipsis; }
 .auto-kind { color: var(--text-secondary); }
 .auto-row-schedule, .auto-row-next { color: var(--text-secondary); }
-.auto-row.setup { grid-template-columns: minmax(0, 1fr) auto; }
+.auto-row.auto-row-setup { grid-template-columns: minmax(0, 1fr) auto; }
 .auto-panel { flex: none; width: 380px; display: flex; flex-direction: column; gap: 12px; padding: 16px; overflow: auto; border: 1px solid var(--line); border-radius: var(--radius-lg); background: var(--surface-1); box-shadow: var(--shadow); }
 .auto-panel-head { display: flex; align-items: center; gap: 8px; }
 .auto-panel-title { flex: 1; min-width: 0; margin: 0; font-size: 16px; font-weight: 600; overflow-wrap: anywhere; }
