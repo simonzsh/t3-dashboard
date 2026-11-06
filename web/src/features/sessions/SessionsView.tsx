@@ -35,6 +35,7 @@ interface Props {
   /** Opens a thread as a session and focuses it. */
   onOpen: (id: string) => void;
   onNewSession: (projectId: string) => void;
+  onAddProject: () => void;
 }
 
 /** Fixed-width columns in a strip that scrolls sideways; grid view stacks two sessions per column. */
@@ -215,7 +216,7 @@ function useWindowDrag(enabled: boolean, dispatch: Dispatch<SessionsAction>) {
   };
 }
 
-export function SessionsView({ sessions, dispatch, threads, listed, projects, seen, now, layout, prefs, onPrefs, t3EnvironmentId, providers, phone, sessionShown, onBack, onOpen, onNewSession }: Props) {
+export function SessionsView({ sessions, dispatch, threads, listed, projects, seen, now, layout, prefs, onPrefs, t3EnvironmentId, providers, phone, sessionShown, onBack, onOpen, onNewSession, onAddProject }: Props) {
   const modelNames = useMemo(() => modelNameMap(providers), [providers]);
   const openIds = useMemo(() => new Set(sessions.ids), [sessions.ids]);
   // On a phone, closing the open session goes back to the list.
@@ -295,6 +296,7 @@ export function SessionsView({ sessions, dispatch, threads, listed, projects, se
       onPrefs={onPrefs}
       onOpen={openFromList}
       onNewSession={onNewSession}
+      onAddProject={onAddProject}
       onClose={closeOne}
       onCloseAll={closeAll}
     />
