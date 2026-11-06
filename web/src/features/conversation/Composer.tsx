@@ -3,6 +3,8 @@ import type { ComposerCommands, ContextUsage, DashboardProvider, FileEntry, Mode
 import type { StashEntry } from "../../../../shared/stash.ts";
 import { STASH_LIMIT } from "../../../../shared/stash.ts";
 import { RUNTIME_MODE_LABELS, acceptFiles, applyTrigger, attachmentType, composerPlaceholder, dropTrigger, escapeBlurs, filterCommands, filterSkills, findModel, isSendKey, suggestsCompact, triggerAt } from "./composer.ts";
+import { AttachmentPreview } from "./AttachmentPreview.tsx";
+import type { PreviewTarget } from "./attachmentPreview.ts";
 import { moveActive } from "../../lib/dropdown.ts";
 import { useApi } from "../../api/ApiContext.tsx";
 import { setStash, useStash } from "../../api/stashStore.ts";
@@ -132,6 +134,8 @@ export function Composer({ providers, selection, runtimeMode, running, stoppable
   // One error line: each attempt replaces it, so an older error never hides a newer one.
   const { setError, run: attempt } = useAction("send your request");
   const [sending, setSending] = useState(false);
+  // The image of a chip, opened in the same dialog as an image of a message.
+  const [previewed, setPreviewed] = useState<PreviewTarget | null>(null);
   const [stopping, setStopping] = useState(false);
   const touch = useMediaQuery("(pointer: coarse)");
   const fileInput = useRef<HTMLInputElement>(null);
@@ -407,8 +411,17 @@ export function Composer({ providers, selection, runtimeMode, running, stoppable
           <ul className="composer-files" aria-label="Attachments">
             {files.map((f) => (
               <li key={f.key} className={`file-chip ${f.state}`}>
-                {f.preview ? <img src={f.preview} alt="" /> : <Icon name="paperclip" />}
-                <span data-tooltip={f.error ?? f.name} data-tooltip-clipped>{f.state === "failed" ? `${f.name}: failed` : f.name}</span>
+                {f.preview ? (
+                  <Pressable className="file-chip-open" aria-label={`Open ${f.name}`} onClick={() => setPreviewed({ name: f.name, kind: "image", src: f.preview!, open: f.preview!, download: f.preview! })}>
+                    <img src={f.preview} alt="" />
+                    <span data-tooltip={f.error ?? f.name} data-tooltip-clipped>{f.state === "failed" ? `${f.name}: failed` : f.name}</span>
+                  </Pressable>
+                ) : (
+                  <>
+                    <Icon name="paperclip" />
+                    <span data-tooltip={f.error ?? f.name} data-tooltip-clipped>{f.state === "failed" ? `${f.name}: failed` : f.name}</span>
+                  </>
+                )}
                 {f.state === "uploading" && <Loader inline label="Uploading" />}
                 {f.state === "failed" && f.file && (
                   <Pressable aria-label={`Retry ${f.name}`} tooltip="Retry" onClick={() => void upload(f.key, f.file!)}>
@@ -496,6 +509,7 @@ export function Composer({ providers, selection, runtimeMode, running, stoppable
             ))}
           </div>
         )}
+        {previewed && <AttachmentPreview target={previewed} onClose={() => setPreviewed(null)} />}
         {stashOpen && stashed.length > 0 && <StashDrawer anchor={card} entries={stashed} onRestore={(e) => void restoreStash(e)} onDelete={(e) => void deleteStash(e)} onClose={() => setStashOpen(false)} />}
         <div className="composer-toolbar">
           <div className="composer-pickers">
