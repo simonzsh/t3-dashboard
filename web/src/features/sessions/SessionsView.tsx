@@ -281,7 +281,8 @@ export function SessionsView({ sessions, dispatch, threads, listed, projects, se
       modelNames={modelNames}
       now={now}
       openIds={openIds}
-      focusedId={focusedId}
+      // The phone list is a picker: no row stays marked as the current one.
+      focusedId={phone ? null : focusedId}
       prefs={prefs}
       onPrefs={onPrefs}
       onOpen={openFromList}

@@ -541,7 +541,7 @@ ol.install-steps { padding-left: 18px; }
 .notif-item, .run-item { position: relative; min-width: 0; border-bottom: 1px solid var(--line); }
 .notif-item:last-child, .run-item:last-child { border-bottom: 0; }
 .notif-row, .run-row { position: relative; width: 100%; min-width: 0; display: flex; gap: 10px; padding: 10px 16px; border: 0; background: none; color: inherit; text-align: left; }
-.notif-row:hover, .run-row:hover { background: color-mix(in srgb, var(--text-primary) 5%, transparent); }
+@media (hover: hover) { .notif-row:hover, .run-row:hover { background: color-mix(in srgb, var(--text-primary) 5%, transparent); } }
 .notif-item.unread { background: color-mix(in srgb, var(--accent) 7%, transparent); }
 .notif-item.needs { background: color-mix(in srgb, var(--warn) 9%, transparent); }
 .notif-item.read .notif-row { opacity: 0.6; }
@@ -567,7 +567,7 @@ ol.install-steps { padding-left: 18px; }
 .run-list { display: flex; flex-direction: column; }
 .ticket-row { position: relative; display: flex; flex-direction: column; gap: 6px; min-width: 0; padding: 10px 16px; border-bottom: 1px solid var(--line); }
 .ticket-row:last-child { border-bottom: 0; }
-.ticket-row:hover { background: color-mix(in srgb, var(--text-primary) 5%, transparent); }
+@media (hover: hover) { .ticket-row:hover { background: color-mix(in srgb, var(--text-primary) 5%, transparent); } }
 .ticket-meta { display: flex; align-items: center; gap: 8px; min-width: 0; }
 /* Two lines at most. */
 .ticket-title { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; line-clamp: 2; overflow: hidden; font-weight: 500; color: inherit; text-decoration: none; }
@@ -751,7 +751,7 @@ ol.install-steps { padding-left: 18px; }
 .slist { flex: none; width: 280px; min-height: 0; display: flex; flex-direction: column; border-right: 1px solid var(--line); background: var(--surface-0); }
 .slist-body { flex: 1; min-height: 0; overflow-y: auto; padding: 6px; }
 .slist-project { display: flex; align-items: center; border-radius: var(--radius-md); }
-.slist-project:hover { background: color-mix(in srgb, var(--text-primary) 5%, transparent); }
+@media (hover: hover) { .slist-project:hover { background: color-mix(in srgb, var(--text-primary) 5%, transparent); } }
 .slist-project-toggle { flex: 1; min-width: 0; display: flex; align-items: center; gap: 6px; height: 30px; padding: 0 6px; border: 0; border-radius: var(--radius-md); background: none; color: var(--text-primary); font-size: 13px; font-weight: 600; text-align: left; }
 .slist-chevron { flex: none; width: 14px; height: 14px; color: var(--text-secondary); }
 .slist-project .project-icon { flex: none; width: 16px; height: 16px; }
@@ -763,7 +763,8 @@ ol.install-steps { padding-left: 18px; }
 .slist-project:hover .slist-new, .slist-new:focus-visible { opacity: 1; }
 .slist-row { position: relative; display: flex; align-items: flex-start; gap: 8px; width: 100%; padding: 5px 8px 5px 26px; border: 0; border-radius: var(--radius-md); background: none; color: var(--text-primary); text-align: left; }
 .slist-body > .slist-row { padding-left: 8px; }
-.slist-row:hover { background: color-mix(in srgb, var(--text-primary) 5%, transparent); }
+/* Hover only with a real pointer: a tap on a phone would leave the row grey. */
+@media (hover: hover) { .slist-row:hover { background: color-mix(in srgb, var(--text-primary) 5%, transparent); } }
 .slist-row.focused { background: color-mix(in srgb, var(--text-primary) 10%, transparent); }
 /* A thread open as a column: a thin accent bar on its left. */
 .slist-row.open::before { content: ""; position: absolute; left: 1px; top: 6px; bottom: 6px; width: 2px; border-radius: 1px; background: var(--accent); }
