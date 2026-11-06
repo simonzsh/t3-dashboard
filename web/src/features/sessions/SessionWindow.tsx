@@ -1,7 +1,6 @@
 import { memo, type Dispatch } from "react";
 import type { DashboardProvider, DashboardThread, ProjectIcon as ProjectIconData } from "../../../../shared/api.ts";
-import { threadState, type ThreadState } from "../../../../shared/status.ts";
-import { threadTitle } from "../../lib/threads.ts";
+import { threadState } from "../../../../shared/status.ts";
 import { Badge, Button, Icon, IconButton } from "../../ui/index.ts";
 import type { SessionsAction } from "./sessions.ts";
 import { ConversationPanel } from "../conversation/ConversationPanel.tsx";
@@ -10,11 +9,13 @@ import { ProjectIcon } from "../../lib/ProjectIcon.tsx";
 import { ctrlLabel } from "../../lib/shortcuts.ts";
 
 // Only the states that ask for attention get a badge: a done or idle session shows none.
-const STATE_LABELS: Partial<Record<ThreadState, string>> = { waiting: "Waiting", running: "Running", error: "Error" };
+const STATE_LABELS = { waiting: "Waiting", running: "Running", error: "Error" } as const;
 
 interface Props {
   id: string;
   thread: DashboardThread | null;
+  // A subagent thread has no shell entry: its name comes from the conversation.
+  title: string;
   projectTitle: string | null;
   projectIcon: ProjectIconData | null;
   // The thread left the live state (archived or deleted) after this window saw it.
@@ -26,27 +27,22 @@ interface Props {
   live: boolean;
   t3EnvironmentId: string | null;
   providers: DashboardProvider[];
-  // A subagent thread has no shell entry: the window takes its name from the conversation.
-  childTitle?: string;
   onTitle?: (id: string, title: string) => void;
   // Stable across renders, so a window rerenders only when its own props change.
   dispatch: Dispatch<SessionsAction>;
 }
 
-function SessionWindowView({ id, thread, projectTitle, projectIcon, missing, focused, maximized, compact, live, t3EnvironmentId, providers, childTitle, onTitle, dispatch }: Props) {
+function SessionWindowView({ id, thread, title, projectTitle, projectIcon, missing, focused, maximized, compact, live, t3EnvironmentId, providers, onTitle, dispatch }: Props) {
   const onFocus = () => dispatch({ type: "focus", id });
   const onClose = () => dispatch({ type: "close", id });
   const onToggleMaximize = () => dispatch({ type: "maximize", id });
   const state = thread ? threadState(thread) : null;
-  const title = thread || !childTitle ? threadTitle(thread) : childTitle;
+  const badge = state === "waiting" || state === "running" || state === "error" ? state : null;
   return (
     <section
-      className={`session-window${state ? ` state-${state}` : ""}${focused ? " focused" : ""}${maximized ? " maximized" : ""}`}
+      className={`session-window${focused ? " focused" : ""}${maximized ? " maximized" : ""}`}
       data-session-window={id}
       aria-label={title}
-      onMouseDownCapture={() => {
-        if (!focused) onFocus();
-      }}
       onFocusCapture={() => {
         if (!focused) onFocus();
       }}
@@ -57,10 +53,10 @@ function SessionWindowView({ id, thread, projectTitle, projectIcon, missing, foc
           <span className="dw-title" data-tooltip={title} data-tooltip-clipped>
             {title}
           </span>
-          {state && STATE_LABELS[state] && (
-            <Badge variant={state === "idle" ? "neutral" : state} className="dw-state">
-              {state === "running" && <span className="pulse" aria-hidden="true" />}
-              {STATE_LABELS[state]}
+          {badge && (
+            <Badge variant={badge} className="dw-state">
+              {badge === "running" && <span className="pulse" aria-hidden="true" />}
+              {STATE_LABELS[badge]}
             </Badge>
           )}
           <span className="dw-buttons">

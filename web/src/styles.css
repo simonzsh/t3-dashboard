@@ -174,7 +174,6 @@ main { flex: 1; min-height: 0; overflow: hidden; padding: 24px; display: flex; f
 .ident { flex: none; color: var(--text-secondary); font-variant-numeric: tabular-nums; font-size: 12px; }
 /* Small pills: a Badge with the colours of its variant. */
 .dw-state { flex: none; font-size: 11px; font-weight: 600; padding: 1px 8px; }
-.dw-state.neutral { font-weight: 600; }
 .icon { flex: none; width: 16px; height: 16px; }
 .tooltip { position: fixed; z-index: 60; pointer-events: none; display: flex; align-items: center; gap: 6px; max-width: min(320px, calc(100vw - 8px)); padding: 4px 8px; border-radius: var(--radius-sm); background: var(--text-primary); color: var(--surface-1); font-size: 12px; line-height: 1.3; overflow-wrap: anywhere; box-shadow: var(--shadow); }
 .tooltip kbd { flex: none; padding: 2px 4px; font-size: 10px; color: inherit; background: transparent; border-color: color-mix(in srgb, var(--surface-1) 45%, transparent); }
@@ -742,7 +741,6 @@ ol.install-steps { padding-left: 18px; }
 .sc-row { display: flex; align-items: center; gap: 6px; min-width: 0; }
 .sc-grip { flex: none; width: 16px; height: 16px; color: var(--text-secondary); }
 .sc-sub { display: flex; align-items: center; gap: 6px; min-width: 0; padding-left: 22px; color: var(--text-secondary); font-size: 12px; }
-.session-window-head { position: relative; }
 /* The session the keyboard acts on: a light tint of the accent color. */
 .session-window.focused .session-window-head { background: color-mix(in srgb, var(--accent) 12%, var(--surface-1)); }
 .session-window.focused .dw-title { color: var(--text-primary); font-weight: 600; }
@@ -758,7 +756,6 @@ ol.install-steps { padding-left: 18px; }
 .dw-project { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .dw-state.waiting { box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--warn) 50%, transparent); }
 .dw-state.running { box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent) 50%, transparent); }
-.dw-state.done { box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--ok) 50%, transparent); }
 .dw-state.error { box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--danger) 50%, transparent); }
 .dw-buttons { display: flex; gap: 2px; flex: none; }
 .dw-buttons .icon-button { min-width: 0; height: auto; padding: 4px; border-radius: var(--radius-sm); }

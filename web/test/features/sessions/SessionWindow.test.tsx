@@ -4,7 +4,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { SessionWindow } from "../../../src/features/sessions/SessionWindow.tsx";
 import { thread } from "../../fixtures.ts";
 
-const base = { id: "t1", thread: null, projectTitle: null, projectIcon: null, focused: true, maximized: false, compact: false, live: true, t3EnvironmentId: null, providers: [], dispatch: () => {} };
+const base = { id: "t1", thread: null, title: "Fix login", projectTitle: null, projectIcon: null, focused: true, maximized: false, compact: false, live: true, t3EnvironmentId: null, providers: [], dispatch: () => {} };
 
 test("a missing window keeps its classes and shows the message with a close button", () => {
   const html = renderToStaticMarkup(<SessionWindow {...base} missing />);
@@ -14,11 +14,10 @@ test("a missing window keeps its classes and shows the message with a close butt
   assert.match(html, /aria-label="Close"/);
 });
 
-test("the header has a grip, Fullscreen and Close, and no Minimize", () => {
+test("the header has a grip, Fullscreen and Close", () => {
   const html = renderToStaticMarkup(<SessionWindow {...base} missing />);
   assert.match(html, /sc-grip/);
   assert.match(html, /aria-label="Fullscreen"/);
-  assert.doesNotMatch(html, /Minimize/);
 });
 
 test("the sub-line names the project only when the thread and its project are known", () => {

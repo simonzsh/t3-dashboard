@@ -3,7 +3,6 @@
 
 /** Open sessions in total: only a bound against a runaway body. */
 export const SESSIONS_MAX = 100;
-export const HISTORY_LIMIT = 20;
 
 export interface SharedSessions {
   /** Thread ids of the open sessions, in no meaningful order. */

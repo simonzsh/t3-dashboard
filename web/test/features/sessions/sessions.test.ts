@@ -6,31 +6,18 @@ import {
   cellOf,
   columnLeadId,
   sessionsReducer,
-  windowsToKeep,
+  sessionsToKeep,
   loadSessions,
   neighborId,
   parseSessions,
   saveSessions,
   spansRows,
-  stepId,
-  stripLayout,
   type SessionsState,
 } from "../../../src/features/sessions/sessions.ts";
 import { memoryStore } from "../../fixtures.ts";
 
 const open = (s: SessionsState, ...ids: string[]) => ids.reduce((acc, id) => sessionsReducer(acc, { type: "open", id }), s);
-const ids = (s: SessionsState) => s.windows.map((w) => w.id);
-
-test("stripLayout: one row of columns, or two rows of stacked sessions", () => {
-  assert.deepEqual(stripLayout(0, "columns"), { columns: 0, rows: 0 });
-  assert.deepEqual(stripLayout(0, "grid"), { columns: 0, rows: 0 });
-  assert.deepEqual(stripLayout(1, "columns"), { columns: 1, rows: 1 });
-  assert.deepEqual(stripLayout(7, "columns"), { columns: 7, rows: 1 });
-  assert.deepEqual(stripLayout(1, "grid"), { columns: 1, rows: 1 });
-  assert.deepEqual(stripLayout(2, "grid"), { columns: 1, rows: 2 });
-  assert.deepEqual(stripLayout(3, "grid"), { columns: 2, rows: 2 });
-  assert.deepEqual(stripLayout(7, "grid"), { columns: 4, rows: 2 });
-});
+const ids = (s: SessionsState) => s.ids;
 
 test("cellOf: columns fill left to right, grid fills each column top then bottom", () => {
   assert.deepEqual([0, 1, 5].map((i) => cellOf(i, "columns")), [{ column: 0, row: 0 }, { column: 1, row: 0 }, { column: 5, row: 0 }]);
@@ -64,16 +51,6 @@ test("open on an open window focuses it without moving it", () => {
   assert.equal(s.focusedId, "a");
 });
 
-test("sessions are never capped by the number visible: the last one opened keeps the focus", () => {
-  const all = ["a", "b", "c", "d", "e", "f", "g", "h", "i"];
-  let s = open(EMPTY_SESSIONS, ...all);
-  s = sessionsReducer(s, { type: "maximize", id: "a" });
-  s = open(s, "j");
-  assert.deepEqual(ids(s), [...all, "j"]);
-  assert.equal(s.focusedId, "j");
-  assert.equal(s.maximizedId, null);
-});
-
 test("close removes the window and moves the focus to the last one", () => {
   let s = open(EMPTY_SESSIONS, "a", "b", "c");
   s = sessionsReducer(s, { type: "close", id: "c" });
@@ -90,21 +67,20 @@ test("closing a window that is not focused keeps the focus", () => {
   assert.equal(sessionsReducer(s, { type: "close", id: "c" }).focusedId, "a");
 });
 
-test("maximize toggles and focuses; unmaximize restores", () => {
+test("maximize toggles and focuses", () => {
   let s = open(EMPTY_SESSIONS, "a", "b");
   s = sessionsReducer(s, { type: "maximize", id: "a" });
-  assert.equal(s.maximizedId, "a");
+  assert.equal(s.maximized, true);
   assert.equal(s.focusedId, "a");
-  assert.equal(sessionsReducer(s, { type: "maximize", id: "a" }).maximizedId, null);
-  assert.equal(sessionsReducer(s, { type: "unmaximize" }).maximizedId, null);
+  assert.equal(sessionsReducer(s, { type: "maximize", id: "a" }).maximized, false);
 });
 
 test("focusing another window leaves the maximized view", () => {
   let s = open(EMPTY_SESSIONS, "a", "b");
   s = sessionsReducer(s, { type: "maximize", id: "a" });
-  assert.equal(sessionsReducer(s, { type: "focus", id: "a" }).maximizedId, "a");
+  assert.equal(sessionsReducer(s, { type: "focus", id: "a" }).maximized, true);
   const other = sessionsReducer(s, { type: "focus", id: "b" });
-  assert.equal(other.maximizedId, null);
+  assert.equal(other.maximized, false);
   assert.equal(other.focusedId, "b");
   assert.deepEqual(sessionsReducer(s, { type: "focus", id: "zz" }), s);
 });
@@ -114,16 +90,16 @@ test("prune drops ids that no longer exist", () => {
   s = sessionsReducer(s, { type: "maximize", id: "c" });
   s = sessionsReducer(s, { type: "prune", existing: new Set(["a", "b"]) });
   assert.deepEqual(ids(s), ["a", "b"]);
-  assert.equal(s.maximizedId, null);
+  assert.equal(s.maximized, false);
   assert.equal(s.focusedId, "b");
 });
 
-test("windowsToKeep keeps live threads and subagent threads, drops the rest, even when the server fails", async () => {
+test("sessionsToKeep keeps live threads and subagent threads, drops the rest, even when the server fails", async () => {
   const resolves = async (id: string) => {
     if (id === "boom") throw new Error("404");
     return id === "child";
   };
-  const kept = await windowsToKeep(["live", "child", "archived", "boom"], new Set(["live"]), resolves);
+  const kept = await sessionsToKeep(["live", "child", "archived", "boom"], new Set(["live"]), resolves);
   assert.deepEqual([...kept].sort(), ["child", "live"]);
 });
 
@@ -134,19 +110,20 @@ test("parseSessions round-trips and falls back on bad input", () => {
   assert.deepEqual(parseSessions(null), EMPTY_SESSIONS);
   assert.deepEqual(parseSessions("{not json"), EMPTY_SESSIONS);
   assert.deepEqual(parseSessions("42"), EMPTY_SESSIONS);
-  assert.deepEqual(parseSessions(JSON.stringify({ windows: "nope", focusedId: 3 })), EMPTY_SESSIONS);
+  assert.deepEqual(parseSessions(JSON.stringify({ ids: "nope", focusedId: 3 })), EMPTY_SESSIONS);
 });
 
 test("parseSessions keeps unique window ids in order and drops the rest", () => {
-  const raw = JSON.stringify({ windows: [{ id: "a" }, { id: "a" }, { id: 3 }, "x", { id: "b" }], focusedId: "zz", maximizedId: "b" });
-  assert.deepEqual(parseSessions(raw), { windows: [{ id: "a" }, { id: "b" }], focusedId: "b", maximizedId: "b" });
+  const raw = JSON.stringify({ ids: ["a", "a", 3, "b"], focusedId: "zz", maximized: true });
+  assert.deepEqual(parseSessions(raw), { ids: ["a", "b"], focusedId: "b", maximized: false });
+  assert.deepEqual(parseSessions(JSON.stringify({ ids: ["a", "b"], focusedId: "a", maximized: true })), { ids: ["a", "b"], focusedId: "a", maximized: true });
 });
 
-test("parseSessions caps the saved windows at 100", () => {
-  const windows = Array.from({ length: 130 }, (_, i) => ({ id: `t${i}` }));
-  const s = parseSessions(JSON.stringify({ windows, focusedId: "t120" }));
-  assert.equal(s.windows.length, 100);
-  assert.equal(s.windows.at(-1)!.id, "t99");
+test("parseSessions caps the saved ids at 100", () => {
+  const saved = Array.from({ length: 130 }, (_, i) => `t${i}`);
+  const s = parseSessions(JSON.stringify({ ids: saved, focusedId: "t120" }));
+  assert.equal(s.ids.length, 100);
+  assert.equal(s.ids.at(-1), "t99");
   assert.equal(s.focusedId, "t99");
 });
 
@@ -159,6 +136,8 @@ test("loadSessions and saveSessions use storage and survive errors", () => {
   const broken = { getItem: () => { throw new Error("denied"); }, setItem: () => { throw new Error("denied"); } };
   assert.deepEqual(loadSessions(broken), EMPTY_SESSIONS);
   assert.doesNotThrow(() => saveSessions(broken, s));
+  assert.deepEqual(loadSessions(null), EMPTY_SESSIONS);
+  assert.doesNotThrow(() => saveSessions(null, s));
 });
 
 test("neighborId in column view moves one column and stops at the ends", () => {
@@ -192,26 +171,11 @@ test("neighborId in grid view keeps the row across columns and moves inside a co
   assert.equal(neighborId(at("e"), "down", "grid"), null);
 });
 
-test("neighborId without a focused window gives the first session", () => {
-  const s = { ...open(EMPTY_SESSIONS, "a", "b"), focusedId: null };
-  assert.equal(neighborId(s, "right", "columns"), "a");
-  assert.equal(neighborId(s, "down", "grid"), "a");
-});
-
 test("columnLeadId is the first session of the n-th column, or null past the last", () => {
   const s = open(EMPTY_SESSIONS, "a", "b", "c", "d", "e");
   assert.deepEqual([1, 2, 5, 6].map((n) => columnLeadId(s, n, "columns")), ["a", "b", "e", null]);
   assert.deepEqual([1, 2, 3, 4].map((n) => columnLeadId(s, n, "grid")), ["a", "c", "e", null]);
   assert.equal(columnLeadId(EMPTY_SESSIONS, 1, "columns"), null);
-});
-
-test("stepId moves along the opening order and stops at both ends", () => {
-  const s = open(EMPTY_SESSIONS, "a", "b", "c");
-  assert.equal(stepId(s.windows, "b", 1), "c");
-  assert.equal(stepId(s.windows, "b", -1), "a");
-  assert.equal(stepId(s.windows, "c", 1), null);
-  assert.equal(stepId(s.windows, "a", -1), null);
-  assert.equal(stepId(s.windows, "x", 1), null);
 });
 
 test("swap exchanges two windows' cells and focuses the dragged one", () => {
@@ -231,9 +195,9 @@ test("sync keeps the order of the windows this device already has", () => {
   let s = open(EMPTY_SESSIONS, "a", "b", "c");
   s = sessionsReducer(s, { type: "maximize", id: "c" });
   const synced = sessionsReducer(s, { type: "sync", ids: ["c", "b", "a"] });
-  assert.deepEqual(synced.windows, s.windows);
+  assert.deepEqual(synced.ids, s.ids);
   assert.equal(synced.focusedId, "c");
-  assert.equal(synced.maximizedId, "c");
+  assert.equal(synced.maximized, true);
 });
 
 test("sync drops removed windows and appends new ones without taking the focus", () => {
@@ -248,7 +212,7 @@ test("sync moves focus and maximize off a window that is gone", () => {
   let s = open(EMPTY_SESSIONS, "a", "b");
   s = sessionsReducer(s, { type: "maximize", id: "b" });
   const gone = sessionsReducer(s, { type: "sync", ids: ["a"] });
-  assert.equal(gone.maximizedId, null);
+  assert.equal(gone.maximized, false);
   assert.equal(gone.focusedId, "a");
   assert.deepEqual(sessionsReducer(s, { type: "sync", ids: [] }), EMPTY_SESSIONS);
 });

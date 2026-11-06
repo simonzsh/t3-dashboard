@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, type Dispatch } from "react";
 import type { SessionsUpdate, SharedSessions } from "../../../../shared/api.ts";
 import { useApi } from "../../api/ApiContext.tsx";
-import { windowsToKeep, type SessionsAction, type SessionsState } from "./sessions.ts";
+import { sessionsToKeep, type SessionsAction, type SessionsState } from "./sessions.ts";
 
 // Tells our own echo from another device's change.
 const ORIGIN = crypto.randomUUID();
@@ -21,15 +21,15 @@ interface Options {
   connects: number;
 }
 
-/** Keeps on the server which windows are on the Sessions page, so every device shows the same conversations. */
+/** Keeps on the server which sessions are open, so every device shows the same conversations. */
 export function useSessionsSync({ sessions, dispatch, threads, remote, connects }: Options): void {
   const api = useApi();
   const [loaded, setLoaded] = useState(false);
   // The state the server holds as far as we know: what we load, receive or send.
   const known = useRef<string | null>(null);
   const pruned = useRef(false);
-  const windows = useRef(sessions.windows);
-  windows.current = sessions.windows;
+  const ids = useRef(sessions.ids);
+  ids.current = sessions.ids;
 
   const apply = (shared: SharedSessions) => {
     known.current = keyOf(shared);
@@ -61,7 +61,7 @@ export function useSessionsSync({ sessions, dispatch, threads, remote, connects 
     if (loaded && remote && remote.origin !== ORIGIN) apply(remote.sessions);
   }, [remote]);
 
-  const shared: SharedSessions = { ids: sessions.windows.map((w) => w.id) };
+  const shared: SharedSessions = { ids: sessions.ids };
   const key = keyOf(shared);
   useEffect(() => {
     if (!loaded || key === known.current) return;
@@ -76,10 +76,10 @@ export function useSessionsSync({ sessions, dispatch, threads, remote, connects 
     if (!loaded || !threads || pruned.current) return;
     pruned.current = true;
     const live = new Set(threads.map((t) => t.id));
-    const asked = windows.current.map((w) => w.id);
-    void windowsToKeep(asked, live, async (id) => (await api.getThread(id)).subagentThread).then((kept) => {
-      // A window opened while the server answered is not in `asked`: it stays.
-      const opened = windows.current.map((w) => w.id).filter((id) => !asked.includes(id));
+    const asked = ids.current;
+    void sessionsToKeep(asked, live, async (id) => (await api.getThread(id)).subagentThread).then((kept) => {
+      // A session opened while the server answered is not in `asked`: it stays.
+      const opened = ids.current.filter((id) => !asked.includes(id));
       dispatch({ type: "prune", existing: new Set([...kept, ...opened]) });
     });
   }, [loaded, threads, dispatch]);

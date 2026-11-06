@@ -9,7 +9,7 @@ const BASE = 240;
 const LONG = 320;
 
 /** Every helper does nothing when the user asks for less motion. */
-function reducedMotion(): boolean {
+export function reducedMotion(): boolean {
   return typeof matchMedia !== "function" || matchMedia("(prefers-reduced-motion: reduce)").matches;
 }
 

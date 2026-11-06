@@ -22,16 +22,16 @@ test("a rect moved by less than a pixel does not count as moved", () => {
 });
 
 test("fitInto keeps the box shape and centers it in the target", () => {
-  // A 300x100 card shrinks into a 60x30 tab: the width decides (60/300 = 0.2), so 60x20.
-  const card = { left: 0, top: 0, width: 300, height: 100 };
-  const tab = { left: 500, top: 10, width: 60, height: 30 };
-  assert.deepEqual(fitInto(card, tab), { left: 500, top: 15, width: 60, height: 20 });
+  // A 300x100 box shrinks into a 60x30 target: the width decides (60/300 = 0.2), so 60x20.
+  const box = { left: 0, top: 0, width: 300, height: 100 };
+  const target = { left: 500, top: 10, width: 60, height: 30 };
+  assert.deepEqual(fitInto(box, target), { left: 500, top: 15, width: 60, height: 20 });
 });
 
 test("fitInto lets the height decide for a flat target", () => {
-  const window = { left: 0, top: 0, width: 400, height: 400 };
-  const chip = { left: 100, top: 700, width: 200, height: 20 };
-  assert.deepEqual(fitInto(window, chip), { left: 190, top: 700, width: 20, height: 20 });
+  const box = { left: 0, top: 0, width: 400, height: 400 };
+  const target = { left: 100, top: 700, width: 200, height: 20 };
+  assert.deepEqual(fitInto(box, target), { left: 190, top: 700, width: 20, height: 20 });
 });
 
 test("flipPlan moves kept items, enters new ones and leaves removed ones", () => {

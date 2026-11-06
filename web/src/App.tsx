@@ -22,7 +22,8 @@ import { useOpenHistory } from "./features/switcher/useOpenHistory.ts";
 import { SettingsDialog } from "./features/settings/SettingsDialog.tsx";
 import { SetupScreen } from "./features/setup/SetupScreen.tsx";
 import { UpdateDialog } from "./features/update/UpdateDialog.tsx";
-import { columnLeadId, neighborId, type Direction } from "./features/sessions/sessions.ts";
+import { focusSessionField } from "./features/sessions/dom.ts";
+import { columnLeadId, NARROW_STRIP, neighborId, type Direction } from "./features/sessions/sessions.ts";
 import { useAutomations } from "./features/automations/useAutomations.ts";
 import { api } from "./api/client.ts";
 import { useDashboard } from "./api/events.ts";
@@ -35,7 +36,6 @@ import { useSessionLayout } from "./lib/sessionLayout.ts";
 import { loadSidebarCollapsed, saveSidebarCollapsed } from "./lib/sidebar.ts";
 import { navBadges } from "./lib/navBadges.ts";
 import { TABS } from "./lib/tabs.ts";
-import { startsTyping } from "./lib/shortcuts.ts";
 import { useTab } from "./lib/useTab.ts";
 import { useTheme } from "./features/settings/useTheme.ts";
 import { useAccent } from "./features/settings/useAccent.ts";
@@ -46,10 +46,6 @@ import { updateLabel } from "./features/update/updateFlow.ts";
 const NO_THREADS: DashboardThread[] = [];
 // Same breakpoint as the bottom bar in styles.css.
 const PHONE = "(max-width: 700px)";
-
-function focusComposer(threadId: string) {
-  requestAnimationFrame(() => document.querySelector<HTMLTextAreaElement>(`[data-session-window="${CSS.escape(threadId)}"] textarea`)?.focus());
-}
 
 export function App() {
   const { state, sseDown, remoteSessions, remoteSeen, connects } = useDashboard();
@@ -94,7 +90,7 @@ export function App() {
   const [accent, setAccent] = useAccent();
   const [layout, setLayout] = useSessionLayout();
   // The grid toggle needs room for two-row columns side by side: not on a phone.
-  const showLayoutToggle = !useMediaQuery("(max-width: 899px)");
+  const showLayoutToggle = !useMediaQuery(NARROW_STRIP);
   const [now, setNow] = useState(() => new Date());
   const compact = useMediaQuery(PHONE);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(() => loadSidebarCollapsed(browserStorage()));
@@ -135,7 +131,7 @@ export function App() {
   }
 
   function toggleInSessions(id: string) {
-    if (sessions.windows.some((w) => w.id === id)) dispatchSessions({ type: "close", id });
+    if (sessions.ids.includes(id)) dispatchSessions({ type: "close", id });
     else openInSessions(id, false);
   }
 
@@ -153,54 +149,35 @@ export function App() {
       else if (action === "settings") setSettingsOpen(true);
       else if (action === "toggle-sidebar") {
         if (!compact) toggleSidebar();
-      }
-      else if (action === "switcher") {
+      } else if (action === "switcher") {
         if (state && !creating && !creatingAutomation && !settingsOpen && !confirmingUpdate) setSwitcherQuery((open) => (open === null ? "" : null));
       } else if (action === "new-session") {
         if (state) setCreating(true);
       } else if (action === "new-automation") {
         if (state) setCreatingAutomation(true);
-      } else if (action === "unmaximize") dispatchSessions({ type: "unmaximize" });
-      else if (action.startsWith("focus-")) {
+      } else if (action === "unmaximize") {
+        if (sessions.maximized && sessions.focusedId) dispatchSessions({ type: "maximize", id: sessions.focusedId });
+      } else if (action.startsWith("focus-")) {
         // A maximized window hides its neighbors: arrows do nothing there.
-        const id = sessions.maximizedId ? null : neighborId(sessions, action.slice("focus-".length) as Direction, layout);
+        const id = sessions.maximized ? null : neighborId(sessions, action.slice("focus-".length) as Direction, layout);
         if (!id) return;
         // No composer focus: a focused textarea would block the next arrow.
         dispatchSessions({ type: "focus", id });
-      }
-      else if (action === "close-window" || action === "toggle-fullscreen") {
+      } else if (action === "close-window" || action === "toggle-fullscreen") {
         if (sessions.focusedId) dispatchSessions({ type: action === "close-window" ? "close" : "maximize", id: sessions.focusedId });
       } else {
         const target = columnLeadId(sessions, Number(action.slice("window-".length)), layout);
         if (!target) return;
         dispatchSessions({ type: "focus", id: target });
-        focusComposer(target);
+        requestAnimationFrame(() => focusSessionField(target));
       }
     },
     blocked,
     tab === "sessions",
   );
 
-  // Shortcuts use Ctrl now, so plain typing on the Sessions page can go straight to the focused window's field.
-  useEffect(() => {
-    if (tab !== "sessions" || blocked || !sessions.focusedId) return;
-    const id = sessions.focusedId;
-    const onKey = (e: KeyboardEvent) => {
-      const el = e.target instanceof HTMLElement ? e.target : null;
-      if (!startsTyping({ key: e.key, ctrlKey: e.ctrlKey, metaKey: e.metaKey, altKey: e.altKey, target: el })) return;
-      if (el?.closest('[role="dialog"], [role="menu"], [role="listbox"]')) return;
-      const field = document.querySelector<HTMLTextAreaElement>(`[data-session-window="${CSS.escape(id)}"] textarea`);
-      if (!field || field.disabled) return;
-      // Focused during keydown: the browser then types this key into the field.
-      field.focus();
-      field.setSelectionRange(field.value.length, field.value.length);
-    };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [tab, blocked, sessions.focusedId]);
-
   const live = !sseDown && state?.connection.t3 === "live";
-  const sessionIds = new Set(sessions.windows.map((w) => w.id));
+  const sessionIds = useMemo(() => new Set(sessions.ids), [sessions.ids]);
   const setup = useSetupRows(state?.threads ?? NO_THREADS, automations.result?.setupThreadIds, automations.reload);
   // One list for the Inbox and its badge, so they cannot drift apart.
   const visible = useMemo(

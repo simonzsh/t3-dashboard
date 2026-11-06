@@ -29,7 +29,7 @@ import { LIVE_RELOAD_MS, SEND_POLL_WINDOW_MS, detailRunning, pollDelay } from ".
 import { SubagentBar } from "./SubagentBar.tsx";
 
 const ROLE_LABELS: Record<string, string> = { user: "You", assistant: "Agent", system: "System" };
-// Windows remount when they move between the strip, fullscreen and the mobile view: keep what they showed.
+// A window remounts when the narrow view switches tabs: keep what it showed.
 const detailCache = new Map<string, ThreadDetail>();
 const drafts = new Map<string, string>();
 const NEAR_BOTTOM_PX = 40;
