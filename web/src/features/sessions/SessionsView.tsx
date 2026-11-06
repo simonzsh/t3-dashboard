@@ -339,7 +339,10 @@ export function SessionsView({ sessions, dispatch, threads, listed, projects, se
 
   return (
     <div ref={root} className="sessions">
-      {!prefs.hidden && list()}
+      {/* Kept mounted so hiding slides like the app sidebar; inert while hidden. */}
+      <div className={`slist-slot${prefs.hidden ? " hidden" : ""}`} inert={prefs.hidden}>
+        {list()}
+      </div>
       {sessions.ids.length === 0 ? (
         <div className="empty-state sessions-empty">
           <strong>No sessions open</strong>
