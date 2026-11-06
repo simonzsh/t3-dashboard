@@ -8,6 +8,9 @@ import { FolderField, type FolderKind } from "./FolderField.tsx";
 import { IconPicker } from "./IconPicker.tsx";
 import { editBody } from "./projectIcons.ts";
 
+// On a touch screen a focused field opens the keyboard over the form: focus nothing there.
+const touch = () => typeof matchMedia === "function" && matchMedia("(pointer: coarse)").matches;
+
 interface Props {
   project: DashboardProject;
   onClose: () => void;
@@ -51,7 +54,7 @@ export function EditProjectDialog({ project, onClose }: Props) {
     <Dialog title="Edit project" className="add-project" onClose={onClose} onCancel={onClose} primary={{ label: busy ? "Saving…" : "Save", onClick: () => void submit(), disabled: busy || !body || !valid }}>
       <label className="dialog-field">
         <span>Title</span>
-        <TextInput autoFocus value={title} onChange={(e) => setTitle(e.target.value)} onKeyDown={onEnter} />
+        <TextInput autoFocus={!touch()} value={title} onChange={(e) => setTitle(e.target.value)} onKeyDown={onEnter} />
       </label>
       <FolderField value={path} onChange={setPath} onKind={setKind} onKeyDown={onEnter} missingHint="This folder does not exist." />
       <div className="dialog-field">
