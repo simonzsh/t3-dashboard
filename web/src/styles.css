@@ -103,7 +103,7 @@ input.field { height: var(--control-md); padding-block: 0; }
 button.primary { background: var(--accent); border-color: var(--accent); color: var(--on-accent); font-weight: 500; }
 button.primary:hover:not(:disabled) { filter: brightness(1.08); }
 button.ghost { border-color: transparent; background: none; }
-button.ghost:hover:not(:disabled) { border-color: transparent; background: var(--surface-0); }
+@media (hover: hover) { button.ghost:hover:not(:disabled) { border-color: transparent; background: var(--surface-0); } }
 /* Beats the ghost hover: a touch screen keeps :hover after a tap, which hid the pressed state until the next tap. */
 button.icon-button.ghost[aria-pressed="true"]:not(:disabled) { background: color-mix(in srgb, var(--text-primary) 10%, transparent); color: var(--text-primary); }
 button.danger { border-color: var(--danger); }
@@ -1025,7 +1025,7 @@ ol.install-steps { padding-left: 18px; }
 :where(:root:not([data-theme="dark"])) kbd { background: var(--surface-0); border-color: transparent; opacity: 1; }
 :where(:root:not([data-theme="dark"])) button.primary kbd { background: transparent; border-color: color-mix(in srgb, var(--on-accent) 45%, transparent); }
 :where(:root:not([data-theme="dark"])) button.primary { box-shadow: 0 1px 2px color-mix(in srgb, var(--accent) 30%, transparent); }
-:where(:root:not([data-theme="dark"])) button.ghost:hover:not(:disabled) { background: #eef0f4; }
+@media (hover: hover) { :where(:root:not([data-theme="dark"])) button.ghost:hover:not(:disabled) { background: #eef0f4; } }
 :where(:root:not([data-theme="dark"])) .composer-card, :where(:root:not([data-theme="dark"])) .dialog { border-color: var(--line); background: #fff; }
 :where(:root:not([data-theme="dark"])) .dialog, :where(:root:not([data-theme="dark"])) .menu, :where(:root:not([data-theme="dark"])) .dropdown-menu { box-shadow: 0 4px 6px rgb(16 24 40 / 0.04), 0 16px 40px rgb(16 24 40 / 0.14); }
 :where(:root:not([data-theme="dark"])) .msg.user .bubble { background: color-mix(in srgb, var(--accent) 9%, var(--surface-1)); border-color: color-mix(in srgb, var(--accent) 18%, var(--line)); }
