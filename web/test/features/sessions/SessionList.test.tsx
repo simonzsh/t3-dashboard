@@ -19,6 +19,8 @@ const base = {
   onOpen: () => {},
   onNewSession: () => {},
   onAddProject: () => {},
+  onEditProject: () => {},
+  onDeleteProject: () => {},
   onClose: () => {},
   onCloseAll: () => {},
 };
@@ -94,7 +96,7 @@ test("an empty project is a muted row at the end: no toggle, no count, but a + b
   const row = html.match(/<div class="slist-project empty">.*?<\/div>/)?.[0] ?? "";
   assert.match(row, /slist-project-title">Fresh</);
   assert.match(row, /aria-label="New session in Fresh"/);
-  assert.doesNotMatch(row, /aria-expanded|slist-total|slist-count/);
+  assert.doesNotMatch(row, /slist-project-toggle"[^>]*aria-expanded|slist-total|slist-count/);
   assert.ok(html.indexOf("Fresh") > html.indexOf("Project A"));
 });
 
@@ -116,4 +118,19 @@ test("flat mode with no thread says so, and shows no empty project", () => {
   const html = renderToStaticMarkup(<SessionList {...withEmpty} threads={[]} prefs={{ ...DEFAULT_LIST_PREFS, mode: "flat" }} />);
   assert.match(html, /No sessions yet\./);
   assert.doesNotMatch(html, /Fresh/);
+});
+
+test("each real project row has a closed actions menu button before the + button, empty projects too", () => {
+  const html = renderToStaticMarkup(<SessionList {...withEmpty} />);
+  const labels = (html.match(/aria-label="Project actions for [^"]*"/g) ?? []).map((l) => l.slice(12));
+  assert.deepEqual(labels, ['Project actions for Project A"', 'Project actions for Fresh"']);
+  assert.match(html, /aria-haspopup="menu"[^>]*aria-expanded="false"/);
+  assert.ok(html.indexOf("Project actions for Project A") < html.indexOf("New session in Project A"));
+  assert.doesNotMatch(html, /role="menu"/);
+});
+
+test("a thread of an unknown project gets no actions button", () => {
+  const html = renderToStaticMarkup(<SessionList {...base} projects={[]} />);
+  assert.match(html, /Unknown project/);
+  assert.doesNotMatch(html, /Project actions/);
 });

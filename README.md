@@ -32,7 +32,7 @@ The screenshots come from the demo mode: the projects, agents and conversations 
 - Follow several conversations side by side, in columns that scroll sideways. Switch to a grid of two rows.
 - Send a message, attach images, change the model, stop a run.
 - Reply to the approvals and questions of the agents.
-- Add a T3 project from a folder (the folder is created if it does not exist). Empty projects show in the list, muted, at the end.
+- Add a T3 project from a folder (the folder is created if it does not exist). Empty projects show in the list, muted, at the end. Edit a project's title, folder and icon, or delete it with its sessions, from the "…" menu of its row.
 - See the images, videos and HTML pages that the agent shows.
 
 **Automations**
