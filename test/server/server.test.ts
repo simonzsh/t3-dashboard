@@ -51,13 +51,10 @@ interface StartOptions {
 
 const usageTotals = { turns: 0, costUsd: 0, inputTokens: 0, cachedInputTokens: 0, outputTokens: 0 };
 const usageOverview: UsageOverview = {
-  timeZone: "UTC",
   days: Array.from({ length: 14 }, (_, index) => ({ day: `2026-03-${String(7 + index).padStart(2, "0")}`, ...usageTotals })),
   thisWeek: usageTotals,
   lastWeek: usageTotals,
-  total: usageTotals,
-  activeThreads: 0,
-  sessions: { thisWeek: 0, lastWeek: 0, total: 0 },
+  sessions: { thisWeek: 0, lastWeek: 0 },
   turnsPartial: false,
   cost: { status: "ok", detail: null, refreshing: false },
   readAt: now.toISOString(),
@@ -108,7 +105,7 @@ async function start(startOptions: StartOptions = {}) {
   });
   const port = new FakePort();
   const usageCalls: Array<{ timeZone: string | undefined; refresh: boolean }> = [];
-  const usage = { get: async (timeZone: string | undefined, refresh: boolean) => (usageCalls.push({ timeZone, refresh }), { ...usageOverview, timeZone: timeZone ?? "UTC" }) };
+  const usage = { get: async (timeZone: string | undefined, refresh: boolean) => (usageCalls.push({ timeZone, refresh }), usageOverview) };
   const hub = new SseHub({ batchMs: 10, pingMs: 60_000 });
   let counter = 0;
   const store: ShellStore = new ShellStore({
@@ -650,7 +647,6 @@ test("GET /api/usage returns the overview for the zone and passes ?refresh=1", a
   const { server, usageCalls } = await start();
   const first = await call(server, "GET", "/api/usage?tz=Europe%2FParis");
   assert.equal(first.status, 200);
-  assert.equal(first.json.timeZone, "Europe/Paris");
   assert.equal(first.json.days.length, 14);
   await call(server, "GET", "/api/usage?tz=Europe%2FParis&refresh=1");
   await call(server, "GET", "/api/usage");

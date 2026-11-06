@@ -4,9 +4,8 @@ import type { RawUsageSummary, T3Port } from "../integrations/t3/schemas.ts";
 
 const DAYS = 14;
 const WEEK = 7;
-const CACHE_MS = 60_000;
-// T3 is still scanning, or had nothing to give: look again soon.
-const SHORT_CACHE_MS = 10_000;
+// Short, so a scan that is still running shows its progress on the next poll.
+const CACHE_MS = 10_000;
 const MAX_READS = 4;
 const OLD_T3 = "This T3 Code version does not report usage.";
 const UNKNOWN_METHOD = /unknown|not found|no handler|not implemented/i;
@@ -15,7 +14,6 @@ export interface UsageOptions {
   port: Pick<T3Port, "threadProjection" | "usageSummary">;
   threads: () => DashboardThread[];
   now: () => Date;
-  serverTimeZone: string;
 }
 
 // Sums of floats: keep the cents, drop the noise.
@@ -35,9 +33,12 @@ function sum(days: UsageDay[]): UsageTotals {
   return { ...total, costUsd: cents(total.costUsd) };
 }
 
+// en-CA writes a date as "YYYY-MM-DD".
+const dayFormat = (timeZone: string) => new Intl.DateTimeFormat("en-CA", { timeZone, year: "numeric", month: "2-digit", day: "2-digit" });
+
 /** The local calendar days, oldest first, as "YYYY-MM-DD". */
-function windowDays(timeZone: string, now: Date): string[] {
-  const today = new Intl.DateTimeFormat("en-CA", { timeZone, year: "numeric", month: "2-digit", day: "2-digit" }).format(now);
+function windowDays(zone: Intl.DateTimeFormat, now: Date): string[] {
+  const today = zone.format(now);
   const [year, month, day] = today.split("-").map(Number) as [number, number, number];
   // Plain calendar arithmetic in UTC: a daylight-saving change cannot skip or repeat a day.
   return Array.from({ length: DAYS }, (_, index) => new Date(Date.UTC(year, month - 1, day - (DAYS - 1 - index))).toISOString().slice(0, 10));
@@ -54,11 +55,11 @@ function costFailure(error: unknown): string {
   return error.message;
 }
 
-/** The Home page numbers: turns from T3 thread histories, cost and tokens from T3's usage scan. */
-export function createUsage({ port, threads, now, serverTimeZone }: UsageOptions) {
+/** The Dashboard usage numbers: turns from T3 thread histories, cost and tokens from T3's usage scan. */
+export function createUsage({ port, threads, now }: UsageOptions) {
   // Run times per thread, valid while the thread's last activity stays the same.
   const runTimes = new Map<string, { activity: string; times: string[] }>();
-  const cache = new Map<string, { at: number; ttl: number; overview: UsageOverview }>();
+  const cache = new Map<string, { at: number; overview: UsageOverview }>();
   const inFlight = new Map<string, Promise<UsageOverview>>();
 
   async function readTurns(ids: DashboardThread[]): Promise<{ runs: { id: string; time: string }[]; partial: boolean }> {
@@ -95,9 +96,9 @@ export function createUsage({ port, threads, now, serverTimeZone }: UsageOptions
 
   async function build(timeZone: string): Promise<UsageOverview> {
     const at = now();
-    const dayKeys = windowDays(timeZone, at);
+    const zone = dayFormat(timeZone);
+    const dayKeys = windowDays(zone, at);
     const byDay = new Map<string, UsageDay>(dayKeys.map((day) => [day, { day, ...zero() }]));
-    const zone = new Intl.DateTimeFormat("en-CA", { timeZone, year: "numeric", month: "2-digit", day: "2-digit" });
 
     const active = threads().filter((thread) => {
       const day = localDay(zone, thread.lastActivityAt);
@@ -109,13 +110,12 @@ export function createUsage({ port, threads, now, serverTimeZone }: UsageOptions
     const [turns, cost] = await Promise.all([readTurns(active), readCost(dayKeys, timeZone)]);
     // A session counts in a period when one of its turns falls in it.
     const thisWeekStart = dayKeys[DAYS - WEEK]!;
-    const sessions = { thisWeek: new Set<string>(), lastWeek: new Set<string>(), total: new Set<string>() };
+    const sessions = { thisWeek: new Set<string>(), lastWeek: new Set<string>() };
     for (const run of turns.runs) {
       const day = localDay(zone, run.time) ?? "";
       const entry = byDay.get(day);
       if (!entry) continue;
       entry.turns++;
-      sessions.total.add(run.id);
       (day >= thisWeekStart ? sessions.thisWeek : sessions.lastWeek).add(run.id);
     }
 
@@ -134,30 +134,26 @@ export function createUsage({ port, threads, now, serverTimeZone }: UsageOptions
 
     const days = [...byDay.values()].map((day) => ({ ...day, costUsd: cents(day.costUsd) }));
     return {
-      timeZone,
       days,
       thisWeek: sum(days.slice(DAYS - WEEK)),
       lastWeek: sum(days.slice(0, DAYS - WEEK)),
-      total: sum(days),
-      activeThreads: active.length,
-      sessions: { thisWeek: sessions.thisWeek.size, lastWeek: sessions.lastWeek.size, total: sessions.total.size },
+      sessions: { thisWeek: sessions.thisWeek.size, lastWeek: sessions.lastWeek.size },
       turnsPartial: turns.partial,
-      cost: { status, detail: status === "partial" ? "Some models are not priced, so the cost may be low." : cost.failure, refreshing },
+      cost: { status, detail: cost.failure, refreshing },
       readAt: at.toISOString(),
     };
   }
 
   return {
     async get(timeZone: string | undefined, refresh: boolean): Promise<UsageOverview> {
-      const zone = timeZone ?? serverTimeZone;
+      const zone = timeZone ?? Intl.DateTimeFormat().resolvedOptions().timeZone;
       const hit = cache.get(zone);
-      if (!refresh && hit && now().getTime() - hit.at < hit.ttl) return hit.overview;
+      if (!refresh && hit && now().getTime() - hit.at < CACHE_MS) return hit.overview;
       const pending = inFlight.get(zone);
       if (pending) return pending;
       const read = build(zone)
         .then((overview) => {
-          const short = overview.cost.refreshing || overview.cost.status === "unavailable";
-          cache.set(zone, { at: now().getTime(), ttl: short ? SHORT_CACHE_MS : CACHE_MS, overview });
+          cache.set(zone, { at: now().getTime(), overview });
           return overview;
         })
         .finally(() => inFlight.delete(zone));

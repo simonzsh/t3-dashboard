@@ -123,7 +123,7 @@ export async function start({ port, log, env }: StartOptions): Promise<void> {
     now: () => new Date(),
   });
 
-  const usage = createUsage({ port: client, threads: () => getState().threads, now: () => new Date(), serverTimeZone: Intl.DateTimeFormat().resolvedOptions().timeZone });
+  const usage = createUsage({ port: client, threads: () => getState().threads, now: () => new Date() });
 
   const settings = createSettings({ file: linearPath, readFile: readText, writeSecret, board });
   const wake = () => {

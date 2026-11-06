@@ -78,7 +78,7 @@ export async function startDemo(env: Record<string, string | undefined>): Promis
     seen: new SeenStore(null, () => {}),
     hub,
     board,
-    usage: createUsage({ port, threads: () => getState().threads, now: () => new Date(), serverTimeZone: Intl.DateTimeFormat().resolvedOptions().timeZone }),
+    usage: createUsage({ port, threads: () => getState().threads, now: () => new Date() }),
     automations,
     getState,
     connection: () => live.connection(),

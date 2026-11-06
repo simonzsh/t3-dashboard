@@ -1,8 +1,8 @@
-// Usage shown on the Home page: turns from T3 threads, cost and tokens from T3's usage scan.
+// Usage shown on the Dashboard: turns from T3 threads, cost and tokens from T3's usage scan.
 
 /** One local day. Cost and tokens are machine-wide; turns count T3 threads only. */
 export interface UsageDay {
-  /** "YYYY-MM-DD" in `UsageOverview.timeZone`. */
+  /** "YYYY-MM-DD" in the time zone the client asked for. */
   day: string;
   turns: number;
   costUsd: number;
@@ -19,23 +19,18 @@ export type UsageTotals = Omit<UsageDay, "day">;
 export type UsageCostStatus = "ok" | "partial" | "unavailable";
 
 export interface UsageOverview {
-  timeZone: string;
   /** Always 14 entries, oldest first, the last one is today; days with no data hold zeros. */
   days: UsageDay[];
   /** The last 7 days (today included) and the 7 days before them, for the deltas. */
   thisWeek: UsageTotals;
   lastWeek: UsageTotals;
-  /** The 14 days. */
-  total: UsageTotals;
-  /** T3 threads with activity in the 14 days. */
-  activeThreads: number;
   /** T3 threads with at least one turn in each period. */
-  sessions: { thisWeek: number; lastWeek: number; total: number };
+  sessions: { thisWeek: number; lastWeek: number };
   /** True when some thread histories could not be read: turns may be low. */
   turnsPartial: boolean;
   cost: {
     status: UsageCostStatus;
-    /** Why cost is unavailable or partial, shown as is; null when ok. */
+    /** Why cost is unavailable, shown as is; null otherwise. */
     detail: string | null;
     /** T3 is still scanning: a later call may hold more. */
     refreshing: boolean;

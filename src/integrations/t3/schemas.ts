@@ -371,7 +371,6 @@ export const UsageSummaryResponse = s.object({
   buckets: s.array(
     s.object({
       day: s.string(),
-      model: s.optional(s.string()),
       costUsd: s.optional(s.number()),
       costSource: s.optional(s.string()),
       unpricedRecords: s.optional(s.number()),

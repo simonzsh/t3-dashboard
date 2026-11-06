@@ -31,7 +31,7 @@ export const automationThreadsFile = (env: Env, homedir: string): string => join
 /** The finished threads each device has opened, shared by every device. */
 export const seenFile = (env: Env, homedir: string): string => join(configDir(env, homedir), "seen.json");
 
-/** The open sessions and the switcher history, shared by every device. */
+/** The open sessions, shared by every device. */
 export const sessionsFile = (env: Env, homedir: string): string => join(configDir(env, homedir), "sessions.json");
 
 /** Stashed composer drafts, shared by every device. */

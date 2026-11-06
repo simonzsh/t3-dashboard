@@ -26,13 +26,10 @@ const totals = (list: UsageDay[]): UsageTotals => ({
   outputTokens: list.reduce((n, d) => n + d.outputTokens, 0),
 });
 const overview = (over: Partial<UsageOverview> = {}): UsageOverview => ({
-  timeZone: "UTC",
   days,
   thisWeek: totals(days.slice(7)),
   lastWeek: totals(days.slice(0, 7)),
-  total: totals(days),
-  activeThreads: 13,
-  sessions: { thisWeek: 9, lastWeek: 6, total: 13 },
+  sessions: { thisWeek: 9, lastWeek: 6 },
   turnsPartial: false,
   cost: { status: "ok", detail: null, refreshing: false },
   readAt: "2026-01-14T11:59:00.000Z",

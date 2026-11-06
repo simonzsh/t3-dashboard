@@ -1,12 +1,16 @@
 import assert from "node:assert/strict";
 import { test } from "bun:test";
 import type { DashboardThread } from "../../shared/api.ts";
+import type { UsageOverview, UsageTotals } from "../../shared/api.ts";
 import { createUsage } from "../../src/domain/usage.ts";
 import { IntegrationError } from "../../src/integrations/errors.ts";
 import type { RawProjection } from "../../src/integrations/t3/schemas.ts";
 import { FakePort } from "../helpers/fakePort.ts";
 
 const MINUTE = 60_000;
+
+// The sum of a field over the 14 days.
+const totalOf = (overview: UsageOverview, key: keyof UsageTotals) => overview.days.reduce((n, day) => n + day[key], 0);
 
 function thread(id: string, lastActivityAt: string): DashboardThread {
   return { id, projectId: "p", title: id, provider: "claude", model: null, status: "idle", settled: false, pending: null, activeRunId: null, backgroundWork: false, pendingTasks: false, lastError: null, pinned: false, lastActivityAt };
@@ -18,7 +22,7 @@ function setup(threads: DashboardThread[] = [], start = "2026-11-06T12:00:00Z") 
   const port = new FakePort();
   let clock = new Date(start).getTime();
   const state = { threads };
-  const usage = createUsage({ port, threads: () => state.threads, now: () => new Date(clock), serverTimeZone: "UTC" });
+  const usage = createUsage({ port, threads: () => state.threads, now: () => new Date(clock) });
   return { port, usage, state, tick: (ms: number) => (clock += ms) };
 }
 
@@ -29,7 +33,6 @@ test("gives 14 zero-filled days, oldest first, ending today", async () => {
   assert.equal(overview.days[0]!.day, "2026-10-24");
   assert.equal(overview.days[13]!.day, "2026-11-06");
   assert.ok(overview.days.every((day) => day.turns === 0 && day.costUsd === 0 && day.inputTokens === 0));
-  assert.equal(overview.timeZone, "UTC");
   assert.equal(overview.readAt, "2026-11-06T12:00:00.000Z");
 });
 
@@ -40,8 +43,9 @@ test("asks T3 for the 14 local days of the zone", async () => {
 });
 
 test("falls back to the server zone when none is given", async () => {
-  const { usage } = setup();
-  assert.equal((await usage.get(undefined, false)).timeZone, "UTC");
+  const { port, usage } = setup();
+  await usage.get(undefined, false);
+  assert.equal(port.usageCalls[0]!.timeZone, Intl.DateTimeFormat().resolvedOptions().timeZone);
 });
 
 test("counts a run on its local day, across midnight", async () => {
@@ -71,15 +75,14 @@ test("counts runs per day, takes startedAt, then requestedAt, then createdAt, an
   const overview = await usage.get("UTC", false);
   const turns = Object.fromEntries(overview.days.filter((day) => day.turns > 0).map((day) => [day.day, day.turns]));
   assert.deepEqual(turns, { "2026-11-05": 2, "2026-11-06": 1 });
-  assert.equal(overview.total.turns, 3);
+  assert.equal(totalOf(overview, "turns"), 3);
 });
 
 test("counts only threads active in the window", async () => {
   const { port, usage } = setup([thread("recent", "2026-11-06T10:00:00Z"), thread("old", "2026-10-01T10:00:00Z")]);
   port.projections = { recent: runs("2026-11-06T09:00:00Z"), old: runs("2026-11-06T08:00:00Z") };
   const overview = await usage.get("UTC", false);
-  assert.equal(overview.activeThreads, 1);
-  assert.equal(overview.total.turns, 1);
+  assert.equal(totalOf(overview, "turns"), 1);
   assert.equal(port.projectionCalls, 1);
 });
 
@@ -106,7 +109,6 @@ test("sums cost and tokens per day and splits the weeks", async () => {
   assert.equal(overview.days.find((day) => day.day === "2026-10-31")!.costUsd, 2);
   assert.deepEqual(overview.thisWeek, { turns: 0, costUsd: 4, inputTokens: 366, cachedInputTokens: 202, outputTokens: 19 });
   assert.deepEqual(overview.lastWeek, { turns: 0, costUsd: 12, inputTokens: 43, cachedInputTokens: 21, outputTokens: 8 });
-  assert.deepEqual(overview.total, { turns: 0, costUsd: 16, inputTokens: 409, cachedInputTokens: 223, outputTokens: 27 });
   assert.deepEqual(overview.cost, { status: "ok", detail: null, refreshing: false });
 });
 
@@ -116,7 +118,7 @@ test("splits the turns of the two weeks", async () => {
   const overview = await usage.get("UTC", false);
   assert.equal(overview.thisWeek.turns, 2);
   assert.equal(overview.lastWeek.turns, 2);
-  assert.equal(overview.total.turns, 4);
+  assert.equal(totalOf(overview, "turns"), 4);
 });
 
 test("counts a session in each week where it has a turn", async () => {
@@ -127,24 +129,24 @@ test("counts a session in each week where it has a turn", async () => {
     c: runs("2026-10-01T09:00:00Z"),
   };
   const overview = await usage.get("UTC", false);
-  assert.deepEqual(overview.sessions, { thisWeek: 1, lastWeek: 2, total: 2 });
+  assert.deepEqual(overview.sessions, { thisWeek: 1, lastWeek: 2 });
 });
 
 test("ignores buckets outside the window and buckets without a number", async () => {
   const { port, usage } = setup();
   port.usage = { buckets: [{ day: "2026-01-01", costUsd: 9 }, { day: "2026-11-06" }] };
   const overview = await usage.get("UTC", false);
-  assert.equal(overview.total.costUsd, 0);
+  assert.equal(totalOf(overview, "costUsd"), 0);
   assert.equal(overview.cost.status, "ok");
 });
 
 test("an unpriced bucket makes the cost partial", async () => {
   const { port, usage } = setup();
-  port.usage = { buckets: [{ day: "2026-11-06", costUsd: 1, costSource: "modelPriced", unpricedRecords: 0 }, { day: "2026-11-06", model: "new-model", costUsd: 0, costSource: "unpriced", unpricedRecords: 3 }] };
+  port.usage = { buckets: [{ day: "2026-11-06", costUsd: 1, costSource: "modelPriced", unpricedRecords: 0 }, { day: "2026-11-06", costUsd: 0, costSource: "unpriced", unpricedRecords: 3 }] };
   const overview = await usage.get("UTC", false);
   assert.equal(overview.cost.status, "partial");
-  assert.match(overview.cost.detail!, /not priced/);
-  assert.equal(overview.total.costUsd, 1);
+  assert.equal(overview.cost.detail, null);
+  assert.equal(totalOf(overview, "costUsd"), 1);
 });
 
 test("a missing usage method gives unavailable cost, never an error", async () => {
@@ -153,9 +155,9 @@ test("a missing usage method gives unavailable cost, never an error", async () =
   port.usageError = new IntegrationError("T3 refused the request: Unknown method", { system: "t3", kind: "refused" });
   const overview = await usage.get("UTC", false);
   assert.deepEqual(overview.cost, { status: "unavailable", detail: "This T3 Code version does not report usage.", refreshing: false });
-  assert.equal(overview.total.costUsd, 0);
-  assert.equal(overview.total.inputTokens, 0);
-  assert.equal(overview.total.turns, 1);
+  assert.equal(totalOf(overview, "costUsd"), 0);
+  assert.equal(totalOf(overview, "inputTokens"), 0);
+  assert.equal(totalOf(overview, "turns"), 1);
 });
 
 test("a protocol error gives the same unavailable detail", async () => {
@@ -178,7 +180,7 @@ test("a failed thread read marks the turns partial and the other threads still c
   port.projectionFailures.add("b");
   const overview = await usage.get("UTC", false);
   assert.equal(overview.turnsPartial, true);
-  assert.equal(overview.total.turns, 1);
+  assert.equal(totalOf(overview, "turns"), 1);
 });
 
 test("with T3 offline the overview is still there, with partial turns", async () => {
@@ -186,7 +188,7 @@ test("with T3 offline the overview is still there, with partial turns", async ()
   port.projectionError = new IntegrationError("T3 is unreachable", { system: "t3", kind: "unreachable" });
   port.usageError = new IntegrationError("T3 is unreachable", { system: "t3", kind: "unreachable" });
   const overview = await usage.get("UTC", false);
-  assert.equal(overview.total.turns, 0);
+  assert.equal(totalOf(overview, "turns"), 0);
   assert.equal(overview.turnsPartial, true);
   assert.equal(overview.cost.status, "unavailable");
 });
@@ -202,7 +204,7 @@ test("keeps a thread's runs until its activity changes", async () => {
   port.projection = runs("2026-11-06T09:00:00Z", "2026-11-06T12:01:00Z");
   const overview = await usage.get("UTC", true);
   assert.equal(port.projectionCalls, 2);
-  assert.equal(overview.total.turns, 2);
+  assert.equal(totalOf(overview, "turns"), 2);
 });
 
 test("forgets a thread that leaves the window", async () => {
@@ -210,7 +212,7 @@ test("forgets a thread that leaves the window", async () => {
   port.projection = runs("2026-11-06T09:00:00Z");
   await usage.get("UTC", false);
   state.threads = [];
-  assert.equal((await usage.get("UTC", true)).total.turns, 0);
+  assert.equal(totalOf(await usage.get("UTC", true), "turns"), 0);
   state.threads = [thread("a", "2026-11-06T10:00:00Z")];
   await usage.get("UTC", true);
   assert.equal(port.projectionCalls, 2);
@@ -222,36 +224,23 @@ test("reads at most 4 thread histories at once", async () => {
   port.projection = runs("2026-11-06T09:00:00Z");
   port.projectionGate = () => Bun.sleep(5);
   const overview = await usage.get("UTC", false);
-  assert.equal(overview.total.turns, 11);
+  assert.equal(totalOf(overview, "turns"), 11);
   assert.equal(port.peakProjectionsInFlight, 4);
 });
 
-test("caches the overview for a minute per zone, and refresh skips the cache", async () => {
+test("caches the overview for 10 seconds per zone, and refresh skips the cache", async () => {
   const { port, usage, tick } = setup();
   await usage.get("UTC", false);
-  tick(59_000);
+  tick(9_000);
   await usage.get("UTC", false);
   assert.equal(port.usageCalls.length, 1);
   await usage.get("Europe/Paris", false);
   assert.equal(port.usageCalls.length, 2);
   await usage.get("UTC", true);
   assert.equal(port.usageCalls.length, 3);
-  tick(60_000);
+  tick(10_000);
   await usage.get("Europe/Paris", false);
   assert.equal(port.usageCalls.length, 4);
-});
-
-test("while T3 is still scanning the cache lasts 10 seconds", async () => {
-  const { port, usage, tick } = setup();
-  port.usage = { buckets: [], sources: [{ refreshing: true }] };
-  assert.equal((await usage.get("UTC", false)).cost.refreshing, true);
-  tick(9_000);
-  await usage.get("UTC", false);
-  assert.equal(port.usageCalls.length, 1);
-  tick(2_000);
-  port.usage = { buckets: [] };
-  assert.equal((await usage.get("UTC", false)).cost.refreshing, false);
-  assert.equal(port.usageCalls.length, 2);
 });
 
 test("calls in flight share one read", async () => {

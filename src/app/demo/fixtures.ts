@@ -590,10 +590,10 @@ export function demoScheduledTasks(now: Date): RawScheduledTask[] {
 }
 
 const USAGE_MODELS = [
-  { model: "claude-opus-5-5", share: 0.55, price: 1.6, costSource: "modelPriced" },
-  { model: "gpt-5.5-codex", share: 0.3, price: 0.9, costSource: "modelPriced" },
+  { share: 0.55, price: 1.6, costSource: "modelPriced" },
+  { share: 0.3, price: 0.9, costSource: "modelPriced" },
   // A model T3 has no rate for: the demo shows the "partial" cost state.
-  { model: "preview-model-x", share: 0.15, price: 0, costSource: "unpriced" },
+  { share: 0.15, price: 0, costSource: "unpriced" },
 ] as const;
 
 // Fixed per-day weights (Monday-ish peaks), so the chart is the same on every run.
@@ -607,12 +607,11 @@ export function demoUsageBuckets(sinceDay: string, untilDay: string): RawUsageSu
   for (let index = 0; index < count; index++) {
     const day = new Date(end - (count - 1 - index) * 86_400_000).toISOString().slice(0, 10);
     const load = USAGE_LOAD[index % USAGE_LOAD.length]!;
-    for (const { model, share, price, costSource } of USAGE_MODELS) {
+    for (const { share, price, costSource } of USAGE_MODELS) {
       const input = Math.round(load * share * 4_000_000);
       const cached = Math.round(input * 0.7);
       buckets.push({
         day,
-        model,
         costUsd: Math.round(load * share * price * 3_000) / 100,
         costSource,
         unpricedRecords: costSource === "unpriced" ? Math.ceil(load * 12) : 0,
