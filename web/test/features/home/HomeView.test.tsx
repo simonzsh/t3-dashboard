@@ -81,7 +81,7 @@ test("the default layout puts usage, Running and Up next left and Notifications 
   const out = render(state());
   const right = out.indexOf('class="home-col right pinned"');
   assert.ok(right > 0);
-  assert.ok(out.indexOf('aria-label="Usage"') < out.indexOf('id="card-running"'));
+  assert.ok(out.indexOf('id="home-usage-head"') < out.indexOf('id="card-running"'));
   assert.ok(out.indexOf('id="card-running"') < out.indexOf('id="card-up-next"'));
   assert.ok(out.indexOf('id="card-up-next"') < right);
   assert.ok(right < out.indexOf('id="card-notifications"'));
@@ -166,4 +166,10 @@ test("edit mode lists hidden cards so they can be shown again", () => {
   assert.match(out, /Hidden cards/);
   assert.match(out, /Show Running/);
   assert.doesNotMatch(render(state(), undefined, setHidden(DEFAULT_LAYOUT, "running", true)), /Hidden cards/);
+});
+
+test("the usage card has a header like the other cards, with the update time and refresh", () => {
+  const out = render(state());
+  assert.match(out, /class="card-head"><svg[^]*?<h2 id="home-usage-head">Usage<\/h2><span class="card-actions"><span class="usage-updated">Updated [^<]+<\/span>[^]*?aria-label="Refresh usage"/);
+  assert.match(render(state({ usage: null })), /<h2 id="home-usage-head">Usage<\/h2>/);
 });

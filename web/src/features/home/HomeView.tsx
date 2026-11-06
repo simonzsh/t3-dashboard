@@ -50,7 +50,18 @@ function UsageCard({ state, threads, now }: { state: UsageState; threads: readon
   const { usage, error, loading, refresh } = state;
   const costKnown = usage !== null && usage.cost.status !== "unavailable";
   return (
-    <section className="home-card usage-card" aria-label="Usage">
+    <section className="home-card usage-card" aria-labelledby="home-usage-head">
+      {/* Same look as the other cards' CardHead: features cannot share components. */}
+      <div className="card-head">
+        <Icon name="chart" />
+        <h2 id="home-usage-head">Usage</h2>
+        <span className="card-actions">
+          {usage && <span className="usage-updated">Updated {relativeTime(usage.readAt, now)}</span>}
+          <IconButton size="sm" variant="ghost" label="Refresh usage" tooltip="Refresh usage" disabled={loading} onClick={refresh}>
+            <Icon name="refresh" className={loading ? "icon spinning" : "icon"} />
+          </IconButton>
+        </span>
+      </div>
       {!usage ? (
         error ? <p className="usage-error" role="alert">{error}</p> : <Loader />
       ) : (
@@ -59,10 +70,6 @@ function UsageCard({ state, threads, now }: { state: UsageState; threads: readon
           <div className="usage-chart-head">
             <h2>Last 14 days</h2>
             <Segmented label="Chart metric" value={metric} options={METRICS} onChange={setMetric} />
-            <span className="usage-updated">Updated {relativeTime(usage.readAt, now)}</span>
-            <IconButton size="sm" variant="ghost" label="Refresh usage" tooltip="Refresh usage" disabled={loading} onClick={refresh}>
-              <Icon name="refresh" className={loading ? "icon spinning" : "icon"} />
-            </IconButton>
           </div>
           {metric !== "turns" && !costKnown ? (
             <p className="usage-empty">{usage.cost.detail ?? "T3 Code sent no usage."}</p>
