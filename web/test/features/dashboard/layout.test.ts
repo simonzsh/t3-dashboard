@@ -3,7 +3,6 @@ import assert from "node:assert/strict";
 import {
   DEFAULT_LAYOUT,
   DASHBOARD_LAYOUT_KEY,
-  columnOf,
   isDefaultLayout,
   loadLayout,
   dropCard,
@@ -43,7 +42,7 @@ test("shiftCard moves one step inside the column and stops at the ends", () => {
 test("a hidden card leaves both columns and comes back to its default column", () => {
   const hidden = setHidden(DEFAULT_LAYOUT, "running", true);
   assert.deepEqual(hidden, { left: ["usage", "up-next"], right: ["notifications"], hidden: ["running"] });
-  assert.equal(columnOf(hidden, "running"), null);
+  assert.equal(shiftCard(hidden, "running", 1), hidden);
   assert.deepEqual(setHidden(hidden, "running", false).left, ["usage", "up-next", "running"]);
   assert.equal(setHidden(DEFAULT_LAYOUT, "running", false), DEFAULT_LAYOUT);
 });

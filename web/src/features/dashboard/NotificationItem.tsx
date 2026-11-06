@@ -1,10 +1,9 @@
-import { memo, useRef } from "react";
+import { memo } from "react";
 import type { DashboardProject, DashboardThread } from "../../../../shared/api.ts";
-import { relativeTime } from "../../lib/format.ts";
 import { threadTitle } from "../../lib/threads.ts";
 import { Icon, IconButton, Pressable } from "../../ui/index.ts";
-import { notificationDetail, notificationIcon, type NotificationKind } from "./inbox.ts";
-import { flyToSessions } from "./ThreadActions.tsx";
+import { notificationDetail, notificationIcon, type NotificationKind } from "./sections.ts";
+import { openRow, threadMeta } from "./ThreadActions.tsx";
 
 interface Props {
   thread: DashboardThread;
@@ -20,24 +19,15 @@ interface Props {
 }
 
 function NotificationItemView({ thread: t, kind, project, modelName, now, inSessions, onOpen, onMarkRead }: Props) {
-  const rowRef = useRef<HTMLButtonElement>(null);
   const { icon, tone } = notificationIcon(t);
-  const meta = [project?.title, relativeTime(t.lastActivityAt, now)].filter(Boolean).join(" · ");
   return (
     <div className={`notif-item ${kind}`}>
-      <Pressable
-        ref={rowRef}
-        className="notif-row"
-        onClick={(e) => {
-          if (e.shiftKey) flyToSessions(rowRef.current, inSessions);
-          onOpen(t.id, e.shiftKey);
-        }}
-      >
+      <Pressable className="notif-row" onClick={(e) => openRow(e, t.id, inSessions, onOpen)}>
         <Icon name={icon} className={`icon notif-icon ${tone}`} />
         <span className="notif-body">
           <span className="notif-title">{threadTitle(t)}</span>
           <span className="notif-detail">{notificationDetail(t, modelName)}</span>
-          <span className="notif-meta">{meta}</span>
+          <span className="notif-meta">{threadMeta(t, project, now)}</span>
         </span>
         {kind !== "read" && <span className="notif-dot" aria-label="Unread" role="img" />}
       </Pressable>

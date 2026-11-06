@@ -92,7 +92,7 @@ The code has three parts: the server (`src/`), the interface (`web/src/`) and th
 | --- | --- |
 | `api/` | Local API client, event stream (`useDashboard`) and `ApiContext`. `useApi()` gives the real API, unless an `ApiProvider` gives a different one. |
 | `lib/` | Functions and components that more than one screen uses. |
-| `features/` | One folder for each screen: `inbox`, `automations`, `sessions`, `conversation`, `settings`, `setup`, `update`, `new-thread`. |
+| `features/` | One folder for each screen: `dashboard`, `automations`, `sessions`, `conversation`, `settings`, `setup`, `update`, `new-thread`. |
 | `ui/` | Base components, tooltips and animations. See `web/src/ui/README.md`. |
 
 ### Contract (`shared/`)
@@ -114,7 +114,7 @@ The `test/architecture.test.ts` test reads the imports and blocks a forbidden de
 - `app/` imports everything.
 - `ui/` imports only `ui/`. One exception: `Dropdown.tsx` and `Popover.tsx` import the menu logic from `lib/dropdown.ts`.
 - `lib/` imports `ui/`, `api/` and `shared/`. `api/` imports only `shared/`.
-- A screen imports `lib/`, `api/`, `ui/` and `shared/`. It imports a different screen only through a link in the test list, for example `inbox` to `new-thread`.
+- A screen imports `lib/`, `api/`, `ui/` and `shared/`. It imports a different screen only through a link in the test list, for example `dashboard` to `new-thread`.
 - The interface never imports `src/`.
 
 A second test (`test/integrations/boundary.test.ts`) blocks `fetch`, `WebSocket` and process launches outside `integrations/`. Only `app/start.ts` and `app/deps.ts` have an exception.

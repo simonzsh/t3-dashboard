@@ -2,7 +2,7 @@ import { test } from "bun:test";
 import assert from "node:assert/strict";
 import type { LinearIssue } from "../../../../shared/api.ts";
 import type { SeenState } from "../../../../shared/seen.ts";
-import { IDLE_RELAUNCH_MS, linkedIdentifiers, planTickets, ticketsWithoutAgent } from "../../../src/features/inbox/tickets.ts";
+import { IDLE_RELAUNCH_MS, linkedIdentifiers, planTickets, ticketsWithoutAgent } from "../../../src/features/dashboard/tickets.ts";
 import { thread } from "../../fixtures.ts";
 
 function issue(identifier: string, over: Partial<LinearIssue> = {}): LinearIssue {

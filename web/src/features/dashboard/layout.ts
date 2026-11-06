@@ -2,7 +2,7 @@ import type { Store } from "../../lib/storage.ts";
 
 export const DASHBOARD_LAYOUT_KEY = "t3-dashboard-layout";
 
-export const CARDS = ["usage", "notifications", "running", "up-next"] as const;
+const CARDS = ["usage", "notifications", "running", "up-next"] as const;
 export type DashboardCard = (typeof CARDS)[number];
 export type Column = "left" | "right";
 
@@ -19,7 +19,6 @@ export const DEFAULT_LAYOUT: DashboardLayout = { left: ["usage", "running", "up-
 const DEFAULT_COLUMN: Record<DashboardCard, Column> = { usage: "left", running: "left", "up-next": "left", notifications: "right" };
 
 const isCard = (v: unknown): v is DashboardCard => CARDS.includes(v as DashboardCard);
-const copy = (l: DashboardLayout): DashboardLayout => ({ left: [...l.left], right: [...l.right], hidden: [...l.hidden] });
 const without = (l: DashboardLayout, id: DashboardCard): DashboardLayout => ({ left: l.left.filter((c) => c !== id), right: l.right.filter((c) => c !== id), hidden: l.hidden.filter((c) => c !== id) });
 
 /** Keeps known cards once each, and puts the missing ones back in their default column. */
@@ -55,17 +54,11 @@ export function dropCard(layout: DashboardLayout, id: DashboardCard, column: Col
 /** One step up (-1) or down (+1) inside its column. */
 export function shiftCard(layout: DashboardLayout, id: DashboardCard, step: -1 | 1): DashboardLayout {
   const column = columnOf(layout, id);
-  if (!column) return layout;
-  const at = layout[column].indexOf(id);
-  const to = at + step;
-  if (to < 0 || to >= layout[column].length) return layout;
-  const next = copy(layout);
-  next[column].splice(at, 1);
-  next[column].splice(to, 0, id);
-  return next;
+  const to = column ? layout[column].indexOf(id) + step : -1;
+  return column && to >= 0 && to < layout[column].length ? moveCard(layout, id, column, to) : layout;
 }
 
-export function columnOf(layout: DashboardLayout, id: DashboardCard): Column | null {
+function columnOf(layout: DashboardLayout, id: DashboardCard): Column | null {
   return layout.left.includes(id) ? "left" : layout.right.includes(id) ? "right" : null;
 }
 

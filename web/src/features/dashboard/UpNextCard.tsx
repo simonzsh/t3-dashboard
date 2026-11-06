@@ -1,29 +1,44 @@
-import { useState, type ReactNode } from "react";
+import { Children, useState, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import type { BoardResult, DashboardProject, DashboardProvider, LinearIssue, ModelDefaults } from "../../../../shared/api.ts";
 import { useCopy } from "../../lib/useCopy.ts";
-import { Icon, IconButton } from "../../ui/index.ts";
+import { Button, CardHead, Icon, IconButton } from "../../ui/index.ts";
 import { NewThreadDialog } from "../new-thread/NewThreadDialog.tsx";
 import { linearConnected } from "../settings/linearSettings.ts";
-import { CappedList } from "./InboxSection.tsx";
-import { CardHead } from "./CardHead.tsx";
 import { LinearSetupCard } from "./LinearSetupCard.tsx";
 import { SkeletonRows } from "./SkeletonRows.tsx";
 import { PriorityIcon } from "./PriorityIcon.tsx";
 
 const UP_NEXT_LIMIT = 5;
 
-export interface RowProps {
+/** The tickets: the first rows, then a button for the rest. */
+function TicketList({ children }: { children: ReactNode }) {
+  const [all, setAll] = useState(false);
+  const rows = Children.toArray(children);
+  const hidden = all ? 0 : Math.max(rows.length - UP_NEXT_LIMIT, 0);
+  return (
+    <div className="ticket-list">
+      {hidden > 0 ? rows.slice(0, UP_NEXT_LIMIT) : rows}
+      {hidden > 0 && (
+        <Button variant="ghost" size="sm" className="ticket-more" onClick={() => setAll(true)}>
+          Show {hidden} more
+        </Button>
+      )}
+    </div>
+  );
+}
+
+interface RowProps {
   issue: LinearIssue;
   projects: DashboardProject[];
   providers: DashboardProvider[];
   modelDefaults: ModelDefaults;
-  // addOnly: the agent goes on the Sessions page without leaving the Inbox.
+  // addOnly: the agent goes on the Sessions page without leaving the Dashboard.
   onOpen: (id: string, addOnly: boolean) => void;
   onStarted: (issueId: string) => void;
 }
 
-export function TicketRow({ issue, projects, providers, modelDefaults, onOpen, onStarted }: RowProps) {
+function TicketRow({ issue, projects, providers, modelDefaults, onOpen, onStarted }: RowProps) {
   const [choosing, setChoosing] = useState(false);
   const { copied, copy } = useCopy("copy the issue link");
 
@@ -121,11 +136,11 @@ export function UpNextCard({ board, needsKey, loading, failed, tickets, relaunch
       {tickets.length > 0 && (
         <>
           {relaunchCount > 0 && <h3 className="card-subhead">Tickets</h3>}
-          <CappedList limit={UP_NEXT_LIMIT}>
+          <TicketList>
             {tickets.map((issue) => (
               <TicketRow key={issue.id} issue={issue} {...rowProps} />
             ))}
-          </CappedList>
+          </TicketList>
         </>
       )}
       {failed && !board && <p className="card-empty">Tickets could not be loaded.</p>}

@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { CardHead } from "./CardHead.tsx";
+import { CardHead } from "../../ui/index.ts";
 import { SkeletonRows } from "./SkeletonRows.tsx";
 
 export function RunningCard({ count, loading = false, children }: { count: number; loading?: boolean; children: ReactNode }) {

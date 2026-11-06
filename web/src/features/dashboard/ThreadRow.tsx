@@ -1,11 +1,10 @@
 import { memo, useRef } from "react";
 import type { DashboardProject, DashboardThread } from "../../../../shared/api.ts";
 import { agentStatus } from "../../../../shared/status.ts";
-import { relativeTime } from "../../lib/format.ts";
 import { threadTitle } from "../../lib/threads.ts";
 import { ProviderIcon } from "../../lib/ProviderIcon.tsx";
 import { Pressable } from "../../ui/index.ts";
-import { ThreadActions, flyToSessions, type ThreadActionsProps } from "./ThreadActions.tsx";
+import { ThreadActions, openRow, threadMeta, type ThreadActionsProps } from "./ThreadActions.tsx";
 
 interface Props extends Omit<ThreadActionsProps, "thread" | "rowRef"> {
   thread: DashboardThread;
@@ -24,10 +23,7 @@ function ThreadRowView({ thread: t, project, modelName, now, onOpen, ...actions 
       <Pressable
         ref={rowRef}
         className={`run-row${working ? " working" : ""}`}
-        onClick={(e) => {
-          if (e.shiftKey) flyToSessions(rowRef.current, actions.inSessions);
-          onOpen(t.id, e.shiftKey);
-        }}
+        onClick={(e) => openRow(e, t.id, actions.inSessions, onOpen)}
       >
         <span className="notif-title">{threadTitle(t)}</span>
         <span className="notif-meta">
@@ -37,7 +33,7 @@ function ThreadRowView({ thread: t, project, modelName, now, onOpen, ...actions 
               {modelName} ·{" "}
             </>
           )}
-          {[project?.title, relativeTime(t.lastActivityAt, now)].filter(Boolean).join(" · ")}
+          {threadMeta(t, project, now)}
         </span>
       </Pressable>
       <ThreadActions thread={t} rowRef={rowRef} {...actions} />

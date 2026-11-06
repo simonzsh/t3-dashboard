@@ -5,7 +5,6 @@ import { DashboardView } from "./features/dashboard/DashboardView.tsx";
 import { isDefaultLayout } from "./features/dashboard/layout.ts";
 import { useDashboardLayout } from "./features/dashboard/useDashboardLayout.ts";
 import { useUsage } from "./features/dashboard/useUsage.ts";
-import { InboxView } from "./features/inbox/InboxView.tsx";
 import { AppNav } from "./features/shell/AppNav.tsx";
 import { PageActions } from "./features/shell/PageActions.tsx";
 import { ConnectionBanner } from "./features/setup/ConnectionBanner.tsx";
@@ -16,7 +15,7 @@ import { NotificationToasts } from "./features/notifications/NotificationToasts.
 import { badgeText } from "./features/notifications/notifications.ts";
 import { useNotifications } from "./features/notifications/useNotifications.ts";
 import { useSetupRows } from "./features/automations/useSetupRows.ts";
-import { inboxSections, inboxThreads, unreadCount } from "./features/inbox/inbox.ts";
+import { listedThreads, threadSections, unreadCount } from "./features/dashboard/sections.ts";
 import { Switcher } from "./features/switcher/Switcher.tsx";
 import { useOpenHistory } from "./features/switcher/useOpenHistory.ts";
 import { SettingsDialog } from "./features/settings/SettingsDialog.tsx";
@@ -179,12 +178,12 @@ export function App() {
   const live = !sseDown && state?.connection.t3 === "live";
   const sessionIds = useMemo(() => new Set(sessions.ids), [sessions.ids]);
   const setup = useSetupRows(state?.threads ?? NO_THREADS, automations.result?.setupThreadIds, automations.reload);
-  // One list for the Inbox and its badge, so they cannot drift apart.
+  // One list for the Dashboard cards and the badge, so they cannot drift apart.
   const visible = useMemo(
-    () => inboxThreads(state?.threads ?? NO_THREADS, automations.result?.hiddenThreadIds, setup.map((t) => t.id)),
+    () => listedThreads(state?.threads ?? NO_THREADS, automations.result?.hiddenThreadIds, setup.map((t) => t.id)),
     [state?.threads, automations.result?.hiddenThreadIds, setup],
   );
-  const unread = useMemo(() => unreadCount(inboxSections(visible, notify.seen, now), notify.seen), [visible, notify.seen, now]);
+  const unread = useMemo(() => unreadCount(threadSections(visible, notify.seen), notify.seen), [visible, notify.seen]);
   const badges = navBadges(state?.threads ?? NO_THREADS, sessionIds, unread);
   const dashboardLayout = useDashboardLayout(tab === "dashboard");
   const usage = useUsage(tab === "dashboard" && state !== null);
@@ -247,11 +246,15 @@ export function App() {
         <main>
           {tab === "dashboard" &&
             (state ? (
-              <InboxView
+              <DashboardView
                 state={state}
+                usage={usage}
                 visible={visible}
                 now={now}
                 sessionIds={sessionIds}
+                layout={dashboardLayout.layout}
+                editing={dashboardLayout.editing}
+                onLayout={dashboardLayout.setLayout}
                 onOpen={onOpen}
                 onToggleSessions={onToggleSessions}
                 onSettle={onSettle}
@@ -261,11 +264,7 @@ export function App() {
                 automations={automations.result}
                 automationsError={automations.error}
                 linearVersion={linearVersion}
-              >
-                {(cards) => (
-                  <DashboardView usage={usage} threads={state.threads} now={now} layout={dashboardLayout.layout} editing={dashboardLayout.editing} onLayout={dashboardLayout.setLayout} cards={{ notifications: cards.notifications, running: cards.running, "up-next": cards.upNext }} />
-                )}
-              </InboxView>
+              />
             ) : <Loader />)}
           {tab === "automations" &&
             (state ? (

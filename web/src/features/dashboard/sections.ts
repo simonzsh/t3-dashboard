@@ -7,7 +7,7 @@ import { excludeRoutineThreads } from "../automations/automations.ts";
 /** Read threads older than this fold behind "See all", and "Settle all" settles them. */
 export const RECENT_SETTLED_MS = 3 * 24 * 3_600_000;
 
-export interface InboxSections {
+export interface ThreadSections {
   /** Waiting for an answer, or failed and not settled. */
   needsYou: DashboardThread[];
   /** Finished, not settled, not read yet. */
@@ -22,8 +22,8 @@ const byPinThenRecent = (a: DashboardThread, b: DashboardThread) => Number(b.pin
 
 // A thread that waits or runs is never hidden, even when settled, so it is never missed.
 // `relaunch`: threads shown under "To relaunch", so not listed again as read and idle.
-export function inboxSections(threads: DashboardThread[], seen: SeenState, now: Date, relaunch: ReadonlySet<string> = new Set()): InboxSections {
-  const sections: InboxSections = { needsYou: [], unread: [], readIdle: [], running: [] };
+export function threadSections(threads: DashboardThread[], seen: SeenState, relaunch: ReadonlySet<string> = new Set()): ThreadSections {
+  const sections: ThreadSections = { needsYou: [], unread: [], readIdle: [], running: [] };
   for (const t of threads) {
     const state = threadState(t);
     if (state === "waiting") sections.needsYou.push(t);
@@ -37,18 +37,18 @@ export function inboxSections(threads: DashboardThread[], seen: SeenState, now: 
   return sections;
 }
 
-/** The threads the Inbox lists: routine runs and setup threads have their own place. */
-export const inboxThreads = (threads: DashboardThread[], hiddenIds: readonly string[] = [], setupIds: readonly string[] = []): DashboardThread[] =>
+/** The threads the Dashboard lists: routine runs and setup threads have their own place. */
+export const listedThreads = (threads: DashboardThread[], hiddenIds: readonly string[] = [], setupIds: readonly string[] = []): DashboardThread[] =>
   excludeRoutineThreads(threads, [...hiddenIds, ...setupIds]);
 
-/** The threads "Settle all older than 3 days" settles. */
-export const settleCandidates = (readIdle: DashboardThread[], now: Date): DashboardThread[] => {
+/** Read threads split at 3 days: the recent ones stay in the list, the old ones wait behind "See all" and "Settle all" settles them. */
+export function splitRead(readIdle: DashboardThread[], now: Date): { recent: DashboardThread[]; old: DashboardThread[] } {
   const before = new Date(now.getTime() - RECENT_SETTLED_MS).toISOString();
-  return readIdle.filter((t) => t.lastActivityAt < before);
-};
+  return { recent: readIdle.filter((t) => t.lastActivityAt >= before), old: readIdle.filter((t) => t.lastActivityAt < before) };
+}
 
-/** The Inbox tab badge: what needs you or has an unread result, and was not read yet. */
-export const unreadCount = (s: InboxSections, seen: SeenState): number => [...s.needsYou, ...s.unread].filter((t) => isUnseen(t, seen)).length;
+/** The Dashboard badge: what needs you or has an unread result, and was not read yet. */
+export const unreadCount = (s: ThreadSections, seen: SeenState): number => [...s.needsYou, ...s.unread].filter((t) => isUnseen(t, seen)).length;
 
 export type NotificationKind = "needs" | "unread" | "read";
 
@@ -59,16 +59,10 @@ export interface Notification {
 
 const newestFirst = (a: DashboardThread, b: DashboardThread) => b.lastActivityAt.localeCompare(a.lastActivityAt);
 
-/** Read threads that stay in the list without "See all". */
-export const recentRead = (readIdle: DashboardThread[], now: Date): DashboardThread[] => {
-  const since = new Date(now.getTime() - RECENT_SETTLED_MS).toISOString();
-  return readIdle.filter((t) => t.lastActivityAt >= since);
-};
-
 /** What needs you first, then unread results, then read threads; newest first in each group. */
-export function notificationList(s: InboxSections, now: Date, all: boolean): Notification[] {
+export function notificationList(s: ThreadSections, read: DashboardThread[]): Notification[] {
   const group = (threads: DashboardThread[], kind: NotificationKind) => [...threads].sort(newestFirst).map((thread) => ({ thread, kind }));
-  return [...group(s.needsYou, "needs"), ...group(s.unread, "unread"), ...group(all ? s.readIdle : recentRead(s.readIdle, now), "read")];
+  return [...group(s.needsYou, "needs"), ...group(s.unread, "unread"), ...group(read, "read")];
 }
 
 /** The status icon of a notification and its tone. */

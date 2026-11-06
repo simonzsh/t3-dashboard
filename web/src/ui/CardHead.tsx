@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { Icon, type IconName } from "../../ui/index.ts";
+import { Icon, type IconName } from "./Icon.tsx";
 
 interface Props {
   id: string;

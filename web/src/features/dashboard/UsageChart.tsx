@@ -1,13 +1,12 @@
 import { useEffect, useRef, useState } from "react";
 import type { UsageDay } from "../../../../shared/api.ts";
 import { formatTokens } from "../../lib/format.ts";
-import { barLayout, cacheShare, formatMetric, formatUsd, metricValue, niceTicks, shortDay, tokensOf, type Metric } from "./usageView.ts";
+import { barLayout, cacheShare, formatMetric, formatUsd, METRICS, metricValue, niceTicks, shortDay, tokensOf, type Metric } from "./usageView.ts";
 
 const HEIGHT = 190;
 const MARGIN = { top: 10, right: 20, bottom: 24, left: 52 };
 const PLOT_HEIGHT = HEIGHT - MARGIN.top - MARGIN.bottom;
 const START_WIDTH = 640;
-const LABELS: Record<Metric, string> = { turns: "Turns", cost: "Spend", tokens: "Tokens" };
 
 // Rounded 4 px at the data end only; the base sits on the axis.
 function barPath(x: number, y: number, width: number, height: number): string {
@@ -45,6 +44,7 @@ interface Props {
 /** Bars for the last days, one series. The values also sit in a table for screen readers. */
 export function UsageChart({ days, metric, costKnown }: Props) {
   const [ref, width] = useWidth();
+  const label = METRICS.find((m) => m.id === metric)!.label;
   const [active, setActive] = useState<number | null>(null);
   const plotWidth = width - MARGIN.left - MARGIN.right;
   const values = days.map((d) => metricValue(d, metric));
@@ -59,7 +59,7 @@ export function UsageChart({ days, metric, costKnown }: Props) {
 
   return (
     <div className="usage-chart" ref={ref} onMouseLeave={() => setActive(null)}>
-      <svg width={width} height={HEIGHT} role="group" aria-label={`${LABELS[metric]} per day, last ${days.length} days`}>
+      <svg width={width} height={HEIGHT} role="group" aria-label={`${label} per day, last ${days.length} days`}>
         <g transform={`translate(${MARGIN.left},${MARGIN.top})`}>
           {ticks.map((tick) => {
             const y = PLOT_HEIGHT - (tick / top) * PLOT_HEIGHT;
@@ -113,7 +113,7 @@ export function UsageChart({ days, metric, costKnown }: Props) {
         </div>
       )}
       <table className="sr-only">
-        <caption>{LABELS[metric]} per day</caption>
+        <caption>{label} per day</caption>
         <tbody>
           {days.map((d) => (
             <tr key={d.day}>
