@@ -1,4 +1,5 @@
 import type { DashboardProject, ProjectIconSpec, UpdateProjectBody } from "../../../../shared/api.ts";
+import { monogramText } from "../../lib/monogram.ts";
 
 /** T3's emoji presets. */
 export const EMOJI_PRESETS: ReadonlyArray<{ emoji: string; label: string }> = [
@@ -46,4 +47,16 @@ export function editBody(project: DashboardProject, form: EditForm): UpdateProje
   if (path !== "" && path !== project.workspaceRoot) body.path = path;
   if (iconChanged(project.iconSpec ?? null, form.icon)) body.icon = form.icon;
   return Object.keys(body).length > 0 ? body : null;
+}
+
+/** What a tab shows when it opens: the last pick of that kind, else T3's default for it. */
+export function tabIcon(
+  tab: "icons" | "emoji" | "monogram",
+  last: { lucide?: string; emoji?: string; text?: string },
+  color: string,
+  title: string,
+): ProjectIconSpec {
+  if (tab === "emoji") return { kind: "emoji", emoji: last.emoji ?? "💻" };
+  if (tab === "monogram") return { kind: "monogram", text: last.text || monogramFromInput(monogramText(title)) || "P", color };
+  return { kind: "lucide", name: last.lucide ?? "folder-code", color };
 }

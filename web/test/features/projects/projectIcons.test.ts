@@ -1,7 +1,7 @@
 import { test } from "bun:test";
 import assert from "node:assert/strict";
 import type { DashboardProject } from "../../../../shared/api.ts";
-import { EMOJI_PRESETS, editBody, firstGrapheme, iconChanged, monogramFromInput } from "../../../src/features/projects/projectIcons.ts";
+import { EMOJI_PRESETS, editBody, firstGrapheme, iconChanged, monogramFromInput, tabIcon } from "../../../src/features/projects/projectIcons.ts";
 
 const project: DashboardProject = {
   id: "p1",
@@ -61,4 +61,13 @@ test("the emoji presets are T3's thirty, each with a label", () => {
   assert.equal(EMOJI_PRESETS.length, 30);
   assert.deepEqual(EMOJI_PRESETS[0], { emoji: "💻", label: "Computer" });
   assert.equal(new Set(EMOJI_PRESETS.map((e) => e.emoji)).size, 30);
+});
+
+test("tabIcon shows the last pick of the tab, else T3's default", () => {
+  assert.deepEqual(tabIcon("icons", {}, "blue", "Atlas"), { kind: "lucide", name: "folder-code", color: "blue" });
+  assert.deepEqual(tabIcon("icons", { lucide: "rocket" }, "red", "Atlas"), { kind: "lucide", name: "rocket", color: "red" });
+  assert.deepEqual(tabIcon("emoji", {}, "blue", "Atlas"), { kind: "emoji", emoji: "💻" });
+  assert.deepEqual(tabIcon("emoji", { emoji: "🚀" }, "blue", "Atlas"), { kind: "emoji", emoji: "🚀" });
+  assert.deepEqual(tabIcon("monogram", {}, "teal", "atlas web"), { kind: "monogram", text: "AW", color: "teal" });
+  assert.deepEqual(tabIcon("monogram", { text: "XY" }, "teal", "Atlas"), { kind: "monogram", text: "XY", color: "teal" });
 });
