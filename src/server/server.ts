@@ -20,7 +20,7 @@ import { servePwa } from "./pwa.ts";
 import type { Site } from "./site.ts";
 import type { SseHub } from "./sse.ts";
 import { isObject } from "../../shared/guards.ts";
-import { isText, validAssign, validAttachments, validCreateAutomation, validCreate, validCreateProject, validFolderPath, validFileSearch, validItemId, validMessage, validProvider, validQueuedEdit, validRespond, validRewind, validSearch, validSecretAnswer, validSeen, validSessions, validSettings, validStash, validTimeZone, validUpdateAutomation, validUpload } from "./validate.ts";
+import { isText, validAssign, validAttachments, validCreateAutomation, validCreate, validCreateProject, validUpdateProject, validFolderPath, validFileSearch, validItemId, validMessage, validProvider, validQueuedEdit, validRespond, validRewind, validSearch, validSecretAnswer, validSeen, validSessions, validSettings, validStash, validTimeZone, validUpdateAutomation, validUpload } from "./validate.ts";
 
 export interface SetupControl {
   /** Resolves the token again. */
@@ -327,6 +327,9 @@ export function createDashboardServer(options: DashboardServerOptions): Dashboar
     { method: "POST", path: "/api/automations", handle: async ({ body }) => json(200, await automations.create(validCreateAutomation(body))) },
     { method: "POST", path: "/api/automations/:id/update", handle: ({ params, body }) => done(automations.update(params.id!, validUpdateAutomation(body))) },
     { method: "POST", path: "/api/automations/:id/delete", handle: ({ params }) => done(automations.remove(params.id!)) },
+    { method: "GET", path: "/api/project-icons", handle: () => json(200, actions.projectIcons()) },
+    { method: "POST", path: "/api/projects/:id/update", handle: ({ params, body }) => done(actions.updateProject(params.id!, validUpdateProject(body))) },
+    { method: "POST", path: "/api/projects/:id/delete", handle: ({ params }) => done(actions.deleteProject(params.id!)) },
     { method: "POST", path: "/api/projects", handle: async ({ body }) => ok(await actions.createProject(validCreateProject(body))) },
     {
       method: "POST",

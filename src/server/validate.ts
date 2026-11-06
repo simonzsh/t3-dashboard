@@ -1,4 +1,5 @@
-import type { ApprovalDecision, AssignIssueBody, CreateAutomationBody, CreateProjectBody, CreateThreadBody, RoutineSchedule, WebhookFilter, WebhookSignature, ModelSelection, RespondBody, RewindBody, SecretAnswerBody, SendMessageBody, ThreadSettingsBody, UpdateAutomationBody, UploadedAttachment, UserInputAnswers } from "../../shared/api.ts";
+import type { ApprovalDecision, AssignIssueBody, CreateAutomationBody, CreateProjectBody, CreateThreadBody, ProjectIconSpec, RoutineSchedule, WebhookFilter, WebhookSignature, ModelSelection, RespondBody, RewindBody, SecretAnswerBody, SendMessageBody, ThreadSettingsBody, UpdateAutomationBody, UpdateProjectBody, UploadedAttachment, UserInputAnswers } from "../../shared/api.ts";
+import { PROJECT_COLOR_NAMES } from "../../shared/projectColors.ts";
 import { isObject } from "../../shared/guards.ts";
 import { normalizeSessions, type SessionsUpdate } from "../../shared/sessions.ts";
 import { IMAGE_TYPES, MAX_ATTACHMENTS, MAX_FILE_BYTES, MAX_IMAGE_BYTES, MAX_IMAGES, MAX_SECRET_CHARS, isRuntimeMode } from "../../shared/limits.ts";
@@ -141,6 +142,41 @@ export function validCreateProject(body: Record<string, unknown>): CreateProject
   if (typeof body.title !== "string" || body.title.trim().length > PROJECT_TITLE_MAX) throw new HttpError(400, `title must be a string of at most ${PROJECT_TITLE_MAX} characters`);
   const title = body.title.trim();
   return title ? { path, title } : { path };
+}
+
+const validTitle = (value: unknown): string => {
+  const title = typeof value === "string" ? value.trim() : "";
+  if (title.length === 0 || title.length > PROJECT_TITLE_MAX) throw new HttpError(400, `title must be 1 to ${PROJECT_TITLE_MAX} characters`);
+  return title;
+};
+
+const LUCIDE_NAME = /^[a-z0-9]+(-[a-z0-9]+)*$/;
+const MONOGRAM = /^[\p{L}\p{N}]+$/u;
+
+function validIcon(value: unknown): ProjectIconSpec {
+  const bad = new HttpError(400, "icon is not a valid project icon");
+  if (typeof value !== "object" || value === null) throw bad;
+  const icon = value as Record<string, unknown>;
+  const color = typeof icon.color === "string" && (PROJECT_COLOR_NAMES as readonly string[]).includes(icon.color) ? icon.color : undefined;
+  if (icon.kind === "lucide" && color && typeof icon.name === "string" && icon.name.length <= 64 && LUCIDE_NAME.test(icon.name)) return { kind: "lucide", name: icon.name, color };
+  if (icon.kind === "monogram" && color && typeof icon.text === "string") {
+    const text = icon.text.trim();
+    if (MONOGRAM.test(text) && Array.from(text).length <= 2) return { kind: "monogram", text: text.toUpperCase(), color };
+  }
+  if (icon.kind === "emoji" && typeof icon.emoji === "string") {
+    const emoji = icon.emoji.trim();
+    if (emoji.length >= 1 && emoji.length <= 32) return { kind: "emoji", emoji };
+  }
+  throw bad;
+}
+
+export function validUpdateProject(body: Record<string, unknown>): UpdateProjectBody {
+  if (body.title === undefined && body.path === undefined && body.icon === undefined) throw new HttpError(400, "give a title, a path or an icon");
+  return {
+    ...(body.title !== undefined && { title: validTitle(body.title) }),
+    ...(body.path !== undefined && { path: validPath(body.path) }),
+    ...(body.icon !== undefined && { icon: body.icon === null ? null : validIcon(body.icon) }),
+  };
 }
 
 export function validSearch(params: URLSearchParams): { query: string; limit: number } {

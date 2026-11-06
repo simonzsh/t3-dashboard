@@ -1644,6 +1644,66 @@ test("POST /api/projects reuses the project that has the folder", async () => {
   assert.deepEqual(port.mutations, []);
 });
 
+test("POST /api/projects/:id/update sends the changed fields and uppercases a monogram", async () => {
+  const { server, port } = await start();
+  const reply = await post(server, "/api/projects/project-1/update", { title: " New name ", path: "/work/other", icon: { kind: "monogram", text: " ab ", color: "teal" } });
+  assert.deepEqual([reply.status, reply.json], [200, { ok: true }]);
+  assert.deepEqual(port.mutations[0]!.mutation, { type: "project.update", projectId: "project-1", title: "New name", workspaceRoot: "/work/other", projectIcon: { kind: "monogram", text: "AB", color: "teal" } });
+  await post(server, "/api/projects/project-1/update", { icon: null });
+  assert.deepEqual(port.mutations[1]!.mutation, { type: "project.update", projectId: "project-1", projectIcon: null });
+});
+
+test("POST /api/projects/:id/update validates its body and maps errors", async () => {
+  const { server, port } = await start();
+  const lucide = { kind: "lucide", name: "rocket", color: "blue" };
+  const bad: Array<[unknown, string]> = [
+    [{}, "give a title, a path or an icon"],
+    [{ title: " " }, "title must be 1 to 200 characters"],
+    [{ title: 3 }, "title must be 1 to 200 characters"],
+    [{ title: "t".repeat(201) }, "title must be 1 to 200 characters"],
+    [{ path: "relative" }, "path must be an absolute folder path (/… or ~/…), up to 512 characters"],
+    [{ icon: "rocket" }, "icon is not a valid project icon"],
+    [{ icon: { ...lucide, color: "pink-ish" } }, "icon is not a valid project icon"],
+    [{ icon: { ...lucide, name: "Rocket" } }, "icon is not a valid project icon"],
+    [{ icon: { ...lucide, name: "a".repeat(65) } }, "icon is not a valid project icon"],
+    [{ icon: { kind: "monogram", text: "ABC", color: "blue" } }, "icon is not a valid project icon"],
+    [{ icon: { kind: "monogram", text: "A!", color: "blue" } }, "icon is not a valid project icon"],
+    [{ icon: { kind: "monogram", text: " ", color: "blue" } }, "icon is not a valid project icon"],
+    [{ icon: { kind: "monogram", text: "A" } }, "icon is not a valid project icon"],
+    [{ icon: { kind: "emoji", emoji: " " } }, "icon is not a valid project icon"],
+    [{ icon: { kind: "emoji", emoji: "x".repeat(33) } }, "icon is not a valid project icon"],
+    [{ icon: { kind: "other" } }, "icon is not a valid project icon"],
+  ];
+  for (const [body, error] of bad) {
+    const reply = await post(server, "/api/projects/project-1/update", body);
+    assert.deepEqual([reply.status, reply.json?.error], [400, error], JSON.stringify(body));
+  }
+  assert.deepEqual(port.mutations, []);
+  assert.equal((await post(server, "/api/projects/nope/update", { title: "x" })).status, 404);
+  const refuse = (reason: string) => new IntegrationError("T3 says no", { system: "t3", kind: "refused", reason });
+  for (const [reason, status] of [["WorkspaceRootNotExistsError", 400], ["WorkspaceRootNotDirectoryError", 400], ["ProjectConflictError", 409], ["ProjectNotFoundError", 404]] as const) {
+    port.mutateError = refuse(reason);
+    assert.equal((await post(server, "/api/projects/project-1/update", { title: "x" })).status, status, reason);
+  }
+});
+
+test("POST /api/projects/:id/delete sends a forced delete", async () => {
+  const { server, port } = await start();
+  const reply = await post(server, "/api/projects/project-1/delete", {});
+  assert.deepEqual([reply.status, reply.json], [200, { ok: true }]);
+  assert.deepEqual(port.mutations[0]!.mutation, { type: "project.delete", projectId: "project-1", force: true });
+  assert.equal((await post(server, "/api/projects/nope/delete", {})).status, 404);
+  assert.equal(port.mutations.length, 1);
+});
+
+test("GET /api/project-icons lists the icon presets", async () => {
+  const { server } = await start();
+  const reply = await call(server, "GET", "/api/project-icons");
+  assert.equal(reply.status, 200);
+  assert.equal(reply.json?.icons[0].name, "folder-code");
+  assert.equal(reply.json?.icons[0].icon.kind, "lucide");
+});
+
 test("POST /api/projects validates its body", async () => {
   const { server, port } = await start();
   const bad = [{}, { path: 3 }, { path: "relative" }, { path: "/x", title: 3 }, { path: "/x", title: "t".repeat(201) }];
