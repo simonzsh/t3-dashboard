@@ -644,8 +644,8 @@ ol.install-steps { padding-left: 18px; }
 .nav-icon { flex: none; width: 18px; height: 18px; }
 .nav-label { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
 .nav-badge { flex: none; display: inline-grid; place-items: center; min-width: 20px; height: 20px; padding: 0 6px; border-radius: 999px; font-size: 11px; font-weight: 600; line-height: 1; }
-.nav-badge.ok { background: color-mix(in srgb, var(--ok) 20%, transparent); color: var(--done-text); }
-.nav-badge.work { background: color-mix(in srgb, var(--work) 20%, transparent); color: var(--work-text); }
+/* Both nav badges (unread, running) follow the accent color; the text is darkened or lightened to stay readable. */
+.nav-badge.ok, .nav-badge.work { background: color-mix(in srgb, var(--accent) 20%, transparent); color: color-mix(in srgb, var(--accent) 75%, var(--text-primary)); }
 .nav-alert { flex: none; width: 8px; height: 8px; border-radius: 50%; background: var(--warn); box-shadow: 0 0 0 2px color-mix(in srgb, var(--warn) 30%, transparent); }
 .sidebar-foot { margin-top: auto; display: flex; flex-direction: column; gap: 8px; }
 .sidebar-foot .conn { flex: 1; min-width: 0; padding-inline: 10px; }
