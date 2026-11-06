@@ -30,7 +30,7 @@ export interface CardsInput {
   linearVersion: number;
 }
 
-/** The thread cards of the Dashboard; the Usage and Activity cards are not here, it needs no thread. */
+/** The thread cards of the Dashboard; the Usage and Activity cards are not here, they need no thread. */
 export function useDashboardCards({ state, visible, now, sessionIds, onOpen, onSettle, seen, seenReady, onMarkRead, automations, automationsError, linearVersion }: CardsInput): Record<Exclude<DashboardCard, "usage" | "activity">, ReactNode> {
   const tickets = useTickets(linearVersion, visible, seen, now);
   const { relaunch, upNext } = tickets.plan;

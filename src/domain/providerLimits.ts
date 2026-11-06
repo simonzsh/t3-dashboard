@@ -10,7 +10,7 @@ export interface ProviderLimitsOptions {
   now: () => Date;
 }
 
-const isoOrNull = (value: string | null | undefined): string | null => (value &&  !Number.isNaN(Date.parse(value)) ? value : null);
+const isoOrNull = (value: string | null | undefined): string | null => (value && !Number.isNaN(Date.parse(value)) ? value : null);
 
 /** The providers that report usable limit windows, in T3's order. */
 export function toLimitsOverview(config: RawConfig, now: Date): LimitsOverview {
