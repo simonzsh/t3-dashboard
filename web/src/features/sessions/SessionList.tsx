@@ -93,7 +93,7 @@ export function SessionList({ threads, projects, seen, modelNames, now, openIds,
           <Icon name={toMode === "grouped" ? "listTree" : "list"} />
         </IconButton>
         <IconButton variant="ghost" size="sm" label="Close all sessions" tooltip="Close all sessions" disabled={openIds.size === 0} onClick={onCloseAll}>
-          <Icon name="x" />
+          <Icon name="copyX" />
         </IconButton>
       </div>
       <div className="slist-body">
