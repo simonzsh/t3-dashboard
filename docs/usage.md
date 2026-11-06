@@ -47,7 +47,7 @@ Sessions shows your open conversations side by side. Each session is a column at
 
 - There is no limit on the number of open sessions. The strip scrolls sideways. A new session opens at the right end and scrolls into view.
 - One button in the page header switches between the two views: its icon and tooltip name the view it switches to. Column view shows one session per column. Grid view stacks two sessions in each column, and the strip still scrolls sideways. Each browser keeps its choice.
-- Each session has a header with a drag handle, its title, its state, the project name, and three buttons: open in T3 Code, full screen, close. Drag the header onto another session to swap them.
+- Each session has a header with a drag handle, its title, a state badge when it runs (with a pulsing dot), waits for you or failed (none when it is done or idle), the project name, and three buttons: open in T3 Code, full screen, close. Drag the header onto another session to swap them.
 - Close a session with the x button. Open it again from the Dashboard or from the switcher.
 - The server keeps which finished conversations you opened, for the Inbox and the Inbox badge, in `~/.config/t3-dashboard/seen.json`. A conversation read on one device is read on all of them.
 - The server keeps which conversations are open in Sessions in `~/.config/t3-dashboard/sessions.json`. Every device shows the same conversations, and an opened or closed session appears on the other open tabs at once. Each device keeps its own session order, focused session, full screen session, layout and Jump to history.

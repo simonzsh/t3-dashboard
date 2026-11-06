@@ -9,7 +9,8 @@ import { OpenInT3 } from "../../lib/OpenInT3.tsx";
 import { ProjectIcon } from "../../lib/ProjectIcon.tsx";
 import { ctrlLabel } from "../../lib/shortcuts.ts";
 
-const STATE_LABELS: Record<ThreadState, string> = { waiting: "Waiting", running: "Running", done: "Done", error: "Error", idle: "Idle" };
+// Only the states that ask for attention get a badge: a done or idle session shows none.
+const STATE_LABELS: Partial<Record<ThreadState, string>> = { waiting: "Waiting", running: "Running", error: "Error" };
 
 interface Props {
   id: string;
@@ -56,7 +57,7 @@ function SessionWindowView({ id, thread, projectTitle, projectIcon, missing, foc
           <span className="dw-title" data-tooltip={title} data-tooltip-clipped>
             {title}
           </span>
-          {state && (
+          {state && STATE_LABELS[state] && (
             <Badge variant={state === "idle" ? "neutral" : state} className="dw-state">
               {state === "running" && <span className="pulse" aria-hidden="true" />}
               {STATE_LABELS[state]}

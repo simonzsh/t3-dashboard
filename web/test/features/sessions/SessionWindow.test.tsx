@@ -33,3 +33,10 @@ test("a window far off screen keeps its header and skips the conversation", () =
   assert.match(html, /<header class="session-window-head">/);
   assert.match(html, /sessions-placeholder/);
 });
+
+test("only running, waiting and error sessions show a state badge", () => {
+  const badge = (over: Parameters<typeof thread>[1]) => renderToStaticMarkup(<SessionWindow {...base} live={false} missing={false} thread={thread("t1", over)} />);
+  assert.match(badge({ status: "running" }), /dw-state[^>]*>.*Running/);
+  assert.doesNotMatch(badge({ status: "completed" }), /dw-state|>Done</);
+  assert.doesNotMatch(badge({ status: "idle" }), /dw-state|>Idle</);
+});
