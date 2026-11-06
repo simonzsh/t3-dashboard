@@ -100,7 +100,7 @@ The code has three parts: the server (`src/`), the interface (`web/src/`) and th
 
 ### Contract (`shared/`)
 
-`shared/api.ts` re-exports the types of each topic: `threads`, `connection`, `events`, `requests`, `linear`, `settings`, `automations`. `limits.ts` contains the shared limits (images, message size, runtime modes). `status.ts` contains the thread status model. `events.ts` gives the list of event types: the interface subscribes to this list.
+`shared/api.ts` re-exports the types of each topic: `threads`, `connection`, `events`, `requests`, `linear`, `settings`, `automations`. `limits.ts` contains the shared limits (images, message size, runtime modes). `status.ts` contains the thread status model. `guards.ts` contains the checks for untrusted values (request bodies, files, browser storage). `events.ts` gives the list of event types: the interface subscribes to this list.
 
 ### Import rules
 

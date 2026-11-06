@@ -1,9 +1,9 @@
-import { useEffect, useState } from "react";
-import { browserStorage } from "../../lib/storage.ts";
+import { useEffect } from "react";
+import { usePersisted } from "../../lib/storage.ts";
 import { ACCENTS, faviconSvg, loadAccent, saveAccent, type Accent } from "./accent.ts";
 
 export function useAccent(): [Accent, (accent: Accent) => void] {
-  const [accent, setAccent] = useState<Accent>(() => loadAccent(browserStorage()));
+  const [accent, setAccent] = usePersisted<Accent>(loadAccent, saveAccent);
 
   // data-accent drives the CSS; the tab icon follows the accent too.
   useEffect(() => {
@@ -13,11 +13,5 @@ export function useAccent(): [Accent, (accent: Accent) => void] {
     if (icon) icon.href = faviconSvg(color);
   }, [accent]);
 
-  return [
-    accent,
-    (next) => {
-      saveAccent(browserStorage(), next);
-      setAccent(next);
-    },
-  ];
+  return [accent, setAccent];
 }

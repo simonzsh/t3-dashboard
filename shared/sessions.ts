@@ -1,3 +1,5 @@
+import { isObject, uniqueStrings } from "./guards.ts";
+
 // The part of the Sessions strip that every device shares: which conversations are open.
 // Order, focus and maximize stay per device.
 
@@ -17,8 +19,6 @@ export interface SessionsUpdate {
 
 /** Null when the value is not a sessions set at all; otherwise unique string ids, capped. */
 export function normalizeSessions(value: unknown): SharedSessions | null {
-  if (typeof value !== "object" || value === null || Array.isArray(value)) return null;
-  const { ids } = value as { ids?: unknown };
-  if (!Array.isArray(ids)) return null;
-  return { ids: [...new Set(ids.filter((id): id is string => typeof id === "string"))].slice(0, SESSIONS_MAX) };
+  if (!isObject(value) || !Array.isArray(value.ids)) return null;
+  return { ids: uniqueStrings(value.ids, SESSIONS_MAX) };
 }

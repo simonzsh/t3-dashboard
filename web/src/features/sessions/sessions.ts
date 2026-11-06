@@ -1,6 +1,7 @@
-import { SESSIONS_MAX } from "../../../../shared/sessions.ts";
+import { isObject } from "../../../../shared/guards.ts";
+import { normalizeSessions } from "../../../../shared/sessions.ts";
 import type { SessionLayout } from "../../lib/sessionLayout.ts";
-import { readKey, writeKey, type Store } from "../../lib/storage.ts";
+import { readJson, writeKey, type Store } from "../../lib/storage.ts";
 
 export const SESSIONS_KEY = "t3-dashboard-sessions";
 
@@ -93,22 +94,14 @@ export function sessionsReducer(state: SessionsState, action: SessionsAction): S
   }
 }
 
-const isObject = (v: unknown): v is Record<string, unknown> => typeof v === "object" && v !== null && !Array.isArray(v);
-
 // Anything unexpected in storage gives a valid sessions, never an exception.
-export function parseSessions(raw: string | null): SessionsState {
-  let data: unknown;
-  try {
-    data = raw === null ? null : JSON.parse(raw);
-  } catch {
-    return EMPTY_SESSIONS;
-  }
+export function parseSessions(data: unknown): SessionsState {
   if (!isObject(data)) return EMPTY_SESSIONS;
-  const ids = (Array.isArray(data.ids) ? data.ids : []).filter((id, i, all): id is string => typeof id === "string" && all.indexOf(id) === i).slice(0, SESSIONS_MAX);
+  const ids = normalizeSessions(data)?.ids ?? [];
   return settle({ ids, focusedId: typeof data.focusedId === "string" ? data.focusedId : null, maximized: data.maximized === true });
 }
 
-export const loadSessions = (storage: Store | null): SessionsState => parseSessions(readKey(storage, SESSIONS_KEY));
+export const loadSessions = (storage: Store | null): SessionsState => parseSessions(readJson(storage, SESSIONS_KEY));
 
 export const saveSessions = (storage: Store | null, state: SessionsState): void => writeKey(storage, SESSIONS_KEY, JSON.stringify(state));
 

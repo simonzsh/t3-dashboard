@@ -1,6 +1,6 @@
 import { afterEach, test } from "bun:test";
 import assert from "node:assert/strict";
-import { browserStorage, readKey, writeKey } from "../../src/lib/storage.ts";
+import { browserStorage, readJson, readKey, writeKey } from "../../src/lib/storage.ts";
 import { memoryStore } from "../fixtures.ts";
 
 const original = Object.getOwnPropertyDescriptor(globalThis, "localStorage");
@@ -32,4 +32,12 @@ test("without a working storage a read finds nothing and a write does not throw"
     assert.equal(readKey(storage, "k"), null);
     assert.doesNotThrow(() => writeKey(storage, "k", "v"));
   }
+});
+
+test("readJson parses a key and gives null when it is missing or broken", () => {
+  const store = memoryStore({ ok: '{"a":[1]}', broken: "{oops" });
+  assert.deepEqual(readJson(store, "ok"), { a: [1] });
+  assert.equal(readJson(store, "broken"), null);
+  assert.equal(readJson(store, "missing"), null);
+  assert.equal(readJson(null, "ok"), null);
 });

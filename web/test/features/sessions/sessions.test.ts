@@ -110,22 +110,20 @@ test("sessionsToKeep keeps live threads and subagent threads, drops the rest, ev
 test("parseSessions round-trips and falls back on bad input", () => {
   let s = open(EMPTY_SESSIONS, "a", "b");
   s = sessionsReducer(s, { type: "maximize", id: "b" });
-  assert.deepEqual(parseSessions(JSON.stringify(s)), s);
+  assert.deepEqual(parseSessions(JSON.parse(JSON.stringify(s))), s);
   assert.deepEqual(parseSessions(null), EMPTY_SESSIONS);
-  assert.deepEqual(parseSessions("{not json"), EMPTY_SESSIONS);
-  assert.deepEqual(parseSessions("42"), EMPTY_SESSIONS);
-  assert.deepEqual(parseSessions(JSON.stringify({ ids: "nope", focusedId: 3 })), EMPTY_SESSIONS);
+  assert.deepEqual(parseSessions(42), EMPTY_SESSIONS);
+  assert.deepEqual(parseSessions({ ids: "nope", focusedId: 3 }), EMPTY_SESSIONS);
 });
 
 test("parseSessions keeps unique window ids in order and drops the rest", () => {
-  const raw = JSON.stringify({ ids: ["a", "a", 3, "b"], focusedId: "zz", maximized: true });
-  assert.deepEqual(parseSessions(raw), { ids: ["a", "b"], focusedId: "b", maximized: false });
-  assert.deepEqual(parseSessions(JSON.stringify({ ids: ["a", "b"], focusedId: "a", maximized: true })), { ids: ["a", "b"], focusedId: "a", maximized: true });
+  assert.deepEqual(parseSessions({ ids: ["a", "a", 3, "b"], focusedId: "zz", maximized: true }), { ids: ["a", "b"], focusedId: "b", maximized: false });
+  assert.deepEqual(parseSessions({ ids: ["a", "b"], focusedId: "a", maximized: true }), { ids: ["a", "b"], focusedId: "a", maximized: true });
 });
 
 test("parseSessions caps the saved ids at 100", () => {
   const saved = Array.from({ length: 130 }, (_, i) => `t${i}`);
-  const s = parseSessions(JSON.stringify({ ids: saved, focusedId: "t120" }));
+  const s = parseSessions({ ids: saved, focusedId: "t120" });
   assert.equal(s.ids.length, 100);
   assert.equal(s.ids.at(-1), "t99");
   assert.equal(s.focusedId, "t99");

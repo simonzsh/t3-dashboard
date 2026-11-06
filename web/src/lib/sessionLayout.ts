@@ -1,5 +1,4 @@
-import { useCallback, useState } from "react";
-import { browserStorage, readKey, writeKey, type Store } from "./storage.ts";
+import { readKey, usePersisted, writeKey, type Store } from "./storage.ts";
 
 export type SessionLayout = "columns" | "grid";
 
@@ -11,11 +10,4 @@ export const loadSessionLayout = (storage: Store | null): SessionLayout => parse
 
 export const saveSessionLayout = (storage: Store | null, layout: SessionLayout): void => writeKey(storage, SESSION_LAYOUT_KEY, layout);
 
-export function useSessionLayout(): [SessionLayout, (layout: SessionLayout) => void] {
-  const [layout, setLayout] = useState(() => loadSessionLayout(browserStorage()));
-  const change = useCallback((next: SessionLayout) => {
-    setLayout(next);
-    saveSessionLayout(browserStorage(), next);
-  }, []);
-  return [layout, change];
-}
+export const useSessionLayout = (): [SessionLayout, (layout: SessionLayout) => void] => usePersisted(loadSessionLayout, saveSessionLayout);

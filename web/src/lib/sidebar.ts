@@ -1,5 +1,5 @@
-import { useCallback, useEffect, useState } from "react";
-import { browserStorage, readKey, writeKey, type Store } from "./storage.ts";
+import { useCallback } from "react";
+import { readKey, usePersisted, writeKey, type Store } from "./storage.ts";
 
 export const SIDEBAR_KEY = "t3-dashboard-sidebar";
 
@@ -9,7 +9,6 @@ export const saveSidebarCollapsed = (storage: Store | null, collapsed: boolean):
 
 /** Whether the sidebar is collapsed, saved in this browser, and a toggle. */
 export function useSidebarCollapsed(): [boolean, () => void] {
-  const [collapsed, setCollapsed] = useState(() => loadSidebarCollapsed(browserStorage()));
-  useEffect(() => saveSidebarCollapsed(browserStorage(), collapsed), [collapsed]);
-  return [collapsed, useCallback(() => setCollapsed((was) => !was), [])];
+  const [collapsed, setCollapsed] = usePersisted(loadSidebarCollapsed, saveSidebarCollapsed);
+  return [collapsed, useCallback(() => setCollapsed((was) => !was), [setCollapsed])];
 }

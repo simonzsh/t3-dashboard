@@ -1,4 +1,4 @@
-import { readKey, writeKey, type Store } from "../../lib/storage.ts";
+import { readJson, writeKey, type Store } from "../../lib/storage.ts";
 
 export const DASHBOARD_LAYOUT_KEY = "t3-dashboard-layout";
 
@@ -77,14 +77,6 @@ export function stackedOrder(layout: DashboardLayout): DashboardCard[] {
 export const isDefaultLayout = (layout: DashboardLayout): boolean => JSON.stringify(layout) === JSON.stringify(DEFAULT_LAYOUT);
 
 // Anything unexpected in storage gives the default layout.
-function parseLayout(raw: string | null): DashboardLayout {
-  try {
-    return validateLayout(JSON.parse(raw ?? "null"));
-  } catch {
-    return validateLayout(null);
-  }
-}
-
-export const loadLayout = (storage: Store | null): DashboardLayout => parseLayout(readKey(storage, DASHBOARD_LAYOUT_KEY));
+export const loadLayout = (storage: Store | null): DashboardLayout => validateLayout(readJson(storage, DASHBOARD_LAYOUT_KEY));
 
 export const saveLayout = (storage: Store | null, layout: DashboardLayout): void => writeKey(storage, DASHBOARD_LAYOUT_KEY, JSON.stringify(layout));
