@@ -15,7 +15,7 @@ interface Props {
   layout: SessionLayout;
   onLayoutChange: (layout: SessionLayout) => void;
   showLayoutToggle: boolean;
-  /** The Sessions list: grouped or flat, and folded away (wide screen only). */
+  /** The Sessions list: grouped or flat, and the button that brings a hidden list back (wide screen only). */
   listMode: "grouped" | "flat";
   onListMode: (mode: "grouped" | "flat") => void;
   listHidden: boolean;
@@ -86,14 +86,13 @@ export function PageActions({ tab, compact, ready, editingLayout, layoutIsDefaul
     const toggle = layout === "columns" ? "Switch to grid view" : "Switch to column view";
     const toMode = listMode === "grouped" ? "flat" : "grouped";
     const modeLabel = listMode === "grouped" ? "Show one list by recent activity" : "Group by project";
-    const listLabel = listHidden ? "Show the list" : "Hide the list";
     main = (
       <>
         <IconButton variant="ghost" label={modeLabel} tooltip={modeLabel} onClick={() => onListMode(toMode)}>
           <Icon name={toMode === "grouped" ? "listTree" : "list"} />
         </IconButton>
-        {!compact && (
-          <IconButton variant="ghost" label={listLabel} tooltip={listLabel} onClick={() => onListHidden(!listHidden)}>
+        {!compact && listHidden && (
+          <IconButton variant="ghost" label="Show the list" tooltip="Show the list" onClick={() => onListHidden(false)}>
             <Icon name="panelLeft" />
           </IconButton>
         )}

@@ -288,6 +288,7 @@ export function SessionsView({ sessions, dispatch, threads, listed, projects, se
       onOpen={openFromList}
       onNewSession={onNewSession}
       onCloseAll={() => dispatch({ type: "closeAll" })}
+      onHide={phone ? undefined : () => onPrefs({ hidden: true })}
     />
   );
 

@@ -10,11 +10,12 @@ const render = (tab: Tab, over: Partial<Parameters<typeof PageActions>[0]> = {})
     <PageActions tab={tab} compact={false} ready editingLayout={false} layoutIsDefault={false} layout="columns" onLayoutChange={noop} showLayoutToggle listMode="grouped" onListMode={noop} listHidden={false} onListHidden={noop} onNewSession={noop} onNewAutomation={noop} onSearch={noop} onEditLayout={noop} onDoneLayout={noop} onResetLayout={noop} {...over} />,
   );
 
-test("Sessions shows the view toggle, hide toggle, layout toggle, then New Session", () => {
+test("Sessions shows the view toggle, layout toggle, then New Session, with no hide button", () => {
   const out = render("sessions");
   const at = (label: string) => out.indexOf(`aria-label="${label}"`);
   assert.ok(at("Show one list by recent activity") >= 0);
-  assert.ok(at("Show one list by recent activity") < at("Hide the list") && at("Hide the list") < at("Switch to grid view") && at("Switch to grid view") < out.indexOf("New Session"));
+  assert.ok(at("Show one list by recent activity") < at("Switch to grid view") && at("Switch to grid view") < out.indexOf("New Session"));
+  assert.doesNotMatch(out, /Hide the list|Show the list/);
 });
 
 test("the list toggles name what they switch to", () => {
@@ -25,7 +26,7 @@ test("the list toggles name what they switch to", () => {
 });
 
 test("on a phone Sessions has the view toggle but no hide button", () => {
-  const out = render("sessions", { compact: true, showLayoutToggle: false });
+  const out = render("sessions", { compact: true, showLayoutToggle: false, listHidden: true });
   assert.ok(out.indexOf("Show one list by recent activity") < out.indexOf('aria-label="New Session"'));
   assert.ok(out.indexOf('aria-label="New Session"') < out.indexOf('aria-label="Search"'));
   assert.doesNotMatch(out, /Hide the list|Show the list/);

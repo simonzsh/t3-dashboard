@@ -4,7 +4,7 @@ import type { SeenState } from "../../../../shared/seen.ts";
 import { relativeTime } from "../../lib/format.ts";
 import { ProjectIcon } from "../../lib/ProjectIcon.tsx";
 import { threadTitle } from "../../lib/threads.ts";
-import { Button, Icon, IconButton, Pressable } from "../../ui/index.ts";
+import { Icon, IconButton, Pressable } from "../../ui/index.ts";
 import { groupByProject, listableThreads, statusMark, type ListPrefs } from "./sessionList.ts";
 
 const MARK_LABELS = { running: "Running", waiting: "Waiting for you", error: "Failed", unread: "Unread" } as const;
@@ -23,12 +23,18 @@ interface Props {
   onOpen: (id: string) => void;
   onNewSession: (projectId: string) => void;
   onCloseAll: () => void;
+  /** Desktop only: the button that folds the list away. */
+  onHide?: () => void;
 }
 
 /** Every listed thread, by project or by recent activity: a click opens it as a session. */
-export function SessionList({ threads, projects, seen, modelNames, now, openIds, focusedId, prefs, onPrefs, onOpen, onNewSession, onCloseAll }: Props) {
+export function SessionList({ threads, projects, seen, modelNames, now, openIds, focusedId, prefs, onPrefs, onOpen, onNewSession, onCloseAll, onHide }: Props) {
   const shown = useMemo(() => listableThreads(threads), [threads]);
   const collapsed = new Set(prefs.collapsed);
+  const grouped = prefs.mode === "grouped";
+  const projectGroups = useMemo(() => (grouped ? groupByProject(shown, projects, seen) : []), [grouped, shown, projects, seen]);
+  const anyOpen = projectGroups.some((g) => !collapsed.has(g.id));
+  const foldLabel = anyOpen ? "Collapse all projects" : "Expand all projects";
 
   const row = (t: DashboardThread) => {
     const mark = statusMark(t, seen);
@@ -48,8 +54,8 @@ export function SessionList({ threads, projects, seen, modelNames, now, openIds,
   };
 
   const groups =
-    prefs.mode === "grouped"
-      ? groupByProject(shown, projects, seen).map((g) => {
+    grouped
+      ? projectGroups.map((g) => {
           const open = !collapsed.has(g.id);
           const toggle = () => onPrefs({ collapsed: open ? [...prefs.collapsed, g.id] : prefs.collapsed.filter((id) => id !== g.id) });
           return (
@@ -76,14 +82,26 @@ export function SessionList({ threads, projects, seen, modelNames, now, openIds,
 
   return (
     <aside className="slist" aria-label="Sessions list">
+      <div className="slist-bar">
+        {onHide && (
+          <IconButton variant="ghost" size="sm" label="Hide the list" tooltip="Hide the list" onClick={onHide}>
+            <Icon name="panelLeft" />
+          </IconButton>
+        )}
+        <span className="slist-bar-gap" />
+        {grouped && (
+          <IconButton variant="ghost" size="sm" label={foldLabel} tooltip={foldLabel} disabled={projectGroups.length === 0} onClick={() => onPrefs({ collapsed: anyOpen ? projectGroups.map((g) => g.id) : [] })}>
+            <Icon name={anyOpen ? "chevronsDownUp" : "chevronsUpDown"} />
+          </IconButton>
+        )}
+        <IconButton variant="ghost" size="sm" label="Close all sessions" tooltip="Close all sessions" disabled={openIds.size === 0} onClick={onCloseAll}>
+          <Icon name="x" />
+        </IconButton>
+      </div>
       <div className="slist-body">
         {shown.length === 0 ? <p className="slist-empty">No sessions yet.</p> : groups}
       </div>
-      <div className="slist-foot">
-        <Button variant="ghost" size="sm" disabled={openIds.size === 0} onClick={onCloseAll}>
-          <Icon name="x" /> Close all
-        </Button>
-      </div>
+      
     </aside>
   );
 }
