@@ -43,7 +43,7 @@ The Linear tickets feed "To relaunch" and "Up next". They need a Linear API key:
 
 ## Sessions
 
-Sessions shows your open conversations side by side. Each session is a column of 380 px that fills the height of the page. A hairline separates the columns.
+Sessions shows your open conversations side by side. Each session is a column at least 380 px wide that fills the height of the page. When the columns do not fill the width, they widen to share it; when they need more room, the strip scrolls sideways. A hairline separates the columns.
 
 - There is no limit on the number of open sessions. The strip scrolls sideways. A new session opens at the right end and scrolls into view.
 - One button in the page header switches between the two views: its icon and tooltip name the view it switches to. Column view shows one session per column. Grid view stacks two sessions in each column, and the strip still scrolls sideways. Each browser keeps its choice.
