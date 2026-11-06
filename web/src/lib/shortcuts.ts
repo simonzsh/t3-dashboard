@@ -1,5 +1,3 @@
-export type WindowShortcut = `window-${1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9}`;
-
 export type ShortcutAction =
   | "dashboard"
   | "sessions"
@@ -15,18 +13,13 @@ export type ShortcutAction =
   | "focus-left"
   | "focus-right"
   | "focus-up"
-  | "focus-down"
-  | WindowShortcut;
+  | "focus-down";
 
 export interface KeyInfo {
   key: string;
-  // Alt+digit gives another character on some layouts, so digits are also read from the code.
-  code?: string;
   ctrlKey: boolean;
   metaKey: boolean;
   altKey: boolean;
-  // AltGr reports Ctrl+Alt on Windows: it types a character and is not a shortcut.
-  altGraph?: boolean;
   shiftKey?: boolean;
   target: { tagName: string; isContentEditable: boolean } | null;
 }
@@ -48,18 +41,14 @@ const isMac = typeof navigator !== "undefined" && /Mac|iPhone|iPad/.test(navigat
 /** How a Ctrl shortcut reads in a tooltip or a key cap: ⌃N on a Mac, Ctrl+N elsewhere. */
 export const ctrlLabel = (key: string): string => (isMac ? `⌃${key}` : `Ctrl+${key}`);
 
-function windowShortcut(e: KeyInfo): WindowShortcut | null {
-  const digit = /^Digit([1-9])$/.exec(e.code ?? "")?.[1] ?? (/^[1-9]$/.test(e.key) ? e.key : null);
-  return digit ? (`window-${digit}` as WindowShortcut) : null;
-}
-
 export function matchShortcut(e: KeyInfo, dialogOpen: boolean, inSessions = false): ShortcutAction | null {
   const key = e.key.toLowerCase();
   // Before the guards: the switcher opens from a field or a dialog too, and App decides.
   if ((e.ctrlKey || e.metaKey) && !e.altKey && key === "k") return "switcher";
-  if (dialogOpen || e.metaKey || e.altGraph) return null;
+  if (dialogOpen || e.metaKey) return null;
   if (e.ctrlKey) {
-    if (e.altKey) return inSessions && !e.shiftKey ? windowShortcut(e) : null;
+    // Ctrl+Alt is AltGr on Windows: it types a character and is not a shortcut.
+    if (e.altKey) return null;
     if (key === "n" && e.shiftKey) return "new-automation";
     if (e.shiftKey) return null;
     return CTRL_KEYS[key] ?? (inSessions ? CTRL_SESSIONS_KEYS[key] : undefined) ?? null;

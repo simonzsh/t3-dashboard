@@ -55,17 +55,9 @@ test("Escape and the arrows stay plain keys, on the sessions and outside fields"
   assert.equal(matchShortcut(press("Escape", { target: typing }), false, true), null);
 });
 
-test("Ctrl+Alt+1 to 9 focus the n-th column, also from a field", () => {
-  assert.equal(matchShortcut(ctrl("1", { altKey: true }), false, true), "window-1");
-  assert.equal(matchShortcut(ctrl("¡", { altKey: true, code: "Digit6" }), false, true), "window-6");
-  assert.equal(matchShortcut(ctrl("1", { altKey: true, target: typing }), false, true), "window-1");
-  assert.equal(matchShortcut(ctrl("7", { altKey: true, code: "Digit7" }), false, true), "window-7");
-  assert.equal(matchShortcut(ctrl("9", { altKey: true }), false, true), "window-9");
-  assert.equal(matchShortcut(ctrl("7", { altKey: true, code: "Digit7" }), false), null);
-  assert.equal(matchShortcut(ctrl("0", { altKey: true, code: "Digit0" }), false, true), null);
-  assert.equal(matchShortcut(ctrl("1", { altKey: true }), false), null);
-  assert.equal(matchShortcut(press("1", { altKey: true }), false, true), null, "Alt alone types a character");
-  assert.equal(matchShortcut(ctrl("1", { altKey: true }), true, true), null);
+test("Ctrl+Alt+digit is no shortcut: AltGr types a character", () => {
+  assert.equal(matchShortcut(ctrl("1", { altKey: true }), false, true), null);
+  assert.equal(matchShortcut(ctrl("7", { altKey: true }), false), null);
 });
 
 test("Ctrl+K and Cmd+K open the switcher, even while typing or with a dialog open", () => {
@@ -92,10 +84,4 @@ test("startsTyping: a plain character outside a field, not a shortcut, space or 
   assert.equal(startsTyping(press("a", { altKey: true })), false);
   assert.equal(startsTyping(press("a", { target: field })), false);
   assert.equal(startsTyping(press("a", { target: { tagName: "DIV", isContentEditable: true } })), false);
-});
-
-test("Ctrl+Alt+digit with AltGr is a typed character, not a shortcut", () => {
-  const keys = { ctrlKey: true, altKey: true, code: "Digit2", key: "2" };
-  assert.equal(matchShortcut(press("2", keys), false, true), "window-2");
-  assert.equal(matchShortcut(press("2", { ...keys, altGraph: true }), false, true), null);
 });

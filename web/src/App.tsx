@@ -20,8 +20,7 @@ import { useOpenHistory } from "./features/switcher/useOpenHistory.ts";
 import { SettingsDialog } from "./features/settings/SettingsDialog.tsx";
 import { SetupScreen } from "./features/setup/SetupScreen.tsx";
 import { UpdateDialog } from "./features/update/UpdateDialog.tsx";
-import { focusSessionField } from "./features/sessions/dom.ts";
-import { columnLeadId, NARROW_STRIP, neighborId, type Direction } from "./features/sessions/sessions.ts";
+import { NARROW_STRIP, neighborId, type Direction } from "./features/sessions/sessions.ts";
 import { useAutomations } from "./features/automations/useAutomations.ts";
 import { api } from "./api/client.ts";
 import { useDashboard } from "./api/events.ts";
@@ -152,13 +151,8 @@ export function App() {
         if (!id) return;
         // No composer focus: a focused textarea would block the next arrow.
         dispatchSessions({ type: "focus", id });
-      } else if (action === "close-window" || action === "toggle-fullscreen") {
-        if (sessions.focusedId) dispatchSessions({ type: action === "close-window" ? "close" : "maximize", id: sessions.focusedId });
-      } else {
-        const target = columnLeadId(sessions, Number(action.slice("window-".length)), layout);
-        if (!target) return;
-        dispatchSessions({ type: "focus", id: target });
-        requestAnimationFrame(() => focusSessionField(target));
+      } else if (sessions.focusedId) {
+        dispatchSessions({ type: action === "close-window" ? "close" : "maximize", id: sessions.focusedId });
       }
     },
     blocked,

@@ -212,7 +212,6 @@ The shortcuts use `Ctrl`, also on a Mac, and they work while you type in a field
 | `Ctrl` + `B` | Collapses or expands the sidebar. |
 | `Ctrl` + `X` | Sessions: closes the active session. |
 | `Ctrl` + `F` | Sessions: puts the active session in full screen, or takes it out of full screen. |
-| `Ctrl` + `Alt` + `1` to `9` | Sessions: goes to column 1 to 9, scrolls it into view and puts the cursor in its message field. |
 | `Esc` | Sessions, outside a field: exits full screen. In the message field, it leaves the field. |
 | `←` `→` | Sessions, outside a field: moves the focus to the next column and scrolls it into view. |
 | `↑` `↓` | Sessions, grid view, outside a field: moves the focus between the two sessions of a column. |

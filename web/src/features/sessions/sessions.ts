@@ -53,11 +53,6 @@ export function neighborId({ ids, focusedId }: SessionsState, direction: Directi
   return target < 0 ? null : (ids[target] ?? ids[Math.floor(target / p) * p] ?? null);
 }
 
-/** The first session of the n-th column (1 based), or null past the last column. */
-export function columnLeadId(state: SessionsState, n: number, layout: SessionLayout): string | null {
-  return state.ids[(n - 1) * perColumn(layout)] ?? null;
-}
-
 // Keeps the invariants: focus points at an open session, and only that session can be maximized.
 function settle(state: SessionsState): SessionsState {
   const focusedId = state.focusedId !== null && state.ids.includes(state.focusedId) ? state.focusedId : (state.ids.at(-1) ?? null);

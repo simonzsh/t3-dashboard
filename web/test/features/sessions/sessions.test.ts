@@ -4,7 +4,6 @@ import {
   SESSIONS_KEY,
   EMPTY_SESSIONS,
   cellOf,
-  columnLeadId,
   sessionsReducer,
   sessionsToKeep,
   loadSessions,
@@ -164,13 +163,6 @@ test("neighborId in grid view keeps the row across columns and moves inside a co
   assert.equal(neighborId(at("b"), "down", "grid"), null, "down does not leave the column");
   assert.equal(neighborId(at("c"), "up", "grid"), null, "up does not leave the column");
   assert.equal(neighborId(at("e"), "down", "grid"), null);
-});
-
-test("columnLeadId is the first session of the n-th column, or null past the last", () => {
-  const s = open(EMPTY_SESSIONS, "a", "b", "c", "d", "e");
-  assert.deepEqual([1, 2, 5, 6].map((n) => columnLeadId(s, n, "columns")), ["a", "b", "e", null]);
-  assert.deepEqual([1, 2, 3, 4].map((n) => columnLeadId(s, n, "grid")), ["a", "c", "e", null]);
-  assert.equal(columnLeadId(EMPTY_SESSIONS, 1, "columns"), null);
 });
 
 test("swap exchanges two windows' cells and focuses the dragged one", () => {
