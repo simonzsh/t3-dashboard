@@ -65,3 +65,18 @@ test("the Notifications panel is sticky on a wide screen and a block above the c
   assert.match(narrow, /\.dashboard-panel \.notif-list \{ max-height: 60dvh;/);
   assert.doesNotMatch(css, /position: fixed; inset: 0; z-index: 15|notifications-shown/);
 });
+
+test("on a phone the Notifications panel is a side sheet under the header, above the bottom bar", () => {
+  const phone = css.slice(css.indexOf("@media (max-width: 700px)"));
+  const sheet = phone.match(/\n  \.dashboard-panel \{([^}]*)\}/)?.[1] ?? "";
+  assert.match(sheet, /position: fixed;/);
+  assert.match(sheet, /top: var\(--header-h, 0px\);/);
+  assert.match(sheet, /bottom: calc\(var\(--bottom-bar\) \+ env\(safe-area-inset-bottom\)\);/);
+  assert.match(sheet, /width: min\(88vw, 380px\);/);
+  assert.match(sheet, /transform: translateX\(100%\);/);
+  assert.match(sheet, /transition: transform 200ms/);
+  assert.match(phone, /\.dashboard-panel\.open \{[^}]*transform: none/);
+  assert.match(css, /html:has\(\.app\.sheet-shown\) \{ overflow: hidden; \}/);
+  const reduced = css.slice(css.indexOf("@media (prefers-reduced-motion: reduce)"));
+  assert.match(reduced, /\.dashboard-panel, \.dashboard-backdrop \{ transition: none; \}/);
+});

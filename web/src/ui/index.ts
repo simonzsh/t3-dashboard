@@ -20,4 +20,5 @@ export { Skeleton, SkeletonGroup } from "./Skeleton.tsx";
 export { Segmented } from "./Segmented.tsx";
 export { Tabs } from "./Tabs.tsx";
 export { ToggleGroup } from "./ToggleGroup.tsx";
+export { useEscape } from "./useEscape.ts";
 export { SecretInput, TextArea, TextInput } from "./TextInput.tsx";

@@ -1,5 +1,5 @@
 import type { LimitsOverview, ServerStats, UsageOverview } from "../../../../shared/api.ts";
-import { Fragment, useRef, useState, type DragEvent, type ReactNode } from "react";
+import { Fragment, useEffect, useRef, useState, type DragEvent, type ReactNode } from "react";
 import { CardEditBar } from "./CardEditBar.tsx";
 import { CARD_TITLES, dropCard, setHidden, shiftCard, type DashboardCard, type DashboardLayout } from "./layout.ts";
 import { Button, Icon, useFlip } from "../../ui/index.ts";
@@ -21,10 +21,12 @@ interface Props extends CardsInput {
   onLayout: (layout: DashboardLayout) => void;
   /** The Notifications panel is open; edit mode hides it anyway. */
   panelOpen: boolean;
-  /** Phone only: the panel is a full screen page, and this closes it. */
+  /** Phone: the panel is a side sheet over the page, and a tap on the backdrop closes it. */
+  sheet: boolean;
+  onCloseSheet: () => void;
 }
 
-export function DashboardView({ limits, server, activity, running, layout, editing, onLayout, panelOpen, ...input }: Props) {
+export function DashboardView({ limits, server, activity, running, layout, editing, onLayout, panelOpen, sheet, onCloseSheet, ...input }: Props) {
   const [dragged, setDragged] = useState<DashboardCard | null>(null);
   // Where the dragged card would land, shown as a placeholder of its size.
   const [target, setTarget] = useState<number | null>(null);
@@ -33,9 +35,15 @@ export function DashboardView({ limits, server, activity, running, layout, editi
   const { notifications, ...cards } = useDashboardCards(input, !layout.hidden.includes("up-next"));
   const body: Record<DashboardCard, ReactNode> = { usage: <UsageCard state={limits} now={input.now} />, server: <ServerCard state={server} />, activity: <ActivityCard state={activity} running={running} now={input.now} />, ...cards };
   const showPanel = panelOpen && !editing;
+  // The sheet takes no room, so the cards do not move for it.
+  const inline = showPanel && !sheet;
   const root = useRef<HTMLDivElement>(null);
+  const panel = useRef<HTMLElement>(null);
+  useEffect(() => {
+    if (sheet && showPanel) panel.current?.focus();
+  }, [sheet, showPanel]);
   // Cards slide to their new place when the panel shows or hides, or the order changes; not while dragging.
-  useFlip(root, `${showPanel}|${layout.order.join(",")}`, { item: "data-dash-item", enabled: dragged === null });
+  useFlip(root, `${inline}|${layout.order.join(",")}`, { item: "data-dash-item", enabled: dragged === null });
   const endDrag = () => {
     setDragged(null);
     setTarget(null);
@@ -60,7 +68,7 @@ export function DashboardView({ limits, server, activity, running, layout, editi
       <div className={`dashboard-drop ${dragged}`} style={{ height: dragHeight }} aria-hidden="true" onDragOver={(e) => aim(e, index)} onDrop={drop} />
     );
   return (
-    <div ref={root} className={`dashboard${showPanel ? " with-panel" : ""}`}>
+    <div ref={root} className={`dashboard${inline ? " with-panel" : ""}`}>
       <div className="dashboard-main">
         {editing && layout.hidden.length > 0 && (
           <div className="dashboard-hidden">
@@ -105,10 +113,17 @@ export function DashboardView({ limits, server, activity, running, layout, editi
           {placeholder(layout.order.length)}
         </div>
       </div>
-      {showPanel && (
-        <aside data-dash-item="notifications" className="dashboard-panel" aria-label="Notifications">
+      {sheet && !editing && <div className={`dashboard-backdrop${showPanel ? " open" : ""}`} aria-hidden="true" onClick={onCloseSheet} />}
+      {sheet && !editing ? (
+        <aside ref={panel} tabIndex={-1} className={`dashboard-panel${showPanel ? " open" : ""}`} role="dialog" aria-modal="true" aria-label="Notifications" inert={!showPanel}>
           {notifications}
         </aside>
+      ) : (
+        inline && (
+          <aside data-dash-item="notifications" className="dashboard-panel" aria-label="Notifications">
+            {notifications}
+          </aside>
+        )
       )}
     </div>
   );

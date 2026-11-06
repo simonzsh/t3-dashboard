@@ -40,7 +40,7 @@ import { useTab } from "./lib/useTab.ts";
 import { useTheme } from "./features/settings/useTheme.ts";
 import { useAccent } from "./features/settings/useAccent.ts";
 import { useUpdate } from "./features/update/useUpdate.ts";
-import { Loader, Logo, PageHeader, TooltipLayer } from "./ui/index.ts";
+import { Loader, Logo, PageHeader, TooltipLayer, useEscape } from "./ui/index.ts";
 import { updateLabel } from "./features/update/updateFlow.ts";
 
 const NO_THREADS: DashboardThread[] = [];
@@ -188,8 +188,17 @@ export function App() {
   const agents = useMemo(() => agentCounts(visible), [visible]);
   const sessionsBadge = useMemo(() => ({ count: sessionsBadgeCount(visible, notify.seen), waiting: agents.waiting > 0 }), [visible, notify.seen, agents.waiting]);
   const dashboardLayout = useDashboardLayout(tab === "dashboard");
-  const notifPanel = useNotificationsPanel();
+  const notifPanel = useNotificationsPanel(compact, tab === "dashboard");
   const dashboardOpen = tab === "dashboard" && state !== null;
+  // The phone sheet locks the page scroll while it shows.
+  const sheetShown = compact && notifPanel.open && dashboardOpen && !dashboardLayout.editing;
+  const closeSheet = () => {
+    notifPanel.close();
+    document.querySelector<HTMLElement>(".notif-bell")?.focus();
+  };
+  useEscape(() => {
+    if (sheetShown) closeSheet();
+  });
   // A hidden card reads nothing; showing it again reads at once.
   const cardShown = (id: DashboardCard) => dashboardOpen && !dashboardLayout.layout.hidden.includes(id);
   const activity = useActivity(cardShown("activity"));
@@ -208,7 +217,7 @@ export function App() {
   }
 
   return (
-    <div className={`app${tab === "sessions" ? " sessions-mode" : ""}${sessionShown ? " session-shown" : ""}`}>
+    <div className={`app${tab === "sessions" ? " sessions-mode" : ""}${sessionShown ? " session-shown" : ""}${sheetShown ? " sheet-shown" : ""}`}>
       <TooltipLayer />
       <AppNav
         layout={compact ? "bottom" : "side"}
@@ -273,6 +282,8 @@ export function App() {
                 editing={dashboardLayout.editing}
                 onLayout={dashboardLayout.setLayout}
                 panelOpen={notifPanel.open}
+                sheet={compact}
+                onCloseSheet={closeSheet}
                 onOpen={onOpen}
                 onSettle={onSettle}
                 seen={notify.seen}

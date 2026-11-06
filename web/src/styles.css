@@ -922,7 +922,15 @@ ol.install-steps { padding-left: 18px; }
   .dashboard { display: flex; flex-direction: column; align-items: stretch; gap: 16px; }
   .dashboard-cards { display: flex; flex-direction: column; gap: 16px; }
   .dashboard-slot { width: 100%; min-width: 0; }
-  .dashboard-panel { order: -1; }
+  /* Notifications: a side sheet under the header and above the bottom bar, with a backdrop. Closed, it is off screen and not focusable. */
+  .dashboard-backdrop { position: fixed; z-index: 14; inset: var(--header-h, 0px) 0 calc(var(--bottom-bar) + env(safe-area-inset-bottom)); background: color-mix(in srgb, var(--surface-0) 40%, #000 60%); opacity: 0; visibility: hidden; transition: opacity 200ms cubic-bezier(0.2, 0, 0, 1), visibility 0s 200ms; }
+  .dashboard-backdrop.open { opacity: 0.5; visibility: visible; transition-delay: 0s; }
+  .dashboard-panel { position: fixed; z-index: 15; top: var(--header-h, 0px); right: 0; bottom: calc(var(--bottom-bar) + env(safe-area-inset-bottom)); width: min(88vw, 380px); display: flex; flex-direction: column; background: var(--surface-0); box-shadow: -8px 0 24px color-mix(in srgb, #000 28%, transparent); transform: translateX(100%); visibility: hidden; transition: transform 200ms cubic-bezier(0.2, 0, 0, 1), visibility 0s 200ms; }
+  .dashboard-panel.open { transform: none; visibility: visible; transition-delay: 0s; }
+  .dashboard-panel:focus { outline: none; }
+  .dashboard-panel .notifications-card { flex: 1; min-height: 0; max-height: none; border-radius: 0; border-width: 0 0 0 1px; }
+  .dashboard-panel .notif-list { max-height: none; }
+  html:has(.app.sheet-shown) { overflow: hidden; }
   /* The bottom bar replaces the sidebar. The header is one line; its insets keep it clear of the iPhone notch in landscape. */
   .page-header { position: sticky; top: 0; gap: 10px; padding: max(8px, env(safe-area-inset-top)) max(12px, env(safe-area-inset-right)) 8px max(12px, env(safe-area-inset-left)); }
   .page-header .logo { width: 30px; height: 30px; }
@@ -999,6 +1007,7 @@ ol.install-steps { padding-left: 18px; }
   .streaming, .step.running .icon, .todo.running .todo-mark, .spinning { animation: none; }
   .loader rect { animation: none; }
   .skeleton { animation: none; }
+  .dashboard-panel, .dashboard-backdrop { transition: none; }
   .thread-actions, .slist-slot, .sidebar, :is(.sidebar-name, .nav-label, .sidebar-search kbd) { transition: none; }
   .sidebar.collapsed :is(.sidebar-actions, .nav-badge, .nav-alert) { animation: none; }
   .swipe-dots { animation-duration: 1ms; animation-delay: 1.2s; }

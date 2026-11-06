@@ -58,10 +58,11 @@ interface Options {
   layout?: DashboardLayout;
   editing?: boolean;
   panelOpen?: boolean;
+  sheet?: boolean;
   seen?: typeof fresh;
   providers?: DashboardState["providers"];
 }
-const render = (activity: ReadState<UsageOverview>, { limits = limitsState(), threads = [thread("a", { status: "running" })], layout = DEFAULT_LAYOUT, editing = false, panelOpen = true, seen = fresh, providers = [] }: Options = {}) =>
+const render = (activity: ReadState<UsageOverview>, { limits = limitsState(), threads = [thread("a", { status: "running" })], layout = DEFAULT_LAYOUT, editing = false, panelOpen = true, sheet = false, seen = fresh, providers = [] }: Options = {}) =>
   renderToStaticMarkup(
     <DashboardView
       state={{ ...baseState(threads), providers }}
@@ -75,6 +76,8 @@ const render = (activity: ReadState<UsageOverview>, { limits = limitsState(), th
       layout={layout}
       editing={editing}
       panelOpen={panelOpen}
+      sheet={sheet}
+      onCloseSheet={() => {}}
       onLayout={() => {}}
       onOpen={() => {}}
       onSettle={async () => {}}
@@ -151,7 +154,7 @@ test("the default layout draws the cards in order inside one grid", () => {
 test("an open panel sits beside the cards and holds Notifications", () => {
   const out = render(state());
   assert.match(out, /<div class="dashboard with-panel">/);
-  const aside = out.indexOf('<aside class="dashboard-panel" aria-label="Notifications">');
+  const aside = out.indexOf('<aside data-dash-item="notifications" class="dashboard-panel" aria-label="Notifications">');
   assert.ok(aside > out.indexOf('id="up-next-head"'));
   assert.ok(aside < out.indexOf('id="notifications-head"'));
   assert.equal(out.match(/id="notifications-head"/g)?.length, 1);
@@ -287,7 +290,25 @@ test("routine threads stay out of every card", () => {
   assert.doesNotMatch(render(state(), { threads: [thread("t-routine", { title: "Routine run" })] }), /Routine run/);
 });
 
-test("the panel is a plain aside: no dialog role, no close button, nothing inert", () => {
+test("on a phone the panel is a dialog sheet with a backdrop, and it takes no room", () => {
+  const out = render(state(), { sheet: true });
+  assert.match(out, /<div class="dashboard-backdrop open" aria-hidden="true">/);
+  assert.match(out, /<aside tabindex="-1" class="dashboard-panel open" role="dialog" aria-modal="true" aria-label="Notifications">/);
+  assert.doesNotMatch(out, /with-panel|data-dash-item="notifications"/);
+  assert.equal(out.match(/id="notifications-head"/g)?.length, 1);
+});
+
+test("a closed phone sheet stays mounted for its slide-out, but inert", () => {
+  const out = render(state(), { sheet: true, panelOpen: false });
+  assert.match(out, /<aside tabindex="-1" class="dashboard-panel" role="dialog"[^>]* inert=""/);
+  assert.doesNotMatch(out, /dashboard-backdrop open|dashboard-panel open/);
+});
+
+test("edit mode removes the phone sheet and its backdrop", () => {
+  assert.doesNotMatch(render(state(), { sheet: true, editing: true }), /dashboard-panel|dashboard-backdrop|notifications-head/);
+});
+
+test("the wide panel is a plain aside: no dialog role, no close button, nothing inert", () => {
   const out = render(state());
   assert.doesNotMatch(out, /role="dialog"|aria-modal|Close notifications/);
   assert.doesNotMatch(out, /class="dashboard-main" inert/);
