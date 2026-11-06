@@ -28,6 +28,8 @@ import { useDeskSync } from "./features/desk/useDeskSync.ts";
 import { useDeskBackground } from "./features/desk/useDeskBackground.ts";
 import { useMediaQuery } from "./lib/useMediaQuery.ts";
 import { useShortcuts } from "./lib/useShortcuts.ts";
+import { browserStorage } from "./lib/storage.ts";
+import { loadSidebarCollapsed, saveSidebarCollapsed } from "./lib/sidebar.ts";
 import { navBadges } from "./lib/navBadges.ts";
 import { TABS } from "./lib/tabs.ts";
 import { ctrlLabel, startsTyping } from "./lib/shortcuts.ts";
@@ -88,6 +90,13 @@ export function App() {
   const [deskBackground, setDeskBackground] = useDeskBackground();
   const [now, setNow] = useState(() => new Date());
   const compact = useMediaQuery(PHONE);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(() => loadSidebarCollapsed(browserStorage()));
+  const toggleSidebar = useCallback(() => {
+    setSidebarCollapsed((was) => {
+      saveSidebarCollapsed(browserStorage(), !was);
+      return !was;
+    });
+  }, []);
 
   // The error banner starts under the header, whatever its height (one line on a phone).
   const header = useRef<HTMLElement>(null);
@@ -135,6 +144,9 @@ export function App() {
     (action) => {
       if (action === "home" || action === "desk" || action === "automations") setTab(action);
       else if (action === "settings") setSettingsOpen(true);
+      else if (action === "toggle-sidebar") {
+        if (!compact) toggleSidebar();
+      }
       else if (action === "switcher") {
         if (state && !creating && !creatingAutomation && !settingsOpen && !confirmingUpdate) setSwitcherQuery((open) => (open === null ? "" : null));
       } else if (action === "new-agent") {
@@ -211,6 +223,8 @@ export function App() {
       <TooltipLayer />
       <AppNav
         layout={compact ? "bottom" : "side"}
+        collapsed={sidebarCollapsed}
+        onToggleCollapsed={toggleSidebar}
         tab={tab}
         badges={badges}
         badgeText={badgeText}

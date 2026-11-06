@@ -1,6 +1,3 @@
-import { useState } from "react";
-import { browserStorage } from "../../lib/storage.ts";
-import { loadSidebarCollapsed, saveSidebarCollapsed } from "../../lib/sidebar.ts";
 import { ctrlLabel } from "../../lib/shortcuts.ts";
 import { TABS, type Tab } from "../../lib/tabs.ts";
 import type { NavBadges } from "../../lib/navBadges.ts";
@@ -19,6 +16,9 @@ interface Props {
   badgeText: (n: number) => string;
   live: boolean;
   update: NavUpdate | null;
+  /** Sidebar only: App owns it so Ctrl+B can toggle it. */
+  collapsed: boolean;
+  onToggleCollapsed: () => void;
   onTab: (tab: Tab) => void;
   onSearch: () => void;
   onSettings: () => void;
@@ -40,12 +40,7 @@ function Badges({ id, badges, badgeText }: { id: Tab; badges: NavBadges; badgeTe
   );
 }
 
-function Sidebar({ tab, badges, badgeText, live, update, onTab, onSearch, onSettings, onUpdate }: Omit<Props, "layout">) {
-  const [collapsed, setCollapsed] = useState(() => loadSidebarCollapsed(browserStorage()));
-  const toggle = () => {
-    saveSidebarCollapsed(browserStorage(), !collapsed);
-    setCollapsed(!collapsed);
-  };
+function Sidebar({ tab, badges, badgeText, live, update, collapsed, onToggleCollapsed, onTab, onSearch, onSettings, onUpdate }: Omit<Props, "layout">) {
   // Collapsed rows hold only an icon: the tooltip gives the name back.
   const hint = (text: string) => (collapsed ? text : undefined);
   return (
@@ -83,7 +78,7 @@ function Sidebar({ tab, badges, badgeText, live, update, onTab, onSearch, onSett
           <IconButton variant="ghost" label="Settings" tooltip="Settings" shortcut={ctrlLabel(",")} onClick={onSettings}>
             <Icon name="settings" strokeWidth={1.8} />
           </IconButton>
-          <IconButton variant="ghost" className="sidebar-collapse" label={collapsed ? "Expand the sidebar" : "Collapse the sidebar"} tooltip={collapsed ? "Expand the sidebar" : "Collapse the sidebar"} onClick={toggle}>
+          <IconButton variant="ghost" className="sidebar-collapse" label={collapsed ? "Expand the sidebar" : "Collapse the sidebar"} tooltip={collapsed ? "Expand the sidebar" : "Collapse the sidebar"} shortcut={ctrlLabel("B")} onClick={onToggleCollapsed}>
             <Icon name="panelLeft" />
           </IconButton>
         </div>

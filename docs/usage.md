@@ -2,7 +2,7 @@
 
 [Back to the README](../README.md)
 
-The dashboard has three pages: Home, Desk and Automations. A sidebar on the left lists them, with a search button (`⌘` + `K`). Its last row shows the connection state, Settings and a button that collapses the sidebar to icons. The theme is in Settings. The sidebar remembers its state. The page header holds the New Agent and New Automation buttons. On a phone, a bar at the bottom of the screen replaces the sidebar: Home, Desk, Automations and Settings.
+The dashboard has three pages: Home, Desk and Automations. A sidebar on the left lists them, with a search button (`⌘` + `K`). Its last row shows the connection state, Settings and a button that collapses the sidebar to icons (`Ctrl` + `B`). The theme is in Settings. The sidebar remembers its state. The page header holds the New Agent and New Automation buttons. On a phone, a bar at the bottom of the screen replaces the sidebar: Home, Desk, Automations and Settings.
 
 ## Home
 
@@ -13,7 +13,7 @@ Home opens first. At the top, a usage card shows three numbers for the last days
 
 ## Inbox
 
-The Inbox is the part of Home below the usage cards. It shows what needs you. It is a list of rows, not a grid. It has no grouping by project: each row shows its project as a small tag. The Home entry in the sidebar shows the number of unread items (waiting, failed or finished, not read yet). `Ctrl` + `B` opens Home.
+The Inbox is the part of Home below the usage cards. It shows what needs you. It is a list of rows, not a grid. It has no grouping by project: each row shows its project as a small tag. The Home entry in the sidebar shows the number of unread items (waiting, failed or finished, not read yet). `Ctrl` + `1` opens Home.
 
 - A summary line starts the page, for example "2 need you · 3 unread · 1 to relaunch". It shows only the parts that are not zero.
 - A row shows the provider (Claude or Codex), the title, the project tag, the status and the time of the last activity.
@@ -215,7 +215,7 @@ The shortcuts use `Ctrl`, also on a Mac, and they work while you type in a field
 | `Ctrl` + `N` | Opens New Agent. |
 | `Ctrl` + `⇧` + `N` | Opens a new automation (New Automation). |
 | `Ctrl` + `,` | Opens Settings. |
-| `Ctrl` + `B` | Opens Home. |
+| `Ctrl` + `B` | Collapses or expands the sidebar. |
 | `Ctrl` + `X` | Desk: closes the active window. |
 | `Ctrl` + `F` | Desk: puts the active window in full screen, or takes it out of full screen. |
 | `Ctrl` + `M` | Desk: minimizes the active window. |

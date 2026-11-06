@@ -9,6 +9,8 @@ const base = {
   badgeText: (n: number) => (n > 9 ? "9+" : String(n)),
   live: true,
   update: null,
+  collapsed: false,
+  onToggleCollapsed: () => {},
   onTab: () => {},
   onSearch: () => {},
   onSettings: () => {},
@@ -61,4 +63,9 @@ test("the bottom bar puts the badges on the icons", () => {
   const out = bottom({ badges: { homeUnread: 3, deskRunning: 0, deskWaiting: true } });
   assert.match(out, /aria-label="3 unread">3</);
   assert.match(out, /aria-label="An agent is waiting for your reply"/);
+});
+
+test("the collapse button shows its Ctrl+B shortcut and follows the collapsed prop", () => {
+  assert.match(side(), /aria-label="Collapse the sidebar"[^>]*data-shortcut="(Ctrl\+B|⌃B)"/);
+  assert.match(side({ collapsed: true }), /<nav class="sidebar collapsed"[\s\S]*aria-label="Expand the sidebar"/);
 });
