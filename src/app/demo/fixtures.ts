@@ -7,6 +7,10 @@ import type { RawConfig, RawProject, RawProjection, RawScheduledTask, RawSubagen
 
 export const SCRATCH_PROJECT_ID = "demo-no-project";
 export const DEMO_ENVIRONMENT_ID = "demo-environment";
+export const DEMO_HOME = "/home/demo";
+/** The folders of the demo machine, parents first: "~/src/" lists the four projects and a hidden one. */
+export const DEMO_FOLDERS = ["/", "/home", DEMO_HOME, `${DEMO_HOME}/src`, ...["atlas-web", "atlas-api", "sandbox", "notes"].map((name) => `${DEMO_HOME}/src/${name}`), `${DEMO_HOME}/.config`];
+export const DEMO_FILES = [`${DEMO_HOME}/todo.txt`];
 const CHILD_ID = "demo-checkout-mobile-child";
 
 const PROJECTS: RawProject[] = [
@@ -16,6 +20,7 @@ const PROJECTS: RawProject[] = [
   { id: "demo-docs", title: "Docs site", projectIcon: { kind: "lucide", name: "book-open", color: "gray" } },
   { id: "demo-assistant", title: "Assistant", projectIcon: { kind: "lucide", name: "brain", color: "purple" } },
   { id: SCRATCH_PROJECT_ID, title: "No project" },
+  { id: "demo-sandbox", title: "Sandbox", workspaceRoot: `${DEMO_HOME}/src/sandbox` },
 ];
 
 const SUMMARY_DIFF = [

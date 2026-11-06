@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "bun:test";
 import { DemoPort, demoLinearFetch } from "../../src/app/demo/port.ts";
-import { demoFixtures, demoServerStats, demoUsageBuckets } from "../../src/app/demo/fixtures.ts";
+import { DEMO_HOME, demoFixtures, demoServerStats, demoUsageBuckets } from "../../src/app/demo/fixtures.ts";
 import { issues } from "../../src/integrations/contract.ts";
 import { LinearClient } from "../../src/integrations/linear/client.ts";
 import { RawConfig, RawProjection, RawProject, RawThread, UsageSummaryResponse } from "../../src/integrations/t3/schemas.ts";
@@ -343,4 +343,23 @@ test("the demo server stats are plausible, move over time and show an amber disk
   assert.notEqual(a.memory.usedBytes, b.memory.usedBytes);
   assert.ok(a.disk!.usedPercent >= 75 && a.disk!.usedPercent < 90);
   assert.equal(a.disk!.path, "/home/demo");
+});
+
+test("the demo lists its folders and adds a created folder as a project", async () => {
+  const port = new DemoPort(() => NOW);
+  const store = syncedStore(port);
+  store.apply([{ kind: "synchronized" }]);
+  const actions = createActions({ port, store, board: { get: async () => ({ configured: true, ok: true, error: null, issues: [] }) }, home: DEMO_HOME });
+  const listed = await actions.browseFolders("~/src/");
+  assert.deepEqual(listed.entries.map((entry) => entry.name), ["atlas-api", "atlas-web", "notes", "sandbox"]);
+  assert.equal((await actions.browseFolders("~/src/new-thing")).kind, "missing");
+
+  const created = await actions.createProject({ path: "~/src/new-thing" });
+  assert.equal(created.created, true);
+  const project = store.project(created.projectId);
+  assert.equal(project?.title, "new-thing");
+  assert.equal((await actions.browseFolders("~/src/new-thing")).kind, "directory");
+  assert.deepEqual(await actions.createProject({ path: "~/src/new-thing/" }), { projectId: created.projectId, created: false });
+  await assert.rejects(actions.createProject({ path: "~/todo.txt" }), /file, not a folder/);
+  assert.deepEqual(await actions.createProject({ path: "~/src/sandbox" }), { projectId: "demo-sandbox", created: false });
 });
