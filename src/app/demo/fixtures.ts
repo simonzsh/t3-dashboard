@@ -470,6 +470,7 @@ export function demoUsageLimits(now: Date): Record<string, RawUsageLimits> {
 
 const GIB = 1024 ** 3;
 const DEMO_BOOT = Date.parse("2026-10-20T08:00:00Z");
+const WEEK_MS = 7 * 86_400_000;
 
 /** An invented workstation whose numbers drift on slow sines, so the card visibly moves. */
 export function demoServerStats(now: Date): ServerStats {
@@ -482,7 +483,8 @@ export function demoServerStats(now: Date): ServerStats {
   return {
     host: "workstation",
     os: "Linux",
-    uptimeSeconds: 12 * 86_400 + Math.floor((t - DEMO_BOOT) / 1000),
+    // Loops over a week, so a screenshot taken any day shows a plausible uptime.
+    uptimeSeconds: 12 * 86_400 + Math.floor((((t - DEMO_BOOT) % WEEK_MS) + WEEK_MS) % WEEK_MS / 1000),
     cpu: { usedPercent: 18 + 28 * wave(41_000), cores: 8 },
     memory: { usedBytes: memoryUsed, totalBytes: memoryTotal, usedPercent: (memoryUsed / memoryTotal) * 100 },
     disk: { path: "/home/demo", usedBytes: diskUsed, totalBytes: diskTotal, usedPercent: 78 },

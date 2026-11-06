@@ -17,7 +17,7 @@ import { environmentIdFile, readEnvironmentId, readServerVersion, resolveOrigin,
 import { LiveSync } from "../domain/liveSync.ts";
 import { LinearBoard } from "../domain/linearBoard.ts";
 import { createProviderLimits } from "../domain/providerLimits.ts";
-import { createServerStats } from "../domain/serverStats.ts";
+import { createServerStats, vmStatAvailable } from "../domain/serverStats.ts";
 import { createUsage } from "../domain/usage.ts";
 import { readSessions, sessionsText } from "../config/sessionsFile.ts";
 import { readStash, stashText } from "../config/stashFile.ts";
@@ -128,7 +128,7 @@ export async function start({ port, log, env }: StartOptions): Promise<void> {
 
   const usage = createUsage({ port: client, threads: () => getState().threads, now: () => new Date() });
   const limits = createProviderLimits({ port: client, now: () => new Date() });
-  const serverStats = createServerStats({ os, statfs, diskPath: homedir(), now: () => new Date(), sleep });
+  const serverStats = createServerStats({ os, statfs, diskPath: homedir(), now: () => new Date(), sleep, availableMemory: os.platform() === "darwin" ? darwinAvailableMemory : undefined });
 
   const settings = createSettings({ file: linearPath, readFile: readText, writeSecret, board });
   const wake = () => {
@@ -204,4 +204,10 @@ export async function start({ port, log, env }: StartOptions): Promise<void> {
   };
   process.on("SIGINT", shutdown);
   process.on("SIGTERM", shutdown);
+}
+
+async function darwinAvailableMemory(): Promise<number | null> {
+  const proc = Bun.spawn(["vm_stat"], { stdout: "pipe", stderr: "ignore" });
+  const [code, text] = await Promise.all([proc.exited, new Response(proc.stdout).text()]);
+  return code === 0 ? vmStatAvailable(text) : null;
 }

@@ -86,7 +86,7 @@ The code has three parts: the server (`src/`), the interface (`web/src/`) and th
 | `cli/` | Commands that run one time: arguments, installation, service, binary update. |
 | `config/` | Environment variables, paths, version, dashboard files (Linear key, token, PID, automation threads) and the agent rules block. |
 | `server/` | HTTP, SSE and static site. The router reads and validates the requests (`validate.ts`), then calls the domain. `htmlRender.ts` applies the theme to the `html_render` pages. |
-| `domain/` | Rules and state: sync with T3, thread sorting, thread detail, actions, token, Linear board, settings, updates, automations (and the guard that moves tasks out of worktrees and pauses reminders), project icons, models. |
+| `domain/` | Rules and state: sync with T3, thread sorting, thread detail, actions, token, Linear board, settings, updates, automations (and the guard that moves tasks out of worktrees and pauses reminders), project icons, models, usage, provider limits, server stats. |
 | `integrations/` | All calls to another system: T3 Code, Linear and GitHub. Each response goes through a schema. |
 
 ### Interface (`web/src/`)
@@ -100,7 +100,7 @@ The code has three parts: the server (`src/`), the interface (`web/src/`) and th
 
 ### Contract (`shared/`)
 
-`shared/api.ts` re-exports the types of each topic: `threads`, `connection`, `events`, `requests`, `linear`, `settings`, `automations`. `limits.ts` contains the shared limits (images, message size, runtime modes). `status.ts` contains the thread status model. `guards.ts` contains the checks for untrusted values (request bodies, files, browser storage). `events.ts` gives the list of event types: the interface subscribes to this list.
+`shared/api.ts` re-exports the types of each topic: `threads`, `connection`, `events`, `requests`, `linear`, `settings`, `automations`, `usage`, `providerLimits`, `serverStats`. `limits.ts` contains the shared limits (images, message size, runtime modes). `status.ts` contains the thread status model. `guards.ts` contains the checks for untrusted values (request bodies, files, browser storage). `events.ts` gives the list of event types: the interface subscribes to this list.
 
 ### Import rules
 

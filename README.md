@@ -1,6 +1,6 @@
 # t3-dashboard
 
-t3-dashboard is a web dashboard on top of T3 Code. It shows all your Claude and Codex agents on one screen. You follow their work, reply to them and start new sessions. Dashboard shows the usage limits of your providers, the load of the server, your activity, a Notifications card with what needs you, the running agents, what to relaunch and your next Linear tickets: you can assign a ticket to an agent or copy its link. The dashboard runs in the background on your computer and opens in your browser.
+t3-dashboard is a web dashboard on top of T3 Code. It shows all your Claude and Codex agents on one screen. You follow their work, reply to them and start new sessions. Dashboard shows the usage limits of your providers, the CPU, memory and disk of the server, your activity, a Notifications card with what needs you, the running agents, what to relaunch and your next Linear tickets: you can assign a ticket to an agent or copy its link. The dashboard runs in the background on your computer and opens in your browser.
 
 ## Screenshots
 

@@ -733,6 +733,8 @@ ol.install-steps { padding-left: 18px; }
 .activity-chart-head h2 { margin: 0 auto 0 0; font-size: 13px; font-weight: 600; }
 .card-updated { color: var(--text-secondary); font-size: 12px; }
 .server-host { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* The header actions must shrink too, or a long host name never reaches its ellipsis. */
+.server-card .card-actions { min-width: 0; }
 .activity-chart { position: relative; overflow: hidden; padding: 8px 0 12px; }
 .activity-chart svg { display: block; }
 .activity-grid { stroke: var(--line); stroke-width: 1; }

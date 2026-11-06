@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "bun:test";
-import { cpuPercent, cpuSample, createServerStats, osLabel, toDisk, type DiskStat, type ServerOs } from "../../src/domain/serverStats.ts";
+import { cpuPercent, cpuSample, createServerStats, osLabel, toDisk, vmStatAvailable, type DiskStat, type ServerOs } from "../../src/domain/serverStats.ts";
 
 type Times = { user: number; nice: number; sys: number; idle: number; irq: number };
 const core = (busy: number, idle: number): { times: Times } => ({ times: { user: busy - 10, nice: 0, sys: 10, idle, irq: 0 } });
@@ -135,4 +135,30 @@ test("a failing statfs gives a null disk and the read still resolves", async () 
   const stats = await rig({ disk: new Error("ENOENT") }).stats.get();
   assert.equal(stats.disk, null);
   assert.equal(stats.memory.totalBytes, 16 * 1024 ** 3);
+});
+
+const VM_STAT = `Mach Virtual Memory Statistics: (page size of 16384 bytes)
+Pages free:                               10000.
+Pages active:                            200000.
+Pages inactive:                           50000.
+Pages speculative:                         5000.
+Pages throttled:                              0.
+Pages wired down:                         90000.
+Pages purgeable:                           3000.
+`;
+
+test("vmStatAvailable counts free, inactive, speculative and purgeable pages", () => {
+  assert.equal(vmStatAvailable(VM_STAT), (10_000 + 50_000 + 5000 + 3000) * 16384);
+  assert.equal(vmStatAvailable("no page size here"), null);
+});
+
+function memoryWith(availableMemory: () => Promise<number | null>) {
+  const os: ServerOs = { cpus: () => [core(100, 900)], totalmem: () => 16 * 1024 ** 3, freemem: () => 1024 ** 3, uptime: () => 1, hostname: () => "mac", platform: () => "darwin" };
+  return createServerStats({ os, statfs: async () => ({ blocks: 1, bsize: 1, bfree: 1, bavail: 1 }), diskPath: "/", now: () => new Date(0), sleep: async () => {}, availableMemory });
+}
+
+test("macOS memory uses the available figure, and freemem when it is missing or fails", async () => {
+  assert.equal((await memoryWith(async () => 12 * 1024 ** 3).get()).memory.usedBytes, 4 * 1024 ** 3);
+  assert.equal((await memoryWith(async () => null).get()).memory.usedBytes, 15 * 1024 ** 3);
+  assert.equal((await memoryWith(async () => { throw new Error("no vm_stat"); }).get()).memory.usedBytes, 15 * 1024 ** 3);
 });

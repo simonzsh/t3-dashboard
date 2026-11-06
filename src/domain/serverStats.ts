@@ -23,6 +23,8 @@ export interface ServerStatsOptions {
   diskPath: string;
   now: () => Date;
   sleep: (ms: number) => Promise<void>;
+  /** macOS only: freemem() leaves out the file cache, so the memory a program can still get comes from vm_stat. */
+  availableMemory?: () => Promise<number | null>;
 }
 
 const CACHE_MS = 1_000;
@@ -61,12 +63,24 @@ export function toDisk(path: string, stat: DiskStat): NonNullable<ServerStats["d
   return { path, usedBytes, totalBytes: stat.blocks * stat.bsize, usedPercent: clampPercent((usedBytes / usable) * 100) };
 }
 
+/** Free, inactive, speculative and purgeable pages of `vm_stat`: memory macOS gives back on demand. */
+export function vmStatAvailable(text: string): number | null {
+  const page = Number(/page size of (\d+) bytes/.exec(text)?.[1]);
+  if (!page) return null;
+  let pages = 0;
+  for (const name of ["free", "inactive", "speculative", "purgeable"]) {
+    const value = Number(new RegExp(`Pages ${name}:\\s+(\\d+)`).exec(text)?.[1]);
+    if (Number.isFinite(value)) pages += value;
+  }
+  return pages * page;
+}
+
 export const osLabel = (platform: string): string => PLATFORMS[platform] ?? platform;
 
 const clampPercent = (value: number): number => Math.min(100, Math.max(0, value));
 
 /** The CPU, memory and home disk of this machine. `get` never throws. */
-export function createServerStats({ os, statfs, diskPath, now, sleep }: ServerStatsOptions) {
+export function createServerStats({ os, statfs, diskPath, now, sleep, availableMemory }: ServerStatsOptions) {
   let last: (CpuSample & { at: number }) | null = null;
   let cached: { at: number; stats: ServerStats } | null = null;
   let inFlight: Promise<ServerStats> | null = null;
@@ -91,10 +105,15 @@ export function createServerStats({ os, statfs, diskPath, now, sleep }: ServerSt
     }
   };
 
+  const readAvailable = async (): Promise<number> => {
+    const available = await availableMemory?.().catch(() => null);
+    return available ?? os.freemem();
+  };
+
   const read = async (): Promise<ServerStats> => {
-    const [cpu, disk] = await Promise.all([readCpu(), readDisk()]);
+    const [cpu, disk, available] = await Promise.all([readCpu(), readDisk(), readAvailable()]);
     const totalBytes = os.totalmem();
-    const usedBytes = totalBytes - os.freemem();
+    const usedBytes = Math.max(0, totalBytes - available);
     const at = now();
     const stats: ServerStats = {
       host: os.hostname(),
