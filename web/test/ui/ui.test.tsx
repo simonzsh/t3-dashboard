@@ -94,6 +94,11 @@ test("a Dialog has a title, a close button and the dialog role", () => {
   assert.doesNotMatch(out, /dialog-actions/);
 });
 
+test("a hidden Dialog stays in the page, out of sight", () => {
+  assert.match(html(<Dialog title="T" onClose={() => {}} hidden><p>Body</p></Dialog>), /class="dialog-backdrop" hidden=""/);
+  assert.match(html(<Dialog title="T" onClose={() => {}} />), /<div class="dialog-backdrop"><div/);
+});
+
 test("a Dialog puts Cancel on the left and the primary action on the right", () => {
   const out = html(<Dialog title="Update?" label="Update" onClose={() => {}} onCancel={() => {}} primary={{ label: "Update", onClick: () => {} }} />);
   assert.match(out, /aria-label="Update"/);

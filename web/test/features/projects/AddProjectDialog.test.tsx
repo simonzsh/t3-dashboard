@@ -12,6 +12,6 @@ test("the form starts at ~/ with the primary Add button, Cancel on the left", ()
   assert.doesNotMatch(html, /Create &amp; Add|role="alert"|does not exist/);
 });
 
-test("the title field shows the folder name as placeholder and is empty", () => {
-  assert.match(html, /<input[^>]*placeholder="project"[^>]*value=""|<input[^>]*value=""[^>]*placeholder="project"/);
+test("the title field says the folder name is the default and is empty", () => {
+  assert.match(html, /<input[^>]*placeholder="The folder&#x27;s name"[^>]*value=""|<input[^>]*value=""[^>]*placeholder="The folder&#x27;s name"/);
 });

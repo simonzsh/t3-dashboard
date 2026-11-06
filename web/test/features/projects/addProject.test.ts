@@ -12,8 +12,9 @@ test("folderTitle: the last segment, or project for the root", () => {
   assert.equal(folderTitle("~/src/new-thing"), "new-thing");
   assert.equal(folderTitle("/srv/app/"), "app");
   assert.equal(folderTitle("/"), "project");
-  assert.equal(folderTitle("~"), "project");
-  assert.equal(folderTitle("~/"), "project");
+  assert.equal(folderTitle("~"), "");
+  assert.equal(folderTitle("~/"), "");
+  assert.equal(folderTitle("~/src/./app/../web"), "web");
 });
 
 test("addLabel: Create & Add only for a folder that does not exist", () => {

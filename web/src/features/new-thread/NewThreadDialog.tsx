@@ -39,6 +39,15 @@ export function NewThreadDialog({ projects, providers, defaults, onClose, onCrea
   // The form takes the dialog's place: two dialogs cannot stack. The state stays here.
   const [addingProject, setAddingProject] = useState(false);
 
+  // A created project reaches `projects` with the next SSE event: take its model then.
+  const [created, setCreated] = useState<string | null>(null);
+  useEffect(() => {
+    const project = created ? projects.find((p) => p.id === created) : undefined;
+    if (!project) return;
+    setCreated(null);
+    setSelection(presetSelection(project, providers, defaults.selection));
+  }, [created, projects]);
+
   // Providers can arrive after the dialog opens: pick a preset once the choice is no longer valid.
   useEffect(() => {
     if (!findModel(providers, selection)) setSelection(presetSelection(projects.find((p) => p.id === projectId), providers, defaults.selection));
@@ -64,58 +73,59 @@ export function NewThreadDialog({ projects, providers, defaults, onClose, onCrea
     if (change.runtimeMode) setMode(change.runtimeMode);
   }
 
-  if (addingProject) {
-    return (
-      <AddProjectDialog
-        onClose={() => setAddingProject(false)}
-        onCreated={(id) => {
-          setAddingProject(false);
-          setProjectId(id);
-          setPicks((n) => n + 1);
-        }}
-      />
-    );
-  }
-
   return (
-    <Dialog title={issue ? "Assign to an agent" : "New Session"} className="new-agent" onClose={onClose}>
-      {issue && (
-        <a className="issue-banner" href={issue.url} target="_blank" rel="noreferrer">
-          <span className="issue-banner-id">{issue.identifier}</span>
-          <span className="issue-banner-title">{issue.title}</span>
-          <Icon name="arrowUpRight" />
-        </a>
-      )}
-      <div className="dialog-field">
-        <span>Project</span>
-        <ProjectPicker
-          label="Project"
-          projects={projects}
-          value={projectId}
-          allowNone
-          defaultOpen={!preset && picks === 0}
-          onPicked={() => setPicks((n) => n + 1)}
-          onNewProject={() => setAddingProject(true)}
-          onPick={(id) => {
+    <>
+      {addingProject && (
+        <AddProjectDialog
+          onClose={() => setAddingProject(false)}
+          onCreated={(id) => {
+            setAddingProject(false);
             setProjectId(id);
-            setSelection(presetSelection(projects.find((p) => p.id === id), providers, defaults.selection));
+            setCreated(id);
+            setPicks((n) => n + 1);
           }}
         />
-      </div>
-      <Composer
-        providers={providers}
-        selection={selection}
-        runtimeMode={mode}
-        running={false}
-        draft={draft}
-        onDraft={setDraft}
-        onSend={send}
-        onSettings={changeSettings}
-        errorResetKey={projectId}
-        placeholder={issue ? "Add instructions for the agent (optional)…" : "Describe the task: the first line becomes the title…"}
-        allowEmpty={issue !== undefined}
-        focusKey={picks || undefined}
-      />
-    </Dialog>
+      )}
+      {/* Hidden, not unmounted: the composer frees its attachments on unmount. */}
+      <Dialog title={issue ? "Assign to an agent" : "New Session"} className="new-agent" onClose={onClose} hidden={addingProject}>
+        {issue && (
+          <a className="issue-banner" href={issue.url} target="_blank" rel="noreferrer">
+            <span className="issue-banner-id">{issue.identifier}</span>
+            <span className="issue-banner-title">{issue.title}</span>
+            <Icon name="arrowUpRight" />
+          </a>
+        )}
+        <div className="dialog-field">
+          <span>Project</span>
+          <ProjectPicker
+            label="Project"
+            projects={projects}
+            value={projectId}
+            allowNone
+            defaultOpen={!preset && picks === 0}
+            onPicked={() => setPicks((n) => n + 1)}
+            onNewProject={() => setAddingProject(true)}
+            onPick={(id) => {
+              setProjectId(id);
+              setSelection(presetSelection(projects.find((p) => p.id === id), providers, defaults.selection));
+            }}
+          />
+        </div>
+        <Composer
+          providers={providers}
+          selection={selection}
+          runtimeMode={mode}
+          running={false}
+          draft={draft}
+          onDraft={setDraft}
+          onSend={send}
+          onSettings={changeSettings}
+          errorResetKey={projectId}
+          placeholder={issue ? "Add instructions for the agent (optional)…" : "Describe the task: the first line becomes the title…"}
+          allowEmpty={issue !== undefined}
+          focusKey={picks || undefined}
+        />
+      </Dialog>
+    </>
   );
 }

@@ -87,7 +87,7 @@ export function AddProjectDialog({ onClose, onCreated }: Props) {
       {kind === "file" && <p className="hint">This path is a file, not a folder.</p>}
       <label className="dialog-field">
         <span>Title</span>
-        <TextInput value={title} onChange={(e) => setTitle(e.target.value)} onKeyDown={onEnter} placeholder={folderTitle(path)} />
+        <TextInput value={title} onChange={(e) => setTitle(e.target.value)} onKeyDown={onEnter} placeholder={folderTitle(path) || "The folder's name"} />
       </label>
       {error && <p className="auto-error" role="alert">{error}</p>}
     </Dialog>
