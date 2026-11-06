@@ -34,7 +34,6 @@ export function iconChanged(before: ProjectIconSpec | null, after: ProjectIconSp
 
 export interface EditForm {
   title: string;
-  path: string;
   icon: ProjectIconSpec | null;
 }
 
@@ -42,9 +41,7 @@ export interface EditForm {
 export function editBody(project: DashboardProject, form: EditForm): UpdateProjectBody | null {
   const body: UpdateProjectBody = {};
   const title = form.title.trim();
-  const path = form.path.trim();
   if (title !== "" && title !== project.title) body.title = title;
-  if (path !== "" && path !== project.workspaceRoot) body.path = path;
   if (iconChanged(project.iconSpec ?? null, form.icon)) body.icon = form.icon;
   return Object.keys(body).length > 0 ? body : null;
 }

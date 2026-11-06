@@ -11,16 +11,15 @@ const project: DashboardProject = {
   workspaceRoot: "/home/u/shop",
   iconSpec: { kind: "lucide", name: "rocket", color: "blue" },
 };
-const same = { title: "Shop", path: "/home/u/shop", icon: project.iconSpec ?? null };
+const same = { title: "Shop", icon: project.iconSpec ?? null };
 
 test("editBody is null when nothing changed", () => {
   assert.equal(editBody(project, same), null);
-  assert.equal(editBody(project, { ...same, title: "  Shop  ", path: " /home/u/shop " }), null);
+  assert.equal(editBody(project, { ...same, title: "  Shop  " }), null);
 });
 
 test("editBody sends only the changed fields", () => {
   assert.deepEqual(editBody(project, { ...same, title: "Store" }), { title: "Store" });
-  assert.deepEqual(editBody(project, { ...same, path: "~/store" }), { path: "~/store" });
   assert.deepEqual(editBody(project, { ...same, icon: { kind: "emoji", emoji: "🚀" } }), { icon: { kind: "emoji", emoji: "🚀" } });
 });
 

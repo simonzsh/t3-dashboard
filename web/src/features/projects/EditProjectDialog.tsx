@@ -3,8 +3,6 @@ import type { DashboardProject, ProjectIconSpec } from "../../../../shared/api.t
 import { useApi } from "../../api/ApiContext.tsx";
 import { errorMessage } from "../../lib/format.ts";
 import { Dialog, TextInput } from "../../ui/index.ts";
-import { isFolderPath } from "./addProject.ts";
-import { FolderField, type FolderKind } from "./FolderField.tsx";
 import { IconPicker } from "./IconPicker.tsx";
 import { editBody } from "./projectIcons.ts";
 
@@ -16,20 +14,16 @@ interface Props {
   onClose: () => void;
 }
 
-/** Edits a project's title, folder and icon. The list follows through T3's project events. */
+/** Edits a project's title and icon (like T3 Code, not its folder). The list follows through T3's project events. */
 export function EditProjectDialog({ project, onClose }: Props) {
   const api = useApi();
   const [title, setTitle] = useState(project.title);
-  const [path, setPath] = useState(project.workspaceRoot ?? "");
   const [icon, setIcon] = useState<ProjectIconSpec | null>(project.iconSpec ?? null);
-  const [kind, setKind] = useState<FolderKind | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const body = editBody(project, { title, path, icon });
-  // The folder is checked only when it changes: a moved folder must not block a rename.
-  // An unknown folder kind is allowed: the server checks the folder anyway.
-  const valid = title.trim() !== "" && (!body?.path || (isFolderPath(path) && kind !== "file" && kind !== "missing"));
+  const body = editBody(project, { title, icon });
+  const valid = title.trim() !== "";
 
   async function submit() {
     if (busy || !body || !valid) return;
@@ -56,7 +50,6 @@ export function EditProjectDialog({ project, onClose }: Props) {
         <span>Title</span>
         <TextInput autoFocus={!touch()} value={title} onChange={(e) => setTitle(e.target.value)} onKeyDown={onEnter} />
       </label>
-      <FolderField value={path} onChange={setPath} onKind={setKind} onKeyDown={onEnter} missingHint="This folder does not exist." />
       <div className="dialog-field">
         <span>Icon</span>
         <IconPicker title={title} value={icon} onChange={setIcon} current={project.icon} />

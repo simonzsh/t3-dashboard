@@ -16,11 +16,11 @@ const project: DashboardProject = {
 };
 const noop = () => {};
 
-test("the edit form is prefilled and Save is disabled until something changes", () => {
+test("the edit form is prefilled, has no folder field, and Save is disabled until something changes", () => {
   const html = renderToStaticMarkup(<EditProjectDialog project={project} onClose={noop} />);
   assert.match(html, /<h2[^>]*>Edit project<\/h2>/);
   assert.match(html, /<input[^>]*value="Shop"/);
-  assert.match(html, /<input[^>]*value="\/home\/u\/shop"/);
+  assert.doesNotMatch(html, /Folder|/home/u/shop/);
   assert.match(html, /<button[^>]*disabled=""[^>]*>Save</);
   assert.ok(html.indexOf(">Cancel<") < html.indexOf(">Save<"));
   assert.doesNotMatch(html, /role="alert"/);
