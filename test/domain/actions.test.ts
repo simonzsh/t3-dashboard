@@ -42,6 +42,7 @@ function harness({ searchResult = [] as ReturnType<typeof searchMatch>[], search
   const commands: Command[] = [];
   const port: T3Port = {
     threadProjection: async () => ({}),
+    usageSummary: async () => ({ buckets: [] }),
     dispatch: async (command) => {
       if (dispatchError) throw dispatchError;
       commands.push(command);

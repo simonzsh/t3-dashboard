@@ -11,3 +11,4 @@ export type * from "./search.ts";
 export type * from "./desk.ts";
 export type * from "./stash.ts";
 export type * from "./seen.ts";
+export type * from "./usage.ts";

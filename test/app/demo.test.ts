@@ -1,10 +1,10 @@
 import assert from "node:assert/strict";
 import { test } from "bun:test";
 import { DemoPort, demoLinearFetch } from "../../src/app/demo/port.ts";
-import { demoFixtures } from "../../src/app/demo/fixtures.ts";
+import { demoFixtures, demoUsageBuckets } from "../../src/app/demo/fixtures.ts";
 import { issues } from "../../src/integrations/contract.ts";
 import { LinearClient } from "../../src/integrations/linear/client.ts";
-import { RawConfig, RawProjection, RawProject, RawThread } from "../../src/integrations/t3/schemas.ts";
+import { RawConfig, RawProjection, RawProject, RawThread, UsageSummaryResponse } from "../../src/integrations/t3/schemas.ts";
 import { ShellStore } from "../../src/domain/shellStore.ts";
 import { toProviders } from "../../src/domain/providers.ts";
 import { createActions } from "../../src/domain/actions.ts";
@@ -27,6 +27,23 @@ test("the demo fixtures match the T3 schemas", () => {
   for (const [id, projection] of Object.entries(projections)) assert.deepEqual(issues(RawProjection, projection), [], id);
   assert.deepEqual(issues(RawConfig, config), []);
   assert.deepEqual(toProviders(config).map((provider) => provider.displayName), ["Claude", "Codex"]);
+});
+
+test("the demo usage matches the T3 schema and shows a partial cost over 14 days", async () => {
+  const usage = await new DemoPort(() => NOW).usageSummary({ sinceDay: "2026-10-13", untilDay: "2026-10-26", timeZone: "UTC" });
+  assert.deepEqual(issues(UsageSummaryResponse, usage), []);
+  assert.deepEqual(usage, demoUsageBuckets("2026-10-13", "2026-10-26"));
+  const days = new Set(usage.buckets.map((bucket) => bucket.day));
+  assert.equal(days.size, 14);
+  assert.ok(usage.buckets.every((bucket) => (bucket.costUsd ?? 0) >= 0));
+  assert.ok(usage.buckets.some((bucket) => (bucket.unpricedRecords ?? 0) > 0));
+  assert.ok(usage.buckets.some((bucket) => (bucket.costUsd ?? 0) > 0));
+});
+
+test("the demo threads have runs on several days", async () => {
+  const { projections } = demoFixtures(NOW);
+  const days = new Set(Object.values(projections).flatMap((projection) => (projection.runs ?? []).map((run) => run.startedAt?.slice(0, 10))));
+  assert.ok(days.size >= 5, [...days].join(","));
 });
 
 test("the demo shell fills the store with threads in every state", async () => {

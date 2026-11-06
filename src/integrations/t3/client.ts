@@ -1,14 +1,16 @@
 import { describe, issues, parse, type Schema } from "../contract.ts";
 import { IntegrationError } from "../errors.ts";
 import { RpcConnection } from "./rpc.ts";
-import { AssetUrl, PersistedAttachments, ScratchProject, ProjectionResponse, RawConfig, SearchEntriesResponse, SearchThreadsResponse, DeletedScheduledTask, ScheduledTasksResponse, UpsertedScheduledTask, ShellItem, TurnItemResponse, UploadUrl, WebSocketTicket } from "./schemas.ts";
-import type { AssetResource, AttachmentRef, Command, FileUpload, ImageUpload, RawProjection, RawScheduledTask, RawSearchMatch, NewScheduledTask, RawTurnItem, ScheduledTaskChange, SecretAnswer, T3Port } from "./schemas.ts";
+import { AssetUrl, PersistedAttachments, ScratchProject, ProjectionResponse, RawConfig, SearchEntriesResponse, SearchThreadsResponse, UsageSummaryResponse, DeletedScheduledTask, ScheduledTasksResponse, UpsertedScheduledTask, ShellItem, TurnItemResponse, UploadUrl, WebSocketTicket } from "./schemas.ts";
+import type { AssetResource, AttachmentRef, Command, FileUpload, ImageUpload, RawProjection, RawScheduledTask, RawSearchMatch, RawUsageSummary, NewScheduledTask, RawTurnItem, ScheduledTaskChange, SecretAnswer, T3Port } from "./schemas.ts";
 
 export const ORCHESTRATION_PROTOCOL = "2";
 // Images go up as data URLs of up to 10 MB each: give T3 time to write them.
 const UPLOAD_TIMEOUT_MS = 60_000;
 // Files go up as raw bytes, up to 50 MB.
 const FILE_UPLOAD_TIMEOUT_MS = 120_000;
+// A first usage scan reads every session file on the machine.
+const USAGE_TIMEOUT_MS = 60_000;
 
 /** The RPC tags the dashboard calls: the contract check looks for each one in the T3 client bundle. */
 export const RPC = {
@@ -28,6 +30,7 @@ export const RPC = {
   upsertScheduledTask: "scheduledTasks.upsert",
   setEnabledScheduledTask: "scheduledTasks.setEnabled",
   answerSecret: "secrets.answerRequest",
+  getUsageSummary: "server.getUsageSummary",
 } as const;
 
 export type Validation = "ok" | "rejected" | "unreachable";
@@ -60,7 +63,7 @@ export interface T3ClientOptions {
 }
 
 // Safe to send twice: a retry after a lost connection cannot repeat a side effect.
-const IDEMPOTENT = new Set<string>([RPC.getConfig, RPC.searchThreads, RPC.createAssetUrl, RPC.ensureScratch, RPC.getTurnItem, RPC.searchEntries, RPC.setEnabledScheduledTask]);
+const IDEMPOTENT = new Set<string>([RPC.getConfig, RPC.searchThreads, RPC.createAssetUrl, RPC.ensureScratch, RPC.getTurnItem, RPC.searchEntries, RPC.setEnabledScheduledTask, RPC.getUsageSummary]);
 
 const SECRET_REFUSALS: Record<string, string> = {
   not_found: "This secret request no longer exists.",
@@ -107,6 +110,11 @@ export class T3Client implements T3Port {
   async threadProjection(threadId: string): Promise<RawProjection> {
     const answer = await this.http("GET", `/api/orchestration/threads/${encodeURIComponent(threadId)}`);
     return read(ProjectionResponse, answer, "thread projection").projection ?? {};
+  }
+
+  async usageSummary({ sinceDay, untilDay, timeZone }: { sinceDay: string; untilDay: string; timeZone: string }): Promise<RawUsageSummary> {
+    const answer = await this.call(RPC.getUsageSummary, { sinceDay, untilDay, timeZone, resolution: "day" }, USAGE_TIMEOUT_MS);
+    return read(UsageSummaryResponse, answer, RPC.getUsageSummary);
   }
 
   async getConfig(): Promise<RawConfig> {

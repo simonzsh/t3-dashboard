@@ -1,8 +1,8 @@
 import { RUNNING_RUN_STATUSES } from "../../../shared/status.ts";
 import type { FetchLike } from "../../integrations/linear/client.ts";
-import type { AttachmentRef, Command, FileUpload, ImageUpload, NewScheduledTask, RawConfig, RawProjection, RawScheduledTask, RawSearchMatch, RawThread, RawTurnItem, SearchEntriesResponse, ScheduledTaskChange, ShellItem, T3Port } from "../../integrations/t3/schemas.ts";
+import type { AttachmentRef, Command, FileUpload, ImageUpload, NewScheduledTask, RawConfig, RawProjection, RawScheduledTask, RawSearchMatch, RawThread, RawTurnItem, RawUsageSummary, SearchEntriesResponse, ScheduledTaskChange, ShellItem, T3Port } from "../../integrations/t3/schemas.ts";
 import { searchEntries, searchProjections } from "./search.ts";
-import { DEMO_CONTEXT_TOKENS, demoFixtures, demoIssues, demoScheduledTasks, SCRATCH_PROJECT_ID } from "./fixtures.ts";
+import { DEMO_CONTEXT_TOKENS, demoFixtures, demoIssues, demoScheduledTasks, demoUsageBuckets, SCRATCH_PROJECT_ID } from "./fixtures.ts";
 
 const COMPACTED_TOKENS = 12_000;
 
@@ -43,6 +43,10 @@ export class DemoPort implements T3Port {
     const projection = this.projections.get(threadId);
     if (!projection) throw new Error("Unknown demo thread");
     return projection;
+  }
+
+  async usageSummary({ sinceDay, untilDay }: { sinceDay: string; untilDay: string; timeZone: string }): Promise<RawUsageSummary> {
+    return demoUsageBuckets(sinceDay, untilDay);
   }
 
   async searchThreads(query: string, limit?: number): Promise<RawSearchMatch[]> {
