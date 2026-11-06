@@ -23,10 +23,12 @@ interface Props {
   /** null: T3's default icon. */
   value: ProjectIconSpec | null;
   onChange: (icon: ProjectIconSpec | null) => void;
+  /** The project's icon as drawn today: shows a Lucide icon that is not among the presets. */
+  current?: Icon | null;
 }
 
 /** Picks a project icon: a Lucide preset, an emoji or a monogram, with a color, or T3's default. */
-export function IconPicker({ title, value, onChange }: Props) {
+export function IconPicker({ title, value, onChange, current = null }: Props) {
   const api = useApi();
   const [choices, setChoices] = useState<ProjectIconChoices["icons"]>([]);
   const [tab, setTab] = useState<Tab>(value?.kind === "emoji" ? "emoji" : value?.kind === "monogram" ? "monogram" : "icons");
@@ -58,7 +60,8 @@ export function IconPicker({ title, value, onChange }: Props) {
     if (!value) return null;
     if (value.kind === "emoji") return value;
     if (value.kind === "monogram") return { kind: "monogram", text: value.text, color: hex(value.color) };
-    const found = shape(value.name);
+    // Only the project's own icon can be outside the presets: draw it from the project.
+    const found = shape(value.name) ?? current;
     return found?.kind === "lucide" ? { ...found, color: hex(value.color) } : null;
   };
 

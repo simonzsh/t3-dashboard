@@ -56,7 +56,7 @@ export function EditProjectDialog({ project, onClose }: Props) {
       <FolderField value={path} onChange={setPath} onKind={setKind} onKeyDown={onEnter} missingHint="This folder does not exist." />
       <div className="dialog-field">
         <span>Icon</span>
-        <IconPicker title={title} value={icon} onChange={setIcon} />
+        <IconPicker title={title} value={icon} onChange={setIcon} current={project.icon} />
       </div>
       {error && <p className="auto-error" role="alert">{error}</p>}
     </Dialog>
