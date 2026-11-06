@@ -34,20 +34,11 @@ test("fitInto lets the height decide for a flat target", () => {
   assert.deepEqual(fitInto(window, chip), { left: 190, top: 700, width: 20, height: 20 });
 });
 
-test("flipPlan moves kept items, and enters or leaves the others through the dock when it holds them", () => {
-  const plan = flipPlan({ items: ["a", "b", "c"], origins: ["d"] }, { items: ["a", "c", "d", "e"], origins: ["b"] });
-  assert.deepEqual(plan, [
+test("flipPlan moves kept items, enters new ones and leaves removed ones", () => {
+  assert.deepEqual(flipPlan(["a", "b", "c"], ["a", "c", "d"]), [
     { id: "a", kind: "move" },
     { id: "c", kind: "move" },
-    { id: "d", kind: "enter", fromOrigin: true },
-    { id: "e", kind: "enter", fromOrigin: false },
-    { id: "b", kind: "leave", toOrigin: true },
-  ]);
-});
-
-test("flipPlan lets a closed item leave in place", () => {
-  assert.deepEqual(flipPlan({ items: ["a", "b"], origins: [] }, { items: ["a"], origins: [] }), [
-    { id: "a", kind: "move" },
-    { id: "b", kind: "leave", toOrigin: false },
+    { id: "d", kind: "enter" },
+    { id: "b", kind: "leave" },
   ]);
 });

@@ -43,7 +43,7 @@ The animations use the Web Animations API (`element.animate`), without a library
 | Tool | Use |
 | --- | --- |
 | `fly(source, target)` | A light copy of `source` (its frame and its first line) flies to `target` and shrinks. The target then bounces a little. Example: the + button of an agent card to the Sessions tab. |
-| `useFlip(root, key, { item, origin })` | Animates the `[item]` elements of `root` at each change of `key` (FLIP technique). A kept element slides to its new position. A new element fades in. A removed element fades out, or flies to the `[origin]` element with the same id if it exists (a dock pill). It comes back from this pill. The animations stop at unmount. |
+| `useFlip(root, key, { item })` | Animates the `[item]` elements of `root` at each change of `key` (FLIP technique). A kept element slides to its new position. A new element fades in. A removed element fades out. The animations stop at unmount. |
 | `Dialog`, `Popover` | They have their own open animation. Do not add one in a dialog or a menu. |
 
 The pure calculations (FLIP offset, target, plan) are in `flip.ts` and have unit tests.

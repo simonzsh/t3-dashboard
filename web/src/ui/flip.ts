@@ -28,20 +28,12 @@ export function fitInto(box: Rect, target: Rect): Rect {
   return { left: target.left + (target.width - width) / 2, top: target.top + (target.height - height) / 2, width, height };
 }
 
-export type FlipStep = { id: string; kind: "move" } | { id: string; kind: "enter"; fromOrigin: boolean } | { id: string; kind: "leave"; toOrigin: boolean };
+export type FlipStep = { id: string; kind: "move" | "enter" | "leave" };
 
-interface Ids {
-  items: Iterable<string>;
-  // Elements an item comes from or goes to, such as its chip in a dock.
-  origins: Iterable<string>;
-}
-
-export function flipPlan(before: Ids, after: Ids): FlipStep[] {
-  const was = new Set(before.items);
-  const is = new Set(after.items);
-  const wasOrigin = new Set(before.origins);
-  const isOrigin = new Set(after.origins);
-  const steps: FlipStep[] = [...is].map((id) => (was.has(id) ? { id, kind: "move" } : { id, kind: "enter", fromOrigin: wasOrigin.has(id) }));
-  for (const id of was) if (!is.has(id)) steps.push({ id, kind: "leave", toOrigin: isOrigin.has(id) });
+export function flipPlan(before: Iterable<string>, after: Iterable<string>): FlipStep[] {
+  const was = new Set(before);
+  const is = new Set(after);
+  const steps: FlipStep[] = [...is].map((id) => ({ id, kind: was.has(id) ? "move" : "enter" }));
+  for (const id of was) if (!is.has(id)) steps.push({ id, kind: "leave" });
   return steps;
 }
