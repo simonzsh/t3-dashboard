@@ -20,7 +20,8 @@ export function agentCounts(threads: readonly DashboardThread[]): { waiting: num
   return counts;
 }
 
-export function navBadges(threads: readonly DashboardThread[], sessionIds: ReadonlySet<string>): NavBadges {
-  const counts = agentCounts(threads.filter((t) => sessionIds.has(t.id)));
+/** Every listed agent counts, open as a column or not, like the sessions list. */
+export function navBadges(threads: readonly DashboardThread[]): NavBadges {
+  const counts = agentCounts(threads);
   return { sessionsRunning: counts.running, sessionsWaiting: counts.waiting > 0 };
 }

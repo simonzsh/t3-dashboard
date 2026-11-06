@@ -183,7 +183,7 @@ export function App() {
     [state?.threads, automations.result?.hiddenThreadIds, setup],
   );
   const unread = useMemo(() => unreadCount(threadSections(visible, notify.seen), notify.seen), [visible, notify.seen]);
-  const badges = navBadges(state?.threads ?? NO_THREADS, sessionIds);
+  const badges = useMemo(() => navBadges(visible), [visible]);
   const dashboardLayout = useDashboardLayout(tab === "dashboard");
   const usage = useUsage(tab === "dashboard" && state !== null);
   const page = TABS.find((t) => t.id === tab)!;
