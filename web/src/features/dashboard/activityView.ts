@@ -66,9 +66,6 @@ export function barLayout(values: number[], top: number, height: number, width: 
   });
 }
 
-/** Cost is read again soon while T3 still scans. */
-export const pollDelay = (refreshing: boolean): number => (refreshing ? 10_000 : 60_000);
-
 /** "2026-01-05" -> "Jan 5", read as text so no time zone moves the day. */
 export function shortDay(day: string): string {
   const [, month, date] = day.split("-").map(Number);

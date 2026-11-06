@@ -1,18 +1,12 @@
 import { afterEach, beforeEach, jest, test } from "bun:test";
 import assert from "node:assert/strict";
-import { activityDelay } from "../../../src/features/dashboard/useActivity.ts";
-import { limitsDelay } from "../../../src/features/dashboard/useLimits.ts";
 import { startReadPoll, type ReadPatch } from "../../../src/features/dashboard/pollRead.ts";
-import { pollDelay } from "../../../src/features/dashboard/activityView.ts";
-import { LIMITS_POLL_MS } from "../../../src/features/dashboard/limitsView.ts";
 
 interface Value {
   id: string;
-  scanning?: boolean;
 }
 const visible = { hidden: () => false, onChange: () => () => {} };
 const MINUTE = 60_000;
-const delayOf = (v: Value | null) => (v?.scanning ? 10_000 : MINUTE);
 
 beforeEach(() => jest.useFakeTimers());
 afterEach(() => jest.useRealTimers());
@@ -31,7 +25,7 @@ function harness(results: Array<Value | Error>, force = false, page = visible) {
     if (next instanceof Error) throw next;
     return next;
   };
-  const stop = startReadPoll(read, (p) => patches.push(p), force, delayOf, page);
+  const stop = startReadPoll(read, (p) => patches.push(p), force, page);
   const advance = async (ms: number) => {
     jest.advanceTimersByTime(ms);
     await flush();
@@ -48,18 +42,6 @@ test("it reads at once, publishes the value and polls again after the delay", as
   assert.equal(h.forces.length, 1);
   await h.advance(1);
   assert.equal(h.forces.length, 2);
-  h.stop();
-});
-
-test("the answer picks the next delay", async () => {
-  const h = harness([{ id: "a", scanning: true }, { id: "b" }, { id: "c" }]);
-  await h.advance(0);
-  await h.advance(10_000);
-  assert.equal(h.forces.length, 2);
-  await h.advance(10_000);
-  assert.equal(h.forces.length, 2, "the answer changed the delay back to a minute");
-  await h.advance(50_000);
-  assert.equal(h.forces.length, 3);
   h.stop();
 });
 
@@ -100,12 +82,4 @@ test("stopping cancels the next read and drops a late answer", async () => {
   assert.deepEqual(h.patches.map((p) => p.loading), [true]);
   await h.advance(120_000);
   assert.equal(h.forces.length, 1);
-});
-
-test("limits poll at a fixed rate; activity polls fast only while T3 scans", () => {
-  assert.equal(limitsDelay(), LIMITS_POLL_MS);
-  const usage = (refreshing: boolean) => ({ cost: { refreshing } }) as Parameters<typeof activityDelay>[0];
-  assert.equal(activityDelay(usage(true)), pollDelay(true));
-  assert.equal(activityDelay(usage(false)), pollDelay(false));
-  assert.equal(activityDelay(null), pollDelay(false));
 });

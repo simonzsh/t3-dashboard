@@ -2,8 +2,6 @@ import type { LimitsOverview, LimitWindow, LimitWindowKind, ProviderLimits } fro
 import { relativeTime } from "../../lib/format.ts";
 import { providerKind } from "../../lib/threads.ts";
 
-export const LIMITS_POLL_MS = 60_000;
-
 /** Within this many points of the elapsed share, the pace counts as even. */
 const PACE_BAND = 5;
 const MINUTE = 60_000;
