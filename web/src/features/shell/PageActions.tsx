@@ -30,9 +30,8 @@ interface ActionProps {
   compact: boolean;
   label: string;
   icon: IconName;
-  /** Variant on a wide screen. On a phone an action is primary when it is here, or when `primaryOnPhone` says so; the others are ghost. */
+  /** Variant on a wide screen. On a phone a primary action stays primary; the others are ghost icons. */
   variant?: ButtonVariant;
-  primaryOnPhone?: boolean;
   /** Show the icon before the label on a wide screen. */
   withIcon?: boolean;
   kbd?: string;
@@ -41,9 +40,9 @@ interface ActionProps {
 }
 
 // An icon button on a phone, a text button on a wide screen.
-function Action({ compact, label, icon, variant = "secondary", primaryOnPhone = false, withIcon = false, kbd, disabled, onClick }: ActionProps) {
+function Action({ compact, label, icon, variant = "secondary", withIcon = false, kbd, disabled, onClick }: ActionProps) {
   if (compact) {
-    const primary = variant === "primary" || primaryOnPhone;
+    const primary = variant === "primary";
     return (
       <IconButton variant={primary ? "primary" : "ghost"} className={primary ? "header-new" : undefined} label={label} disabled={disabled} onClick={onClick}>
         <Icon name={icon} />
@@ -74,7 +73,7 @@ export function PageActions({ tab, compact, ready, editingLayout, layoutIsDefaul
       </>
     );
   } else if (tab === "dashboard") {
-    main = <Action compact={compact} label="Edit layout" icon="layoutPanels" primaryOnPhone withIcon onClick={onEditLayout} />;
+    main = <Action compact={compact} label="Edit layout" icon="layoutPanels" withIcon onClick={onEditLayout} />;
   } else if (tab === "sessions" && ready) {
     // One button: its icon and label name the view it switches to.
     const toLayout = layout === "columns" ? "grid" : "columns";
