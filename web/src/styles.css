@@ -651,9 +651,9 @@ ol.install-steps { padding-left: 18px; }
 .auto-empty { padding: 28px 16px; text-align: center; font-size: 13px; color: var(--text-secondary); }
 .auto-row { display: flex; align-items: center; gap: 12px; padding-right: 12px; }
 .auto-row.dim { opacity: 0.7; }
-@media (hover: hover) { .auto-row:hover, .run-row:is(button):hover { background: var(--surface-0); } }
+@media (hover: hover) { .auto-row:hover, .auto-run-row:is(button):hover { background: var(--surface-0); } }
 .auto-row-main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px; padding: 12px 0 12px 16px; border: 0; background: none; text-align: left; }
-.auto-row-main:focus-visible, .run-row:is(button):focus-visible { outline-offset: -2px; }
+.auto-row-main:focus-visible, .auto-run-row:is(button):focus-visible { outline-offset: -2px; }
 .auto-line { display: flex; align-items: center; gap: 8px; min-width: 0; font-size: 12px; color: var(--text-secondary); }
 .auto-line .badge { flex: none; padding: 1px 8px; }
 .auto-line .notif-dot { margin: 0; }
@@ -662,30 +662,28 @@ ol.install-steps { padding-left: 18px; }
 .auto-fail { color: var(--err-text); }
 .kind-badge .icon { width: 11px; height: 11px; }
 .auto-row-actions { flex: none; display: flex; align-items: center; gap: 8px; }
-.run-dot { flex: none; width: 8px; height: 8px; border-radius: 50%; background: var(--text-secondary); }
-.run-dot.ok { background: var(--done-text); }
-.run-dot.error { background: var(--err-text); }
-.run-dot.running { background: var(--work); }
-.run-dot.waiting { background: var(--warn-text); }
-.run-list { display: flex; flex-direction: column; }
-.run-row { width: 100%; display: flex; align-items: flex-start; gap: 12px; padding: 10px 16px; border: 0; background: none; text-align: left; font-size: 13px; }
-.run-row.static { color: var(--text-secondary); }
-.run-row .run-dot { margin-top: 5px; }
-.run-main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
-.run-line { display: flex; align-items: center; gap: 8px; min-width: 0; }
-.run-status { font-weight: 500; }
-.run-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--text-secondary); }
-.run-date { flex: none; margin-left: auto; font-size: 12px; color: var(--text-secondary); }
-.run-line .notif-dot { margin: 0; }
-.run-when { font-size: 12px; color: var(--text-secondary); }
-.run-error { font-size: 12px; overflow-wrap: anywhere; color: var(--err-text); }
-.run-more { align-self: center; padding: 8px 16px; }
+.auto-run-dot { flex: none; width: 8px; height: 8px; border-radius: 50%; background: var(--text-secondary); }
+.auto-run-dot.ok { background: var(--done-text); }
+.auto-run-dot.error { background: var(--err-text); }
+.auto-run-dot.running { background: var(--work); }
+.auto-run-dot.waiting { background: var(--warn-text); }
+.auto-run-row { width: 100%; display: flex; align-items: flex-start; gap: 12px; padding: 10px 16px; border: 0; background: none; text-align: left; font-size: 13px; }
+.auto-run-row.static { color: var(--text-secondary); }
+.auto-run-row .auto-run-dot { margin-top: 5px; }
+.auto-run-main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.auto-run-line { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.auto-run-status { font-weight: 500; }
+.auto-run-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--text-secondary); }
+.auto-run-date { flex: none; margin-left: auto; font-size: 12px; color: var(--text-secondary); }
+.auto-run-line .notif-dot { margin: 0; }
+.auto-run-when { font-size: 12px; color: var(--text-secondary); }
+.auto-run-error { font-size: 12px; overflow-wrap: anywhere; color: var(--err-text); }
+.auto-run-more { align-self: center; padding: 8px 16px; }
 .auto-skeleton { display: flex; flex-direction: column; gap: 8px; padding: 14px 16px; }
 .auto-backdrop { position: fixed; z-index: 14; inset: var(--header-h, 0px) 0 0; background: color-mix(in srgb, var(--surface-0) 40%, #000 60%); opacity: 0.5; }
 .auto-sheet { position: fixed; z-index: 15; top: var(--header-h, 0px); right: 0; bottom: 0; width: min(600px, 100vw); display: flex; flex-direction: column; border-left: 1px solid var(--line); background: var(--surface-0); box-shadow: -8px 0 24px color-mix(in srgb, #000 28%, transparent); animation: sheet-in 200ms cubic-bezier(0.2, 0, 0, 1); }
 .auto-sheet:focus { outline: none; }
 @keyframes sheet-in { from { transform: translateX(100%); } }
-html:has(.auto-sheet) { overflow: hidden; }
 .auto-sheet-head { flex: none; display: flex; flex-direction: column; gap: 8px; padding: 16px 20px; border-bottom: 1px solid var(--line); }
 .auto-sheet-top { display: flex; align-items: center; gap: 8px; }
 .auto-sheet-top .icon-button { margin-left: auto; }

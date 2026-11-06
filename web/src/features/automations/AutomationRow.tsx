@@ -47,7 +47,7 @@ export function AutomationRow({ automation: a, threads, seen, now, starting, onS
           )}
         </span>
         <span className="auto-line">
-          <span className={`run-dot ${last.tone}`} aria-hidden="true" />
+          <span className={`auto-run-dot ${last.tone}`} aria-hidden="true" />
           <span className={`auto-text${last.tone === "error" ? " auto-fail" : ""}`}>
             {last.label}
             {last.detail && ` · ${last.detail}`}

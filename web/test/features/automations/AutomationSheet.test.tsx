@@ -31,7 +31,7 @@ test("the sheet history lists each run with its status, an unread dot and an Ope
   assert.equal(out.match(/aria-label="Unread"/g)?.length, 1);
   assert.match(out, /Succeeded/);
   assert.match(out, /Failed/);
-  assert.match(out, /class="run-error">boom</);
+  assert.match(out, /class="auto-run-error">boom</);
 });
 
 test("a run whose session is gone shows Session archived, with no Open session button", () => {
@@ -97,16 +97,16 @@ test("recent runs open a run with a session, and show a run without one as plain
     <RecentRuns runs={[{ automation: auto([]), run: run("t-new", "2026-01-10T11:00:00.000Z") }, { automation: auto([]), run: run(null, "2026-01-10T10:00:00.000Z", { status: "failed", error: "no slot" }) }]} threads={threads} seen={SEEN} now={NOW} onOpen={noop} />,
   );
   assert.equal(out.match(/<button/g)?.length, 1);
-  assert.match(out, /run-row static/);
+  assert.match(out, /auto-run-row static/);
   assert.match(out, /1 h ago/);
   assert.match(out, /Inbox triage/);
 });
 
 test("recent runs show 8 rows, then a Show older runs button", () => {
-  assert.equal(recent(8).match(/class="run-row/g)?.length, 8);
+  assert.equal(recent(8).match(/class="auto-run-row/g)?.length, 8);
   assert.doesNotMatch(recent(8), /Show older runs/);
   const out = recent(12);
-  assert.equal(out.match(/class="run-row/g)?.length, 8);
+  assert.equal(out.match(/class="auto-run-row/g)?.length, 8);
   assert.match(out, /Show older runs/);
 });
 

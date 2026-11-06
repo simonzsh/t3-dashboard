@@ -2,7 +2,7 @@ export { Badge, type BadgeVariant } from "./Badge.tsx";
 export { Button, type ButtonProps, type ButtonVariant, type ControlSize } from "./Button.tsx";
 export { CardHead } from "./CardHead.tsx";
 export { Choice } from "./Choice.tsx";
-export { Dialog } from "./Dialog.tsx";
+export { Dialog, trapTab } from "./Dialog.tsx";
 export { Dropdown } from "./Dropdown.tsx";
 export { FileInput } from "./FileInput.tsx";
 export { Icon, type IconName } from "./Icon.tsx";

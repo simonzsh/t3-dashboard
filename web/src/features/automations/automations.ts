@@ -32,7 +32,7 @@ export function isEditable(a: Automation): boolean {
   return true;
 }
 
-export type AutomationGroup = "running" | "attention" | "upcoming" | "paused" | "finished";
+type AutomationGroup = "running" | "attention" | "upcoming" | "paused" | "finished";
 
 type Threads = ReadonlyMap<string, DashboardThread>;
 
@@ -189,7 +189,7 @@ export function nextRunLine(a: Automation, now: Date): string {
   return min < 1440 ? `Next in ${Math.floor(min / 60)} h` : `Next in ${Math.floor(min / 1440)} d`;
 }
 
-export function nextLabel(iso: string | null, now: Date): string {
+function nextLabel(iso: string | null, now: Date): string {
   if (!iso) return "";
   const at = new Date(iso);
   const min = Math.floor((at.getTime() - now.getTime()) / 60_000);

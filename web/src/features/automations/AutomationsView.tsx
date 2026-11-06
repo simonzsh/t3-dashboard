@@ -102,7 +102,8 @@ export function AutomationsView({ state, now, seen, onOpen, automations, automat
   return (
     <div className="auto-page">
       <section className="auto-section" aria-label="Automations">
-        {all.length >= SEARCH_FROM && (
+        {/* Kept while a query filters the list, so it can always be cleared. */}
+        {(all.length >= SEARCH_FROM || query !== "") && (
           <div className="auto-search">
             <Icon name="search" />
             <TextInput aria-label="Search automations" placeholder="Search automations…" value={query} onChange={(e) => setQuery(e.target.value)} />

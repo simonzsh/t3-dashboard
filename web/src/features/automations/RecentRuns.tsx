@@ -36,7 +36,7 @@ export function RecentRuns({ runs, threads, seen, now, onOpen }: Props) {
         </div>
       )}
       {runs.length > shown && (
-        <Button className="run-more" variant="ghost" size="sm" onClick={() => setShown((n) => n + MORE)}>
+        <Button className="auto-run-more" variant="ghost" size="sm" onClick={() => setShown((n) => n + MORE)}>
           Show older runs
         </Button>
       )}

@@ -4,7 +4,7 @@ import type { SeenState } from "../../../../shared/seen.ts";
 import { ProjectTag } from "../../lib/ProjectTag.tsx";
 import { ProviderIcon } from "../../lib/ProviderIcon.tsx";
 import { RunningBadge } from "../../lib/StatusBadge.tsx";
-import { Badge, Button, Icon, IconButton, Switch } from "../../ui/index.ts";
+import { Badge, Button, Icon, IconButton, Switch, trapTab } from "../../ui/index.ts";
 import { RUNTIME_MODE_LABELS } from "../conversation/composer.ts";
 import { AutomationMenu } from "./AutomationMenu.tsx";
 import { capitalize, isEditable, isFinishedReminder, isRunning, lastRunLine, liveRuns, modelLabel, nextRunText, scheduleText } from "./automations.ts";
@@ -50,7 +50,7 @@ export function AutomationSheet({ automation: a, threads, project, providers, se
   return (
     <>
       <div className="auto-backdrop" aria-hidden="true" onClick={onClose} />
-      <aside ref={sheet} tabIndex={-1} className="auto-sheet" role="dialog" aria-modal="true" aria-label={a.title}>
+      <aside ref={sheet} tabIndex={-1} className="auto-sheet" role="dialog" aria-modal="true" aria-label={a.title} onKeyDown={trapTab}>
         <header className="auto-sheet-head">
           <div className="auto-sheet-top">
             <KindBadge kind={a.kind} />
