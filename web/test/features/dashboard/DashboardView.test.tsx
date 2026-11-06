@@ -110,11 +110,12 @@ test("each slot carries its place for the one-column layout", () => {
   assert.match(out, /dashboard-slot running" style="--stack:2"/);
 });
 
-test("before the first answer Dashboard shows a loader, with the live cards already there", () => {
+test("before the first answer Dashboard shows a skeleton, with the live cards already there", () => {
   const out = render(state({ usage: null }));
-  assert.match(out, /class="loader"/);
+  assert.match(out, /class="skeleton"[^>]*aria-hidden/);
+  assert.match(out, /aria-busy="true" aria-label="Loading usage"/);
   assert.match(out, /id="card-notifications"/);
-  assert.doesNotMatch(out, /stat-tiles/);
+  assert.doesNotMatch(out, /stat-value/);
 });
 
 test("a failed first read shows the error line", () => {
@@ -127,11 +128,11 @@ test("a failed refresh keeps the last numbers and adds the error", () => {
   assert.match(out, /Could not refresh usage\. Boom\./);
 });
 
-test("without data it shows a loader, and an error when the read failed", () => {
-  assert.match(render(state({ usage: null })), /class="[^"]*loader/i);
+test("without data it shows a skeleton, and an error when the read failed", () => {
+  assert.match(render(state({ usage: null })), /class="skeleton/);
   const failed = render(state({ usage: null, error: "T3 is down" }));
   assert.match(failed, /role="alert">T3 is down/);
-  assert.doesNotMatch(failed, /class="[^"]*loader/i);
+  assert.doesNotMatch(failed, /class="skeleton/);
 });
 
 test("a failed refresh keeps the last good data and shows the error", () => {

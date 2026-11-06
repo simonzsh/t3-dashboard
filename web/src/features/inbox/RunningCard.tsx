@@ -1,11 +1,12 @@
 import type { ReactNode } from "react";
 import { CardHead } from "./CardHead.tsx";
+import { SkeletonRows } from "./SkeletonRows.tsx";
 
-export function RunningCard({ count, children }: { count: number; children: ReactNode }) {
+export function RunningCard({ count, loading = false, children }: { count: number; loading?: boolean; children: ReactNode }) {
   return (
     <section className="dashboard-card" aria-labelledby="running-head">
       <CardHead id="running-head" icon="bolt" title="Running" count={count} />
-      {count === 0 ? <p className="card-empty">No agent is running.</p> : <div className="run-list">{children}</div>}
+      {loading ? <SkeletonRows label="Loading running agents" rows={3} /> : count === 0 ? <p className="card-empty">No agent is running.</p> : <div className="run-list">{children}</div>}
     </section>
   );
 }

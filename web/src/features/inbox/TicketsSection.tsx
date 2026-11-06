@@ -8,6 +8,7 @@ import { linearConnected } from "../settings/linearSettings.ts";
 import { CappedList } from "./InboxSection.tsx";
 import { CardHead } from "./CardHead.tsx";
 import { LinearSetupCard } from "./LinearSetupCard.tsx";
+import { SkeletonRows } from "./SkeletonRows.tsx";
 import { PriorityIcon } from "./PriorityIcon.tsx";
 
 const UP_NEXT_LIMIT = 5;
@@ -109,6 +110,7 @@ export function UpNextCard({ board, needsKey, loading, failed, tickets, relaunch
           )
         }
       />
+      {board === null && !failed && <SkeletonRows label="Loading up next" rows={3} />}
       {needsKey && board && <LinearSetupCard refused={board.configured} onConnected={onRefresh} />}
       {relaunchCount > 0 && (
         <>

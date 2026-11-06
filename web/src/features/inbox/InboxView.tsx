@@ -98,7 +98,7 @@ export function InboxView({ state, visible, now, sessionIds, onOpen, onToggleSes
         settleAll={settleButton}
       />
     ),
-    running: <RunningCard count={sections.running.length}>{sections.running.map(threadRow)}</RunningCard>,
+    running: <RunningCard count={sections.running.length} loading={loading}>{sections.running.map(threadRow)}</RunningCard>,
     upNext: (
       <UpNextCard
         board={tickets.board}

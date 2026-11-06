@@ -1,6 +1,7 @@
 import { useState, type ReactNode } from "react";
-import { Button, Icon, IconButton, Loader } from "../../ui/index.ts";
+import { Button, Icon, IconButton } from "../../ui/index.ts";
 import { CardHead } from "./CardHead.tsx";
+import { SkeletonRows } from "./SkeletonRows.tsx";
 import { notificationList, recentRead, type InboxSections, type Notification } from "./inbox.ts";
 
 interface Props {
@@ -32,7 +33,7 @@ export function NotificationsCard({ sections, now, loading, renderItem, onMarkAl
         }
       />
       {loading ? (
-        <Loader />
+        <SkeletonRows label="Loading notifications" rows={5} icon />
       ) : (
         <div className="notif-list">
           {attention === 0 && (

@@ -15,6 +15,7 @@ export { PageHeader } from "./PageHeader.tsx";
 export { Popover } from "./Popover.tsx";
 export { Pressable } from "./Pressable.tsx";
 export { TooltipLayer } from "./Tooltip.tsx";
+export { Skeleton, SkeletonGroup, SkeletonText } from "./Skeleton.tsx";
 export { Segmented } from "./Segmented.tsx";
 export { Tabs } from "./Tabs.tsx";
 export { ToggleGroup } from "./ToggleGroup.tsx";

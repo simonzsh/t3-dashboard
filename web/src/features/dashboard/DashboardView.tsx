@@ -4,7 +4,7 @@ import { agentCounts } from "../../lib/navBadges.ts";
 import { CardEditBar } from "./CardEditBar.tsx";
 import { CARD_TITLES, dropCard, moveCard, setHidden, shiftCard, stackedOrder, type Column, type DashboardCard, type DashboardLayout } from "./layout.ts";
 import { relativeTime } from "../../lib/format.ts";
-import { Button, IconButton, Icon, Loader, Segmented } from "../../ui/index.ts";
+import { Button, IconButton, Icon, Segmented, Skeleton, SkeletonGroup } from "../../ui/index.ts";
 import { UsageChart } from "./UsageChart.tsx";
 import { delta, formatUsd, METRICS, type Metric } from "./usageView.ts";
 import type { UsageState } from "./useUsage.ts";
@@ -45,6 +45,34 @@ function Tiles({ usage, threads }: { usage: UsageOverview; threads: readonly Das
   );
 }
 
+const BAR_HEIGHTS = [40, 62, 35, 78, 55, 90, 48, 70, 30, 85, 60, 45, 72, 52];
+
+// Same footprint as the tiles and the chart, so the card keeps its height.
+function UsageSkeleton() {
+  return (
+    <SkeletonGroup label="Loading usage">
+      <div className="stat-tiles">
+        {[0, 1, 2].map((i) => (
+          <div className="stat-tile" key={i}>
+            <Skeleton height={12} width="45%" />
+            <Skeleton height={32} width="55%" />
+            <Skeleton height={12} width="80%" />
+          </div>
+        ))}
+      </div>
+      <div className="usage-chart-head">
+        <Skeleton height={13} width={96} />
+        <Skeleton height={28} width={150} radius={8} />
+      </div>
+      <div className="skeleton-bars">
+        {BAR_HEIGHTS.map((h, i) => (
+          <Skeleton key={i} height={`${h}%`} radius="4px 4px 0 0" />
+        ))}
+      </div>
+    </SkeletonGroup>
+  );
+}
+
 function UsageCard({ state, threads, now }: { state: UsageState; threads: readonly DashboardThread[]; now: Date }) {
   const [metric, setMetric] = useState<Metric>("turns");
   const { usage, error, loading, refresh } = state;
@@ -63,7 +91,7 @@ function UsageCard({ state, threads, now }: { state: UsageState; threads: readon
         </span>
       </div>
       {!usage ? (
-        error ? <p className="usage-error" role="alert">{error}</p> : <Loader />
+        error ? <p className="usage-error" role="alert">{error}</p> : <UsageSkeleton />
       ) : (
         <>
           <Tiles usage={usage} threads={threads} />
