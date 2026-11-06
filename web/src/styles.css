@@ -796,7 +796,8 @@ ol.install-steps { padding-left: 18px; }
 .slist-mark.running { background: var(--work); }
 .slist-mark.waiting { background: var(--warn); }
 .slist-mark.error { background: var(--danger); }
-.slist-mark.unread { width: 6px; height: 6px; margin: 7px 1px 0; background: var(--accent); }
+/* Unread: a hollow ring, so it never reads as the solid running dot. */
+.slist-mark.unread { box-sizing: border-box; border: 2px solid var(--accent); }
 .slist-text { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 1px; }
 .slist-title, .slist-meta { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .slist-title { font-size: 13px; }
