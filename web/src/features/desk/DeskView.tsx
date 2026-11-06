@@ -9,7 +9,7 @@ import { enter, Icon, IconButton, Kbd, Pressable, useFlip } from "../../ui/index
 import { useMediaQuery } from "../../lib/useMediaQuery.ts";
 import { swipeDirection } from "../../lib/swipe.ts";
 import { DeskWindow } from "./DeskWindow.tsx";
-import { ProviderIcon } from "../../lib/ProviderIcon.tsx";
+import { ProjectIcon } from "../../lib/ProjectIcon.tsx";
 
 interface Props {
   desk: DeskState;
@@ -258,6 +258,7 @@ export function DeskView({ desk, dispatch, threads, projects, background, t3Envi
 
   const chip = (w: Win, active: boolean, closable = false) => {
     const thread = byId.get(w.id);
+    const project = thread ? projectsById.get(thread.projectId) : undefined;
     const title = thread || !childTitles[w.id] ? threadTitle(thread) : childTitles[w.id];
     const button = (
       <Pressable
@@ -267,7 +268,7 @@ export function DeskView({ desk, dispatch, threads, projects, background, t3Envi
         onClick={() => dispatch({ type: "restore", id: w.id })}
       >
         <span className={`state-dot ${thread ? threadState(thread) : "idle"}`} aria-hidden="true" />
-        {thread && <ProviderIcon provider={thread.provider} />}
+        {project && <ProjectIcon icon={project.icon ?? null} title={project.title} />}
         <span className="desk-chip-title" data-tooltip={title} data-tooltip-clipped>{title}</span>
       </Pressable>
     );
