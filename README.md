@@ -4,13 +4,13 @@ t3-dashboard is a web dashboard on top of T3 Code. It shows all your Claude and 
 
 ## Screenshots
 
-| Agents | Sessions |
+| Dashboard | Sessions |
 | --- | --- |
-| <picture><source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/agents-dark.png"><img alt="Agents" src="docs/screenshots/agents.png"></picture> | <picture><source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/sessions-dark.png"><img alt="Sessions" src="docs/screenshots/sessions.png"></picture> |
+| <picture><source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/dashboard-dark.png"><img alt="Dashboard" src="docs/screenshots/dashboard.png"></picture> | <picture><source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/sessions-dark.png"><img alt="Sessions" src="docs/screenshots/sessions.png"></picture> |
 
-| Board | New Session |
+| Automations | New Session |
 | --- | --- |
-| <picture><source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/board-dark.png"><img alt="Board" src="docs/screenshots/board.png"></picture> | <picture><source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/new-agent-dark.png"><img alt="New Session" src="docs/screenshots/new-agent.png"></picture> |
+| <picture><source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/automations-dark.png"><img alt="Automations" src="docs/screenshots/automations.png"></picture> | <picture><source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/new-session-dark.png"><img alt="New Session" src="docs/screenshots/new-session.png"></picture> |
 
 | Jump to a conversation |
 | --- |
