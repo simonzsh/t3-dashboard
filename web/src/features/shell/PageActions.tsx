@@ -1,4 +1,5 @@
 import type { Tab } from "../../lib/tabs.ts";
+import type { SessionLayout } from "../../lib/sessionLayout.ts";
 import { ctrlLabel } from "../../lib/shortcuts.ts";
 import { Button, Icon, IconButton } from "../../ui/index.ts";
 
@@ -10,7 +11,11 @@ interface Props {
   ready: boolean;
   editingLayout: boolean;
   layoutIsDefault: boolean;
-  onNewAgent: () => void;
+  /** The Sessions layout toggle: shown only on a wide screen. */
+  layout: SessionLayout;
+  onLayoutChange: (layout: SessionLayout) => void;
+  showLayoutToggle: boolean;
+  onNewSession: () => void;
   onNewAutomation: () => void;
   onSearch: () => void;
   onEditLayout: () => void;
@@ -18,8 +23,8 @@ interface Props {
   onResetLayout: () => void;
 }
 
-/** The header buttons of a page: Desk starts an agent, Automations a task, Home edits its layout. */
-export function PageActions({ tab, compact, ready, editingLayout, layoutIsDefault, onNewAgent, onNewAutomation, onSearch, onEditLayout, onDoneLayout, onResetLayout }: Props) {
+/** The header buttons of a page: Sessions picks its layout and starts a session, Automations a task, Home edits its layout. */
+export function PageActions({ tab, compact, ready, editingLayout, layoutIsDefault, layout, onLayoutChange, showLayoutToggle, onNewSession, onNewAutomation, onSearch, onEditLayout, onDoneLayout, onResetLayout }: Props) {
   let main = null;
   if (tab === "home" && editingLayout) {
     main = compact ? (
@@ -52,14 +57,28 @@ export function PageActions({ tab, compact, ready, editingLayout, layoutIsDefaul
       </Button>
     );
   } else if (tab === "desk" && ready) {
-    main = compact ? (
-      <IconButton variant="primary" className="header-new" label="New Agent" onClick={onNewAgent}>
-        <Icon name="assignBot" />
-      </IconButton>
-    ) : (
-      <Button variant="primary" kbd={ctrlLabel("N")} onClick={onNewAgent}>
-        New Agent
-      </Button>
+    main = (
+      <>
+        {showLayoutToggle && (
+          <div className="layout-toggle" role="group" aria-label="Layout">
+            <IconButton variant="ghost" label="Column view" tooltip="Column view" aria-pressed={layout === "columns"} onClick={() => onLayoutChange("columns")}>
+              <Icon name="columns" />
+            </IconButton>
+            <IconButton variant="ghost" label="Grid view" tooltip="Grid view" aria-pressed={layout === "grid"} onClick={() => onLayoutChange("grid")}>
+              <Icon name="layoutGrid" />
+            </IconButton>
+          </div>
+        )}
+        {compact ? (
+          <IconButton variant="primary" className="header-new" label="New Session" onClick={onNewSession}>
+            <Icon name="messageSquarePlus" />
+          </IconButton>
+        ) : (
+          <Button variant="primary" kbd={ctrlLabel("N")} onClick={onNewSession}>
+            <Icon name="messageSquarePlus" /> New Session
+          </Button>
+        )}
+      </>
     );
   } else if (tab === "automations" && ready) {
     main = compact ? (

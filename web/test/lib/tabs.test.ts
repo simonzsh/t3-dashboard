@@ -2,8 +2,8 @@ import { test } from "bun:test";
 import assert from "node:assert/strict";
 import { TABS, hashForTab, tabFromHash } from "../../src/lib/tabs.ts";
 
-test("the tabs are Home, Desk and Automations, keyed 1 to 3", () => {
-  assert.deepEqual(TABS.map((t) => [t.id, t.label, t.key]), [["home", "Home", "1"], ["desk", "Desk", "2"], ["automations", "Automations", "3"]]);
+test("the tabs are Home, Sessions and Automations, keyed 1 to 3", () => {
+  assert.deepEqual(TABS.map((t) => [t.id, t.label, t.key]), [["home", "Home", "1"], ["desk", "Sessions", "2"], ["automations", "Automations", "3"]]);
 });
 
 test("each tab has a one-line description", () => {

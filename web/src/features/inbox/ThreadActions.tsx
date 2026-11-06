@@ -35,11 +35,11 @@ export function ThreadActions({ thread: t, onDesk, t3EnvironmentId, onToggleDesk
         </IconButton>
       )}
       <IconButton
-        label="Add to Desk"
+        label="Open in Sessions"
         size="sm"
         className={`desk-toggle${onDesk ? " on" : ""}`}
         aria-pressed={onDesk}
-        tooltip={onDesk ? "On Desk (click to remove)" : "Add to Desk"}
+        tooltip={onDesk ? "In Sessions (click to remove)" : "Open in Sessions"}
         onClick={() => {
           flyToDesk(rowRef.current, onDesk);
           onToggleDesk(t.id);

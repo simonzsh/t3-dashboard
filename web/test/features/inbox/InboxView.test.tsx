@@ -83,9 +83,9 @@ test("read threads older than 3 days wait behind See all", () => {
 test("an unread notification offers only Mark as read; Running rows keep their buttons", () => {
   const out = render([thread("fin", { status: "completed" }), thread("run", { status: "running" })]);
   assert.match(part(out, "n"), /aria-label="Mark as read"/);
-  assert.doesNotMatch(part(out, "n"), /aria-label="Settle"|aria-label="Add to Desk"/);
+  assert.doesNotMatch(part(out, "n"), /aria-label="Settle"|aria-label="Open in Sessions"/);
   assert.doesNotMatch(part(out, "r"), /aria-label="Settle"/);
-  assert.match(part(out, "r"), /aria-label="Add to Desk"/);
+  assert.match(part(out, "r"), /aria-label="Open in Sessions"/);
 });
 
 test("the Running card lists working agents with a shimmer, model and project", () => {
