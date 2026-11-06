@@ -230,3 +230,22 @@ test("rawThreads lists the live threads as T3 sent them", () => {
   store.apply([snapshot([raw("thread-1"), raw("thread-2", { title: "Two" })]), { kind: "synchronized" }]);
   assert.deepEqual(store.rawThreads().map((thread) => thread.id).sort(), ["thread-1", "thread-2"]);
 });
+
+test("an archived project is flagged and a live one is not", () => {
+  const { store, projects } = setup();
+  store.beginSync();
+  store.apply([snapshot([], [{ id: "p1", title: "A", archivedAt: "2026-03-01T00:00:00.000Z" }, { id: "p2", title: "B", archivedAt: null }]), { kind: "synchronized" }]);
+  const [a, b] = store.state(connection, []).projects;
+  assert.equal(a!.archived, true);
+  assert.deepEqual(b, { id: "p2", title: "B", defaultModelSelection: null, icon: null });
+  assert.equal(projects.length, 0);
+});
+
+test("projectByRoot ignores a trailing slash and rows without a folder", () => {
+  const { store } = setup();
+  store.beginSync();
+  store.apply([snapshot([], [{ id: "p1", title: "A", workspaceRoot: "/home/demo/atlas/" }, { id: "p2", title: "B" }, { id: "p3", title: "C", workspaceRoot: "/home/demo/old", archivedAt: "2026-03-01T00:00:00.000Z" }]), { kind: "synchronized" }]);
+  assert.deepEqual(store.projectByRoot("/home/demo/atlas"), { id: "p1", archived: false });
+  assert.deepEqual(store.projectByRoot("/home/demo/old"), { id: "p3", archived: true });
+  assert.equal(store.projectByRoot("/home/demo/none"), undefined);
+});

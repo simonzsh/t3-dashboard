@@ -2,6 +2,7 @@ import type { ConnectionStatus, DashboardProject, DashboardProvider, DashboardSt
 import { NO_MODEL_DEFAULTS } from "./providers.ts";
 import { isHidden, isSubagentThread, toDashboardThread } from "./classify.ts";
 import { DiffBatch } from "./diffBatch.ts";
+import { normalizeFolder } from "./folders.ts";
 import { toProjectIcon } from "./projectIcon.ts";
 import type { RawBackgroundTask, RawProject, RawSnapshot, RawThread, ShellItem } from "../integrations/t3/schemas.ts";
 
@@ -12,7 +13,7 @@ export interface ShellStoreOptions {
   onProjects(diff: Diff<DashboardProject>): void;
 }
 
-const toProject = (raw: RawProject): DashboardProject => ({ id: raw.id, title: raw.title ?? "", defaultModelSelection: raw.defaultModelSelection ?? null, icon: toProjectIcon(raw.projectIcon) });
+const toProject = (raw: RawProject): DashboardProject => ({ id: raw.id, title: raw.title ?? "", defaultModelSelection: raw.defaultModelSelection ?? null, icon: toProjectIcon(raw.projectIcon), ...(raw.archivedAt ? { archived: true } : {}) });
 
 interface Maps {
   threads: Map<string, RawThread>;
@@ -75,6 +76,14 @@ export class ShellStore {
 
   backgroundTasks(id: string): RawBackgroundTask[] {
     return this.live.threads.get(id)?.pendingBackgroundTasks ?? [];
+  }
+
+  /** The project whose folder is `root` (already normalised), archived or not. */
+  projectByRoot(root: string): { id: string; archived: boolean } | undefined {
+    for (const raw of this.live.projects.values()) {
+      if (raw.workspaceRoot && normalizeFolder(raw.workspaceRoot, "") === root) return { id: raw.id, archived: !!raw.archivedAt };
+    }
+    return undefined;
   }
 
   /** Where the agent works: the thread's worktree, else its project's root. Null when T3 names none. */
