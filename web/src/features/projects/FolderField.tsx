@@ -3,7 +3,7 @@ import type { FolderBrowseResult } from "../../../../shared/api.ts";
 import { useApi } from "../../api/ApiContext.tsx";
 import { useDebouncedValue } from "../../lib/useDebouncedValue.ts";
 import { Icon, Pressable, TextInput } from "../../ui/index.ts";
-import { isFolderPath, siblingsQuery } from "./addProject.ts";
+import { isFolderPath } from "./addProject.ts";
 
 const BROWSE_DELAY_MS = 150;
 
@@ -31,18 +31,10 @@ export function FolderField({ value, onChange, onKind, missingHint, onKeyDown, a
   useEffect(() => {
     if (!isFolderPath(query)) return setAnswer(null);
     let stale = false;
-    api
-      .browseFolders(query)
-      .then(async (result) => {
-        const parent = siblingsQuery(query, result);
-        if (!parent) return result;
-        const siblings = await api.browseFolders(parent);
-        return { ...result, entries: siblings.entries };
-      })
-      .then(
-        (result) => !stale && setAnswer({ query, result }),
-        () => !stale && setAnswer(null),
-      );
+    api.browseFolders(query).then(
+      (result) => !stale && setAnswer({ query, result }),
+      () => !stale && setAnswer(null),
+    );
     return () => {
       stale = true;
     };
@@ -64,7 +56,6 @@ export function FolderField({ value, onChange, onKind, missingHint, onKeyDown, a
             <Pressable
               key={entry.path}
               className="folder-option"
-              aria-current={entry.path === known.path ? "true" : undefined}
               onClick={() => {
                 onChange(`${entry.path}/`);
                 field.current?.focus();

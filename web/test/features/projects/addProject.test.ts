@@ -1,6 +1,6 @@
 import { test } from "bun:test";
 import assert from "node:assert/strict";
-import { addLabel, folderTitle, isFolderPath, siblingsQuery } from "../../../src/features/projects/addProject.ts";
+import { addLabel, folderTitle, isFolderPath } from "../../../src/features/projects/addProject.ts";
 
 test("isFolderPath: absolute or home paths only, up to 512 characters, no control characters", () => {
   for (const ok of ["/", "/srv/app", "~", "~/src/new", "  ~/x  "]) assert.equal(isFolderPath(ok), true, ok);
@@ -22,14 +22,4 @@ test("addLabel: Create & Add only for a folder that does not exist", () => {
   assert.equal(addLabel("directory"), "Add");
   assert.equal(addLabel("file"), "Add");
   assert.equal(addLabel(null), "Add");
-});
-
-test("siblingsQuery lists the parent of a folder typed in full, only then", () => {
-  const dir = (path: string, entries: string[] = [path]) => ({ path, kind: "directory" as const, entries: entries.map((p) => ({ name: p.split("/").pop()!, path: p })) });
-  assert.equal(siblingsQuery("~/x", dir("/home/me/src/app")), "/home/me/src/");
-  assert.equal(siblingsQuery("~/x", dir("/home/me/src/app", [])), "/home/me/src/");
-  assert.equal(siblingsQuery("~/x", dir("/home/me/src/app", ["/home/me/src/app", "/home/me/src/app2"])), null);
-  assert.equal(siblingsQuery("~/x", { path: "/home/me/src/new", kind: "missing", entries: [] }), null);
-  assert.equal(siblingsQuery("~/x", dir("/home")), "/");
-  assert.equal(siblingsQuery("~/src/", dir("/home/me/src", [])), null);
 });
