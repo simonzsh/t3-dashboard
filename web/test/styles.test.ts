@@ -56,8 +56,12 @@ test("on a phone the three stat tiles stay in one row", () => {
   assert.match(phone, /\.skeleton-bars \{ height: 140px/);
 });
 
-test("the Notifications panel is sticky on a wide screen and a full-screen layer on a phone", () => {
+test("the Notifications panel is sticky on a wide screen and a block above the cards at 1200 px and below", () => {
   assert.match(rule(".dashboard-panel"), /position: sticky; top: 0;/);
   assert.match(rule(".dashboard.with-panel"), /340px/);
-  assert.match(css, /^ {2}\.dashboard-panel \{[^}]*position: fixed; inset: 0;/m);
+  const narrow = css.slice(css.indexOf("@media (max-width: 1200px)"));
+  assert.match(narrow, /\.dashboard\.with-panel \{ grid-template-columns: minmax\(0, 1fr\)/);
+  assert.match(narrow, /\.dashboard-panel \{ position: static; grid-row: 1;/);
+  assert.match(narrow, /\.dashboard-panel \.notif-list \{ max-height: 60dvh;/);
+  assert.doesNotMatch(css, /position: fixed; inset: 0; z-index: 15|notifications-shown/);
 });

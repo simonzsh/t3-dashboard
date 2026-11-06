@@ -58,11 +58,10 @@ interface Options {
   layout?: DashboardLayout;
   editing?: boolean;
   panelOpen?: boolean;
-  onClosePanel?: () => void;
   seen?: typeof fresh;
   providers?: DashboardState["providers"];
 }
-const render = (activity: ReadState<UsageOverview>, { limits = limitsState(), threads = [thread("a", { status: "running" })], layout = DEFAULT_LAYOUT, editing = false, panelOpen = true, onClosePanel, seen = fresh, providers = [] }: Options = {}) =>
+const render = (activity: ReadState<UsageOverview>, { limits = limitsState(), threads = [thread("a", { status: "running" })], layout = DEFAULT_LAYOUT, editing = false, panelOpen = true, seen = fresh, providers = [] }: Options = {}) =>
   renderToStaticMarkup(
     <DashboardView
       state={{ ...baseState(threads), providers }}
@@ -76,7 +75,6 @@ const render = (activity: ReadState<UsageOverview>, { limits = limitsState(), th
       layout={layout}
       editing={editing}
       panelOpen={panelOpen}
-      onClosePanel={onClosePanel}
       onLayout={() => {}}
       onOpen={() => {}}
       onSettle={async () => {}}
@@ -289,10 +287,10 @@ test("routine threads stay out of every card", () => {
   assert.doesNotMatch(render(state(), { threads: [thread("t-routine", { title: "Routine run" })] }), /Routine run/);
 });
 
-test("the close button shows only when the view gets onClosePanel", () => {
-  assert.doesNotMatch(render(state()), /Close notifications/);
-  const out = render(state(), { onClosePanel: () => {} });
-  assert.match(card(out, "notifications-head"), /aria-label="Close notifications"/);
+test("the panel is a plain aside: no dialog role, no close button, nothing inert", () => {
+  const out = render(state());
+  assert.doesNotMatch(out, /role="dialog"|aria-modal|Close notifications/);
+  assert.doesNotMatch(out, /class="dashboard-main" inert/);
 });
 
 test("the Server card sits in a full-width slot, and its stats show", () => {

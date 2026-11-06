@@ -22,16 +22,15 @@ interface Props extends CardsInput {
   /** The Notifications panel is open; edit mode hides it anyway. */
   panelOpen: boolean;
   /** Phone only: the panel is a full screen page, and this closes it. */
-  onClosePanel?: () => void;
 }
 
-export function DashboardView({ limits, server, activity, running, layout, editing, onLayout, panelOpen, onClosePanel, ...input }: Props) {
+export function DashboardView({ limits, server, activity, running, layout, editing, onLayout, panelOpen, ...input }: Props) {
   const [dragged, setDragged] = useState<DashboardCard | null>(null);
   // Where the dragged card would land, shown as a placeholder of its size.
   const [target, setTarget] = useState<number | null>(null);
   const [dragHeight, setDragHeight] = useState(0);
   // A hidden Up next reads no tickets.
-  const { notifications, ...cards } = useDashboardCards(input, !layout.hidden.includes("up-next"), onClosePanel);
+  const { notifications, ...cards } = useDashboardCards(input, !layout.hidden.includes("up-next"));
   const body: Record<DashboardCard, ReactNode> = { usage: <UsageCard state={limits} now={input.now} />, server: <ServerCard state={server} />, activity: <ActivityCard state={activity} running={running} now={input.now} />, ...cards };
   const showPanel = panelOpen && !editing;
   const endDrag = () => {
@@ -59,8 +58,7 @@ export function DashboardView({ limits, server, activity, running, layout, editi
     );
   return (
     <div className={`dashboard${showPanel ? " with-panel" : ""}`}>
-      {/* A phone panel covers the page: what is under it leaves the tab order. */}
-      <div className="dashboard-main" inert={showPanel && onClosePanel !== undefined}>
+      <div className="dashboard-main">
         {editing && layout.hidden.length > 0 && (
           <div className="dashboard-hidden">
             <span>Hidden cards</span>
@@ -105,7 +103,7 @@ export function DashboardView({ limits, server, activity, running, layout, editi
         </div>
       </div>
       {showPanel && (
-        <aside className="dashboard-panel" aria-label="Notifications" role={onClosePanel ? "dialog" : undefined} aria-modal={onClosePanel ? true : undefined}>
+        <aside className="dashboard-panel" aria-label="Notifications">
           {notifications}
         </aside>
       )}
