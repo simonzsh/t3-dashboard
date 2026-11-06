@@ -8,7 +8,7 @@ import { AutoOpen } from "../domain/autoOpen.ts";
 import { AutomationGuard } from "../domain/automationGuard.ts";
 import { createAutomations } from "../domain/automations.ts";
 import { TokenManager } from "../domain/tokenManager.ts";
-import { envAllowedHosts, envPort } from "../config/config.ts";
+import { IDLE_TIMEOUT_S, envAllowedHosts, envPort } from "../config/config.ts";
 import { latestTag } from "../integrations/github/releases.ts";
 import { LinearClient } from "../integrations/linear/client.ts";
 import { findT3, runCommand } from "../integrations/t3/cli.ts";
@@ -197,6 +197,7 @@ export async function start({ port, log, env }: StartOptions): Promise<void> {
   const server = await listen({
     hostname: "127.0.0.1",
     port: port ?? envPort(env),
+    idleTimeout: IDLE_TIMEOUT_S,
     fetch: handler.fetch,
     routes: site.devRoutes,
     development: site.devRoutes !== undefined,

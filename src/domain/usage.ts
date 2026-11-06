@@ -6,7 +6,7 @@ const DAYS = 14;
 const WEEK = 7;
 // Short, so a scan that is still running shows its progress on the next poll.
 const CACHE_MS = 10_000;
-const MAX_READS = 4;
+const MAX_READS = 8;
 const OLD_T3 = "This T3 Code version does not report usage.";
 const UNKNOWN_METHOD = /unknown|not found|no handler|not implemented/i;
 

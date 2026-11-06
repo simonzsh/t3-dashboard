@@ -218,14 +218,14 @@ test("forgets a thread that leaves the window", async () => {
   assert.equal(port.projectionCalls, 2);
 });
 
-test("reads at most 4 thread histories at once", async () => {
-  const threads = Array.from({ length: 11 }, (_, index) => thread(`t${index}`, "2026-11-06T10:00:00Z"));
+test("reads at most 8 thread histories at once", async () => {
+  const threads = Array.from({ length: 19 }, (_, index) => thread(`t${index}`, "2026-11-06T10:00:00Z"));
   const { port, usage } = setup(threads);
   port.projection = runs("2026-11-06T09:00:00Z");
   port.projectionGate = () => Bun.sleep(5);
   const overview = await usage.get("UTC", false);
-  assert.equal(totalOf(overview, "turns"), 11);
-  assert.equal(port.peakProjectionsInFlight, 4);
+  assert.equal(totalOf(overview, "turns"), 19);
+  assert.equal(port.peakProjectionsInFlight, 8);
 });
 
 test("caches the overview for 10 seconds per zone, and refresh skips the cache", async () => {
