@@ -121,16 +121,10 @@ export function App() {
     if (showSessions) setTab("sessions");
   }
 
-  function toggleInSessions(id: string) {
-    if (sessions.ids.includes(id)) dispatchSessions({ type: "close", id });
-    else openInSessions(id, false);
-  }
-
   // The rows are memoized: these callbacks keep one identity and call the latest handlers.
-  const handlers = useRef({ openInSessions, toggleInSessions });
-  handlers.current = { openInSessions, toggleInSessions };
+  const handlers = useRef({ openInSessions });
+  handlers.current = { openInSessions };
   const onOpen = useCallback((id: string, addOnly: boolean) => handlers.current.openInSessions(id, !addOnly), []);
-  const onToggleSessions = useCallback((id: string) => handlers.current.toggleInSessions(id), []);
   const onSettle = useCallback((id: string, settle: boolean) => (settle ? api.settle(id) : api.unsettle(id)), []);
 
   const openSearch = () => {
@@ -252,7 +246,6 @@ export function App() {
                 editing={dashboardLayout.editing}
                 onLayout={dashboardLayout.setLayout}
                 onOpen={onOpen}
-                onToggleSessions={onToggleSessions}
                 onSettle={onSettle}
                 seen={notify.seen}
                 seenReady={notify.seenReady}

@@ -18,7 +18,6 @@ export interface CardsInput {
   sessionIds: ReadonlySet<string>;
   // addOnly: put the agent on the Sessions page without leaving the Dashboard.
   onOpen: (id: string, addOnly: boolean) => void;
-  onToggleSessions: (id: string) => void;
   onSettle: (id: string, settle: boolean) => Promise<unknown>;
   seen: SeenState;
   /** False until the server answers: every thread would look read, and "Settle all" could settle unread ones. */
@@ -31,7 +30,7 @@ export interface CardsInput {
 }
 
 /** The thread cards of the Dashboard; the usage card is not here, it needs no thread. */
-export function useDashboardCards({ state, visible, now, sessionIds, onOpen, onToggleSessions, onSettle, seen, seenReady, onMarkRead, automations, automationsError, linearVersion }: CardsInput): Record<Exclude<DashboardCard, "usage">, ReactNode> {
+export function useDashboardCards({ state, visible, now, sessionIds, onOpen, onSettle, seen, seenReady, onMarkRead, automations, automationsError, linearVersion }: CardsInput): Record<Exclude<DashboardCard, "usage">, ReactNode> {
   const tickets = useTickets(linearVersion, visible, seen, now);
   const { relaunch, upNext } = tickets.plan;
   const sections = useMemo(() => threadSections(visible, seen, new Set(relaunch.map((r) => r.thread.id))), [visible, seen, relaunch]);
@@ -49,8 +48,7 @@ export function useDashboardCards({ state, visible, now, sessionIds, onOpen, onT
     inSessions: sessionIds.has(t.id),
     onOpen,
   });
-  const actionProps = { t3EnvironmentId: state.t3EnvironmentId, onToggleSessions, onSettle };
-  const threadRow = (t: DashboardThread) => <ThreadRow key={t.id} {...rowProps(t)} {...actionProps} />;
+  const threadRow = (t: DashboardThread) => <ThreadRow key={t.id} {...rowProps(t)} />;
 
   return {
     notifications: (

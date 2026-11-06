@@ -55,7 +55,6 @@ const render = (usage: UsageState, { threads = [thread("a", { status: "running" 
       layout={layout}
       editing={editing}
       onOpen={() => {}}
-      onToggleSessions={() => {}}
       onSettle={async () => {}}
       seen={seen}
       seenReady
@@ -222,12 +221,12 @@ test("read threads older than 3 days wait behind See all", () => {
   assert.match(out, /See all \(1 more\)/);
 });
 
-test("an unread notification offers only Mark as read; Running rows keep their buttons", () => {
+test("an unread notification offers only Mark as read; Running rows have no button", () => {
   const out = render(state(), { threads: [thread("fin", { status: "completed" }), thread("run", { status: "running" })] });
   assert.match(card(out, "notifications-head"), /aria-label="Mark as read"/);
   assert.doesNotMatch(card(out, "notifications-head"), /aria-label="Settle"|aria-label="Open in Sessions"/);
-  assert.doesNotMatch(card(out, "running-head"), /aria-label="Settle"/);
-  assert.match(card(out, "running-head"), /aria-label="Open in Sessions"/);
+  assert.doesNotMatch(card(out, "running-head"), /<button[^>]*aria-label|Open in T3 Code/);
+  assert.match(card(out, "running-head"), /<button[^>]*class="run-row/);
 });
 
 test("the Running card lists working agents with a shimmer, model and project", () => {

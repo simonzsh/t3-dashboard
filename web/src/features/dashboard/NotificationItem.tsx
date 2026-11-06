@@ -3,7 +3,7 @@ import type { DashboardProject, DashboardThread } from "../../../../shared/api.t
 import { threadTitle } from "../../lib/threads.ts";
 import { Icon, IconButton, Pressable } from "../../ui/index.ts";
 import { notificationDetail, notificationIcon, type NotificationKind } from "./sections.ts";
-import { openRow, threadMeta } from "./ThreadActions.tsx";
+import { openRow, threadMeta } from "./threadRows.ts";
 
 interface Props {
   thread: DashboardThread;

@@ -7,14 +7,13 @@ const T3_PATH =
 interface Props {
   environmentId: string | null;
   threadId: string;
-  className?: string;
 }
 
-export function OpenInT3({ environmentId, threadId, className = "" }: Props) {
+export function OpenInT3({ environmentId, threadId }: Props) {
   const href = t3CodeLink(environmentId, threadId);
   if (!href) return null;
   return (
-    <a className={`icon-button open-t3 ${className}`} href={href} aria-label="Open in T3 Code" data-tooltip="Open in T3 Code" onClick={(e) => e.stopPropagation()}>
+    <a className="icon-button open-t3" href={href} aria-label="Open in T3 Code" data-tooltip="Open in T3 Code" onClick={(e) => e.stopPropagation()}>
       <svg className="icon" viewBox="7 29 111 74" aria-hidden="true">
         <path d={T3_PATH} fill="currentColor" />
       </svg>
