@@ -7,6 +7,7 @@ import { findModel } from "../conversation/composer.ts";
 import { ProjectPicker } from "../../lib/ProjectPicker.tsx";
 import { loadNewAgentProject, presetSelection, saveNewAgentProject, titleFromMessage } from "./newAgent.ts";
 import { Composer } from "../conversation/Composer.tsx";
+import { AddProjectDialog } from "../projects/AddProjectDialog.tsx";
 import { Dialog, Icon } from "../../ui/index.ts";
 
 // Same default as the server when no mode is sent, used when T3 has none.
@@ -35,6 +36,8 @@ export function NewThreadDialog({ projects, providers, defaults, onClose, onCrea
   // Each project pick moves the focus to the message.
   // A preset project needs no pick: the field gets the focus at once (focusKey 1).
   const [picks, setPicks] = useState(preset ? 1 : 0);
+  // The form takes the dialog's place: two dialogs cannot stack. The state stays here.
+  const [addingProject, setAddingProject] = useState(false);
 
   // Providers can arrive after the dialog opens: pick a preset once the choice is no longer valid.
   useEffect(() => {
@@ -61,6 +64,19 @@ export function NewThreadDialog({ projects, providers, defaults, onClose, onCrea
     if (change.runtimeMode) setMode(change.runtimeMode);
   }
 
+  if (addingProject) {
+    return (
+      <AddProjectDialog
+        onClose={() => setAddingProject(false)}
+        onCreated={(id) => {
+          setAddingProject(false);
+          setProjectId(id);
+          setPicks((n) => n + 1);
+        }}
+      />
+    );
+  }
+
   return (
     <Dialog title={issue ? "Assign to an agent" : "New Session"} className="new-agent" onClose={onClose}>
       {issue && (
@@ -77,8 +93,9 @@ export function NewThreadDialog({ projects, providers, defaults, onClose, onCrea
           projects={projects}
           value={projectId}
           allowNone
-          defaultOpen={!preset}
+          defaultOpen={!preset && picks === 0}
           onPicked={() => setPicks((n) => n + 1)}
+          onNewProject={() => setAddingProject(true)}
           onPick={(id) => {
             setProjectId(id);
             setSelection(presetSelection(projects.find((p) => p.id === id), providers, defaults.selection));
