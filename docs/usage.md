@@ -2,11 +2,18 @@
 
 [Back to the README](../README.md)
 
-The dashboard has three tabs: Inbox, Desk and Automations. The header contains the New Agent and New Automation buttons and the settings (Settings).
+The dashboard has three pages: Home, Desk and Automations. A sidebar on the left lists them, with a search button (`Ctrl` + `K`), the connection state, a theme toggle, Settings and a button that collapses the sidebar to icons. The sidebar remembers its state. The page header holds the New Agent and New Automation buttons. On a phone, a bar at the bottom of the screen replaces the sidebar: Home, Desk, Automations and Settings.
+
+## Home
+
+Home opens first. At the top, a usage card shows three numbers for the last days: turns (with the change from the 7 days before), sessions and spend. A chart shows turns, spend or tokens for each of the last 14 days. Two small cards show today and what needs you. The Inbox follows below.
+
+- Turns are the runs of your T3 Code threads. Spend and tokens come from T3 Code and cover all usage on this machine, not only these threads. The spend is the API equivalent.
+- If T3 Code is too old to report usage, the spend shows "—" and the reason. The rest of Home keeps working.
 
 ## Inbox
 
-The Inbox tab shows what needs you. It is a list of rows, not a grid. It has no grouping by project: each row shows its project as a small tag. The tab shows the number of unread items (waiting, failed or finished, not read yet). `Ctrl` + `B` opens the Inbox.
+The Inbox is the part of Home below the usage cards. It shows what needs you. It is a list of rows, not a grid. It has no grouping by project: each row shows its project as a small tag. The Home entry in the sidebar shows the number of unread items (waiting, failed or finished, not read yet). `Ctrl` + `B` opens Home.
 
 - A summary line starts the page, for example "2 need you · 3 unread · 1 to relaunch". It shows only the parts that are not zero.
 - A row shows the provider (Claude or Codex), the title, the project tag, the status and the time of the last activity.
@@ -202,13 +209,13 @@ The shortcuts use `Ctrl`, also on a Mac, and they work while you type in a field
 
 | Key | Action |
 | --- | --- |
-| `Ctrl` + `1`, `2`, `3` | Opens Inbox, Desk or Automations. |
+| `Ctrl` + `1`, `2`, `3` | Opens Home, Desk or Automations. |
 | `Ctrl` + `K` or `⌘` + `K` | Opens or closes the "Jump to" switcher. It finds a conversation by title, project or message. Without text, it shows the agents that wait for an answer, then your recent conversations. `↑` `↓` select, `Enter` opens in the Desk. |
 | `Ctrl` + `S` | In the message field of a conversation: stashes the draft. |
 | `Ctrl` + `N` | Opens New Agent. |
 | `Ctrl` + `⇧` + `N` | Opens a new automation (New Automation). |
 | `Ctrl` + `,` | Opens Settings. |
-| `Ctrl` + `B` | Opens the Inbox. |
+| `Ctrl` + `B` | Opens Home. |
 | `Ctrl` + `X` | Desk: closes the active window. |
 | `Ctrl` + `F` | Desk: puts the active window in full screen, or takes it out of full screen. |
 | `Ctrl` + `M` | Desk: minimizes the active window. |
