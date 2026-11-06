@@ -22,3 +22,11 @@ export function folderTitle(path: string): string {
 }
 
 export const addLabel = (kind: FolderBrowseResult["kind"] | null): "Add" | "Create & Add" => (kind === "missing" ? "Create & Add" : "Add");
+
+/** An existing folder typed in full only matches itself: the parent to list its neighbours, else null.
+ *  A query that ends with "/" asks for the folder's children: never its neighbours. */
+export function siblingsQuery(query: string, result: FolderBrowseResult): string | null {
+  if (query.endsWith("/")) return null;
+  const alone = result.kind === "directory" && result.entries.every((e) => e.path === result.path);
+  return alone ? result.path.slice(0, result.path.lastIndexOf("/") + 1) || null : null;
+}
