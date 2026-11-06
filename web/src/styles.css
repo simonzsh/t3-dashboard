@@ -725,6 +725,11 @@ ol.install-steps { padding-left: 18px; }
 .sessions { flex: 1; min-height: 0; display: flex; background: var(--surface-0); }
 .sessions.compact { flex-direction: column; }
 .sessions-area { position: relative; flex: 1; min-width: 0; min-height: 0; display: flex; flex-direction: column; }
+/* Phone: position dots shown for a moment after a swipe between sessions. */
+.swipe-dots { position: absolute; z-index: 5; left: 50%; bottom: 112px; translate: -50% 0; display: flex; gap: 6px; padding: 6px 10px; border-radius: 999px; background: color-mix(in srgb, var(--text-primary) 70%, transparent); pointer-events: none; animation: swipe-dots 1.4s ease forwards; }
+.swipe-dots span { width: 6px; height: 6px; border-radius: 50%; background: color-mix(in srgb, var(--surface-0) 45%, transparent); }
+.swipe-dots span.active { background: var(--surface-0); }
+@keyframes swipe-dots { 0%, 70% { opacity: 1; } 100% { opacity: 0; } }
 /* Columns at least 380 px wide that share the free width, then scroll sideways. The strip is not positioned: a fullscreen window sizes itself on .sessions-area and stays out of the scroll. */
 .sessions-strip { flex: 1; min-height: 0; display: grid; grid-auto-flow: column; grid-auto-columns: minmax(380px, 1fr); overflow-x: auto; overflow-y: hidden; overscroll-behavior-x: contain; }
 .sessions-cell { display: flex; min-width: 0; min-height: 0; border-right: 1px solid var(--line); }
@@ -907,6 +912,7 @@ ol.install-steps { padding-left: 18px; }
   .loader rect { animation: none; }
   .skeleton { animation: none; }
   .thread-actions, .slist-slot, .sidebar { transition: none; }
+  .swipe-dots { animation-duration: 1ms; animation-delay: 1.2s; }
 }
 .queue { display: flex; flex-direction: column; gap: 10px; }
 .queue-head { font-size: 12px; color: var(--text-secondary); text-align: right; }

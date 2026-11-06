@@ -96,13 +96,15 @@ function useWindowSwipe(enabled: boolean, sessions: SessionsState, dispatch: Dis
   const start = useRef<{ x: number; y: number } | null>(null);
   const shown = useRef(activeId);
   const from = useRef<1 | -1>(1);
+  // Bumped on each swipe: it replays the position dots.
+  const [swipes, setSwipes] = useState(0);
   useLayoutEffect(() => {
     if (shown.current === activeId) return;
     shown.current = activeId;
     const el = area.current?.firstElementChild;
     if (el) enter(el, { x: from.current * 32, duration: 200 });
   }, [activeId]);
-  if (!enabled) return { area, swipe: {} };
+  if (!enabled) return { area, swipe: {}, swipes };
   const swipe = {
     onTouchStart: (e: TouchEvent<HTMLDivElement>) => {
       const t = e.touches[0];
@@ -121,9 +123,10 @@ function useWindowSwipe(enabled: boolean, sessions: SessionsState, dispatch: Dis
       if (!id) return;
       from.current = step;
       dispatch({ type: "focus", id });
+      setSwipes((n) => n + 1);
     },
   };
-  return { area, swipe };
+  return { area, swipe, swipes };
 }
 
 // Below this distance a press on the header stays a click.
@@ -237,7 +240,7 @@ export function SessionsView({ sessions, dispatch, threads, listed, projects, se
   useFlip(root, `${layout}|${sessions.ids.join(",")}|${maximized}`, { item: "data-session-window", enabled: !phone });
 
   const activeId = focusedId ?? "";
-  const { area, swipe } = useWindowSwipe(phone, sessions, dispatch);
+  const { area, swipe, swipes } = useWindowSwipe(phone, sessions, dispatch);
   const drag = useWindowDrag(!phone && sessions.ids.length > 1 && !maximized, dispatch);
 
   // A press focuses its window here: the pointer is already on it, so that focus must not scroll.
@@ -328,6 +331,14 @@ export function SessionsView({ sessions, dispatch, threads, listed, projects, se
       <div ref={root} className="sessions compact">
         <div ref={area} className="sessions-area" {...swipe}>
           {renderWindow(activeId, true)}
+          {/* After a swipe: where this session sits among the open ones, then it fades out (the key replays it). */}
+          {swipes > 0 && sessions.ids.length > 1 && (
+            <div key={swipes} className="swipe-dots" aria-hidden="true">
+              {sessions.ids.map((id) => (
+                <span key={id} className={id === activeId ? "active" : undefined} />
+              ))}
+            </div>
+          )}
         </div>
       </div>
     ) : (
