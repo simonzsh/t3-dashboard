@@ -6,6 +6,7 @@ import { SessionsStore } from "../../domain/sessionsStore.ts";
 import { StashStore } from "../../domain/stashStore.ts";
 import { SeenStore } from "../../domain/seenStore.ts";
 import { LinearBoard } from "../../domain/linearBoard.ts";
+import { createProviderLimits } from "../../domain/providerLimits.ts";
 import { createUsage } from "../../domain/usage.ts";
 import { LiveSync } from "../../domain/liveSync.ts";
 import { NO_MODEL_DEFAULTS } from "../../domain/providers.ts";
@@ -79,6 +80,7 @@ export async function startDemo(env: Record<string, string | undefined>): Promis
     hub,
     board,
     usage: createUsage({ port, threads: () => getState().threads, now: () => new Date() }),
+    limits: createProviderLimits({ port, now: () => new Date() }),
     automations,
     getState,
     connection: () => live.connection(),

@@ -2,7 +2,7 @@ import { RUNNING_RUN_STATUSES } from "../../../shared/status.ts";
 import type { FetchLike } from "../../integrations/linear/client.ts";
 import type { AttachmentRef, Command, FileUpload, ImageUpload, NewScheduledTask, RawConfig, RawProjection, RawScheduledTask, RawSearchMatch, RawThread, RawTurnItem, RawUsageSummary, SearchEntriesResponse, ScheduledTaskChange, ShellItem, T3Port } from "../../integrations/t3/schemas.ts";
 import { searchEntries, searchProjections } from "./search.ts";
-import { DEMO_CONTEXT_TOKENS, demoFixtures, demoIssues, demoScheduledTasks, demoUsageBuckets, SCRATCH_PROJECT_ID } from "./fixtures.ts";
+import { DEMO_CONTEXT_TOKENS, demoFixtures, demoIssues, demoScheduledTasks, demoUsageBuckets, demoUsageLimits, SCRATCH_PROJECT_ID } from "./fixtures.ts";
 
 const COMPACTED_TOKENS = 12_000;
 
@@ -72,7 +72,8 @@ export class DemoPort implements T3Port {
   async answerSecretRequest(): Promise<void> {}
 
   async getConfig(): Promise<RawConfig> {
-    return this.config;
+    const limits = demoUsageLimits(this.now());
+    return { ...this.config, providers: this.config.providers?.map((provider) => ({ ...provider, usageLimits: limits[provider.instanceId] })) };
   }
 
   async listScheduledTasks(): Promise<RawScheduledTask[]> {

@@ -15,6 +15,7 @@ import { T3Client, validateWith } from "../integrations/t3/client.ts";
 import { environmentIdFile, readEnvironmentId, readServerVersion, resolveOrigin, runtimeFile } from "../integrations/t3/runtime.ts";
 import { LiveSync } from "../domain/liveSync.ts";
 import { LinearBoard } from "../domain/linearBoard.ts";
+import { createProviderLimits } from "../domain/providerLimits.ts";
 import { createUsage } from "../domain/usage.ts";
 import { readSessions, sessionsText } from "../config/sessionsFile.ts";
 import { readStash, stashText } from "../config/stashFile.ts";
@@ -124,6 +125,7 @@ export async function start({ port, log, env }: StartOptions): Promise<void> {
   });
 
   const usage = createUsage({ port: client, threads: () => getState().threads, now: () => new Date() });
+  const limits = createProviderLimits({ port: client, now: () => new Date() });
 
   const settings = createSettings({ file: linearPath, readFile: readText, writeSecret, board });
   const wake = () => {
@@ -165,7 +167,7 @@ export async function start({ port, log, env }: StartOptions): Promise<void> {
   const stash = new StashStore(readStash(stashFile, readText), (entries) => writeSecret(stashFile, stashText(entries)), { now: () => new Date(), newId: () => crypto.randomUUID() });
   const seenFile = seenPath(env, home);
   const seen = new SeenStore(readSeen(seenFile, readText), (value) => writeSecret(seenFile, seenText(value)));
-  const handler = createDashboardServer({ actions, sessions, stash, seen, hub, board, usage, automations, getState, connection: () => live.connection(), site, settings, setup, updates, allowedHosts: envAllowedHosts(env) });
+  const handler = createDashboardServer({ actions, sessions, stash, seen, hub, board, usage, limits, automations, getState, connection: () => live.connection(), site, settings, setup, updates, allowedHosts: envAllowedHosts(env) });
 
   const reclassifier = setInterval(() => store.reclassify(new Date()), RECLASSIFY_MS);
   // A dev build has no version to compare, and its runs must not call GitHub.
