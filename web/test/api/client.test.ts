@@ -267,3 +267,21 @@ test("createProject posts the body and returns the result", async () => {
   assert.equal(calls[0]?.init?.method, "POST");
   assert.deepEqual(JSON.parse(String(calls[0]?.init?.body)), { path: "~/src/new", title: "New" });
 });
+
+test("updateProject posts the changed fields to the project's update route", async () => {
+  const { calls, api } = fake(200, { ok: true });
+  await api.updateProject("p 1", { title: "New", icon: null });
+  assert.equal(calls[0]?.url, "/api/projects/p%201/update");
+  assert.equal(calls[0]?.init?.method, "POST");
+  assert.deepEqual(JSON.parse(String(calls[0]?.init?.body)), { title: "New", icon: null });
+});
+
+test("deleteProject posts an empty body; projectIcons is a GET", async () => {
+  const { calls, api } = fake(200, { ok: true });
+  await api.deleteProject("p1");
+  assert.equal(calls[0]?.url, "/api/projects/p1/delete");
+  assert.equal(calls[0]?.init?.method, "POST");
+  await api.projectIcons();
+  assert.equal(calls[1]?.url, "/api/project-icons");
+  assert.equal(calls[1]?.init?.method ?? "GET", "GET");
+});

@@ -1,12 +1,9 @@
-import { useEffect, useRef, useState } from "react";
-import type { FolderBrowseResult } from "../../../../shared/api.ts";
+import { useState } from "react";
 import { useApi } from "../../api/ApiContext.tsx";
 import { errorMessage } from "../../lib/format.ts";
-import { useDebouncedValue } from "../../lib/useDebouncedValue.ts";
-import { Dialog, Icon, Pressable, TextInput } from "../../ui/index.ts";
+import { Dialog, TextInput } from "../../ui/index.ts";
 import { addLabel, folderTitle, isFolderPath } from "./addProject.ts";
-
-const BROWSE_DELAY_MS = 150;
+import { FolderField, type FolderKind } from "./FolderField.tsx";
 
 interface Props {
   onClose: () => void;
@@ -20,25 +17,7 @@ export function AddProjectDialog({ onClose, onCreated }: Props) {
   const [title, setTitle] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  // The answer is tied to the text it answered: a late answer never labels newer text.
-  const [answer, setAnswer] = useState<{ query: string; result: FolderBrowseResult } | null>(null);
-  const pathField = useRef<HTMLInputElement>(null);
-  const query = useDebouncedValue(path.trim(), BROWSE_DELAY_MS);
-
-  useEffect(() => {
-    if (!isFolderPath(query)) return setAnswer(null);
-    let stale = false;
-    api.browseFolders(query).then(
-      (result) => !stale && setAnswer({ query, result }),
-      () => !stale && setAnswer(null),
-    );
-    return () => {
-      stale = true;
-    };
-  }, [query]);
-
-  const known = answer?.query === path.trim() ? answer.result : null;
-  const kind = known?.kind ?? null;
+  const [kind, setKind] = useState<FolderKind | null>(null);
   const valid = isFolderPath(path) && kind !== "file";
 
   async function submit() {
@@ -62,29 +41,7 @@ export function AddProjectDialog({ onClose, onCreated }: Props) {
 
   return (
     <Dialog title="Add project" className="add-project" onClose={onClose} onCancel={onClose} primary={{ label: addLabel(kind), onClick: () => void submit(), disabled: busy || !valid }}>
-      <label className="dialog-field">
-        <span>Folder</span>
-        <TextInput ref={pathField} autoFocus value={path} onChange={(e) => setPath(e.target.value)} onKeyDown={onEnter} placeholder="~/src/my-project" spellCheck={false} />
-      </label>
-      {known && known.entries.length > 0 && (
-        <div className="folder-list" aria-label="Folders">
-          {known.entries.map((entry) => (
-            <Pressable
-              key={entry.path}
-              className="folder-option"
-              onClick={() => {
-                setPath(`${entry.path}/`);
-                pathField.current?.focus();
-              }}
-            >
-              <Icon name="folder" />
-              <span>{entry.name}</span>
-            </Pressable>
-          ))}
-        </div>
-      )}
-      {kind === "missing" && <p className="hint">This folder does not exist yet: it will be created.</p>}
-      {kind === "file" && <p className="hint">This path is a file, not a folder.</p>}
+      <FolderField autoFocus value={path} onChange={setPath} onKind={setKind} onKeyDown={onEnter} missingHint="This folder does not exist yet: it will be created." />
       <label className="dialog-field">
         <span>Title</span>
         <TextInput value={title} onChange={(e) => setTitle(e.target.value)} onKeyDown={onEnter} placeholder={folderTitle(path) || "The folder's name"} />
