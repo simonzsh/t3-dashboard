@@ -1,8 +1,8 @@
 import { describe, issues, parse, type Schema } from "../contract.ts";
 import { IntegrationError } from "../errors.ts";
 import { RpcConnection } from "./rpc.ts";
-import { AssetUrl, PersistedAttachments, ScratchProject, ProjectionResponse, RawConfig, SearchEntriesResponse, SearchThreadsResponse, UsageSummaryResponse, DeletedScheduledTask, ScheduledTasksResponse, UpsertedScheduledTask, ShellItem, TurnItemResponse, UploadUrl, WebSocketTicket } from "./schemas.ts";
-import type { AssetResource, AttachmentRef, Command, FileUpload, ImageUpload, RawProjection, RawScheduledTask, RawSearchMatch, RawUsageSummary, NewScheduledTask, RawTurnItem, ScheduledTaskChange, SecretAnswer, T3Port } from "./schemas.ts";
+import { AssetUrl, FolderBrowseResponse, PathMetadataResponse, RawProject, PersistedAttachments, ScratchProject, ProjectionResponse, RawConfig, SearchEntriesResponse, SearchThreadsResponse, UsageSummaryResponse, DeletedScheduledTask, ScheduledTasksResponse, UpsertedScheduledTask, ShellItem, TurnItemResponse, UploadUrl, WebSocketTicket } from "./schemas.ts";
+import type { AssetResource, AttachmentRef, Command, FileUpload, ImageUpload, ProjectMutation, RawProjection, RawScheduledTask, RawSearchMatch, RawUsageSummary, NewScheduledTask, RawTurnItem, ScheduledTaskChange, SecretAnswer, T3Port } from "./schemas.ts";
 
 export const ORCHESTRATION_PROTOCOL = "2";
 // Images go up as data URLs of up to 10 MB each: give T3 time to write them.
@@ -31,6 +31,9 @@ export const RPC = {
   setEnabledScheduledTask: "scheduledTasks.setEnabled",
   answerSecret: "secrets.answerRequest",
   getUsageSummary: "server.getUsageSummary",
+  mutateProject: "projects.mutate",
+  browseFolders: "filesystem.browse",
+  pathMetadata: "filesystem.getMetadata",
 } as const;
 
 export type Validation = "ok" | "rejected" | "unreachable";
@@ -63,7 +66,7 @@ export interface T3ClientOptions {
 }
 
 // Safe to send twice: a retry after a lost connection cannot repeat a side effect.
-const IDEMPOTENT = new Set<string>([RPC.getConfig, RPC.searchThreads, RPC.createAssetUrl, RPC.ensureScratch, RPC.getTurnItem, RPC.searchEntries, RPC.setEnabledScheduledTask, RPC.getUsageSummary]);
+const IDEMPOTENT = new Set<string>([RPC.getConfig, RPC.searchThreads, RPC.createAssetUrl, RPC.ensureScratch, RPC.getTurnItem, RPC.searchEntries, RPC.setEnabledScheduledTask, RPC.getUsageSummary, RPC.browseFolders, RPC.pathMetadata]);
 
 const SECRET_REFUSALS: Record<string, string> = {
   not_found: "This secret request no longer exists.",
@@ -235,6 +238,21 @@ export class T3Client implements T3Port {
 
   async ensureScratchProject(): Promise<string> {
     return read(ScratchProject, await this.call(RPC.ensureScratch, {}), "projects.ensureScratch").projectId;
+  }
+
+  // Not in IDEMPOTENT: the commandId stops a double create, but a retry would then fail on "already used".
+  async mutateProject(mutation: ProjectMutation, commandId: string): Promise<RawProject> {
+    const payload = mutation.type === "project.create" ? { ...mutation, commandId, defaultModelSelection: null } : { ...mutation, commandId };
+    return read(RawProject, await this.call(RPC.mutateProject, payload), RPC.mutateProject);
+  }
+
+  async browseFolders(partialPath: string): Promise<{ parentPath: string; entries: Array<{ name: string; fullPath: string }> }> {
+    return read(FolderBrowseResponse, await this.call(RPC.browseFolders, { partialPath }), RPC.browseFolders);
+  }
+
+  async pathKinds(paths: string[]): Promise<Array<string | null>> {
+    const { entries } = read(PathMetadataResponse, await this.call(RPC.pathMetadata, { paths }), RPC.pathMetadata);
+    return paths.map((_, i) => entries[i]?.kind ?? null);
   }
 
   async fetchAsset(resource: AssetResource, range?: string): Promise<{ response: Response; fileName: string }> {

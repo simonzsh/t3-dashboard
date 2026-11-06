@@ -97,6 +97,7 @@ export const RawProject = s.object({
   id: s.string(),
   title: text(),
   workspaceRoot: text(),
+  archivedAt: text(),
   defaultModelSelection: s.optional(s.nullable(ModelSelection)),
   projectIcon: s.optional(s.nullable(s.object({ kind: text(), name: s.optional(text()), color: s.optional(text()), text: s.optional(text()), emoji: s.optional(text()), monogramText: s.optional(text()), monogram: s.optional(text()) }))),
 });
@@ -383,6 +384,11 @@ export const PersistedAttachments = s.object({ attachments: s.optional(s.array(A
 export type AssetResource = { _tag: "attachment"; attachmentId: string } | { _tag: "media-file"; threadId: string; path: string };
 export const AssetUrl = s.object({ relativeUrl: s.string() });
 export const ScratchProject = s.object({ projectId: s.string() });
+export const FolderBrowseResponse = s.object({ parentPath: s.string(), entries: s.array(s.object({ name: s.string(), fullPath: s.string() })) });
+export const PathMetadataResponse = s.object({ entries: s.array(s.nullable(s.object({ kind: s.string() }))) });
+export type ProjectMutation =
+  | { type: "project.create"; projectId: string; title: string; workspaceRoot: string; createWorkspaceRootIfMissing: boolean }
+  | { type: "project.update"; projectId: string; archived: boolean };
 
 /** T3's usage scan: one bucket per day, provider and model. Only the fields the dashboard sums are listed. */
 export const UsageSummaryResponse = s.object({
@@ -498,6 +504,12 @@ export interface T3Port {
   answerSecretRequest(threadId: string, turnItemId: string, answer: SecretAnswer): Promise<void>;
   /** The id of T3's "No project" project, created if missing. */
   ensureScratchProject(): Promise<string>;
+  /** projects.mutate; the commandId is the idempotency key. Never retried. */
+  mutateProject(mutation: ProjectMutation, commandId: string): Promise<RawProject>;
+  /** Sub-folders of the typed parent, filtered by the last segment. */
+  browseFolders(partialPath: string): Promise<{ parentPath: string; entries: Array<{ name: string; fullPath: string }> }>;
+  /** One entry per path: "directory" | "file" | "other", or null when missing. */
+  pathKinds(paths: string[]): Promise<Array<string | null>>;
   /** Fetches an asset through a short-lived signed URL; the file name ends the URL. */
   fetchAsset(resource: AssetResource, range?: string): Promise<{ response: Response; fileName: string }>;
   subscribeShell(onItems: (items: ShellItem[]) => void, onEnd: (error?: Error) => void): { cancel(): void };

@@ -176,3 +176,22 @@ test("isOpen turns true on open and isClosed on close", () => {
   rpc.close();
   assert.deepEqual([rpc.isOpen, rpc.isClosed], [true, true]);
 });
+
+test("a project mutation failure shows the innermost message and name", async () => {
+  const { rpc, socket } = connect();
+  socket.open();
+  const result = rpc.request("projects.mutate", {});
+  const error = { _tag: "ProjectMutationError", message: "Failed to mutate project.", cause: { name: "ProjectOperationError", cause: { name: "WorkspaceRootNotDirectoryError", message: "Workspace root is not a directory: /x" } } };
+  socket.receive({ _tag: "Exit", requestId: "1", exit: { _tag: "Failure", cause: [{ _tag: "Fail", error }] } });
+  await assert.rejects(result, (e: Error) => e instanceof IntegrationError && e.message === "T3 refused the request: Workspace root is not a directory: /x" && e.reason === "WorkspaceRootNotDirectoryError");
+  rpc.close();
+});
+
+test("a filesystem browse failure keeps its failure code as the reason", async () => {
+  const { rpc, socket } = connect();
+  socket.open();
+  const result = rpc.request("filesystem.browse", {});
+  socket.receive({ _tag: "Exit", requestId: "1", exit: { _tag: "Failure", cause: [{ _tag: "Fail", error: { _tag: "FilesystemBrowseError", failure: "read_directory_failed", message: "no dir" } }] } });
+  await assert.rejects(result, (e: Error) => e instanceof IntegrationError && e.reason === "read_directory_failed");
+  rpc.close();
+});
