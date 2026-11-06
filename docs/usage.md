@@ -43,9 +43,9 @@ The Linear tickets feed "To relaunch" and "Up next". They need a Linear API key:
 Sessions shows your open conversations side by side. Each session is a column at least 380 px wide that fills the height of the page. When the columns do not fill the width, they widen to share it; when they need more room, the strip scrolls sideways. A hairline separates the columns.
 
 - A list panel sits left of the columns. It lists every thread that is not settled (a settled thread that runs or waits stays), without automation run threads, setup threads and sub-agents. ⌘K finds the settled ones.
-  - Grouped view (default): one row per T3 Code project that has a listed thread, with a chevron to fold it, its icon, and the number of running threads (accent). In the grouped view each thread row shows the provider logo and the model; in the flat view it shows the project icon and name instead. Point at a project and click "+" to start a New Session in it. Flat view: one list, most recent first. A button in the list band, after collapse/expand all, switches the view.
+  - Grouped view (default): one row per T3 Code project, with a chevron to fold it, its icon, the number of running threads (accent) and the number of listed threads (muted). Projects with listed threads come first, then "Unknown project" rows, then the empty projects at the end: muted, with no count and no chevron to fold. An archived project shows only while it has a listed thread. In the grouped view each thread row shows the provider logo and the model; in the flat view it shows the project icon and name instead. Point at a project and click "+" to start a New Session in it. Flat view: one list, most recent first. A button in the list band, after collapse/expand all, switches the view.
   - Each row has a status mark (a pulsing dot when it runs, orange when it waits for you, red when it failed, a hollow accent ring when it is unread), the title and "time · model". A thread open as a column has a thin accent bar on its left and a bold title, a closed one has a muted title, and the focused one a filled background. Click a row to open it as a column, or to focus its column and scroll it into view. Point at an open row to see a cross that closes its column; the thread stays in the list.
-  - A slim band at the top of the panel has small icon buttons. On the right: "Collapse all projects" or "Expand all projects" (grouped view only), the view button (grouped or flat), and "Close all sessions", which closes every column with no confirmation. There is no band at the bottom.
+  - A slim band at the top of the panel has small icon buttons. On the right: "Add project" (see below), "Collapse all projects" or "Expand all projects" (grouped view only), the view button (grouped or flat), and "Close all sessions", which closes every column with no confirmation. There is no band at the bottom.
   - The "Hide the list" button is in the page header (wide screen only), before the layout button; it becomes "Show the list" when the list is hidden. Each browser keeps the panel state, the view and the folded projects.
 - A new session opens at the right end and scrolls into view.
 - A session never opens by itself. It opens when you create it (New Session, a Linear ticket), click it in the list, a Dashboard row or a notification, or pick it with ⌘K. Every thread still shows in the list with its status. At most 100 sessions stay open.
@@ -123,6 +123,17 @@ The New Session button (key `N`) starts a new session.
 - The proposed model is the default model of the project. If there is none, it is the default model of T3 Code.
 - The favorite models of T3 Code are at the top of the list.
 - The browser keeps the last project that you selected.
+- The last choice of the project list, "New project…", opens the Add project form in place of this window. After you add the project, the window comes back with the new project selected and your text kept.
+
+## Add project
+
+The "Add project" button of the Sessions list band (and "New project…" in the New Session window) adds a T3 project from a folder.
+
+1. Type the folder: an absolute path (`/…`) or a path under your home folder (`~/…`). The form starts with `~/` and suggests the sub-folders as you type. Click a suggestion to complete the path.
+2. Optional: type a title. When empty, the project takes the name of the folder.
+3. Click "Add". When the folder does not exist, the button reads "Create & Add" and the folder is created.
+
+If an active project already uses the folder, nothing is created. If that project is archived, it comes back. A path to a file is refused.
 
 ## Automations
 
