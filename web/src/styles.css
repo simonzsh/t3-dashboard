@@ -107,7 +107,7 @@ button.danger:hover:not(:disabled) { border-color: var(--danger); color: var(--d
 button.link, .btn.link { display: inline-block; height: auto; border: 0; background: none; padding: 0; color: var(--accent); text-decoration: underline; }
 button.primary kbd { color: var(--on-accent); border-color: color-mix(in srgb, var(--on-accent) 45%, transparent); opacity: 0.9; }
 .conn { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; color: var(--text-secondary); }
-.conn-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--warn); }
+.conn-dot { flex: none; width: 8px; height: 8px; border-radius: 50%; background: var(--warn); }
 .conn.up .conn-dot { background: var(--ok); }
 /* UI font, not mono: mono fonts draw ⌘ and ⇧ too small. */
 kbd { font: 11px/1 system-ui, -apple-system, "Segoe UI", sans-serif; padding: 2px 5px; border-radius: 4px; border: 1px solid var(--line); color: var(--text-secondary); opacity: 0.8; }
@@ -620,37 +620,41 @@ ol.install-steps { padding-left: 18px; }
 .app.sessions-mode main { padding: 0; gap: 0; }
 /* Sidebar: 232 px, or 56 px with icons only. */
 .sidebar { flex: none; width: 232px; display: flex; flex-direction: column; gap: 12px; padding: 12px; overflow: hidden auto; background: var(--header-bg); border-right: 1px solid var(--line); transition: width 160ms ease; }
-.sidebar.collapsed { width: 56px; padding-inline: 8px; }
-.sidebar-brand { display: flex; align-items: center; gap: 10px; height: 32px; padding-inline: 6px; }
+/* Collapsing only narrows the bar: every icon keeps its x (centered at 28 px), labels fade and get clipped. */
+.sidebar.collapsed { width: 56px; }
+.sidebar-brand { display: flex; align-items: center; gap: 10px; height: 32px; padding-inline: 3px; }
 .logo { flex: none; width: 26px; height: 26px; color: var(--accent); }
 .sidebar-name { font-size: 15px; font-weight: 600; letter-spacing: -0.01em; white-space: nowrap; }
-.sidebar-search, .nav-row { display: flex; align-items: center; gap: 10px; width: 100%; height: 36px; padding: 0 10px; border: 0; border-radius: 10px; background: none; color: var(--text-secondary); font-weight: 500; text-align: left; white-space: nowrap; }
-.sidebar-search { border: 1px solid var(--line); background: var(--surface-1); font-weight: 400; }
+:is(.sidebar-name, .nav-label, .sidebar-search kbd) { transition: opacity 160ms ease; }
+.sidebar-search, .nav-row { display: flex; align-items: center; gap: 10px; width: 100%; height: 36px; padding: 0 7px; border: 0; border-radius: 10px; background: none; color: var(--text-secondary); font-weight: 500; text-align: left; white-space: nowrap; }
+.sidebar-search { padding-inline: 6px; border: 1px solid var(--line); background: var(--surface-1); font-weight: 400; }
 .sidebar-search kbd { font-size: 10px; padding: 2px 5px; }
 .sidebar-items { display: flex; flex-direction: column; gap: 2px; }
 .nav-row:hover:not(:disabled) { border-color: transparent; background: color-mix(in srgb, var(--text-primary) 6%, transparent); color: var(--text-primary); }
 .nav-row.active { background: color-mix(in srgb, var(--text-primary) 10%, transparent); color: var(--text-primary); }
 .nav-icon { flex: none; width: 18px; height: 18px; }
-.nav-label { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.nav-label { flex: 1; min-width: 0; overflow: hidden; }
 /* Both nav badges (unread, running) follow the accent color; the text is darkened or lightened to stay readable. */
 .nav-badge { flex: none; display: inline-grid; place-items: center; min-width: 20px; height: 20px; padding: 0 6px; border-radius: 999px; font-size: 11px; font-weight: 600; line-height: 1; background: color-mix(in srgb, var(--accent) 20%, transparent); color: var(--work-text); }
 .nav-alert { flex: none; width: 8px; height: 8px; border-radius: 50%; background: var(--warn); box-shadow: 0 0 0 2px color-mix(in srgb, var(--warn) 30%, transparent); }
 .sidebar-foot { margin-top: auto; display: flex; flex-direction: column; gap: 8px; }
-.sidebar-foot .conn { flex: 1; min-width: 0; padding-inline: 10px; }
-.sidebar .update-pill { display: flex; align-items: center; gap: 10px; height: 32px; padding: 0 10px; border-radius: var(--radius-md); color: var(--accent); background: color-mix(in srgb, var(--accent) 12%, var(--surface-1)); border-color: color-mix(in srgb, var(--accent) 50%, var(--line)); font-size: 12px; font-weight: 500; }
+.sidebar-foot .conn { flex: 1; min-width: 0; padding-inline: 12px; }
+.sidebar .update-pill { display: flex; align-items: center; gap: 10px; height: 32px; padding: 0 7px; border-radius: var(--radius-md); color: var(--accent); background: color-mix(in srgb, var(--accent) 12%, var(--surface-1)); border-color: color-mix(in srgb, var(--accent) 50%, var(--line)); font-size: 12px; font-weight: 500; }
 .sidebar-actions { display: flex; align-items: center; gap: 2px; }
 .sidebar-collapse { margin-left: auto; }
-.sidebar.collapsed :is(.sidebar-name, .nav-label, .sidebar-search kbd) { display: none; }
-.sidebar.collapsed :is(.sidebar-search, .nav-row, .update-pill) { justify-content: center; padding: 0; }
-.sidebar.collapsed .sidebar-brand { justify-content: center; padding: 0; }
+.sidebar.collapsed :is(.sidebar-name, .nav-label, .sidebar-search kbd) { opacity: 0; }
 .sidebar.collapsed .nav-row { position: relative; }
 /* The collapsed sidebar and the bottom bar pin a smaller badge on the icon. */
 :is(.sidebar.collapsed, .bottom-icon) .nav-badge { position: absolute; min-width: 16px; height: 16px; padding: 0 4px; font-size: 10px; }
-.sidebar.collapsed .nav-badge { top: 0; right: 0; }
-.sidebar.collapsed .nav-alert { position: absolute; top: 4px; right: 4px; }
-.sidebar.collapsed .sidebar-foot .conn { flex: none; justify-content: center; height: 24px; padding: 0; }
-.sidebar.collapsed .sidebar-actions { flex-direction: column; align-items: stretch; }
+.sidebar.collapsed .nav-badge { top: 0; right: 0; animation: sidebar-badge-inline 160ms; }
+@keyframes sidebar-badge-inline { from, to { position: static; min-width: 20px; height: 20px; padding: 0 6px; font-size: 11px; } }
+.sidebar.collapsed .nav-alert { position: absolute; top: 4px; right: 4px; animation: sidebar-alert-inline 160ms; }
+@keyframes sidebar-alert-inline { from, to { position: static; } }
+/* The footer stacks only once the bar is narrow: the animation holds the row while it shrinks. */
+.sidebar.collapsed .sidebar-foot .conn { flex: none; height: 24px; }
+.sidebar.collapsed .sidebar-actions { flex-direction: column; align-items: stretch; animation: sidebar-foot-row 160ms; }
 .sidebar.collapsed .sidebar-collapse { margin-left: 0; }
+@keyframes sidebar-foot-row { from, to { flex-direction: row; align-items: center; } }
 /* Bottom bar: the sidebar on a phone. */
 /* No grey square and no callout on a long press: the active pill already shows the tab. */
 .bottom-nav { position: fixed; z-index: 20; inset: auto 0 0; display: flex; height: calc(var(--bottom-bar) + env(safe-area-inset-bottom)); padding: 0 env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left); background: var(--surface-0); border-top: 1px solid var(--line); -webkit-touch-callout: none; user-select: none; }
@@ -922,7 +926,8 @@ ol.install-steps { padding-left: 18px; }
   .streaming, .step.running .icon, .todo.running .todo-mark, .spinning { animation: none; }
   .loader rect { animation: none; }
   .skeleton { animation: none; }
-  .thread-actions, .slist-slot, .sidebar { transition: none; }
+  .thread-actions, .slist-slot, .sidebar, :is(.sidebar-name, .nav-label, .sidebar-search kbd) { transition: none; }
+  .sidebar.collapsed :is(.sidebar-actions, .nav-badge, .nav-alert) { animation: none; }
   .swipe-dots { animation-duration: 1ms; animation-delay: 1.2s; }
 }
 .queue { display: flex; flex-direction: column; gap: 10px; }
