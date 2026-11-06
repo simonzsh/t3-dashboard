@@ -20,7 +20,7 @@ export function flyToSessions(row: Element | null, inSessions: boolean): void {
   if (!inSessions && row) fly(row, document.querySelector(tabSelector("sessions")));
 }
 
-/** The buttons of a thread row: open in T3 Code, settle and add to the Sessions. They show on hover and focus. */
+/** The buttons of a thread row: open in T3 Code, settle and add to the Sessions page. They show on hover and focus. */
 export function ThreadActions({ thread: t, inSessions, t3EnvironmentId, onToggleSessions, onSettle, rowRef }: ThreadActionsProps) {
   const status = agentStatus(t);
   const { busy, error, run } = useAction("update the agent");

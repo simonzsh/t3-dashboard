@@ -181,7 +181,7 @@ export function App() {
     tab === "sessions",
   );
 
-  // Shortcuts use Ctrl now, so plain typing on the Sessions can go straight to the focused window's field.
+  // Shortcuts use Ctrl now, so plain typing on the Sessions page can go straight to the focused window's field.
   useEffect(() => {
     if (tab !== "sessions" || blocked || !sessions.focusedId) return;
     const id = sessions.focusedId;

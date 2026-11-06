@@ -17,7 +17,7 @@ interface Props {
   visible: DashboardThread[];
   now: Date;
   sessionIds: ReadonlySet<string>;
-  // addOnly: put the agent on the Sessions without leaving the Inbox.
+  // addOnly: put the agent on the Sessions page without leaving the Inbox.
   onOpen: (id: string, addOnly: boolean) => void;
   onToggleSessions: (id: string) => void;
   onSettle: (id: string, settle: boolean) => Promise<unknown>;

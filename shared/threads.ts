@@ -176,7 +176,7 @@ export type SubagentState = "queued" | "running" | "waiting" | "idle" | "complet
 export interface SubagentStep {
   /** For POST /api/threads/:id/subagents/:subagentId/stop. */
   subagentId: string;
-  /** GET /api/threads/:childThreadId shows its steps; the sessions can open it. Null when T3 has none. */
+  /** GET /api/threads/:childThreadId shows its steps; the Sessions page can open it. Null when T3 has none. */
   childThreadId: string | null;
   /** Last progress line while running; null once finished. */
   progress: string | null;

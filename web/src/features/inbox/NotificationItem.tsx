@@ -15,7 +15,7 @@ interface Props {
   // The model label, resolved by the parent so the row stays memoizable.
   modelName: string | null;
   now: Date;
-  // addOnly: put the agent on the Sessions without leaving the page.
+  // addOnly: put the agent on the Sessions page without leaving the page.
   onOpen: (id: string, addOnly: boolean) => void;
 }
 

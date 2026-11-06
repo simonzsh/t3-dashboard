@@ -10,7 +10,7 @@ export function titleFromMessage(text: string): string {
   return line.length > TITLE_MAX ? `${line.slice(0, TITLE_MAX - 1).trimEnd()}…` : line;
 }
 
-/** The project of the last New Agent, or "" when none is saved or it no longer exists. */
+/** The project of the last New Session, or "" when none is saved or it no longer exists. */
 export const loadNewAgentProject = (storage: Store | null, projects: DashboardProject[]): string => loadProjectChoice(storage, KEY, projects);
 
 export const saveNewAgentProject = (storage: Store | null, projectId: string): void => saveProjectChoice(storage, KEY, projectId);
