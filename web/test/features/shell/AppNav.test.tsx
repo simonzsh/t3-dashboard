@@ -8,12 +8,10 @@ const base = {
   badges: { homeUnread: 0, deskRunning: 0, deskWaiting: false },
   badgeText: (n: number) => (n > 9 ? "9+" : String(n)),
   live: true,
-  theme: "dark" as const,
   update: null,
   onTab: () => {},
   onSearch: () => {},
   onSettings: () => {},
-  onTheme: () => {},
   onUpdate: () => {},
 };
 const side = (over = {}) => renderToStaticMarkup(<AppNav layout="side" {...base} {...over} />);
@@ -39,11 +37,10 @@ test("the sidebar shows unread on Home, running on Desk and a dot for a waiting 
   assert.doesNotMatch(side(), /nav-badge|An agent is waiting/);
 });
 
-test("the sidebar footer shows the connection and offers the other theme", () => {
-  assert.match(side(), /Connected/);
+test("the sidebar footer holds the connection, Settings and collapse on one row, with no theme toggle", () => {
+  assert.match(side(), /sidebar-actions[^>]*>[\s\S]*?Connected[\s\S]*?aria-label="Settings"[\s\S]*?aria-label="Collapse the sidebar"/);
   assert.match(side({ live: false }), /Offline/);
-  assert.match(side({ theme: "dark" }), /aria-label="Switch to light theme"/);
-  assert.match(side({ theme: "light" }), /aria-label="Switch to dark theme"/);
+  assert.doesNotMatch(side(), /theme/i);
 });
 
 test("the sidebar shows the update button only when an update is ready", () => {

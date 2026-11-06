@@ -621,7 +621,7 @@ ol.install-steps { padding-left: 18px; }
 .nav-badge.work { background: color-mix(in srgb, var(--work) 20%, transparent); color: var(--work-text); }
 .nav-alert { flex: none; width: 8px; height: 8px; border-radius: 50%; background: var(--warn); box-shadow: 0 0 0 2px color-mix(in srgb, var(--warn) 30%, transparent); }
 .sidebar-foot { margin-top: auto; display: flex; flex-direction: column; gap: 8px; }
-.sidebar-foot .conn { padding-inline: 10px; }
+.sidebar-foot .conn { flex: 1; min-width: 0; padding-inline: 10px; }
 .sidebar .update-pill { display: flex; align-items: center; gap: 10px; height: 32px; padding: 0 10px; border-radius: var(--radius-md); color: var(--accent); background: color-mix(in srgb, var(--accent) 12%, var(--surface-1)); border-color: color-mix(in srgb, var(--accent) 50%, var(--line)); font-size: 12px; font-weight: 500; }
 .sidebar-actions { display: flex; align-items: center; gap: 2px; }
 .sidebar-collapse { margin-left: auto; }
@@ -631,7 +631,7 @@ ol.install-steps { padding-left: 18px; }
 .sidebar.collapsed .nav-row { position: relative; }
 .sidebar.collapsed .nav-badge { position: absolute; top: 0; right: 0; min-width: 16px; height: 16px; padding: 0 4px; font-size: 10px; }
 .sidebar.collapsed .nav-alert { position: absolute; top: 4px; right: 4px; }
-.sidebar.collapsed .sidebar-foot .conn { justify-content: center; padding: 0; }
+.sidebar.collapsed .sidebar-foot .conn { flex: none; justify-content: center; height: 24px; padding: 0; }
 .sidebar.collapsed .sidebar-actions { flex-direction: column; align-items: stretch; }
 .sidebar.collapsed .sidebar-collapse { margin-left: 0; }
 /* Bottom bar: the sidebar on a phone. */

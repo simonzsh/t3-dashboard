@@ -2,7 +2,7 @@
 
 [Back to the README](../README.md)
 
-The dashboard has three pages: Home, Desk and Automations. A sidebar on the left lists them, with a search button (`Ctrl` + `K`), the connection state, a theme toggle, Settings and a button that collapses the sidebar to icons. The sidebar remembers its state. The page header holds the New Agent and New Automation buttons. On a phone, a bar at the bottom of the screen replaces the sidebar: Home, Desk, Automations and Settings.
+The dashboard has three pages: Home, Desk and Automations. A sidebar on the left lists them, with a search button (`⌘` + `K`). Its last row shows the connection state, Settings and a button that collapses the sidebar to icons. The theme is in Settings. The sidebar remembers its state. The page header holds the New Agent and New Automation buttons. On a phone, a bar at the bottom of the screen replaces the sidebar: Home, Desk, Automations and Settings.
 
 ## Home
 

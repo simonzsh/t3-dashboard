@@ -33,7 +33,6 @@ import { TABS } from "./lib/tabs.ts";
 import { ctrlLabel, startsTyping } from "./lib/shortcuts.ts";
 import { useTab } from "./lib/useTab.ts";
 import { useTheme } from "./features/settings/useTheme.ts";
-import { resolveTheme } from "./features/settings/theme.ts";
 import { useUpdate } from "./features/update/useUpdate.ts";
 import { Button, Icon, IconButton, Loader, Logo, PageHeader, TooltipLayer } from "./ui/index.ts";
 import { updateLabel } from "./features/update/updateFlow.ts";
@@ -41,7 +40,6 @@ import { updateLabel } from "./features/update/updateFlow.ts";
 const NO_THREADS: DashboardThread[] = [];
 // Same breakpoint as the bottom bar in styles.css.
 const PHONE = "(max-width: 700px)";
-const PREFERS_DARK = "(prefers-color-scheme: dark)";
 
 function focusComposer(threadId: string) {
   requestAnimationFrame(() => document.querySelector<HTMLTextAreaElement>(`[data-desk-window="${CSS.escape(threadId)}"] textarea`)?.focus());
@@ -90,7 +88,6 @@ export function App() {
   const [deskBackground, setDeskBackground] = useDeskBackground();
   const [now, setNow] = useState(() => new Date());
   const compact = useMediaQuery(PHONE);
-  const prefersDark = useMediaQuery(PREFERS_DARK);
 
   // The error banner starts under the header, whatever its height (one line on a phone).
   const header = useRef<HTMLElement>(null);
@@ -218,12 +215,10 @@ export function App() {
         badges={badges}
         badgeText={badgeText}
         live={live}
-        theme={resolveTheme(theme, prefersDark)}
         update={updateNav}
         onTab={setTab}
         onSearch={() => state && setSwitcherQuery("")}
         onSettings={() => setSettingsOpen(true)}
-        onTheme={setTheme}
         onUpdate={() => setConfirmingUpdate(true)}
       />
       <div className="app-column">

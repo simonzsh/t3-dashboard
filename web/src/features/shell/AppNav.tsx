@@ -18,13 +18,10 @@ interface Props {
   badges: NavBadges;
   badgeText: (n: number) => string;
   live: boolean;
-  /** The theme in use, never "system". */
-  theme: "light" | "dark";
   update: NavUpdate | null;
   onTab: (tab: Tab) => void;
   onSearch: () => void;
   onSettings: () => void;
-  onTheme: (theme: "light" | "dark") => void;
   onUpdate: () => void;
 }
 
@@ -43,7 +40,7 @@ function Badges({ id, badges, badgeText }: { id: Tab; badges: NavBadges; badgeTe
   );
 }
 
-function Sidebar({ tab, badges, badgeText, live, theme, update, onTab, onSearch, onSettings, onTheme, onUpdate }: Omit<Props, "layout">) {
+function Sidebar({ tab, badges, badgeText, live, update, onTab, onSearch, onSettings, onUpdate }: Omit<Props, "layout">) {
   const [collapsed, setCollapsed] = useState(() => loadSidebarCollapsed(browserStorage()));
   const toggle = () => {
     saveSidebarCollapsed(browserStorage(), !collapsed);
@@ -51,7 +48,6 @@ function Sidebar({ tab, badges, badgeText, live, theme, update, onTab, onSearch,
   };
   // Collapsed rows hold only an icon: the tooltip gives the name back.
   const hint = (text: string) => (collapsed ? text : undefined);
-  const nextTheme = theme === "dark" ? "light" : "dark";
   return (
     <nav className={`sidebar${collapsed ? " collapsed" : ""}`} aria-label="Pages">
       <div className="sidebar-brand">
@@ -73,10 +69,6 @@ function Sidebar({ tab, badges, badgeText, live, theme, update, onTab, onSearch,
         ))}
       </div>
       <div className="sidebar-foot">
-        <span className={`conn ${live ? "up" : "down"}`} data-tooltip={live ? "Connected to T3 Code" : "Connection lost"}>
-          <span className="conn-dot" />
-          <span className="nav-label">{live ? "Connected" : "Offline"}</span>
-        </span>
         {update && (
           <Pressable className="update-pill" disabled={update.busy} tooltip={update.label} onClick={onUpdate}>
             <Icon name="arrowUp" className="nav-icon" strokeWidth={1.8} />
@@ -84,9 +76,10 @@ function Sidebar({ tab, badges, badgeText, live, theme, update, onTab, onSearch,
           </Pressable>
         )}
         <div className="sidebar-actions">
-          <IconButton variant="ghost" label={`Switch to ${nextTheme} theme`} tooltip={`Switch to ${nextTheme} theme`} onClick={() => onTheme(nextTheme)}>
-            <Icon name={theme === "dark" ? "sun" : "moon"} />
-          </IconButton>
+          <span className={`conn ${live ? "up" : "down"}`} data-tooltip={live ? "Connected to T3 Code" : "Connection lost"}>
+            <span className="conn-dot" />
+            <span className="nav-label">{live ? "Connected" : "Offline"}</span>
+          </span>
           <IconButton variant="ghost" label="Settings" tooltip="Settings" shortcut={ctrlLabel(",")} onClick={onSettings}>
             <Icon name="settings" strokeWidth={1.8} />
           </IconButton>
