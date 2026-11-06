@@ -18,6 +18,7 @@ export { Pressable } from "./Pressable.tsx";
 export { TooltipLayer } from "./Tooltip.tsx";
 export { Skeleton, SkeletonGroup } from "./Skeleton.tsx";
 export { Segmented } from "./Segmented.tsx";
+export { Switch } from "./Switch.tsx";
 export { Tabs } from "./Tabs.tsx";
 export { ToggleGroup } from "./ToggleGroup.tsx";
 export { useEscape } from "./useEscape.ts";

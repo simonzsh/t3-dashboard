@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { test } from "bun:test";
 import { renderToStaticMarkup } from "react-dom/server";
 import { nextRadioIndex } from "../../src/ui/radioKeys.ts";
-import { Badge, Button, Choice, Dialog, Segmented, FileInput, Icon, IconButton, PageHeader, Pressable, SecretInput, Skeleton, SkeletonGroup, Tabs, TextArea, TextInput } from "../../src/ui/index.ts";
+import { Badge, Button, Choice, Dialog, Segmented, FileInput, Icon, IconButton, PageHeader, Pressable, SecretInput, Skeleton, SkeletonGroup, Switch, Tabs, TextArea, TextInput } from "../../src/ui/index.ts";
 
 const html = renderToStaticMarkup;
 
@@ -183,4 +183,12 @@ test("a Skeleton is an aria-hidden block of the given size", () => {
 
 test("a SkeletonGroup is one busy, labelled region", () => {
   assert.match(html(<SkeletonGroup label="Loading usage"><Skeleton /></SkeletonGroup>), /role="status" aria-busy="true" aria-label="Loading usage"/);
+});
+
+test("a Switch is a named switch button that shows its state", () => {
+  const on = html(<Switch checked label="Pause Inbox" onChange={() => {}} />);
+  assert.match(on, /role="switch"/);
+  assert.match(on, /aria-checked="true"/);
+  assert.match(on, /aria-label="Pause Inbox"/);
+  assert.match(html(<Switch checked={false} label="x" onChange={() => {}} disabled />), /aria-checked="false"[^>]*disabled=""|disabled=""[^>]*aria-checked="false"/);
 });

@@ -163,6 +163,11 @@ main { flex: 1; min-height: 0; overflow: hidden; padding: 24px; display: flex; f
 .empty-state strong { color: var(--text-primary); font-size: 15px; }
 .spinning { animation: spin 0.9s linear infinite; }
 @keyframes spin { to { transform: rotate(360deg); } }
+.switch { position: relative; flex: none; width: 34px; height: 20px; padding: 0; border: 0; border-radius: 999px; background: color-mix(in srgb, var(--text-primary) 22%, var(--surface-1)); transition: background 160ms; }
+.switch[aria-checked="true"] { background: var(--accent); }
+.switch-thumb { position: absolute; top: 2px; left: 2px; width: 16px; height: 16px; border-radius: 50%; background: #fff; box-shadow: 0 1px 2px rgb(0 0 0 / 0.3); transition: transform 160ms; }
+.switch[aria-checked="true"] .switch-thumb { transform: translateX(14px); }
+.switch:disabled { opacity: 0.5; }
 .skeleton { display: block; flex: none; max-width: 100%; border-radius: var(--radius-sm); background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--text-primary) 6%, transparent), transparent) 0 0 / 200% 100% no-repeat, color-mix(in srgb, var(--text-primary) 7%, var(--surface-1)); animation: skeleton-shimmer 1.6s ease-in-out infinite; }
 .skeleton-bars { display: flex; align-items: flex-end; gap: 8px; height: 190px; padding: 8px 20px 12px 52px; }
 .skeleton-bars .skeleton { flex: 1; }
@@ -1035,6 +1040,7 @@ ol.install-steps { padding-left: 18px; }
   .streaming, .step.running .icon, .todo.running .todo-mark, .spinning { animation: none; }
   .loader rect { animation: none; }
   .skeleton { animation: none; }
+  .switch, .switch-thumb { transition: none; }
   .dashboard-panel, .dashboard-backdrop { transition: none; }
   .thread-actions, .slist-slot, .sidebar, :is(.sidebar-name, .nav-label, .sidebar-search kbd) { transition: none; }
   .sidebar.collapsed :is(.sidebar-actions, .nav-badge, .nav-alert) { animation: none; }

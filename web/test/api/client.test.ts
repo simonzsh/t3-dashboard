@@ -144,6 +144,21 @@ test("deleteAutomation posts to the delete route of the task", async () => {
   assert.equal(calls[0]?.init?.method, "POST");
 });
 
+test("setAutomationEnabled posts the flag to the enabled route of the task", async () => {
+  const { calls, api } = fake(200, { ok: true });
+  await api.setAutomationEnabled("task/1", false);
+  assert.equal(calls[0]?.url, "/api/automations/task%2F1/enabled");
+  assert.equal(calls[0]?.init?.method, "POST");
+  assert.deepEqual(JSON.parse(String(calls[0]?.init?.body)), { enabled: false });
+});
+
+test("runAutomation posts to the run route of the task", async () => {
+  const { calls, api } = fake(200, { ok: true });
+  await api.runAutomation("task/1");
+  assert.equal(calls[0]?.url, "/api/automations/task%2F1/run");
+  assert.equal(calls[0]?.init?.method, "POST");
+});
+
 test("updateAutomation posts the body to the update route of the task", async () => {
   const { calls, api } = fake(200, { ok: true });
   const body = { kind: "reminder" as const, title: "", prompt: "p", projectId: "", modelSelection: { instanceId: "i", model: "m" }, at: "2026-11-05T10:00:00.000Z" };
