@@ -43,16 +43,23 @@ test("a collapsed project hides its threads; flat mode has no project rows", () 
   assert.match(flat, /Fix login/);
 });
 
-test("the top band: hide first on desktop, then collapse all and close all", () => {
+test("the top band on desktop: hide on the left, then view toggle, collapse all, close all", () => {
   const html = renderToStaticMarkup(<SessionList {...base} onHide={() => {}} />);
   const at = (label: string) => html.indexOf(`aria-label="${label}"`);
-  assert.ok(at("Hide the list") >= 0 && at("Hide the list") < at("Collapse all projects") && at("Collapse all projects") < at("Close all sessions"));
+  const order = ["Hide the list", "Show one list by recent activity", "Collapse all projects", "Close all sessions"].map(at);
+  assert.ok(order[0]! >= 0 && order.every((n, i) => i === 0 || n > order[i - 1]!));
 });
 
-test("on a phone the band has no hide button; all folded offers Expand all projects", () => {
-  assert.doesNotMatch(renderToStaticMarkup(<SessionList {...base} />), /Hide the list/);
+test("on a phone the band has the toggle, fold and close but no hide; all folded offers Expand all projects", () => {
+  const html = renderToStaticMarkup(<SessionList {...base} />);
+  assert.doesNotMatch(html, /Hide the list/);
+  assert.match(html, /Show one list by recent activity/);
   const folded = renderToStaticMarkup(<SessionList {...base} prefs={{ ...DEFAULT_LIST_PREFS, collapsed: ["project-a"] }} />);
   assert.match(folded, /aria-label="Expand all projects"/);
+});
+
+test("flat mode offers Group by project", () => {
+  assert.match(renderToStaticMarkup(<SessionList {...base} prefs={{ ...DEFAULT_LIST_PREFS, mode: "flat" }} />), /aria-label="Group by project"/);
 });
 
 test("flat mode has no fold button; close all is disabled when nothing is open", () => {

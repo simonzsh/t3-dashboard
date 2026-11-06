@@ -7,29 +7,19 @@ import type { Tab } from "../../../src/lib/tabs.ts";
 const noop = () => {};
 const render = (tab: Tab, over: Partial<Parameters<typeof PageActions>[0]> = {}) =>
   renderToStaticMarkup(
-    <PageActions tab={tab} compact={false} ready editingLayout={false} layoutIsDefault={false} layout="columns" onLayoutChange={noop} showLayoutToggle listMode="grouped" onListMode={noop} listHidden={false} onListHidden={noop} onNewSession={noop} onNewAutomation={noop} onSearch={noop} onEditLayout={noop} onDoneLayout={noop} onResetLayout={noop} {...over} />,
+    <PageActions tab={tab} compact={false} ready editingLayout={false} layoutIsDefault={false} layout="columns" onLayoutChange={noop} showLayoutToggle onNewSession={noop} onNewAutomation={noop} onSearch={noop} onEditLayout={noop} onDoneLayout={noop} onResetLayout={noop} {...over} />,
   );
 
-test("Sessions shows the view toggle, layout toggle, then New Session, with no hide button", () => {
+test("Sessions shows no list button: only the layout toggle, then New Session", () => {
   const out = render("sessions");
-  const at = (label: string) => out.indexOf(`aria-label="${label}"`);
-  assert.ok(at("Show one list by recent activity") >= 0);
-  assert.ok(at("Show one list by recent activity") < at("Switch to grid view") && at("Switch to grid view") < out.indexOf("New Session"));
-  assert.doesNotMatch(out, /Hide the list|Show the list/);
+  assert.ok(out.indexOf("Switch to grid view") < out.indexOf("New Session"));
+  assert.doesNotMatch(out, /Hide the list|Show the list|recent activity|Group by project|all projects|Close all/);
 });
 
-test("the list toggles name what they switch to", () => {
-  const out = render("sessions", { listMode: "flat", listHidden: true });
-  assert.match(out, /aria-label="Group by project"/);
-  assert.match(out, /aria-label="Show the list"/);
-  assert.doesNotMatch(out, /Hide the list/);
-});
-
-test("on a phone Sessions has the view toggle but no hide button", () => {
-  const out = render("sessions", { compact: true, showLayoutToggle: false, listHidden: true });
-  assert.ok(out.indexOf("Show one list by recent activity") < out.indexOf('aria-label="New Session"'));
+test("on a phone Sessions shows New Session, then Search, and no list button", () => {
+  const out = render("sessions", { compact: true, showLayoutToggle: false });
   assert.ok(out.indexOf('aria-label="New Session"') < out.indexOf('aria-label="Search"'));
-  assert.doesNotMatch(out, /Hide the list|Show the list/);
+  assert.doesNotMatch(out, /Hide the list|Show the list|recent activity|Group by project|Close all/);
 });
 
 test("Sessions shows the layout toggle, then New Session with its icon and key", () => {

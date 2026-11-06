@@ -231,10 +231,6 @@ export function App() {
               layout={layout}
               onLayoutChange={setLayout}
               showLayoutToggle={!compact}
-              listMode={listPrefs.mode}
-              onListMode={(mode) => setListPrefs({ mode })}
-              listHidden={listPrefs.hidden}
-              onListHidden={(hidden) => setListPrefs({ hidden })}
               onNewSession={() => setCreating({ projectId: null })}
               onNewAutomation={() => setCreatingAutomation(true)}
               onSearch={openSearch}

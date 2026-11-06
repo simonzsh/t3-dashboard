@@ -4,7 +4,7 @@ import type { SeenState } from "../../../../shared/seen.ts";
 import { threadTitle } from "../../lib/threads.ts";
 import { cellOf, neighborId, perColumn, spansRows, type SessionsAction, type SessionsState } from "./sessions.ts";
 import { focusSessionField, sessionWindowEl } from "./dom.ts";
-import { enter, Kbd, reducedMotion, useFlip } from "../../ui/index.ts";
+import { enter, Icon, IconButton, Kbd, reducedMotion, useFlip } from "../../ui/index.ts";
 import type { SessionLayout } from "../../lib/sessionLayout.ts";
 import { ctrlLabel, startsTyping } from "../../lib/shortcuts.ts";
 import { swipeDirection } from "../../lib/swipe.ts";
@@ -339,7 +339,15 @@ export function SessionsView({ sessions, dispatch, threads, listed, projects, se
 
   return (
     <div ref={root} className="sessions">
-      {!prefs.hidden && list()}
+      {prefs.hidden ? (
+        <div className="slist-rail">
+          <IconButton variant="ghost" size="sm" label="Show the list" tooltip="Show the list" onClick={() => onPrefs({ hidden: false })}>
+            <Icon name="panelLeft" />
+          </IconButton>
+        </div>
+      ) : (
+        list()
+      )}
       {sessions.ids.length === 0 ? (
         <div className="empty-state sessions-empty">
           <strong>No sessions open</strong>

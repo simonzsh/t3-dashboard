@@ -23,7 +23,7 @@ interface Props {
   onOpen: (id: string) => void;
   onNewSession: (projectId: string) => void;
   onCloseAll: () => void;
-  /** Desktop only: the button that folds the list away. */
+  /** Desktop only: the button that hides the list. */
   onHide?: () => void;
 }
 
@@ -34,6 +34,8 @@ export function SessionList({ threads, projects, seen, modelNames, now, openIds,
   const grouped = prefs.mode === "grouped";
   const projectGroups = useMemo(() => (grouped ? groupByProject(shown, projects, seen) : []), [grouped, shown, projects, seen]);
   const anyOpen = projectGroups.some((g) => !collapsed.has(g.id));
+  const toMode = grouped ? "flat" : "grouped";
+  const modeLabel = grouped ? "Show one list by recent activity" : "Group by project";
   const foldLabel = anyOpen ? "Collapse all projects" : "Expand all projects";
 
   const row = (t: DashboardThread) => {
@@ -89,6 +91,9 @@ export function SessionList({ threads, projects, seen, modelNames, now, openIds,
           </IconButton>
         )}
         <span className="slist-bar-gap" />
+        <IconButton variant="ghost" size="sm" label={modeLabel} tooltip={modeLabel} onClick={() => onPrefs({ mode: toMode })}>
+          <Icon name={toMode === "grouped" ? "listTree" : "list"} />
+        </IconButton>
         {grouped && (
           <IconButton variant="ghost" size="sm" label={foldLabel} tooltip={foldLabel} disabled={projectGroups.length === 0} onClick={() => onPrefs({ collapsed: anyOpen ? projectGroups.map((g) => g.id) : [] })}>
             <Icon name={anyOpen ? "chevronsDownUp" : "chevronsUpDown"} />
