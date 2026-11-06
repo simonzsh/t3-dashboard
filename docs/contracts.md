@@ -13,7 +13,7 @@
 | `t3` | `server.getConfig` passes the `RawConfig` schema. The orchestration protocol is `2`. Each runtime mode is known. |
 | `t3` | `orchestration.subscribeShell`: the script reads the stream until `synchronized`, then stops it. Each item passes the `ShellItem` schema. Each thread status is known. |
 | `t3` | `scheduledTasks.subscribe`: the first snapshot passes the `ScheduledTasksResponse` schema. A T3 version without this method gives "could not run". |
-| `t3` | `server.getUsageSummary` is optional. The script checks only that its tag exists in the T3 web client. A T3 version without it gives the Home page no cost and no tokens, and nothing breaks. |
+| `t3` | `server.getUsageSummary` is optional. The script checks only that its tag exists in the T3 web client. A T3 version without it gives the Dashboard page no cost and no tokens, and nothing breaks. |
 | `t3` | `GET /api/orchestration/threads/{id}` for 3 threads maximum. Each response passes the `ProjectionResponse` schema. |
 | `t3` | The 17 RPC tags of the dashboard exist in the T3 web client. |
 | `t3` | The write commands (see below). |

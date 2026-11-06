@@ -2,7 +2,7 @@ import { Fragment, useState, type CSSProperties, type DragEvent, type ReactNode 
 import type { DashboardThread, UsageOverview } from "../../../../shared/api.ts";
 import { agentCounts } from "../../lib/navBadges.ts";
 import { CardEditBar } from "./CardEditBar.tsx";
-import { CARD_TITLES, dropCard, moveCard, setHidden, shiftCard, stackedOrder, type Column, type HomeCard, type HomeLayout } from "./layout.ts";
+import { CARD_TITLES, dropCard, moveCard, setHidden, shiftCard, stackedOrder, type Column, type DashboardCard, type DashboardLayout } from "./layout.ts";
 import { relativeTime } from "../../lib/format.ts";
 import { Button, IconButton, Icon, Loader, Segmented } from "../../ui/index.ts";
 import { UsageChart } from "./UsageChart.tsx";
@@ -50,11 +50,11 @@ function UsageCard({ state, threads, now }: { state: UsageState; threads: readon
   const { usage, error, loading, refresh } = state;
   const costKnown = usage !== null && usage.cost.status !== "unavailable";
   return (
-    <section className="home-card usage-card" aria-labelledby="home-usage-head">
+    <section className="dashboard-card usage-card" aria-labelledby="dashboard-usage-head">
       {/* Same look as the other cards' CardHead: features cannot share components. */}
       <div className="card-head">
         <Icon name="chart" />
-        <h2 id="home-usage-head">Usage</h2>
+        <h2 id="dashboard-usage-head">Usage</h2>
         <span className="card-actions">
           {usage && <span className="usage-updated">Updated {relativeTime(usage.readAt, now)}</span>}
           <IconButton size="sm" variant="ghost" label="Refresh usage" tooltip="Refresh usage" disabled={loading} onClick={refresh}>
@@ -83,7 +83,7 @@ function UsageCard({ state, threads, now }: { state: UsageState; threads: readon
   );
 }
 
-export interface HomeCards {
+export interface DashboardCards {
   notifications: ReactNode;
   running: ReactNode;
   "up-next": ReactNode;
@@ -93,20 +93,20 @@ interface Props {
   usage: UsageState;
   threads: readonly DashboardThread[];
   now: Date;
-  layout: HomeLayout;
-  /** The cards of the Inbox: the Home layout places them. */
-  cards: HomeCards;
+  layout: DashboardLayout;
+  /** The cards of the Inbox: the Dashboard layout places them. */
+  cards: DashboardCards;
   /** Edit mode: each card gets a bar to move or hide it. */
   editing?: boolean;
-  onLayout?: (layout: HomeLayout) => void;
+  onLayout?: (layout: DashboardLayout) => void;
 }
 
-export function HomeView({ usage, threads, now, layout, cards, editing = false, onLayout = () => {} }: Props) {
-  const [dragged, setDragged] = useState<HomeCard | null>(null);
+export function DashboardView({ usage, threads, now, layout, cards, editing = false, onLayout = () => {} }: Props) {
+  const [dragged, setDragged] = useState<DashboardCard | null>(null);
   // Where the dragged card would land, shown as a placeholder of its size.
   const [target, setTarget] = useState<{ column: Column; index: number } | null>(null);
   const [dragHeight, setDragHeight] = useState(0);
-  const body: Record<HomeCard, ReactNode> = { usage: <UsageCard state={usage} threads={threads} now={now} />, ...cards };
+  const body: Record<DashboardCard, ReactNode> = { usage: <UsageCard state={usage} threads={threads} now={now} />, ...cards };
   const order = stackedOrder(layout);
   const endDrag = () => {
     setDragged(null);
@@ -131,11 +131,11 @@ export function HomeView({ usage, threads, now, layout, cards, editing = false, 
     dragged !== null && target?.column === column && target.index === index && dropCard(layout, dragged, column, index) !== layout;
   const placeholder = (column: Column, index: number) =>
     showsDrop(column, index) && dragged && (
-      <div className={`home-drop ${dragged}`} style={{ height: dragHeight }} aria-hidden="true" onDragOver={(e) => aim(e, column, index)} onDrop={drop} />
+      <div className={`dashboard-drop ${dragged}`} style={{ height: dragHeight }} aria-hidden="true" onDragOver={(e) => aim(e, column, index)} onDrop={drop} />
     );
   const column = (id: Column) => (
     <div
-      className={`home-col ${id}${editing ? " editing" : ""}${id === "right" && layout.right.length === 1 && layout.right[0] === "notifications" ? " pinned" : ""}`}
+      className={`dashboard-col ${id}${editing ? " editing" : ""}${id === "right" && layout.right.length === 1 && layout.right[0] === "notifications" ? " pinned" : ""}`}
       onDragOver={editing ? (e) => aim(e, id, layout[id].length) : undefined}
       onDrop={editing ? drop : undefined}
     >
@@ -144,7 +144,7 @@ export function HomeView({ usage, threads, now, layout, cards, editing = false, 
           {placeholder(id, index)}
           <div
           key={card}
-          className={`home-slot ${card}${dragged === card ? " dragging" : ""}`}
+          className={`dashboard-slot ${card}${dragged === card ? " dragging" : ""}`}
           style={{ "--stack": order.indexOf(card) } as CSSProperties}
           onDragOver={editing ? (e) => aim(e, id, index) : undefined}
           onDrop={editing ? drop : undefined}
@@ -156,7 +156,7 @@ export function HomeView({ usage, threads, now, layout, cards, editing = false, 
               onDragStart={(e) => {
                 setDragged(card);
                 e.dataTransfer.effectAllowed = "move";
-                const slot = e.currentTarget.closest(".home-slot");
+                const slot = e.currentTarget.closest(".dashboard-slot");
                 if (slot) {
                   e.dataTransfer.setDragImage(slot, 16, 16);
                   setDragHeight(Math.min(slot.getBoundingClientRect().height, 240));
@@ -168,7 +168,7 @@ export function HomeView({ usage, threads, now, layout, cards, editing = false, 
               onHide={() => onLayout(setHidden(layout, card, true))}
             />
           )}
-          <div className="home-slot-body" inert={editing}>
+          <div className="dashboard-slot-body" inert={editing}>
             {body[card]}
           </div>
         </div>
@@ -178,9 +178,9 @@ export function HomeView({ usage, threads, now, layout, cards, editing = false, 
     </div>
   );
   return (
-    <div className="home">
+    <div className="dashboard">
       {editing && layout.hidden.length > 0 && (
-        <div className="home-hidden">
+        <div className="dashboard-hidden">
           <span>Hidden cards</span>
           {layout.hidden.map((card) => (
             <Button key={card} size="sm" onClick={() => onLayout(setHidden(layout, card, false))}>

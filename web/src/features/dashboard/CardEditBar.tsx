@@ -1,10 +1,10 @@
 import type { DragEvent } from "react";
 import { Icon, IconButton } from "../../ui/index.ts";
-import { CARD_TITLES, columnOf, type Column, type HomeCard, type HomeLayout } from "./layout.ts";
+import { CARD_TITLES, columnOf, type Column, type DashboardCard, type DashboardLayout } from "./layout.ts";
 
 interface Props {
-  card: HomeCard;
-  layout: HomeLayout;
+  card: DashboardCard;
+  layout: DashboardLayout;
   onDragStart: (e: DragEvent<HTMLElement>) => void;
   onDragEnd: () => void;
   onShift: (step: -1 | 1) => void;

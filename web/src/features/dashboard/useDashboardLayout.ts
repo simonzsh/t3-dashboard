@@ -1,15 +1,15 @@
 import { useCallback, useEffect, useState } from "react";
 import { browserStorage } from "../../lib/storage.ts";
-import { DEFAULT_LAYOUT, loadLayout, saveLayout, type HomeLayout } from "./layout.ts";
+import { DEFAULT_LAYOUT, loadLayout, saveLayout, type DashboardLayout } from "./layout.ts";
 
-/** The Home layout of this browser, and the edit mode, which ends when Home is not the open page. */
-export function useHomeLayout(active: boolean) {
-  const [layout, setLayoutState] = useState<HomeLayout>(() => loadLayout(browserStorage()));
+/** The Dashboard layout of this browser, and the edit mode, which ends when Dashboard is not the open page. */
+export function useDashboardLayout(active: boolean) {
+  const [layout, setLayoutState] = useState<DashboardLayout>(() => loadLayout(browserStorage()));
   const [editing, setEditing] = useState(false);
   useEffect(() => {
     if (!active) setEditing(false);
   }, [active]);
-  const setLayout = useCallback((next: HomeLayout) => {
+  const setLayout = useCallback((next: DashboardLayout) => {
     setLayoutState(next);
     saveLayout(browserStorage(), next);
   }, []);

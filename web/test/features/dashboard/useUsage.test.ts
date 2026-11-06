@@ -1,7 +1,7 @@
 import { test } from "bun:test";
 import assert from "node:assert/strict";
 import type { UsageOverview } from "../../../../shared/api.ts";
-import { startUsagePoll, type UsagePatch } from "../../../src/features/home/usagePoll.ts";
+import { startUsagePoll, type UsagePatch } from "../../../src/features/dashboard/usagePoll.ts";
 
 const overview = (refreshing: boolean, turns = 1): UsageOverview =>
   ({ days: [], thisWeek: { turns }, cost: { status: "ok", detail: null, refreshing } }) as unknown as UsageOverview;

@@ -2,9 +2,9 @@ import { test } from "bun:test";
 import assert from "node:assert/strict";
 import { renderToStaticMarkup } from "react-dom/server";
 import type { UsageDay, UsageOverview, UsageTotals } from "../../../../shared/api.ts";
-import { HomeView } from "../../../src/features/home/HomeView.tsx";
-import { DEFAULT_LAYOUT, moveCard, setHidden, type HomeLayout } from "../../../src/features/home/layout.ts";
-import type { UsageState } from "../../../src/features/home/useUsage.ts";
+import { DashboardView } from "../../../src/features/dashboard/DashboardView.tsx";
+import { DEFAULT_LAYOUT, moveCard, setHidden, type DashboardLayout } from "../../../src/features/dashboard/layout.ts";
+import type { UsageState } from "../../../src/features/dashboard/useUsage.ts";
 import { thread } from "../../fixtures.ts";
 
 const NOW = new Date("2026-01-14T12:00:00.000Z");
@@ -42,8 +42,8 @@ const cards = {
   running: <div id="card-running">R</div>,
   "up-next": <div id="card-up-next">U</div>,
 };
-const render = (s: UsageState, threads = [thread("a", { status: "running" })], layout: HomeLayout = DEFAULT_LAYOUT, editing = false) =>
-  renderToStaticMarkup(<HomeView usage={s} threads={threads} now={NOW} layout={layout} cards={cards} editing={editing} />);
+const render = (s: UsageState, threads = [thread("a", { status: "running" })], layout: DashboardLayout = DEFAULT_LAYOUT, editing = false) =>
+  renderToStaticMarkup(<DashboardView usage={s} threads={threads} now={NOW} layout={layout} cards={cards} editing={editing} />);
 
 test("the three tiles cover the last 7 days, each with its change", () => {
   const out = render(state());
@@ -79,16 +79,16 @@ test("the chart has one labelled bar slot per day, today last, and a table for s
 
 test("the default layout puts usage, Running and Up next left and Notifications right", () => {
   const out = render(state());
-  const right = out.indexOf('class="home-col right pinned"');
+  const right = out.indexOf('class="dashboard-col right pinned"');
   assert.ok(right > 0);
-  assert.ok(out.indexOf('id="home-usage-head"') < out.indexOf('id="card-running"'));
+  assert.ok(out.indexOf('id="dashboard-usage-head"') < out.indexOf('id="card-running"'));
   assert.ok(out.indexOf('id="card-running"') < out.indexOf('id="card-up-next"'));
   assert.ok(out.indexOf('id="card-up-next"') < right);
   assert.ok(right < out.indexOf('id="card-notifications"'));
 });
 
 test("the right column is pinned only while it holds Notifications alone", () => {
-  assert.doesNotMatch(render(state(), undefined, moveCard(DEFAULT_LAYOUT, "running", "right")), /home-col right pinned/);
+  assert.doesNotMatch(render(state(), undefined, moveCard(DEFAULT_LAYOUT, "running", "right")), /dashboard-col right pinned/);
 });
 
 test("the Today and Needs you cards are gone", () => {
@@ -98,7 +98,7 @@ test("the Today and Needs you cards are gone", () => {
 
 test("a moved card follows the layout, and a hidden card is not drawn", () => {
   const moved = render(state(), undefined, moveCard(DEFAULT_LAYOUT, "running", "right", 0));
-  assert.ok(moved.indexOf('class="home-col right"') < moved.indexOf('id="card-running"'));
+  assert.ok(moved.indexOf('class="dashboard-col right"') < moved.indexOf('id="card-running"'));
   assert.ok(moved.indexOf('id="card-running"') < moved.indexOf('id="card-notifications"'));
   const hidden = render(state(), undefined, setHidden(DEFAULT_LAYOUT, "running", true));
   assert.doesNotMatch(hidden, /card-running/);
@@ -106,11 +106,11 @@ test("a moved card follows the layout, and a hidden card is not drawn", () => {
 
 test("each slot carries its place for the one-column layout", () => {
   const out = render(state());
-  assert.match(out, /home-slot notifications" style="--stack:1"/);
-  assert.match(out, /home-slot running" style="--stack:2"/);
+  assert.match(out, /dashboard-slot notifications" style="--stack:1"/);
+  assert.match(out, /dashboard-slot running" style="--stack:2"/);
 });
 
-test("before the first answer Home shows a loader, with the live cards already there", () => {
+test("before the first answer Dashboard shows a loader, with the live cards already there", () => {
   const out = render(state({ usage: null }));
   assert.match(out, /class="loader"/);
   assert.match(out, /id="card-notifications"/);
@@ -151,7 +151,7 @@ test("edit mode shows a bar with a drag handle and the move buttons on every car
   assert.match(out, /aria-label="Move Running to the right column"/);
   assert.match(out, /aria-label="Move Notifications to the left column"/);
   assert.match(out, /aria-label="Hide Up next"/);
-  assert.equal(out.match(/class="home-slot-body" inert=""/g)?.length, 4);
+  assert.equal(out.match(/class="dashboard-slot-body" inert=""/g)?.length, 4);
 });
 
 test("the first card of a column cannot move up and the last cannot move down", () => {
@@ -170,6 +170,6 @@ test("edit mode lists hidden cards so they can be shown again", () => {
 
 test("the usage card has a header like the other cards, with the update time and refresh", () => {
   const out = render(state());
-  assert.match(out, /class="card-head"><svg[^]*?<h2 id="home-usage-head">Usage<\/h2><span class="card-actions"><span class="usage-updated">Updated [^<]+<\/span>[^]*?aria-label="Refresh usage"/);
-  assert.match(render(state({ usage: null })), /<h2 id="home-usage-head">Usage<\/h2>/);
+  assert.match(out, /class="card-head"><svg[^]*?<h2 id="dashboard-usage-head">Usage<\/h2><span class="card-actions"><span class="usage-updated">Updated [^<]+<\/span>[^]*?aria-label="Refresh usage"/);
+  assert.match(render(state({ usage: null })), /<h2 id="dashboard-usage-head">Usage<\/h2>/);
 });

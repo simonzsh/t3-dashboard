@@ -23,10 +23,10 @@ interface Props {
   onResetLayout: () => void;
 }
 
-/** The header buttons of a page: Sessions picks its layout and starts a session, Automations a task, Home edits its layout. */
+/** The header buttons of a page: Sessions picks its layout and starts a session, Automations a task, Dashboard edits its layout. */
 export function PageActions({ tab, compact, ready, editingLayout, layoutIsDefault, layout, onLayoutChange, showLayoutToggle, onNewSession, onNewAutomation, onSearch, onEditLayout, onDoneLayout, onResetLayout }: Props) {
   let main = null;
-  if (tab === "home" && editingLayout) {
+  if (tab === "dashboard" && editingLayout) {
     main = compact ? (
       <>
         <IconButton variant="ghost" label="Reset layout" disabled={layoutIsDefault} onClick={onResetLayout}>
@@ -46,7 +46,7 @@ export function PageActions({ tab, compact, ready, editingLayout, layoutIsDefaul
         </Button>
       </>
     );
-  } else if (tab === "home") {
+  } else if (tab === "dashboard") {
     main = compact ? (
       <IconButton variant="primary" className="header-new" label="Edit layout" onClick={onEditLayout}>
         <Icon name="layoutPanels" />

@@ -1,10 +1,10 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import type { DashboardThread } from "../../shared/api.ts";
 import { AutomationsView } from "./features/automations/AutomationsView.tsx";
-import { HomeView } from "./features/home/HomeView.tsx";
-import { isDefaultLayout } from "./features/home/layout.ts";
-import { useHomeLayout } from "./features/home/useHomeLayout.ts";
-import { useUsage } from "./features/home/useUsage.ts";
+import { DashboardView } from "./features/dashboard/DashboardView.tsx";
+import { isDefaultLayout } from "./features/dashboard/layout.ts";
+import { useDashboardLayout } from "./features/dashboard/useDashboardLayout.ts";
+import { useUsage } from "./features/dashboard/useUsage.ts";
 import { InboxView } from "./features/inbox/InboxView.tsx";
 import { AppNav } from "./features/shell/AppNav.tsx";
 import { PageActions } from "./features/shell/PageActions.tsx";
@@ -149,7 +149,7 @@ export function App() {
   const blocked = creating || creatingAutomation || settingsOpen || confirmingUpdate || switcherQuery !== null;
   useShortcuts(
     (action) => {
-      if (action === "home" || action === "sessions" || action === "automations") setTab(action);
+      if (action === "dashboard" || action === "sessions" || action === "automations") setTab(action);
       else if (action === "settings") setSettingsOpen(true);
       else if (action === "toggle-sidebar") {
         if (!compact) toggleSidebar();
@@ -209,8 +209,8 @@ export function App() {
   );
   const unread = useMemo(() => unreadCount(inboxSections(visible, notify.seen, now), notify.seen), [visible, notify.seen, now]);
   const badges = navBadges(state?.threads ?? NO_THREADS, sessionIds, unread);
-  const homeLayout = useHomeLayout(tab === "home");
-  const usage = useUsage(tab === "home" && state !== null);
+  const dashboardLayout = useDashboardLayout(tab === "dashboard");
+  const usage = useUsage(tab === "dashboard" && state !== null);
   const page = TABS.find((t) => t.id === tab)!;
   const updateNav = update.status?.available && update.status.canUpdate ? { label: updateLabel(update.status), busy: update.updating || update.status.updating } : null;
 
@@ -251,24 +251,24 @@ export function App() {
               tab={tab}
               compact={compact}
               ready={state !== null}
-              editingLayout={homeLayout.editing}
-              layoutIsDefault={isDefaultLayout(homeLayout.layout)}
+              editingLayout={dashboardLayout.editing}
+              layoutIsDefault={isDefaultLayout(dashboardLayout.layout)}
               layout={layout}
               onLayoutChange={setLayout}
               showLayoutToggle={showLayoutToggle}
               onNewSession={() => setCreating(true)}
               onNewAutomation={() => setCreatingAutomation(true)}
               onSearch={() => setSwitcherQuery("")}
-              onEditLayout={() => homeLayout.setEditing(true)}
-              onDoneLayout={() => homeLayout.setEditing(false)}
-              onResetLayout={homeLayout.reset}
+              onEditLayout={() => dashboardLayout.setEditing(true)}
+              onDoneLayout={() => dashboardLayout.setEditing(false)}
+              onResetLayout={dashboardLayout.reset}
             />
           }
         />
         <ConnectionBanner connection={state?.connection ?? null} sseDown={sseDown} />
         <NotificationToasts toasts={notify.toasts} onOpen={(id) => openInSessions(id, true)} onDismiss={notify.dismiss} />
         <main>
-          {tab === "home" &&
+          {tab === "dashboard" &&
             (state ? (
               <InboxView
                 state={state}
@@ -286,7 +286,7 @@ export function App() {
                 linearVersion={linearVersion}
               >
                 {(cards) => (
-                  <HomeView usage={usage} threads={state.threads} now={now} layout={homeLayout.layout} editing={homeLayout.editing} onLayout={homeLayout.setLayout} cards={{ notifications: cards.notifications, running: cards.running, "up-next": cards.upNext }} />
+                  <DashboardView usage={usage} threads={state.threads} now={now} layout={dashboardLayout.layout} editing={dashboardLayout.editing} onLayout={dashboardLayout.setLayout} cards={{ notifications: cards.notifications, running: cards.running, "up-next": cards.upNext }} />
                 )}
               </InboxView>
             ) : <Loader />)}

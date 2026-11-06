@@ -29,7 +29,7 @@ test("the layout toggle marks the active view", () => {
 test("the layout toggle is hidden when it is off, and on other pages", () => {
   assert.doesNotMatch(render("sessions", { showLayoutToggle: false }), /Layout|Column view/);
   assert.match(render("sessions", { showLayoutToggle: false }), /New Session/);
-  for (const tab of ["home", "automations"] as const) assert.doesNotMatch(render(tab), /Column view|Grid view/);
+  for (const tab of ["dashboard", "automations"] as const) assert.doesNotMatch(render(tab), /Column view|Grid view/);
 });
 
 test("Automations shows New Automation only", () => {
@@ -38,28 +38,28 @@ test("Automations shows New Automation only", () => {
   assert.doesNotMatch(out, /New Session|Edit layout/);
 });
 
-test("Home shows Edit layout only", () => {
-  const out = render("home");
+test("Dashboard shows Edit layout only", () => {
+  const out = render("dashboard");
   assert.match(out, /Edit layout/);
   assert.doesNotMatch(out, /New Session|New Automation/);
 });
 
-test("in edit mode Home shows Reset, then the primary Done", () => {
-  const out = render("home", { editingLayout: true });
+test("in edit mode Dashboard shows Reset, then the primary Done", () => {
+  const out = render("dashboard", { editingLayout: true });
   assert.ok(out.indexOf(">Reset<") < out.indexOf(">Done<"));
   assert.match(out, /class="btn md primary"[^>]*>Done/);
   assert.doesNotMatch(out, /Edit layout/);
 });
 
 test("Reset is disabled while the layout is the default", () => {
-  assert.match(render("home", { editingLayout: true, layoutIsDefault: true }), /<button[^>]*disabled=""[^>]*>Reset/);
+  assert.match(render("dashboard", { editingLayout: true, layoutIsDefault: true }), /<button[^>]*disabled=""[^>]*>Reset/);
 });
 
 test("on a phone the page action is an icon button, with the search button", () => {
-  const home = render("home", { compact: true });
-  assert.match(home, /aria-label="Edit layout"/);
-  assert.match(home, /aria-label="Search"/);
-  assert.doesNotMatch(home, />Edit layout</);
+  const dashboard = render("dashboard", { compact: true });
+  assert.match(dashboard, /aria-label="Edit layout"/);
+  assert.match(dashboard, /aria-label="Search"/);
+  assert.doesNotMatch(dashboard, />Edit layout</);
   assert.match(render("sessions", { compact: true }), /aria-label="New Session"/);
   assert.match(render("automations", { compact: true }), /aria-label="New Automation"/);
 });

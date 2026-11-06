@@ -88,7 +88,7 @@ interface Props extends Omit<RowProps, "issue"> {
 export function UpNextCard({ board, needsKey, loading, failed, tickets, relaunch, relaunchCount, onRefresh, ...rowProps }: Props) {
   const empty = board !== null && tickets.length === 0 && relaunchCount === 0 && !needsKey;
   return (
-    <section className="home-card up-next-card" aria-labelledby="up-next-head">
+    <section className="dashboard-card up-next-card" aria-labelledby="up-next-head">
       <CardHead
         id="up-next-head"
         icon="listChecks"

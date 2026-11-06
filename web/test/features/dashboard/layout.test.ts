@@ -2,7 +2,7 @@ import { test } from "bun:test";
 import assert from "node:assert/strict";
 import {
   DEFAULT_LAYOUT,
-  HOME_LAYOUT_KEY,
+  DASHBOARD_LAYOUT_KEY,
   columnOf,
   isDefaultLayout,
   loadLayout,
@@ -13,7 +13,7 @@ import {
   shiftCard,
   stackedOrder,
   validateLayout,
-} from "../../../src/features/home/layout.ts";
+} from "../../../src/features/dashboard/layout.ts";
 
 test("the default layout has the usage card, Running and Up next on the left and Notifications on the right", () => {
   assert.deepEqual(DEFAULT_LAYOUT, { left: ["usage", "running", "up-next"], right: ["notifications"], hidden: [] });
@@ -63,7 +63,7 @@ test("the layout is saved and loaded, and a broken value gives the default", () 
   const moved = moveCard(DEFAULT_LAYOUT, "running", "right");
   saveLayout(storage, moved);
   assert.deepEqual(loadLayout(storage), moved);
-  store.set(HOME_LAYOUT_KEY, "{not json");
+  store.set(DASHBOARD_LAYOUT_KEY, "{not json");
   assert.deepEqual(loadLayout(storage), DEFAULT_LAYOUT);
   assert.deepEqual(loadLayout(null), DEFAULT_LAYOUT);
 });

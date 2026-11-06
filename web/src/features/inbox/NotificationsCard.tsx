@@ -19,7 +19,7 @@ export function NotificationsCard({ sections, now, loading, renderItem, onMarkAl
   const attention = sections.needsYou.length + sections.unread.length;
   const folded = sections.readIdle.length - recentRead(sections.readIdle, now).length;
   return (
-    <section className="home-card notifications-card" aria-labelledby="notifications-head">
+    <section className="dashboard-card notifications-card" aria-labelledby="notifications-head">
       <CardHead
         id="notifications-head"
         icon="bell"

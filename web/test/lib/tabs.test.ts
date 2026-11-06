@@ -2,8 +2,8 @@ import { test } from "bun:test";
 import assert from "node:assert/strict";
 import { TABS, hashForTab, tabFromHash } from "../../src/lib/tabs.ts";
 
-test("the tabs are Home, Sessions and Automations, keyed 1 to 3", () => {
-  assert.deepEqual(TABS.map((t) => [t.id, t.label, t.key]), [["home", "Home", "1"], ["sessions", "Sessions", "2"], ["automations", "Automations", "3"]]);
+test("the tabs are Dashboard, Sessions and Automations, keyed 1 to 3", () => {
+  assert.deepEqual(TABS.map((t) => [t.id, t.label, t.key]), [["dashboard", "Dashboard", "1"], ["sessions", "Sessions", "2"], ["automations", "Automations", "3"]]);
 });
 
 test("each tab has a one-line description", () => {
@@ -11,27 +11,23 @@ test("each tab has a one-line description", () => {
 });
 
 test("each tab has its own hash", () => {
-  assert.equal(hashForTab("home"), "#/home");
+  assert.equal(hashForTab("dashboard"), "#/dashboard");
   assert.equal(hashForTab("sessions"), "#/sessions");
   assert.equal(hashForTab("automations"), "#/automations");
 });
 
 test("a tab hash reads back as its tab", () => {
-  assert.equal(tabFromHash("#/home"), "home");
+  assert.equal(tabFromHash("#/dashboard"), "dashboard");
   assert.equal(tabFromHash("#/sessions"), "sessions");
   assert.equal(tabFromHash("#/automations"), "automations");
 });
 
-test("the old inbox hash opens Home", () => {
-  assert.equal(tabFromHash("#/inbox"), "home");
+test("no hash opens Dashboard", () => {
+  assert.equal(tabFromHash(""), "dashboard");
+  assert.equal(tabFromHash("#"), "dashboard");
+  assert.equal(tabFromHash("#/"), "dashboard");
 });
 
-test("no hash opens Home", () => {
-  assert.equal(tabFromHash(""), "home");
-  assert.equal(tabFromHash("#"), "home");
-  assert.equal(tabFromHash("#/"), "home");
-});
-
-test("an unknown or old hash opens Home", () => {
-  for (const hash of ["#/agents", "#/board", "#/settings", "#/Sessions", "#/sessions/extra", "#/constructor", "#/__proto__", "sessions"]) assert.equal(tabFromHash(hash), "home", hash);
+test("an unknown hash opens Dashboard", () => {
+  for (const hash of ["#/agents", "#/inbox", "#/home", "#/board", "#/settings", "#/Sessions", "#/sessions/extra", "#/constructor", "#/__proto__", "sessions"]) assert.equal(tabFromHash(hash), "dashboard", hash);
 });

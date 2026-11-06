@@ -29,7 +29,7 @@ interface Props {
   automationsError: string | null;
   /** Changes when the Linear settings change: the tickets then load again. */
   linearVersion: number;
-  /** Gets the cards, so the Home layout decides where each one goes. */
+  /** Gets the cards, so the Dashboard layout decides where each one goes. */
   children: (cards: InboxCards) => ReactNode;
 }
 

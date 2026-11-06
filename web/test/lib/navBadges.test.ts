@@ -13,7 +13,7 @@ test("agentCounts counts waiting and working threads", () => {
 
 test("navBadges counts running agents among the sessions windows only", () => {
   const threads = [thread("a", { status: "running" }), thread("b", { status: "running" }), thread("c", { status: "completed" })];
-  assert.deepEqual(navBadges(threads, new Set(["a", "c"]), 3), { homeUnread: 3, sessionsRunning: 1, sessionsWaiting: false });
+  assert.deepEqual(navBadges(threads, new Set(["a", "c"]), 3), { dashboardUnread: 3, sessionsRunning: 1, sessionsWaiting: false });
 });
 
 test("navBadges flags a session window that waits for an answer", () => {

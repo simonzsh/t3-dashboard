@@ -38,7 +38,7 @@ const render = (
   );
 const part = (out: string, id: "n" | "r" | "u") => out.slice(out.indexOf(`<div id="${id}">`), out.indexOf("</section>", out.indexOf(`<div id="${id}">`)));
 
-test("an empty Home says nothing needs you and that no agent runs", () => {
+test("an empty Dashboard says nothing needs you and that no agent runs", () => {
   const out = render([]);
   assert.match(part(out, "n"), /Nothing needs you/);
   assert.match(part(out, "r"), /No agent is running/);

@@ -246,7 +246,7 @@ export function SessionsView({ sessions, dispatch, threads, projects, layout, t3
       <div ref={root} className="sessions">
         <div className="empty-state sessions-empty">
           <strong>No sessions open</strong>
-          <span>Open one from Home, or start one with New Session.</span>
+          <span>Open one from Dashboard, or start one with New Session.</span>
           <span className="shortcut-hint">
             Press <Kbd>{ctrlLabel("K")}</Kbd> to search every session.
           </span>

@@ -2,24 +2,24 @@
 
 [Back to the README](../README.md)
 
-The dashboard has three pages: Home, Sessions and Automations. A sidebar on the left lists them, with a search button (`⌘` + `K`). Its last row shows the connection state, Settings and a button that collapses the sidebar to icons (`Ctrl` + `B`). The theme and the accent color are in Settings. The sidebar remembers its state. The page header is one line: the title and a short description. Its button depends on the page: Sessions has a Column view and Grid view toggle and New Session (`Ctrl` + `N`), Automations has New Automation (`Ctrl` + `⇧` + `N`), and Home has Edit layout. The two shortcuts work on every page. On a phone, a bar at the bottom of the screen replaces the sidebar: Home, Sessions, Automations and Settings. The header then shows the page button as an icon, and a search button.
+The dashboard has three pages: Dashboard, Sessions and Automations. A sidebar on the left lists them, with a search button (`⌘` + `K`). Its last row shows the connection state, Settings and a button that collapses the sidebar to icons (`Ctrl` + `B`). The theme and the accent color are in Settings. The sidebar remembers its state. The page header is one line: the title and a short description. Its button depends on the page: Sessions has a Column view and Grid view toggle and New Session (`Ctrl` + `N`), Automations has New Automation (`Ctrl` + `⇧` + `N`), and Dashboard has Edit layout. The two shortcuts work on every page. On a phone, a bar at the bottom of the screen replaces the sidebar: Dashboard, Sessions, Automations and Settings. The header then shows the page button as an icon, and a search button.
 
-## Home
+## Dashboard
 
-Home opens first. At the top, a usage card shows three numbers for the last 7 days, each with its change from the 7 days before: turns (the messages sent to agents, by you or by an automation), sessions with at least one turn, and spend (API equivalent, all usage on this machine). A chart shows turns, spend or tokens for each of the last 14 days. Home has two columns. The usage card and the Running and Up next cards are on the left. The Notifications card is on the right and stays in view while the page scrolls. On a phone, the cards stack in one column: usage, Notifications, Running, Up next.
+Dashboard opens first. At the top, a usage card shows three numbers for the last 7 days, each with its change from the 7 days before: turns (the messages sent to agents, by you or by an automation), sessions with at least one turn, and spend (API equivalent, all usage on this machine). A chart shows turns, spend or tokens for each of the last 14 days. Dashboard has two columns. The usage card and the Running and Up next cards are on the left. The Notifications card is on the right and stays in view while the page scrolls. On a phone, the cards stack in one column: usage, Notifications, Running, Up next.
 
 - Click "Edit layout" to move the cards. Drag a card by its header to another place, also into the other column. The arrow buttons move the card up, down or to the other column: use them with the keyboard or on a touch screen. The eye button hides the card. A list of hidden cards shows at the top, with a button to show each one.
-- Click "Done" to leave edit mode. "Reset" restores the default layout. The browser saves the layout (`t3-dashboard-home-layout` in local storage), so each browser has its own.
+- Click "Done" to leave edit mode. "Reset" restores the default layout. The browser saves the layout (`t3-dashboard-layout` in local storage), so each browser has its own.
 
 - Turns are the runs of your T3 Code threads. Spend and tokens come from T3 Code and cover all usage on this machine, not only these threads. The spend is the API equivalent.
-- If T3 Code is too old to report usage, the spend shows "—" and the reason. The rest of Home keeps working.
+- If T3 Code is too old to report usage, the spend shows "—" and the reason. The rest of Dashboard keeps working.
 
 ## Inbox
 
-The Inbox is made of three Home cards: Notifications, Running and Up next. The Home entry in the sidebar shows the number of unread items (waiting, failed or finished, not read yet). `Ctrl` + `1` opens Home.
+The Inbox is made of three Dashboard cards: Notifications, Running and Up next. The Dashboard entry in the sidebar shows the number of unread items (waiting, failed or finished, not read yet). `Ctrl` + `1` opens Dashboard.
 
 - Notifications lists, newest first in each group: the agents that need you (waiting for an approval or an answer, or failed and not settled), then the unread results, then the recent read agents, greyed. A status icon shows the kind: warning (waits for you), alert (failed), check (finished). Each item shows the title, one line of detail (what it waits for, the error, or the model), the project and the time. Items that need you or are unread have a tint and a dot. The badge in the header counts them.
-- Point at an unread item to see its one button: the check marks it read. An agent that waits or failed has no button: it still needs you. The Running card rows keep their buttons: the T3 Code logo opens the conversation in T3 Code, the archive button settles the agent (when allowed) and `+` opens it in Sessions. A click on a notification opens the conversation in Sessions and marks it read. `⇧` + click opens it in Sessions without leaving Home.
+- Point at an unread item to see its one button: the check marks it read. An agent that waits or failed has no button: it still needs you. The Running card rows keep their buttons: the T3 Code logo opens the conversation in T3 Code, the archive button settles the agent (when allowed) and `+` opens it in Sessions. A click on a notification opens the conversation in Sessions and marks it read. `⇧` + click opens it in Sessions without leaving Dashboard.
 - The "Mark all read" button of the header marks all unread results read.
 - "See all" shows every read agent, also the ones with no activity for 3 days or more, and the "Settle all older than 3 days" button. When nothing needs you, the card says "Nothing needs you". Settled agents are not listed: find them with `⌘` + `K`.
 - Running lists the agents that work, with the model, the project and the time. A click opens the conversation in Sessions.
@@ -48,7 +48,7 @@ Sessions shows your open conversations side by side. Each session is a column of
 - There is no limit on the number of open sessions. The strip scrolls sideways. A new session opens at the right end and scrolls into view.
 - The toggle in the page header chooses the view. Column view shows one session per column. Grid view stacks two sessions in each column, and the strip still scrolls sideways. Each browser keeps its choice.
 - Each session has a header with a drag handle, its title, its state, the project name, and three buttons: open in T3 Code, full screen, close. Drag the header onto another session to swap them.
-- Close a session with the x button. Open it again from Home or from the switcher.
+- Close a session with the x button. Open it again from Dashboard or from the switcher.
 - The server keeps which finished conversations you opened, for the Inbox and the Inbox badge, in `~/.config/t3-dashboard/seen.json`. A conversation read on one device is read on all of them.
 - The server keeps which conversations are open in Sessions in `~/.config/t3-dashboard/sessions.json`. Every device shows the same conversations, and an opened or closed session appears on the other open tabs at once. Each device keeps its own session order, focused session, full screen session, layout and Jump to history.
 
@@ -205,7 +205,7 @@ The shortcuts use `Ctrl`, also on a Mac, and they work while you type in a field
 
 | Key | Action |
 | --- | --- |
-| `Ctrl` + `1`, `2`, `3` | Opens Home, Sessions or Automations. |
+| `Ctrl` + `1`, `2`, `3` | Opens Dashboard, Sessions or Automations. |
 | `Ctrl` + `K` or `⌘` + `K` | Opens or closes the "Jump to" switcher. It finds a conversation by title, project or message. Without text, it shows the agents that wait for an answer, then your recent conversations. `↑` `↓` select, `Enter` opens in Sessions. |
 | `Ctrl` + `S` | In the message field of a conversation: stashes the draft. |
 | `Ctrl` + `N` | Opens New Session. |

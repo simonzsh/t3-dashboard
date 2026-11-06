@@ -28,8 +28,8 @@ interface Props {
 const WAITING = "An agent is waiting for your reply";
 
 function Badges({ id, badges, badgeText }: { id: Tab; badges: NavBadges; badgeText: Props["badgeText"] }) {
-  if (id === "home" && badges.homeUnread > 0) {
-    return <span className="nav-badge ok" role="img" aria-label={`${badges.homeUnread} unread`}>{badgeText(badges.homeUnread)}</span>;
+  if (id === "dashboard" && badges.dashboardUnread > 0) {
+    return <span className="nav-badge ok" role="img" aria-label={`${badges.dashboardUnread} unread`}>{badgeText(badges.dashboardUnread)}</span>;
   }
   if (id !== "sessions") return null;
   return (

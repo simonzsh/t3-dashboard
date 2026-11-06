@@ -1,10 +1,10 @@
 import type { IconName } from "../ui/index.ts";
 
-export type Tab = "home" | "sessions" | "automations";
+export type Tab = "dashboard" | "sessions" | "automations";
 
 export const TABS: ReadonlyArray<{ id: Tab; label: string; key: string; icon: IconName; description: string }> = [
-  { id: "home", label: "Home", key: "1", icon: "home", description: "Usage, and every agent that needs you." },
-  { id: "sessions", label: "Sessions", key: "2", icon: "layoutPanels", description: "Your open conversations side by side, scrolling sideways." },
+  { id: "dashboard", label: "Dashboard", key: "1", icon: "layoutPanels", description: "Usage, and every agent that needs you." },
+  { id: "sessions", label: "Sessions", key: "2", icon: "messagesSquare", description: "Your open conversations side by side, scrolling sideways." },
   { id: "automations", label: "Automations", key: "3", icon: "calendarClock", description: "Scheduled agents and their latest runs." },
 ];
 
@@ -13,7 +13,7 @@ export const tabSelector = (tab: Tab): string => `[data-tab="${tab}"]`;
 
 export const hashForTab = (tab: Tab): string => `#/${tab}`;
 
-// An empty, unknown or old (#/inbox) hash falls back to Home, so an old link never shows a blank page.
+// An empty or unknown hash falls back to the Dashboard, so a bad link never shows a blank page.
 export function tabFromHash(hash: string): Tab {
-  return TABS.find(({ id }) => hashForTab(id) === hash)?.id ?? "home";
+  return TABS.find(({ id }) => hashForTab(id) === hash)?.id ?? "dashboard";
 }
