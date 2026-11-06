@@ -4,6 +4,7 @@ import type { SeenState } from "../../../../shared/seen.ts";
 import { relativeTime } from "../../lib/format.ts";
 import { ProjectIcon } from "../../lib/ProjectIcon.tsx";
 import { ProviderIcon } from "../../lib/ProviderIcon.tsx";
+import { modelLabel } from "../../lib/models.ts";
 import { threadTitle } from "../../lib/threads.ts";
 import { Icon, IconButton, Pressable } from "../../ui/index.ts";
 import { groupByProject, listableThreads, statusMark, type ListPrefs } from "./sessionList.ts";
@@ -39,7 +40,7 @@ export function SessionList({ threads, projects, seen, modelNames, now, openIds,
 
   const row = (t: DashboardThread) => {
     const mark = statusMark(t, seen);
-    const model = t.model ? (modelNames.get(t.model) ?? t.model) : null;
+    const model = modelLabel(t.model, modelNames);
     const title = threadTitle(t);
     return (
       <Pressable key={t.id} className={`slist-row${openIds.has(t.id) ? " open" : ""}${t.id === focusedId ? " focused" : ""}`} aria-current={t.id === focusedId || undefined} onClick={() => onOpen(t.id)}>
@@ -73,7 +74,7 @@ export function SessionList({ threads, projects, seen, modelNames, now, openIds,
                   <Icon name={open ? "chevron" : "chevronRight"} className="icon slist-chevron" />
                   <ProjectIcon icon={g.project?.icon ?? null} title={g.title} />
                   <span className="slist-project-title">{g.title}</span>
-                  {g.running > 0 && <span className="slist-count running" aria-label={`${g.running} running`}>{g.running}</span>}
+                  {g.running > 0 && <span className="slist-count" aria-label={`${g.running} running`}>{g.running}</span>}
                 </Pressable>
                 {g.project && (
                   <IconButton variant="ghost" size="sm" className="slist-new" label={`New session in ${g.title}`} tooltip="New session here" onClick={() => onNewSession(g.id)}>
@@ -90,7 +91,6 @@ export function SessionList({ threads, projects, seen, modelNames, now, openIds,
   return (
     <aside className="slist" aria-label="Sessions list">
       <div className="slist-bar">
-        <span className="slist-bar-gap" />
         {grouped && (
           <IconButton variant="ghost" size="sm" label={foldLabel} tooltip={foldLabel} disabled={projectGroups.length === 0} onClick={() => onPrefs({ collapsed: anyOpen ? projectGroups.map((g) => g.id) : [] })}>
             <Icon name={anyOpen ? "chevronsDownUp" : "chevronsUpDown"} />
@@ -106,7 +106,6 @@ export function SessionList({ threads, projects, seen, modelNames, now, openIds,
       <div className="slist-body">
         {shown.length === 0 ? <p className="slist-empty">No sessions yet.</p> : groups}
       </div>
-      
     </aside>
   );
 }

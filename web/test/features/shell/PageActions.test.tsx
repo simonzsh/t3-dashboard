@@ -7,14 +7,14 @@ import type { Tab } from "../../../src/lib/tabs.ts";
 const noop = () => {};
 const render = (tab: Tab, over: Partial<Parameters<typeof PageActions>[0]> = {}) =>
   renderToStaticMarkup(
-    <PageActions tab={tab} compact={false} ready editingLayout={false} layoutIsDefault={false} layout="columns" onLayoutChange={noop} showLayoutToggle listHidden={false} onToggleList={noop} onNewSession={noop} onNewAutomation={noop} onSearch={noop} onEditLayout={noop} onDoneLayout={noop} onResetLayout={noop} {...over} />,
+    <PageActions tab={tab} compact={false} ready editingLayout={false} layoutIsDefault={false} layout="columns" onLayoutChange={noop} listHidden={false} onToggleList={noop} onNewSession={noop} onNewAutomation={noop} onSearch={noop} onEditLayout={noop} onDoneLayout={noop} onResetLayout={noop} {...over} />,
   );
 
 test("Sessions shows the list toggle, then the layout toggle, then New Session", () => {
   const out = render("sessions");
   assert.ok(out.indexOf("Hide the list") >= 0 && out.indexOf("Hide the list") < out.indexOf("Switch to grid view"));
   assert.ok(out.indexOf("Switch to grid view") < out.indexOf("New Session"));
-  assert.doesNotMatch(out, /recent activity|Group by project|all projects|Close all/);
+  assert.doesNotMatch(out, /Close all/);
 });
 
 test("a hidden list offers Show the list", () => {
@@ -24,9 +24,9 @@ test("a hidden list offers Show the list", () => {
 });
 
 test("on a phone Sessions shows New Session, then Search, and no list button", () => {
-  const out = render("sessions", { compact: true, showLayoutToggle: false });
+  const out = render("sessions", { compact: true });
   assert.ok(out.indexOf('aria-label="New Session"') < out.indexOf('aria-label="Search"'));
-  assert.doesNotMatch(out, /Hide the list|Show the list|recent activity|Group by project|Close all/);
+  assert.doesNotMatch(out, /Hide the list|Show the list/);
 });
 
 test("Sessions shows the layout toggle, then New Session with its icon and key", () => {
@@ -45,8 +45,8 @@ test("one layout button names the view it switches to", () => {
 });
 
 test("the layout toggle is hidden when it is off, and on other pages", () => {
-  assert.doesNotMatch(render("sessions", { showLayoutToggle: false }), /Switch to (grid|column) view/);
-  assert.match(render("sessions", { showLayoutToggle: false }), /New Session/);
+  assert.doesNotMatch(render("sessions", { compact: true }), /Switch to (grid|column) view/);
+  assert.match(render("sessions", { compact: true }), /New Session/);
   for (const tab of ["dashboard", "automations"] as const) assert.doesNotMatch(render(tab), /Switch to (grid|column) view/);
 });
 

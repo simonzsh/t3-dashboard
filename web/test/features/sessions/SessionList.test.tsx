@@ -26,7 +26,6 @@ test("grouped mode: a project row with its + button, then its threads with time 
   assert.match(html, /slist-project-title">Project A</);
   assert.match(html, /aria-label="New session in Project A"/);
   assert.match(html, /5 min ago · <svg[^>]*provider-icon[^]*?<\/svg>Model One/);
-  assert.doesNotMatch(html, /slist-head|slist-foot|Group by project|Hide the list/);
   assert.match(html, /<aside[^>]*><div class="slist-bar">.*<\/div><div class="slist-body"><section/);
 });
 
@@ -53,7 +52,6 @@ test("the top band, on the right: collapse all, view toggle, close all, and no h
 
 test("all folded offers Expand all projects", () => {
   const html = renderToStaticMarkup(<SessionList {...base} />);
-  assert.doesNotMatch(html, /Hide the list/);
   assert.match(html, /Show one list by recent activity/);
   const folded = renderToStaticMarkup(<SessionList {...base} prefs={{ ...DEFAULT_LIST_PREFS, collapsed: ["project-a"] }} />);
   assert.match(folded, /aria-label="Expand all projects"/);

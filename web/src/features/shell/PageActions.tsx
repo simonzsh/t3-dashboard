@@ -14,7 +14,6 @@ interface Props {
   /** The Sessions layout toggle: shown only on a wide screen. */
   layout: SessionLayout;
   onLayoutChange: (layout: SessionLayout) => void;
-  showLayoutToggle: boolean;
   /** The Sessions list toggle: wide screen only. */
   listHidden: boolean;
   onToggleList: () => void;
@@ -62,8 +61,8 @@ function Action({ compact, label, icon, variant = "secondary", withIcon = false,
   );
 }
 
-/** The header buttons of a page: Sessions hides the list, picks its layout and starts a session, Automations a task, Dashboard edits its layout (not on a phone). */
-export function PageActions({ tab, compact, ready, editingLayout, layoutIsDefault, layout, onLayoutChange, showLayoutToggle, listHidden, onToggleList, onNewSession, onNewAutomation, onSearch, onEditLayout, onDoneLayout, onResetLayout }: Props) {
+/** The header buttons of a page: Sessions hides the list, picks its layout and starts a session, Automations a task, Dashboard edits its layout. */
+export function PageActions({ tab, compact, ready, editingLayout, layoutIsDefault, layout, onLayoutChange, listHidden, onToggleList, onNewSession, onNewAutomation, onSearch, onEditLayout, onDoneLayout, onResetLayout }: Props) {
   let main = null;
   if (tab === "dashboard" && editingLayout) {
     main = (
@@ -86,7 +85,7 @@ export function PageActions({ tab, compact, ready, editingLayout, layoutIsDefaul
             <Icon name="panelLeft" />
           </IconButton>
         )}
-        {showLayoutToggle && (
+        {!compact && (
           <IconButton variant="ghost" className="layout-toggle" label={toggle} tooltip={toggle} onClick={() => onLayoutChange(toLayout)}>
             <Icon name={layout === "columns" ? "layoutGrid" : "columns"} />
           </IconButton>

@@ -1,6 +1,7 @@
 import { useMemo, type ReactNode } from "react";
 import type { AutomationsResult, DashboardState, DashboardThread } from "../../../../shared/api.ts";
 import type { SeenState } from "../../../../shared/seen.ts";
+import { modelLabel, modelNameMap } from "../../lib/models.ts";
 import { NotificationItem } from "./NotificationItem.tsx";
 import { NotificationsCard } from "./NotificationsCard.tsx";
 import { RunningCard } from "./RunningCard.tsx";
@@ -36,14 +37,14 @@ export function useDashboardCards({ state, visible, now, sessionIds, onOpen, onS
   const sections = useMemo(() => threadSections(visible, seen, new Set(relaunch.map((r) => r.thread.id))), [visible, seen, relaunch]);
   const { recent, old } = splitRead(sections.readIdle, now);
   const projects = useMemo(() => new Map(state.projects.map((p) => [p.id, p])), [state.projects]);
-  const modelNames = useMemo(() => new Map(state.providers.flatMap((p) => p.models).map((m) => [m.slug, m.name])), [state.providers]);
+  const modelNames = useMemo(() => modelNameMap(state.providers), [state.providers]);
   // Before the first automations answer, routine threads would flash in the lists.
   const loading = state.connection.t3 === "live" && ((automations === null && automationsError === null) || !seenReady);
 
   const rowProps = (t: DashboardThread) => ({
     thread: t,
     project: projects.get(t.projectId),
-    modelName: t.model && (modelNames.get(t.model) ?? t.model),
+    modelName: modelLabel(t.model, modelNames),
     now,
     inSessions: sessionIds.has(t.id),
     onOpen,

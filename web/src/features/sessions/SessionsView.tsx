@@ -2,6 +2,7 @@ import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, typ
 import type { DashboardProject, DashboardProvider, DashboardThread } from "../../../../shared/api.ts";
 import type { SeenState } from "../../../../shared/seen.ts";
 import { threadTitle } from "../../lib/threads.ts";
+import { modelNameMap } from "../../lib/models.ts";
 import { cellOf, neighborId, perColumn, spansRows, type SessionsAction, type SessionsState } from "./sessions.ts";
 import { focusSessionField, sessionWindowEl } from "./dom.ts";
 import { enter, Kbd, reducedMotion, useFlip } from "../../ui/index.ts";
@@ -213,7 +214,7 @@ function useWindowDrag(enabled: boolean, dispatch: Dispatch<SessionsAction>) {
 }
 
 export function SessionsView({ sessions, dispatch, threads, listed, projects, seen, now, layout, prefs, onPrefs, t3EnvironmentId, providers, phone, sessionShown, onBack, onOpen, onNewSession }: Props) {
-  const modelNames = useMemo(() => new Map(providers.flatMap((p) => p.models).map((m) => [m.slug, m.name])), [providers]);
+  const modelNames = useMemo(() => modelNameMap(providers), [providers]);
   const openIds = useMemo(() => new Set(sessions.ids), [sessions.ids]);
   // On a phone, closing the open session goes back to the list.
   const phoneDispatch = useCallback(
@@ -323,7 +324,7 @@ export function SessionsView({ sessions, dispatch, threads, listed, projects, se
   };
 
   if (phone) {
-    return sessionShown && focusedId ? (
+    return sessionShown ? (
       <div ref={root} className="sessions compact">
         <div ref={area} className="sessions-area" {...swipe}>
           {renderWindow(activeId, true)}
