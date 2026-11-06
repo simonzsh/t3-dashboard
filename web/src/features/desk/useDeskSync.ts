@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type Dispatch } from "react";
-import type { DeskUpdate, SharedDesk } from "../../../../shared/api.ts";
+import type { SessionsUpdate, SharedSessions } from "../../../../shared/api.ts";
 import { useApi } from "../../api/ApiContext.tsx";
 import { windowsToKeep, type DeskAction, type DeskState } from "./desk.ts";
 
@@ -8,15 +8,15 @@ const ORIGIN = crypto.randomUUID();
 const SAVE_DELAY_MS = 200;
 
 // Sorted: a change of order alone stays on this device.
-const keyOf = (desk: SharedDesk) => JSON.stringify([...desk.ids].sort());
+const keyOf = (desk: SharedSessions) => JSON.stringify([...desk.ids].sort());
 
 interface Options {
   desk: DeskState;
   dispatch: Dispatch<DeskAction>;
   /** null until a live state is known, so an offline start does not empty the desk. */
   threads: ReadonlyArray<{ id: string }> | null;
-  /** The last `desk` event from the server. */
-  remote: DeskUpdate | null;
+  /** The last `sessions` event from the server. */
+  remote: SessionsUpdate | null;
   /** SSE connections so far: a reconnect loads the desk again. */
   connects: number;
 }
@@ -31,7 +31,7 @@ export function useDeskSync({ desk, dispatch, threads, remote, connects }: Optio
   const windows = useRef(desk.windows);
   windows.current = desk.windows;
 
-  const apply = (shared: SharedDesk) => {
+  const apply = (shared: SharedSessions) => {
     known.current = keyOf(shared);
     dispatch({ type: "sync", ids: shared.ids });
   };
@@ -42,7 +42,7 @@ export function useDeskSync({ desk, dispatch, threads, remote, connects }: Optio
   useEffect(() => {
     let cancelled = false;
     api.getDesk().then(
-      ({ desk: saved }) => {
+      ({ sessions: saved }) => {
         if (cancelled) return;
         // No saved desk: the save effect below pushes this browser's one, unless it is empty,
         // so a new browser does not win over the one that holds the real desk.
@@ -58,16 +58,16 @@ export function useDeskSync({ desk, dispatch, threads, remote, connects }: Optio
   }, [api, reconnects]);
 
   useEffect(() => {
-    if (loaded && remote && remote.origin !== ORIGIN) apply(remote.desk);
+    if (loaded && remote && remote.origin !== ORIGIN) apply(remote.sessions);
   }, [remote]);
 
-  const shared: SharedDesk = { ids: desk.windows.map((w) => w.id) };
+  const shared: SharedSessions = { ids: desk.windows.map((w) => w.id) };
   const key = keyOf(shared);
   useEffect(() => {
     if (!loaded || key === known.current) return;
     const timer = setTimeout(() => {
       known.current = key;
-      api.saveDesk({ desk: shared, origin: ORIGIN }).catch(() => {});
+      api.saveDesk({ sessions: shared, origin: ORIGIN }).catch(() => {});
     }, SAVE_DELAY_MS);
     return () => clearTimeout(timer);
   }, [loaded, key]);

@@ -1,5 +1,5 @@
 import { useEffect, useReducer, useState } from "react";
-import type { DashboardEvent, DashboardState, DeskUpdate, Diff, SeenState } from "../../../shared/api.ts";
+import type { DashboardEvent, DashboardState, Diff, SeenState, SessionsUpdate } from "../../../shared/api.ts";
 import { DASHBOARD_EVENT_TYPES } from "../../../shared/events.ts";
 import { setStash } from "./stashStore.ts";
 
@@ -25,6 +25,7 @@ export function applyEvent(state: DashboardState | null, event: DashboardEvent):
       return { ...state, modelDefaults: event.data };
     case "connection":
       return { ...state, connection: event.data };
+    case "sessions":
     case "desk":
     case "stash":
     case "seen":
@@ -32,12 +33,12 @@ export function applyEvent(state: DashboardState | null, event: DashboardEvent):
   }
 }
 
-export function useDashboard(): { state: DashboardState | null; sseDown: boolean; remoteDesk: DeskUpdate | null; remoteSeen: SeenState | null; connects: number } {
+export function useDashboard(): { state: DashboardState | null; sseDown: boolean; remoteDesk: SessionsUpdate | null; remoteSeen: SeenState | null; connects: number } {
   const [state, dispatch] = useReducer(applyEvent, null);
   const [sseDown, setSseDown] = useState(false);
-  const [remoteDesk, setRemoteDesk] = useState<DeskUpdate | null>(null);
+  const [remoteDesk, setRemoteDesk] = useState<SessionsUpdate | null>(null);
   const [remoteSeen, setRemoteSeen] = useState<SeenState | null>(null);
-  // A reconnect may have missed `desk` or `seen` events: the count lets them load again.
+  // A reconnect may have missed `sessions` or `seen` events: the count lets them load again.
   const [connects, setConnects] = useState(0);
 
   useEffect(() => {
@@ -45,7 +46,7 @@ export function useDashboard(): { state: DashboardState | null; sseDown: boolean
     for (const type of DASHBOARD_EVENT_TYPES) {
       es.addEventListener(type, (e) => {
         const event = { type, data: JSON.parse((e as MessageEvent<string>).data) } as DashboardEvent;
-        if (event.type === "desk") setRemoteDesk(event.data);
+        if (event.type === "sessions") setRemoteDesk(event.data);
         else if (event.type === "stash") setStash(event.data);
         else if (event.type === "seen") setRemoteSeen(event.data);
         else dispatch(event);

@@ -54,9 +54,11 @@ test("input state is not mutated", () => {
   assert.deepEqual(s, copy);
 });
 
-test("a desk event leaves the dashboard state alone", () => {
+test("a sessions or legacy desk event leaves the dashboard state alone", () => {
   const s = baseState([thread("thread-1")]);
   const desk = { ids: ["thread-1"] };
+  assert.equal(applyEvent(s, { type: "sessions", data: { sessions: desk, origin: "tab" } }), s);
+  assert.equal(applyEvent(null, { type: "sessions", data: { sessions: desk, origin: "tab" } }), null);
   assert.equal(applyEvent(s, { type: "desk", data: { desk, origin: "tab" } }), s);
   assert.equal(applyEvent(null, { type: "desk", data: { desk, origin: "tab" } }), null);
 });
