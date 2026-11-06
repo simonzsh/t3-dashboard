@@ -11,7 +11,7 @@ export interface AutoOpenOptions {
 }
 
 /** Marks the `sessions` events that the server itself sends, so no browser treats one as its own echo. */
-export const AUTO_OPEN_ORIGIN = "server";
+const AUTO_OPEN_ORIGIN = "server";
 
 /**
  * Adds a thread to the shared sessions when a new run starts on it. The last run per thread stays in memory:

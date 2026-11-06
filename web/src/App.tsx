@@ -121,9 +121,9 @@ export function App() {
   }
 
   // The rows are memoized: these callbacks keep one identity and call the latest handlers.
-  const handlers = useRef({ openInSessions });
-  handlers.current = { openInSessions };
-  const onOpen = useCallback((id: string, addOnly: boolean) => handlers.current.openInSessions(id, !addOnly), []);
+  const openRef = useRef(openInSessions);
+  openRef.current = openInSessions;
+  const onOpen = useCallback((id: string, addOnly: boolean) => openRef.current(id, !addOnly), []);
   const onSettle = useCallback((id: string, settle: boolean) => (settle ? api.settle(id) : api.unsettle(id)), []);
 
   const openSearch = () => {

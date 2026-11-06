@@ -4,13 +4,9 @@ import { relativeTime } from "../../lib/format.ts";
 import { tabSelector } from "../../lib/tabs.ts";
 import { fly } from "../../ui/index.ts";
 
-export function flyToSessions(row: Element | null, inSessions: boolean): void {
-  if (!inSessions && row) fly(row, document.querySelector(tabSelector("sessions")));
-}
-
 /** A click on a row opens its thread; with Shift the agent only joins Sessions and the row flies there. */
 export function openRow(e: MouseEvent<HTMLElement>, id: string, inSessions: boolean, onOpen: (id: string, addOnly: boolean) => void): void {
-  if (e.shiftKey) flyToSessions(e.currentTarget, inSessions);
+  if (e.shiftKey && !inSessions) fly(e.currentTarget, document.querySelector(tabSelector("sessions")));
   onOpen(id, e.shiftKey);
 }
 

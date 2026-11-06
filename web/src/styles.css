@@ -557,7 +557,7 @@ ol.install-steps { padding-left: 18px; }
 .notif-dot { flex: none; width: 8px; height: 8px; margin-top: 5px; border-radius: 50%; background: var(--accent); }
 /* The buttons replace the dot corner on hover and keyboard focus; touch screens show them at once. */
 .thread-actions { position: absolute; right: 8px; bottom: 6px; display: flex; align-items: center; gap: 4px; padding: 2px; border-radius: var(--radius-md); background: var(--surface-1); box-shadow: 0 0 0 1px var(--line); opacity: 0; pointer-events: none; transition: opacity 0.12s; }
-.notif-item:hover .thread-actions, .run-item:hover .thread-actions, .thread-actions:focus-within { opacity: 1; pointer-events: auto; }
+.notif-item:hover .thread-actions, .thread-actions:focus-within { opacity: 1; pointer-events: auto; }
 @media (pointer: coarse) { .thread-actions { opacity: 1; pointer-events: auto; } }
 .run-row { flex-direction: column; gap: 2px; overflow: hidden; }
 .run-row.working::after { content: ""; position: absolute; left: 0; bottom: 0; height: 2px; width: 50%; background: linear-gradient(90deg, transparent, var(--work), transparent); will-change: transform; animation: shimmer 1.8s ease-in-out infinite; }
