@@ -34,7 +34,8 @@ export function ModelPanel({ providers, selection, mode, modes, onSelection, onM
     const anchor = box?.offsetParent;
     if (!box || !anchor) return;
     const top = anchor.getBoundingClientRect().top;
-    const frame = anchor.closest(".desk-window")?.getBoundingClientRect().top ?? 0;
+    // A dialog is fixed above the desk: only the viewport bounds it.
+    const frame = anchor.closest(".dialog") ? 0 : (anchor.closest(".desk-window")?.getBoundingClientRect().top ?? 0);
     box.style.maxHeight = `${Math.max(180, top - frame - 12)}px`;
   });
   const chip = useRef<HTMLButtonElement>(null);
