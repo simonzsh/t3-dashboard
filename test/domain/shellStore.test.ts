@@ -207,6 +207,13 @@ test("a project row with deletedAt is a removal", () => {
   assert.deepEqual(store.state(connection, []).projects.map((project) => project.id), []);
 });
 
+test("a snapshot drops deleted projects", () => {
+  const { store } = live();
+  store.beginSync();
+  store.apply([snapshot([], [{ id: "kept", title: "Kept" }, { id: "gone", title: "Gone", deletedAt: "2026-11-06T10:00:00Z" }]), { kind: "synchronized" }]);
+  assert.deepEqual(store.state(connection, []).projects.map((project) => project.id), ["kept"]);
+});
+
 test("unknown kinds are ignored", () => {
   const { store, threads, projects, states } = live();
   store.apply([{ kind: "something.new" } as unknown as ShellItem]);

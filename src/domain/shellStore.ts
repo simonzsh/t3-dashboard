@@ -144,7 +144,10 @@ export class ShellStore {
         if (isSubagentThread(thread) && thread.lineage?.parentThreadId) maps.parents.set(thread.id, thread.lineage.parentThreadId);
       } else maps.threads.set(thread.id, thread);
     }
-    for (const project of snapshot?.projects ?? []) maps.projects.set(project.id, project);
+    for (const project of snapshot?.projects ?? []) {
+      if (project.deletedAt) maps.projects.delete(project.id);
+      else maps.projects.set(project.id, project);
+    }
   }
 
   private commit(): void {
