@@ -250,3 +250,20 @@ test("getServerStats reads /api/server-stats", async () => {
   await api.getServerStats();
   assert.deepEqual(calls.map((c) => c.url), ["/api/server-stats"]);
 });
+
+test("browseFolders encodes the typed path in the query", async () => {
+  const { calls, api } = fake(200, { path: "/home/x/a b", kind: "missing", entries: [] });
+  const res = await api.browseFolders("~/a b/&c/");
+  assert.equal(res.kind, "missing");
+  assert.equal(calls[0]?.url, "/api/folders?path=~%2Fa%20b%2F%26c%2F");
+  assert.equal(calls[0]?.init?.method ?? "GET", "GET");
+});
+
+test("createProject posts the body and returns the result", async () => {
+  const { calls, api } = fake(200, { ok: true, projectId: "p9", created: true });
+  const res = await api.createProject({ path: "~/src/new", title: "New" });
+  assert.deepEqual(res, { ok: true, projectId: "p9", created: true });
+  assert.equal(calls[0]?.url, "/api/projects");
+  assert.equal(calls[0]?.init?.method, "POST");
+  assert.deepEqual(JSON.parse(String(calls[0]?.init?.body)), { path: "~/src/new", title: "New" });
+});

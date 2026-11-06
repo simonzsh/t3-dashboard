@@ -13,6 +13,7 @@ import { PageActions } from "./features/shell/PageActions.tsx";
 import { ConnectionBanner } from "./features/setup/ConnectionBanner.tsx";
 import { SessionsView } from "./features/sessions/SessionsView.tsx";
 import { NewAutomationDialog } from "./features/new-thread/NewAutomationDialog.tsx";
+import { AddProjectDialog } from "./features/projects/AddProjectDialog.tsx";
 import { NewThreadDialog } from "./features/new-thread/NewThreadDialog.tsx";
 import { NotificationToasts } from "./features/notifications/NotificationToasts.tsx";
 import { useNotifications } from "./features/notifications/useNotifications.ts";
@@ -88,6 +89,7 @@ export function App() {
   // null: closed; otherwise open, with the project to preselect, if any.
   const [creating, setCreating] = useState<{ projectId: string | null } | null>(null);
   const [creatingAutomation, setCreatingAutomation] = useState(false);
+  const [addingProject, setAddingProject] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [confirmingUpdate, setConfirmingUpdate] = useState(false);
   // null: closed; a string: open, seeded with that query.
@@ -150,7 +152,7 @@ export function App() {
     if (state) setSwitcherQuery("");
   };
 
-  const blocked = creating !== null || creatingAutomation || settingsOpen || confirmingUpdate || switcherQuery !== null;
+  const blocked = creating !== null || creatingAutomation || addingProject || settingsOpen || confirmingUpdate || switcherQuery !== null;
   useShortcuts(
     (action) => {
       if (action === "dashboard" || action === "sessions" || action === "automations") setTab(action);
@@ -330,6 +332,7 @@ export function App() {
                 onBack={back}
                 onOpen={openSession}
                 onNewSession={newSession}
+                onAddProject={() => setAddingProject(true)}
               />
             ) : <Loader />)}
         </main>
@@ -347,6 +350,7 @@ export function App() {
           }}
         />
       )}
+      {addingProject && <AddProjectDialog onClose={() => setAddingProject(false)} onCreated={() => setAddingProject(false)} />}
       {state && creatingAutomation && (
         <NewAutomationDialog
           projects={state.projects}
