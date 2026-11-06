@@ -250,6 +250,7 @@ function Conversation({ threadId, thread, providers, onOpenThread, onTitle }: Pr
   const messageEditing = useMemo(() => ({ onEdit: setEditing, disabled: running }), [running]);
   const docked = detail ? dockedRequest(detail.pendingRequests) : null;
   const question = useQuestionDock(threadId, docked, load);
+  const otherRequests = detail ? detail.pendingRequests.filter((r) => r !== docked) : [];
 
   const polling = useRef(false);
   polling.current = delay !== null;
@@ -398,9 +399,9 @@ function Conversation({ threadId, thread, providers, onOpenThread, onTitle }: Pr
           {!detail && !loadError && <Loader />}
           {detail && <Timeline detail={detail} threadId={threadId} running={running} editing={messageEditing} onOpenThread={onOpenThread} onChanged={load} />}
           {detail && !running && pending.map((p) => <PendingBubble key={p.id} message={p} />)}
-          {detail && detail.pendingRequests.some((r) => r !== docked) && (
+          {otherRequests.length > 0 && (
             <div className="requests">
-              {detail.pendingRequests.filter((r) => r !== docked).map((r) => (
+              {otherRequests.map((r) => (
                 <PendingRequestView key={r.requestId} threadId={threadId} request={r} />
               ))}
             </div>
