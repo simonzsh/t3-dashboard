@@ -18,6 +18,7 @@ const base = {
   onPrefs: () => {},
   onOpen: () => {},
   onNewSession: () => {},
+  onClose: () => {},
   onCloseAll: () => {},
 };
 
@@ -68,4 +69,11 @@ test("flat mode has no fold button; close all is disabled when nothing is open",
   const html = renderToStaticMarkup(<SessionList {...base} openIds={new Set()} prefs={{ ...DEFAULT_LIST_PREFS, mode: "flat" }} />);
   assert.doesNotMatch(html, /all projects/);
   assert.match(html, /<button[^>]*aria-label="Close all sessions"[^>]*disabled|<button[^>]*disabled[^>]*aria-label="Close all sessions"/);
+});
+
+test("an open row has a close button beside it, a closed row has none", () => {
+  const html = renderToStaticMarkup(<SessionList {...base} openIds={new Set(["t1"])} focusedId="t1" />);
+  assert.match(html, /aria-label="Close Fix login"/);
+  assert.doesNotMatch(html, /aria-label="Close Refund flow"/);
+  assert.doesNotMatch(html, /<button[^>]*slist-row[^>]*>(?:(?!<\/button>).)*aria-label="Close/);
 });

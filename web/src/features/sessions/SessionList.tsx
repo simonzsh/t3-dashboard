@@ -24,11 +24,12 @@ interface Props {
   onPrefs: (change: Partial<ListPrefs>) => void;
   onOpen: (id: string) => void;
   onNewSession: (projectId: string) => void;
+  onClose: (id: string) => void;
   onCloseAll: () => void;
 }
 
 /** Every listed thread, by project or by recent activity: a click opens it as a session. */
-function SessionListView({ threads, projects, seen, modelNames, now, openIds, focusedId, prefs, onPrefs, onOpen, onNewSession, onCloseAll }: Props) {
+function SessionListView({ threads, projects, seen, modelNames, now, openIds, focusedId, prefs, onPrefs, onOpen, onNewSession, onClose, onCloseAll }: Props) {
   const shown = useMemo(() => listableThreads(threads), [threads]);
   const collapsed = new Set(prefs.collapsed);
   const grouped = prefs.mode === "grouped";
@@ -44,32 +45,41 @@ function SessionListView({ threads, projects, seen, modelNames, now, openIds, fo
     const model = modelLabel(t.model, modelNames);
     const project = projectsById.get(t.projectId);
     const title = threadTitle(t);
+    const isOpen = openIds.has(t.id);
     return (
-      <Pressable key={t.id} className={`slist-row${openIds.has(t.id) ? " open" : ""}${t.id === focusedId ? " focused" : ""}`} aria-current={t.id === focusedId || undefined} onClick={() => onOpen(t.id)}>
-        <span className={`slist-mark${mark ? ` ${mark}` : ""}`} role={mark ? "img" : undefined} aria-label={mark ? MARK_LABELS[mark] : undefined} aria-hidden={mark ? undefined : true} />
-        <span className="slist-text">
-          <span className="slist-title">{title}</span>
-          <span className="slist-meta">
-            {relativeTime(t.lastActivityAt, now)}
-            {/* Grouped rows sit under their project, so they name the model; flat rows name the project. */}
-            {grouped
-              ? model && (
-                  <>
-                    {" · "}
-                    <ProviderIcon provider={t.provider} />
-                    {model}
-                  </>
-                )
-              : project && (
-                  <>
-                    {" · "}
-                    <ProjectIcon icon={project.icon} title={project.title} />
-                    {project.title}
-                  </>
-                )}
+      <div key={t.id} className="slist-item">
+        <Pressable className={`slist-row${isOpen ? " open" : ""}${t.id === focusedId ? " focused" : ""}`} aria-current={t.id === focusedId || undefined} onClick={() => onOpen(t.id)}>
+          <span className={`slist-mark${mark ? ` ${mark}` : ""}`} role={mark ? "img" : undefined} aria-label={mark ? MARK_LABELS[mark] : undefined} aria-hidden={mark ? undefined : true} />
+          <span className="slist-text">
+            <span className="slist-title">{title}</span>
+            <span className="slist-meta">
+              {relativeTime(t.lastActivityAt, now)}
+              {/* Grouped rows sit under their project, so they name the model; flat rows name the project. */}
+              {grouped
+                ? model && (
+                    <>
+                      {" · "}
+                      <ProviderIcon provider={t.provider} />
+                      {model}
+                    </>
+                  )
+                : project && (
+                    <>
+                      {" · "}
+                      <ProjectIcon icon={project.icon} title={project.title} />
+                      {project.title}
+                    </>
+                  )}
+            </span>
           </span>
-        </span>
-      </Pressable>
+        </Pressable>
+        {/* A sibling of the row, not inside it: a button cannot hold another button. */}
+        {isOpen && (
+          <IconButton variant="ghost" size="sm" className="slist-close" label={`Close ${title}`} tooltip="Close session" onClick={() => onClose(t.id)}>
+            <Icon name="x" />
+          </IconButton>
+        )}
+      </div>
     );
   };
 

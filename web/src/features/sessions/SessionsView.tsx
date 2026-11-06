@@ -280,6 +280,7 @@ export function SessionsView({ sessions, dispatch, threads, listed, projects, se
     [focusedId, phone, onOpen],
   );
   const closeAll = useCallback(() => dispatch({ type: "closeAll" }), [dispatch]);
+  const closeOne = useCallback((id: string) => dispatch({ type: "close", id }), [dispatch]);
   const list = () => (
     <SessionList
       threads={listed}
@@ -294,6 +295,7 @@ export function SessionsView({ sessions, dispatch, threads, listed, projects, se
       onPrefs={onPrefs}
       onOpen={openFromList}
       onNewSession={onNewSession}
+      onClose={closeOne}
       onCloseAll={closeAll}
     />
   );
