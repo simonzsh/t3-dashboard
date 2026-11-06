@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "bun:test";
 import { DemoPort, demoLinearFetch } from "../../src/app/demo/port.ts";
-import { demoFixtures, demoUsageBuckets } from "../../src/app/demo/fixtures.ts";
+import { demoFixtures, demoServerStats, demoUsageBuckets } from "../../src/app/demo/fixtures.ts";
 import { issues } from "../../src/integrations/contract.ts";
 import { LinearClient } from "../../src/integrations/linear/client.ts";
 import { RawConfig, RawProjection, RawProject, RawThread, UsageSummaryResponse } from "../../src/integrations/t3/schemas.ts";
@@ -333,4 +333,14 @@ test("Edit from here in the demo removes the message and what followed", async (
   assert.equal(first.rewindable, true);
   await actions.rewind(id, first.id, false);
   assert.deepEqual((await actions.threadDetail(id)).messages, []);
+});
+
+test("the demo server stats are plausible, move over time and show an amber disk", () => {
+  const a = demoServerStats(NOW);
+  const b = demoServerStats(new Date(NOW.getTime() + 10_000));
+  for (const percent of [a.cpu.usedPercent!, a.memory.usedPercent, a.disk!.usedPercent]) assert.ok(percent >= 0 && percent <= 100);
+  assert.notEqual(a.cpu.usedPercent, b.cpu.usedPercent);
+  assert.notEqual(a.memory.usedBytes, b.memory.usedBytes);
+  assert.ok(a.disk!.usedPercent >= 75 && a.disk!.usedPercent < 90);
+  assert.equal(a.disk!.path, "/home/demo");
 });

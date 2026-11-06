@@ -8,6 +8,7 @@ import type { SeenStore } from "../domain/seenStore.ts";
 import type { Automations } from "../domain/automations.ts";
 import type { LinearBoard } from "../domain/linearBoard.ts";
 import type { ProviderLimitsReader } from "../domain/providerLimits.ts";
+import type { ServerStatsReader } from "../domain/serverStats.ts";
 import type { Usage } from "../domain/usage.ts";
 import type { Settings } from "../domain/settings.ts";
 import type { UpdateManager } from "../domain/updates.ts";
@@ -34,6 +35,7 @@ export interface DashboardServerOptions {
   board: Pick<LinearBoard, "get">;
   usage: Pick<Usage, "get">;
   limits: Pick<ProviderLimitsReader, "get">;
+  serverStats: Pick<ServerStatsReader, "get">;
   automations: Pick<Automations, "list" | "create" | "remove" | "update">;
   sessions: Pick<SessionsStore, "get" | "set">;
   stash: Pick<StashStore, "list" | "add" | "remove">;
@@ -151,7 +153,7 @@ function matchRoute(pattern: string[], segments: string[]): Record<string, strin
 }
 
 export function createDashboardServer(options: DashboardServerOptions): DashboardHandler {
-  const { actions, sessions, stash, seen, hub, board, usage, limits, automations, getState, connection, site, settings, setup, updates } = options;
+  const { actions, sessions, stash, seen, hub, board, usage, limits, serverStats, automations, getState, connection, site, settings, setup, updates } = options;
   const allowedHosts = new Set([...LOCAL_HOSTS, ...(options.allowedHosts ?? [])]);
   const ok = (extra: Record<string, unknown> = {}) => json(200, { ok: true, ...extra });
   const done = async (work: Promise<unknown>) => (await work, ok());
@@ -195,6 +197,7 @@ export function createDashboardServer(options: DashboardServerOptions): Dashboar
         return json(200, await usage.get(validTimeZone(params.get("tz")), params.get("refresh") === "1"));
       },
     },
+    { method: "GET", path: "/api/server-stats", handle: async () => json(200, await serverStats.get()) },
     { method: "GET", path: "/api/limits", handle: async ({ req }) => json(200, await limits.get(new URL(req.url).searchParams.get("refresh") === "1")) },
     { method: "GET", path: "/api/automations", handle: async () => json(200, await automations.list()) },
     { method: "GET", path: "/api/settings", handle: () => json(200, settings.get()) },

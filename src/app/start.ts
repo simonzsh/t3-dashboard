@@ -1,5 +1,6 @@
 import { readFileSync } from "node:fs";
-import { homedir } from "node:os";
+import { statfs } from "node:fs/promises";
+import os, { homedir } from "node:os";
 import { setTimeout as sleep } from "node:timers/promises";
 import index from "../../web/index.html";
 import type { DashboardProvider } from "../../shared/api.ts";
@@ -16,6 +17,7 @@ import { environmentIdFile, readEnvironmentId, readServerVersion, resolveOrigin,
 import { LiveSync } from "../domain/liveSync.ts";
 import { LinearBoard } from "../domain/linearBoard.ts";
 import { createProviderLimits } from "../domain/providerLimits.ts";
+import { createServerStats, vmStatAvailable } from "../domain/serverStats.ts";
 import { createUsage } from "../domain/usage.ts";
 import { readSessions, sessionsText } from "../config/sessionsFile.ts";
 import { readStash, stashText } from "../config/stashFile.ts";
@@ -126,6 +128,7 @@ export async function start({ port, log, env }: StartOptions): Promise<void> {
 
   const usage = createUsage({ port: client, threads: () => getState().threads, now: () => new Date() });
   const limits = createProviderLimits({ port: client, now: () => new Date() });
+  const serverStats = createServerStats({ os, statfs, diskPath: homedir(), now: () => new Date(), sleep, availableMemory: os.platform() === "darwin" ? darwinAvailableMemory : undefined });
 
   const settings = createSettings({ file: linearPath, readFile: readText, writeSecret, board });
   const wake = () => {
@@ -167,7 +170,7 @@ export async function start({ port, log, env }: StartOptions): Promise<void> {
   const stash = new StashStore(readStash(stashFile, readText), (entries) => writeSecret(stashFile, stashText(entries)), { now: () => new Date(), newId: () => crypto.randomUUID() });
   const seenFile = seenPath(env, home);
   const seen = new SeenStore(readSeen(seenFile, readText), (value) => writeSecret(seenFile, seenText(value)));
-  const handler = createDashboardServer({ actions, sessions, stash, seen, hub, board, usage, limits, automations, getState, connection: () => live.connection(), site, settings, setup, updates, allowedHosts: envAllowedHosts(env) });
+  const handler = createDashboardServer({ actions, sessions, stash, seen, hub, board, usage, limits, serverStats, automations, getState, connection: () => live.connection(), site, settings, setup, updates, allowedHosts: envAllowedHosts(env) });
 
   const reclassifier = setInterval(() => store.reclassify(new Date()), RECLASSIFY_MS);
   // A dev build has no version to compare, and its runs must not call GitHub.
@@ -201,4 +204,10 @@ export async function start({ port, log, env }: StartOptions): Promise<void> {
   };
   process.on("SIGINT", shutdown);
   process.on("SIGTERM", shutdown);
+}
+
+async function darwinAvailableMemory(): Promise<number | null> {
+  const proc = Bun.spawn(["vm_stat"], { stdout: "pipe", stderr: "ignore" });
+  const [code, text] = await Promise.all([proc.exited, new Response(proc.stdout).text()]);
+  return code === 0 ? vmStatAvailable(text) : null;
 }

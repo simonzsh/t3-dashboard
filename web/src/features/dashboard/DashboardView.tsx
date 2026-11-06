@@ -1,15 +1,17 @@
-import type { LimitsOverview, UsageOverview } from "../../../../shared/api.ts";
+import type { LimitsOverview, ServerStats, UsageOverview } from "../../../../shared/api.ts";
 import { Fragment, useState, type CSSProperties, type DragEvent, type ReactNode } from "react";
 import { CardEditBar } from "./CardEditBar.tsx";
 import { CARD_TITLES, dropCard, moveCard, setHidden, shiftCard, stackedOrder, type Column, type DashboardCard, type DashboardLayout } from "./layout.ts";
 import { Button, Icon } from "../../ui/index.ts";
 import { ActivityCard } from "./ActivityCard.tsx";
+import { ServerCard } from "./ServerCard.tsx";
 import { UsageCard } from "./UsageCard.tsx";
 import { useDashboardCards, type CardsInput } from "./useDashboardCards.tsx";
 import type { ReadState } from "./pollRead.ts";
 
 interface Props extends CardsInput {
   limits: ReadState<LimitsOverview>;
+  server: ReadState<ServerStats>;
   activity: ReadState<UsageOverview>;
   /** Agents at work among the listed threads: the same count as the Sessions badge and the Running card. */
   running: number;
@@ -19,14 +21,14 @@ interface Props extends CardsInput {
   onLayout: (layout: DashboardLayout) => void;
 }
 
-export function DashboardView({ limits, activity, running, layout, editing, onLayout, ...input }: Props) {
+export function DashboardView({ limits, server, activity, running, layout, editing, onLayout, ...input }: Props) {
   const [dragged, setDragged] = useState<DashboardCard | null>(null);
   // Where the dragged card would land, shown as a placeholder of its size.
   const [target, setTarget] = useState<{ column: Column; index: number } | null>(null);
   const [dragHeight, setDragHeight] = useState(0);
   // A hidden Up next reads no tickets.
   const cards = useDashboardCards(input, !layout.hidden.includes("up-next"));
-  const body: Record<DashboardCard, ReactNode> = { usage: <UsageCard state={limits} now={input.now} />, activity: <ActivityCard state={activity} running={running} now={input.now} />, ...cards };
+  const body: Record<DashboardCard, ReactNode> = { usage: <UsageCard state={limits} now={input.now} />, server: <ServerCard state={server} />, activity: <ActivityCard state={activity} running={running} now={input.now} />, ...cards };
   const order = stackedOrder(layout);
   const endDrag = () => {
     setDragged(null);

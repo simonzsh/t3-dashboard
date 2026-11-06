@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "bun:test";
 import type { LimitsOverview, LimitWindow, ProviderLimits } from "../../../../shared/api.ts";
-import { caption, elapsedPercent, elapsedShare, meterLabel, oldestCheck, pace, resetLabel, severity, sortProviders, sortWindows, usedPercent } from "../../../src/features/dashboard/limitsView.ts";
+import { caption, elapsedPercent, elapsedShare, meterLabel, oldestCheck, pace, resetLabel, sortProviders, sortWindows, usedPercent } from "../../../src/features/dashboard/limitsView.ts";
 
 const NOW = new Date("2026-11-06T12:00:00Z");
 const MIN = 60_000;
@@ -14,13 +14,6 @@ test("usedPercent rounds the quota used and clamps", () => {
   assert.equal(usedPercent(win({ usedPercent: 38.6 })), 39);
   assert.equal(usedPercent(win({ usedPercent: 130 })), 100);
   assert.equal(usedPercent(win({ usedPercent: -3 })), 0);
-});
-
-test("severity switches at 75 and 90 percent used", () => {
-  assert.equal(severity(win({ usedPercent: 74.9 })), "ok");
-  assert.equal(severity(win({ usedPercent: 75 })), "warn");
-  assert.equal(severity(win({ usedPercent: 89.9 })), "warn");
-  assert.equal(severity(win({ usedPercent: 90 })), "danger");
 });
 
 test("elapsedShare is the share of the window gone, or null without an end or a length", () => {

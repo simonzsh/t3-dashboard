@@ -1,3 +1,4 @@
+import type { ServerStats } from "../../../shared/api.ts";
 import type { LinearIssueNode } from "../../integrations/linear/schemas.ts";
 import type { RawConfig, RawProject, RawProjection, RawScheduledTask, RawSubagent, RawThread, RawTurnItem, RawUsageLimits, RawUsageSummary } from "../../integrations/t3/schemas.ts";
 
@@ -464,6 +465,30 @@ export function demoUsageLimits(now: Date): Record<string, RawUsageLimits> {
       windows: [window("primary", "session", "Session", 91, SESSION_MINUTES, 150), window("secondary", "weekly", "Weekly", 23, WEEK_MINUTES, 5 * 1440 + 6 * 60)],
       resetCredits: { availableCount: 2 },
     },
+  };
+}
+
+const GIB = 1024 ** 3;
+const DEMO_BOOT = Date.parse("2026-10-20T08:00:00Z");
+const WEEK_MS = 7 * 86_400_000;
+
+/** An invented workstation whose numbers drift on slow sines, so the card visibly moves. */
+export function demoServerStats(now: Date): ServerStats {
+  const t = now.getTime();
+  const wave = (periodMs: number) => (Math.sin((t / periodMs) * 2 * Math.PI) + 1) / 2;
+  const memoryTotal = 32 * GIB;
+  const memoryUsed = (11 + 3 * wave(97_000)) * GIB;
+  const diskTotal = 512 * 1e9;
+  const diskUsed = diskTotal * 0.78;
+  return {
+    host: "workstation",
+    os: "Linux",
+    // Loops over a week, so a screenshot taken any day shows a plausible uptime.
+    uptimeSeconds: 12 * 86_400 + Math.floor((((t - DEMO_BOOT) % WEEK_MS) + WEEK_MS) % WEEK_MS / 1000),
+    cpu: { usedPercent: 18 + 28 * wave(41_000), cores: 8 },
+    memory: { usedBytes: memoryUsed, totalBytes: memoryTotal, usedPercent: (memoryUsed / memoryTotal) * 100 },
+    disk: { path: "/home/demo", usedBytes: diskUsed, totalBytes: diskTotal, usedPercent: 78 },
+    readAt: now.toISOString(),
   };
 }
 

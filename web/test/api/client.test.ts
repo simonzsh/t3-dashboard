@@ -244,3 +244,9 @@ test("getThread keeps etags per thread and forgets the oldest past 50", async ()
   assert.equal(sentEtag(calls[51]), null, "oldest entry was evicted");
   assert.equal(sentEtag(calls[52]), 'W/"50"');
 });
+
+test("getServerStats reads /api/server-stats", async () => {
+  const { calls, api } = fake(200, {});
+  await api.getServerStats();
+  assert.deepEqual(calls.map((c) => c.url), ["/api/server-stats"]);
+});

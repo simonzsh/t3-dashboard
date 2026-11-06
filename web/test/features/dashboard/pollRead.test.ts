@@ -16,7 +16,7 @@ const flush = async () => {
   for (let i = 0; i < 10; i++) await Promise.resolve();
 };
 
-function harness(results: Array<Value | Error>, force = false, page = visible) {
+function harness(results: Array<Value | Error>, force = false, page = visible, ms?: number) {
   const forces: boolean[] = [];
   const patches: ReadPatch<Value>[] = [];
   const read = async (f: boolean) => {
@@ -25,7 +25,7 @@ function harness(results: Array<Value | Error>, force = false, page = visible) {
     if (next instanceof Error) throw next;
     return next;
   };
-  const stop = startReadPoll(read, (p) => patches.push(p), force, page);
+  const stop = startReadPoll(read, (p) => patches.push(p), force, page, ms);
   const advance = async (ms: number) => {
     jest.advanceTimersByTime(ms);
     await flush();
@@ -82,4 +82,16 @@ test("stopping cancels the next read and drops a late answer", async () => {
   assert.deepEqual(h.patches.map((p) => p.loading), [true]);
   await h.advance(120_000);
   assert.equal(h.forces.length, 1);
+});
+
+test("a custom interval sets the pace of the next reads", async () => {
+  const h = harness([{ id: "a" }, { id: "b" }, { id: "c" }], false, visible, 10_000);
+  await h.advance(0);
+  await h.advance(9_999);
+  assert.equal(h.forces.length, 1);
+  await h.advance(1);
+  assert.equal(h.forces.length, 2);
+  await h.advance(10_000);
+  assert.equal(h.forces.length, 3);
+  h.stop();
 });

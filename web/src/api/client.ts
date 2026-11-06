@@ -34,6 +34,7 @@ import type {
   UploadBody,
   UploadResult,
   LimitsOverview,
+  ServerStats,
   UsageOverview,
 } from "../../../shared/api.ts";
 
@@ -102,6 +103,7 @@ export function createApi(fetchImpl: Fetch) {
     deleteAutomation: (id: string) => call<OkResult>(`/api/automations/${encodeURIComponent(id)}/delete`, {}),
     getBoard: (refresh = false) => call<BoardResult>(refresh ? "/api/board?refresh=1" : "/api/board"),
     getUsage: (timeZone: string, refresh = false) => call<UsageOverview>(`/api/usage?tz=${encodeURIComponent(timeZone)}${refresh ? "&refresh=1" : ""}`),
+    getServerStats: () => call<ServerStats>("/api/server-stats"),
     getLimits: (refresh = false) => call<LimitsOverview>(refresh ? "/api/limits?refresh=1" : "/api/limits"),
     assignIssue: (b: AssignIssueBody) => call<CreateThreadResult>("/api/board/assign", b),
     getSettings: () => call<SettingsResult>("/api/settings"),

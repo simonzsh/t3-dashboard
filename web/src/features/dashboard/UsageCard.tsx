@@ -1,7 +1,8 @@
 import type { LimitWindow, LimitsOverview, ProviderLimits } from "../../../../shared/api.ts";
 import { ProviderIcon } from "../../lib/ProviderIcon.tsx";
 import { CardHead, Icon, IconButton, Skeleton, SkeletonGroup } from "../../ui/index.ts";
-import { caption, elapsedPercent, meterLabel, oldestCheck, severity, sortProviders, sortWindows, usedPercent } from "./limitsView.ts";
+import { caption, elapsedPercent, meterLabel, oldestCheck, sortProviders, sortWindows, usedPercent } from "./limitsView.ts";
+import { Meter } from "./Meter.tsx";
 import type { ReadState } from "./pollRead.ts";
 
 function LimitTile({ window, now }: { window: LimitWindow; now: Date }) {
@@ -14,10 +15,7 @@ function LimitTile({ window, now }: { window: LimitWindow; now: Date }) {
       <span className="stat-value">
         {usedPercent(window)}%<span className="limits-used"> used</span>
       </span>
-      <div className={`limits-meter ${severity(window)}`} role="img" aria-label={label} data-tooltip={label}>
-        <span className="limits-fill" style={{ width: `${usedPercent(window)}%` }} aria-hidden="true" />
-        {elapsed !== null && <span className="limits-tick" style={{ left: `${elapsed}%` }} aria-hidden="true" />}
-      </div>
+      <Meter percent={window.usedPercent} label={label} tick={elapsed} />
       {note && <span className="stat-caption">{note}</span>}
     </div>
   );
