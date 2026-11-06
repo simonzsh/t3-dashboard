@@ -84,9 +84,11 @@ test("without the dashboard state Sessions and Automations show no create button
   assert.equal(render("automations", { ready: false }), "");
 });
 
-test("on a phone Dashboard has no Edit layout, only the search button", () => {
+test("on a phone Dashboard has Edit layout as an icon, then Reset and Done while editing", () => {
   const out = render("dashboard", { compact: true });
-  assert.doesNotMatch(out, /Edit layout|Done|Reset/);
+  assert.match(out, /aria-label="Edit layout"/);
   assert.match(out, /aria-label="Search"/);
-  assert.doesNotMatch(render("dashboard", { compact: true, editingLayout: true }), /Done|Reset/);
+  const editing = render("dashboard", { compact: true, editingLayout: true });
+  assert.match(editing, /aria-label="Reset"/);
+  assert.match(editing, /aria-label="Done"/);
 });
