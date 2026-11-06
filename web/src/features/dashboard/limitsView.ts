@@ -1,7 +1,6 @@
 import type { LimitsOverview, LimitWindow, LimitWindowKind, ProviderLimits } from "../../../../shared/api.ts";
 import { relativeTime } from "../../lib/format.ts";
 import { providerKind } from "../../lib/threads.ts";
-import type { IconName } from "../../ui/index.ts";
 
 export const LIMITS_POLL_MS = 60_000;
 
@@ -10,16 +9,18 @@ const PACE_BAND = 5;
 const MINUTE = 60_000;
 
 export type Pace = "ahead" | "on" | "under";
+export type Severity = "ok" | "warn" | "danger";
 
-export const PACE: Record<Pace, { icon: IconName; label: string }> = {
-  ahead: { icon: "trendingUp", label: "Spending faster than the window elapses" },
-  on: { icon: "gauge", label: "On pace with the window" },
-  under: { icon: "trendingDown", label: "Headroom left in this window" },
-};
+const PACE_LABEL: Record<Pace, string> = { ahead: "Ahead of pace", on: "On pace", under: "Under pace" };
+const WARN_AT = 75;
+const DANGER_AT = 90;
 
 const clamp = (value: number, low: number, high: number): number => Math.min(high, Math.max(low, value));
 
-export const leftPercent = (w: LimitWindow): number => Math.round(100 - clamp(w.usedPercent, 0, 100));
+export const usedPercent = (w: LimitWindow): number => Math.round(clamp(w.usedPercent, 0, 100));
+
+/** The fill colour step; the number and the caption carry the same state in text. */
+export const severity = (w: LimitWindow): Severity => (w.usedPercent >= DANGER_AT ? "danger" : w.usedPercent >= WARN_AT ? "warn" : "ok");
 
 /** The share of the window already gone, 0..1; null when the window has no end or no length. */
 export function elapsedShare(w: LimitWindow, now: Date): number | null {
@@ -28,10 +29,10 @@ export function elapsedShare(w: LimitWindow, now: Date): number | null {
   return clamp((total - (Date.parse(w.resetsAt) - now.getTime())) / total, 0, 1);
 }
 
-/** Where the pace marker sits on the bar: the share of the window left, like the bar's quota. */
-export function timeLeftPercent(w: LimitWindow, now: Date): number | null {
+/** Where the elapsed-time tick sits on the meter. */
+export function elapsedPercent(w: LimitWindow, now: Date): number | null {
   const elapsed = elapsedShare(w, now);
-  return elapsed === null ? null : Math.round((1 - elapsed) * 100);
+  return elapsed === null ? null : Math.round(elapsed * 100);
 }
 
 export function pace(w: LimitWindow, now: Date): Pace | null {
@@ -55,8 +56,15 @@ export function resetLabel(resetsAt: string | null, now: Date): string | null {
   return rest > 0 ? `${rest}m` : "<1m";
 }
 
-/** The hatch shows what is used, but only when a reset is coming. */
-export const showHatch = (w: LimitWindow): boolean => leftPercent(w) < 100 && w.resetsAt !== null;
+/** "Resets in 2h 30m · Ahead of pace"; empty when both are unknown. */
+export function caption(w: LimitWindow, now: Date): string {
+  const reset = resetLabel(w.resetsAt, now);
+  const paceKind = pace(w, now);
+  const parts = [];
+  if (reset !== null) parts.push(reset === "now" ? "Resets now" : `Resets in ${reset}`);
+  if (paceKind) parts.push(PACE_LABEL[paceKind]);
+  return parts.join(" · ");
+}
 
 const KIND_RANK: Record<LimitWindowKind, number> = { session: 0, weekly: 1, monthly: 2, other: 3 };
 export const sortWindows = (windows: LimitWindow[]): LimitWindow[] => [...windows].sort((a, b) => KIND_RANK[a.kind] - KIND_RANK[b.kind]);
@@ -71,13 +79,12 @@ export function oldestCheck(overview: LimitsOverview, now: Date): string {
   return `Checked ${relativeTime(oldest, now)}`;
 }
 
-/** The text a screen reader gets for one bar. */
-export function rowLabel(w: LimitWindow, credits: number, now: Date): string {
-  const timeLeft = timeLeftPercent(w, now);
+/** The text a screen reader gets for one meter. */
+export function meterLabel(w: LimitWindow, now: Date): string {
+  const elapsed = elapsedPercent(w, now);
   const reset = resetLabel(w.resetsAt, now);
-  const parts = [`${leftPercent(w)}% left`];
-  if (timeLeft !== null) parts.push(`${timeLeft}% of the window left`);
+  const parts = [`${usedPercent(w)}% used`];
+  if (elapsed !== null) parts.push(`${elapsed}% of the window elapsed`);
   if (reset !== null) parts.push(reset === "now" ? "resets now" : `resets in ${reset}`);
-  if (credits > 0) parts.push(`${credits} reset ${credits === 1 ? "credit" : "credits"} banked`);
   return `${w.label}: ${parts.join(", ")}`;
 }

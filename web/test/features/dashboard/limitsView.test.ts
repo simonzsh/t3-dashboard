@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "bun:test";
 import type { LimitsOverview, LimitWindow, ProviderLimits } from "../../../../shared/api.ts";
-import { elapsedShare, leftPercent, oldestCheck, pace, resetLabel, rowLabel, showHatch, sortProviders, sortWindows, timeLeftPercent } from "../../../src/features/dashboard/limitsView.ts";
+import { caption, elapsedPercent, elapsedShare, meterLabel, oldestCheck, pace, resetLabel, severity, sortProviders, sortWindows, usedPercent } from "../../../src/features/dashboard/limitsView.ts";
 
 const NOW = new Date("2026-11-06T12:00:00Z");
 const MIN = 60_000;
@@ -10,10 +10,17 @@ const after = (minutes: number) => new Date(NOW.getTime() + minutes * MIN).toISO
 const win = (over: Partial<LimitWindow> = {}): LimitWindow => ({ id: "w", kind: "session", label: "Session", usedPercent: 50, resetsAt: after(150), windowMinutes: 300, ...over });
 const provider = (driver: string, checkedAt: string | null = null): ProviderLimits => ({ instanceId: driver, driver, name: driver, windows: [], resetCredits: 0, checkedAt });
 
-test("leftPercent rounds the quota left and clamps", () => {
-  assert.equal(leftPercent(win({ usedPercent: 38.6 })), 61);
-  assert.equal(leftPercent(win({ usedPercent: 130 })), 0);
-  assert.equal(leftPercent(win({ usedPercent: -3 })), 100);
+test("usedPercent rounds the quota used and clamps", () => {
+  assert.equal(usedPercent(win({ usedPercent: 38.6 })), 39);
+  assert.equal(usedPercent(win({ usedPercent: 130 })), 100);
+  assert.equal(usedPercent(win({ usedPercent: -3 })), 0);
+});
+
+test("severity switches at 75 and 90 percent used", () => {
+  assert.equal(severity(win({ usedPercent: 74.9 })), "ok");
+  assert.equal(severity(win({ usedPercent: 75 })), "warn");
+  assert.equal(severity(win({ usedPercent: 89.9 })), "warn");
+  assert.equal(severity(win({ usedPercent: 90 })), "danger");
 });
 
 test("elapsedShare is the share of the window gone, or null without an end or a length", () => {
@@ -24,10 +31,10 @@ test("elapsedShare is the share of the window gone, or null without an end or a 
   assert.equal(elapsedShare(win({ windowMinutes: null }), NOW), null);
 });
 
-test("timeLeftPercent matches the T3 panel: 2h 48m left of 5 h is 56, 6d 15h left of 7 d is 95", () => {
-  assert.equal(timeLeftPercent(win({ resetsAt: after(2 * 60 + 48) }), NOW), 56);
-  assert.equal(timeLeftPercent(win({ kind: "weekly", windowMinutes: 10_080, resetsAt: after(6 * 1440 + 15 * 60) }), NOW), 95);
-  assert.equal(timeLeftPercent(win({ resetsAt: null }), NOW), null);
+test("elapsedPercent is the share of the window gone: 2h 48m left of 5 h is 44", () => {
+  assert.equal(elapsedPercent(win({ resetsAt: after(2 * 60 + 48) }), NOW), 44);
+  assert.equal(elapsedPercent(win({ kind: "weekly", windowMinutes: 10_080, resetsAt: after(6 * 1440 + 15 * 60) }), NOW), 5);
+  assert.equal(elapsedPercent(win({ resetsAt: null }), NOW), null);
 });
 
 test("pace compares the used share with the elapsed share, with a strict 5-point band", () => {
@@ -50,12 +57,6 @@ test("resetLabel", () => {
   assert.equal(resetLabel(after(4 * 1440 + 3 * 60 + 59), NOW), "4d 3h");
 });
 
-test("the hatch needs a used part and a reset time", () => {
-  assert.equal(showHatch(win({ usedPercent: 10 })), true);
-  assert.equal(showHatch(win({ usedPercent: 0 })), false);
-  assert.equal(showHatch(win({ resetsAt: null })), false);
-});
-
 test("sortWindows orders by kind and keeps T3's order within a kind", () => {
   const sorted = sortWindows([win({ id: "o", kind: "other" }), win({ id: "w1", kind: "weekly" }), win({ id: "s", kind: "session" }), win({ id: "m", kind: "monthly" }), win({ id: "w2", kind: "weekly" })]);
   assert.deepEqual(sorted.map((w) => w.id), ["s", "w1", "w2", "m", "o"]);
@@ -72,9 +73,16 @@ test("oldestCheck uses the earliest provider check, else the read time", () => {
   assert.equal(oldestCheck(overview([provider("a")]), NOW), "Checked just now");
 });
 
-test("rowLabel lists the quota, window left, reset and credits", () => {
+test("caption joins the reset countdown and the pace, and omits unknown parts", () => {
+  assert.equal(caption(win({ usedPercent: 91, resetsAt: after(150) }), NOW), "Resets in 2h 30m · Ahead of pace");
+  assert.equal(caption(win({ usedPercent: 50, resetsAt: after(150) }), NOW), "Resets in 2h 30m · On pace");
+  assert.equal(caption(win({ usedPercent: 10, resetsAt: after(150) }), NOW), "Resets in 2h 30m · Under pace");
+  assert.equal(caption(win({ usedPercent: 40, resetsAt: after(0) }), NOW), "Resets now · Under pace");
+  assert.equal(caption(win({ resetsAt: null }), NOW), "");
+});
+
+test("meterLabel lists the quota used, the window elapsed and the reset", () => {
   const weekly = win({ label: "Weekly", kind: "weekly", usedPercent: 69, windowMinutes: 10_080, resetsAt: after(4 * 1440 + 15 * 60) });
-  assert.equal(rowLabel(weekly, 3, NOW), "Weekly: 31% left, 66% of the window left, resets in 4d 15h, 3 reset credits banked");
-  assert.equal(rowLabel(weekly, 1, NOW).endsWith("1 reset credit banked"), true);
-  assert.equal(rowLabel(win({ label: "Session", usedPercent: 40, resetsAt: null }), 0, NOW), "Session: 60% left");
+  assert.equal(meterLabel(weekly, NOW), "Weekly: 69% used, 34% of the window elapsed, resets in 4d 15h");
+  assert.equal(meterLabel(win({ label: "Session", usedPercent: 40, resetsAt: null }), NOW), "Session: 40% used");
 });

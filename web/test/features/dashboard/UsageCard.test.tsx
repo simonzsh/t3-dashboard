@@ -28,47 +28,40 @@ test("providers show Codex first, then Claude, and windows by kind", () => {
   ]);
   assert.ok(out.indexOf(">Codex<") < out.indexOf(">Claude<"));
   assert.ok(out.indexOf(">Session<", out.indexOf(">Claude<")) < out.indexOf(">Weekly<"));
-  assert.match(out, /class="limits-provider codex"/);
-  assert.match(out, /class="limits-provider claude"/);
 });
 
-test("a row shows the quota left, the fill, the marker and the pace", () => {
-  // 38% used, 131 min left of 300: 62% left, marker at 44%, under pace.
+test("a tile shows the percent used, the meter fill, the elapsed tick and the caption", () => {
+  // 38% used, 131 min left of 300: tick at 56%, under pace.
   const out = render([provider("claudeAgent", [win()])]);
-  assert.match(out, /<b>62%<\/b> left/);
-  assert.match(out, /class="limits-fill" style="width:62%"/);
-  assert.match(out, /class="limits-hatch" style="width:38%"/);
-  assert.match(out, /class="limits-marker" style="left:44%"/);
-  assert.match(out, /aria-label="Headroom left in this window"/);
+  assert.match(out, /class="stat-value">38%<span class="limits-used"> used<\/span>/);
+  assert.match(out, /class="limits-fill" style="width:38%"/);
+  assert.match(out, /class="limits-tick" style="left:56%"/);
+  assert.match(out, /class="stat-caption">Resets in 2h 11m · Under pace</);
 });
 
-test("a window ahead of the pace shows the faster-spending label", () => {
-  const out = render([provider("codex", [win({ usedPercent: 91, resetsAt: after(150) })])]);
-  assert.match(out, /aria-label="Spending faster than the window elapses"/);
-  assert.match(out, /class="limits-marker" style="left:50%"/);
+test("the meter colour follows the severity", () => {
+  assert.match(render([provider("codex", [win({ usedPercent: 74 })])]), /class="limits-meter ok"/);
+  assert.match(render([provider("codex", [win({ usedPercent: 75 })])]), /class="limits-meter warn"/);
+  assert.match(render([provider("codex", [win({ usedPercent: 90 })])]), /class="limits-meter danger"/);
 });
 
-test("the bar has one text label for screen readers", () => {
+test("the meter has one text label for screen readers and the same tooltip", () => {
   const out = render([provider("codex", [win({ usedPercent: 91, resetsAt: after(150) })], 2)]);
-  assert.match(out, /role="img" aria-label="Session: 9% left, 50% of the window left, resets in 2h 30m, 2 reset credits banked"/);
+  const label = "Session: 91% used, 50% of the window elapsed, resets in 2h 30m";
+  assert.match(out, new RegExp(`role="img" aria-label="${label}" data-tooltip="${label}"`));
+  assert.match(out, /Resets in 2h 30m · Ahead of pace/);
 });
 
-test("without a reset time there is no hatch, marker, pace or chip", () => {
+test("without a reset time there is no tick and no caption", () => {
   const out = render([provider("codex", [win({ resetsAt: null })])]);
-  assert.doesNotMatch(out, /limits-hatch|limits-marker|limits-chip|limits-pace/);
+  assert.doesNotMatch(out, /limits-tick|stat-caption/);
   assert.match(out, /limits-fill/);
 });
 
-test("a spent window has no fill", () => {
-  assert.doesNotMatch(render([provider("codex", [win({ usedPercent: 100 })])]), /limits-fill/);
-});
-
-test("the chip shows the reset countdown and the banked credits", () => {
-  const out = render([provider("codex", [win({ resetsAt: after(150) })], 2)]);
-  assert.match(text(out), /2h 30m·2/);
-  assert.match(out, /class="limits-chip"/);
-  const none = render([provider("codex", [win({ resetsAt: after(150) })], 0)]);
-  assert.doesNotMatch(text(none), /·/);
+test("the provider head shows the banked reset credits only when there are some", () => {
+  assert.match(text(render([provider("codex", [win()], 2)])), /2 reset credits/);
+  assert.match(text(render([provider("codex", [win()], 1)])), /1 reset credit(?!s)/);
+  assert.doesNotMatch(render([provider("codex", [win()], 0)]), /limits-credits/);
 });
 
 test("the head shows when the oldest check ran", () => {
@@ -94,6 +87,6 @@ test("before the first answer there is a skeleton, and a failed first read shows
 
 test("a failed refresh keeps the rows and adds the error", () => {
   const out = render([provider("codex", [win()])], { error: "Boom." });
-  assert.match(out, /<b>62%<\/b>/);
+  assert.match(out, /38%/);
   assert.match(out, /role="alert">Could not refresh usage limits\. Boom\./);
 });
