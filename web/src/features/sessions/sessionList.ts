@@ -37,12 +37,6 @@ export function listableThreads(threads: readonly DashboardThread[]): DashboardT
     .sort(newestFirst);
 }
 
-export function filterThreads(threads: readonly DashboardThread[], query: string, projectTitle: (projectId: string) => string): DashboardThread[] {
-  const q = query.trim().toLowerCase();
-  if (q === "") return [...threads];
-  return threads.filter((t) => t.title.toLowerCase().includes(q) || projectTitle(t.projectId).toLowerCase().includes(q));
-}
-
 export interface ProjectGroup {
   id: string;
   /** null when the shell no longer lists the project. */
@@ -53,8 +47,8 @@ export interface ProjectGroup {
   unread: number;
 }
 
-/** One group per T3 project, in T3's order; `keepEmpty` keeps projects with no thread, so a session can start there. */
-export function groupByProject(threads: readonly DashboardThread[], projects: readonly DashboardProject[], seen: SeenState, keepEmpty: boolean): ProjectGroup[] {
+/** One group per T3 project that has a listed thread, in T3's order. */
+export function groupByProject(threads: readonly DashboardThread[], projects: readonly DashboardProject[], seen: SeenState): ProjectGroup[] {
   const groups = new Map<string, ProjectGroup>(projects.map((p) => [p.id, { id: p.id, project: p, title: p.title, threads: [], running: 0, unread: 0 }]));
   for (const t of threads) {
     let group = groups.get(t.projectId);
@@ -67,7 +61,7 @@ export function groupByProject(threads: readonly DashboardThread[], projects: re
     if (mark === "running") group.running += 1;
     else if (mark === "unread") group.unread += 1;
   }
-  return [...groups.values()].filter((g) => keepEmpty || g.threads.length > 0);
+  return [...groups.values()].filter((g) => g.threads.length > 0);
 }
 
 const isObject = (v: unknown): v is Record<string, unknown> => typeof v === "object" && v !== null && !Array.isArray(v);

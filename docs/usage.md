@@ -43,9 +43,8 @@ The Linear tickets feed "To relaunch" and "Up next". They need a Linear API key:
 Sessions shows your open conversations side by side. Each session is a column at least 380 px wide that fills the height of the page. When the columns do not fill the width, they widen to share it; when they need more room, the strip scrolls sideways. A hairline separates the columns.
 
 - A list panel sits left of the columns. It lists every thread that is not settled (a settled thread that runs or waits stays), without automation run threads, setup threads and sub-agents. ⌘K finds the settled ones.
-  - Grouped view (default): one row per T3 Code project, with a chevron to fold it, its icon, the number of running threads (accent) and of unread ones. Point at a project and click "+" to start a New Session in it. Flat view: one list, most recent first. The button in the panel header switches the view.
+  - Grouped view (default): one row per T3 Code project that has a listed thread, with a chevron to fold it, its icon, the number of running threads (accent) and of unread ones. Point at a project and click "+" to start a New Session in it. Flat view: one list, most recent first. The button in the panel header switches the view.
   - Each row has a status mark (a pulsing dot when it runs, orange when it waits for you, red when it failed, a small accent dot when it is unread), the title and "time · model". A thread open as a column has a thin accent bar on its left, and the focused one a filled background. Click a row to open it as a column, or to focus its column and scroll it into view.
-  - The search button shows a field that filters by title and project name. `Escape` closes it.
   - "Close all" at the bottom closes every column, with no confirmation.
   - "Hide the list" folds the panel; a small button brings it back. Each browser keeps the panel state, the view and the folded projects.
 - A new session opens at the right end and scrolls into view.

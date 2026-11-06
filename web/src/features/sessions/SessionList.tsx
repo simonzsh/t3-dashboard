@@ -1,11 +1,11 @@
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 import type { DashboardProject, DashboardThread } from "../../../../shared/api.ts";
 import type { SeenState } from "../../../../shared/seen.ts";
 import { relativeTime } from "../../lib/format.ts";
 import { ProjectIcon } from "../../lib/ProjectIcon.tsx";
 import { threadTitle } from "../../lib/threads.ts";
-import { Button, Icon, IconButton, Pressable, TextInput } from "../../ui/index.ts";
-import { filterThreads, groupByProject, listableThreads, statusMark, type ListPrefs } from "./sessionList.ts";
+import { Button, Icon, IconButton, Pressable } from "../../ui/index.ts";
+import { groupByProject, listableThreads, statusMark, type ListPrefs } from "./sessionList.ts";
 
 const MARK_LABELS = { running: "Running", waiting: "Waiting for you", error: "Failed", unread: "Unread" } as const;
 
@@ -29,12 +29,8 @@ interface Props {
 
 /** Every listed thread, by project or by recent activity: a click opens it as a session. */
 export function SessionList({ threads, projects, seen, modelNames, now, openIds, focusedId, prefs, onPrefs, onOpen, onNewSession, onCloseAll, onHide }: Props) {
-  const [searching, setSearching] = useState(false);
-  const [query, setQuery] = useState("");
-  const titles = useMemo(() => new Map(projects.map((p) => [p.id, p.title])), [projects]);
-  const shown = useMemo(() => filterThreads(listableThreads(threads), query, (id) => titles.get(id) ?? ""), [threads, query, titles]);
+  const shown = useMemo(() => listableThreads(threads), [threads]);
   const collapsed = new Set(prefs.collapsed);
-  const filtering = query.trim() !== "";
   const toMode = prefs.mode === "grouped" ? "flat" : "grouped";
   const modeLabel = prefs.mode === "grouped" ? "Show one list by recent activity" : "Group by project";
 
@@ -57,9 +53,8 @@ export function SessionList({ threads, projects, seen, modelNames, now, openIds,
 
   const groups =
     prefs.mode === "grouped"
-      ? groupByProject(shown, projects, seen, !filtering).map((g) => {
-          // A search opens every group, so no match hides behind a fold.
-          const open = filtering || !collapsed.has(g.id);
+      ? groupByProject(shown, projects, seen).map((g) => {
+          const open = !collapsed.has(g.id);
           const toggle = () => onPrefs({ collapsed: open ? [...prefs.collapsed, g.id] : prefs.collapsed.filter((id) => id !== g.id) });
           return (
             <section key={g.id} className="slist-group" aria-label={g.title}>
@@ -95,40 +90,9 @@ export function SessionList({ threads, projects, seen, modelNames, now, openIds,
         <IconButton variant="ghost" size="sm" label={modeLabel} tooltip={modeLabel} onClick={() => onPrefs({ mode: toMode })}>
           <Icon name={toMode === "grouped" ? "listTree" : "list"} />
         </IconButton>
-        <IconButton
-          variant="ghost"
-          size="sm"
-          className={searching ? "active" : undefined}
-          label="Search sessions"
-          aria-pressed={searching}
-          onClick={() => {
-            setSearching(!searching);
-            setQuery("");
-          }}
-        >
-          <Icon name="search" />
-        </IconButton>
       </div>
-      {searching && (
-        <div className="slist-search">
-          <TextInput
-            autoFocus
-            aria-label="Filter sessions"
-            placeholder="Filter by title or project…"
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key !== "Escape") return;
-              e.stopPropagation();
-              setSearching(false);
-              setQuery("");
-            }}
-          />
-        </div>
-      )}
       <div className="slist-body">
-        {shown.length === 0 && filtering ? <p className="slist-empty">No session matches.</p> : groups}
-        {shown.length === 0 && !filtering && prefs.mode === "flat" && <p className="slist-empty">No sessions yet.</p>}
+        {shown.length === 0 ? <p className="slist-empty">No sessions yet.</p> : groups}
       </div>
       <div className="slist-foot">
         <Button variant="ghost" size="sm" disabled={openIds.size === 0} onClick={onCloseAll}>

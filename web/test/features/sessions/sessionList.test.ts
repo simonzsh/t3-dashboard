@@ -5,7 +5,6 @@ import type { SeenState } from "../../../../shared/seen.ts";
 import {
   DEFAULT_LIST_PREFS,
   SESSION_LIST_KEY,
-  filterThreads,
   groupByProject,
   listableThreads,
   loadListPrefs,
@@ -40,18 +39,7 @@ test("listableThreads: drops settled threads unless they run or wait, newest fir
   assert.deepEqual(listed.map((t) => t.id), ["new", "settled-running", "old", "settled-waiting"]);
 });
 
-test("filterThreads: matches the title or the project name, ignoring case and spaces around", () => {
-  const titles = new Map([["p1", "Billing API"], ["p2", "Website"]]);
-  const threads = [thread("a", { title: "Fix login", projectId: "p2" }), thread("b", { title: "Refund flow", projectId: "p1" }), thread("c", { title: "Hero image", projectId: "p2" })];
-  const ids = (q: string) => filterThreads(threads, q, (id) => titles.get(id) ?? "").map((t) => t.id);
-  assert.deepEqual(ids("  LOGIN "), ["a"]);
-  assert.deepEqual(ids("billing"), ["b"]);
-  assert.deepEqual(ids("website"), ["a", "c"]);
-  assert.deepEqual(ids(""), ["a", "b", "c"]);
-  assert.deepEqual(ids("nothing"), []);
-});
-
-test("groupByProject: T3 project order, threads keep their order, counts of running and unread", () => {
+test("groupByProject: T3 project order, threads keep their order, counts, and no group for an empty project", () => {
   const projects = [project("p1", "Alpha"), project("p2", "Beta"), project("p3", "Empty")];
   const threads = [
     thread("b1", { projectId: "p2", status: "running" }),
@@ -59,19 +47,18 @@ test("groupByProject: T3 project order, threads keep their order, counts of runn
     thread("b2", { projectId: "p2", status: "completed" }),
     thread("b3", { projectId: "p2", pending: { category: "approval" } }),
   ];
-  const groups = groupByProject(threads, projects, seenNone, true);
+  const groups = groupByProject(threads, projects, seenNone);
   assert.deepEqual(
     groups.map((g) => [g.id, g.title, g.threads.map((t) => t.id), g.running, g.unread]),
     [
       ["p1", "Alpha", ["a1"], 0, 1],
       ["p2", "Beta", ["b1", "b2", "b3"], 1, 1],
-      ["p3", "Empty", [], 0, 0],
     ],
   );
 });
 
-test("groupByProject: empty projects go when asked, a thread of an unknown project gets its own group", () => {
-  const groups = groupByProject([thread("x", { projectId: "gone" })], [project("p1", "Alpha")], seenAll, false);
+test("groupByProject: a thread of an unknown project gets its own group", () => {
+  const groups = groupByProject([thread("x", { projectId: "gone" })], [project("p1", "Alpha")], seenAll);
   assert.deepEqual(groups.map((g) => [g.id, g.title, g.project, g.threads.length]), [["gone", "Unknown project", null, 1]]);
 });
 
