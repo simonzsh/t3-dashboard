@@ -706,7 +706,7 @@ ol.install-steps { padding-left: 18px; }
 .dashboard { flex: 1; min-height: 0; overflow-y: auto; display: grid; grid-template-columns: minmax(0, 1fr); align-items: start; gap: 16px; padding: 4px; margin: -4px; }
 .dashboard.with-panel { grid-template-columns: minmax(0, 1fr) 340px; }
 .dashboard-main { min-width: 0; display: flex; flex-direction: column; gap: 16px; container-type: inline-size; }
-.dashboard-cards { min-width: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); align-items: start; gap: 16px; }
+.dashboard-cards { min-width: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(min(240px, 100%), 1fr)); align-items: start; gap: 16px; }
 /* Sticky: the panel stays in view while the cards scroll; the card cap (100dvh - 120px) keeps it on screen. */
 .dashboard-panel { position: sticky; top: 0; min-width: 0; }
 .dashboard-slot { min-width: 0; }
@@ -717,6 +717,12 @@ ol.install-steps { padding-left: 18px; }
   .dashboard-cards > :is(.dashboard-slot, .dashboard-drop) { grid-column: span 2; }
   .dashboard-cards > :is(.dashboard-slot, .dashboard-drop).up-next { grid-column: span 3; }
   .dashboard-cards > :is(.dashboard-slot, .dashboard-drop):is(.usage, .server, .activity) { grid-column: 1 / -1; }
+}
+/* Too narrow for a column beside the cards: the panel slides over them from the right. */
+@media (min-width: 701px) and (max-width: 1200px) {
+  .dashboard.with-panel { grid-template-columns: minmax(0, 1fr); }
+  .dashboard-panel { position: fixed; top: calc(var(--header-h, 48px) + 12px); right: 12px; bottom: 12px; width: min(340px, calc(100vw - 24px)); z-index: 15; }
+  .dashboard-panel .notifications-card { max-height: 100%; box-shadow: var(--shadow); }
 }
 /* Drop preview: the size of the dragged card, where it will land. */
 .dashboard-drop { min-height: 64px; border: 2px dashed color-mix(in srgb, var(--accent) 60%, transparent); border-radius: var(--radius-lg); background: color-mix(in srgb, var(--accent) 8%, transparent); }
@@ -916,10 +922,12 @@ ol.install-steps { padding-left: 18px; }
   .dashboard-cards { display: flex; flex-direction: column; gap: 16px; }
   .dashboard-slot { width: 100%; min-width: 0; }
   /* Full screen over the page, like an opened session; Close or Escape returns. */
-  .dashboard-panel { position: fixed; inset: 0; z-index: 30; display: flex; flex-direction: column; padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left); background: var(--surface-1); overscroll-behavior: contain; }
+  /* Under dialogs (20) so a shortcut dialog still shows; the bottom bar is hidden instead. */
+  .dashboard-panel { position: fixed; inset: 0; z-index: 15; display: flex; flex-direction: column; padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left); background: var(--surface-1); overscroll-behavior: contain; }
   .dashboard-panel .notifications-card { flex: 1; min-height: 0; max-height: none; border: 0; border-radius: 0; }
   .dashboard-panel .card-head .icon-button { min-width: 44px; height: 44px; }
   .app.notifications-shown { height: 100dvh; overflow: hidden; }
+  .app.notifications-shown .bottom-nav { display: none; }
   /* The bottom bar replaces the sidebar. The header is one line; its insets keep it clear of the iPhone notch in landscape. */
   .page-header { position: sticky; top: 0; gap: 10px; padding: max(8px, env(safe-area-inset-top)) max(12px, env(safe-area-inset-right)) 8px max(12px, env(safe-area-inset-left)); }
   .page-header .logo { width: 30px; height: 30px; }

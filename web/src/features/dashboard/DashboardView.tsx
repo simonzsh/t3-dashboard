@@ -59,7 +59,8 @@ export function DashboardView({ limits, server, activity, running, layout, editi
     );
   return (
     <div className={`dashboard${showPanel ? " with-panel" : ""}`}>
-      <div className="dashboard-main">
+      {/* A phone panel covers the page: what is under it leaves the tab order. */}
+      <div className="dashboard-main" inert={showPanel && onClosePanel !== undefined}>
         {editing && layout.hidden.length > 0 && (
           <div className="dashboard-hidden">
             <span>Hidden cards</span>
@@ -104,7 +105,7 @@ export function DashboardView({ limits, server, activity, running, layout, editi
         </div>
       </div>
       {showPanel && (
-        <aside className="dashboard-panel" aria-label="Notifications">
+        <aside className="dashboard-panel" aria-label="Notifications" role={onClosePanel ? "dialog" : undefined} aria-modal={onClosePanel ? true : undefined}>
           {notifications}
         </aside>
       )}

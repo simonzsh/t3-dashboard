@@ -189,6 +189,11 @@ export function App() {
   const sessionsBadge = useMemo(() => ({ count: sessionsBadgeCount(visible, notify.seen), waiting: agents.waiting > 0 }), [visible, notify.seen, agents.waiting]);
   const dashboardLayout = useDashboardLayout(tab === "dashboard");
   const notifPanel = useNotificationsPanel(compact, tab === "dashboard");
+  // The Close button leaves the page with the panel: focus goes back to the bell.
+  const closeNotifications = () => {
+    notifPanel.close();
+    requestAnimationFrame(() => document.querySelector<HTMLElement>(".notif-bell")?.focus());
+  };
   const notifPanelShown = compact && tab === "dashboard" && notifPanel.open && !dashboardLayout.editing;
   const dashboardOpen = tab === "dashboard" && state !== null;
   // A hidden card reads nothing; showing it again reads at once.
@@ -274,7 +279,7 @@ export function App() {
                 editing={dashboardLayout.editing}
                 onLayout={dashboardLayout.setLayout}
                 panelOpen={notifPanel.open}
-                onClosePanel={compact ? notifPanel.close : undefined}
+                onClosePanel={compact ? closeNotifications : undefined}
                 onOpen={onOpen}
                 onSettle={onSettle}
                 seen={notify.seen}
