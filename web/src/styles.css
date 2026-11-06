@@ -670,7 +670,7 @@ ol.install-steps { padding-left: 18px; }
 .usage-chart-head h2, .small-card h2 { margin: 0; font-size: 13px; font-weight: 600; }
 .usage-chart-head h2 { margin-right: auto; }
 .usage-updated { color: var(--text-secondary); font-size: 12px; }
-.usage-chart { position: relative; padding: 8px 0 12px; }
+.usage-chart { position: relative; overflow: hidden; padding: 8px 0 12px; }
 .usage-chart svg { display: block; }
 .usage-grid { stroke: var(--line); stroke-width: 1; }
 .usage-axis { fill: var(--text-secondary); font-size: 11px; font-variant-numeric: tabular-nums; }
@@ -689,9 +689,9 @@ ol.install-steps { padding-left: 18px; }
 .home-small-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 16px; }
 .small-card { padding: 16px 20px; }
 .small-card h2 { margin-bottom: 10px; }
-.small-stats { margin: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(84px, 1fr)); gap: 12px; }
+.small-stats { margin: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(110px, 1fr)); gap: 12px; }
 .small-stats dt { color: var(--text-secondary); font-size: 12px; }
-.small-stats dd { margin: 2px 0 0; font-size: 18px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.small-stats dd { margin: 2px 0 0; white-space: nowrap; font-size: 18px; font-weight: 600; font-variant-numeric: tabular-nums; }
 .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
 .desk { flex: 1; min-height: 0; display: flex; flex-direction: column; background-color: var(--surface-0); background-size: cover; background-position: center; }
 .desk-bg-none { background-color: var(--surface-0); }
