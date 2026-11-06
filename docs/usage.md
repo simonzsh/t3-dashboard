@@ -6,7 +6,7 @@ The dashboard has three pages: Home, Desk and Automations. A sidebar on the left
 
 ## Home
 
-Home opens first. At the top, a usage card shows three numbers for the last days: turns (with the change from the 7 days before), sessions and spend. A chart shows turns, spend or tokens for each of the last 14 days. Two small cards show today and what needs you. The Inbox follows below.
+Home opens first. At the top, a usage card shows three numbers for the last 7 days, each with its change from the 7 days before: turns (the messages sent to agents, by you or by an automation), sessions with at least one turn, and spend (API equivalent, all usage on this machine). A chart shows turns, spend or tokens for each of the last 14 days. Two small cards show today and what needs you. The Inbox follows below.
 
 - Turns are the runs of your T3 Code threads. Spend and tokens come from T3 Code and cover all usage on this machine, not only these threads. The spend is the API equivalent.
 - If T3 Code is too old to report usage, the spend shows "—" and the reason. The rest of Home keeps working.

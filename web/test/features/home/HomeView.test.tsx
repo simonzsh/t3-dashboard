@@ -29,6 +29,7 @@ const overview = (over: Partial<UsageOverview> = {}): UsageOverview => ({
   lastWeek: totals(days.slice(0, 7)),
   total: totals(days),
   activeThreads: 13,
+  sessions: { thisWeek: 9, lastWeek: 6, total: 13 },
   turnsPartial: false,
   cost: { status: "ok", detail: null, refreshing: false },
   readAt: "2026-01-14T11:59:00.000Z",
@@ -42,20 +43,22 @@ const render = (s: UsageState, threads = [thread("a", { status: "running" })]) =
     </HomeView>,
   );
 
-test("the tiles show turns with their change, sessions and spend", () => {
+test("the three tiles cover the last 7 days, each with its change", () => {
   const out = render(state());
   // 63 turns this week against 49 the week before.
-  assert.match(out, /Turns · last 7 days<\/span><span class="stat-value">63<span class="stat-delta">\+29 %/);
-  assert.match(out, /Sessions[\s\S]*?>13</);
-  assert.match(out, /1 running · last 14 days/);
-  assert.match(out, /\$7\.00/);
-  assert.match(out, /all usage on this machine/);
+  assert.match(out, /Turns<\/span><span class="stat-value">63<span class="stat-delta">\+29 %/);
+  assert.match(out, /messages sent to agents · last 7 days/);
+  assert.match(out, /Sessions<\/span><span class="stat-value">9<span class="stat-delta">\+50 %/);
+  assert.match(out, /1 running · last 7 days/);
+  assert.match(out, /Spend \(API equiv\.\)<\/span><span class="stat-value">\$[\d.]+<span class="stat-delta">/);
+  assert.match(out, /last 7 days · all usage on this machine/);
+  assert.doesNotMatch(out, /last 14 days ·/);
 });
 
 test("a partial turn count and unpriced models are said in the captions", () => {
   const out = render(state({ usage: overview({ turnsPartial: true, cost: { status: "partial", detail: null, refreshing: false } }) }));
-  assert.match(out, /T3 threads \(partial\)/);
-  assert.match(out, /last 14 days · some models unpriced · all usage on this machine/);
+  assert.match(out, /last 7 days \(partial\)/);
+  assert.match(out, /last 7 days · some models unpriced · all usage on this machine/);
 });
 
 test("unavailable cost shows a dash and T3's reason, and does not crash", () => {
@@ -110,5 +113,5 @@ test("without data it shows a loader, and an error when the read failed", () => 
 test("a failed refresh keeps the last good data and shows the error", () => {
   const out = render(state({ error: "offline" }));
   assert.match(out, /Could not refresh usage\. offline/);
-  assert.match(out, /\$7\.00/);
+  assert.match(out, /stat-value">63/);
 });

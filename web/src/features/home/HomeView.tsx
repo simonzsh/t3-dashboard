@@ -30,14 +30,16 @@ function StatTile({ label, value, caption, change }: TileProps) {
 }
 
 function Tiles({ usage, threads }: { usage: UsageOverview; threads: readonly DashboardThread[] }) {
-  const { thisWeek, lastWeek, cost, total } = usage;
+  const { thisWeek, lastWeek, cost, sessions } = usage;
   const costKnown = cost.status !== "unavailable";
-  const costCaption = cost.status === "unavailable" ? (cost.detail ?? "No usage reported by T3 Code") : cost.status === "partial" ? "last 14 days · some models unpriced · all usage on this machine" : "last 14 days · all usage on this machine";
+  const costCaption = !costKnown ? (cost.detail ?? "No usage reported by T3 Code") : cost.status === "partial" ? "last 7 days · some models unpriced · all usage on this machine" : "last 7 days · all usage on this machine";
+  // A turn is one agent run: each message sent to an agent, by you or by an automation.
+  const turnsCaption = `messages sent to agents · last 7 days${usage.turnsPartial ? " (partial)" : ""}`;
   return (
     <div className="stat-tiles">
-      <StatTile label="Turns · last 7 days" value={String(thisWeek.turns)} change={delta(thisWeek.turns, lastWeek.turns)} caption={usage.turnsPartial ? "T3 threads (partial)" : "T3 threads"} />
-      <StatTile label="Sessions" value={String(usage.activeThreads)} caption={`${agentCounts(threads).running} running · last 14 days`} />
-      <StatTile label="Spend (API equiv.)" value={costKnown ? formatUsd(total.costUsd) : "—"} caption={costCaption} />
+      <StatTile label="Turns" value={String(thisWeek.turns)} change={delta(thisWeek.turns, lastWeek.turns)} caption={turnsCaption} />
+      <StatTile label="Sessions" value={String(sessions.thisWeek)} change={delta(sessions.thisWeek, sessions.lastWeek)} caption={`${agentCounts(threads).running} running · last 7 days`} />
+      <StatTile label="Spend (API equiv.)" value={costKnown ? formatUsd(thisWeek.costUsd) : "—"} change={costKnown ? delta(thisWeek.costUsd, lastWeek.costUsd) : null} caption={costCaption} />
     </div>
   );
 }
