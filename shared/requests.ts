@@ -1,5 +1,5 @@
 import type { RoutineSchedule, WebhookFilter, WebhookSignature } from "./automations.ts";
-import type { ModelSelection, RuntimeMode } from "./threads.ts";
+import type { ModelSelection, ProjectIcon, ProjectIconSpec, RuntimeMode } from "./threads.ts";
 
 // Bodies and results of the thread actions (POST /api/threads…).
 
@@ -184,4 +184,18 @@ export interface FolderBrowseResult {
   /** Sub-folders of the typed parent whose name starts with the last typed segment, by name, at most 100.
    *  Hidden folders only when that segment starts with ".". */
   entries: FolderEntry[];
+}
+
+/** POST /api/projects/:id/update: only the fields to change, at least one. */
+export interface UpdateProjectBody {
+  title?: string;
+  /** A folder that already exists: "/…", "~" or "~/…". */
+  path?: string;
+  /** null: back to T3's default icon. */
+  icon?: ProjectIconSpec | null;
+}
+
+/** GET /api/project-icons: the Lucide icons the edit form offers, in T3's order. */
+export interface ProjectIconChoices {
+  icons: Array<{ name: string; icon: ProjectIcon }>;
 }

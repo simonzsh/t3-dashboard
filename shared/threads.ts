@@ -37,6 +37,12 @@ export type ProjectIcon =
   | { kind: "monogram"; text: string; color: string | null }
   | { kind: "emoji"; emoji: string };
 
+/** A project icon as T3 stores it; colors are T3 color names (shared/projectColors.ts). */
+export type ProjectIconSpec =
+  | { kind: "lucide"; name: string; color: string }
+  | { kind: "monogram"; text: string; color: string }
+  | { kind: "emoji"; emoji: string };
+
 export interface DashboardProject {
   id: string;
   title: string;
@@ -44,6 +50,10 @@ export interface DashboardProject {
   icon: ProjectIcon | null;
   /** Set (true) only when T3 archived the project; absent otherwise. */
   archived?: boolean;
+  /** The project's folder, absolute, as T3 stores it. */
+  workspaceRoot?: string;
+  /** The icon as T3 stores it, for the edit form; absent when T3 has none (or one the dashboard cannot read). */
+  iconSpec?: ProjectIconSpec;
 }
 
 export interface ModelEffort {
