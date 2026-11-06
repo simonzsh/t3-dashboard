@@ -6,28 +6,22 @@ The dashboard has three pages: Home, Desk and Automations. A sidebar on the left
 
 ## Home
 
-Home opens first. At the top, a usage card shows three numbers for the last 7 days, each with its change from the 7 days before: turns (the messages sent to agents, by you or by an automation), sessions with at least one turn, and spend (API equivalent, all usage on this machine). A chart shows turns, spend or tokens for each of the last 14 days. Two small cards show today and what needs you. The Inbox follows below.
+Home opens first. At the top, a usage card shows three numbers for the last 7 days, each with its change from the 7 days before: turns (the messages sent to agents, by you or by an automation), sessions with at least one turn, and spend (API equivalent, all usage on this machine). A chart shows turns, spend or tokens for each of the last 14 days. Home has two columns. The usage card and the Running and Up next cards are on the left. The Notifications card is on the right and stays in view while the page scrolls. On a phone, the cards stack in one column: usage, Notifications, Running, Up next.
 
 - Turns are the runs of your T3 Code threads. Spend and tokens come from T3 Code and cover all usage on this machine, not only these threads. The spend is the API equivalent.
 - If T3 Code is too old to report usage, the spend shows "—" and the reason. The rest of Home keeps working.
 
 ## Inbox
 
-The Inbox is the part of Home below the usage cards. It shows what needs you. It is a list of rows, not a grid. It has no grouping by project: each row shows its project as a small tag. The Home entry in the sidebar shows the number of unread items (waiting, failed or finished, not read yet). `Ctrl` + `1` opens Home.
+The Inbox is made of three Home cards: Notifications, Running and Up next. The Home entry in the sidebar shows the number of unread items (waiting, failed or finished, not read yet). `Ctrl` + `1` opens Home.
 
-- A summary line starts the page, for example "2 need you · 3 unread · 1 to relaunch". It shows only the parts that are not zero.
-- A row shows the provider (Claude or Codex), the title, the project tag, the status and the time of the last activity.
-- The sections are, from top to bottom: "Needs you", "Unread", "To relaunch", "Running", "Up next", then two closed sections: "Read and idle" and "Recently settled". An empty section does not appear.
-- In each section, the agents pinned in T3 Code come first, with a small pin. Then the most recent activity comes first.
-- "Needs you" lists the agents that wait for an approval or an answer, and the agents that failed and that you did not settle. The badge tells which one. Point at the badge of a failed agent to read the error. The section shows 10 rows, then "Show N more".
-- "Unread" lists the agents that stopped without error, that you did not settle and that you did not read. A click on the row opens the conversation and marks it read. "Mark all read" marks the whole section. The section shows 10 rows, then "Show N more".
-- "To relaunch" lists the agents of started tickets that stopped: the agent finished, you read it, and it has been idle for more than 24 hours.
-- "Up next" lists the tickets that have no agent, started ones first (see [Tickets](#tickets)). It shows 5 rows, then "Show N more".
-- "Running" lists the agents that work. "Read and idle" lists the finished agents that you read and that are not in "To relaunch". Its "Settle all older than 3 days" button settles the ones with no activity for 3 days. "Recently settled" disappears after 3 days without activity. Its rows have an "Unsettle" button.
-- The Inbox shows cards, several per line. Every agent card works the same way. A click on the card opens the conversation on the Desk and marks it read. `⇧` + click adds it to the Desk without leaving the Inbox. In the bottom right corner, the T3 Code logo opens the conversation in T3 Code, the archive button settles the agent (or unsettles it in "Recently settled") and `+` adds it to the Desk.
-- When "Needs you", "Unread", "To relaunch" and "Up next" are empty, the Inbox shows "Nothing needs you".
+- Notifications lists, newest first in each group: the agents that need you (waiting for an approval or an answer, or failed and not settled), then the unread results, then the recent read agents, greyed. A status icon shows the kind: warning (waits for you), alert (failed), check (finished). Each item shows the title, one line of detail (what it waits for, the error, or the model), the project and the time. Items that need you or are unread have a tint and a dot. The badge in the header counts them.
+- Point at an item to see its buttons: the T3 Code logo opens the conversation in T3 Code, the archive button settles the agent (when allowed) and `+` adds it to the Desk. A click on the item opens the conversation on the Desk and marks it read. `⇧` + click adds it to the Desk without leaving Home.
+- The "Mark all read" button of the header marks all unread results read.
+- "See all" shows every read agent, also the ones with no activity for 3 days or more, and the "Settle all older than 3 days" button. When nothing needs you, the card says "Nothing needs you". Settled agents are not listed: find them with `⌘` + `K`.
+- Running lists the agents that work, with the model, the project and the time. A click opens the conversation on the Desk.
+- Up next lists the agents of started tickets that stopped ("To relaunch": the agent finished, you read it, and it has been idle for more than 24 hours), then the tickets that have no agent, started ones first (see [Tickets](#tickets)). It shows 5 tickets, then "Show N more". It also shows the Linear connection and the setup card when you have no key.
 - Archived or deleted sessions, sub-agents and the threads of scheduled tasks, webhook runs included (see [Automations](#automations)), do not appear.
-- Click a row to open the conversation on the Desk. Shift + click adds it to the Desk and keeps the current tab.
 - The "Add to Desk" button adds the row to the Desk. A second click removes it.
 - The "Open in T3 Code" link opens the session in T3 Code.
 - The "Settle" button (box icon) moves an agent to "Recently settled", as T3 Code does. It does not exist for an agent that works or waits.
