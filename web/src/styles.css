@@ -133,7 +133,8 @@ kbd { font: 11px/1 system-ui, -apple-system, "Segoe UI", sans-serif; padding: 2p
 .loader .wave-2 { animation-delay: 0.36s; }
 .loader.inline { flex: none; display: inline-grid; min-height: 0; }
 .loader.inline svg { width: 16px; height: 16px; }
-.loader.inline rect { fill: currentColor; }
+/* Small loaders too: the accent color, not the text gray around them. */
+.loader.inline rect { fill: var(--accent); }
 @keyframes loader-wave { 0%, 60%, 100% { opacity: 0.35; transform: scale(0.82); } 30% { opacity: 1; transform: scale(1); } }
 /* The page never scrolls: main fills the window and each view scrolls its own areas. */
 main { flex: 1; min-height: 0; overflow: hidden; padding: 24px; display: flex; flex-direction: column; gap: 28px; }
