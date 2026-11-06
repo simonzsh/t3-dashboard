@@ -138,3 +138,17 @@ test("a write error keeps the log in memory and only warns", () => {
   assert.equal(store.current()["task-1"]!.length, 1);
   assert.match(warnings[0]!, /disk full/);
 });
+
+test("a failed run whose thread was archived adds no dispatch failure", () => {
+  const failed = task({ lastRunAt: "2026-03-20T10:00:30.000Z", lastRunStatus: "failed", lastRunError: "Timed out" });
+  const fresh = record({}, [failed], [thread("run-1", { archivedAt: "2026-03-20T12:00:00.000Z" })]);
+  assert.deepEqual(fresh["task-1"], []);
+  const kept = record({ "task-1": [stored({ status: "failed", error: "Timed out" })] }, [failed], []);
+  assert.deepEqual(kept["task-1"]!.map((run) => [run.threadId, run.status]), [["run-1", "failed"]]);
+});
+
+test("a stored failure stays failed when the thread later reads as done", () => {
+  const later = task({ lastRunAt: "2026-03-21T10:00:00.000Z", lastRunStatus: "succeeded" });
+  const log = record({ "task-1": [stored({ status: "failed", error: "Timed out" })] }, [later], [thread("run-1")]);
+  assert.deepEqual(log["task-1"]!.map((run) => [run.status, run.error]), [["failed", "Timed out"]]);
+});

@@ -38,6 +38,11 @@ function fromT3(task: RawScheduledTask, run: AutomationRun): AutomationRun {
   return { ...run, status: "failed", error: task.lastRunError ?? run.error };
 }
 
+// A thread ends "done" after a timeout or interrupt: a failure seen once must not turn into a success.
+function keepFailure(prev: AutomationRun | undefined, run: AutomationRun): AutomationRun {
+  return prev?.status === "failed" && run.status === "succeeded" ? { ...run, status: "failed", error: prev.error } : run;
+}
+
 function taskRuns(task: RawScheduledTask, stored: AutomationRun[], threads: RawThread[], now: Date): AutomationRun[] {
   const byId = new Map(threads.map((thread) => [thread.id, thread]));
   const runs = new Map<string, AutomationRun>();
@@ -52,16 +57,18 @@ function taskRuns(task: RawScheduledTask, stored: AutomationRun[], threads: RawT
       const startedAt = task.lastRunAt;
       const kept = runs.get(`at:${startedAt}`);
       const base = !gone(chat) ? runOf(chat, startedAt, now) : (kept ?? { threadId: task.threadId!, startedAt, finishedAt: null, status: task.lastRunStatus === "succeeded" ? "succeeded" : "unknown", error: null });
-      runs.set(`at:${startedAt}`, fromT3(task, base));
+      runs.set(`at:${startedAt}`, keepFailure(kept, fromT3(task, base)));
     }
   } else {
-    let failedNear = false;
+    const isNear = (iso: string | null | undefined) => Math.abs(stamp(iso) - lastRunAt) <= NEAR_MS;
+    // A run already logged near lastRunAt (its thread may be archived since) is the failed run, not a dispatch failure.
+    let failedNear = stored.some((run) => run.threadId !== null && isNear(run.startedAt));
     for (const thread of runThreads(task, threads)) {
+      const near = isNear(thread.createdAt);
+      failedNear ||= near;
       if (gone(thread)) continue;
       const run = runOf(thread, thread.createdAt ?? "", now);
-      const near = Math.abs(stamp(thread.createdAt) - lastRunAt) <= NEAR_MS;
-      failedNear ||= near;
-      runs.set(thread.id, near ? fromT3(task, run) : run);
+      runs.set(thread.id, keepFailure(runs.get(thread.id), near ? fromT3(task, run) : run));
     }
     if (task.lastRunStatus === "failed" && task.lastRunAt && !failedNear) {
       const dispatch: AutomationRun = { threadId: null, startedAt: task.lastRunAt, finishedAt: null, status: "failed", error: task.lastRunError ?? null };
