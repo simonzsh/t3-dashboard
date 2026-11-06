@@ -3,9 +3,9 @@ import type { UsageOverview } from "../../../../shared/api.ts";
 import { useApi } from "../../api/ApiContext.tsx";
 import { errorMessage } from "../../lib/format.ts";
 import { documentPage, startPoll, type PageVisibility } from "../../lib/usePoll.ts";
-import { pollDelay } from "./usageView.ts";
+import { pollDelay } from "./activityView.ts";
 
-export interface UsageState {
+export interface ActivityState {
   usage: UsageOverview | null;
   /** The last read failed; `usage` still holds the last good value. */
   error: string | null;
@@ -14,20 +14,20 @@ export interface UsageState {
   refresh: () => void;
 }
 
-export interface UsagePatch {
+export interface ActivityPatch {
   usage?: UsageOverview;
   error?: string | null;
   loading: boolean;
 }
 
 // Reads at once, then again after pollDelay. An error keeps the last good value (no `usage` in the patch).
-export function startUsagePoll(read: (force: boolean) => Promise<UsageOverview>, emit: (patch: UsagePatch) => void, force: boolean, page: PageVisibility = documentPage): () => void {
+export function startActivityPoll(read: (force: boolean) => Promise<UsageOverview>, emit: (patch: ActivityPatch) => void, force: boolean, page: PageVisibility = documentPage): () => void {
   let stopped = false;
   let delay = pollDelay(false);
   let stopPoll: (() => void) | undefined;
   const run = async (forced: boolean) => {
     emit({ loading: true });
-    let patch: UsagePatch;
+    let patch: ActivityPatch;
     try {
       const usage = await read(forced);
       delay = pollDelay(usage.cost.refreshing);
@@ -49,7 +49,7 @@ export function startUsagePoll(read: (force: boolean) => Promise<UsageOverview>,
 }
 
 // Reads while `enabled`, then again every minute, or every 10 s while T3 still scans.
-export function useUsage(enabled: boolean): UsageState {
+export function useActivity(enabled: boolean): ActivityState {
   const api = useApi();
   const [usage, setUsage] = useState<UsageOverview | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -63,7 +63,7 @@ export function useUsage(enabled: boolean): UsageState {
     const zone = Intl.DateTimeFormat().resolvedOptions().timeZone;
     const force = forceNext.current;
     forceNext.current = false;
-    return startUsagePoll(
+    return startActivityPoll(
       (f) => api.getUsage(zone, f),
       (p) => {
         if (p.usage) setUsage(p.usage);

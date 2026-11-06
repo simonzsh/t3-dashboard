@@ -1,7 +1,7 @@
 import { test } from "bun:test";
 import assert from "node:assert/strict";
 import type { UsageOverview } from "../../../../shared/api.ts";
-import { barLayout, cacheShare, delta, formatMetric, formatUsd, metricValue, niceTicks, pollDelay, shortDay, tokensOf } from "../../../src/features/dashboard/usageView.ts";
+import { barLayout, cacheShare, delta, formatMetric, formatUsd, metricValue, niceTicks, pollDelay, shortDay, tokensOf } from "../../../src/features/dashboard/activityView.ts";
 
 const day = (over: Partial<UsageOverview["days"][number]> = {}) => ({ day: "2026-01-10", turns: 0, costUsd: 0, inputTokens: 0, cachedInputTokens: 0, outputTokens: 0, ...over });
 

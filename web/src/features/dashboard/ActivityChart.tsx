@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import type { UsageDay } from "../../../../shared/api.ts";
 import { formatTokens } from "../../lib/format.ts";
-import { barLayout, cacheShare, formatMetric, formatUsd, METRICS, metricValue, niceTicks, shortDay, tokensOf, type Metric } from "./usageView.ts";
+import { barLayout, cacheShare, formatMetric, formatUsd, METRICS, metricValue, niceTicks, shortDay, tokensOf, type Metric } from "./activityView.ts";
 
 const MARGIN = { top: 10, right: 20, bottom: 24, left: 52 };
 // A lower chart on a phone (under 480 px wide).
@@ -42,7 +42,7 @@ interface Props {
 }
 
 /** Bars for the last days, one series. The values also sit in a table for screen readers. */
-export function UsageChart({ days, metric, costKnown }: Props) {
+export function ActivityChart({ days, metric, costKnown }: Props) {
   const [ref, width] = useWidth();
   const label = METRICS.find((m) => m.id === metric)!.label;
   const [active, setActive] = useState<number | null>(null);
@@ -60,35 +60,35 @@ export function UsageChart({ days, metric, costKnown }: Props) {
   const tipLeft = active === null ? 0 : MARGIN.left + (active + 0.5) * slot;
 
   return (
-    <div className="usage-chart" ref={ref} onMouseLeave={() => setActive(null)}>
+    <div className="activity-chart" ref={ref} onMouseLeave={() => setActive(null)}>
       <svg width={width} height={height} role="group" aria-label={`${label} per day, last ${days.length} days`}>
         <g transform={`translate(${MARGIN.left},${MARGIN.top})`}>
           {ticks.map((tick) => {
             const y = plotHeight - (tick / top) * plotHeight;
             return (
               <g key={tick}>
-                <line className="usage-grid" x1={0} x2={plotWidth} y1={y} y2={y} />
-                <text className="usage-axis" x={-8} y={y} textAnchor="end" dominantBaseline="middle">{formatMetric(tick, metric)}</text>
+                <line className="activity-grid" x1={0} x2={plotWidth} y1={y} y2={y} />
+                <text className="activity-axis" x={-8} y={y} textAnchor="end" dominantBaseline="middle">{formatMetric(tick, metric)}</text>
               </g>
             );
           })}
-          {active !== null && <rect className="usage-hover" x={active * slot} y={0} width={slot} height={plotHeight} />}
+          {active !== null && <rect className="activity-hover" x={active * slot} y={0} width={slot} height={plotHeight} />}
           {bars.map((bar, i) => {
             const today = i === days.length - 1;
             return (
               <g key={days[i]!.day}>
                 {bar.height > 0 ? (
-                  <path className={`usage-bar${today ? " today" : ""}`} d={barPath(bar.x, bar.y, bar.width, bar.height)} />
+                  <path className={`activity-bar${today ? " today" : ""}`} d={barPath(bar.x, bar.y, bar.width, bar.height)} />
                 ) : (
-                  <rect className="usage-zero" x={bar.x} y={plotHeight - 2} width={bar.width} height={2} rx={1} />
+                  <rect className="activity-zero" x={bar.x} y={plotHeight - 2} width={bar.width} height={2} rx={1} />
                 )}
                 {(days.length - 1 - i) % every === 0 && (
-                  <text className={`usage-axis${today ? " today" : ""}`} x={i * slot + slot / 2} y={plotHeight + 16} textAnchor="middle">
+                  <text className={`activity-axis${today ? " today" : ""}`} x={i * slot + slot / 2} y={plotHeight + 16} textAnchor="middle">
                     {today ? "Today" : shortDay(days[i]!.day)}
                   </text>
                 )}
                 <rect
-                  className="usage-hit"
+                  className="activity-hit"
                   x={i * slot}
                   y={0}
                   width={slot}
@@ -106,7 +106,7 @@ export function UsageChart({ days, metric, costKnown }: Props) {
         </g>
       </svg>
       {hovered && (
-        <div className="usage-tip" role="presentation" style={{ left: tipLeft, ...(tipLeft > width / 2 ? { transform: "translateX(-100%)" } : {}) }}>
+        <div className="activity-tip" role="presentation" style={{ left: tipLeft, ...(tipLeft > width / 2 ? { transform: "translateX(-100%)" } : {}) }}>
           <strong>{shortDay(hovered.day)}</strong>
           <span>Turns <b>{hovered.turns}</b></span>
           <span>Spend <b>{costKnown ? formatUsd(hovered.costUsd) : "—"}</b></span>

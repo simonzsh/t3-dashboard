@@ -1,10 +1,9 @@
 import { afterEach, beforeEach, jest, test } from "bun:test";
 import assert from "node:assert/strict";
-import type { UsageOverview } from "../../../../shared/api.ts";
-import { startUsagePoll, type UsagePatch } from "../../../src/features/dashboard/useUsage.ts";
+import type { LimitsOverview } from "../../../../shared/api.ts";
+import { startLimitsPoll, type LimitsPatch } from "../../../src/features/dashboard/useLimits.ts";
 
-const overview = (refreshing: boolean, turns = 1): UsageOverview =>
-  ({ days: [], thisWeek: { turns }, cost: { status: "ok", detail: null, refreshing } }) as unknown as UsageOverview;
+const overview = (readAt: string): LimitsOverview => ({ supported: true, providers: [], readAt });
 const visible = { hidden: () => false, onChange: () => () => {} };
 
 beforeEach(() => jest.useFakeTimers());
@@ -15,16 +14,16 @@ const flush = async () => {
   for (let i = 0; i < 10; i++) await Promise.resolve();
 };
 
-function harness(results: Array<UsageOverview | Error>, force = false) {
+function harness(results: Array<LimitsOverview | Error>, force = false, page = visible) {
   const forces: boolean[] = [];
-  const patches: UsagePatch[] = [];
+  const patches: LimitsPatch[] = [];
   const read = async (f: boolean) => {
     forces.push(f);
     const next = results.shift()!;
     if (next instanceof Error) throw next;
     return next;
   };
-  const stop = startUsagePoll(read, (p) => patches.push(p), force, visible);
+  const stop = startLimitsPoll(read, (p) => patches.push(p), force, page);
   const advance = async (ms: number) => {
     jest.advanceTimersByTime(ms);
     await flush();
@@ -33,10 +32,10 @@ function harness(results: Array<UsageOverview | Error>, force = false) {
 }
 
 test("it reads at once, publishes the value and polls again after a minute", async () => {
-  const h = harness([overview(false), overview(false)]);
+  const h = harness([overview("a"), overview("b")]);
   await h.advance(0);
   assert.deepEqual(h.patches.map((p) => p.loading), [true, false]);
-  assert.equal(h.patches[1]!.usage?.cost.refreshing, false);
+  assert.equal(h.patches[1]!.limits?.readAt, "a");
   await h.advance(59_999);
   assert.equal(h.forces.length, 1);
   await h.advance(1);
@@ -44,42 +43,38 @@ test("it reads at once, publishes the value and polls again after a minute", asy
   h.stop();
 });
 
-test("it polls every 10 s while T3 still scans", async () => {
-  const h = harness([overview(true), overview(false), overview(false)]);
-  await h.advance(0);
-  await h.advance(10_000);
-  assert.equal(h.forces.length, 2);
-  await h.advance(10_000);
-  assert.equal(h.forces.length, 2, "the scan ended: back to a minute");
-  await h.advance(50_000);
-  assert.equal(h.forces.length, 3);
-  h.stop();
-});
-
 test("an error keeps the last good value and the poll goes on; a later read clears it", async () => {
-  const h = harness([overview(false, 5), new Error("boom"), overview(false, 6)]);
+  const h = harness([overview("a"), new Error("boom"), overview("c")]);
   await h.advance(0);
   await h.advance(60_000);
   const failed = h.patches.at(-1)!;
   assert.equal(failed.error, "boom");
-  assert.equal("usage" in failed, false);
+  assert.equal("limits" in failed, false);
   await h.advance(60_000);
   const ok = h.patches.at(-1)!;
   assert.equal(ok.error, null);
-  assert.equal(ok.usage?.thisWeek.turns, 6);
+  assert.equal(ok.limits?.readAt, "c");
   h.stop();
 });
 
 test("only the first read can force a refresh", async () => {
-  const h = harness([overview(false), overview(false)], true);
+  const h = harness([overview("a"), overview("b")], true);
   await h.advance(0);
   await h.advance(60_000);
   assert.deepEqual(h.forces, [true, false]);
   h.stop();
 });
 
+test("a hidden page makes no read", async () => {
+  const h = harness([overview("a"), overview("b")], false, { hidden: () => true, onChange: () => () => {} });
+  await h.advance(0);
+  await h.advance(180_000);
+  assert.equal(h.forces.length, 1);
+  h.stop();
+});
+
 test("stopping cancels the next read and drops a late answer", async () => {
-  const h = harness([overview(false), overview(false)]);
+  const h = harness([overview("a"), overview("b")]);
   h.stop();
   await h.advance(0);
   assert.deepEqual(h.patches.map((p) => p.loading), [true]);

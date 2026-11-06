@@ -2,11 +2,11 @@ import { readJson, writeKey, type Store } from "../../lib/storage.ts";
 
 export const DASHBOARD_LAYOUT_KEY = "t3-dashboard-layout";
 
-const CARDS = ["usage", "notifications", "running", "up-next"] as const;
+const CARDS = ["usage", "activity", "notifications", "running", "up-next"] as const;
 export type DashboardCard = (typeof CARDS)[number];
 export type Column = "left" | "right";
 
-export const CARD_TITLES: Record<DashboardCard, string> = { usage: "Usage", notifications: "Notifications", running: "Running", "up-next": "Up next" };
+export const CARD_TITLES: Record<DashboardCard, string> = { usage: "Usage", activity: "Activity", notifications: "Notifications", running: "Running", "up-next": "Up next" };
 
 /** Two columns of ordered card ids, and the cards the user hid. */
 export interface DashboardLayout {
@@ -15,8 +15,8 @@ export interface DashboardLayout {
   hidden: DashboardCard[];
 }
 
-export const DEFAULT_LAYOUT: DashboardLayout = { left: ["usage", "running", "up-next"], right: ["notifications"], hidden: [] };
-const DEFAULT_COLUMN: Record<DashboardCard, Column> = { usage: "left", running: "left", "up-next": "left", notifications: "right" };
+export const DEFAULT_LAYOUT: DashboardLayout = { left: ["usage", "activity", "running", "up-next"], right: ["notifications"], hidden: [] };
+const DEFAULT_COLUMN: Record<DashboardCard, Column> = { usage: "left", activity: "left", running: "left", "up-next": "left", notifications: "right" };
 
 const isCard = (v: unknown): v is DashboardCard => CARDS.includes(v as DashboardCard);
 const without = (l: DashboardLayout, id: DashboardCard): DashboardLayout => ({ left: l.left.filter((c) => c !== id), right: l.right.filter((c) => c !== id), hidden: l.hidden.filter((c) => c !== id) });

@@ -6,7 +6,8 @@ import { DashboardView } from "../../../src/features/dashboard/DashboardView.tsx
 import { DEFAULT_LAYOUT, moveCard, setHidden, type DashboardLayout } from "../../../src/features/dashboard/layout.ts";
 import { agentCounts } from "../../../src/lib/agents.ts";
 import { listedThreads } from "../../../src/features/dashboard/sections.ts";
-import type { UsageState } from "../../../src/features/dashboard/useUsage.ts";
+import type { ActivityState } from "../../../src/features/dashboard/useActivity.ts";
+import type { LimitsState } from "../../../src/features/dashboard/useLimits.ts";
 import { baseState, thread } from "../../fixtures.ts";
 
 const NOW = new Date("2026-01-14T12:00:00.000Z");
@@ -36,20 +37,29 @@ const overview = (over: Partial<UsageOverview> = {}): UsageOverview => ({
   readAt: "2026-01-14T11:59:00.000Z",
   ...over,
 });
-const state = (over: Partial<UsageState> = {}): UsageState => ({ usage: overview(), error: null, loading: false, refresh: () => {}, ...over });
+const state = (over: Partial<ActivityState> = {}): ActivityState => ({ usage: overview(), error: null, loading: false, refresh: () => {}, ...over });
+const limitsState = (over: Partial<LimitsState> = {}): LimitsState => ({
+  limits: { supported: true, providers: [], readAt: "2026-01-14T11:59:00.000Z" },
+  error: null,
+  loading: false,
+  refresh: () => {},
+  ...over,
+});
 const fresh = { since: "2026-01-01T00:00:00.000Z", seen: {} as Record<string, string> };
 interface Options {
+  limits?: LimitsState;
   threads?: ReturnType<typeof thread>[];
   layout?: DashboardLayout;
   editing?: boolean;
   seen?: typeof fresh;
   providers?: DashboardState["providers"];
 }
-const render = (usage: UsageState, { threads = [thread("a", { status: "running" })], layout = DEFAULT_LAYOUT, editing = false, seen = fresh, providers = [] }: Options = {}) =>
+const render = (activity: ActivityState, { limits = limitsState(), threads = [thread("a", { status: "running" })], layout = DEFAULT_LAYOUT, editing = false, seen = fresh, providers = [] }: Options = {}) =>
   renderToStaticMarkup(
     <DashboardView
       state={{ ...baseState(threads), providers }}
-      usage={usage}
+      limits={limits}
+      activity={activity}
       visible={listedThreads(threads, ["t-routine"])}
       now={NOW}
       sessionIds={new Set()}
@@ -72,6 +82,12 @@ const card = (out: string, head: "notifications-head" | "running-head" | "up-nex
   const start = out.lastIndexOf("<section", out.indexOf(`aria-labelledby="${head}"`));
   return out.slice(start, out.indexOf("</section>", start));
 };
+
+test("the Activity card is titled Activity and sits under Usage", () => {
+  const out = render(state());
+  assert.match(out, /<h2 id="dashboard-activity-head">Activity<\/h2>/);
+  assert.match(out, /<h2 id="dashboard-usage-head">Usage<\/h2>/);
+});
 
 test("the three tiles cover the last 7 days, each with its change", () => {
   const out = render(state());
@@ -107,17 +123,18 @@ test("unavailable cost shows a dash and T3's reason, and does not crash", () => 
 
 test("the chart has one labelled bar slot per day, today last, and a table for screen readers", () => {
   const out = render(state());
-  assert.equal(out.match(/class="usage-hit"/g)?.length, 14);
+  assert.equal(out.match(/class="activity-hit"/g)?.length, 14);
   assert.match(out, /Jan 14: 9 turns, \$0\.50, 1\.2k tokens/);
   assert.match(out, />Today</);
   assert.match(out, /<table class="sr-only">/);
 });
 
-test("the default layout puts usage, Running and Up next left and Notifications right", () => {
+test("the default layout puts Usage, Activity, Running and Up next left and Notifications right", () => {
   const out = render(state());
   const right = out.indexOf('class="dashboard-col right pinned"');
   assert.ok(right > 0);
-  assert.ok(out.indexOf('id="dashboard-usage-head"') < out.indexOf('id="running-head"'));
+  assert.ok(out.indexOf('id="dashboard-usage-head"') < out.indexOf('id="dashboard-activity-head"'));
+  assert.ok(out.indexOf('id="dashboard-activity-head"') < out.indexOf('id="running-head"'));
   assert.ok(out.indexOf('id="running-head"') < out.indexOf('id="up-next-head"'));
   assert.ok(out.indexOf('id="up-next-head"') < right);
   assert.ok(right < out.indexOf('id="notifications-head"'));
@@ -137,13 +154,13 @@ test("a moved card follows the layout, and a hidden card is not drawn", () => {
 test("each slot carries its place for the one-column layout", () => {
   const out = render(state());
   assert.match(out, /dashboard-slot notifications" style="--stack:1"/);
-  assert.match(out, /dashboard-slot running" style="--stack:2"/);
+  assert.match(out, /dashboard-slot running" style="--stack:3"/);
 });
 
-test("before the first answer the usage card shows a skeleton, with the thread cards already there", () => {
+test("before the first answer the Activity card shows a skeleton, with the thread cards already there", () => {
   const out = render(state({ usage: null }));
   assert.match(out, /class="skeleton"[^>]*aria-hidden/);
-  assert.match(out, /aria-busy="true" aria-label="Loading usage"/);
+  assert.match(out, /aria-busy="true" aria-label="Loading activity"/);
   assert.match(out, /id="notifications-head"/);
   assert.doesNotMatch(out, /stat-value/);
 });
@@ -151,13 +168,13 @@ test("before the first answer the usage card shows a skeleton, with the thread c
 test("a failed first read shows the error line instead of the skeleton", () => {
   const out = render(state({ usage: null, error: "Cannot reach the dashboard server." }));
   assert.match(out, /role="alert">Cannot reach/);
-  assert.doesNotMatch(out, /Loading usage/);
+  assert.doesNotMatch(out, /Loading activity/);
 });
 
 test("a failed refresh keeps the last numbers and adds the error", () => {
   const out = render(state({ error: "Boom." }));
   assert.match(out, /stat-value">63/);
-  assert.match(out, /Could not refresh usage\. Boom\./);
+  assert.match(out, /Could not refresh activity\. Boom\./);
 });
 
 test("without edit mode there is no edit bar", () => {
@@ -166,12 +183,12 @@ test("without edit mode there is no edit bar", () => {
 
 test("edit mode shows a bar with a drag handle and the move buttons on every card, and locks the card", () => {
   const out = render(state(), { editing: true });
-  assert.equal(out.match(/class="card-edit-bar"/g)?.length, 4);
-  assert.equal(out.match(/class="card-edit-bar" draggable="true"/g)?.length, 4);
+  assert.equal(out.match(/class="card-edit-bar"/g)?.length, 5);
+  assert.equal(out.match(/class="card-edit-bar" draggable="true"/g)?.length, 5);
   assert.match(out, /aria-label="Move Running to the right column"/);
   assert.match(out, /aria-label="Move Notifications to the left column"/);
   assert.match(out, /aria-label="Hide Up next"/);
-  assert.equal(out.match(/class="dashboard-slot-body" inert=""/g)?.length, 4);
+  assert.equal(out.match(/class="dashboard-slot-body" inert=""/g)?.length, 5);
 });
 
 test("the first card of a column cannot move up and the last cannot move down", () => {

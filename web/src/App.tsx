@@ -4,7 +4,8 @@ import { AutomationsView } from "./features/automations/AutomationsView.tsx";
 import { DashboardView } from "./features/dashboard/DashboardView.tsx";
 import { isDefaultLayout } from "./features/dashboard/layout.ts";
 import { useDashboardLayout } from "./features/dashboard/useDashboardLayout.ts";
-import { useUsage } from "./features/dashboard/useUsage.ts";
+import { useActivity } from "./features/dashboard/useActivity.ts";
+import { useLimits } from "./features/dashboard/useLimits.ts";
 import { AppNav } from "./features/shell/AppNav.tsx";
 import { PageActions } from "./features/shell/PageActions.tsx";
 import { ConnectionBanner } from "./features/setup/ConnectionBanner.tsx";
@@ -185,7 +186,9 @@ export function App() {
   const agents = useMemo(() => agentCounts(visible), [visible]);
   const sessionsBadge = useMemo(() => ({ count: sessionsBadgeCount(visible, notify.seen), waiting: agents.waiting > 0 }), [visible, notify.seen, agents.waiting]);
   const dashboardLayout = useDashboardLayout(tab === "dashboard");
-  const usage = useUsage(tab === "dashboard" && state !== null);
+  const dashboardOpen = tab === "dashboard" && state !== null;
+  const activity = useActivity(dashboardOpen);
+  const limits = useLimits(dashboardOpen);
   const page = TABS.find((t) => t.id === tab)!;
   const updateNav = update.status?.available && update.status.canUpdate ? { label: updateLabel(update.status), busy: update.updating || update.status.updating } : null;
 
@@ -250,7 +253,8 @@ export function App() {
             (state ? (
               <DashboardView
                 state={state}
-                usage={usage}
+                limits={limits}
+                activity={activity}
                 visible={visible}
                 now={now}
                 sessionIds={sessionIds}
