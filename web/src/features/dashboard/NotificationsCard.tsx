@@ -3,7 +3,7 @@ import type { DashboardThread } from "../../../../shared/api.ts";
 import { useAction } from "../../lib/useAction.ts";
 import { Button, CardHead, Icon, IconButton } from "../../ui/index.ts";
 import { SkeletonRows } from "./SkeletonRows.tsx";
-import { notificationList, type Notification, type ThreadSections } from "./sections.ts";
+import { attentionCount, notificationList, type Notification, type ThreadSections } from "./sections.ts";
 
 interface Props {
   sections: ThreadSections;
@@ -27,7 +27,7 @@ export function NotificationsCard({ sections, recent, old, loading, renderItem, 
   const [all, setAll] = useState(false);
   const settleAll = useAction("settle the threads");
   const items = useMemo(() => notificationList(sections, all ? sections.readIdle : recent), [sections, all, recent]);
-  const attention = sections.needsYou.length + sections.unread.length;
+  const attention = attentionCount(sections);
   return (
     <section className="dashboard-card notifications-card" aria-labelledby="notifications-head">
       <CardHead

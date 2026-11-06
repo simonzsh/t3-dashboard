@@ -1,7 +1,7 @@
 import { test } from "bun:test";
 import assert from "node:assert/strict";
 import type { SeenState } from "../../../../shared/seen.ts";
-import { listedThreads, notificationDetail, notificationIcon, notificationList, splitRead, threadSections, unreadCount } from "../../../src/features/dashboard/sections.ts";
+import { listedThreads, notificationDetail, notificationIcon, notificationList, splitRead, threadSections, attentionCount } from "../../../src/features/dashboard/sections.ts";
 import { thread } from "../../fixtures.ts";
 
 const now = new Date("2026-01-12T12:00:00.000Z");
@@ -74,10 +74,10 @@ test("splitRead cuts the read threads at 3 days", () => {
   assert.deepEqual(ids(split.recent), ["recent"]);
 });
 
-test("unreadCount counts unread threads that need you or have an unread result", () => {
+test("attentionCount counts what needs you, read or not, and the unread results", () => {
   const readWait = thread("w", { status: "waiting", pending: ask });
   const s = sectionsOf([readWait, thread("err", { status: "failed", lastError: "x" }), thread("new", { status: "completed" }), thread("run", { status: "running" })], readAt(readWait));
-  assert.equal(unreadCount(s, readAt(readWait)), 2);
+  assert.equal(attentionCount(s), 3);
 });
 
 test("the notification list puts what needs you first, then unread, then recent read threads, newest first", () => {
