@@ -6,6 +6,7 @@ import { isDefaultLayout, type DashboardCard } from "./features/dashboard/layout
 import { useDashboardLayout } from "./features/dashboard/useDashboardLayout.ts";
 import { useActivity } from "./features/dashboard/useActivity.ts";
 import { useLimits } from "./features/dashboard/useLimits.ts";
+import { useServerStats } from "./features/dashboard/useServerStats.ts";
 import { AppNav } from "./features/shell/AppNav.tsx";
 import { PageActions } from "./features/shell/PageActions.tsx";
 import { ConnectionBanner } from "./features/setup/ConnectionBanner.tsx";
@@ -191,6 +192,7 @@ export function App() {
   const cardShown = (id: DashboardCard) => dashboardOpen && !dashboardLayout.layout.hidden.includes(id);
   const activity = useActivity(cardShown("activity"));
   const limits = useLimits(cardShown("usage"));
+  const server = useServerStats(cardShown("server"));
   const page = TABS.find((t) => t.id === tab)!;
   const updateNav = update.status?.available && update.status.canUpdate ? { label: updateLabel(update.status), busy: update.updating || update.status.updating } : null;
 
@@ -256,6 +258,7 @@ export function App() {
               <DashboardView
                 state={state}
                 limits={limits}
+                server={server}
                 activity={activity}
                 visible={visible}
                 now={now}

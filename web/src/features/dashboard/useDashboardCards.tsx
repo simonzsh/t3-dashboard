@@ -30,8 +30,8 @@ export interface CardsInput {
   linearVersion: number;
 }
 
-/** The thread cards of the Dashboard; the Usage and Activity cards are not here, they need no thread. */
-export function useDashboardCards({ state, visible, now, sessionIds, onOpen, onSettle, seen, seenReady, onMarkRead, automations, automationsError, linearVersion }: CardsInput, ticketsShown: boolean): Record<Exclude<DashboardCard, "usage" | "activity">, ReactNode> {
+/** The thread cards of the Dashboard; the Usage, Server and Activity cards are not here, they need no thread. */
+export function useDashboardCards({ state, visible, now, sessionIds, onOpen, onSettle, seen, seenReady, onMarkRead, automations, automationsError, linearVersion }: CardsInput, ticketsShown: boolean): Record<Exclude<DashboardCard, "usage" | "server" | "activity">, ReactNode> {
   const tickets = useTickets(linearVersion, ticketsShown, visible, seen, now);
   const { relaunch, upNext } = tickets.plan;
   const sections = useMemo(() => threadSections(visible, seen, new Set(relaunch.map((r) => r.thread.id))), [visible, seen, relaunch]);

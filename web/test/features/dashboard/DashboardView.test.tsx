@@ -1,7 +1,7 @@
 import { test } from "bun:test";
 import assert from "node:assert/strict";
 import { renderToStaticMarkup } from "react-dom/server";
-import type { DashboardState, LimitsOverview, UsageDay, UsageOverview, UsageTotals } from "../../../../shared/api.ts";
+import type { DashboardState, LimitsOverview, ServerStats, UsageDay, UsageOverview, UsageTotals } from "../../../../shared/api.ts";
 import { DashboardView } from "../../../src/features/dashboard/DashboardView.tsx";
 import { DEFAULT_LAYOUT, moveCard, setHidden, type DashboardLayout } from "../../../src/features/dashboard/layout.ts";
 import { agentCounts } from "../../../src/lib/agents.ts";
@@ -44,6 +44,13 @@ const limitsState = (over: Partial<ReadState<LimitsOverview>> = {}): ReadState<L
   refresh: () => {},
   ...over,
 });
+const serverState = (over: Partial<ReadState<ServerStats>> = {}): ReadState<ServerStats> => ({
+  value: { host: "devbox", os: "Linux", uptimeSeconds: 3600, cpu: { usedPercent: 10, cores: 4 }, memory: { usedBytes: 1, totalBytes: 4, usedPercent: 25 }, disk: null, readAt: "2026-01-14T11:59:00.000Z" },
+  error: null,
+  loading: false,
+  refresh: () => {},
+  ...over,
+});
 const fresh = { since: "2026-01-01T00:00:00.000Z", seen: {} as Record<string, string> };
 interface Options {
   limits?: ReadState<LimitsOverview>;
@@ -58,6 +65,7 @@ const render = (activity: ReadState<UsageOverview>, { limits = limitsState(), th
     <DashboardView
       state={{ ...baseState(threads), providers }}
       limits={limits}
+      server={serverState()}
       activity={activity}
       visible={listedThreads(threads, ["t-routine"])}
       now={NOW}
@@ -128,11 +136,12 @@ test("the chart has one labelled bar slot per day, today last, and a table for s
   assert.match(out, /<table class="sr-only">/);
 });
 
-test("the default layout puts Usage, Activity, Running and Up next left and Notifications right", () => {
+test("the default layout puts Usage, Server, Activity, Running and Up next left and Notifications right", () => {
   const out = render(state());
   const right = out.indexOf('class="dashboard-col right pinned"');
   assert.ok(right > 0);
-  assert.ok(out.indexOf('id="dashboard-usage-head"') < out.indexOf('id="dashboard-activity-head"'));
+  assert.ok(out.indexOf('id="dashboard-usage-head"') < out.indexOf('id="dashboard-server-head"'));
+  assert.ok(out.indexOf('id="dashboard-server-head"') < out.indexOf('id="dashboard-activity-head"'));
   assert.ok(out.indexOf('id="dashboard-activity-head"') < out.indexOf('id="running-head"'));
   assert.ok(out.indexOf('id="running-head"') < out.indexOf('id="up-next-head"'));
   assert.ok(out.indexOf('id="up-next-head"') < right);
@@ -153,7 +162,7 @@ test("a moved card follows the layout, and a hidden card is not drawn", () => {
 test("each slot carries its place for the one-column layout", () => {
   const out = render(state());
   assert.match(out, /dashboard-slot notifications" style="--stack:1"/);
-  assert.match(out, /dashboard-slot running" style="--stack:3"/);
+  assert.match(out, /dashboard-slot running" style="--stack:4"/);
 });
 
 test("before the first answer the Activity card shows a skeleton, with the thread cards already there", () => {
@@ -161,7 +170,7 @@ test("before the first answer the Activity card shows a skeleton, with the threa
   assert.match(out, /class="skeleton"[^>]*aria-hidden/);
   assert.match(out, /aria-busy="true" aria-label="Loading activity"/);
   assert.match(out, /id="notifications-head"/);
-  assert.doesNotMatch(out, /stat-value/);
+  assert.doesNotMatch(out, />Turns</);
 });
 
 test("a failed first read shows the error line instead of the skeleton", () => {
@@ -182,12 +191,12 @@ test("without edit mode there is no edit bar", () => {
 
 test("edit mode shows a bar with a drag handle and the move buttons on every card, and locks the card", () => {
   const out = render(state(), { editing: true });
-  assert.equal(out.match(/class="card-edit-bar"/g)?.length, 5);
-  assert.equal(out.match(/class="card-edit-bar" draggable="true"/g)?.length, 5);
+  assert.equal(out.match(/class="card-edit-bar"/g)?.length, 6);
+  assert.equal(out.match(/class="card-edit-bar" draggable="true"/g)?.length, 6);
   assert.match(out, /aria-label="Move Running to the right column"/);
   assert.match(out, /aria-label="Move Notifications to the left column"/);
   assert.match(out, /aria-label="Hide Up next"/);
-  assert.equal(out.match(/class="dashboard-slot-body" inert=""/g)?.length, 5);
+  assert.equal(out.match(/class="dashboard-slot-body" inert=""/g)?.length, 6);
 });
 
 test("the first card of a column cannot move up and the last cannot move down", () => {
@@ -267,4 +276,10 @@ test("the Running card lists working agents with a pulsing dot, model and projec
 
 test("routine threads stay out of every card", () => {
   assert.doesNotMatch(render(state(), { threads: [thread("t-routine", { title: "Routine run" })] }), /Routine run/);
+});
+
+test("the Server card sits in a full-width slot, and its stats show", () => {
+  const out = render(state());
+  assert.match(out, /class="dashboard-slot server"/);
+  assert.match(out, /devbox · Linux · up 1 h/);
 });
