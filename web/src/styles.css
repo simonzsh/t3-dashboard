@@ -558,9 +558,12 @@ ol.install-steps { padding-left: 18px; }
 /* The buttons replace the dot corner on hover and keyboard focus; touch screens show them at once. */
 .thread-actions { position: absolute; right: 8px; bottom: 6px; display: flex; align-items: center; gap: 4px; padding: 2px; border-radius: var(--radius-md); background: var(--surface-1); box-shadow: 0 0 0 1px var(--line); opacity: 0; pointer-events: none; transition: opacity 0.12s; }
 .notif-item:hover .thread-actions, .thread-actions:focus-within { opacity: 1; pointer-events: auto; }
+/* Touch: a small plain button on the row (no floating box); an invisible margin makes the tap target 44 px. */
 @media (pointer: coarse) {
-  .thread-actions { opacity: 1; pointer-events: auto; }
-  .thread-actions .icon-button, .ticket-foot > .icon-button { min-width: 44px; height: 44px; }
+  .thread-actions { top: 50%; bottom: auto; transform: translateY(-50%); padding: 0; background: none; box-shadow: none; opacity: 1; pointer-events: auto; }
+  .thread-actions .icon-button, .ticket-foot > .icon-button { position: relative; }
+  .thread-actions .icon-button::before, .ticket-foot > .icon-button::before { content: ""; position: absolute; inset: -8px; }
+  .notif-item:has(.thread-actions) .notif-row { padding-right: 44px; }
 }
 .run-row { flex-direction: column; gap: 2px; overflow: hidden; }
 .run-row.working::after { content: ""; position: absolute; left: 0; bottom: 0; height: 2px; width: 50%; background: linear-gradient(90deg, transparent, var(--work), transparent); will-change: transform; animation: shimmer 1.8s ease-in-out infinite; }
