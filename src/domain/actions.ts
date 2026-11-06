@@ -1,7 +1,7 @@
 import { homedir } from "node:os";
 import { posix } from "node:path";
 import { marked } from "marked";
-import type { AssignIssueBody, ComposerCommands, CreateProjectBody, CreateThreadBody, FileSearchResult, FolderBrowseResult, LinearIssue, ModelSelection, RespondBody, SecretAnswerBody, SendMessageBody, StepDetail, ThreadDetail, ThreadSearchResult, ThreadSettingsBody, UploadedAttachment } from "../../shared/api.ts";
+import type { AssignIssueBody, ComposerCommands, CreateProjectBody, CreateThreadBody, FileSearchResult, FolderBrowseResult, LinearIssue, ModelSelection, ProjectIconChoices, RespondBody, SecretAnswerBody, SendMessageBody, StepDetail, ThreadDetail, ThreadSearchResult, ThreadSettingsBody, UpdateProjectBody, UploadedAttachment } from "../../shared/api.ts";
 import { ACTIVE_STATUSES, RUNNING_RUN_STATUSES } from "../../shared/status.ts";
 import { IntegrationError } from "../integrations/errors.ts";
 import {
@@ -29,6 +29,7 @@ import {
 import type { AssetResource, FileUpload, ImageUpload, RawProjection, T3Port } from "../integrations/t3/schemas.ts";
 import { DomainError } from "./errors.ts";
 import { expandHome, normalizeFolder } from "./folders.ts";
+import { projectIconChoices } from "./projectIcon.ts";
 import { toComposerCommands } from "./providers.ts";
 import type { LinearBoard } from "./linearBoard.ts";
 import type { ShellStore } from "./shellStore.ts";
@@ -62,6 +63,11 @@ export interface Actions {
   deleteAttachment(attachmentId: string): Promise<void>;
   /** Adds a folder as a T3 project, creating the folder if it is missing; an existing project for it is reused. */
   createProject(body: CreateProjectBody): Promise<{ projectId: string; created: boolean }>;
+  /** Changes the given fields of a project; the folder must exist. */
+  updateProject(projectId: string, body: UpdateProjectBody): Promise<void>;
+  /** Deletes the project and all its threads from T3; the folder stays on disk. */
+  deleteProject(projectId: string): Promise<void>;
+  projectIcons(): ProjectIconChoices;
   /** Folder suggestions for a typed path, and what is at that path. */
   browseFolders(path: string): Promise<FolderBrowseResult>;
   createThread(create: CreateThreadBody, images: ImageUpload[], uploads?: UploadedAttachment[]): Promise<string>;
@@ -117,6 +123,12 @@ export function createActions(options: ActionsOptions): Actions {
       if (error instanceof IntegrationError) throw error;
       throw new IntegrationError((error as Error).message, { system: "t3", kind: "unreachable" });
     }
+  };
+  // store.project also matches a title; an edit or delete must hit an id.
+  const knownProject = (id: string) => {
+    const project = store.project(id);
+    if (project?.id !== id) throw new DomainError("not-found", "Project not found");
+    return project;
   };
   const send = async (...commands: UnsentCommand[]) => {
     for (const command of commands) await t3(port.dispatch({ ...command, commandId: newId() }));
@@ -259,6 +271,43 @@ export function createActions(options: ActionsOptions): Actions {
       }
       return { projectId, created: true };
     },
+
+    async updateProject(projectId, { title, path, icon }) {
+      const current = knownProject(projectId);
+      const root = path === undefined ? undefined : normalizeFolder(path, home);
+      const other = root === undefined ? undefined : store.projectByRoot(root);
+      if (other && other.id !== projectId && !other.archived) throw new DomainError("conflict", "Another T3 project already uses this folder");
+      const mutation = {
+        type: "project.update" as const,
+        projectId,
+        ...(title !== undefined && { title }),
+        ...(root !== undefined && root !== normalizeFolder(current.workspaceRoot ?? "", "") && { workspaceRoot: root }),
+        ...(icon !== undefined && { projectIcon: icon }),
+      };
+      if (Object.keys(mutation).length === 2) return;
+      try {
+        await t3(port.mutateProject(mutation, newId()));
+      } catch (error) {
+        const reason = error instanceof IntegrationError ? error.reason : undefined;
+        if (reason === "WorkspaceRootNotExistsError") throw new DomainError("invalid", "This folder does not exist");
+        if (reason === "WorkspaceRootNotDirectoryError") throw new DomainError("invalid", "This path is a file, not a folder");
+        if (reason === "ProjectConflictError") throw new DomainError("conflict", "Another T3 project already uses this folder");
+        if (reason === "ProjectNotFoundError") throw new DomainError("not-found", "Project not found");
+        throw error;
+      }
+    },
+
+    async deleteProject(projectId) {
+      knownProject(projectId);
+      try {
+        await t3(port.mutateProject({ type: "project.delete", projectId, force: true }, newId()));
+      } catch (error) {
+        if (error instanceof IntegrationError && error.reason === "ProjectNotFoundError") throw new DomainError("not-found", "Project not found");
+        throw error;
+      }
+    },
+
+    projectIcons: projectIconChoices,
 
     async browseFolders(path) {
       const root = normalizeFolder(path, home);
