@@ -6,7 +6,7 @@ import { InstallSettings } from "./InstallSettings.tsx";
 import { LinearSettings } from "./LinearSettings.tsx";
 import { UpdateSettings } from "./UpdateSettings.tsx";
 import { onRadioKeyDown } from "../../ui/radioKeys.ts";
-import { Dialog, Pressable, Segmented, Tabs } from "../../ui/index.ts";
+import { Dialog, Icon, Pressable, Segmented, Tabs, type IconName } from "../../ui/index.ts";
 
 interface Props {
   theme: ThemeSetting;
@@ -29,6 +29,7 @@ const SECTIONS = [
 type SectionId = (typeof SECTIONS)[number]["id"];
 
 const LABELS: Record<ThemeSetting, string> = { system: "System", light: "Light", dark: "Dark" };
+const THEME_ICONS: Record<ThemeSetting, IconName> = { system: "monitor", light: "sun", dark: "moon" };
 
 export function SettingsDialog({ theme, onThemeChange, accent, onAccentChange, onLinearChange, update, onUpdate, onClose }: Props) {
   const [section, setSection] = useState<SectionId>("appearance");
@@ -38,7 +39,7 @@ export function SettingsDialog({ theme, onThemeChange, accent, onAccentChange, o
       <>
         <div className="settings-row">
           <span>Theme</span>
-          <Segmented label="Theme" value={theme} options={THEME_SETTINGS.map((id) => ({ id, label: LABELS[id] }))} onChange={onThemeChange} />
+          <Segmented label="Theme" value={theme} options={THEME_SETTINGS.map((id) => ({ id, label: LABELS[id], icon: <Icon name={THEME_ICONS[id]} /> }))} onChange={onThemeChange} />
         </div>
         <div className="settings-row">
           <span>Accent color</span>
