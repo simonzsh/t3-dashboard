@@ -21,12 +21,14 @@ interface Props {
   onCreated: (threadId: string) => void;
   /** Set when the agent is assigned to a Linear issue: the thread is named after it and links it. */
   issue?: LinearIssue;
+  /** The project to preselect, in place of the last one chosen. */
+  projectId?: string | null;
 }
 
-export function NewThreadDialog({ projects, providers, defaults, onClose, onCreated, issue }: Props) {
+export function NewThreadDialog({ projects, providers, defaults, onClose, onCreated, issue, projectId: preset = null }: Props) {
   const api = useApi();
   // A Linear issue preselects the last project chosen for its team.
-  const [projectId, setProjectId] = useState(() => (issue ? loadAssignProject(browserStorage(), issue.team.key, projects) : loadNewAgentProject(browserStorage(), projects)));
+  const [projectId, setProjectId] = useState(() => (issue ? loadAssignProject(browserStorage(), issue.team.key, projects) : (preset ?? loadNewAgentProject(browserStorage(), projects))));
   const [selection, setSelection] = useState<ModelSelection | null>(() => presetSelection(projects.find((p) => p.id === projectId), providers, defaults.selection));
   const [mode, setMode] = useState<RuntimeMode>(defaults.runtimeMode ?? DEFAULT_RUNTIME_MODE);
   const [draft, setDraft] = useState("");
