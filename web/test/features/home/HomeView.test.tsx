@@ -55,7 +55,7 @@ test("the tiles show turns with their change, sessions and spend", () => {
 test("a partial turn count and unpriced models are said in the captions", () => {
   const out = render(state({ usage: overview({ turnsPartial: true, cost: { status: "partial", detail: null, refreshing: false } }) }));
   assert.match(out, /T3 threads \(partial\)/);
-  assert.match(out, /some models unpriced/);
+  assert.match(out, /last 14 days · some models unpriced · all usage on this machine/);
 });
 
 test("unavailable cost shows a dash and T3's reason, and does not crash", () => {
@@ -98,4 +98,17 @@ test("a failed refresh keeps the last numbers and adds the error", () => {
   const out = render(state({ error: "Boom." }));
   assert.match(out, /stat-value">63/);
   assert.match(out, /Could not refresh usage\. Boom\./);
+});
+
+test("without data it shows a loader, and an error when the read failed", () => {
+  assert.match(render(state({ usage: null })), /class="[^"]*loader/i);
+  const failed = render(state({ usage: null, error: "T3 is down" }));
+  assert.match(failed, /role="alert">T3 is down/);
+  assert.doesNotMatch(failed, /class="[^"]*loader/i);
+});
+
+test("a failed refresh keeps the last good data and shows the error", () => {
+  const out = render(state({ error: "offline" }));
+  assert.match(out, /Could not refresh usage\. offline/);
+  assert.match(out, /\$7\.00/);
 });

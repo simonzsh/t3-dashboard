@@ -43,3 +43,13 @@ export const failure = (what: string, error: unknown): string => `Could not ${wh
 
 /** Status of a run step or a subagent. */
 export const STEP_LABELS: Record<"running" | "done" | "failed", string> = { running: "Running", done: "Done", failed: "Failed" };
+
+/** 950, 1.5k, 722k, 1.3M, 3.5B: the size T3 Code shows on its Compact button. */
+export function formatTokens(count: number): string {
+  if (count < 1000) return String(Math.round(count));
+  const short = (value: number, unit: string) => `${value.toFixed(1).replace(/\.0$/, "")}${unit}`;
+  if (count < 10_000) return short(count / 1000, "k");
+  const thousands = Math.round(count / 1000);
+  if (thousands < 1000) return `${thousands}k`;
+  return count < 1e9 ? short(count / 1e6, "M") : short(count / 1e9, "B");
+}

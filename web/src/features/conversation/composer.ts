@@ -155,15 +155,6 @@ export function suggestsCompact(driver: string | undefined, usage: ContextUsage 
   return Number.isFinite(at) && now - at >= (usage.promptCacheTtlMs ?? PROMPT_CACHE_TTL_MS);
 }
 
-/** 950, 1.5k, 722k, 1.3M: the size T3 Code shows on its Compact button. */
-export function formatTokens(count: number): string {
-  if (count < 1000) return String(Math.round(count));
-  const short = (value: number, unit: string) => `${value.toFixed(1).replace(/\.0$/, "")}${unit}`;
-  if (count < 10_000) return short(count / 1000, "k");
-  const thousands = Math.round(count / 1000);
-  return thousands < 1000 ? `${thousands}k` : short(count / 1_000_000, "M");
-}
-
 /** Removes the typed word and the space after it: the command ran instead of going into the text. */
 export function dropTrigger(text: string, trigger: Trigger): { text: string; caret: number } {
   const end = trigger.start + 1 + trigger.query.length;

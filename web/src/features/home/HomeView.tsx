@@ -4,7 +4,8 @@ import { agentCounts } from "../../lib/navBadges.ts";
 import { relativeTime } from "../../lib/format.ts";
 import { IconButton, Icon, Loader, Segmented } from "../../ui/index.ts";
 import { UsageChart } from "./UsageChart.tsx";
-import { cacheShare, delta, formatCompact, formatUsd, METRICS, type Metric } from "./usageView.ts";
+import { formatTokens } from "../../lib/format.ts";
+import { cacheShare, delta, formatUsd, METRICS, type Metric } from "./usageView.ts";
 import type { UsageState } from "./useUsage.ts";
 
 interface TileProps {
@@ -31,7 +32,7 @@ function StatTile({ label, value, caption, change }: TileProps) {
 function Tiles({ usage, threads }: { usage: UsageOverview; threads: readonly DashboardThread[] }) {
   const { thisWeek, lastWeek, cost, total } = usage;
   const costKnown = cost.status !== "unavailable";
-  const costCaption = cost.status === "unavailable" ? (cost.detail ?? "No usage reported by T3 Code") : cost.status === "partial" ? "some models unpriced · all usage on this machine" : "last 14 days · all usage on this machine";
+  const costCaption = cost.status === "unavailable" ? (cost.detail ?? "No usage reported by T3 Code") : cost.status === "partial" ? "last 14 days · some models unpriced · all usage on this machine" : "last 14 days · all usage on this machine";
   return (
     <div className="stat-tiles">
       <StatTile label="Turns · last 7 days" value={String(thisWeek.turns)} change={delta(thisWeek.turns, lastWeek.turns)} caption={usage.turnsPartial ? "T3 threads (partial)" : "T3 threads"} />
@@ -82,7 +83,7 @@ function TodayCard({ usage }: { usage: UsageOverview }) {
       <dl className="small-stats">
         <div><dt>Turns</dt><dd>{today.turns}</dd></div>
         <div><dt>Spend</dt><dd>{costKnown ? formatUsd(today.costUsd) : "—"}</dd></div>
-        <div><dt>Tokens in → out</dt><dd>{costKnown ? `${formatCompact(today.inputTokens)} → ${formatCompact(today.outputTokens)}` : "—"}</dd></div>
+        <div><dt>Tokens in → out</dt><dd>{costKnown ? `${formatTokens(today.inputTokens)} → ${formatTokens(today.outputTokens)}` : "—"}</dd></div>
         <div><dt>Cache</dt><dd>{costKnown && cache !== null ? `${cache} %` : "—"}</dd></div>
       </dl>
     </section>

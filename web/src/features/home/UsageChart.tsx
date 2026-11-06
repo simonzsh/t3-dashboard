@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import type { UsageDay } from "../../../../shared/api.ts";
-import { barLayout, cacheShare, formatCompact, formatMetric, formatUsd, metricValue, niceTicks, shortDay, tokensOf, type Metric } from "./usageView.ts";
+import { formatTokens } from "../../lib/format.ts";
+import { barLayout, cacheShare, formatMetric, formatUsd, metricValue, niceTicks, shortDay, tokensOf, type Metric } from "./usageView.ts";
 
 const HEIGHT = 190;
 const MARGIN = { top: 10, right: 20, bottom: 24, left: 52 };
@@ -31,7 +32,7 @@ function useWidth(): [React.RefObject<HTMLDivElement | null>, number] {
 
 function describe(d: UsageDay, costKnown: boolean): string {
   const cost = costKnown ? formatUsd(d.costUsd) : "no cost data";
-  return `${shortDay(d.day)}: ${d.turns} turns, ${cost}, ${formatCompact(tokensOf(d))} tokens`;
+  return `${shortDay(d.day)}: ${d.turns} turns, ${cost}, ${formatTokens(tokensOf(d))} tokens`;
 }
 
 interface Props {
@@ -107,7 +108,7 @@ export function UsageChart({ days, metric, costKnown }: Props) {
           <strong>{shortDay(hovered.day)}</strong>
           <span>Turns <b>{hovered.turns}</b></span>
           <span>Spend <b>{costKnown ? formatUsd(hovered.costUsd) : "—"}</b></span>
-          <span>Tokens <b>{costKnown ? `${formatCompact(hovered.inputTokens)} → ${formatCompact(hovered.outputTokens)}` : "—"}</b></span>
+          <span>Tokens <b>{costKnown ? `${formatTokens(hovered.inputTokens)} → ${formatTokens(hovered.outputTokens)}` : "—"}</b></span>
           {costKnown && cacheShare(hovered) !== null && <span>Cache <b>{cacheShare(hovered)} %</b></span>}
         </div>
       )}

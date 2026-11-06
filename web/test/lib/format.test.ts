@@ -1,6 +1,6 @@
 import { test } from "bun:test";
 import assert from "node:assert/strict";
-import { STEP_LABELS, duration, errorMessage, failure, formatBytes, formatMessageTime, relativeTime } from "../../src/lib/format.ts";
+import { STEP_LABELS, duration, errorMessage, failure, formatBytes, formatMessageTime, formatTokens, relativeTime } from "../../src/lib/format.ts";
 
 const now = new Date("2026-03-01T12:00:00Z");
 
@@ -50,4 +50,16 @@ test("formatBytes picks the unit", () => {
   assert.equal(formatBytes(512), "512 B");
   assert.equal(formatBytes(2048), "2 KB");
   assert.equal(formatBytes(5.5 * 1024 * 1024), "5.5 MB");
+});
+
+test("formatTokens shortens a count the way T3 Code's Compact button does", () => {
+  assert.equal(formatTokens(0), "0");
+  assert.equal(formatTokens(950), "950");
+  assert.equal(formatTokens(1_500), "1.5k");
+  assert.equal(formatTokens(9_999), "10k");
+  assert.equal(formatTokens(39_658), "40k");
+  assert.equal(formatTokens(722_300), "722k");
+  assert.equal(formatTokens(999_600), "1M");
+  assert.equal(formatTokens(1_250_000), "1.3M");
+  assert.equal(formatTokens(3_500_000_000), "3.5B");
 });

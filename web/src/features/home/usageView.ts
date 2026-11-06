@@ -1,3 +1,4 @@
+import { formatTokens } from "../../lib/format.ts";
 import type { UsageDay, UsageTotals } from "../../../../shared/api.ts";
 
 export type Metric = "turns" | "cost" | "tokens";
@@ -11,25 +12,6 @@ export const METRICS: ReadonlyArray<{ id: Metric; label: string }> = [
 export function formatUsd(value: number): string {
   if (value > 0 && value < 0.01) return "<$0.01";
   return `$${value.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-}
-
-const UNITS = ["", "k", "M", "B"];
-
-/** 1500 -> "1.5k", 41300 -> "41k", 1240000 -> "1.2M". */
-export function formatCompact(value: number): string {
-  let scaled = value;
-  let unit = 0;
-  const text = () => (scaled < 10 && unit > 0 ? scaled.toFixed(1) : scaled.toFixed(0));
-  while (scaled >= 1000 && unit < UNITS.length - 1) {
-    scaled /= 1000;
-    unit++;
-  }
-  // 999.6k rounds to 1000k: show it as 1.0M.
-  if (unit > 0 && unit < UNITS.length - 1 && Number(text()) >= 1000) {
-    scaled /= 1000;
-    unit++;
-  }
-  return `${text()}${UNITS[unit]}`;
 }
 
 /** "+29 %", "−5 %", "new" when last week was empty, null when both are. */
@@ -54,7 +36,7 @@ export function metricValue(d: UsageDay, metric: Metric): number {
 
 export function formatMetric(value: number, metric: Metric): string {
   if (metric === "turns") return String(value);
-  return metric === "cost" ? formatUsd(value) : formatCompact(value);
+  return metric === "cost" ? formatUsd(value) : formatTokens(value);
 }
 
 /** Round tick values from 0 up to the first one at or above `max`. */

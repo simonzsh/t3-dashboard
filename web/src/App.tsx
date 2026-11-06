@@ -196,7 +196,7 @@ export function App() {
   );
   const unread = useMemo(() => unreadCount(inboxSections(visible, notify.seen, now), notify.seen), [visible, notify.seen, now]);
   const badges = navBadges(state?.threads ?? NO_THREADS, deskIds, unread);
-  const usage = useUsage(tab === "home" && state?.connection.t3 === "live");
+  const usage = useUsage(tab === "home" && state !== null);
   const page = TABS.find((t) => t.id === tab)!;
   const updateNav = update.status?.available && update.status.canUpdate ? { label: updateLabel(update.status), busy: update.updating || update.status.updating } : null;
 
@@ -221,7 +221,7 @@ export function App() {
         theme={resolveTheme(theme, prefersDark)}
         update={updateNav}
         onTab={setTab}
-        onSearch={() => setSwitcherQuery("")}
+        onSearch={() => state && setSwitcherQuery("")}
         onSettings={() => setSettingsOpen(true)}
         onTheme={setTheme}
         onUpdate={() => setConfirmingUpdate(true)}

@@ -1,7 +1,7 @@
 import { test } from "bun:test";
 import assert from "node:assert/strict";
 import type { UsageOverview } from "../../../../shared/api.ts";
-import { barLayout, cacheShare, delta, formatCompact, formatMetric, formatUsd, metricValue, niceTicks, pollDelay, shortDay, tokensOf } from "../../../src/features/home/usageView.ts";
+import { barLayout, cacheShare, delta, formatMetric, formatUsd, metricValue, niceTicks, pollDelay, shortDay, tokensOf } from "../../../src/features/home/usageView.ts";
 
 const day = (over: Partial<UsageOverview["days"][number]> = {}) => ({ day: "2026-01-10", turns: 0, costUsd: 0, inputTokens: 0, cachedInputTokens: 0, outputTokens: 0, ...over });
 
@@ -10,16 +10,6 @@ test("formatUsd shows cents, groups thousands and keeps tiny amounts visible", (
   assert.equal(formatUsd(0), "$0.00");
   assert.equal(formatUsd(1234.5), "$1,234.50");
   assert.equal(formatUsd(0.004), "<$0.01");
-});
-
-test("formatCompact shortens counts with k, M and B", () => {
-  assert.equal(formatCompact(0), "0");
-  assert.equal(formatCompact(999), "999");
-  assert.equal(formatCompact(1500), "1.5k");
-  assert.equal(formatCompact(41_300), "41k");
-  assert.equal(formatCompact(1_240_000), "1.2M");
-  assert.equal(formatCompact(999_600), "1.0M");
-  assert.equal(formatCompact(3_500_000_000), "3.5B");
 });
 
 test("delta compares two weeks as a signed percent", () => {

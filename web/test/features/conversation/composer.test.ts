@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { test } from "bun:test";
 import type { DashboardProvider } from "../../../../shared/api.ts";
 import { MAX_ATTACHMENTS, MAX_FILE_BYTES, MAX_IMAGE_BYTES } from "../../../../shared/limits.ts";
-import { acceptFiles, applyTrigger, attachmentType, composerPlaceholder, currentEffort, dropTrigger, escapeBlurs, filterCommands, filterSkills, findModel, formatTokens, isSendKey, selectEffort, selectModel, suggestsCompact, triggerAt } from "../../../src/features/conversation/composer.ts";
+import { acceptFiles, applyTrigger, attachmentType, composerPlaceholder, currentEffort, dropTrigger, escapeBlurs, filterCommands, filterSkills, findModel, isSendKey, selectEffort, selectModel, suggestsCompact, triggerAt } from "../../../src/features/conversation/composer.ts";
 
 const effort = (optionId: string, ids: string[], defaultLevel: string | null) => ({ optionId, label: "Reasoning", levels: ids.map((id) => ({ id, label: id.toUpperCase() })), defaultLevel });
 const providers: DashboardProvider[] = [
@@ -152,17 +152,6 @@ test("filterSkills matches the name, the display name and the description, name 
   assert.deepEqual(filterSkills(skills, "review").map((k) => k.name), ["review-pr", "plug:review"]);
   assert.deepEqual(filterSkills(skills, "ship").map((k) => k.name), ["plug:deploy"]);
   assert.deepEqual(filterSkills(skills, "code rev").map((k) => k.name), ["plug:review"]);
-});
-
-test("formatTokens shortens a count the way T3 Code's Compact button does", () => {
-  assert.equal(formatTokens(0), "0");
-  assert.equal(formatTokens(950), "950");
-  assert.equal(formatTokens(1_500), "1.5k");
-  assert.equal(formatTokens(9_999), "10k");
-  assert.equal(formatTokens(39_658), "40k");
-  assert.equal(formatTokens(722_300), "722k");
-  assert.equal(formatTokens(999_600), "1M");
-  assert.equal(formatTokens(1_250_000), "1.3M");
 });
 
 test("isSendKey: Enter sends, Shift+Enter, composition and touch keyboards do not", () => {
