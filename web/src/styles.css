@@ -16,9 +16,10 @@
   --warn: #c98a00;
   --warn-bg: #fff4d6;
   --warn-text: #8a5a00;
-  --work: #2563eb;
-  --work-bg: #eaf1fe;
-  --work-text: #1d4ed8;
+  /* "Working" follows the accent color: running icons, dots and badges. */
+  --work: var(--accent);
+  --work-bg: color-mix(in srgb, var(--accent) 14%, var(--surface-1));
+  --work-text: color-mix(in srgb, var(--accent) 75%, var(--text-primary));
   --done-bg: #dcf5e4;
   --done-text: #166534;
   --err-bg: #fde8e8;
@@ -41,9 +42,10 @@
   --warn: #f59e0b;
   --warn-bg: #2a2110;
   --warn-text: #f5cc6b;
-  --work: #3b82f6;
-  --work-bg: #0f1f3a;
-  --work-text: #93c5fd;
+  /* "Working" follows the accent color: running icons, dots and badges. */
+  --work: var(--accent);
+  --work-bg: color-mix(in srgb, var(--accent) 14%, var(--surface-1));
+  --work-text: color-mix(in srgb, var(--accent) 75%, var(--text-primary));
   --done-bg: #0f2a1b;
   --done-text: #86efac;
   --err-bg: #2d1414;
