@@ -1,10 +1,8 @@
 import type { Automation, AutomationRun, AutomationRunOutcome, DashboardProvider, DashboardThread, ModelSelection } from "../../../../shared/api.ts";
 import { isUnseen, type SeenState } from "../../../../shared/seen.ts";
 import { ACTIVE_STATUSES, threadState, type ThreadState } from "../../../../shared/status.ts";
-import { MONTHS } from "../../lib/format.ts";
+import { MONTHS, relativeTime } from "../../lib/format.ts";
 import { findModel } from "../conversation/composer.ts";
-
-export type LastRun = { kind: "waiting" } | { kind: "running" } | { kind: "failed"; error: string | null } | { kind: "done"; at: string };
 
 const DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 const DAY_MS = 86_400_000;
@@ -105,27 +103,25 @@ export function automationGroup(a: Automation, threads: Threads, seen: SeenState
   return a.enabled ? "upcoming" : "paused";
 }
 
+const ORDER: AutomationGroup[] = ["running", "attention", "upcoming", "paused", "finished"];
 const byNextRun = (a: Automation, b: Automation) => Number(a.nextRunAt === null) - Number(b.nextRunAt === null) || (a.nextRunAt ?? "").localeCompare(b.nextRunAt ?? "");
 const byLastRunDesc = (a: Automation, b: Automation) => (b.lastRunAt ?? "").localeCompare(a.lastRunAt ?? "");
 const byStartDesc = (a: Automation, b: Automation) => (b.runs[0]?.startedAt ?? "").localeCompare(a.runs[0]?.startedAt ?? "");
 
-export function groupAutomations(list: Automation[], threads: Threads, seen: SeenState): Record<AutomationGroup, Automation[]> {
-  const groups: Record<AutomationGroup, Automation[]> = { running: [], attention: [], upcoming: [], paused: [], finished: [] };
-  for (const a of list) groups[automationGroup(a, threads, seen)].push(a);
-  groups.running.sort(byStartDesc);
-  groups.upcoming.sort(byNextRun);
-  for (const id of ["attention", "paused", "finished"] as const) groups[id].sort(byLastRunDesc);
-  return groups;
+/** One flat list: running first, then what needs attention, the next runs in order (webhooks last), paused, finished. */
+export function sortAutomations(list: Automation[], threads: Threads, seen: SeenState): Automation[] {
+  const group = new Map(list.map((a) => [a.id, automationGroup(a, threads, seen)]));
+  const within = (g: AutomationGroup) => (g === "running" ? byStartDesc : g === "upcoming" ? byNextRun : byLastRunDesc);
+  return [...list].sort((a, b) => {
+    const ga = group.get(a.id)!;
+    const gb = group.get(b.id)!;
+    return ORDER.indexOf(ga) - ORDER.indexOf(gb) || within(ga)(a, b);
+  });
 }
 
-export function filterAutomations(list: Automation[], filter: { projectId: string | null; query: string }): Automation[] {
-  const query = filter.query.trim().toLowerCase();
-  return list.filter((a) => (filter.projectId === null || a.projectId === filter.projectId) && (query === "" || [a.title, a.project, a.scheduleLabel].some((text) => text.toLowerCase().includes(query))));
-}
-
-export function automationProjects(list: Automation[]): Array<{ id: string; title: string }> {
-  const byId = new Map(list.map((a) => [a.projectId, a.project]));
-  return [...byId].map(([id, title]) => ({ id, title })).sort((a, b) => a.title.localeCompare(b.title));
+export function filterAutomations(list: Automation[], query: string): Automation[] {
+  const text = query.trim().toLowerCase();
+  return list.filter((a) => text === "" || [a.title, a.project, a.scheduleLabel].some((field) => field.toLowerCase().includes(text)));
 }
 
 export function scheduleText(a: Automation): string {
@@ -147,19 +143,50 @@ export const copyableUrl = (a: Automation): string | null => (a.kind === "webhoo
 const two = (n: number) => String(n).padStart(2, "0");
 const hm = (d: Date) => `${d.getHours()}:${two(d.getMinutes())}`;
 
-/** The latest run as a result: T3 marks a run "succeeded" once it is sent, so the thread gives the real state. */
-export function lastResult(a: Automation, threads: Threads): LastRun | null {
-  const run = liveRuns(a, threads)[0];
-  if (!run) return null;
-  if (run.status === "waiting" || run.status === "running") return { kind: run.status };
-  if (run.status === "failed") return { kind: "failed", error: run.error };
-  return run.status === "succeeded" ? { kind: "done", at: hm(new Date(run.finishedAt ?? run.startedAt)) } : null;
+export type RunTone = "ok" | "error" | "running" | "waiting" | "none";
+
+const TONES: Record<AutomationRunOutcome, RunTone> = { succeeded: "ok", failed: "error", running: "running", waiting: "waiting", unknown: "none" };
+export const runTone = (status: AutomationRunOutcome): RunTone => TONES[status];
+export const RUN_LABELS: Record<AutomationRunOutcome, string> = { succeeded: "Succeeded", failed: "Failed", running: "Running", waiting: "Waiting for you", unknown: "Unknown" };
+
+/** "2 h ago · 3 min": when a run started and how long it took. */
+export function runWhen(run: AutomationRun, now: Date): string {
+  return [relativeTime(run.startedAt, now), runDuration(run, now)].filter(Boolean).join(" · ");
 }
+
+/** The latest run in words, read through its thread: T3 marks a run "succeeded" once it is sent. */
+export function lastRunLine(a: Automation, threads: Threads, now: Date): { tone: RunTone; label: string; detail: string } {
+  const run = liveRuns(a, threads)[0];
+  if (!run) return { tone: "none", label: "Never run", detail: "" };
+  return { tone: runTone(run.status), label: RUN_LABELS[run.status], detail: runWhen(run, now) };
+}
+
+export const isRunning = (a: Automation, threads: Threads): boolean => liveRuns(a, threads)[0]?.status === "running";
+
+/** A dot beside the task: its latest finished run is still unread. */
+export function latestUnread(a: Automation, threads: Threads, seen: SeenState): boolean {
+  const run = latestFinished(a, threads);
+  return run !== null && runUnread(a, run, threads, seen);
+}
+
+export const capitalize = (text: string): string => text.charAt(0).toUpperCase() + text.slice(1);
 
 export function nextRunText(a: Automation, now: Date): string {
   if (isFinishedReminder(a)) return "—";
-  if (!a.enabled) return "paused";
+  if (!a.enabled) return "Paused";
   return a.kind === "webhook" ? "On each delivery" : nextLabel(a.nextRunAt, now) || "—";
+}
+
+/** "Next in 3 h" for the row; the sheet shows a date. Nothing for a finished reminder or a task with no next run. */
+export function nextRunLine(a: Automation, now: Date): string {
+  if (isFinishedReminder(a)) return "";
+  if (!a.enabled) return "Paused";
+  if (a.kind === "webhook") return "On each delivery";
+  if (!a.nextRunAt) return "";
+  const min = Math.floor((new Date(a.nextRunAt).getTime() - now.getTime()) / 60_000);
+  if (min < 1) return "Next now";
+  if (min < 60) return `Next in ${min} min`;
+  return min < 1440 ? `Next in ${Math.floor(min / 60)} h` : `Next in ${Math.floor(min / 1440)} d`;
 }
 
 export function nextLabel(iso: string | null, now: Date): string {

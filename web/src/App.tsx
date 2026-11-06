@@ -307,7 +307,6 @@ export function App() {
                   state={state}
                   now={now}
                   seen={notify.seen}
-                  compact={compact}
                   onOpen={onOpen}
                   automations={automations.result}
                   automationsError={automations.error}

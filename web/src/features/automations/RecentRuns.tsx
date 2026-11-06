@@ -1,9 +1,11 @@
+import { useState } from "react";
 import type { Automation, AutomationRun, DashboardThread } from "../../../../shared/api.ts";
 import type { SeenState } from "../../../../shared/seen.ts";
-import { relativeTime } from "../../lib/format.ts";
-import { Pressable } from "../../ui/index.ts";
-import { runDuration, runUnread } from "./automations.ts";
-import { RunBadge } from "./RunBadge.tsx";
+import { Button } from "../../ui/index.ts";
+import { RunRow } from "./RunRow.tsx";
+
+const FIRST = 8;
+const MORE = 20;
 
 interface Props {
   runs: Array<{ automation: Automation; run: AutomationRun }>;
@@ -13,41 +15,31 @@ interface Props {
   onOpen: (id: string, addOnly: boolean) => void;
 }
 
-/** The latest runs of all automations. A run whose session is gone cannot be opened. */
+/** The runs of all automations, newest first. A run whose session is gone cannot be opened. */
 export function RecentRuns({ runs, threads, seen, now, onOpen }: Props) {
-  if (runs.length === 0) return null;
+  const [shown, setShown] = useState(FIRST);
   return (
-    <section className="auto-recent" aria-label="Recent runs">
+    <section className="auto-section" aria-label="Recent runs">
       <h2 className="auto-section-title">Recent runs</h2>
-      <ul className="auto-recent-list">
-        {runs.map(({ automation, run }) => {
-          const { threadId } = run;
-          const thread = threadId ? threads.get(threadId) : undefined;
-          const duration = runDuration(run, now);
-          const body = (
-            <>
-              <RunBadge run={run} />
-              <span className="auto-recent-title">{automation.title}</span>
-              <span className="auto-recent-meta">
-                {relativeTime(run.startedAt, now)}
-                {duration && ` · ${duration}`}
-              </span>
-              {runUnread(automation, run, threads, seen) && <span className="notif-dot" role="img" aria-label="Unread" />}
-            </>
-          );
-          return (
-            <li key={`${automation.id}:${threadId ?? ""}:${run.startedAt}`}>
-              {thread && threadId ? (
-                <Pressable className="auto-recent-row" onClick={(e) => onOpen(threadId, e.shiftKey)}>
-                  {body}
-                </Pressable>
-              ) : (
-                <div className="auto-recent-row static">{body}</div>
-              )}
-            </li>
-          );
-        })}
-      </ul>
+      <p className="auto-note">Every automation, newest first. Click a run to open its session.</p>
+      {runs.length === 0 ? (
+        <p className="auto-note">No runs yet</p>
+      ) : (
+        <div className="auto-card">
+          <ul className="auto-rows">
+            {runs.slice(0, shown).map(({ automation, run }) => (
+              <li key={`${automation.id}:${run.threadId ?? ""}:${run.startedAt}`}>
+                <RunRow automation={automation} run={run} threads={threads} seen={seen} now={now} onOpen={onOpen} variant="recent" />
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+      {runs.length > shown && (
+        <Button className="run-more" variant="ghost" size="sm" onClick={() => setShown((n) => n + MORE)}>
+          Show older runs
+        </Button>
+      )}
     </section>
   );
 }

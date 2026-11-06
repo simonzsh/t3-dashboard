@@ -1,21 +1,21 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import type { Automation, AutomationsResult, DashboardState, DashboardThread } from "../../../../shared/api.ts";
 import type { SeenState } from "../../../../shared/seen.ts";
-import { ProjectIcon } from "../../lib/ProjectIcon.tsx";
-import { Button, Dropdown, Icon, Loader, TextInput, useEscape } from "../../ui/index.ts";
-import { automationProjects, filterAutomations, groupAutomations, recentRuns, type AutomationGroup } from "./automations.ts";
-import { AutomationList } from "./AutomationList.tsx";
-import { AutomationPanel } from "./AutomationPanel.tsx";
-import { DeleteAutomationDialog } from "./DeleteAutomationDialog.tsx";
+import { agentStatus } from "../../../../shared/status.ts";
+import { RunningBadge, StatusBadge } from "../../lib/StatusBadge.tsx";
+import { Badge, Button, Icon, Pressable, Skeleton, SkeletonGroup, TextInput, useEscape } from "../../ui/index.ts";
 import { NewAutomationDialog } from "../new-thread/NewAutomationDialog.tsx";
+import { AutomationRow } from "./AutomationRow.tsx";
+import { AutomationSheet } from "./AutomationSheet.tsx";
+import { filterAutomations, recentRuns, sortAutomations } from "./automations.ts";
+import { DeleteAutomationDialog } from "./DeleteAutomationDialog.tsx";
 import { RecentRuns } from "./RecentRuns.tsx";
+import { useAutomationActions } from "./useAutomationActions.ts";
 
 interface Props {
   state: DashboardState;
   now: Date;
   seen: SeenState;
-  /** The phone layout: a selected automation fills the page. */
-  compact: boolean;
   onOpen: (id: string, addOnly: boolean) => void;
   automations: AutomationsResult | null;
   automationsError: string | null;
@@ -25,50 +25,49 @@ interface Props {
   setup: DashboardThread[];
 }
 
-// T3 gives "" to a task without a project: "all" needs an id no task can have.
-const ALL_PROJECTS = "*all";
-const NO_GROUPS: ReadonlySet<AutomationGroup> = new Set();
+// Below this a search box is noise.
+const SEARCH_FROM = 7;
 
-export function AutomationsView({ state, now, seen, compact, onOpen, automations, automationsError, onAutomationsStale, onNewAutomation, setup }: Props) {
+function Skeletons() {
+  return (
+    <SkeletonGroup label="Loading automations">
+      <div className="auto-card">
+        <ul className="auto-rows">
+          {[0, 1, 2].map((i) => (
+            <li key={i} className="auto-skeleton">
+              <Skeleton width="40%" height={14} />
+              <Skeleton width="60%" />
+              <Skeleton width="30%" />
+            </li>
+          ))}
+        </ul>
+      </div>
+    </SkeletonGroup>
+  );
+}
+
+export function AutomationsView({ state, now, seen, onOpen, automations, automationsError, onAutomationsStale, onNewAutomation, setup }: Props) {
   const [query, setQuery] = useState("");
-  const [projectId, setProjectId] = useState(ALL_PROJECTS);
-  const [open, setOpen] = useState<ReadonlySet<AutomationGroup>>(NO_GROUPS);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [deleting, setDeleting] = useState<Automation | null>(null);
   const [editing, setEditing] = useState<Automation | null>(null);
+  const actions = useAutomationActions(onAutomationsStale);
   const threads = useMemo(() => new Map(state.threads.map((t) => [t.id, t])), [state.threads]);
   const projects = useMemo(() => new Map(state.projects.map((p) => [p.id, p])), [state.projects]);
-  const all = useMemo(() => automations?.automations ?? [], [automations]);
-  const shown = useMemo(() => filterAutomations(all, { projectId: projectId === ALL_PROJECTS ? null : projectId, query }), [all, projectId, query]);
-  const groups = useMemo(() => groupAutomations(shown, threads, seen), [shown, threads, seen]);
-  const recent = useMemo(() => recentRuns(all, threads, 8), [all, threads]);
-  const options = useMemo(() => [{ id: ALL_PROJECTS, label: "All projects" }, ...automationProjects(all).map((p) => ({ id: p.id, label: p.title, icon: <ProjectIcon icon={projects.get(p.id)?.icon ?? null} title={p.title} /> }))], [all, projects]);
+  const { withPending } = actions;
+  const all = useMemo(() => withPending(automations?.automations ?? []), [automations, withPending]);
+  const sorted = useMemo(() => sortAutomations(filterAutomations(all, query), threads, seen), [all, query, threads, seen]);
+  const recent = useMemo(() => recentRuns(all, threads, Infinity), [all, threads]);
   const selected = all.find((a) => a.id === selectedId) ?? null;
 
   // The task was deleted, here or elsewhere: nothing stays selected.
   useEffect(() => {
     if (selectedId !== null && !selected && automations) setSelectedId(null);
   }, [selectedId, selected, automations]);
-  const toggle = useCallback((group: AutomationGroup) => setOpen((s) => new Set(s.has(group) ? [...s].filter((g) => g !== group) : [...s, group])), []);
-  // On a phone the window scrolls: the panel opens at the top, and Back returns to the list position.
-  const listScroll = useRef(0);
-  const select = useCallback(
-    (id: string) => {
-      if (compact) {
-        listScroll.current = window.scrollY;
-        window.scrollTo(0, 0);
-      }
-      setSelectedId(id);
-    },
-    [compact],
-  );
-  const close = useCallback(() => {
-    setSelectedId(null);
-    if (compact) requestAnimationFrame(() => window.scrollTo(0, listScroll.current));
-  }, [compact]);
+  const close = useCallback(() => setSelectedId(null), []);
   const dialogOpen = editing !== null || deleting !== null;
   useEscape(() => {
-    if (compact && selected && !dialogOpen) close();
+    if (selected && !dialogOpen) close();
   });
 
   if (state.connection.t3 !== "live") {
@@ -79,7 +78,7 @@ export function AutomationsView({ state, now, seen, compact, onOpen, automations
       </div>
     );
   }
-  if (!automations && !automationsError) return <Loader />;
+  if (!automations && !automationsError) return <div className="auto-page"><Skeletons /></div>;
   if (!automations) {
     return (
       <div className="empty-state">
@@ -91,57 +90,77 @@ export function AutomationsView({ state, now, seen, compact, onOpen, automations
   if (all.length === 0 && setup.length === 0) {
     return (
       <div className="empty-state">
+        <Icon name="calendarClock" />
         <strong>No automations yet</strong>
         <span>Routines, reminders and webhooks appear here.</span>
         <Button variant="primary" onClick={onNewAutomation}>
-          New Automation
+          New automation
         </Button>
       </div>
     );
   }
-  const panelOnly = compact && selected !== null;
   return (
-    <div className={`auto-page${panelOnly ? " panel-only" : ""}`}>
-      {!panelOnly && (
-        <>
-          <RecentRuns runs={recent} threads={threads} seen={seen} now={now} onOpen={onOpen} />
-          <div className="auto-toolbar">
-            <div className="auto-search">
-              <Icon name="search" />
-              <TextInput aria-label="Search automations" placeholder="Search automations…" value={query} onChange={(e) => setQuery(e.target.value)} />
-            </div>
-            <Dropdown label="Project" value={projectId} options={options} onPick={setProjectId} filterable searchPlaceholder="Search projects…" />
+    <div className="auto-page">
+      <section className="auto-section" aria-label="Automations">
+        {all.length >= SEARCH_FROM && (
+          <div className="auto-search">
+            <Icon name="search" />
+            <TextInput aria-label="Search automations" placeholder="Search automations…" value={query} onChange={(e) => setQuery(e.target.value)} />
           </div>
-        </>
-      )}
-      <div className="auto-body">
-        {!panelOnly &&
-          (shown.length === 0 && setup.length === 0 ? (
-            <div className="empty-state auto-main">
-              <strong>No automation matches</strong>
-              <span>Change the search or the project.</span>
-            </div>
-          ) : (
-            <div className="auto-main">
-              <AutomationList groups={groups} open={open} onToggle={toggle} setup={setup} threads={threads} projects={projects} selectedId={selectedId} now={now} onSelect={select} onOpen={onOpen} />
-            </div>
-          ))}
-        {selected && (
-          <AutomationPanel
-            automation={selected}
-            threads={threads}
-            project={projects.get(selected.projectId)}
-            providers={state.providers}
-            seen={seen}
-            now={now}
-            compact={compact}
-            onClose={close}
-            onOpen={onOpen}
-            onEdit={setEditing}
-            onDelete={setDeleting}
-          />
         )}
-      </div>
+        <div className="auto-card">
+          <ul className="auto-rows">
+            {setup.map((t) => (
+              <li key={t.id}>
+                <div className="auto-row">
+                  <Pressable className="auto-row-main" onClick={(e) => onOpen(t.id, e.shiftKey)}>
+                    <span className="auto-line">
+                      <span className="auto-name">{t.title}</span>
+                      <Badge>Setting up</Badge>
+                      <StatusBadge thread={t} status={agentStatus(t)} />
+                    </span>
+                  </Pressable>
+                </div>
+              </li>
+            ))}
+            {sorted.map((a) => (
+              <li key={a.id}>
+                <AutomationRow
+                  automation={a}
+                  threads={threads}
+                  seen={seen}
+                  now={now}
+                  starting={actions.starting.has(a.id)}
+                  onSelect={setSelectedId}
+                  onToggle={actions.toggle}
+                  onRun={actions.run}
+                  onEdit={setEditing}
+                  onDelete={setDeleting}
+                />
+              </li>
+            ))}
+            {sorted.length === 0 && setup.length === 0 && <li className="auto-empty">No automation matches</li>}
+          </ul>
+        </div>
+      </section>
+      <RecentRuns runs={recent} threads={threads} seen={seen} now={now} onOpen={onOpen} />
+      {selected && (
+        <AutomationSheet
+          automation={selected}
+          threads={threads}
+          project={projects.get(selected.projectId)}
+          providers={state.providers}
+          seen={seen}
+          now={now}
+          starting={actions.starting.has(selected.id)}
+          onClose={close}
+          onOpen={onOpen}
+          onToggle={actions.toggle}
+          onRun={actions.run}
+          onEdit={setEditing}
+          onDelete={setDeleting}
+        />
+      )}
       {editing && (
         <NewAutomationDialog
           projects={state.projects}
