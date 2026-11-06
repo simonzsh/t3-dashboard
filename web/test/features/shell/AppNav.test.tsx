@@ -28,7 +28,7 @@ test("the sidebar lists Home, Desk and Automations, with the open page marked cu
 });
 
 test("the sidebar has the search button with its shortcut hint", () => {
-  assert.match(side(), /Search…[\s\S]*?<kbd>(Ctrl\+K|⌃K)<\/kbd>/);
+  assert.match(side(), /Search…[\s\S]*?<kbd>⌘K<\/kbd>/);
 });
 
 test("the sidebar shows unread on Home, running on Desk and a dot for a waiting agent", () => {
