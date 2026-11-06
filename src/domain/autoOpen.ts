@@ -21,24 +21,31 @@ const AUTO_OPEN_ORIGIN = "server";
 
 /**
  * Adds a thread to the shared sessions when a new run starts on it. The last run per thread stays in memory:
- * a closed session comes back only with a new run id. A restart forgets it, so the threads that run then open once.
- * When the sessions are full, the new thread is skipped: an open session is never dropped.
+ * a closed session comes back only with a new run id. The first state seen only records the runs already going,
+ * so a restart reopens nothing. When the sessions are full, the new thread is skipped: an open session is never dropped.
  */
 export class AutoOpen {
   private readonly options: AutoOpenOptions;
   private readonly lastRun = new Map<string, string>();
+  private seeded = false;
   private queue: Promise<void> = Promise.resolve();
 
   constructor(options: AutoOpenOptions) {
     this.options = options;
   }
 
-  observe(threads: Iterable<DashboardThread>): void {
+  observe(threads: readonly DashboardThread[]): void {
+    // An empty list is T3 not loaded yet: wait for real threads before taking the first picture.
+    if (!this.seeded && threads.length === 0) return;
     const started: string[] = [];
     for (const { id, activeRunId } of threads) {
       if (activeRunId === null || this.lastRun.get(id) === activeRunId) continue;
       started.push(id);
       this.lastRun.set(id, activeRunId);
+    }
+    if (!this.seeded) {
+      this.seeded = true;
+      return;
     }
     if (started.length > 0) this.queue = this.queue.then(() => this.open(started));
   }

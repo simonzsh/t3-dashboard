@@ -36,6 +36,8 @@ function setup(initial: SharedSessions | null = null, excluded: string[] = []) {
     broadcast: (event) => events.push(event),
     warn: () => {},
   });
+  // The first state only records the runs already going: start from one idle thread.
+  auto.observe([thread("idle", null)]);
   // The work runs on a promise chain: a resolved call after observe waits for it.
   const settle = () => new Promise((resolve) => setTimeout(resolve, 0));
   return { sessions, saved, events, auto, settle, fail: (value: boolean) => (failing = value) };
@@ -133,4 +135,16 @@ test("automation threads: run and setup threads, and the own thread of a bound t
     setupThreadIds: ["setup"],
   });
   assert.deepEqual([...ids].sort(), ["latest-run", "older-run", "pr-review", "setup"]);
+});
+
+test("after a restart the runs already going open nothing; the next new run does", async () => {
+  const sessions = new SessionsStore({ ids: [] }, () => {});
+  const auto = new AutoOpen({ sessions, excluded: async () => new Set(), broadcast: () => {}, warn: () => {} });
+  auto.observe([]);
+  auto.observe([thread("closed-while-running", "run-1")]);
+  await new Promise((resolve) => setTimeout(resolve, 0));
+  assert.deepEqual(sessions.get(), { ids: [] });
+  auto.observe([thread("closed-while-running", "run-2")]);
+  await new Promise((resolve) => setTimeout(resolve, 0));
+  assert.deepEqual(sessions.get(), { ids: ["closed-while-running"] });
 });
