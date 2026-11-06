@@ -4,6 +4,7 @@ import { IntegrationError } from "../integrations/errors.ts";
 import type { RawScheduledTask, RawThread, ScheduleChange, ScheduleInput, T3Port } from "../integrations/t3/schemas.ts";
 import { archiveThreadCommand, renameThreadCommand } from "../integrations/t3/commands.ts";
 import { reminderSchedule, routineOf, routineSchedule, webhookFilters, webhookSchedule } from "./automationSchedule.ts";
+import { AutomationRunLog, recordRuns, runThreads, type RunLog } from "./automationRuns.ts";
 import { DomainError } from "./errors.ts";
 import { RearmedStore } from "./rearmedStore.ts";
 import { scheduleLabel } from "./scheduleLabel.ts";
@@ -27,29 +28,19 @@ function signatureOf(task: RawScheduledTask): WebhookSignature | null {
 const TITLE_MAX = 60;
 const RUN_STATUSES = new Set<string>(["running", "succeeded", "failed"] satisfies AutomationRunStatus[]);
 
-const stamp = (iso: string | null | undefined): number => (iso ? Date.parse(iso) : NaN);
-
-// T3 puts no task id on a run thread: the project, title, origin and creation time tie it to its task.
-function runThreads(task: RawScheduledTask, threads: RawThread[]): RawThread[] {
-  const since = stamp(task.createdAt);
-  return threads
-    .filter((thread) => thread.projectId === task.projectId && thread.title === task.title && thread.creationSource === task.creationSource && stamp(thread.createdAt) >= since)
-    .sort((a, b) => stamp(b.createdAt) - stamp(a.createdAt));
-}
-
-/** The tasks of T3 as rows, plus the threads the Dashboard leaves out. */
-export function toAutomations(tasks: RawScheduledTask[], threads: RawThread[], dedicated: ReadonlySet<string>, projectTitle: (id: string) => string | null): AutomationsResult {
-  const hidden = new Set<string>();
+/** The tasks of T3 as rows, plus the threads that belong to a task. */
+export function toAutomations(tasks: RawScheduledTask[], threads: RawThread[], dedicated: ReadonlySet<string>, projectTitle: (id: string) => string | null, runs: RunLog = {}): AutomationsResult {
+  const marked = new Set<string>();
   const bound = new Set<string>();
   const automations = tasks.map((task): Automation => {
     let threadId = task.threadId ?? null;
     if (threadId !== null) bound.add(threadId);
     if (threadId === null) {
-      const runs = runThreads(task, threads);
-      for (const run of runs) hidden.add(run.id);
-      threadId = runs[0]?.id ?? null;
+      const matched = runThreads(task, threads);
+      for (const run of matched) marked.add(run.id);
+      threadId = matched[0]?.id ?? null;
     } else if (dedicated.has(threadId)) {
-      hidden.add(threadId);
+      marked.add(threadId);
     }
     const kind = kindOf(task);
     return {
@@ -71,9 +62,11 @@ export function toAutomations(tasks: RawScheduledTask[], threads: RawThread[], d
       runtimeMode: isRuntimeMode(task.runtimeMode) ? task.runtimeMode : null,
       bound: task.threadId != null,
       webhook: kind === "webhook" ? { url: task.webhook?.url ?? null, signed: task.webhook?.hasSecret === true, filters: webhookFilters(task.schedule?.filters), signature: signatureOf(task) } : null,
+      runs: runs[task.id] ?? [],
     };
   });
-  return { automations, hiddenThreadIds: [...hidden], setupThreadIds: [...dedicated].filter((id) => !bound.has(id)) };
+  const setupThreadIds = [...dedicated].filter((id) => !bound.has(id));
+  return { automations, automationThreadIds: [...new Set([...marked, ...setupThreadIds])], setupThreadIds };
 }
 
 function titleFromRequest(text: string): string {
@@ -84,13 +77,15 @@ function titleFromRequest(text: string): string {
 export interface AutomationsOptions {
   port: Pick<T3Port, "listScheduledTasks" | "deleteScheduledTask" | "updateScheduledTask" | "createScheduledTask" | "ensureScratchProject" | "dispatch">;
   store: Pick<ShellStore, "project" | "rawThreads">;
-  /** The setup threads that older versions created: still hidden from the Agents grid. */
+  /** The setup threads that older versions created: the UI marks them as automation sessions. */
   dedicated: { read(): ReadonlySet<string> };
   warn?: (message: string) => void;
   newId?: () => string;
   now?: () => Date;
   /** Marks an edited reminder that already ran, so the guard keeps it enabled. */
   rearmed?: RearmedStore;
+  /** The run history; in memory when missing. */
+  runs?: AutomationRunLog;
 }
 
 export interface Automations {
@@ -118,17 +113,21 @@ export function createAutomations(options: AutomationsOptions): Automations {
   const now = options.now ?? (() => new Date());
   const warn = options.warn ?? console.warn;
   const rearmed = options.rearmed ?? new RearmedStore();
+  const runs = options.runs ?? new AutomationRunLog();
 
   return {
     async list() {
       const tasks = await viaT3(port.listScheduledTasks());
-      return toAutomations(tasks, store.rawThreads(), dedicated.read(), (id) => store.project(id)?.title || null);
+      const threads = store.rawThreads();
+      runs.record(recordRuns(runs.current(), tasks, threads, now()));
+      return toAutomations(tasks, threads, dedicated.read(), (id) => store.project(id)?.title || null, runs.current());
     },
 
     async remove(id) {
       const task = (await viaT3(port.listScheduledTasks())).find((entry) => entry.id === id);
       await viaT3(port.deleteScheduledTask(id));
-      // Without its task, a run thread comes back in the grid. A bound thread is the user's chat: keep it.
+      runs.drop(id);
+      // Without its task, a run thread loses its automation mark. A bound thread is the user's chat: keep it.
       if (!task || task.threadId || !isReminder(task)) return;
       for (const run of runThreads(task, store.rawThreads())) {
         if (run.archivedAt) continue;

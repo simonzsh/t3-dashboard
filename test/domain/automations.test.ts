@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { test } from "bun:test";
 import type { CreateAutomationBody, UpdateAutomationBody } from "../../shared/api.ts";
 import { createAutomations, toAutomations } from "../../src/domain/automations.ts";
+import { AutomationRunLog, type RunLog } from "../../src/domain/automationRuns.ts";
 import { DomainError } from "../../src/domain/errors.ts";
 import { RearmedStore } from "../../src/domain/rearmedStore.ts";
 import { IntegrationError } from "../../src/integrations/errors.ts";
@@ -47,6 +48,7 @@ test("a task becomes a routine with its project, schedule label, state and model
     runtimeMode: null,
     bound: false,
     webhook: null,
+    runs: [],
   });
 });
 
@@ -107,21 +109,21 @@ test("setupThreadIds lists the dedicated threads that no task is bound to", () =
   assert.deepEqual(convert([task({ threadId: "t-chat" })], [], []).setupThreadIds, []);
 });
 
-test("a dedicated thread is hidden only while a task is bound to it", () => {
+test("a dedicated thread is marked only while a task is bound to it, and a setup thread is marked too", () => {
   const bound = convert([task({ threadId: "t-dedicated" })], [], ["t-dedicated"]);
-  assert.deepEqual(bound.hiddenThreadIds, ["t-dedicated"]);
+  assert.deepEqual(bound.automationThreadIds, ["t-dedicated"]);
   assert.equal(bound.automations[0]!.threadId, "t-dedicated");
-  assert.deepEqual(convert([], [], ["t-dedicated"]).hiddenThreadIds, []);
-  assert.deepEqual(convert([task({ threadId: "t-other" })], [], ["t-dedicated"]).hiddenThreadIds, []);
+  assert.deepEqual(convert([], [], ["t-dedicated"]).automationThreadIds, ["t-dedicated"]);
+  assert.deepEqual(convert([task({ threadId: "t-other" })], [], ["t-dedicated"]).automationThreadIds, ["t-dedicated"]);
 });
 
-test("a normal conversation bound to a task stays visible", () => {
+test("a normal conversation bound to a task is not marked", () => {
   const result = convert([task({ threadId: "t-chat" })], [thread("t-chat")]);
-  assert.deepEqual(result.hiddenThreadIds, []);
+  assert.deepEqual(result.automationThreadIds, []);
   assert.equal(result.automations[0]!.threadId, "t-chat");
 });
 
-test("run threads of an unbound task are hidden and the newest is the row thread", () => {
+test("run threads of an unbound task are marked and the newest is the row thread", () => {
   const threads = [
     thread("run-old", { createdAt: "2026-03-20T10:00:00.000Z" }),
     thread("run-new", { createdAt: "2026-03-20T12:00:00.000Z" }),
@@ -131,20 +133,26 @@ test("run threads of an unbound task are hidden and the newest is the row thread
     thread("by-user", { creationSource: "server" }),
   ];
   const result = convert([task()], threads);
-  assert.deepEqual(result.hiddenThreadIds.sort(), ["run-new", "run-old"]);
+  assert.deepEqual(result.automationThreadIds.sort(), ["run-new", "run-old"]);
   assert.equal(result.automations[0]!.threadId, "run-new");
 });
 
-test("webhook event threads are hidden like any run thread and the newest is the row thread", () => {
+test("webhook event threads are marked like any run thread and the newest is the row thread", () => {
   const threads = [thread("event-1", { createdAt: "2026-03-20T10:00:00.000Z" }), thread("event-2", { createdAt: "2026-03-20T12:00:00.000Z" })];
   const result = convert([task({ schedule: { type: "webhook" } })], threads);
-  assert.deepEqual(result.hiddenThreadIds.sort(), ["event-1", "event-2"]);
+  assert.deepEqual(result.automationThreadIds.sort(), ["event-1", "event-2"]);
   assert.equal(result.automations[0]!.threadId, "event-2");
 });
 
 test("a bound task never matches run threads", () => {
   const result = convert([task({ threadId: "t-chat" })], [thread("t-chat"), thread("lookalike")]);
-  assert.deepEqual(result.hiddenThreadIds, []);
+  assert.deepEqual(result.automationThreadIds, []);
+});
+
+test("an automation carries the runs logged for its task", () => {
+  const run = { threadId: "run-1", startedAt: "2026-03-20T10:00:00.000Z", finishedAt: null, status: "running" as const, error: null };
+  const result = toAutomations([task(), task({ id: "task-2" })], [], new Set(), () => null, { "task-1": [run] });
+  assert.deepEqual(result.automations.map((item) => item.runs), [[run], []]);
 });
 
 test("remove deletes the task through the port", async () => {
@@ -200,7 +208,7 @@ test("remove wraps a port failure as an IntegrationError", async () => {
   await assert.rejects(automations.remove("task-1"), (error) => error instanceof IntegrationError && error.kind === "refused");
 });
 
-function harness(threads: RawThread[] = [thread("run-1")]) {
+function harness(threads: RawThread[] = [thread("run-1")], runs?: AutomationRunLog) {
   const port = new FakePort();
   const warnings: string[] = [];
   const automations = createAutomations({
@@ -210,6 +218,7 @@ function harness(threads: RawThread[] = [thread("run-1")]) {
     dedicated: { read: () => new Set(["t-dedicated"]) },
     newId: () => "id-1",
     now: () => new Date(2026, 10, 4, 10, 0, 0),
+    runs,
   });
   return { automations, port, warnings };
 }
@@ -299,7 +308,26 @@ test("list converts the tasks of T3 with the live threads and the dedicated set"
   port.scheduledTasks = [task({ threadId: "t-dedicated" }), task({ id: "task-2", threadId: null })];
   const result = await automations.list();
   assert.deepEqual(result.automations.map((item) => [item.id, item.threadId]), [["task-1", "t-dedicated"], ["task-2", "run-1"]]);
-  assert.deepEqual(result.hiddenThreadIds.sort(), ["run-1", "t-dedicated"]);
+  assert.deepEqual(result.automationThreadIds.sort(), ["run-1", "t-dedicated"]);
+});
+
+test("list logs the runs, saves them once and returns them", async () => {
+  const saved: RunLog[] = [];
+  const { automations, port } = harness([thread("run-1", { status: "completed", latestRunCompletedAt: "2026-03-20T10:05:00.000Z" })], new AutomationRunLog({}, (log) => void saved.push(log)));
+  port.scheduledTasks = [task()];
+  const first = await automations.list();
+  assert.deepEqual(first.automations[0]!.runs.map((run) => [run.threadId, run.status]), [["run-1", "succeeded"]]);
+  await automations.list();
+  assert.equal(saved.length, 1);
+});
+
+test("remove drops the runs of the deleted task", async () => {
+  const saved: RunLog[] = [];
+  const { automations, port } = harness([thread("run-1", { status: "completed", latestRunCompletedAt: "2026-03-20T10:05:00.000Z" })], new AutomationRunLog({}, (log) => void saved.push(log)));
+  port.scheduledTasks = [task()];
+  await automations.list();
+  await automations.remove("task-1");
+  assert.deepEqual(saved.at(-1), {});
 });
 
 test("list turns a plain port error into a T3 error and keeps an integration error", async () => {

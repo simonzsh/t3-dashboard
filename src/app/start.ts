@@ -25,9 +25,11 @@ import { readSeen, seenText } from "../config/seenFile.ts";
 import { syncAgentRules } from "../config/agentRules.ts";
 import { readLinearKey } from "../config/linearFile.ts";
 import { readRearmed, rearmedText } from "../config/rearmedFile.ts";
+import { automationRunsText, readAutomationRuns } from "../config/automationRunsFile.ts";
+import { AutomationRunLog } from "../domain/automationRuns.ts";
 import { RearmedStore } from "../domain/rearmedStore.ts";
 import { readAutomationThreads } from "../config/automationThreads.ts";
-import { automationThreadsFile, linearFile, pidFile, rearmedFile, seenFile as seenPath, sessionsFile as sessionsPath, stashFile as stashPath } from "../config/paths.ts";
+import { automationRunsFile, automationThreadsFile, linearFile, pidFile, rearmedFile, seenFile as seenPath, sessionsFile as sessionsPath, stashFile as stashPath } from "../config/paths.ts";
 import { redirectConsole, writePidFile } from "../config/runFiles.ts";
 import { writeSecret } from "../config/secretFile.ts";
 import { createDashboardServer } from "../server/server.ts";
@@ -158,11 +160,13 @@ export async function start({ port, log, env }: StartOptions): Promise<void> {
   });
   const actions = createActions({ port: client, store, board });
   const threadsFile = automationThreadsFile(env, home);
+  const runsPath = automationRunsFile(env, home);
   const automations = createAutomations({
     port: client,
     store,
     dedicated: { read: () => readAutomationThreads(threadsFile, readText) },
     rearmed,
+    runs: new AutomationRunLog(readAutomationRuns(runsPath, readText), (log) => writeSecret(runsPath, automationRunsText(log))),
   });
   const sessionsFile = sessionsPath(env, home);
   const sessions = new SessionsStore(readSessions(sessionsFile, readText), (value) => writeSecret(sessionsFile, sessionsText(value)));
