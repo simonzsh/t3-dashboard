@@ -44,9 +44,7 @@ export function SessionList({ threads, projects, seen, modelNames, now, openIds,
       <Pressable key={t.id} className={`slist-row${openIds.has(t.id) ? " open" : ""}${t.id === focusedId ? " focused" : ""}`} aria-current={t.id === focusedId || undefined} onClick={() => onOpen(t.id)}>
         <span className={`slist-mark${mark ? ` ${mark}` : ""}`} role={mark ? "img" : undefined} aria-label={mark ? MARK_LABELS[mark] : undefined} aria-hidden={mark ? undefined : true} />
         <span className="slist-text">
-          <span className="slist-title" data-tooltip={title} data-tooltip-clipped>
-            {title}
-          </span>
+          <span className="slist-title">{title}</span>
           <span className="slist-meta">{[relativeTime(t.lastActivityAt, now), model].filter(Boolean).join(" · ")}</span>
         </span>
       </Pressable>
