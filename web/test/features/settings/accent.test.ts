@@ -18,11 +18,9 @@ test("the accent survives a reload", () => {
   assert.equal(loadAccent(store), "purple");
 });
 
-test("every accent but blue has a light and a dark rule in styles.css, and index.html knows them all", () => {
+test("every accent but blue has a light and a dark rule in styles.css", () => {
   const css = readFileSync(new URL("../../../src/styles.css", import.meta.url), "utf8");
-  const html = readFileSync(new URL("../../../index.html", import.meta.url), "utf8");
   for (const a of ACCENTS) {
-    assert.match(html, new RegExp(`\\b${a.id}\\b`));
     if (a.id === "blue") continue;
     assert.ok(css.includes(`:root[data-accent="${a.id}"] { --accent: ${a.light};`), a.id);
     assert.ok(css.includes(`:root[data-theme="dark"][data-accent="${a.id}"] { --accent: ${a.dark};`), a.id);

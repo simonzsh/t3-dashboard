@@ -13,7 +13,7 @@
         // Mirrors features/settings/accent.ts.
         var a = null;
         try { a = localStorage.getItem("t3-dashboard-accent"); } catch (e) {}
-        if (/^(blue|purple|pink|red|orange|yellow|green)$/.test(a || "")) document.documentElement.setAttribute("data-accent", a);
+        if (a) document.documentElement.setAttribute("data-accent", a);
       })();
     </script>
     <meta name="theme-color" content="#ffffff" />

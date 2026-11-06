@@ -6,7 +6,7 @@ export type Accent = "blue" | "purple" | "pink" | "red" | "orange" | "yellow" | 
 export const ACCENT_KEY = "t3-dashboard-accent";
 export const DEFAULT_ACCENT: Accent = "blue";
 
-/** Light and dark values; mirrored in styles.css (`data-accent`) and index.html. */
+/** Light and dark values; mirrored in styles.css (`data-accent`). */
 export const ACCENTS: { id: Accent; label: string; light: string; dark: string }[] = [
   { id: "blue", label: "Blue", light: "#2563eb", dark: "#3b82f6" },
   { id: "purple", label: "Purple", light: "#7c3aed", dark: "#8b5cf6" },
