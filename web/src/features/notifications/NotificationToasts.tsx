@@ -1,4 +1,5 @@
 import { useLayoutEffect, useRef } from "react";
+import { AutomationMark } from "../../lib/automationThreads.tsx";
 import { ProviderIcon } from "../../lib/ProviderIcon.tsx";
 import { threadTitle } from "../../lib/threads.ts";
 import { Badge, enter, Icon, IconButton, Pressable } from "../../ui/index.ts";
@@ -15,6 +16,7 @@ function Toast({ entry, onOpen, onDismiss }: { entry: NotifyEntry; onOpen: (id: 
       <Pressable className="notif-toast-body" onClick={() => onOpen(id)}>
         <ProviderIcon provider={entry.thread.provider} />
         <span className="notif-title">{threadTitle(entry.thread)}</span>
+        <AutomationMark id={id} />
         <Badge variant={entry.tone}>{entry.label}</Badge>
       </Pressable>
       <IconButton size="sm" label="Dismiss" onClick={() => onDismiss(id)}>

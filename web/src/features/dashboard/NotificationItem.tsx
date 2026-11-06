@@ -1,6 +1,7 @@
 import { memo } from "react";
 import type { DashboardProject, DashboardThread } from "../../../../shared/api.ts";
 import { threadTitle } from "../../lib/threads.ts";
+import { AutomationMark } from "../../lib/automationThreads.tsx";
 import { Icon, IconButton, Pressable } from "../../ui/index.ts";
 import { notificationDetail, notificationIcon, type NotificationKind } from "./sections.ts";
 import { openRow, threadMeta } from "./threadRows.ts";
@@ -25,7 +26,10 @@ function NotificationItemView({ thread: t, kind, project, modelName, now, inSess
       <Pressable className="notif-row" onClick={(e) => openRow(e, t.id, inSessions, onOpen)}>
         <Icon name={icon} className={`icon notif-icon ${tone}`} />
         <span className="notif-body">
-          <span className="notif-title">{threadTitle(t)}</span>
+          <span className="title-line">
+            <span className="notif-title">{threadTitle(t)}</span>
+            <AutomationMark id={t.id} />
+          </span>
           <span className="notif-detail">{notificationDetail(t, modelName)}</span>
           <span className="notif-meta">{threadMeta(t, project, now)}</span>
         </span>

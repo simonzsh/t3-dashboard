@@ -17,7 +17,7 @@ import { NewThreadDialog } from "./features/new-thread/NewThreadDialog.tsx";
 import { NotificationToasts } from "./features/notifications/NotificationToasts.tsx";
 import { useNotifications } from "./features/notifications/useNotifications.ts";
 import { useSetupRows } from "./features/automations/useSetupRows.ts";
-import { listedThreads, threadSections, unreadCount } from "./features/dashboard/sections.ts";
+import { threadSections, unreadCount } from "./features/dashboard/sections.ts";
 import { Switcher } from "./features/switcher/Switcher.tsx";
 import { useOpenHistory } from "./features/switcher/useOpenHistory.ts";
 import { SettingsDialog } from "./features/settings/SettingsDialog.tsx";
@@ -25,6 +25,8 @@ import { SetupScreen } from "./features/setup/SetupScreen.tsx";
 import { UpdateDialog } from "./features/update/UpdateDialog.tsx";
 import { neighborId, type Direction } from "./features/sessions/sessions.ts";
 import { useAutomations } from "./features/automations/useAutomations.ts";
+import { automationsBadge } from "./features/automations/automations.ts";
+import { AutomationThreadsContext } from "./lib/automationThreads.tsx";
 import { api } from "./api/client.ts";
 import { useDashboard } from "./api/events.ts";
 import { useSessions } from "./features/sessions/useSessions.ts";
@@ -44,6 +46,7 @@ import { Loader, Logo, PageHeader, TooltipLayer, useEscape } from "./ui/index.ts
 import { updateLabel } from "./features/update/updateFlow.ts";
 
 const NO_THREADS: DashboardThread[] = [];
+const NO_IDS: string[] = [];
 // Same breakpoint as the bottom bar in styles.css.
 const PHONE = "(max-width: 700px)";
 // No room for the Notifications column: it becomes a side sheet.
@@ -52,8 +55,9 @@ const SHEET = "(max-width: 1200px)";
 export function App() {
   const { state, sseDown, remoteSessions, remoteSeen, connects } = useDashboard();
   const [tab, setTab] = useTab();
-  // Always loaded while live: the Dashboard badge must leave out automation run threads.
-  const automations = useAutomations(state?.connection.t3 === "live");
+  // Always loaded while live: it feeds the Automations badge and the automation icon, besides the page.
+  const threadIds = useMemo(() => state?.threads.map((t) => t.id) ?? NO_IDS, [state?.threads]);
+  const automations = useAutomations(state?.connection.t3 === "live", threadIds);
   const [sessions, dispatchSessions] = useSessions();
   const compact = useMediaQuery(PHONE);
   const sheetMode = useMediaQuery(SHEET);
@@ -183,10 +187,10 @@ export function App() {
   const sessionIds = useMemo(() => new Set(sessions.ids), [sessions.ids]);
   const setup = useSetupRows(state?.threads ?? NO_THREADS, automations.result?.setupThreadIds, automations.reload);
   // One list for the Dashboard cards and the badge, so they cannot drift apart.
-  const visible = useMemo(
-    () => listedThreads(state?.threads ?? NO_THREADS, automations.result?.hiddenThreadIds, setup.map((t) => t.id)),
-    [state?.threads, automations.result?.hiddenThreadIds, setup],
-  );
+  const visible = state?.threads ?? NO_THREADS;
+  const automationThreads = useMemo(() => new Set(automations.result?.automationThreadIds ?? NO_IDS), [automations.result?.automationThreadIds]);
+  const threadsById = useMemo(() => new Map(visible.map((t) => [t.id, t])), [visible]);
+  const automationsNav = useMemo(() => automationsBadge(automations.result?.automations ?? [], threadsById, notify.seen), [automations.result?.automations, threadsById, notify.seen]);
   const unread = useMemo(() => unreadCount(threadSections(visible, notify.seen), notify.seen), [visible, notify.seen]);
   const agents = useMemo(() => agentCounts(visible), [visible]);
   const sessionsBadge = useMemo(() => ({ count: sessionsBadgeCount(visible, notify.seen), waiting: agents.waiting > 0 }), [visible, notify.seen, agents.waiting]);
@@ -220,182 +224,184 @@ export function App() {
   }
 
   return (
-    <div className={`app${tab === "sessions" ? " sessions-mode" : ""}${sessionShown ? " session-shown" : ""}${sheetShown ? " sheet-shown" : ""}`}>
-      <TooltipLayer />
-      <AppNav
-        layout={compact ? "bottom" : "side"}
-        collapsed={sidebarCollapsed}
-        onToggleCollapsed={toggleSidebar}
-        tab={tab}
-        unread={unread}
-        sessions={sessionsBadge}
-        live={live}
-        update={updateNav}
-        onTab={showTab}
-        onSearch={openSearch}
-        onSettings={() => setSettingsOpen(true)}
-        onUpdate={() => setConfirmingUpdate(true)}
-      />
-      <div className="app-column">
-        <PageHeader
-          ref={header}
-          title={page.label}
-          description={page.description}
-          leading={compact ? <Logo /> : undefined}
-          actions={
-            <PageActions
-              tab={tab}
-              compact={compact}
-              ready={state !== null}
-              editingLayout={dashboardLayout.editing}
-              layoutIsDefault={isDefaultLayout(dashboardLayout.layout)}
-              layout={layout}
-              onLayoutChange={setLayout}
-              listHidden={listPrefs.hidden}
-              onToggleList={() => setListPrefs({ hidden: !listPrefs.hidden })}
-              onNewSession={() => setCreating({ projectId: null })}
-              onNewAutomation={() => setCreatingAutomation(true)}
-              onSearch={openSearch}
-              onSettings={() => setSettingsOpen(true)}
-              updateReady={updateNav !== null}
-              onEditLayout={() => dashboardLayout.setEditing(true)}
-              onDoneLayout={() => dashboardLayout.setEditing(false)}
-              onResetLayout={dashboardLayout.reset}
-              unread={unread}
-              notificationsOpen={notifPanel.open}
-              onToggleNotifications={notifPanel.toggle}
-            />
-          }
+    <AutomationThreadsContext.Provider value={automationThreads}>
+      <div className={`app${tab === "sessions" ? " sessions-mode" : ""}${sessionShown ? " session-shown" : ""}${sheetShown ? " sheet-shown" : ""}`}>
+        <TooltipLayer />
+        <AppNav
+          layout={compact ? "bottom" : "side"}
+          collapsed={sidebarCollapsed}
+          onToggleCollapsed={toggleSidebar}
+          tab={tab}
+          unread={unread}
+          sessions={sessionsBadge}
+          automations={automationsNav}
+          live={live}
+          update={updateNav}
+          onTab={showTab}
+          onSearch={openSearch}
+          onSettings={() => setSettingsOpen(true)}
+          onUpdate={() => setConfirmingUpdate(true)}
         />
-        <ConnectionBanner connection={state?.connection ?? null} sseDown={sseDown} />
-        <NotificationToasts toasts={notify.toasts} onOpen={(id) => openInSessions(id, true)} onDismiss={notify.dismiss} />
-        <main>
-          {tab === "dashboard" &&
-            (state ? (
-              <DashboardView
-                state={state}
-                limits={limits}
-                server={server}
-                activity={activity}
-                visible={visible}
-                now={now}
-                sessionIds={sessionIds}
-                layout={dashboardLayout.layout}
-                running={agents.running}
-                editing={dashboardLayout.editing}
-                onLayout={dashboardLayout.setLayout}
-                panelOpen={notifPanel.open}
-                sheet={sheetMode}
-                onCloseSheet={closeSheet}
-                onOpen={onOpen}
-                onSettle={onSettle}
-                seen={notify.seen}
-                seenReady={notify.seenReady}
-                onMarkRead={notify.markSeen}
-                automations={automations.result}
-                automationsError={automations.error}
-                linearVersion={linearVersion}
-              />
-            ) : <Loader />)}
-          {tab === "automations" &&
-            (state ? (
-              <AutomationsView
-                state={state}
-                now={now}
-                onOpen={onOpen}
-                automations={automations.result}
-                automationsError={automations.error}
-                onAutomationsStale={automations.reload}
-                onNewAutomation={() => setCreatingAutomation(true)}
-                setup={setup}
-              />
-            ) : <Loader />)}
-          {tab === "sessions" &&
-            (state ? (
-              <SessionsView
-                sessions={sessions}
-                dispatch={dispatchSessions}
-                threads={state.threads}
-                listed={visible}
-                projects={state.projects}
-                seen={notify.seen}
-                now={now}
+        <div className="app-column">
+          <PageHeader
+            ref={header}
+            title={page.label}
+            description={page.description}
+            leading={compact ? <Logo /> : undefined}
+            actions={
+              <PageActions
+                tab={tab}
+                compact={compact}
+                ready={state !== null}
+                editingLayout={dashboardLayout.editing}
+                layoutIsDefault={isDefaultLayout(dashboardLayout.layout)}
                 layout={layout}
-                prefs={listPrefs}
-                onPrefs={setListPrefs}
-                t3EnvironmentId={state.t3EnvironmentId}
-                providers={state.providers}
-                phone={compact}
-                sessionShown={sessionShown}
-                onBack={back}
-                onOpen={openSession}
-                onNewSession={newSession}
+                onLayoutChange={setLayout}
+                listHidden={listPrefs.hidden}
+                onToggleList={() => setListPrefs({ hidden: !listPrefs.hidden })}
+                onNewSession={() => setCreating({ projectId: null })}
+                onNewAutomation={() => setCreatingAutomation(true)}
+                onSearch={openSearch}
+                onSettings={() => setSettingsOpen(true)}
+                updateReady={updateNav !== null}
+                onEditLayout={() => dashboardLayout.setEditing(true)}
+                onDoneLayout={() => dashboardLayout.setEditing(false)}
+                onResetLayout={dashboardLayout.reset}
+                unread={unread}
+                notificationsOpen={notifPanel.open}
+                onToggleNotifications={notifPanel.toggle}
               />
-            ) : <Loader />)}
-        </main>
+            }
+          />
+          <ConnectionBanner connection={state?.connection ?? null} sseDown={sseDown} />
+          <NotificationToasts toasts={notify.toasts} onOpen={(id) => openInSessions(id, true)} onDismiss={notify.dismiss} />
+          <main>
+            {tab === "dashboard" &&
+              (state ? (
+                <DashboardView
+                  state={state}
+                  limits={limits}
+                  server={server}
+                  activity={activity}
+                  visible={visible}
+                  now={now}
+                  sessionIds={sessionIds}
+                  layout={dashboardLayout.layout}
+                  running={agents.running}
+                  editing={dashboardLayout.editing}
+                  onLayout={dashboardLayout.setLayout}
+                  panelOpen={notifPanel.open}
+                  sheet={sheetMode}
+                  onCloseSheet={closeSheet}
+                  onOpen={onOpen}
+                  onSettle={onSettle}
+                  seen={notify.seen}
+                  seenReady={notify.seenReady}
+                  onMarkRead={notify.markSeen}
+                  linearVersion={linearVersion}
+                />
+              ) : <Loader />)}
+            {tab === "automations" &&
+              (state ? (
+                <AutomationsView
+                  state={state}
+                  now={now}
+                  seen={notify.seen}
+                  compact={compact}
+                  onOpen={onOpen}
+                  automations={automations.result}
+                  automationsError={automations.error}
+                  onAutomationsStale={automations.reload}
+                  onNewAutomation={() => setCreatingAutomation(true)}
+                  setup={setup}
+                />
+              ) : <Loader />)}
+            {tab === "sessions" &&
+              (state ? (
+                <SessionsView
+                  sessions={sessions}
+                  dispatch={dispatchSessions}
+                  threads={state.threads}
+                  projects={state.projects}
+                  seen={notify.seen}
+                  now={now}
+                  layout={layout}
+                  prefs={listPrefs}
+                  onPrefs={setListPrefs}
+                  t3EnvironmentId={state.t3EnvironmentId}
+                  providers={state.providers}
+                  phone={compact}
+                  sessionShown={sessionShown}
+                  onBack={back}
+                  onOpen={openSession}
+                  onNewSession={newSession}
+                />
+              ) : <Loader />)}
+          </main>
+        </div>
+        {state && creating && (
+          <NewThreadDialog
+            projects={state.projects}
+            providers={state.providers}
+            defaults={state.modelDefaults}
+            projectId={creating.projectId}
+            onClose={() => setCreating(null)}
+            onCreated={(id) => {
+              setCreating(null);
+              openInSessions(id, true);
+            }}
+          />
+        )}
+        {state && creatingAutomation && (
+          <NewAutomationDialog
+            projects={state.projects}
+            providers={state.providers}
+            defaults={state.modelDefaults}
+            onClose={() => setCreatingAutomation(false)}
+            onSaved={automations.reload}
+          />
+        )}
+        {state && switcherQuery !== null && (
+          <Switcher
+            threads={state.threads}
+            projects={state.projects}
+            now={now}
+            history={openHistory}
+            inSessions={sessionIds}
+            initialQuery={switcherQuery}
+            onClose={() => setSwitcherQuery(null)}
+            onOpen={(id) => {
+              setSwitcherQuery(null);
+              openInSessions(id, true);
+            }}
+          />
+        )}
+        {confirmingUpdate && update.status && (
+          <UpdateDialog
+            status={update.status}
+            onClose={() => setConfirmingUpdate(false)}
+            onConfirm={() => {
+              setConfirmingUpdate(false);
+              void update.apply();
+            }}
+          />
+        )}
+        {settingsOpen && (
+          <SettingsDialog
+            theme={theme}
+            onThemeChange={setTheme}
+            accent={accent}
+            onAccentChange={setAccent}
+            onLinearChange={() => setLinearVersion((version) => version + 1)}
+            update={update}
+            onUpdate={() => {
+              setSettingsOpen(false);
+              setConfirmingUpdate(true);
+            }}
+            onClose={() => setSettingsOpen(false)}
+          />
+        )}
       </div>
-      {state && creating && (
-        <NewThreadDialog
-          projects={state.projects}
-          providers={state.providers}
-          defaults={state.modelDefaults}
-          projectId={creating.projectId}
-          onClose={() => setCreating(null)}
-          onCreated={(id) => {
-            setCreating(null);
-            openInSessions(id, true);
-          }}
-        />
-      )}
-      {state && creatingAutomation && (
-        <NewAutomationDialog
-          projects={state.projects}
-          providers={state.providers}
-          defaults={state.modelDefaults}
-          onClose={() => setCreatingAutomation(false)}
-          onSaved={automations.reload}
-        />
-      )}
-      {state && switcherQuery !== null && (
-        <Switcher
-          threads={state.threads}
-          projects={state.projects}
-          now={now}
-          history={openHistory}
-          inSessions={sessionIds}
-          initialQuery={switcherQuery}
-          onClose={() => setSwitcherQuery(null)}
-          onOpen={(id) => {
-            setSwitcherQuery(null);
-            openInSessions(id, true);
-          }}
-        />
-      )}
-      {confirmingUpdate && update.status && (
-        <UpdateDialog
-          status={update.status}
-          onClose={() => setConfirmingUpdate(false)}
-          onConfirm={() => {
-            setConfirmingUpdate(false);
-            void update.apply();
-          }}
-        />
-      )}
-      {settingsOpen && (
-        <SettingsDialog
-          theme={theme}
-          onThemeChange={setTheme}
-          accent={accent}
-          onAccentChange={setAccent}
-          onLinearChange={() => setLinearVersion((version) => version + 1)}
-          update={update}
-          onUpdate={() => {
-            setSettingsOpen(false);
-            setConfirmingUpdate(true);
-          }}
-          onClose={() => setSettingsOpen(false)}
-        />
-      )}
-    </div>
+    </AutomationThreadsContext.Provider>
   );
 }

@@ -62,7 +62,6 @@ const FEATURE_EDGES = new Map([
   ["features/new-thread -> features/conversation", "the new thread dialog reuses the composer"],
   ["features/automations -> features/new-thread", "a row opens the automation dialog to edit the task"],
   ["features/automations -> features/conversation", "the Model column reuses the model lookup of the composer"],
-  ["features/dashboard -> features/automations", "the cards hide routine and setup threads"],
   ["features/dashboard -> features/settings", "the Linear setup card reuses the key form"],
   ["features/dashboard -> features/new-thread", "assigning a ticket opens the New Session dialog"],
   ["features/settings -> features/update", "the Updates tab shows the update status"],

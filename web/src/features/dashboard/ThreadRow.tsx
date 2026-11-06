@@ -3,6 +3,7 @@ import type { DashboardProject, DashboardThread } from "../../../../shared/api.t
 import { agentStatus } from "../../../../shared/status.ts";
 import { threadTitle } from "../../lib/threads.ts";
 import { ProviderIcon } from "../../lib/ProviderIcon.tsx";
+import { AutomationMark } from "../../lib/automationThreads.tsx";
 import { Pressable } from "../../ui/index.ts";
 import { openRow, threadMeta } from "./threadRows.ts";
 
@@ -23,7 +24,10 @@ function ThreadRowView({ thread: t, project, modelName, now, inSessions, onOpen 
       <Pressable className="run-row" onClick={(e) => openRow(e, t.id, inSessions, onOpen)}>
         {working && <span className="pulse run-pulse" role="img" aria-label="Running" />}
         <span className="run-text">
-          <span className="notif-title">{threadTitle(t)}</span>
+          <span className="title-line">
+            <span className="notif-title">{threadTitle(t)}</span>
+            <AutomationMark id={t.id} />
+          </span>
           <span className="notif-meta">
             {modelName && (
               <>

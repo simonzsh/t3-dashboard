@@ -3,7 +3,6 @@ import { isUnseen, type SeenState } from "../../../../shared/seen.ts";
 import { hasFailed, threadState } from "../../../../shared/status.ts";
 import { newestFirst } from "../../lib/threads.ts";
 import type { IconName } from "../../ui/index.ts";
-import { excludeRoutineThreads } from "../automations/automations.ts";
 
 /** Read threads older than this fold behind "See all", and "Settle all" settles them. */
 const RECENT_SETTLED_MS = 3 * 24 * 3_600_000;
@@ -39,10 +38,6 @@ export function threadSections(threads: DashboardThread[], seen: SeenState, rela
   sections.running.sort(byPinThenRecent);
   return sections;
 }
-
-/** The threads the Dashboard lists: routine runs and setup threads have their own place. */
-export const listedThreads = (threads: DashboardThread[], hiddenIds: readonly string[] = [], setupIds: readonly string[] = []): DashboardThread[] =>
-  excludeRoutineThreads(threads, [...hiddenIds, ...setupIds]);
 
 /** Read threads split at 3 days: the recent ones stay in the list, the old ones wait behind "See all" and "Settle all" settles them. */
 export function splitRead(readIdle: DashboardThread[], now: Date): { recent: DashboardThread[]; old: DashboardThread[] } {

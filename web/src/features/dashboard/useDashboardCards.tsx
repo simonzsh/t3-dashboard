@@ -1,5 +1,5 @@
 import { useMemo, type ReactNode } from "react";
-import type { AutomationsResult, DashboardState, DashboardThread } from "../../../../shared/api.ts";
+import type { DashboardState, DashboardThread } from "../../../../shared/api.ts";
 import type { SeenState } from "../../../../shared/seen.ts";
 import { modelLabel, modelNameMap } from "../../lib/models.ts";
 import { NotificationItem } from "./NotificationItem.tsx";
@@ -12,7 +12,7 @@ import { useTickets } from "./useTickets.ts";
 
 export interface CardsInput {
   state: DashboardState;
-  /** The threads the cards list: see `listedThreads`. */
+  /** The threads the cards list. */
   visible: DashboardThread[];
   now: Date;
   sessionIds: ReadonlySet<string>;
@@ -23,22 +23,19 @@ export interface CardsInput {
   /** False until the server answers: every thread would look read, and "Settle all" could settle unread ones. */
   seenReady: boolean;
   onMarkRead: (id: string) => void;
-  automations: AutomationsResult | null;
-  automationsError: string | null;
   /** Changes when the Linear settings change: the tickets then load again. */
   linearVersion: number;
 }
 
 /** The thread cards of the Dashboard and the Notifications panel; Usage, Server and Activity need no thread. */
-export function useDashboardCards({ state, visible, now, sessionIds, onOpen, onSettle, seen, seenReady, onMarkRead, automations, automationsError, linearVersion }: CardsInput, ticketsShown: boolean): Record<"notifications" | "running" | "up-next", ReactNode> {
+export function useDashboardCards({ state, visible, now, sessionIds, onOpen, onSettle, seen, seenReady, onMarkRead, linearVersion }: CardsInput, ticketsShown: boolean): Record<"notifications" | "running" | "up-next", ReactNode> {
   const tickets = useTickets(linearVersion, ticketsShown, visible, seen, now);
   const { relaunch, upNext } = tickets.plan;
   const sections = useMemo(() => threadSections(visible, seen, new Set(relaunch.map((r) => r.thread.id))), [visible, seen, relaunch]);
   const { recent, old } = useMemo(() => splitRead(sections.readIdle, now), [sections, now]);
   const projects = useMemo(() => new Map(state.projects.map((p) => [p.id, p])), [state.projects]);
   const modelNames = useMemo(() => modelNameMap(state.providers), [state.providers]);
-  // Before the first automations answer, routine threads would flash in the lists.
-  const loading = state.connection.t3 === "live" && ((automations === null && automationsError === null) || !seenReady);
+  const loading = state.connection.t3 === "live" && !seenReady;
 
   const rowProps = (t: DashboardThread) => ({
     thread: t,

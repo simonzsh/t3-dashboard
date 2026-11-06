@@ -5,7 +5,7 @@ import type { DashboardState, LimitsOverview, ServerStats, UsageDay, UsageOvervi
 import { DashboardView } from "../../../src/features/dashboard/DashboardView.tsx";
 import { DEFAULT_LAYOUT, moveCard, setHidden, type DashboardLayout } from "../../../src/features/dashboard/layout.ts";
 import { agentCounts } from "../../../src/lib/agents.ts";
-import { listedThreads } from "../../../src/features/dashboard/sections.ts";
+import { AutomationThreadsContext } from "../../../src/lib/automationThreads.tsx";
 import type { ReadState } from "../../../src/features/dashboard/pollRead.ts";
 import { baseState, thread } from "../../fixtures.ts";
 
@@ -61,15 +61,17 @@ interface Options {
   sheet?: boolean;
   seen?: typeof fresh;
   providers?: DashboardState["providers"];
+  automationIds?: string[];
 }
-const render = (activity: ReadState<UsageOverview>, { limits = limitsState(), threads = [thread("a", { status: "running" })], layout = DEFAULT_LAYOUT, editing = false, panelOpen = true, sheet = false, seen = fresh, providers = [] }: Options = {}) =>
+const render = (activity: ReadState<UsageOverview>, { limits = limitsState(), threads = [thread("a", { status: "running" })], layout = DEFAULT_LAYOUT, editing = false, panelOpen = true, sheet = false, seen = fresh, providers = [], automationIds = [] }: Options = {}) =>
   renderToStaticMarkup(
+    <AutomationThreadsContext.Provider value={new Set(automationIds)}>
     <DashboardView
       state={{ ...baseState(threads), providers }}
       limits={limits}
       server={serverState()}
       activity={activity}
-      visible={listedThreads(threads, ["t-routine"])}
+      visible={threads}
       now={NOW}
       sessionIds={new Set()}
       running={agentCounts(threads).running}
@@ -84,10 +86,9 @@ const render = (activity: ReadState<UsageOverview>, { limits = limitsState(), th
       seen={seen}
       seenReady
       onMarkRead={() => {}}
-      automations={{ automations: [], hiddenThreadIds: ["t-routine"], setupThreadIds: [] }}
-      automationsError={null}
       linearVersion={0}
-    />,
+    />
+    </AutomationThreadsContext.Provider>,
   );
 // One card, from its opening tag to its closing one.
 const card = (out: string, head: "notifications-head" | "running-head" | "up-next-head") => {
@@ -286,8 +287,12 @@ test("the Running card lists working agents with a pulsing dot, model and projec
   assert.match(out, /Running<\/h2><span class="count">1</);
 });
 
-test("routine threads stay out of every card", () => {
-  assert.doesNotMatch(render(state(), { threads: [thread("t-routine", { title: "Routine run" })] }), /Routine run/);
+test("an automation run is listed like any session, with the automation icon", () => {
+  const run = thread("t-routine", { title: "Routine run", status: "running" });
+  const done = thread("t-done", { title: "Finished run", status: "completed", lastActivityAt: "2026-01-14T11:00:00.000Z" });
+  const out = render(state(), { threads: [run, done], automationIds: ["t-routine", "t-done"] });
+  assert.match(card(out, "running-head"), /Routine run.*auto-mark/);
+  assert.match(card(out, "notifications-head"), /Finished run.*auto-mark/);
 });
 
 test("in sheet mode the panel is a dialog sheet with a backdrop, and it takes no room", () => {

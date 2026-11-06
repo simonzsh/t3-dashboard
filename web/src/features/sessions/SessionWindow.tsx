@@ -1,6 +1,7 @@
 import { memo, type Dispatch } from "react";
 import type { DashboardProvider, DashboardThread, ProjectIcon as ProjectIconData } from "../../../../shared/api.ts";
 import { Badge, Button, Icon, IconButton } from "../../ui/index.ts";
+import { AutomationMark } from "../../lib/automationThreads.tsx";
 import { attentionState } from "./sessionList.ts";
 import type { SessionsAction } from "./sessions.ts";
 import { ConversationPanel } from "../conversation/ConversationPanel.tsx";
@@ -61,6 +62,7 @@ function SessionWindowView({ id, thread, title, projectTitle, projectIcon, missi
           <span className="session-window-title" data-tooltip={title} data-tooltip-clipped>
             {title}
           </span>
+          <AutomationMark id={id} />
           {badge === "running" ? (
             <RunningBadge className="session-window-state" />
           ) : (

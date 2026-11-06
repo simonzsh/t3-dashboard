@@ -92,7 +92,7 @@ test("the prompt placeholder of a webhook shows the template syntax", () => {
 
 const stored: Automation = {
   id: "t", kind: "routine", title: "Inbox", projectId: "p1", project: "P", scheduleLabel: "", enabled: true, nextRunAt: null, lastRunAt: null, lastRunStatus: null, lastRunError: null, threadId: null,
-  modelSelection: null, prompt: "Do it", schedule: null, runtimeMode: null, bound: false, webhook: null,
+  modelSelection: null, prompt: "Do it", schedule: null, runtimeMode: null, bound: false, webhook: null, runs: [],
 };
 const edit = (a: Partial<Automation>, change: Partial<AutomationForm> = {}, storedSecret = false) => {
   const automation = { ...stored, ...a };

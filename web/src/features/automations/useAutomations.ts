@@ -6,9 +6,10 @@ import { useNotify } from "../../lib/notices.tsx";
 import { usePoll } from "../../lib/usePoll.ts";
 
 const POLL_MS = 30_000;
+const NEW_THREAD_MS = 2_000;
 
-// Polls while active; it reloads at once on each activation.
-export function useAutomations(active: boolean): { result: AutomationsResult | null; error: string | null; reload: () => Promise<void> } {
+// Polls while active; it reloads at once on each activation, and soon after a thread it does not know appears (a new run).
+export function useAutomations(active: boolean, threadIds: readonly string[] = []): { result: AutomationsResult | null; error: string | null; reload: () => Promise<void> } {
   const api = useApi();
   const notify = useNotify();
   const [result, setResult] = useState<AutomationsResult | null>(null);
@@ -36,6 +37,20 @@ export function useAutomations(active: boolean): { result: AutomationsResult | n
   useEffect(() => {
     if (error) notify(error);
   }, [error]);
+  // A run thread shows before the next poll: a short debounce marks it as an automation fast.
+  const known = useRef<Set<string> | null>(null);
+  const timer = useRef<ReturnType<typeof setTimeout>>(undefined);
+  const idsKey = threadIds.join(",");
+  useEffect(() => {
+    if (!active || !result) return;
+    const before = known.current;
+    known.current = new Set(threadIds);
+    if (before && threadIds.some((id) => !before.has(id))) {
+      clearTimeout(timer.current);
+      timer.current = setTimeout(() => void load(), NEW_THREAD_MS);
+    }
+  }, [active, result !== null, idsKey]);
+  useEffect(() => () => clearTimeout(timer.current), []);
   usePoll(load, active ? POLL_MS : null);
 
   return { result, error, reload: load };

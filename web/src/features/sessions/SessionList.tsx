@@ -3,6 +3,7 @@ import type { DashboardProject, DashboardThread } from "../../../../shared/api.t
 import type { SeenState } from "../../../../shared/seen.ts";
 import { relativeTime } from "../../lib/format.ts";
 import { ProjectIcon } from "../../lib/ProjectIcon.tsx";
+import { AutomationMark } from "../../lib/automationThreads.tsx";
 import { ProviderIcon } from "../../lib/ProviderIcon.tsx";
 import { modelLabel } from "../../lib/models.ts";
 import { threadTitle } from "../../lib/threads.ts";
@@ -51,7 +52,10 @@ function SessionListView({ threads, projects, seen, modelNames, now, openIds, fo
         <Pressable className={`slist-row${isOpen ? " open" : ""}${t.id === focusedId ? " focused" : ""}`} aria-current={t.id === focusedId || undefined} onClick={() => onOpen(t.id)}>
           <span className={`slist-mark${mark ? ` ${mark}` : ""}`} role={mark ? "img" : undefined} aria-label={mark ? MARK_LABELS[mark] : undefined} aria-hidden={mark ? undefined : true} />
           <span className="slist-text">
-            <span className="slist-title">{title}</span>
+            <span className="title-line">
+              <span className="slist-title">{title}</span>
+              <AutomationMark id={t.id} />
+            </span>
             <span className="slist-meta">
               {relativeTime(t.lastActivityAt, now)}
               {/* Grouped rows sit under their project, so they name the model; flat rows name the project. */}

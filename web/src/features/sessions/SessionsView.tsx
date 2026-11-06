@@ -17,8 +17,6 @@ interface Props {
   sessions: SessionsState;
   dispatch: Dispatch<SessionsAction>;
   threads: DashboardThread[];
-  /** The threads the list may show: automation runs and setup threads are already out. */
-  listed: DashboardThread[];
   projects: DashboardProject[];
   seen: SeenState;
   now: Date;
@@ -215,7 +213,7 @@ function useWindowDrag(enabled: boolean, dispatch: Dispatch<SessionsAction>) {
   };
 }
 
-export function SessionsView({ sessions, dispatch, threads, listed, projects, seen, now, layout, prefs, onPrefs, t3EnvironmentId, providers, phone, sessionShown, onBack, onOpen, onNewSession }: Props) {
+export function SessionsView({ sessions, dispatch, threads, projects, seen, now, layout, prefs, onPrefs, t3EnvironmentId, providers, phone, sessionShown, onBack, onOpen, onNewSession }: Props) {
   const modelNames = useMemo(() => modelNameMap(providers), [providers]);
   const openIds = useMemo(() => new Set(sessions.ids), [sessions.ids]);
   // On a phone, closing the open session goes back to the list.
@@ -283,7 +281,7 @@ export function SessionsView({ sessions, dispatch, threads, listed, projects, se
   const closeOne = useCallback((id: string) => dispatch({ type: "close", id }), [dispatch]);
   const list = () => (
     <SessionList
-      threads={listed}
+      threads={threads}
       projects={projects}
       seen={seen}
       modelNames={modelNames}

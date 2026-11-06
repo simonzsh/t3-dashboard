@@ -1,5 +1,6 @@
-import type { Automation, DashboardProvider, DashboardThread, ModelSelection } from "../../../../shared/api.ts";
-import { ACTIVE_STATUSES, hasFailed } from "../../../../shared/status.ts";
+import type { Automation, AutomationRun, AutomationRunOutcome, DashboardProvider, DashboardThread, ModelSelection } from "../../../../shared/api.ts";
+import { isUnseen, type SeenState } from "../../../../shared/seen.ts";
+import { ACTIVE_STATUSES, threadState, type ThreadState } from "../../../../shared/status.ts";
 import { MONTHS } from "../../lib/format.ts";
 import { findModel } from "../conversation/composer.ts";
 
@@ -7,14 +8,6 @@ export type LastRun = { kind: "waiting" } | { kind: "running" } | { kind: "faile
 
 const DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 const DAY_MS = 86_400_000;
-
-// Dedicated threads and run threads of scheduled tasks live in the Automations tab only.
-export function excludeRoutineThreads(threads: DashboardThread[], hiddenThreadIds: readonly string[]): DashboardThread[] {
-  if (hiddenThreadIds.length === 0) return threads;
-  const hidden = new Set(hiddenThreadIds);
-  // A run that waits for an answer needs the user: it stays in the Dashboard lists.
-  return threads.filter((t) => !hidden.has(t.id) || t.pending !== null);
-}
 
 // A setup thread shows as a row only while the agent works or waits; idle with no task, it returns to the Dashboard lists.
 export function setupThreads(threads: DashboardThread[], setupThreadIds: readonly string[]): DashboardThread[] {
@@ -41,28 +34,78 @@ export function isEditable(a: Automation): boolean {
   return true;
 }
 
-export type AutomationGroup = "attention" | "today" | "upcoming" | "inactive";
+export type AutomationGroup = "running" | "attention" | "upcoming" | "paused" | "finished";
 
-// Needs attention beats paused: a failed run stays visible until the user looks at it.
-export function automationGroup(a: Automation, thread: DashboardThread | undefined, now: Date): AutomationGroup {
-  const last = lastRunState(a, thread);
-  if (last?.kind === "failed" || last?.kind === "waiting") return "attention";
-  if (!a.enabled) return "inactive";
-  const endOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1).getTime();
-  if (last?.kind === "running" || (a.nextRunAt !== null && new Date(a.nextRunAt).getTime() < endOfToday)) return "today";
-  return "upcoming";
+type Threads = ReadonlyMap<string, DashboardThread>;
+
+const OUTCOMES: Record<ThreadState, AutomationRunOutcome | null> = { waiting: "waiting", running: "running", error: "failed", done: "succeeded", idle: null };
+
+/** The run with its thread laid over it; an idle thread says nothing, so the stored status stays. */
+export function liveRun(run: AutomationRun, thread: DashboardThread | undefined): AutomationRun {
+  const status = thread && OUTCOMES[threadState(thread)];
+  if (!thread || !status) return run;
+  const terminal = status === "succeeded" || status === "failed";
+  return { ...run, status, error: status === "failed" ? (thread.lastError ?? run.error) : run.error, finishedAt: terminal ? (run.finishedAt ?? thread.lastActivityAt) : run.finishedAt };
+}
+
+/** A bound task runs in one thread: only its newest run follows that thread. */
+export function liveRuns(a: Automation, threads: Threads): AutomationRun[] {
+  return a.runs.map((run, i) => (a.bound && i > 0 ? run : liveRun(run, run.threadId ? threads.get(run.threadId) : undefined)));
+}
+
+export const latestFinished = (a: Automation, threads: Threads): AutomationRun | null => liveRuns(a, threads).find((r) => r.status === "succeeded" || r.status === "failed") ?? null;
+
+/** What the Automations tab counts: tasks whose latest finished run is still unread. A red dot shows when one of them failed. */
+export function automationsBadge(list: Automation[], threads: Threads, seen: SeenState): { count: number; failed: boolean } {
+  let count = 0;
+  let failed = false;
+  for (const a of list) {
+    const run = latestFinished(a, threads);
+    const thread = run?.threadId ? threads.get(run.threadId) : undefined;
+    if (!run || !thread || !isUnseen(thread, seen)) continue;
+    count++;
+    failed ||= run.status === "failed";
+  }
+  return { count, failed };
+}
+
+export function recentRuns(list: Automation[], threads: Threads, limit = 10): Array<{ automation: Automation; run: AutomationRun }> {
+  return list
+    .flatMap((automation) => liveRuns(automation, threads).map((run) => ({ automation, run })))
+    .sort((a, b) => b.run.startedAt.localeCompare(a.run.startedAt))
+    .slice(0, limit);
+}
+
+/** "42 s", "3 min", "1 h 05"; a running run counts up to now. Null when the end is not known. */
+export function runDuration(run: AutomationRun, now: Date): string | null {
+  const end = run.finishedAt ?? (run.status === "running" ? now.toISOString() : null);
+  if (end === null) return null;
+  const seconds = Math.max(0, Math.round((new Date(end).getTime() - new Date(run.startedAt).getTime()) / 1000));
+  if (seconds < 60) return `${seconds} s`;
+  const minutes = Math.floor(seconds / 60);
+  return minutes < 60 ? `${minutes} min` : `${Math.floor(minutes / 60)} h ${two(minutes % 60)}`;
+}
+
+// A failed run stays in attention until the user opens it; a dispatch failure has no session, so a newer run clears it.
+export function automationGroup(a: Automation, threads: Threads, seen: SeenState): AutomationGroup {
+  const latest = liveRuns(a, threads)[0];
+  if (latest?.status === "running") return "running";
+  const thread = latest?.threadId ? threads.get(latest.threadId) : undefined;
+  if (latest?.status === "waiting" || (latest?.status === "failed" && (!latest.threadId || (thread && isUnseen(thread, seen))))) return "attention";
+  if (isFinishedReminder(a)) return "finished";
+  return a.enabled ? "upcoming" : "paused";
 }
 
 const byNextRun = (a: Automation, b: Automation) => Number(a.nextRunAt === null) - Number(b.nextRunAt === null) || (a.nextRunAt ?? "").localeCompare(b.nextRunAt ?? "");
 const byLastRunDesc = (a: Automation, b: Automation) => (b.lastRunAt ?? "").localeCompare(a.lastRunAt ?? "");
+const byStartDesc = (a: Automation, b: Automation) => (b.runs[0]?.startedAt ?? "").localeCompare(a.runs[0]?.startedAt ?? "");
 
-export function groupAutomations(list: Automation[], threads: Map<string, DashboardThread>, now: Date): Record<AutomationGroup, Automation[]> {
-  const groups: Record<AutomationGroup, Automation[]> = { attention: [], today: [], upcoming: [], inactive: [] };
-  for (const a of list) groups[automationGroup(a, a.threadId ? threads.get(a.threadId) : undefined, now)].push(a);
-  groups.attention.sort(byLastRunDesc);
-  groups.inactive.sort(byLastRunDesc);
-  groups.today.sort(byNextRun);
+export function groupAutomations(list: Automation[], threads: Threads, seen: SeenState): Record<AutomationGroup, Automation[]> {
+  const groups: Record<AutomationGroup, Automation[]> = { running: [], attention: [], upcoming: [], paused: [], finished: [] };
+  for (const a of list) groups[automationGroup(a, threads, seen)].push(a);
+  groups.running.sort(byStartDesc);
   groups.upcoming.sort(byNextRun);
+  for (const id of ["attention", "paused", "finished"] as const) groups[id].sort(byLastRunDesc);
   return groups;
 }
 
@@ -95,17 +138,19 @@ export const copyableUrl = (a: Automation): string | null => (a.kind === "webhoo
 const two = (n: number) => String(n).padStart(2, "0");
 const hm = (d: Date) => `${d.getHours()}:${two(d.getMinutes())}`;
 
-// T3 marks a run "succeeded" once it is sent, not when the agent ends: the thread gives the real state.
-export function lastRunState(a: Automation, thread?: DashboardThread): LastRun | null {
-  if (thread?.pending) return { kind: "waiting" };
-  if (a.lastRunStatus === "failed") return { kind: "failed", error: a.lastRunError };
-  if (a.lastRunStatus === "running" || (thread && ACTIVE_STATUSES.has(thread.status))) return { kind: "running" };
-  if (thread && hasFailed(thread)) return { kind: "failed", error: thread.lastError };
-  if (a.lastRunStatus === "succeeded" && a.lastRunAt) {
-    const at = new Date(a.lastRunAt);
-    return { kind: "done", at: `${two(at.getHours())}:${two(at.getMinutes())}` };
-  }
-  return null;
+/** The latest run as a result: T3 marks a run "succeeded" once it is sent, so the thread gives the real state. */
+export function lastResult(a: Automation, threads: Threads): LastRun | null {
+  const run = liveRuns(a, threads)[0];
+  if (!run) return null;
+  if (run.status === "waiting" || run.status === "running") return { kind: run.status };
+  if (run.status === "failed") return { kind: "failed", error: run.error };
+  return run.status === "succeeded" ? { kind: "done", at: hm(new Date(run.finishedAt ?? run.startedAt)) } : null;
+}
+
+export function nextRunText(a: Automation, now: Date): string {
+  if (isFinishedReminder(a)) return "—";
+  if (!a.enabled) return "paused";
+  return a.kind === "webhook" ? "On each delivery" : nextLabel(a.nextRunAt, now) || "—";
 }
 
 export function nextLabel(iso: string | null, now: Date): string {
