@@ -93,3 +93,9 @@ test("startsTyping: a plain character outside a field, not a shortcut, space or 
   assert.equal(startsTyping(press("a", { target: field })), false);
   assert.equal(startsTyping(press("a", { target: { tagName: "DIV", isContentEditable: true } })), false);
 });
+
+test("Ctrl+Alt+digit with AltGr is a typed character, not a shortcut", () => {
+  const keys = { ctrlKey: true, altKey: true, code: "Digit2", key: "2" };
+  assert.equal(matchShortcut(press("2", keys), false, true), "window-2");
+  assert.equal(matchShortcut(press("2", { ...keys, altGraph: true }), false, true), null);
+});

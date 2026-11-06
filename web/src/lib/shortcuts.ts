@@ -25,6 +25,8 @@ export interface KeyInfo {
   ctrlKey: boolean;
   metaKey: boolean;
   altKey: boolean;
+  // AltGr reports Ctrl+Alt on Windows: it types a character and is not a shortcut.
+  altGraph?: boolean;
   shiftKey?: boolean;
   target: { tagName: string; isContentEditable: boolean } | null;
 }
@@ -55,7 +57,7 @@ export function matchShortcut(e: KeyInfo, dialogOpen: boolean, inSessions = fals
   const key = e.key.toLowerCase();
   // Before the guards: the switcher opens from a field or a dialog too, and App decides.
   if ((e.ctrlKey || e.metaKey) && !e.altKey && key === "k") return "switcher";
-  if (dialogOpen || e.metaKey) return null;
+  if (dialogOpen || e.metaKey || e.altGraph) return null;
   if (e.ctrlKey) {
     if (e.altKey) return inSessions && !e.shiftKey ? windowShortcut(e) : null;
     if (key === "n" && e.shiftKey) return "new-automation";
