@@ -30,7 +30,7 @@ export function SessionList({ threads, projects, seen, modelNames, now, openIds,
   const shown = useMemo(() => listableThreads(threads), [threads]);
   const collapsed = new Set(prefs.collapsed);
   const grouped = prefs.mode === "grouped";
-  const projectGroups = useMemo(() => (grouped ? groupByProject(shown, projects, seen) : []), [grouped, shown, projects, seen]);
+  const projectGroups = useMemo(() => (grouped ? groupByProject(shown, projects) : []), [grouped, shown, projects]);
   const anyOpen = projectGroups.some((g) => !collapsed.has(g.id));
   const toMode = grouped ? "flat" : "grouped";
   const modeLabel = grouped ? "Show one list by recent activity" : "Group by project";
@@ -64,7 +64,6 @@ export function SessionList({ threads, projects, seen, modelNames, now, openIds,
                   <ProjectIcon icon={g.project?.icon ?? null} title={g.title} />
                   <span className="slist-project-title">{g.title}</span>
                   {g.running > 0 && <span className="slist-count running" aria-label={`${g.running} running`}>{g.running}</span>}
-                  {g.unread > 0 && <span className="slist-count" aria-label={`${g.unread} unread`}>{g.unread}</span>}
                 </Pressable>
                 {g.project && (
                   <IconButton variant="ghost" size="sm" className="slist-new" label={`New session in ${g.title}`} tooltip="New session here" onClick={() => onNewSession(g.id)}>

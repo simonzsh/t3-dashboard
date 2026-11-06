@@ -43,23 +43,21 @@ export interface ProjectGroup {
   project: DashboardProject | null;
   title: string;
   threads: DashboardThread[];
+  /** The project row shows only this count. */
   running: number;
-  unread: number;
 }
 
 /** One group per T3 project that has a listed thread, in T3's order. */
-export function groupByProject(threads: readonly DashboardThread[], projects: readonly DashboardProject[], seen: SeenState): ProjectGroup[] {
-  const groups = new Map<string, ProjectGroup>(projects.map((p) => [p.id, { id: p.id, project: p, title: p.title, threads: [], running: 0, unread: 0 }]));
+export function groupByProject(threads: readonly DashboardThread[], projects: readonly DashboardProject[]): ProjectGroup[] {
+  const groups = new Map<string, ProjectGroup>(projects.map((p) => [p.id, { id: p.id, project: p, title: p.title, threads: [], running: 0 }]));
   for (const t of threads) {
     let group = groups.get(t.projectId);
     if (!group) {
-      group = { id: t.projectId, project: null, title: "Unknown project", threads: [], running: 0, unread: 0 };
+      group = { id: t.projectId, project: null, title: "Unknown project", threads: [], running: 0 };
       groups.set(t.projectId, group);
     }
     group.threads.push(t);
-    const mark = statusMark(t, seen);
-    if (mark === "running") group.running += 1;
-    else if (mark === "unread") group.unread += 1;
+    if (threadState(t) === "running") group.running += 1;
   }
   return [...groups.values()].filter((g) => g.threads.length > 0);
 }
