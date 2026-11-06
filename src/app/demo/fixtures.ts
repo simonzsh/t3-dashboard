@@ -21,8 +21,8 @@ export const DEMO_FILES = [`${DEMO_HOME}/todo.txt`];
 const CHILD_ID = "demo-checkout-mobile-child";
 
 const PROJECTS: RawProject[] = [
-  { id: "demo-atlas-web", title: "Atlas Web", workspaceRoot: "/demo/atlas-web", projectIcon: { kind: "lucide", name: "folder-code", color: "blue" } },
-  { id: "demo-atlas-api", title: "Atlas API", workspaceRoot: "/demo/atlas-api", projectIcon: { kind: "lucide", name: "folder-tree", color: "green" } },
+  { id: "demo-atlas-web", title: "Atlas Web", workspaceRoot: `${DEMO_HOME}/src/atlas-web`, projectIcon: { kind: "lucide", name: "folder-code", color: "blue" } },
+  { id: "demo-atlas-api", title: "Atlas API", workspaceRoot: `${DEMO_HOME}/src/atlas-api`, projectIcon: { kind: "lucide", name: "folder-tree", color: "green" } },
   { id: "demo-mobile", title: "Mobile App", projectIcon: { kind: "lucide", name: "smartphone", color: "purple" } },
   { id: "demo-docs", title: "Docs site", projectIcon: { kind: "lucide", name: "book-open", color: "gray" } },
   { id: "demo-assistant", title: "Assistant", projectIcon: { kind: "lucide", name: "brain", color: "purple" } },
