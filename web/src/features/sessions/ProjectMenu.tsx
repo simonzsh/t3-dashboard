@@ -21,7 +21,10 @@ export function ProjectMenu({ title, onEdit, onDelete }: Props) {
         <Icon name="moreHorizontal" />
       </IconButton>
       {open && (
-        <Popover anchor={anchor} align="end" minWidth={170} role="menu" className="project-menu" onClose={(reason) => (setOpen(false), reason === "escape" && anchor.current?.focus())}>
+        <Popover anchor={anchor} align="end" minWidth={170} role="menu" className="project-menu" onClose={(reason) => {
+          setOpen(false);
+          if (reason === "escape") anchor.current?.focus();
+        }}>
           <Pressable role="menuitem" className="project-menu-item" onClick={pick(onEdit)}>
             <Icon name="pencil" />
             Edit project…

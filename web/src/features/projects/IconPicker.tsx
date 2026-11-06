@@ -47,8 +47,7 @@ export function IconPicker({ title, value, onChange }: Props) {
 
   const pickColor = (name: string) => {
     setColor(name);
-    if (value?.kind === "lucide") onChange({ ...value, color: name });
-    else if (value?.kind === "monogram") onChange({ ...value, color: name });
+    if (value && value.kind !== "emoji") onChange({ ...value, color: name });
   };
   const pickTab = (next: Tab) => {
     setTab(next);
