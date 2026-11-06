@@ -29,6 +29,8 @@ export interface UsageOverview {
   total: UsageTotals;
   /** T3 threads with activity in the 14 days. */
   activeThreads: number;
+  /** T3 threads with at least one turn in each period. */
+  sessions: { thisWeek: number; lastWeek: number; total: number };
   /** True when some thread histories could not be read: turns may be low. */
   turnsPartial: boolean;
   cost: {

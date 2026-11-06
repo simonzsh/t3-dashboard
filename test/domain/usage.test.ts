@@ -119,6 +119,17 @@ test("splits the turns of the two weeks", async () => {
   assert.equal(overview.total.turns, 4);
 });
 
+test("counts a session in each week where it has a turn", async () => {
+  const { port, usage } = setup([thread("a", "2026-11-06T10:00:00Z"), thread("b", "2026-11-06T10:00:00Z"), thread("c", "2026-11-06T10:00:00Z")]);
+  port.projections = {
+    a: runs("2026-11-06T09:00:00Z", "2026-11-05T09:00:00Z", "2026-10-30T09:00:00Z"),
+    b: runs("2026-10-28T09:00:00Z"),
+    c: runs("2026-10-01T09:00:00Z"),
+  };
+  const overview = await usage.get("UTC", false);
+  assert.deepEqual(overview.sessions, { thisWeek: 1, lastWeek: 2, total: 2 });
+});
+
 test("ignores buckets outside the window and buckets without a number", async () => {
   const { port, usage } = setup();
   port.usage = { buckets: [{ day: "2026-01-01", costUsd: 9 }, { day: "2026-11-06" }] };

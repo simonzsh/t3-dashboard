@@ -57,6 +57,7 @@ const usageOverview: UsageOverview = {
   lastWeek: usageTotals,
   total: usageTotals,
   activeThreads: 0,
+  sessions: { thisWeek: 0, lastWeek: 0, total: 0 },
   turnsPartial: false,
   cost: { status: "ok", detail: null, refreshing: false },
   readAt: now.toISOString(),

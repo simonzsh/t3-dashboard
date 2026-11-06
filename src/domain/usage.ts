@@ -61,8 +61,8 @@ export function createUsage({ port, threads, now, serverTimeZone }: UsageOptions
   const cache = new Map<string, { at: number; ttl: number; overview: UsageOverview }>();
   const inFlight = new Map<string, Promise<UsageOverview>>();
 
-  async function readTurns(ids: DashboardThread[]): Promise<{ times: string[]; partial: boolean }> {
-    const times: string[] = [];
+  async function readTurns(ids: DashboardThread[]): Promise<{ runs: { id: string; time: string }[]; partial: boolean }> {
+    const runs: { id: string; time: string }[] = [];
     let partial = false;
     const queue = [...ids];
     const worker = async () => {
@@ -78,11 +78,11 @@ export function createUsage({ port, threads, now, serverTimeZone }: UsageOptions
             continue;
           }
         }
-        times.push(...entry.times);
+        for (const time of entry.times) runs.push({ id: thread.id, time });
       }
     };
     await Promise.all(Array.from({ length: Math.min(MAX_READS, ids.length) }, worker));
-    return { times, partial };
+    return { runs, partial };
   }
 
   async function readCost(days: string[], timeZone: string): Promise<{ summary: RawUsageSummary | null; failure: string | null }> {
@@ -107,9 +107,16 @@ export function createUsage({ port, threads, now, serverTimeZone }: UsageOptions
     for (const id of runTimes.keys()) if (!ids.has(id)) runTimes.delete(id);
 
     const [turns, cost] = await Promise.all([readTurns(active), readCost(dayKeys, timeZone)]);
-    for (const time of turns.times) {
-      const entry = byDay.get(localDay(zone, time) ?? "");
-      if (entry) entry.turns++;
+    // A session counts in a period when one of its turns falls in it.
+    const thisWeekStart = dayKeys[DAYS - WEEK]!;
+    const sessions = { thisWeek: new Set<string>(), lastWeek: new Set<string>(), total: new Set<string>() };
+    for (const run of turns.runs) {
+      const day = localDay(zone, run.time) ?? "";
+      const entry = byDay.get(day);
+      if (!entry) continue;
+      entry.turns++;
+      sessions.total.add(run.id);
+      (day >= thisWeekStart ? sessions.thisWeek : sessions.lastWeek).add(run.id);
     }
 
     let status: UsageCostStatus = cost.failure === null ? "ok" : "unavailable";
@@ -133,6 +140,7 @@ export function createUsage({ port, threads, now, serverTimeZone }: UsageOptions
       lastWeek: sum(days.slice(0, DAYS - WEEK)),
       total: sum(days),
       activeThreads: active.length,
+      sessions: { thisWeek: sessions.thisWeek.size, lastWeek: sessions.lastWeek.size, total: sessions.total.size },
       turnsPartial: turns.partial,
       cost: { status, detail: status === "partial" ? "Some models are not priced, so the cost may be low." : cost.failure, refreshing },
       readAt: at.toISOString(),
