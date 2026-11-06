@@ -353,18 +353,8 @@ a.step-result-title { color: var(--accent); }
 .composer { padding: 6px 10px 10px; display: flex; flex-direction: column; gap: 6px; container-type: inline-size; }
 .composer-card { position: relative; display: flex; flex-direction: column; gap: 4px; padding: 6px 6px 6px 14px; border-radius: var(--radius-composer); border: 1px solid var(--line); background: var(--surface-1); box-shadow: var(--shadow); transition: border-color 0.12s, box-shadow 0.12s; }
 .composer-card:focus-within { border-color: var(--field-border-focus); box-shadow: var(--field-ring), var(--shadow); }
-.composer-card textarea { width: 100%; box-sizing: border-box; min-height: 32px; max-height: min(40vh, 260px); padding: 2px 0; border: 0; border-radius: 0; background: none; box-shadow: none; resize: none; outline: none; line-height: 1.5; }
-.composer-row { display: flex; align-items: flex-end; gap: 8px; min-width: 0; }
-.composer-row textarea { flex: 1; min-width: 0; padding: 5px 0; }
+.composer-card textarea { width: 100%; box-sizing: border-box; min-height: 32px; max-height: min(40vh, 260px); padding: 5px 0; border: 0; border-radius: 0; background: none; box-shadow: none; resize: none; outline: none; line-height: 1.5; }
 .composer-toolbar { display: flex; align-items: center; gap: 8px; min-width: 0; }
-.composer-row .composer-toolbar, .composer-row .composer-pickers { flex: none; }
-/* A narrow card puts the model and the buttons under the field. */
-@container (max-width: 520px) {
-  .composer-row { flex-wrap: wrap; }
-  .composer-row textarea { flex-basis: 100%; }
-  .composer-row .composer-toolbar { flex: 1 1 100%; }
-  .composer-row .composer-pickers { flex: 1; }
-}
 .composer-pickers { display: flex; align-items: center; gap: 2px; min-width: 0; flex: 1; }
 /* Model panel: one chip for model, reasoning, speed and access; the panel opens above it, inside the composer card. */
 .model-picker { min-width: 0; }
