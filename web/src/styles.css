@@ -73,6 +73,8 @@
 :root[data-accent="green"] { --accent: #16a34a; }
 :root[data-theme="dark"][data-accent="green"] { --accent: #22c55e; --on-accent: #052e16; }
 * { box-sizing: border-box; }
+/* iOS paints a grey box on every pressed control; the app shows its own pressed states. */
+html { -webkit-tap-highlight-color: transparent; }
 body { margin: 0; font: 14px/1.45 Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif; background: var(--surface-0); color: var(--text-primary); -webkit-font-smoothing: antialiased; }
 ::selection { background: color-mix(in srgb, var(--accent) 28%, transparent); }
 /* Never the browser blue: every focusable element gets the accent ring. */
@@ -641,6 +643,8 @@ ol.install-steps { padding-left: 18px; }
 .sidebar.collapsed .sidebar-collapse { margin-left: 0; }
 /* Bottom bar: the sidebar on a phone. */
 .bottom-nav { position: fixed; z-index: 20; inset: auto 0 0; display: flex; height: calc(var(--bottom-bar) + env(safe-area-inset-bottom)); padding: 0 env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left); background: var(--surface-0); border-top: 1px solid var(--line); }
+/* No grey square and no callout on a long press: the active pill already shows the tab. */
+.bottom-nav { -webkit-touch-callout: none; user-select: none; }
 .bottom-item { flex: 1; min-width: 0; min-height: 44px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; padding: 0; border: 0; border-radius: 0; background: none; color: var(--text-secondary); font-size: 12px; font-weight: 500; }
 .bottom-item.active { color: var(--accent); }
 .bottom-icon { position: relative; display: grid; place-items: center; width: 56px; height: 30px; border-radius: 15px; }
