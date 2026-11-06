@@ -1,6 +1,4 @@
-import { useRef, useState, type ReactNode } from "react";
-import { BACKGROUND_PRESETS, type DeskBackground } from "../desk/deskBackground.ts";
-import { imageFileToDataUrl } from "../desk/deskImage.ts";
+import { useState, type ReactNode } from "react";
 import { THEME_SETTINGS, type ThemeSetting } from "./theme.ts";
 import { ACCENTS, type Accent } from "./accent.ts";
 import type { UpdateControl } from "../update/useUpdate.ts";
@@ -8,16 +6,13 @@ import { InstallSettings } from "./InstallSettings.tsx";
 import { LinearSettings } from "./LinearSettings.tsx";
 import { UpdateSettings } from "./UpdateSettings.tsx";
 import { onRadioKeyDown } from "../../ui/radioKeys.ts";
-import { Button, Dialog, FileInput, Pressable, Segmented, Tabs } from "../../ui/index.ts";
-import { useAction } from "../../lib/useAction.ts";
+import { Dialog, Pressable, Segmented, Tabs } from "../../ui/index.ts";
 
 interface Props {
   theme: ThemeSetting;
   onThemeChange: (theme: ThemeSetting) => void;
   accent: Accent;
   onAccentChange: (accent: Accent) => void;
-  background: DeskBackground;
-  onBackgroundChange: (background: DeskBackground) => string | null;
   onLinearChange: () => void;
   update: UpdateControl;
   onUpdate: () => void;
@@ -35,14 +30,8 @@ type SectionId = (typeof SECTIONS)[number]["id"];
 
 const LABELS: Record<ThemeSetting, string> = { system: "System", light: "Light", dark: "Dark" };
 
-export function SettingsDialog({ theme, onThemeChange, accent, onAccentChange, background, onBackgroundChange, onLinearChange, update, onUpdate, onClose }: Props) {
-  const fileInput = useRef<HTMLInputElement>(null);
-  const { busy, setError, run } = useAction();
+export function SettingsDialog({ theme, onThemeChange, accent, onAccentChange, onLinearChange, update, onUpdate, onClose }: Props) {
   const [section, setSection] = useState<SectionId>("appearance");
-  const presetId = background.kind === "preset" ? background.id : background.kind === "none" ? "none" : null;
-
-  // onBackgroundChange returns its refusal instead of throwing.
-  const upload = (file: File) => run(async () => setError(onBackgroundChange({ kind: "image", dataUrl: await imageFileToDataUrl(file) })));
 
   const panels: Record<SectionId, ReactNode> = {
     appearance: (
@@ -67,41 +56,6 @@ export function SettingsDialog({ theme, onThemeChange, accent, onAccentChange, b
                 onClick={() => onAccentChange(a.id)}
               />
             ))}
-          </div>
-        </div>
-        <div className="settings-row">
-          <span>Desk background</span>
-          <div className="bg-choices">
-            <div className="swatches" role="radiogroup" aria-label="Background" onKeyDown={onRadioKeyDown}>
-              {BACKGROUND_PRESETS.map((p) => (
-                <Pressable
-                  key={p.id}
-                  role="radio"
-                  aria-checked={presetId === p.id}
-                  tabIndex={presetId === p.id || (presetId === null && p.id === BACKGROUND_PRESETS[0]?.id) ? 0 : -1}
-                  aria-label={p.label}
-                  tooltip={p.label}
-                  className={`swatch desk-bg-${p.id}${presetId === p.id ? " active" : ""}`}
-                  onClick={() => setError(onBackgroundChange(p.id === "none" ? { kind: "none" } : { kind: "preset", id: p.id }))}
-                />
-              ))}
-              {background.kind === "image" && (
-                <span className="swatch active" role="img" aria-label="Uploaded image" style={{ backgroundImage: `url("${background.dataUrl}")` }} />
-              )}
-            </div>
-            <div className="buttons">
-              <Button loading={busy && "Loading…"} onClick={() => fileInput.current?.click()}>
-                Upload image…
-              </Button>
-              {background.kind === "image" && <Button onClick={() => setError(onBackgroundChange({ kind: "none" }))}>Remove image</Button>}
-              <FileInput
-                ref={fileInput}
-                accept="image/*"
-                onFiles={([file]) => {
-                  if (file) void upload(file);
-                }}
-              />
-            </div>
           </div>
         </div>
       </>
