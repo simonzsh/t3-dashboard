@@ -114,6 +114,12 @@ test("a Dialog primary action can be disabled and the Cancel label changed", () 
   assert.match(out, /class="btn md primary" disabled="">Go</);
 });
 
+test("a danger primary action uses the danger button", () => {
+  const out = html(<Dialog title="T" onClose={() => {}} onCancel={() => {}} primary={{ label: "Delete", onClick: () => {}, danger: true }} />);
+  assert.match(out, /class="btn md danger">Delete</);
+  assert.doesNotMatch(out, /class="btn md primary"/);
+});
+
 test("a Badge shows a state colour", () => {
   assert.equal(html(<Badge variant="running">Running</Badge>), '<span class="badge running">Running</span>');
   assert.equal(html(<Badge>Pinned</Badge>), '<span class="badge neutral">Pinned</span>');

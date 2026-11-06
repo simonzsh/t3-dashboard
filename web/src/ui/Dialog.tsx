@@ -9,6 +9,8 @@ interface Action {
   label: string;
   onClick: () => void;
   disabled?: boolean;
+  /** A destructive action: the primary button turns red. */
+  danger?: boolean;
 }
 
 interface Props {
@@ -102,7 +104,7 @@ export function Dialog({ title, label, onClose, onCancel, cancelLabel = "Cancel"
               </Button>
             )}
             {primary && (
-              <Button variant="primary" disabled={primary.disabled} onClick={primary.onClick}>
+              <Button variant={primary.danger ? "danger" : "primary"} disabled={primary.disabled} onClick={primary.onClick}>
                 {primary.label}
               </Button>
             )}
