@@ -4,7 +4,6 @@ import { setTimeout as sleep } from "node:timers/promises";
 import index from "../../web/index.html";
 import type { DashboardProvider } from "../../shared/api.ts";
 import { createActions } from "../domain/actions.ts";
-import { AutoOpen, automationThreadIds } from "../domain/autoOpen.ts";
 import { AutomationGuard } from "../domain/automationGuard.ts";
 import { createAutomations } from "../domain/automations.ts";
 import { TokenManager } from "../domain/tokenManager.ts";
@@ -94,16 +93,8 @@ export async function start({ port, log, env }: StartOptions): Promise<void> {
   let modelDefaults = NO_MODEL_DEFAULTS;
   const store: ShellStore = new ShellStore({
     now: () => new Date(),
-    onState: () => {
-      const state = getState();
-      hub.broadcast({ type: "state", data: state });
-      autoOpen.observe(state.threads);
-    },
-    onThreads: (diff) => {
-      hub.broadcast({ type: "threads", data: diff });
-      autoOpen.forget(diff.removed);
-      autoOpen.observe(diff.upserted);
-    },
+    onState: () => hub.broadcast({ type: "state", data: getState() }),
+    onThreads: (diff) => hub.broadcast({ type: "threads", data: diff }),
     onProjects: (diff) => hub.broadcast({ type: "projects", data: diff }),
   });
   const live = new LiveSync({
@@ -170,11 +161,6 @@ export async function start({ port, log, env }: StartOptions): Promise<void> {
   });
   const sessionsFile = sessionsPath(env, home);
   const sessions = new SessionsStore(readSessions(sessionsFile, readText), (value) => writeSecret(sessionsFile, sessionsText(value)));
-  const autoOpen = new AutoOpen({
-    sessions,
-    excluded: async () => automationThreadIds(await automations.list()),
-    broadcast: (update) => hub.broadcast({ type: "sessions", data: update }),
-  });
   const stashFile = stashPath(env, home);
   const stash = new StashStore(readStash(stashFile, readText), (entries) => writeSecret(stashFile, stashText(entries)), { now: () => new Date(), newId: () => crypto.randomUUID() });
   const seenFile = seenPath(env, home);
