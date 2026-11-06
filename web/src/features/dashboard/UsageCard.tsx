@@ -33,7 +33,7 @@ function LimitRow({ window, credits, now }: { window: LimitWindow; credits: numb
                 {reset}
               </>
             )}
-            {reset !== null && credits > 0 && "·"}
+            {reset !== null && credits > 0 && <span>·</span>}
             {credits > 0 && (
               <>
                 <Icon name="ticket" />

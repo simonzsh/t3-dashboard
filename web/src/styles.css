@@ -711,7 +711,7 @@ ol.install-steps { padding-left: 18px; }
 .limits-provider + .limits-provider { border-top: 1px solid var(--line); }
 .limits-provider-head { display: flex; align-items: center; gap: 8px; margin: 0; font-size: 13px; font-weight: 600; }
 .limits-provider-head .provider-icon { width: 16px; height: 16px; margin: 0; }
-.limits-row { display: grid; grid-template-columns: minmax(110px, 150px) minmax(0, 1fr); align-items: center; gap: 16px; padding: 8px 0; }
+.limits-row { display: grid; grid-template-columns: minmax(110px, 150px) minmax(0, 1fr); align-items: center; gap: 0 16px; padding: 8px 0; }
 .limits-label { min-width: 0; font-size: 13px; }
 .limits-left { grid-column: 1; color: var(--text-secondary); font-size: 12px; }
 .limits-left b { color: var(--text-primary); font-size: 22px; font-weight: 600; font-variant-numeric: tabular-nums; }
