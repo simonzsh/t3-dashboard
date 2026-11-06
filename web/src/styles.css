@@ -879,6 +879,8 @@ ol.install-steps { padding-left: 18px; }
 /* With the header hidden, a banner is the top of the page: it clears the status bar, and the session head below it no longer does. */
 .app.session-shown .banner { padding-top: max(8px, env(safe-area-inset-top)); }
 .app.session-shown .banner ~ main .sessions.compact .session-window-head { padding-top: 6px; }
+/* iOS Safari blurs the top edge unless a sticky or fixed bar touches it, as the page header does elsewhere. */
+.app.session-shown :is(.banner, .sessions.compact .session-window-head) { position: sticky; top: 0; z-index: 4; }
 .sessions.compact :is(.session-window-back, .session-window-buttons .icon-button) { min-width: 36px; height: 36px; }
 @media (max-width: 700px) {
   .switcher-meta { display: none; }
