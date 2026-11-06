@@ -55,10 +55,7 @@ test("Reset is disabled while the layout is the default", () => {
 });
 
 test("on a phone the page action is an icon button, with the search button", () => {
-  const dashboard = render("dashboard", { compact: true });
-  assert.match(dashboard, /aria-label="Edit layout"/);
-  assert.match(dashboard, /aria-label="Search"/);
-  assert.doesNotMatch(dashboard, />Edit layout</);
+  assert.match(render("sessions", { compact: true }), /aria-label="Search"/);
   assert.match(render("sessions", { compact: true }), /aria-label="New Session"/);
   assert.match(render("automations", { compact: true }), /aria-label="New Automation"/);
 });
@@ -66,4 +63,11 @@ test("on a phone the page action is an icon button, with the search button", () 
 test("without the dashboard state Sessions and Automations show no create button", () => {
   assert.equal(render("sessions", { ready: false }), "");
   assert.equal(render("automations", { ready: false }), "");
+});
+
+test("on a phone Dashboard has no Edit layout, only the search button", () => {
+  const out = render("dashboard", { compact: true });
+  assert.doesNotMatch(out, /Edit layout|Done|Reset/);
+  assert.match(out, /aria-label="Search"/);
+  assert.doesNotMatch(render("dashboard", { compact: true, editingLayout: true }), /Done|Reset/);
 });

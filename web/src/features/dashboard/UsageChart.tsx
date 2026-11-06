@@ -3,9 +3,9 @@ import type { UsageDay } from "../../../../shared/api.ts";
 import { formatTokens } from "../../lib/format.ts";
 import { barLayout, cacheShare, formatMetric, formatUsd, METRICS, metricValue, niceTicks, shortDay, tokensOf, type Metric } from "./usageView.ts";
 
-const HEIGHT = 190;
 const MARGIN = { top: 10, right: 20, bottom: 24, left: 52 };
-const PLOT_HEIGHT = HEIGHT - MARGIN.top - MARGIN.bottom;
+// A lower chart on a phone (under 480 px wide).
+const heightFor = (width: number) => (width < 480 ? 140 : 190);
 const START_WIDTH = 640;
 
 // Rounded 4 px at the data end only; the base sits on the axis.
@@ -46,11 +46,13 @@ export function UsageChart({ days, metric, costKnown }: Props) {
   const [ref, width] = useWidth();
   const label = METRICS.find((m) => m.id === metric)!.label;
   const [active, setActive] = useState<number | null>(null);
+  const height = heightFor(width);
+  const plotHeight = height - MARGIN.top - MARGIN.bottom;
   const plotWidth = width - MARGIN.left - MARGIN.right;
   const values = days.map((d) => metricValue(d, metric));
   const ticks = niceTicks(Math.max(...values, 0));
   const top = ticks.at(-1)!;
-  const bars = barLayout(values, top, PLOT_HEIGHT, plotWidth);
+  const bars = barLayout(values, top, plotHeight, plotWidth);
   const slot = plotWidth / days.length;
   // Fewer labels on a narrow screen, always including today.
   const every = width < 480 ? 3 : 2;
@@ -59,10 +61,10 @@ export function UsageChart({ days, metric, costKnown }: Props) {
 
   return (
     <div className="usage-chart" ref={ref} onMouseLeave={() => setActive(null)}>
-      <svg width={width} height={HEIGHT} role="group" aria-label={`${label} per day, last ${days.length} days`}>
+      <svg width={width} height={height} role="group" aria-label={`${label} per day, last ${days.length} days`}>
         <g transform={`translate(${MARGIN.left},${MARGIN.top})`}>
           {ticks.map((tick) => {
-            const y = PLOT_HEIGHT - (tick / top) * PLOT_HEIGHT;
+            const y = plotHeight - (tick / top) * plotHeight;
             return (
               <g key={tick}>
                 <line className="usage-grid" x1={0} x2={plotWidth} y1={y} y2={y} />
@@ -70,7 +72,7 @@ export function UsageChart({ days, metric, costKnown }: Props) {
               </g>
             );
           })}
-          {active !== null && <rect className="usage-hover" x={active * slot} y={0} width={slot} height={PLOT_HEIGHT} />}
+          {active !== null && <rect className="usage-hover" x={active * slot} y={0} width={slot} height={plotHeight} />}
           {bars.map((bar, i) => {
             const today = i === days.length - 1;
             return (
@@ -78,10 +80,10 @@ export function UsageChart({ days, metric, costKnown }: Props) {
                 {bar.height > 0 ? (
                   <path className={`usage-bar${today ? " today" : ""}`} d={barPath(bar.x, bar.y, bar.width, bar.height)} />
                 ) : (
-                  <rect className="usage-zero" x={bar.x} y={PLOT_HEIGHT - 2} width={bar.width} height={2} rx={1} />
+                  <rect className="usage-zero" x={bar.x} y={plotHeight - 2} width={bar.width} height={2} rx={1} />
                 )}
                 {(days.length - 1 - i) % every === 0 && (
-                  <text className={`usage-axis${today ? " today" : ""}`} x={i * slot + slot / 2} y={PLOT_HEIGHT + 16} textAnchor="middle">
+                  <text className={`usage-axis${today ? " today" : ""}`} x={i * slot + slot / 2} y={plotHeight + 16} textAnchor="middle">
                     {today ? "Today" : shortDay(days[i]!.day)}
                   </text>
                 )}
@@ -90,7 +92,7 @@ export function UsageChart({ days, metric, costKnown }: Props) {
                   x={i * slot}
                   y={0}
                   width={slot}
-                  height={PLOT_HEIGHT}
+                  height={plotHeight}
                   tabIndex={0}
                   role="img"
                   aria-label={describe(days[i]!, costKnown)}

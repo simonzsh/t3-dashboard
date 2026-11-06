@@ -60,3 +60,16 @@ test("textareas cannot be resized by hand and stop growing at a max height", () 
 test("a queued message has a dashed bubble", () => {
   assert.match(rule(".msg.user.queued .bubble"), /border-style: dashed;/);
 });
+
+test("on a phone every dashboard card slot is full width and may shrink", () => {
+  const phone = css.slice(css.indexOf("@media (max-width: 700px)"));
+  assert.match(phone, /\.dashboard \{[^}]*align-items: stretch/);
+  assert.match(phone, /\.dashboard-slot \{[^}]*width: 100%; min-width: 0/);
+});
+
+test("on a phone the three stat tiles stay in one row", () => {
+  const phone = css.slice(css.indexOf("@media (max-width: 700px)"));
+  assert.doesNotMatch(phone, /\.stat-tiles \{/);
+  assert.match(phone, /\.stat-value \{ font-size: 20px/);
+  assert.match(phone, /\.skeleton-bars \{ height: 140px/);
+});

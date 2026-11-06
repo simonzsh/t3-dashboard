@@ -558,7 +558,10 @@ ol.install-steps { padding-left: 18px; }
 /* The buttons replace the dot corner on hover and keyboard focus; touch screens show them at once. */
 .thread-actions { position: absolute; right: 8px; bottom: 6px; display: flex; align-items: center; gap: 4px; padding: 2px; border-radius: var(--radius-md); background: var(--surface-1); box-shadow: 0 0 0 1px var(--line); opacity: 0; pointer-events: none; transition: opacity 0.12s; }
 .notif-item:hover .thread-actions, .thread-actions:focus-within { opacity: 1; pointer-events: auto; }
-@media (pointer: coarse) { .thread-actions { opacity: 1; pointer-events: auto; } }
+@media (pointer: coarse) {
+  .thread-actions { opacity: 1; pointer-events: auto; }
+  .thread-actions .icon-button, .ticket-foot > .icon-button { min-width: 44px; height: 44px; }
+}
 .run-row { flex-direction: column; gap: 2px; overflow: hidden; }
 .run-row.working::after { content: ""; position: absolute; left: 0; bottom: 0; height: 2px; width: 50%; background: linear-gradient(90deg, transparent, var(--work), transparent); will-change: transform; animation: shimmer 1.8s ease-in-out infinite; }
 .run-list { display: flex; flex-direction: column; }
@@ -685,6 +688,7 @@ ol.install-steps { padding-left: 18px; }
 .stat-tile { display: flex; flex-direction: column; gap: 4px; min-width: 0; padding: 16px 20px; }
 .stat-tile + .stat-tile { border-left: 1px solid var(--line); }
 .stat-label, .stat-caption { color: var(--text-secondary); font-size: 12px; }
+.stat-skeleton-value { height: 32px; }
 .stat-value { font-size: 28px; font-weight: 600; line-height: 1.15; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; }
 .stat-delta { margin-left: 8px; font-size: 13px; font-weight: 500; letter-spacing: 0; color: var(--ok); }
 .stat-delta.down { color: var(--text-secondary); }
@@ -766,12 +770,18 @@ ol.install-steps { padding-left: 18px; }
   .auto-table td.auto-actions::before { content: none; }
   .auto-group th { padding-inline: 0; }
   .notif-toasts { left: 12px; right: 12px; width: auto; }
-  .stat-tiles { grid-template-columns: 1fr; }
-  .stat-tile + .stat-tile { border-left: 0; border-top: 1px solid var(--line); }
-  /* One column: the columns dissolve and the cards follow the stacked order of the layout. */
-  .dashboard { display: flex; flex-direction: column; gap: 16px; }
+  /* Three compact tiles in one row; the chart is lower (see UsageChart). */
+  .stat-tile { gap: 2px; padding: 12px; }
+  .stat-label, .stat-caption { font-size: 11px; line-height: 1.3; }
+  .stat-value { font-size: 20px; }
+  .stat-delta { display: block; margin-left: 0; font-size: 11px; }
+  .stat-skeleton-value { height: 24px; }
+  .usage-chart-head { padding: 12px 12px 0; }
+  .skeleton-bars { height: 140px; padding-right: 12px; }
+  /* One column: the columns dissolve and every card is as wide as the page, never wider. */
+  .dashboard { display: flex; flex-direction: column; align-items: stretch; gap: 16px; }
   .dashboard-col { display: contents; }
-  .dashboard-slot { order: var(--stack); }
+  .dashboard-slot { order: var(--stack); width: 100%; min-width: 0; }
   .notifications-card { max-height: 70dvh; }
   /* The bottom bar replaces the sidebar. The header is one line; its insets keep it clear of the iPhone notch in landscape. */
   .page-header { position: sticky; top: 0; gap: 10px; padding: max(8px, env(safe-area-inset-top)) max(12px, env(safe-area-inset-right)) 8px max(12px, env(safe-area-inset-left)); }

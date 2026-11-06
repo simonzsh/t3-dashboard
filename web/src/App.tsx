@@ -169,7 +169,7 @@ export function App() {
   );
   const unread = useMemo(() => unreadCount(threadSections(visible, notify.seen), notify.seen), [visible, notify.seen]);
   const badges = navBadges(state?.threads ?? NO_THREADS, sessionIds);
-  const dashboardLayout = useDashboardLayout(tab === "dashboard");
+  const dashboardLayout = useDashboardLayout(tab === "dashboard" && !compact);
   const usage = useUsage(tab === "dashboard" && state !== null);
   const page = TABS.find((t) => t.id === tab)!;
   const updateNav = update.status?.available && update.status.canUpdate ? { label: updateLabel(update.status), busy: update.updating || update.status.updating } : null;

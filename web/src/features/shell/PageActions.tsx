@@ -60,10 +60,13 @@ function Action({ compact, label, icon, variant = "secondary", primaryOnPhone = 
   );
 }
 
-/** The header buttons of a page: Sessions picks its layout and starts a session, Automations a task, Dashboard edits its layout. */
+/** The header buttons of a page: Sessions picks its layout and starts a session, Automations a task, Dashboard edits its layout (not on a phone). */
 export function PageActions({ tab, compact, ready, editingLayout, layoutIsDefault, layout, onLayoutChange, showLayoutToggle, onNewSession, onNewAutomation, onSearch, onEditLayout, onDoneLayout, onResetLayout }: Props) {
   let main = null;
-  if (tab === "dashboard" && editingLayout) {
+  // A phone shows one column: there is no layout to edit.
+  if (tab === "dashboard" && compact) {
+    main = null;
+  } else if (tab === "dashboard" && editingLayout) {
     main = (
       <>
         <Action compact={compact} label="Reset" icon="undo" disabled={layoutIsDefault} onClick={onResetLayout} />

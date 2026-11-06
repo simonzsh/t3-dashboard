@@ -55,7 +55,7 @@ function UsageSkeleton() {
         {[0, 1, 2].map((i) => (
           <div className="stat-tile" key={i}>
             <Skeleton height={12} width="45%" />
-            <Skeleton height={32} width="55%" />
+            <div className="stat-skeleton-value"><Skeleton height="100%" width="55%" /></div>
             <Skeleton height={12} width="80%" />
           </div>
         ))}
