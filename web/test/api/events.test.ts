@@ -56,9 +56,9 @@ test("input state is not mutated", () => {
 
 test("a sessions event leaves the dashboard state alone", () => {
   const s = baseState([thread("thread-1")]);
-  const desk = { ids: ["thread-1"] };
-  assert.equal(applyEvent(s, { type: "sessions", data: { sessions: desk, origin: "tab" } }), s);
-  assert.equal(applyEvent(null, { type: "sessions", data: { sessions: desk, origin: "tab" } }), null);
+  const sessions = { ids: ["thread-1"] };
+  assert.equal(applyEvent(s, { type: "sessions", data: { sessions: sessions, origin: "tab" } }), s);
+  assert.equal(applyEvent(null, { type: "sessions", data: { sessions: sessions, origin: "tab" } }), null);
 });
 
 test("a seen event leaves the dashboard state alone", () => {

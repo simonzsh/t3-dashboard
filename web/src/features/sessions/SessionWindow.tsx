@@ -3,7 +3,7 @@ import type { DashboardProvider, DashboardThread, ProjectIcon as ProjectIconData
 import { threadState, type ThreadState } from "../../../../shared/status.ts";
 import { threadTitle } from "../../lib/threads.ts";
 import { Badge, Button, Icon, IconButton } from "../../ui/index.ts";
-import type { DeskAction } from "./desk.ts";
+import type { SessionsAction } from "./sessions.ts";
 import { ConversationPanel } from "../conversation/ConversationPanel.tsx";
 import { OpenInT3 } from "../../lib/OpenInT3.tsx";
 import { ProjectIcon } from "../../lib/ProjectIcon.tsx";
@@ -27,10 +27,10 @@ interface Props {
   childTitle?: string;
   onTitle?: (id: string, title: string) => void;
   // Stable across renders, so a window rerenders only when its own props change.
-  dispatch: Dispatch<DeskAction>;
+  dispatch: Dispatch<SessionsAction>;
 }
 
-function DeskWindowView({ id, thread, projectTitle, projectIcon, missing, focused, maximized, compact, t3EnvironmentId, providers, childTitle, onTitle, dispatch }: Props) {
+function SessionWindowView({ id, thread, projectTitle, projectIcon, missing, focused, maximized, compact, t3EnvironmentId, providers, childTitle, onTitle, dispatch }: Props) {
   const onFocus = () => dispatch({ type: "focus", id });
   const onClose = () => dispatch({ type: "close", id });
   const onToggleMaximize = () => dispatch({ type: "maximize", id });
@@ -38,8 +38,8 @@ function DeskWindowView({ id, thread, projectTitle, projectIcon, missing, focuse
   const title = thread || !childTitle ? threadTitle(thread) : childTitle;
   return (
     <section
-      className={`desk-window${state ? ` state-${state}` : ""}${focused ? " focused" : ""}${maximized ? " maximized" : ""}`}
-      data-desk-window={id}
+      className={`session-window${state ? ` state-${state}` : ""}${focused ? " focused" : ""}${maximized ? " maximized" : ""}`}
+      data-session-window={id}
       aria-label={title}
       onMouseDownCapture={() => {
         if (!focused) onFocus();
@@ -48,7 +48,7 @@ function DeskWindowView({ id, thread, projectTitle, projectIcon, missing, focuse
         if (!focused) onFocus();
       }}
     >
-      <header className="desk-window-head">
+      <header className="session-window-head">
         <div className="sc-row">
           {!compact && <Icon name="grip" className="icon sc-grip" />}
           <span className="dw-title" data-tooltip={title} data-tooltip-clipped>
@@ -79,7 +79,7 @@ function DeskWindowView({ id, thread, projectTitle, projectIcon, missing, focuse
         )}
       </header>
       {missing ? (
-        <div className="desk-missing">
+        <div className="sessions-missing">
           <span>This thread was archived or deleted.</span>
           <Button onClick={onClose}>Close</Button>
         </div>
@@ -90,4 +90,4 @@ function DeskWindowView({ id, thread, projectTitle, projectIcon, missing, focuse
   );
 }
 
-export const DeskWindow = memo(DeskWindowView);
+export const SessionWindow = memo(SessionWindowView);

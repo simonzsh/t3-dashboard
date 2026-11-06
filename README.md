@@ -6,7 +6,7 @@ t3-dashboard is a web dashboard on top of T3 Code. It shows all your Claude and 
 
 | Agents | Sessions |
 | --- | --- |
-| <picture><source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/agents-dark.png"><img alt="Agents" src="docs/screenshots/agents.png"></picture> | <picture><source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/desk-dark.png"><img alt="Sessions" src="docs/screenshots/desk.png"></picture> |
+| <picture><source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/agents-dark.png"><img alt="Agents" src="docs/screenshots/agents.png"></picture> | <picture><source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/sessions-dark.png"><img alt="Sessions" src="docs/screenshots/sessions.png"></picture> |
 
 | Board | New Session |
 | --- | --- |

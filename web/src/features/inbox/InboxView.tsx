@@ -16,10 +16,10 @@ interface Props {
   /** The threads the Inbox lists: see `inboxThreads`. */
   visible: DashboardThread[];
   now: Date;
-  deskIds: ReadonlySet<string>;
-  // addOnly: put the agent on the Desk without leaving the Inbox.
+  sessionIds: ReadonlySet<string>;
+  // addOnly: put the agent on the Sessions without leaving the Inbox.
   onOpen: (id: string, addOnly: boolean) => void;
-  onToggleDesk: (id: string) => void;
+  onToggleSessions: (id: string) => void;
   onSettle: (id: string, settle: boolean) => Promise<unknown>;
   seen: SeenState;
   /** False until the server answers: every thread would look read, and "Settle all" could settle unread ones. */
@@ -46,7 +46,7 @@ async function settleEach(threads: DashboardThread[], onSettle: Props["onSettle"
   if (failed > 0) throw new Error(`${failed} of ${threads.length} failed.`);
 }
 
-export function InboxView({ state, visible, now, deskIds, onOpen, onToggleDesk, onSettle, seen, seenReady, onMarkRead, automations, automationsError, linearVersion, children }: Props) {
+export function InboxView({ state, visible, now, sessionIds, onOpen, onToggleSessions, onSettle, seen, seenReady, onMarkRead, automations, automationsError, linearVersion, children }: Props) {
   const tickets = useTickets(linearVersion, visible, seen, now);
   const { relaunch, upNext } = tickets.plan;
   const sections = useMemo(
@@ -78,10 +78,10 @@ export function InboxView({ state, visible, now, deskIds, onOpen, onToggleDesk, 
     project: projects.get(t.projectId),
     modelName: t.model && (modelNames.get(t.model) ?? t.model),
     now,
-    onDesk: deskIds.has(t.id),
+    inSessions: sessionIds.has(t.id),
     t3EnvironmentId: state.t3EnvironmentId,
     onOpen,
-    onToggleDesk,
+    onToggleSessions,
     onSettle,
   });
   const threadRow = (t: DashboardThread) => <ThreadRow key={t.id} {...rowProps(t)} />;

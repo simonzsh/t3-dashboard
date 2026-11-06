@@ -1,4 +1,4 @@
-// The Desk logo: a wave runs across its windows, from the active one to the opposite corner.
+// The Sessions logo: a wave runs across its windows, from the active one to the opposite corner.
 const TILES = [
   { x: 112, y: 112, opacity: 1, wave: 0 },
   { x: 272, y: 112, opacity: 0.35, wave: 1 },

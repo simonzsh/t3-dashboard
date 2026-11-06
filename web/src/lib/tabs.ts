@@ -1,10 +1,10 @@
 import type { IconName } from "../ui/index.ts";
 
-export type Tab = "home" | "desk" | "automations";
+export type Tab = "home" | "sessions" | "automations";
 
 export const TABS: ReadonlyArray<{ id: Tab; label: string; key: string; icon: IconName; description: string }> = [
   { id: "home", label: "Home", key: "1", icon: "home", description: "Usage, and every agent that needs you." },
-  { id: "desk", label: "Sessions", key: "2", icon: "layoutPanels", description: "Your open conversations side by side, scrolling sideways." },
+  { id: "sessions", label: "Sessions", key: "2", icon: "layoutPanels", description: "Your open conversations side by side, scrolling sideways." },
   { id: "automations", label: "Automations", key: "3", icon: "calendarClock", description: "Scheduled agents and their latest runs." },
 ];
 

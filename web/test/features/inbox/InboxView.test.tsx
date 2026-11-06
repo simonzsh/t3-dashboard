@@ -16,9 +16,9 @@ const render = (
       state={state}
       visible={inboxThreads(threads, ["t-routine"])}
       now={new Date("2026-01-10T12:00:00.000Z")}
-      deskIds={new Set()}
+      sessionIds={new Set()}
       onOpen={() => {}}
-      onToggleDesk={() => {}}
+      onToggleSessions={() => {}}
       onSettle={async () => {}}
       seen={seen}
       seenReady

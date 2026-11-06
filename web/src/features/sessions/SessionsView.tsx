@@ -2,18 +2,18 @@ import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, typ
 import type { DashboardProject, DashboardProvider, DashboardThread } from "../../../../shared/api.ts";
 import { threadState } from "../../../../shared/status.ts";
 import { threadTitle } from "../../lib/threads.ts";
-import { cellOf, spansRows, stepId, stripLayout, type DeskAction, type DeskState, type DeskWindow as Win } from "./desk.ts";
+import { cellOf, spansRows, stepId, stripLayout, type SessionsAction, type SessionsState, type SessionWindow as Win } from "./sessions.ts";
 import { enter, Kbd, Pressable, useFlip } from "../../ui/index.ts";
 import { useMediaQuery } from "../../lib/useMediaQuery.ts";
 import type { SessionLayout } from "../../lib/sessionLayout.ts";
 import { ctrlLabel } from "../../lib/shortcuts.ts";
 import { swipeDirection } from "../../lib/swipe.ts";
-import { DeskWindow } from "./DeskWindow.tsx";
+import { SessionWindow } from "./SessionWindow.tsx";
 import { ProjectIcon } from "../../lib/ProjectIcon.tsx";
 
 interface Props {
-  desk: DeskState;
-  dispatch: Dispatch<DeskAction>;
+  sessions: SessionsState;
+  dispatch: Dispatch<SessionsAction>;
   threads: DashboardThread[];
   projects: DashboardProject[];
   layout: SessionLayout;
@@ -22,16 +22,16 @@ interface Props {
 }
 
 /** Fixed-width columns in a strip that scrolls sideways; grid view stacks two sessions per column. */
-export function DeskStrip({ windows, layout, render }: { windows: Win[]; layout: SessionLayout; render: (w: Win) => ReactNode }) {
+export function SessionsStrip({ windows, layout, render }: { windows: Win[]; layout: SessionLayout; render: (w: Win) => ReactNode }) {
   const { rows } = stripLayout(windows.length, layout);
   // A move in the DOM resets the conversation scroll: cells stay sorted by id and only their coordinates change.
   const cells = windows.map((window, index) => ({ window, index, ...cellOf(index, layout) })).sort((a, b) => a.window.id.localeCompare(b.window.id));
   return (
-    <div className="desk-strip" style={{ gridTemplateRows: `repeat(${rows}, minmax(0, 1fr))` }}>
+    <div className="sessions-strip" style={{ gridTemplateRows: `repeat(${rows}, minmax(0, 1fr))` }}>
       {cells.map(({ window, index, column, row }) => (
         <div
           key={window.id}
-          className={`desk-cell${row === 0 && rows > 1 && index + 1 < windows.length ? " has-below" : ""}`}
+          className={`sessions-cell${row === 0 && rows > 1 && index + 1 < windows.length ? " has-below" : ""}`}
           style={{ gridColumn: column + 1, gridRow: spansRows(index, windows.length, layout) ? "1 / -1" : row + 1 }}
         >
           {render(window)}
@@ -51,7 +51,7 @@ function startsInHorizontalScroll(target: EventTarget | null, boundary: Element)
 }
 
 /** On a phone, a horizontal swipe moves to the next or previous window; the new one slides in from its side. */
-function useWindowSwipe(enabled: boolean, windows: readonly Win[], activeId: string, dispatch: Dispatch<DeskAction>) {
+function useWindowSwipe(enabled: boolean, windows: readonly Win[], activeId: string, dispatch: Dispatch<SessionsAction>) {
   const area = useRef<HTMLDivElement>(null);
   const start = useRef<{ x: number; y: number } | null>(null);
   const shown = useRef(activeId);
@@ -90,15 +90,15 @@ function useWindowSwipe(enabled: boolean, windows: readonly Win[], activeId: str
 const DRAG_START_PX = 5;
 
 /** Dragging a window by its header onto another window swaps their cells; a copy of the header follows the pointer. */
-function useWindowDrag(enabled: boolean, dispatch: Dispatch<DeskAction>) {
+function useWindowDrag(enabled: boolean, dispatch: Dispatch<SessionsAction>) {
   const stop = useRef<() => void>(() => {});
   useEffect(() => () => stop.current(), []);
   if (!enabled) return {};
   return {
     onPointerDown: (e: PointerEvent<HTMLDivElement>) => {
       const target = e.target instanceof Element ? e.target : null;
-      const head = target?.closest(".desk-window-head");
-      const win = head?.closest<HTMLElement>("[data-desk-window]");
+      const head = target?.closest(".session-window-head");
+      const win = head?.closest<HTMLElement>("[data-session-window]");
       if (e.button !== 0 || !e.isPrimary || !head || !win || win.classList.contains("maximized") || target?.closest("button, a")) return;
       const startX = e.clientX;
       const startY = e.clientY;
@@ -111,15 +111,15 @@ function useWindowDrag(enabled: boolean, dispatch: Dispatch<DeskAction>) {
         if (!ghost) {
           if (Math.hypot(ev.clientX - startX, ev.clientY - startY) < DRAG_START_PX) return;
           ghost = head.cloneNode(true) as HTMLElement;
-          ghost.classList.add("desk-drag-ghost");
+          ghost.classList.add("sessions-drag-ghost");
           ghost.style.width = `${offset.width}px`;
           document.body.append(ghost);
           window.getSelection()?.removeAllRanges();
           win.classList.add("dragging");
-          document.documentElement.classList.add("desk-dragging");
+          document.documentElement.classList.add("sessions-dragging");
         }
         ghost.style.transform = `translate(${offset.left + ev.clientX - startX}px, ${offset.top + ev.clientY - startY}px)`;
-        const hit = document.elementFromPoint(ev.clientX, ev.clientY)?.closest("[data-desk-window]") ?? null;
+        const hit = document.elementFromPoint(ev.clientX, ev.clientY)?.closest("[data-session-window]") ?? null;
         const next = hit && hit !== win ? hit : null;
         if (next === over) return;
         over?.classList.remove("drop-target");
@@ -134,13 +134,13 @@ function useWindowDrag(enabled: boolean, dispatch: Dispatch<DeskAction>) {
         ghost?.remove();
         over?.classList.remove("drop-target");
         win.classList.remove("dragging");
-        document.documentElement.classList.remove("desk-dragging");
+        document.documentElement.classList.remove("sessions-dragging");
         stop.current = () => {};
       };
       const drop = () => {
-        const into = over?.getAttribute("data-desk-window");
+        const into = over?.getAttribute("data-session-window");
         cleanup();
-        if (into) dispatch({ type: "swap", id: win.getAttribute("data-desk-window")!, with: into });
+        if (into) dispatch({ type: "swap", id: win.getAttribute("data-session-window")!, with: into });
       };
       window.addEventListener("pointermove", move);
       window.addEventListener("pointerup", drop);
@@ -151,7 +151,7 @@ function useWindowDrag(enabled: boolean, dispatch: Dispatch<DeskAction>) {
   };
 }
 
-export function DeskView({ desk, dispatch, threads, projects, layout, t3EnvironmentId, providers }: Props) {
+export function SessionsView({ sessions, dispatch, threads, projects, layout, t3EnvironmentId, providers }: Props) {
   const narrow = useMediaQuery("(max-width: 899px)");
   const byId = useMemo(() => new Map(threads.map((t) => [t.id, t])), [threads]);
   const projectsById = useMemo(() => new Map(projects.map((p) => [p.id, p])), [projects]);
@@ -159,20 +159,20 @@ export function DeskView({ desk, dispatch, threads, projects, layout, t3Environm
   const [childTitles, setChildTitles] = useState<Record<string, string>>({});
   const setChildTitle = useCallback((id: string, title: string) => setChildTitles((titles) => (titles[id] === title ? titles : { ...titles, [id]: title })), []);
   const seen = useRef(new Set<string>());
-  for (const w of desk.windows) if (byId.has(w.id)) seen.current.add(w.id);
+  for (const w of sessions.windows) if (byId.has(w.id)) seen.current.add(w.id);
   const root = useRef<HTMLDivElement>(null);
   // Windows slide, open and close when the strip changes; the narrow view swaps tabs without motion.
-  useFlip(root, `${narrow}|${layout}|${desk.windows.map((w) => w.id).join(",")}|${desk.maximizedId}`, { item: "data-desk-window", enabled: !narrow });
+  useFlip(root, `${narrow}|${layout}|${sessions.windows.map((w) => w.id).join(",")}|${sessions.maximizedId}`, { item: "data-session-window", enabled: !narrow });
 
-  const activeId = (desk.windows.find((w) => w.id === desk.focusedId) ?? desk.windows[0])?.id ?? "";
-  const { area, swipe } = useWindowSwipe(narrow, desk.windows, activeId, dispatch);
-  const drag = useWindowDrag(!narrow && desk.windows.length > 1 && !desk.maximizedId, dispatch);
+  const activeId = (sessions.windows.find((w) => w.id === sessions.focusedId) ?? sessions.windows[0])?.id ?? "";
+  const { area, swipe } = useWindowSwipe(narrow, sessions.windows, activeId, dispatch);
+  const drag = useWindowDrag(!narrow && sessions.windows.length > 1 && !sessions.maximizedId, dispatch);
 
   // Keeps the open tab centered in the bar, whether a swipe or a tap changed it.
   const tabs = useRef<HTMLElement>(null);
   useEffect(() => {
     const bar = tabs.current;
-    const tab = bar?.querySelector<HTMLElement>(".desk-chip.active");
+    const tab = bar?.querySelector<HTMLElement>(".sessions-chip.active");
     if (!bar || !tab) return;
     const b = bar.getBoundingClientRect();
     const t = tab.getBoundingClientRect();
@@ -181,15 +181,15 @@ export function DeskView({ desk, dispatch, threads, projects, layout, t3Environm
 
   // A focused session that sits off screen scrolls into view, whether a key, a click or a new open focused it.
   useEffect(() => {
-    if (narrow || !desk.focusedId || desk.maximizedId) return;
+    if (narrow || !sessions.focusedId || sessions.maximizedId) return;
     const behavior = window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth";
-    root.current?.querySelector(`[data-desk-window="${CSS.escape(desk.focusedId)}"]`)?.scrollIntoView({ inline: "nearest", block: "nearest", behavior });
-  }, [narrow, desk.focusedId]);
+    root.current?.querySelector(`[data-session-window="${CSS.escape(sessions.focusedId)}"]`)?.scrollIntoView({ inline: "nearest", block: "nearest", behavior });
+  }, [narrow, sessions.focusedId]);
 
-  if (desk.windows.length === 0) {
+  if (sessions.windows.length === 0) {
     return (
-      <div ref={root} className="desk">
-        <div className="empty-state desk-empty">
+      <div ref={root} className="sessions">
+        <div className="empty-state sessions-empty">
           <strong>No sessions open</strong>
           <span>Open one from Home, or start one with New Session.</span>
           <span className="shortcut-hint">
@@ -205,15 +205,15 @@ export function DeskView({ desk, dispatch, threads, projects, layout, t3Environm
     const project = thread ? projectsById.get(thread.projectId) : undefined;
     // The key remounts the window when the narrow view switches tabs: no state leaks between threads.
     return (
-      <DeskWindow
+      <SessionWindow
         key={w.id}
         id={w.id}
         thread={thread}
         projectTitle={project?.title ?? null}
         projectIcon={project?.icon ?? null}
         missing={!thread && seen.current.has(w.id)}
-        focused={desk.focusedId === w.id}
-        maximized={!compact && desk.maximizedId === w.id}
+        focused={sessions.focusedId === w.id}
+        maximized={!compact && sessions.maximizedId === w.id}
         compact={compact}
         t3EnvironmentId={t3EnvironmentId}
         providers={providers}
@@ -229,22 +229,22 @@ export function DeskView({ desk, dispatch, threads, projects, layout, t3Environm
     const project = thread ? projectsById.get(thread.projectId) : undefined;
     const title = thread || !childTitles[w.id] ? threadTitle(thread) : childTitles[w.id];
     return (
-      <Pressable key={w.id} className={`desk-chip${active ? " active" : ""}`} onClick={() => dispatch({ type: "focus", id: w.id })}>
+      <Pressable key={w.id} className={`sessions-chip${active ? " active" : ""}`} onClick={() => dispatch({ type: "focus", id: w.id })}>
         <span className={`state-dot ${thread ? threadState(thread) : "idle"}`} aria-hidden="true" />
         {project && <ProjectIcon icon={project.icon ?? null} title={project.title} />}
-        <span className="desk-chip-title" data-tooltip={title} data-tooltip-clipped>{title}</span>
+        <span className="sessions-chip-title" data-tooltip={title} data-tooltip-clipped>{title}</span>
       </Pressable>
     );
   };
 
   if (narrow) {
-    const active = desk.windows.find((w) => w.id === activeId)!;
+    const active = sessions.windows.find((w) => w.id === activeId)!;
     return (
-      <div ref={root} className="desk compact">
-        <nav ref={tabs} className="desk-tabs" aria-label="Open sessions">
-          {desk.windows.map((w) => chip(w, w.id === active.id))}
+      <div ref={root} className="sessions compact">
+        <nav ref={tabs} className="sessions-tabs" aria-label="Open sessions">
+          {sessions.windows.map((w) => chip(w, w.id === active.id))}
         </nav>
-        <div ref={area} className="desk-area" {...swipe}>
+        <div ref={area} className="sessions-area" {...swipe}>
           {renderWindow(active, true)}
         </div>
       </div>
@@ -252,9 +252,9 @@ export function DeskView({ desk, dispatch, threads, projects, layout, t3Environm
   }
 
   return (
-    <div ref={root} className="desk">
-      <div className="desk-area" {...drag}>
-        <DeskStrip windows={desk.windows} layout={layout} render={(w) => renderWindow(w)} />
+    <div ref={root} className="sessions">
+      <div className="sessions-area" {...drag}>
+        <SessionsStrip windows={sessions.windows} layout={layout} render={(w) => renderWindow(w)} />
       </div>
     </div>
   );

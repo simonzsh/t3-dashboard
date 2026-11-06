@@ -1,21 +1,21 @@
-import { DESK_WINDOWS_MAX } from "../../../../shared/desk.ts";
+import { SESSIONS_MAX } from "../../../../shared/sessions.ts";
 import type { SessionLayout } from "../../lib/sessionLayout.ts";
 import type { Store } from "../../lib/storage.ts";
 
-export const DESK_KEY = "t3-dashboard-desk";
+export const SESSIONS_KEY = "t3-dashboard-sessions";
 
-export interface DeskWindow {
+export interface SessionWindow {
   id: string;
 }
 
-export interface DeskState {
+export interface SessionsState {
   // Column order, left to right: the first window is the oldest unless a swap moved it.
-  windows: DeskWindow[];
+  windows: SessionWindow[];
   focusedId: string | null;
   maximizedId: string | null;
 }
 
-export type DeskAction =
+export type SessionsAction =
   | { type: "open"; id: string }
   | { type: "close"; id: string }
   | { type: "focus"; id: string }
@@ -25,7 +25,7 @@ export type DeskAction =
   | { type: "sync"; ids: readonly string[] }
   | { type: "prune"; existing: ReadonlySet<string> };
 
-export const EMPTY_DESK: DeskState = { windows: [], focusedId: null, maximizedId: null };
+export const EMPTY_SESSIONS: SessionsState = { windows: [], focusedId: null, maximizedId: null };
 
 /** The tracks of the strip: grid view stacks two sessions per column. */
 export function stripLayout(count: number, layout: SessionLayout): { columns: number; rows: number } {
@@ -44,7 +44,7 @@ export const spansRows = (index: number, count: number, layout: SessionLayout): 
 export type Direction = "left" | "right" | "up" | "down";
 
 /** The session next to the focused one in a direction; the strip does not wrap. */
-export function neighborId(state: DeskState, direction: Direction, layout: SessionLayout): string | null {
+export function neighborId(state: SessionsState, direction: Direction, layout: SessionLayout): string | null {
   const { windows } = state;
   if (windows.length === 0) return null;
   const from = windows.findIndex((w) => w.id === state.focusedId);
@@ -61,29 +61,29 @@ export function neighborId(state: DeskState, direction: Direction, layout: Sessi
 }
 
 /** The first session of the n-th column (1 based), or null past the last column. */
-export function columnLeadId(state: DeskState, n: number, layout: SessionLayout): string | null {
+export function columnLeadId(state: SessionsState, n: number, layout: SessionLayout): string | null {
   return state.windows[layout === "columns" ? n - 1 : 2 * (n - 1)]?.id ?? null;
 }
 
 /** The window `step` places after `id` in column order (negative: before), or null past either end. */
-export function stepId(windows: readonly DeskWindow[], id: string, step: 1 | -1): string | null {
+export function stepId(windows: readonly SessionWindow[], id: string, step: 1 | -1): string | null {
   const at = windows.findIndex((w) => w.id === id);
   return at < 0 ? null : (windows[at + step]?.id ?? null);
 }
 
 // Keeps the invariants: focus and maximize point at open windows.
-function settle(state: DeskState): DeskState {
+function settle(state: SessionsState): SessionsState {
   const isOpen = (id: string | null) => id !== null && state.windows.some((w) => w.id === id);
   const maximizedId = isOpen(state.maximizedId) ? state.maximizedId : null;
   const focusedId = isOpen(state.focusedId) ? state.focusedId : (state.windows.at(-1)?.id ?? null);
   return { ...state, maximizedId, focusedId };
 }
 
-function show(state: DeskState, id: string): DeskState {
+function show(state: SessionsState, id: string): SessionsState {
   return settle({ ...state, focusedId: id, maximizedId: state.maximizedId === id ? id : null });
 }
 
-export function deskReducer(state: DeskState, action: DeskAction): DeskState {
+export function sessionsReducer(state: SessionsState, action: SessionsAction): SessionsState {
   switch (action.type) {
     case "open":
       if (state.windows.some((w) => w.id === action.id)) return show(state, action.id);
@@ -123,39 +123,39 @@ export function deskReducer(state: DeskState, action: DeskAction): DeskState {
 
 const isObject = (v: unknown): v is Record<string, unknown> => typeof v === "object" && v !== null && !Array.isArray(v);
 
-// Anything unexpected in storage gives a valid desk, never an exception.
-export function parseDesk(raw: string | null): DeskState {
+// Anything unexpected in storage gives a valid sessions, never an exception.
+export function parseSessions(raw: string | null): SessionsState {
   let data: unknown;
   try {
     data = raw === null ? null : JSON.parse(raw);
   } catch {
-    return EMPTY_DESK;
+    return EMPTY_SESSIONS;
   }
-  if (!isObject(data)) return EMPTY_DESK;
-  const windows: DeskWindow[] = [];
+  if (!isObject(data)) return EMPTY_SESSIONS;
+  const windows: SessionWindow[] = [];
   for (const w of Array.isArray(data.windows) ? data.windows : []) {
     if (!isObject(w) || typeof w.id !== "string" || windows.some((x) => x.id === w.id)) continue;
     windows.push({ id: w.id });
-    if (windows.length === DESK_WINDOWS_MAX) break;
+    if (windows.length === SESSIONS_MAX) break;
   }
   const idOrNull = (v: unknown) => (typeof v === "string" ? v : null);
   return settle({ windows, focusedId: idOrNull(data.focusedId), maximizedId: idOrNull(data.maximizedId) });
 }
 
 
-export function loadDesk(storage: Store | null): DeskState {
+export function loadSessions(storage: Store | null): SessionsState {
   try {
-    return parseDesk(storage?.getItem(DESK_KEY) ?? null);
+    return parseSessions(storage?.getItem(SESSIONS_KEY) ?? null);
   } catch {
-    return EMPTY_DESK;
+    return EMPTY_SESSIONS;
   }
 }
 
-export function saveDesk(storage: Store | null, state: DeskState): void {
+export function saveSessions(storage: Store | null, state: SessionsState): void {
   try {
-    storage?.setItem(DESK_KEY, JSON.stringify(state));
+    storage?.setItem(SESSIONS_KEY, JSON.stringify(state));
   } catch {
-    // Ignored on purpose: the desk then starts empty on the next load.
+    // Ignored on purpose: the sessions then starts empty on the next load.
   }
 }
 

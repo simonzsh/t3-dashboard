@@ -8,10 +8,10 @@ const typing = { tagName: "TEXTAREA", isContentEditable: false };
 
 test("Ctrl+key maps to the actions", () => {
   assert.equal(matchShortcut(ctrl("1"), false), "home");
-  assert.equal(matchShortcut(ctrl("2"), false), "desk");
+  assert.equal(matchShortcut(ctrl("2"), false), "sessions");
   assert.equal(matchShortcut(ctrl("3"), false), "automations");
-  assert.equal(matchShortcut(ctrl("n"), false), "new-agent");
-  assert.equal(matchShortcut(ctrl("N"), false), "new-agent");
+  assert.equal(matchShortcut(ctrl("n"), false), "new-session");
+  assert.equal(matchShortcut(ctrl("N"), false), "new-session");
   assert.equal(matchShortcut(ctrl(","), false), "settings");
   assert.equal(matchShortcut(ctrl("b"), false), "toggle-sidebar");
   assert.equal(matchShortcut(ctrl("N", { shiftKey: true }), false), "new-automation");
@@ -19,7 +19,7 @@ test("Ctrl+key maps to the actions", () => {
 
 test("Ctrl shortcuts work while typing in a field", () => {
   for (const tagName of ["INPUT", "TEXTAREA", "SELECT"]) assert.equal(matchShortcut(ctrl("1", { target: { tagName, isContentEditable: false } }), false), "home", tagName);
-  assert.equal(matchShortcut(ctrl("n", { target: { tagName: "DIV", isContentEditable: true } }), false), "new-agent");
+  assert.equal(matchShortcut(ctrl("n", { target: { tagName: "DIV", isContentEditable: true } }), false), "new-session");
   assert.equal(matchShortcut(ctrl("x", { target: typing }), false, true), "close-window");
 });
 
@@ -37,14 +37,14 @@ test("an open dialog disables shortcuts", () => {
   assert.equal(matchShortcut(press("Escape"), true, true), null);
 });
 
-test("Ctrl+X and F act on the desk only, and Ctrl+M does nothing", () => {
+test("Ctrl+X and F act on the sessions only, and Ctrl+M does nothing", () => {
   assert.equal(matchShortcut(ctrl("x"), false, true), "close-window");
   assert.equal(matchShortcut(ctrl("F"), false, true), "toggle-fullscreen");
   assert.equal(matchShortcut(ctrl("m"), false, true), null);
   assert.equal(matchShortcut(ctrl("f"), false), null);
 });
 
-test("Escape and the arrows stay plain keys, on the desk and outside fields", () => {
+test("Escape and the arrows stay plain keys, on the sessions and outside fields", () => {
   assert.equal(matchShortcut(press("Escape"), false, true), "unmaximize");
   assert.equal(matchShortcut(press("ArrowLeft"), false, true), "focus-left");
   assert.equal(matchShortcut(press("ArrowRight"), false, true), "focus-right");

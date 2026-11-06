@@ -32,10 +32,10 @@ export function applyEvent(state: DashboardState | null, event: DashboardEvent):
   }
 }
 
-export function useDashboard(): { state: DashboardState | null; sseDown: boolean; remoteDesk: SessionsUpdate | null; remoteSeen: SeenState | null; connects: number } {
+export function useDashboard(): { state: DashboardState | null; sseDown: boolean; remoteSessions: SessionsUpdate | null; remoteSeen: SeenState | null; connects: number } {
   const [state, dispatch] = useReducer(applyEvent, null);
   const [sseDown, setSseDown] = useState(false);
-  const [remoteDesk, setRemoteDesk] = useState<SessionsUpdate | null>(null);
+  const [remoteSessions, setRemoteSessions] = useState<SessionsUpdate | null>(null);
   const [remoteSeen, setRemoteSeen] = useState<SeenState | null>(null);
   // A reconnect may have missed `sessions` or `seen` events: the count lets them load again.
   const [connects, setConnects] = useState(0);
@@ -45,7 +45,7 @@ export function useDashboard(): { state: DashboardState | null; sseDown: boolean
     for (const type of DASHBOARD_EVENT_TYPES) {
       es.addEventListener(type, (e) => {
         const event = { type, data: JSON.parse((e as MessageEvent<string>).data) } as DashboardEvent;
-        if (event.type === "sessions") setRemoteDesk(event.data);
+        if (event.type === "sessions") setRemoteSessions(event.data);
         else if (event.type === "stash") setStash(event.data);
         else if (event.type === "seen") setRemoteSeen(event.data);
         else dispatch(event);
@@ -58,5 +58,5 @@ export function useDashboard(): { state: DashboardState | null; sseDown: boolean
     return () => es.close();
   }, []);
 
-  return { state, sseDown, remoteDesk, remoteSeen, connects };
+  return { state, sseDown, remoteSessions, remoteSeen, connects };
 }

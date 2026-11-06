@@ -1,4 +1,4 @@
-import { HISTORY_LIMIT } from "../../../../shared/desk.ts";
+import { HISTORY_LIMIT } from "../../../../shared/sessions.ts";
 import type { Store } from "../../lib/storage.ts";
 
 export { HISTORY_LIMIT };

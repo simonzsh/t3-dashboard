@@ -9,7 +9,7 @@ import { InboxView } from "./features/inbox/InboxView.tsx";
 import { AppNav } from "./features/shell/AppNav.tsx";
 import { PageActions } from "./features/shell/PageActions.tsx";
 import { ConnectionBanner } from "./features/setup/ConnectionBanner.tsx";
-import { DeskView } from "./features/desk/DeskView.tsx";
+import { SessionsView } from "./features/sessions/SessionsView.tsx";
 import { NewAutomationDialog } from "./features/new-thread/NewAutomationDialog.tsx";
 import { NewThreadDialog } from "./features/new-thread/NewThreadDialog.tsx";
 import { NotificationToasts } from "./features/notifications/NotificationToasts.tsx";
@@ -22,12 +22,12 @@ import { useOpenHistory } from "./features/switcher/useOpenHistory.ts";
 import { SettingsDialog } from "./features/settings/SettingsDialog.tsx";
 import { SetupScreen } from "./features/setup/SetupScreen.tsx";
 import { UpdateDialog } from "./features/update/UpdateDialog.tsx";
-import { columnLeadId, neighborId, type Direction } from "./features/desk/desk.ts";
+import { columnLeadId, neighborId, type Direction } from "./features/sessions/sessions.ts";
 import { useAutomations } from "./features/automations/useAutomations.ts";
 import { api } from "./api/client.ts";
 import { useDashboard } from "./api/events.ts";
-import { useDesk } from "./features/desk/useDesk.ts";
-import { useDeskSync } from "./features/desk/useDeskSync.ts";
+import { useSessions } from "./features/sessions/useSessions.ts";
+import { useSessionsSync } from "./features/sessions/useSessionsSync.ts";
 import { useMediaQuery } from "./lib/useMediaQuery.ts";
 import { useShortcuts } from "./lib/useShortcuts.ts";
 import { browserStorage } from "./lib/storage.ts";
@@ -48,35 +48,35 @@ const NO_THREADS: DashboardThread[] = [];
 const PHONE = "(max-width: 700px)";
 
 function focusComposer(threadId: string) {
-  requestAnimationFrame(() => document.querySelector<HTMLTextAreaElement>(`[data-desk-window="${CSS.escape(threadId)}"] textarea`)?.focus());
+  requestAnimationFrame(() => document.querySelector<HTMLTextAreaElement>(`[data-session-window="${CSS.escape(threadId)}"] textarea`)?.focus());
 }
 
 export function App() {
-  const { state, sseDown, remoteDesk, remoteSeen, connects } = useDashboard();
+  const { state, sseDown, remoteSessions, remoteSeen, connects } = useDashboard();
   const [tab, setTab] = useTab();
   // Always loaded while live: the Inbox badge must leave out automation run threads.
   const automations = useAutomations(state?.connection.t3 === "live");
-  const [desk, dispatchDesk] = useDesk();
+  const [sessions, dispatchSessions] = useSessions();
   const [openHistory, recordOpened] = useOpenHistory();
-  useDeskSync({
-    desk,
-    dispatch: dispatchDesk,
+  useSessionsSync({
+    sessions,
+    dispatch: dispatchSessions,
     threads: state?.connection.t3 === "live" ? state.threads : null,
-    remote: remoteDesk,
+    remote: remoteSessions,
     connects,
   });
-  // The focused desk window on the visible Desk tab is already in front of the user: no toast for it.
+  // The focused sessions window on the visible Sessions tab is already in front of the user: no toast for it.
   const watching = useRef<(id: string) => boolean>(() => false);
-  watching.current = (id) => tab === "desk" && desk.focusedId === id;
+  watching.current = (id) => tab === "sessions" && sessions.focusedId === id;
   const notify = useNotifications({
     threads: state?.connection.t3 === "live" ? state.threads : null,
     quiet: useCallback((id: string) => watching.current(id), []),
     remote: remoteSeen,
     connects,
   });
-  // The focused desk window on the visible Desk tab is read: on a click, a restore, and on each new activity.
-  // Only openOnDesk marked threads before, so a window already on the desk stayed unread in the Inbox.
-  const readId = tab === "desk" ? desk.focusedId : null;
+  // The focused sessions window on the visible Sessions tab is read: on a click, a restore, and on each new activity.
+  // Only openInSessions marked threads before, so a window already on the sessions stayed unread in the Inbox.
+  const readId = tab === "sessions" ? sessions.focusedId : null;
   const readAt = readId ? state?.threads.find((t) => t.id === readId)?.lastActivityAt : undefined;
   const { markSeen, seenReady } = notify;
   useEffect(() => {
@@ -127,69 +127,69 @@ export function App() {
     return () => clearInterval(id);
   }, []);
 
-  function openOnDesk(id: string, showDesk: boolean) {
-    dispatchDesk({ type: "open", id });
+  function openInSessions(id: string, showSessions: boolean) {
+    dispatchSessions({ type: "open", id });
     recordOpened(id);
     notify.markSeen(id);
-    if (showDesk) setTab("desk");
+    if (showSessions) setTab("sessions");
   }
 
-  function toggleOnDesk(id: string) {
-    if (desk.windows.some((w) => w.id === id)) dispatchDesk({ type: "close", id });
-    else openOnDesk(id, false);
+  function toggleInSessions(id: string) {
+    if (sessions.windows.some((w) => w.id === id)) dispatchSessions({ type: "close", id });
+    else openInSessions(id, false);
   }
 
   // The rows are memoized: these callbacks keep one identity and call the latest handlers.
-  const handlers = useRef({ openOnDesk, toggleOnDesk });
-  handlers.current = { openOnDesk, toggleOnDesk };
-  const onOpen = useCallback((id: string, addOnly: boolean) => handlers.current.openOnDesk(id, !addOnly), []);
-  const onToggleDesk = useCallback((id: string) => handlers.current.toggleOnDesk(id), []);
+  const handlers = useRef({ openInSessions, toggleInSessions });
+  handlers.current = { openInSessions, toggleInSessions };
+  const onOpen = useCallback((id: string, addOnly: boolean) => handlers.current.openInSessions(id, !addOnly), []);
+  const onToggleSessions = useCallback((id: string) => handlers.current.toggleInSessions(id), []);
   const onSettle = useCallback((id: string, settle: boolean) => (settle ? api.settle(id) : api.unsettle(id)), []);
 
   const blocked = creating || creatingAutomation || settingsOpen || confirmingUpdate || switcherQuery !== null;
   useShortcuts(
     (action) => {
-      if (action === "home" || action === "desk" || action === "automations") setTab(action);
+      if (action === "home" || action === "sessions" || action === "automations") setTab(action);
       else if (action === "settings") setSettingsOpen(true);
       else if (action === "toggle-sidebar") {
         if (!compact) toggleSidebar();
       }
       else if (action === "switcher") {
         if (state && !creating && !creatingAutomation && !settingsOpen && !confirmingUpdate) setSwitcherQuery((open) => (open === null ? "" : null));
-      } else if (action === "new-agent") {
+      } else if (action === "new-session") {
         if (state) setCreating(true);
       } else if (action === "new-automation") {
         if (state) setCreatingAutomation(true);
-      } else if (action === "unmaximize") dispatchDesk({ type: "unmaximize" });
+      } else if (action === "unmaximize") dispatchSessions({ type: "unmaximize" });
       else if (action.startsWith("focus-")) {
         // A maximized window hides its neighbors: arrows do nothing there.
-        const id = desk.maximizedId ? null : neighborId(desk, action.slice("focus-".length) as Direction, layout);
+        const id = sessions.maximizedId ? null : neighborId(sessions, action.slice("focus-".length) as Direction, layout);
         if (!id) return;
         // No composer focus: a focused textarea would block the next arrow.
-        dispatchDesk({ type: "focus", id });
+        dispatchSessions({ type: "focus", id });
       }
       else if (action === "close-window" || action === "toggle-fullscreen") {
-        if (desk.focusedId) dispatchDesk({ type: action === "close-window" ? "close" : "maximize", id: desk.focusedId });
+        if (sessions.focusedId) dispatchSessions({ type: action === "close-window" ? "close" : "maximize", id: sessions.focusedId });
       } else {
-        const target = columnLeadId(desk, Number(action.slice("window-".length)), layout);
+        const target = columnLeadId(sessions, Number(action.slice("window-".length)), layout);
         if (!target) return;
-        dispatchDesk({ type: "focus", id: target });
+        dispatchSessions({ type: "focus", id: target });
         focusComposer(target);
       }
     },
     blocked,
-    tab === "desk",
+    tab === "sessions",
   );
 
-  // Shortcuts use Ctrl now, so plain typing on the Desk can go straight to the focused window's field.
+  // Shortcuts use Ctrl now, so plain typing on the Sessions can go straight to the focused window's field.
   useEffect(() => {
-    if (tab !== "desk" || blocked || !desk.focusedId) return;
-    const id = desk.focusedId;
+    if (tab !== "sessions" || blocked || !sessions.focusedId) return;
+    const id = sessions.focusedId;
     const onKey = (e: KeyboardEvent) => {
       const el = e.target instanceof HTMLElement ? e.target : null;
       if (!startsTyping({ key: e.key, ctrlKey: e.ctrlKey, metaKey: e.metaKey, altKey: e.altKey, target: el })) return;
       if (el?.closest('[role="dialog"], [role="menu"], [role="listbox"]')) return;
-      const field = document.querySelector<HTMLTextAreaElement>(`[data-desk-window="${CSS.escape(id)}"] textarea`);
+      const field = document.querySelector<HTMLTextAreaElement>(`[data-session-window="${CSS.escape(id)}"] textarea`);
       if (!field || field.disabled) return;
       // Focused during keydown: the browser then types this key into the field.
       field.focus();
@@ -197,10 +197,10 @@ export function App() {
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [tab, blocked, desk.focusedId]);
+  }, [tab, blocked, sessions.focusedId]);
 
   const live = !sseDown && state?.connection.t3 === "live";
-  const deskIds = new Set(desk.windows.map((w) => w.id));
+  const sessionIds = new Set(sessions.windows.map((w) => w.id));
   const setup = useSetupRows(state?.threads ?? NO_THREADS, automations.result?.setupThreadIds, automations.reload);
   // One list for the Inbox and its badge, so they cannot drift apart.
   const visible = useMemo(
@@ -208,7 +208,7 @@ export function App() {
     [state?.threads, automations.result?.hiddenThreadIds, setup],
   );
   const unread = useMemo(() => unreadCount(inboxSections(visible, notify.seen, now), notify.seen), [visible, notify.seen, now]);
-  const badges = navBadges(state?.threads ?? NO_THREADS, deskIds, unread);
+  const badges = navBadges(state?.threads ?? NO_THREADS, sessionIds, unread);
   const homeLayout = useHomeLayout(tab === "home");
   const usage = useUsage(tab === "home" && state !== null);
   const page = TABS.find((t) => t.id === tab)!;
@@ -224,7 +224,7 @@ export function App() {
   }
 
   return (
-    <div className={`app${tab === "desk" ? " desk-mode" : ""}`}>
+    <div className={`app${tab === "sessions" ? " sessions-mode" : ""}`}>
       <TooltipLayer />
       <AppNav
         layout={compact ? "bottom" : "side"}
@@ -266,7 +266,7 @@ export function App() {
           }
         />
         <ConnectionBanner connection={state?.connection ?? null} sseDown={sseDown} />
-        <NotificationToasts toasts={notify.toasts} onOpen={(id) => openOnDesk(id, true)} onDismiss={notify.dismiss} />
+        <NotificationToasts toasts={notify.toasts} onOpen={(id) => openInSessions(id, true)} onDismiss={notify.dismiss} />
         <main>
           {tab === "home" &&
             (state ? (
@@ -274,9 +274,9 @@ export function App() {
                 state={state}
                 visible={visible}
                 now={now}
-                deskIds={deskIds}
+                sessionIds={sessionIds}
                 onOpen={onOpen}
-                onToggleDesk={onToggleDesk}
+                onToggleSessions={onToggleSessions}
                 onSettle={onSettle}
                 seen={notify.seen}
                 seenReady={notify.seenReady}
@@ -303,11 +303,11 @@ export function App() {
                 setup={setup}
               />
             ) : <Loader />)}
-          {tab === "desk" &&
+          {tab === "sessions" &&
             (state ? (
-              <DeskView
-                desk={desk}
-                dispatch={dispatchDesk}
+              <SessionsView
+                sessions={sessions}
+                dispatch={dispatchSessions}
                 threads={state.threads}
                 projects={state.projects}
                 layout={layout}
@@ -325,7 +325,7 @@ export function App() {
           onClose={() => setCreating(false)}
           onCreated={(id) => {
             setCreating(false);
-            openOnDesk(id, true);
+            openInSessions(id, true);
           }}
         />
       )}
@@ -344,12 +344,12 @@ export function App() {
           projects={state.projects}
           now={now}
           history={openHistory}
-          onDesk={deskIds}
+          inSessions={sessionIds}
           initialQuery={switcherQuery}
           onClose={() => setSwitcherQuery(null)}
           onOpen={(id) => {
             setSwitcherQuery(null);
-            openOnDesk(id, true);
+            openInSessions(id, true);
           }}
         />
       )}

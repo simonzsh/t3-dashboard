@@ -92,7 +92,7 @@ The code has three parts: the server (`src/`), the interface (`web/src/`) and th
 | --- | --- |
 | `api/` | Local API client, event stream (`useDashboard`) and `ApiContext`. `useApi()` gives the real API, unless an `ApiProvider` gives a different one. |
 | `lib/` | Functions and components that more than one screen uses. |
-| `features/` | One folder for each screen: `inbox`, `automations`, `desk`, `conversation`, `settings`, `setup`, `update`, `new-thread`. |
+| `features/` | One folder for each screen: `inbox`, `automations`, `sessions`, `conversation`, `settings`, `setup`, `update`, `new-thread`. |
 | `ui/` | Base components, tooltips and animations. See `web/src/ui/README.md`. |
 
 ### Contract (`shared/`)

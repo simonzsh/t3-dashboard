@@ -28,14 +28,14 @@ export function ModelPanel({ providers, selection, mode, modes, onSelection, onM
   const [accessOpen, setAccessOpen] = useState(false);
   const root = useRef<HTMLDivElement>(null);
   const panel = useRef<HTMLDivElement>(null);
-  // A desk window clips what overflows it: keep the panel within the room above the composer.
+  // A sessions window clips what overflows it: keep the panel within the room above the composer.
   useLayoutEffect(() => {
     const box = panel.current;
     const anchor = box?.offsetParent;
     if (!box || !anchor) return;
     const top = anchor.getBoundingClientRect().top;
-    // A dialog is fixed above the desk: only the viewport bounds it.
-    const frame = anchor.closest(".dialog") ? 0 : (anchor.closest(".desk-window")?.getBoundingClientRect().top ?? 0);
+    // A dialog is fixed above the sessions: only the viewport bounds it.
+    const frame = anchor.closest(".dialog") ? 0 : (anchor.closest(".session-window")?.getBoundingClientRect().top ?? 0);
     box.style.maxHeight = `${Math.max(180, top - frame - 12)}px`;
   });
   const chip = useRef<HTMLButtonElement>(null);
@@ -72,7 +72,7 @@ export function ModelPanel({ providers, selection, mode, modes, onSelection, onM
     const down = (e: MouseEvent) => {
       if (!root.current?.contains(e.target as Node)) setOpen(false);
     };
-    // Capture and stop: the Desk must not also react to this Escape.
+    // Capture and stop: the Sessions must not also react to this Escape.
     const key = (e: globalThis.KeyboardEvent) => {
       if (e.key !== "Escape") return;
       e.stopPropagation();

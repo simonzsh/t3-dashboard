@@ -11,24 +11,24 @@ const render = (tab: Tab, over: Partial<Parameters<typeof PageActions>[0]> = {})
   );
 
 test("Sessions shows the layout toggle, then New Session with its icon and key", () => {
-  const out = render("desk");
+  const out = render("sessions");
   assert.match(out, /class="btn md primary"[^>]*><svg[^>]*>.*<\/svg> New Session<kbd/);
   assert.ok(out.indexOf('aria-label="Layout"') < out.indexOf("New Session"));
   assert.doesNotMatch(out, /New Automation|Edit layout/);
 });
 
 test("the layout toggle marks the active view", () => {
-  const columns = render("desk", { layout: "columns" });
+  const columns = render("sessions", { layout: "columns" });
   assert.match(columns, /aria-pressed="true"[^>]*aria-label="Column view"/);
   assert.match(columns, /aria-pressed="false"[^>]*aria-label="Grid view"/);
-  const grid = render("desk", { layout: "grid" });
+  const grid = render("sessions", { layout: "grid" });
   assert.match(grid, /aria-pressed="false"[^>]*aria-label="Column view"/);
   assert.match(grid, /aria-pressed="true"[^>]*aria-label="Grid view"/);
 });
 
 test("the layout toggle is hidden when it is off, and on other pages", () => {
-  assert.doesNotMatch(render("desk", { showLayoutToggle: false }), /Layout|Column view/);
-  assert.match(render("desk", { showLayoutToggle: false }), /New Session/);
+  assert.doesNotMatch(render("sessions", { showLayoutToggle: false }), /Layout|Column view/);
+  assert.match(render("sessions", { showLayoutToggle: false }), /New Session/);
   for (const tab of ["home", "automations"] as const) assert.doesNotMatch(render(tab), /Column view|Grid view/);
 });
 
@@ -60,11 +60,11 @@ test("on a phone the page action is an icon button, with the search button", () 
   assert.match(home, /aria-label="Edit layout"/);
   assert.match(home, /aria-label="Search"/);
   assert.doesNotMatch(home, />Edit layout</);
-  assert.match(render("desk", { compact: true }), /aria-label="New Session"/);
+  assert.match(render("sessions", { compact: true }), /aria-label="New Session"/);
   assert.match(render("automations", { compact: true }), /aria-label="New Automation"/);
 });
 
 test("without the dashboard state Sessions and Automations show no create button", () => {
-  assert.equal(render("desk", { ready: false }), "");
+  assert.equal(render("sessions", { ready: false }), "");
   assert.equal(render("automations", { ready: false }), "");
 });

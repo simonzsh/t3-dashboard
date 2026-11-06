@@ -56,7 +56,7 @@ export function PageActions({ tab, compact, ready, editingLayout, layoutIsDefaul
         <Icon name="layoutPanels" /> Edit layout
       </Button>
     );
-  } else if (tab === "desk" && ready) {
+  } else if (tab === "sessions" && ready) {
     main = (
       <>
         {showLayoutToggle && (

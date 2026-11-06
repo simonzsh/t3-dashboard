@@ -169,7 +169,7 @@ test("a PageHeader is a header with a title, a description and its actions", () 
 });
 
 test("a PageHeader shows its leading element first and no empty actions", () => {
-  const out = html(<PageHeader title="Desk" description="x" leading={<i id="logo" />} />);
+  const out = html(<PageHeader title="Sessions" description="x" leading={<i id="logo" />} />);
   assert.ok(out.indexOf('id="logo"') < out.indexOf("<h1"));
   assert.doesNotMatch(out, /page-actions/);
 });

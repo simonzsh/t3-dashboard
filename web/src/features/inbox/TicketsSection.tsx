@@ -17,7 +17,7 @@ export interface RowProps {
   projects: DashboardProject[];
   providers: DashboardProvider[];
   modelDefaults: ModelDefaults;
-  // addOnly: the agent goes on the Desk without leaving the Inbox.
+  // addOnly: the agent goes on the Sessions without leaving the Inbox.
   onOpen: (id: string, addOnly: boolean) => void;
   onStarted: (issueId: string) => void;
 }

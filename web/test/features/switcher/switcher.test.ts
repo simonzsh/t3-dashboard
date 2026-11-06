@@ -87,7 +87,7 @@ test("suggestions: one row per thread, even when waiting and in the history", ()
   assert.deepEqual(ids(suggestThreads(all, projects, ["a", "b", "a"], new Set(), 8)), ["a", "b"]);
 });
 
-test("suggestions skip the threads visible on the Desk and unknown history ids", () => {
+test("suggestions skip the threads visible on the Sessions and unknown history ids", () => {
   const all = [thread("a"), thread("b", waiting), thread("c")];
   assert.deepEqual(ids(suggestThreads(all, projects, ["gone", "a"], new Set(["b"]), 8)), ["a", "c"]);
 });

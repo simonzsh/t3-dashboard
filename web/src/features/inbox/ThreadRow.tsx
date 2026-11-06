@@ -5,7 +5,7 @@ import { relativeTime } from "../../lib/format.ts";
 import { threadTitle } from "../../lib/threads.ts";
 import { ProviderIcon } from "../../lib/ProviderIcon.tsx";
 import { Pressable } from "../../ui/index.ts";
-import { ThreadActions, flyToDesk, type ThreadActionsProps } from "./ThreadActions.tsx";
+import { ThreadActions, flyToSessions, type ThreadActionsProps } from "./ThreadActions.tsx";
 
 interface Props extends Omit<ThreadActionsProps, "thread" | "rowRef"> {
   thread: DashboardThread;
@@ -25,7 +25,7 @@ function ThreadRowView({ thread: t, project, modelName, now, onOpen, ...actions 
         ref={rowRef}
         className={`run-row${working ? " working" : ""}`}
         onClick={(e) => {
-          if (e.shiftKey) flyToDesk(rowRef.current, actions.onDesk);
+          if (e.shiftKey) flyToSessions(rowRef.current, actions.inSessions);
           onOpen(t.id, e.shiftKey);
         }}
       >

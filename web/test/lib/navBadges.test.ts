@@ -11,15 +11,15 @@ test("agentCounts counts waiting and working threads", () => {
   assert.deepEqual(counts, { waiting: 1, running: 2 });
 });
 
-test("navBadges counts running agents among the desk windows only", () => {
+test("navBadges counts running agents among the sessions windows only", () => {
   const threads = [thread("a", { status: "running" }), thread("b", { status: "running" }), thread("c", { status: "completed" })];
-  assert.deepEqual(navBadges(threads, new Set(["a", "c"]), 3), { homeUnread: 3, deskRunning: 1, deskWaiting: false });
+  assert.deepEqual(navBadges(threads, new Set(["a", "c"]), 3), { homeUnread: 3, sessionsRunning: 1, sessionsWaiting: false });
 });
 
-test("navBadges flags a desk window that waits for an answer", () => {
+test("navBadges flags a session window that waits for an answer", () => {
   const threads = [thread("a", { pending: ask }), thread("b", { pending: ask })];
-  assert.equal(navBadges(threads, new Set(["a"]), 0).deskWaiting, true);
-  assert.equal(navBadges(threads, new Set(), 0).deskWaiting, false);
+  assert.equal(navBadges(threads, new Set(["a"]), 0).sessionsWaiting, true);
+  assert.equal(navBadges(threads, new Set(), 0).sessionsWaiting, false);
 });
 
 test("the collapsed sidebar is saved and read back, expanded by default", () => {

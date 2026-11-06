@@ -136,7 +136,7 @@ kbd { font: 11px/1 system-ui, -apple-system, "Segoe UI", sans-serif; padding: 2p
 main { flex: 1; min-height: 0; overflow: hidden; padding: 24px; display: flex; flex-direction: column; gap: 28px; }
 .project-icon { flex: none; width: 16px; height: 16px; }
 .count { font-size: 12px; padding: 0 7px; border-radius: 999px; background: var(--line); color: var(--text-primary); }
-.desk-toggle.on { color: var(--accent); background: color-mix(in srgb, var(--accent) 14%, var(--surface-1)); border-color: color-mix(in srgb, var(--accent) 50%, var(--line)); }
+.sessions-toggle.on { color: var(--accent); background: color-mix(in srgb, var(--accent) 14%, var(--surface-1)); border-color: color-mix(in srgb, var(--accent) 50%, var(--line)); }
 .open-t3 .icon { width: 16px; height: 16px; }
 .provider-icon { flex: none; width: 20px; height: 20px; margin-top: 1px; }
 .badge { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 600; padding: 2px 10px; border-radius: 999px; }
@@ -613,7 +613,7 @@ ol.install-steps { padding-left: 18px; }
 /* Sits close to its label: the button gap alone would leave the badge floating between label and shortcut. */
 .app { display: flex; height: 100dvh; overflow: hidden; }
 .app-column { flex: 1; min-width: 0; min-height: 0; display: flex; flex-direction: column; }
-.app.desk-mode main { padding: 0; gap: 0; }
+.app.sessions-mode main { padding: 0; gap: 0; }
 /* Sidebar: 232 px, or 56 px with icons only. */
 .sidebar { flex: none; width: 232px; display: flex; flex-direction: column; gap: 12px; padding: 12px; overflow: hidden auto; background: var(--header-bg); border-right: 1px solid var(--line); transition: width 160ms ease; }
 .sidebar.collapsed { width: 56px; padding-inline: 8px; }
@@ -724,45 +724,45 @@ ol.install-steps { padding-left: 18px; }
 .usage-empty, .usage-error { margin: 0; padding: 20px; color: var(--text-secondary); }
 .usage-error { color: var(--err-text); }
 .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
-.desk { flex: 1; min-height: 0; display: flex; flex-direction: column; background: var(--surface-0); }
-.desk-area { position: relative; flex: 1; min-height: 0; display: flex; flex-direction: column; }
-/* Fixed 380 px columns that scroll sideways. The strip is not positioned: a fullscreen window sizes itself on .desk-area and stays out of the scroll. */
-.desk-strip { flex: 1; min-height: 0; display: grid; grid-auto-flow: column; grid-auto-columns: 380px; overflow-x: auto; overflow-y: hidden; overscroll-behavior-x: contain; }
-.desk-cell { display: flex; min-width: 0; min-height: 0; border-right: 1px solid var(--line); }
-.desk-cell.has-below { border-bottom: 1px solid var(--line); }
-.desk-empty { margin: 24px; }
-.desk-window { flex: 1; min-width: 0; min-height: 0; display: flex; flex-direction: column; overflow: hidden; background: var(--surface-0); }
-.desk-window.maximized { position: absolute; inset: 0; z-index: 3; }
-.desk-window-head { display: flex; flex-direction: column; gap: 2px; min-width: 0; padding: 6px 6px 6px 8px; border-bottom: 1px solid var(--line); background: var(--surface-1); }
+.sessions { flex: 1; min-height: 0; display: flex; flex-direction: column; background: var(--surface-0); }
+.sessions-area { position: relative; flex: 1; min-height: 0; display: flex; flex-direction: column; }
+/* Fixed 380 px columns that scroll sideways. The strip is not positioned: a fullscreen window sizes itself on .sessions-area and stays out of the scroll. */
+.sessions-strip { flex: 1; min-height: 0; display: grid; grid-auto-flow: column; grid-auto-columns: 380px; overflow-x: auto; overflow-y: hidden; overscroll-behavior-x: contain; }
+.sessions-cell { display: flex; min-width: 0; min-height: 0; border-right: 1px solid var(--line); }
+.sessions-cell.has-below { border-bottom: 1px solid var(--line); }
+.sessions-empty { margin: 24px; }
+.session-window { flex: 1; min-width: 0; min-height: 0; display: flex; flex-direction: column; overflow: hidden; background: var(--surface-0); }
+.session-window.maximized { position: absolute; inset: 0; z-index: 3; }
+.session-window-head { display: flex; flex-direction: column; gap: 2px; min-width: 0; padding: 6px 6px 6px 8px; border-bottom: 1px solid var(--line); background: var(--surface-1); }
 .sc-row { display: flex; align-items: center; gap: 6px; min-width: 0; }
 .sc-grip { flex: none; width: 16px; height: 16px; color: var(--text-secondary); }
 .sc-sub { display: flex; align-items: center; gap: 6px; min-width: 0; padding-left: 22px; color: var(--text-secondary); font-size: 12px; }
 /* Same colours as the Inbox rows, on the line under the header: amber waits, blue runs, red failed. */
-.desk-window-head { position: relative; }
-.desk-window.state-waiting .desk-window-head { background: color-mix(in srgb, var(--warn-bg) 60%, var(--surface-1)); border-bottom-color: var(--warn); box-shadow: inset 0 -2px 0 var(--warn); }
-.desk-window.state-running .desk-window-head { background: color-mix(in srgb, var(--work-bg) 45%, var(--surface-1)); }
-.desk-window.state-running .desk-window-head::after { content: ""; position: absolute; left: 0; bottom: -1px; height: 3px; width: 50%; background: linear-gradient(90deg, transparent, var(--work), transparent); will-change: transform; animation: shimmer 1.8s ease-in-out infinite; }
-.desk-window.state-error .desk-window-head { background: color-mix(in srgb, var(--err-bg) 45%, var(--surface-1)); border-bottom-color: var(--danger); box-shadow: inset 0 -2px 0 var(--danger); }
-.desk-window.state-done .desk-window-head { background: color-mix(in srgb, var(--done-bg) 35%, var(--surface-1)); }
+.session-window-head { position: relative; }
+.session-window.state-waiting .session-window-head { background: color-mix(in srgb, var(--warn-bg) 60%, var(--surface-1)); border-bottom-color: var(--warn); box-shadow: inset 0 -2px 0 var(--warn); }
+.session-window.state-running .session-window-head { background: color-mix(in srgb, var(--work-bg) 45%, var(--surface-1)); }
+.session-window.state-running .session-window-head::after { content: ""; position: absolute; left: 0; bottom: -1px; height: 3px; width: 50%; background: linear-gradient(90deg, transparent, var(--work), transparent); will-change: transform; animation: shimmer 1.8s ease-in-out infinite; }
+.session-window.state-error .session-window-head { background: color-mix(in srgb, var(--err-bg) 45%, var(--surface-1)); border-bottom-color: var(--danger); box-shadow: inset 0 -2px 0 var(--danger); }
+.session-window.state-done .session-window-head { background: color-mix(in srgb, var(--done-bg) 35%, var(--surface-1)); }
 /* The header takes the badge colour of its state; the focused window gets a deeper shade of it. Placed after the state rules on purpose. */
-.desk-window.state-running .desk-window-head { background: color-mix(in srgb, var(--work-bg) 55%, var(--surface-1)); }
-.desk-window.state-waiting .desk-window-head { background: color-mix(in srgb, var(--warn-bg) 55%, var(--surface-1)); }
-.desk-window.state-error .desk-window-head { background: color-mix(in srgb, var(--err-bg) 55%, var(--surface-1)); }
-.desk-window.state-done .desk-window-head { background: color-mix(in srgb, var(--done-bg) 55%, var(--surface-1)); }
-.desk-window.focused .desk-window-head { background: color-mix(in srgb, var(--text-secondary) 12%, var(--surface-1)); }
-.desk-window.focused.state-running .desk-window-head { background: color-mix(in srgb, var(--work-text) 16%, var(--work-bg)); }
-.desk-window.focused.state-waiting .desk-window-head { background: color-mix(in srgb, var(--warn-text) 16%, var(--warn-bg)); }
-.desk-window.focused.state-error .desk-window-head { background: color-mix(in srgb, var(--err-text) 16%, var(--err-bg)); }
-.desk-window.focused.state-done .desk-window-head { background: color-mix(in srgb, var(--done-text) 16%, var(--done-bg)); }
-.desk-window.focused .dw-title { color: var(--text-primary); font-weight: 600; }
+.session-window.state-running .session-window-head { background: color-mix(in srgb, var(--work-bg) 55%, var(--surface-1)); }
+.session-window.state-waiting .session-window-head { background: color-mix(in srgb, var(--warn-bg) 55%, var(--surface-1)); }
+.session-window.state-error .session-window-head { background: color-mix(in srgb, var(--err-bg) 55%, var(--surface-1)); }
+.session-window.state-done .session-window-head { background: color-mix(in srgb, var(--done-bg) 55%, var(--surface-1)); }
+.session-window.focused .session-window-head { background: color-mix(in srgb, var(--text-secondary) 12%, var(--surface-1)); }
+.session-window.focused.state-running .session-window-head { background: color-mix(in srgb, var(--work-text) 16%, var(--work-bg)); }
+.session-window.focused.state-waiting .session-window-head { background: color-mix(in srgb, var(--warn-text) 16%, var(--warn-bg)); }
+.session-window.focused.state-error .session-window-head { background: color-mix(in srgb, var(--err-text) 16%, var(--err-bg)); }
+.session-window.focused.state-done .session-window-head { background: color-mix(in srgb, var(--done-text) 16%, var(--done-bg)); }
+.session-window.focused .dw-title { color: var(--text-primary); font-weight: 600; }
 /* Drag a window by its header onto another one to swap their cells. */
-.desk:not(.compact) .desk-window-head { cursor: grab; user-select: none; }
-.desk:not(.compact) .desk-window.maximized .desk-window-head { cursor: default; }
-.desk-dragging, .desk-dragging * { cursor: grabbing !important; user-select: none !important; }
-.desk-window.dragging { opacity: 0.45; }
-.desk-window.drop-target { box-shadow: inset 0 0 0 2px var(--accent); }
-.desk-drag-ghost { position: fixed; left: 0; top: 0; z-index: 50; pointer-events: none; max-width: 360px; border: 1px solid var(--line); border-radius: 10px; box-shadow: var(--shadow); opacity: 0.95; }
-.desk-window-head .project-icon { width: 14px; height: 14px; }
+.sessions:not(.compact) .session-window-head { cursor: grab; user-select: none; }
+.sessions:not(.compact) .session-window.maximized .session-window-head { cursor: default; }
+.sessions-dragging, .sessions-dragging * { cursor: grabbing !important; user-select: none !important; }
+.session-window.dragging { opacity: 0.45; }
+.session-window.drop-target { box-shadow: inset 0 0 0 2px var(--accent); }
+.sessions-drag-ghost { position: fixed; left: 0; top: 0; z-index: 50; pointer-events: none; max-width: 360px; border: 1px solid var(--line); border-radius: 10px; box-shadow: var(--shadow); opacity: 0.95; }
+.session-window-head .project-icon { width: 14px; height: 14px; }
 .dw-title { min-width: 0; flex: 1 1 auto; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 600; }
 .dw-project { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .dw-state.waiting { box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--warn) 50%, transparent); }
@@ -772,13 +772,13 @@ ol.install-steps { padding-left: 18px; }
 .dw-buttons { display: flex; gap: 2px; flex: none; }
 .dw-buttons .icon-button { min-width: 0; height: auto; padding: 4px; border-radius: var(--radius-sm); }
 .dw-buttons .icon-button:hover { color: var(--text-primary); background: var(--surface-0); }
-.desk-missing { flex: 1; display: flex; flex-direction: column; gap: 10px; align-items: center; justify-content: center; padding: 16px; text-align: center; color: var(--text-secondary); }
-/* On a phone the tab bar sits on the plain desk; only the chips have a surface. */
-.desk-tabs { display: flex; gap: 6px; padding: 8px 10px; overflow-x: auto; }
-.desk-chip { flex: none; display: inline-flex; align-items: center; gap: 6px; max-width: 240px; padding: 4px 10px; border-radius: 999px; font-size: 12px; }
-.desk-chip.active { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 12%, var(--surface-1)); }
-.desk-chip .project-icon { width: 14px; height: 14px; }
-.desk-chip-title { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sessions-missing { flex: 1; display: flex; flex-direction: column; gap: 10px; align-items: center; justify-content: center; padding: 16px; text-align: center; color: var(--text-secondary); }
+/* On a phone the tab bar sits on the plain sessions; only the chips have a surface. */
+.sessions-tabs { display: flex; gap: 6px; padding: 8px 10px; overflow-x: auto; }
+.sessions-chip { flex: none; display: inline-flex; align-items: center; gap: 6px; max-width: 240px; padding: 4px 10px; border-radius: 999px; font-size: 12px; }
+.sessions-chip.active { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 12%, var(--surface-1)); }
+.sessions-chip .project-icon { width: 14px; height: 14px; }
+.sessions-chip-title { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .state-dot { flex: none; width: 8px; height: 8px; border-radius: 50%; background: var(--line); }
 .state-dot.waiting { background: var(--warn); }
 .state-dot.running { background: var(--work); }
@@ -814,11 +814,11 @@ ol.install-steps { padding-left: 18px; }
   .page-actions .header-new { border-radius: 12px; }
   .app-column { padding-bottom: calc(var(--bottom-bar) + env(safe-area-inset-bottom)); }
   /* Inbox and Automations scroll the page itself, so Safari's floating address bar sits over the content instead of under a cut-off box. */
-  .app:not(.desk-mode) { height: auto; min-height: 100dvh; overflow: visible; }
-  .app:not(.desk-mode) :is(main, .home) { flex: none; overflow: visible; }
-  .app:not(.desk-mode) main { padding-bottom: 24px; }
-  .app:not(.desk-mode) .auto-page { flex: none; overflow: visible; }
-  /* The search stays under the sticky top bar, as on desktop where the list scrolls below it. */
+  .app:not(.sessions-mode) { height: auto; min-height: 100dvh; overflow: visible; }
+  .app:not(.sessions-mode) :is(main, .home) { flex: none; overflow: visible; }
+  .app:not(.sessions-mode) main { padding-bottom: 24px; }
+  .app:not(.sessions-mode) .auto-page { flex: none; overflow: visible; }
+  /* The search stays under the sticky top bar, as on a wide screen where the list scrolls below it. */
   /* Stuck 12px under the top bar; the band shows only once the page scrolls, with 12px above and below the search. */
 }
 @media (max-width: 899px), (pointer: coarse) {
@@ -878,7 +878,7 @@ ol.install-steps { padding-left: 18px; }
 .key-mask { font: 12px/1 var(--font-mono); padding: 4px 7px; border-radius: 6px; border: 1px solid var(--line); color: var(--text-secondary); background: var(--surface-0); }
 /* After every animated rule, so it wins on equal specificity. */
 @media (prefers-reduced-motion: reduce) {
-  .pulse, .run-row.working::after, .desk-window.state-running .desk-window-head::after, .streaming, .step.running .icon, .todo.running .todo-mark, .spinning { animation: none; }
+  .pulse, .run-row.working::after, .session-window.state-running .session-window-head::after, .streaming, .step.running .icon, .todo.running .todo-mark, .spinning { animation: none; }
   .loader rect { animation: none; }
   .thread-actions { transition: none; }
 }

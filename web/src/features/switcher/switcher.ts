@@ -73,8 +73,8 @@ export function mergeResults(titleHits: SwitcherRow[], content: ThreadSearchMatc
 export const SUGGESTION_LIMIT = 8;
 
 // Empty query: threads that wait for the user, then recently opened ones, then the latest activity.
-export function suggestThreads(threads: DashboardThread[], projects: DashboardProject[], history: readonly string[], onDesk: ReadonlySet<string>, limit = SUGGESTION_LIMIT): SwitcherRow[] {
-  const byId = new Map(threads.filter((t) => !onDesk.has(t.id)).map((t) => [t.id, t]));
+export function suggestThreads(threads: DashboardThread[], projects: DashboardProject[], history: readonly string[], inSessions: ReadonlySet<string>, limit = SUGGESTION_LIMIT): SwitcherRow[] {
+  const byId = new Map(threads.filter((t) => !inSessions.has(t.id)).map((t) => [t.id, t]));
   const latest = (a: DashboardThread, b: DashboardThread) => b.lastActivityAt.localeCompare(a.lastActivityAt);
   const ordered = [
     ...[...byId.values()].filter((t) => agentStatus(t) === "waiting").sort(latest),

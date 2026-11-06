@@ -31,11 +31,11 @@ function Badges({ id, badges, badgeText }: { id: Tab; badges: NavBadges; badgeTe
   if (id === "home" && badges.homeUnread > 0) {
     return <span className="nav-badge ok" role="img" aria-label={`${badges.homeUnread} unread`}>{badgeText(badges.homeUnread)}</span>;
   }
-  if (id !== "desk") return null;
+  if (id !== "sessions") return null;
   return (
     <>
-      {badges.deskWaiting && <span className="nav-alert" role="img" aria-label={WAITING} />}
-      {badges.deskRunning > 0 && <span className="nav-badge work" role="img" aria-label={`${badges.deskRunning} running`}>{badgeText(badges.deskRunning)}</span>}
+      {badges.sessionsWaiting && <span className="nav-alert" role="img" aria-label={WAITING} />}
+      {badges.sessionsRunning > 0 && <span className="nav-badge work" role="img" aria-label={`${badges.sessionsRunning} running`}>{badgeText(badges.sessionsRunning)}</span>}
     </>
   );
 }

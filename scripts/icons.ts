@@ -2,7 +2,7 @@ import { writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { deflateSync } from "node:zlib";
 
-// Draws the Desk logo: four windows, one active. Writes the SVG source, the PNGs of the web app manifest and the web favicons.
+// Draws the Sessions logo: four windows, one active. Writes the SVG source, the PNGs of the web app manifest and the web favicons.
 const OUT = join(import.meta.dir, "..", "src", "server", "pwa");
 const WEB = join(import.meta.dir, "..", "web");
 const LIGHT = "#ffffff";

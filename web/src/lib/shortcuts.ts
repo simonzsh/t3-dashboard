@@ -2,9 +2,9 @@ export type WindowShortcut = `window-${1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9}`;
 
 export type ShortcutAction =
   | "home"
-  | "desk"
+  | "sessions"
   | "automations"
-  | "new-agent"
+  | "new-session"
   | "new-automation"
   | "settings"
   | "toggle-sidebar"
@@ -30,10 +30,10 @@ export interface KeyInfo {
 }
 
 // Ctrl+key works everywhere, fields included, like Ctrl+S for the stash. Cmd stays the browser's.
-const CTRL_KEYS: Record<string, ShortcutAction> = { "1": "home", "2": "desk", "3": "automations", n: "new-agent", ",": "settings", b: "toggle-sidebar" };
-const CTRL_DESK_KEYS: Record<string, ShortcutAction> = { x: "close-window", f: "toggle-fullscreen" };
+const CTRL_KEYS: Record<string, ShortcutAction> = { "1": "home", "2": "sessions", "3": "automations", n: "new-session", ",": "settings", b: "toggle-sidebar" };
+const CTRL_SESSIONS_KEYS: Record<string, ShortcutAction> = { x: "close-window", f: "toggle-fullscreen" };
 // Plain keys that a field needs for itself: they act only outside fields.
-const PLAIN_DESK_KEYS: Record<string, ShortcutAction> = {
+const PLAIN_SESSIONS_KEYS: Record<string, ShortcutAction> = {
   escape: "unmaximize",
   arrowleft: "focus-left",
   arrowright: "focus-right",
@@ -51,20 +51,20 @@ function windowShortcut(e: KeyInfo): WindowShortcut | null {
   return digit ? (`window-${digit}` as WindowShortcut) : null;
 }
 
-export function matchShortcut(e: KeyInfo, dialogOpen: boolean, onDesk = false): ShortcutAction | null {
+export function matchShortcut(e: KeyInfo, dialogOpen: boolean, inSessions = false): ShortcutAction | null {
   const key = e.key.toLowerCase();
   // Before the guards: the switcher opens from a field or a dialog too, and App decides.
   if ((e.ctrlKey || e.metaKey) && !e.altKey && key === "k") return "switcher";
   if (dialogOpen || e.metaKey) return null;
   if (e.ctrlKey) {
-    if (e.altKey) return onDesk && !e.shiftKey ? windowShortcut(e) : null;
+    if (e.altKey) return inSessions && !e.shiftKey ? windowShortcut(e) : null;
     if (key === "n" && e.shiftKey) return "new-automation";
     if (e.shiftKey) return null;
-    return CTRL_KEYS[key] ?? (onDesk ? CTRL_DESK_KEYS[key] : undefined) ?? null;
+    return CTRL_KEYS[key] ?? (inSessions ? CTRL_SESSIONS_KEYS[key] : undefined) ?? null;
   }
-  if (e.altKey || e.shiftKey || !onDesk) return null;
+  if (e.altKey || e.shiftKey || !inSessions) return null;
   if (e.target && (TYPING.has(e.target.tagName) || e.target.isContentEditable)) return null;
-  return PLAIN_DESK_KEYS[key] ?? null;
+  return PLAIN_SESSIONS_KEYS[key] ?? null;
 }
 
 /** A plain character typed outside any field: on the Sessions page it goes to the focused window's message field. */

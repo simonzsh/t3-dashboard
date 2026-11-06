@@ -372,7 +372,7 @@ function Conversation({ threadId, thread, providers, onOpenThread, onTitle }: Pr
             const el = e.currentTarget;
             const gap = el.scrollHeight - el.scrollTop - el.clientHeight;
             // Only the user can leave the bottom. A scroll with no input just before it comes from the layout
-            // (the desk grid changed, content moved): it keeps the bottom, or the place, as it was.
+            // (the sessions grid changed, content moved): it keeps the bottom, or the place, as it was.
             if (performance.now() - lastInput.current > USER_SCROLL_MS) {
               lastTop.current = el.scrollTop;
               if (smoothing.current) {

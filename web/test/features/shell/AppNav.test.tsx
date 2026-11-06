@@ -4,8 +4,8 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { AppNav } from "../../../src/features/shell/AppNav.tsx";
 
 const base = {
-  tab: "desk" as const,
-  badges: { homeUnread: 0, deskRunning: 0, deskWaiting: false },
+  tab: "sessions" as const,
+  badges: { homeUnread: 0, sessionsRunning: 0, sessionsWaiting: false },
   badgeText: (n: number) => (n > 9 ? "9+" : String(n)),
   live: true,
   update: null,
@@ -19,11 +19,11 @@ const base = {
 const side = (over = {}) => renderToStaticMarkup(<AppNav layout="side" {...base} {...over} />);
 const bottom = (over = {}) => renderToStaticMarkup(<AppNav layout="bottom" {...base} {...over} />);
 
-test("the sidebar lists Home, Desk and Automations, with the open page marked current", () => {
+test("the sidebar lists Home, Sessions and Automations, with the open page marked current", () => {
   const out = side();
   assert.match(out, /<nav class="sidebar/);
-  assert.deepEqual([...out.matchAll(/data-tab="(\w+)"/g)].map((m) => m[1]), ["home", "desk", "automations"]);
-  assert.match(out, /aria-current="page"[^>]*data-tab="desk"|data-tab="desk"[^>]*aria-current="page"/);
+  assert.deepEqual([...out.matchAll(/data-tab="(\w+)"/g)].map((m) => m[1]), ["home", "sessions", "automations"]);
+  assert.match(out, /aria-current="page"[^>]*data-tab="sessions"|data-tab="sessions"[^>]*aria-current="page"/);
   assert.equal(out.match(/aria-current="page"/g)?.length, 1);
 });
 
@@ -31,8 +31,8 @@ test("the sidebar has the search button with its shortcut hint", () => {
   assert.match(side(), /Search…[\s\S]*?<kbd>⌘K<\/kbd>/);
 });
 
-test("the sidebar shows unread on Home, running on Desk and a dot for a waiting agent", () => {
-  const out = side({ badges: { homeUnread: 12, deskRunning: 2, deskWaiting: true } });
+test("the sidebar shows unread on Home, running on Sessions and a dot for a waiting agent", () => {
+  const out = side({ badges: { homeUnread: 12, sessionsRunning: 2, sessionsWaiting: true } });
   assert.match(out, /aria-label="12 unread">9\+</);
   assert.match(out, /aria-label="2 running">2</);
   assert.match(out, /aria-label="An agent is waiting for your reply"/);
@@ -54,13 +54,13 @@ test("the bottom bar has the three pages and Settings, and no sidebar", () => {
   const out = bottom();
   assert.match(out, /<nav class="bottom-nav"/);
   assert.doesNotMatch(out, /sidebar|Search…/);
-  assert.deepEqual([...out.matchAll(/data-tab="(\w+)"/g)].map((m) => m[1]), ["home", "desk", "automations"]);
+  assert.deepEqual([...out.matchAll(/data-tab="(\w+)"/g)].map((m) => m[1]), ["home", "sessions", "automations"]);
   assert.match(out, />Settings</);
   assert.equal(out.match(/aria-current="page"/g)?.length, 1);
 });
 
 test("the bottom bar puts the badges on the icons", () => {
-  const out = bottom({ badges: { homeUnread: 3, deskRunning: 0, deskWaiting: true } });
+  const out = bottom({ badges: { homeUnread: 3, sessionsRunning: 0, sessionsWaiting: true } });
   assert.match(out, /aria-label="3 unread">3</);
   assert.match(out, /aria-label="An agent is waiting for your reply"/);
 });

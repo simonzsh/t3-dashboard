@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { TABS, hashForTab, tabFromHash } from "../../src/lib/tabs.ts";
 
 test("the tabs are Home, Sessions and Automations, keyed 1 to 3", () => {
-  assert.deepEqual(TABS.map((t) => [t.id, t.label, t.key]), [["home", "Home", "1"], ["desk", "Sessions", "2"], ["automations", "Automations", "3"]]);
+  assert.deepEqual(TABS.map((t) => [t.id, t.label, t.key]), [["home", "Home", "1"], ["sessions", "Sessions", "2"], ["automations", "Automations", "3"]]);
 });
 
 test("each tab has a one-line description", () => {
@@ -12,13 +12,13 @@ test("each tab has a one-line description", () => {
 
 test("each tab has its own hash", () => {
   assert.equal(hashForTab("home"), "#/home");
-  assert.equal(hashForTab("desk"), "#/desk");
+  assert.equal(hashForTab("sessions"), "#/sessions");
   assert.equal(hashForTab("automations"), "#/automations");
 });
 
 test("a tab hash reads back as its tab", () => {
   assert.equal(tabFromHash("#/home"), "home");
-  assert.equal(tabFromHash("#/desk"), "desk");
+  assert.equal(tabFromHash("#/sessions"), "sessions");
   assert.equal(tabFromHash("#/automations"), "automations");
 });
 
@@ -33,5 +33,5 @@ test("no hash opens Home", () => {
 });
 
 test("an unknown or old hash opens Home", () => {
-  for (const hash of ["#/agents", "#/board", "#/settings", "#/Desk", "#/desk/extra", "#/constructor", "#/__proto__", "desk"]) assert.equal(tabFromHash(hash), "home", hash);
+  for (const hash of ["#/agents", "#/board", "#/settings", "#/Sessions", "#/sessions/extra", "#/constructor", "#/__proto__", "sessions"]) assert.equal(tabFromHash(hash), "home", hash);
 });
