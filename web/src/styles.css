@@ -58,6 +58,8 @@
   --font-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
   --bottom-bar: 60px;
   accent-color: var(--accent);
+  /* The text cursor (and its iOS selection handles) follow the accent too. */
+  caret-color: var(--accent);
 }
 /* Accent color (Settings > Appearance): mirrors ACCENTS in features/settings/accent.ts. */
 :root[data-accent="purple"] { --accent: #7c3aed; }
