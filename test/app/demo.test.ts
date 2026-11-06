@@ -345,6 +345,29 @@ test("the demo server stats are plausible, move over time and show an amber disk
   assert.equal(a.disk!.path, "/home/demo");
 });
 
+test("the demo edits and deletes a project with its threads", async () => {
+  const port = new DemoPort(() => NOW);
+  const store = syncedStore(port);
+  store.apply([{ kind: "synchronized" }]);
+  const actions = createActions({ port, store, board: { get: async () => ({ configured: true, ok: true, error: null, issues: [] }) }, home: DEMO_HOME });
+  await Promise.resolve();
+  await actions.updateProject("demo-sandbox", { title: "Playground", path: "~/src/notes", icon: { kind: "emoji", emoji: "🧪" } });
+  const edited = store.project("demo-sandbox");
+  assert.equal(edited?.title, "Playground");
+  assert.equal(edited?.workspaceRoot, `${DEMO_HOME}/src/notes`);
+  assert.deepEqual(edited?.iconSpec, { kind: "emoji", emoji: "🧪" });
+  await assert.rejects(actions.updateProject("demo-sandbox", { path: "~/src/missing" }), /does not exist/);
+  await assert.rejects(actions.updateProject("demo-sandbox", { path: "~/todo.txt" }), /file, not a folder/);
+
+  const connection = { t3: "live", origin: null, serverVersion: null, protocolMismatch: false, error: null, since: "x", setup: null } as const;
+  const { projects, threads } = store.state(connection, []);
+  const target = projects.find((project) => threads.some((thread) => thread.projectId === project.id))!;
+  await actions.deleteProject(target.id);
+  const after = store.state(connection, []);
+  assert.equal(after.projects.some((project) => project.id === target.id), false);
+  assert.equal(after.threads.some((thread) => thread.projectId === target.id), false);
+});
+
 test("the demo lists its folders and adds a created folder as a project", async () => {
   const port = new DemoPort(() => NOW);
   const store = syncedStore(port);

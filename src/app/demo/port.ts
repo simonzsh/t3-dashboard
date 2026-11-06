@@ -284,20 +284,45 @@ export class DemoPort implements T3Port {
   }
 
   async mutateProject(mutation: ProjectMutation): Promise<RawProject> {
-    if (mutation.type === "project.update") {
-      const index = this.projects.findIndex((project) => project.id === mutation.projectId);
-      if (index < 0) throw new IntegrationError("Unknown demo project", { system: "t3", kind: "refused" });
-      const project = { ...this.projects[index]!, archivedAt: mutation.archived ? this.now().toISOString() : null };
-      this.projects[index] = project;
-      this.publishProject(project);
-      return project;
-    }
+    if (mutation.type !== "project.create") return this.changeProject(mutation);
     const root = mutation.workspaceRoot;
     if (DEMO_FILES.includes(root)) throw new IntegrationError(`Workspace root is not a directory: ${root}`, { system: "t3", kind: "refused", reason: "WorkspaceRootNotDirectoryError" });
     // Like mkdir -p: the folder and its parents now exist.
     for (let dir = root; !this.folders.has(dir); dir = posix.dirname(dir)) this.folders.add(dir);
     const project: RawProject = { id: mutation.projectId, title: mutation.title, workspaceRoot: root, archivedAt: null };
     this.projects.push(project);
+    this.publishProject(project);
+    return project;
+  }
+
+  private changeProject(mutation: Exclude<ProjectMutation, { type: "project.create" }>): RawProject {
+    const index = this.projects.findIndex((project) => project.id === mutation.projectId);
+    if (index < 0) throw new IntegrationError("Unknown demo project", { system: "t3", kind: "refused", reason: "ProjectNotFoundError" });
+    const current = this.projects[index]!;
+    if (mutation.type === "project.delete") {
+      const deleted = { ...current, deletedAt: this.now().toISOString() };
+      this.projects.splice(index, 1);
+      for (const [id, projection] of this.projections) {
+        if (projection.thread?.projectId !== current.id) continue;
+        this.projections.delete(id);
+        for (const listener of this.listeners) listener([{ kind: "thread.removed", threadId: id }]);
+      }
+      for (const listener of this.listeners) listener([{ kind: "project.removed", projectId: current.id }]);
+      return deleted;
+    }
+    const root = mutation.workspaceRoot;
+    if (root !== undefined && !this.folders.has(root)) {
+      const reason = DEMO_FILES.includes(root) ? "WorkspaceRootNotDirectoryError" : "WorkspaceRootNotExistsError";
+      throw new IntegrationError(`Workspace root problem: ${root}`, { system: "t3", kind: "refused", reason });
+    }
+    const project: RawProject = {
+      ...current,
+      ...(mutation.title !== undefined && { title: mutation.title }),
+      ...(root !== undefined && { workspaceRoot: root }),
+      ...(mutation.projectIcon !== undefined && { projectIcon: mutation.projectIcon }),
+      ...(mutation.archived !== undefined && { archivedAt: mutation.archived ? this.now().toISOString() : null }),
+    };
+    this.projects[index] = project;
     this.publishProject(project);
     return project;
   }
