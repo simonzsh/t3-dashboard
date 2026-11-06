@@ -1,8 +1,8 @@
 import type { LimitsOverview, ServerStats, UsageOverview } from "../../../../shared/api.ts";
-import { Fragment, useState, type DragEvent, type ReactNode } from "react";
+import { Fragment, useRef, useState, type DragEvent, type ReactNode } from "react";
 import { CardEditBar } from "./CardEditBar.tsx";
 import { CARD_TITLES, dropCard, setHidden, shiftCard, type DashboardCard, type DashboardLayout } from "./layout.ts";
-import { Button, Icon } from "../../ui/index.ts";
+import { Button, Icon, useFlip } from "../../ui/index.ts";
 import { ActivityCard } from "./ActivityCard.tsx";
 import { ServerCard } from "./ServerCard.tsx";
 import { UsageCard } from "./UsageCard.tsx";
@@ -33,6 +33,9 @@ export function DashboardView({ limits, server, activity, running, layout, editi
   const { notifications, ...cards } = useDashboardCards(input, !layout.hidden.includes("up-next"));
   const body: Record<DashboardCard, ReactNode> = { usage: <UsageCard state={limits} now={input.now} />, server: <ServerCard state={server} />, activity: <ActivityCard state={activity} running={running} now={input.now} />, ...cards };
   const showPanel = panelOpen && !editing;
+  const root = useRef<HTMLDivElement>(null);
+  // Cards slide to their new place when the panel shows or hides, or the order changes; not while dragging.
+  useFlip(root, `${showPanel}|${layout.order.join(",")}`, { item: "data-dash-item", enabled: dragged === null });
   const endDrag = () => {
     setDragged(null);
     setTarget(null);
@@ -57,7 +60,7 @@ export function DashboardView({ limits, server, activity, running, layout, editi
       <div className={`dashboard-drop ${dragged}`} style={{ height: dragHeight }} aria-hidden="true" onDragOver={(e) => aim(e, index)} onDrop={drop} />
     );
   return (
-    <div className={`dashboard${showPanel ? " with-panel" : ""}`}>
+    <div ref={root} className={`dashboard${showPanel ? " with-panel" : ""}`}>
       <div className="dashboard-main">
         {editing && layout.hidden.length > 0 && (
           <div className="dashboard-hidden">
@@ -73,7 +76,7 @@ export function DashboardView({ limits, server, activity, running, layout, editi
           {layout.order.map((card, index) => (
             <Fragment key={card}>
               {placeholder(index)}
-              <div className={`dashboard-slot ${card}${dragged === card ? " dragging" : ""}`} onDragOver={editing ? (e) => aim(e, index) : undefined} onDrop={editing ? drop : undefined}>
+              <div data-dash-item={card} className={`dashboard-slot ${card}${dragged === card ? " dragging" : ""}`} onDragOver={editing ? (e) => aim(e, index) : undefined} onDrop={editing ? drop : undefined}>
                 {editing && (
                   <CardEditBar
                     card={card}
@@ -103,7 +106,7 @@ export function DashboardView({ limits, server, activity, running, layout, editi
         </div>
       </div>
       {showPanel && (
-        <aside className="dashboard-panel" aria-label="Notifications">
+        <aside data-dash-item="notifications" className="dashboard-panel" aria-label="Notifications">
           {notifications}
         </aside>
       )}
