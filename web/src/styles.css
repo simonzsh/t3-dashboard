@@ -648,10 +648,10 @@ ol.install-steps { padding-left: 18px; }
 .bottom-icon .nav-badge { position: absolute; top: -3px; right: -2px; min-width: 16px; height: 16px; padding: 0 4px; font-size: 10px; }
 .bottom-icon .nav-alert { position: absolute; top: 0; right: 14px; }
 /* Page header: title, one-line description, actions on the right. */
-.page-header { position: relative; z-index: 5; flex: none; display: flex; align-items: center; gap: 12px; padding: 14px 24px; border-bottom: 1px solid var(--line); background: color-mix(in srgb, var(--header-bg) 97%, transparent); }
-.page-heading { flex: 1; min-width: 0; }
-.page-title { margin: 0; font-size: 16px; font-weight: 600; letter-spacing: -0.01em; }
-.page-description { margin: 2px 0 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--text-secondary); font-size: 13px; }
+.page-header { position: relative; z-index: 5; flex: none; display: flex; align-items: center; gap: 12px; box-sizing: border-box; min-height: 48px; padding: 6px 20px; border-bottom: 1px solid var(--line); background: color-mix(in srgb, var(--header-bg) 97%, transparent); }
+.page-heading { flex: 1; min-width: 0; display: flex; align-items: baseline; gap: 10px; }
+.page-title { flex: none; margin: 0; font-size: 15px; font-weight: 600; letter-spacing: -0.01em; }
+.page-description { margin: 0; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--text-secondary); font-size: 12px; }
 .page-actions { flex: none; display: flex; align-items: center; gap: 8px; }
 .page-actions .icon { width: 18px; height: 18px; }
 /* Home: two columns of cards in one scroll area; the layout model decides which card goes where. */
@@ -660,6 +660,15 @@ ol.install-steps { padding-left: 18px; }
 .home-col.right { grid-template-columns: minmax(0, 1fr); position: sticky; top: 0; }
 .home-slot { min-width: 0; }
 .home-slot.usage { grid-column: 1 / -1; }
+/* Edit mode: each card has a bar on top, and a column accepts drops even when it is empty. */
+.home-col.editing { min-height: 96px; padding: 8px; border: 1px dashed var(--line); border-radius: var(--radius-lg); }
+.home-slot.dragging { opacity: 0.4; }
+.home-hidden { grid-column: 1 / -1; display: flex; flex-wrap: wrap; align-items: center; gap: 8px; color: var(--text-secondary); font-size: 12px; }
+.card-edit-bar { display: flex; align-items: center; gap: 2px; margin-bottom: 6px; padding: 2px 4px; border: 1px solid var(--accent); border-radius: var(--radius-md); background: color-mix(in srgb, var(--accent) 10%, var(--surface-1)); }
+.card-edit-title { flex: 1; min-width: 0; margin-left: 4px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 12px; font-weight: 600; }
+.card-handle { display: grid; place-items: center; width: var(--control-sm); height: var(--control-sm); border-radius: var(--radius-sm); color: var(--text-secondary); cursor: grab; }
+.card-handle:hover { color: var(--text-primary); background: var(--surface-0); }
+.home-slot-body[inert] { opacity: 0.65; }
 .home-card { background: var(--surface-1); border: 1px solid var(--line); border-radius: var(--radius-lg); }
 .usage-card { overflow: hidden; }
 .stat-tiles { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); }

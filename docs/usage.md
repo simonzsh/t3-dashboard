@@ -2,11 +2,14 @@
 
 [Back to the README](../README.md)
 
-The dashboard has three pages: Home, Desk and Automations. A sidebar on the left lists them, with a search button (`⌘` + `K`). Its last row shows the connection state, Settings and a button that collapses the sidebar to icons (`Ctrl` + `B`). The theme is in Settings. The sidebar remembers its state. The page header holds the New Agent and New Automation buttons. On a phone, a bar at the bottom of the screen replaces the sidebar: Home, Desk, Automations and Settings.
+The dashboard has three pages: Home, Desk and Automations. A sidebar on the left lists them, with a search button (`⌘` + `K`). Its last row shows the connection state, Settings and a button that collapses the sidebar to icons (`Ctrl` + `B`). The theme is in Settings. The sidebar remembers its state. The page header is one line: the title and a short description. Its button depends on the page: Desk has New Agent (`Ctrl` + `N`), Automations has New Automation (`Ctrl` + `⇧` + `N`), and Home has Edit layout. The two shortcuts work on every page. On a phone, a bar at the bottom of the screen replaces the sidebar: Home, Desk, Automations and Settings. The header then shows the page button as an icon, and a search button.
 
 ## Home
 
 Home opens first. At the top, a usage card shows three numbers for the last 7 days, each with its change from the 7 days before: turns (the messages sent to agents, by you or by an automation), sessions with at least one turn, and spend (API equivalent, all usage on this machine). A chart shows turns, spend or tokens for each of the last 14 days. Home has two columns. The usage card and the Running and Up next cards are on the left. The Notifications card is on the right and stays in view while the page scrolls. On a phone, the cards stack in one column: usage, Notifications, Running, Up next.
+
+- Click "Edit layout" to move the cards. A bar shows above each card. Drag the handle to another place, also into the other column. The arrow buttons move the card up, down or to the other column: use them with the keyboard or on a touch screen. The eye button hides the card. A list of hidden cards shows at the top, with a button to show each one.
+- Click "Done" to leave edit mode. "Reset" restores the default layout. The browser saves the layout (`t3-dashboard-home-layout` in local storage), so each browser has its own.
 
 - Turns are the runs of your T3 Code threads. Spend and tokens come from T3 Code and cover all usage on this machine, not only these threads. The spend is the API equivalent.
 - If T3 Code is too old to report usage, the spend shows "—" and the reason. The rest of Home keeps working.
@@ -140,7 +143,7 @@ The Automations tab lists the scheduled tasks of T3 Code in a table. It needs T3
 
 ### Create an automation
 
-1. Open a new automation. Click "New Automation" in the header, to the right of New Agent, or push `⇧` + `N`. A window opens with a form.
+1. Open a new automation. Click "New Automation" in the header of the Automations page, or push `⇧` + `N`. A window opens with a form.
 2. Pick the kind: Routine, Reminder or Webhook.
 3. Select a project, or keep "No project". The dashboard keeps this selection for the next time.
 4. Set the schedule (see below), write the prompt, and pick the model. The first line of the prompt becomes the title.

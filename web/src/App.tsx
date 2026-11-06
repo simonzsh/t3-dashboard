@@ -2,10 +2,12 @@ import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } fr
 import type { DashboardThread } from "../../shared/api.ts";
 import { AutomationsView } from "./features/automations/AutomationsView.tsx";
 import { HomeView } from "./features/home/HomeView.tsx";
-import { loadLayout } from "./features/home/layout.ts";
+import { isDefaultLayout } from "./features/home/layout.ts";
+import { useHomeLayout } from "./features/home/useHomeLayout.ts";
 import { useUsage } from "./features/home/useUsage.ts";
 import { InboxView } from "./features/inbox/InboxView.tsx";
 import { AppNav } from "./features/shell/AppNav.tsx";
+import { PageActions } from "./features/shell/PageActions.tsx";
 import { ConnectionBanner } from "./features/setup/ConnectionBanner.tsx";
 import { DeskView } from "./features/desk/DeskView.tsx";
 import { NewAutomationDialog } from "./features/new-thread/NewAutomationDialog.tsx";
@@ -33,11 +35,11 @@ import { browserStorage } from "./lib/storage.ts";
 import { loadSidebarCollapsed, saveSidebarCollapsed } from "./lib/sidebar.ts";
 import { navBadges } from "./lib/navBadges.ts";
 import { TABS } from "./lib/tabs.ts";
-import { ctrlLabel, startsTyping } from "./lib/shortcuts.ts";
+import { startsTyping } from "./lib/shortcuts.ts";
 import { useTab } from "./lib/useTab.ts";
 import { useTheme } from "./features/settings/useTheme.ts";
 import { useUpdate } from "./features/update/useUpdate.ts";
-import { Button, Icon, IconButton, Loader, Logo, PageHeader, TooltipLayer } from "./ui/index.ts";
+import { Loader, Logo, PageHeader, TooltipLayer } from "./ui/index.ts";
 import { updateLabel } from "./features/update/updateFlow.ts";
 
 const NO_THREADS: DashboardThread[] = [];
@@ -206,7 +208,7 @@ export function App() {
   );
   const unread = useMemo(() => unreadCount(inboxSections(visible, notify.seen, now), notify.seen), [visible, notify.seen, now]);
   const badges = navBadges(state?.threads ?? NO_THREADS, deskIds, unread);
-  const homeLayout = useMemo(() => loadLayout(browserStorage()), []);
+  const homeLayout = useHomeLayout(tab === "home");
   const usage = useUsage(tab === "home" && state !== null);
   const page = TABS.find((t) => t.id === tab)!;
   const updateNav = update.status?.available && update.status.canUpdate ? { label: updateLabel(update.status), busy: update.updating || update.status.updating } : null;
@@ -244,32 +246,19 @@ export function App() {
           description={page.description}
           leading={compact ? <Logo /> : undefined}
           actions={
-            compact ? (
-              state && (
-                <>
-                  <IconButton variant="primary" className="header-new" label="New Agent" onClick={() => setCreating(true)}>
-                    <Icon name="assignBot" />
-                  </IconButton>
-                  <IconButton variant="ghost" label="New Automation" onClick={() => setCreatingAutomation(true)}>
-                    <Icon name="calendarClock" />
-                  </IconButton>
-                  <IconButton variant="ghost" label="Search" onClick={() => setSwitcherQuery("")}>
-                    <Icon name="search" />
-                  </IconButton>
-                </>
-              )
-            ) : (
-              state && (
-                <>
-                  <Button variant="primary" kbd={ctrlLabel("N")} onClick={() => setCreating(true)}>
-                    New Agent
-                  </Button>
-                  <Button kbd={ctrlLabel("⇧N")} onClick={() => setCreatingAutomation(true)}>
-                    New Automation
-                  </Button>
-                </>
-              )
-            )
+            <PageActions
+              tab={tab}
+              compact={compact}
+              ready={state !== null}
+              editingLayout={homeLayout.editing}
+              layoutIsDefault={isDefaultLayout(homeLayout.layout)}
+              onNewAgent={() => setCreating(true)}
+              onNewAutomation={() => setCreatingAutomation(true)}
+              onSearch={() => setSwitcherQuery("")}
+              onEditLayout={() => homeLayout.setEditing(true)}
+              onDoneLayout={() => homeLayout.setEditing(false)}
+              onResetLayout={homeLayout.reset}
+            />
           }
         />
         <ConnectionBanner connection={state?.connection ?? null} sseDown={sseDown} />
@@ -293,7 +282,7 @@ export function App() {
                 linearVersion={linearVersion}
               >
                 {(cards) => (
-                  <HomeView usage={usage} threads={state.threads} now={now} layout={homeLayout} cards={{ notifications: cards.notifications, running: cards.running, "up-next": cards.upNext }} />
+                  <HomeView usage={usage} threads={state.threads} now={now} layout={homeLayout.layout} editing={homeLayout.editing} onLayout={homeLayout.setLayout} cards={{ notifications: cards.notifications, running: cards.running, "up-next": cards.upNext }} />
                 )}
               </InboxView>
             ) : <Loader />)}
