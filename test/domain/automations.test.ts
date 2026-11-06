@@ -479,3 +479,19 @@ test("a failed update rolls back only the mark it added", async () => {
   await assert.rejects(make(earlier).update("task-1", { ...base, kind: "reminder", at }));
   assert.equal(earlier.has("task-1", lastRunAt), true);
 });
+
+test("setEnabled and runNow reach T3, and an unknown automation is not found", async () => {
+  const port = new FakePort();
+  const automations = createAutomations({ port, store: { project: () => undefined, rawThreads: () => [] }, dedicated: { read: () => new Set() } });
+  port.scheduledTasks = [task({})];
+  await automations.setEnabled("task-1", false);
+  await automations.runNow("task-1");
+  assert.deepEqual(port.enabledCalls, [{ id: "task-1", enabled: false }]);
+  assert.deepEqual(port.runNowCalls, ["task-1"]);
+  for (const call of [() => automations.setEnabled("nope", true), () => automations.runNow("nope")]) {
+    await assert.rejects(call, (error: DomainError) => error.code === "not-found");
+  }
+  assert.equal(port.enabledCalls.length + port.runNowCalls.length, 2);
+  port.runNowError = new Error("T3 is down");
+  await assert.rejects(automations.runNow("task-1"), (error: IntegrationError) => error.kind === "unreachable");
+});

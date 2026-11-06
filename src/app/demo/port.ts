@@ -93,6 +93,31 @@ export class DemoPort implements T3Port {
     else this.pausedTasks.add(id);
   }
 
+  // Like T3: an unbound task opens a fresh thread, which the demo leaves running.
+  async runScheduledTaskNow(id: string): Promise<void> {
+    const task = (await this.listScheduledTasks()).find((entry) => entry.id === id);
+    if (!task) throw new Error("Unknown demo task");
+    const at = this.now().toISOString();
+    this.updatedTasks.set(id, { ...this.updatedTasks.get(id), lastRunAt: at, lastRunStatus: "running", lastRunError: undefined });
+    if (task.threadId) return;
+    const threadId = `demo-run-${id}-${++this.sequence}`;
+    const thread: RawThread = {
+      id: threadId,
+      projectId: task.projectId ?? SCRATCH_PROJECT_ID,
+      title: task.title,
+      modelSelection: task.modelSelection,
+      providerInstanceId: task.modelSelection?.instanceId,
+      runtimeMode: task.runtimeMode,
+      creationSource: task.creationSource,
+      status: "running",
+      activeRunId: `run-${threadId}`,
+      createdAt: at,
+      updatedAt: at,
+    };
+    this.projections.set(threadId, { thread, messages: [], visibleTurnItems: [], runs: [] });
+    this.publish(thread);
+  }
+
   subscribeScheduledTasks(onTasks: (tasks: RawScheduledTask[]) => void): { cancel(): void } {
     let cancelled = false;
     void this.listScheduledTasks().then((tasks) => {

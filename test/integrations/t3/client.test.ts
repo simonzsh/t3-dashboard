@@ -293,6 +293,16 @@ test("a refused task update is rebuilt without T3's message", async () => {
   assert.deepEqual([failure?.kind, failure?.message], ["refused", "T3 refused the scheduled task update."]);
 });
 
+test("runScheduledTaskNow sends the id and is not retried on a dropped socket", async () => {
+  const { client } = setup();
+  const done = client.runScheduledTaskNow("task-1");
+  const socket = await nextSocket();
+  assert.equal(socket.sent[0]!.tag, "scheduledTasks.runNow");
+  assert.deepEqual(socket.sent[0]!.payload, { id: "task-1" });
+  socket.receive({ _tag: "Exit", requestId: "1", exit: { _tag: "Success", value: { task: { id: "task-1" } } } });
+  await done;
+});
+
 test("setScheduledTaskEnabled sends the id and the flag, and is sent again after a cut", async () => {
   const { client } = setup();
   const done = client.setScheduledTaskEnabled("task-1", false);

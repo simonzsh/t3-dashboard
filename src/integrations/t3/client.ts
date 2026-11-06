@@ -29,6 +29,7 @@ export const RPC = {
   deleteScheduledTask: "scheduledTasks.delete",
   upsertScheduledTask: "scheduledTasks.upsert",
   setEnabledScheduledTask: "scheduledTasks.setEnabled",
+  runNowScheduledTask: "scheduledTasks.runNow",
   answerSecret: "secrets.answerRequest",
   getUsageSummary: "server.getUsageSummary",
 } as const;
@@ -144,6 +145,11 @@ export class T3Client implements T3Port {
 
   async setScheduledTaskEnabled(id: string, enabled: boolean): Promise<void> {
     await this.call(RPC.setEnabledScheduledTask, { id, enabled });
+  }
+
+  // Not in IDEMPOTENT: a retry after the run started would start a second one.
+  async runScheduledTaskNow(id: string): Promise<void> {
+    await this.call(RPC.runNowScheduledTask, { id });
   }
 
   // The upsert replaces the whole task, so every field comes from T3's raw answer: the reduced schema would drop some.

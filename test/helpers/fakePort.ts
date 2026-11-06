@@ -31,6 +31,8 @@ export class FakePort implements T3Port {
   workspaceError: Error | null = null;
   enabledCalls: { id: string; enabled: boolean }[] = [];
   enabledError: Error | null = null;
+  runNowCalls: string[] = [];
+  runNowError: Error | null = null;
   taskSubscriptions: Array<{ onTasks(tasks: RawScheduledTask[]): void; onEnd(error?: Error): void; cancelled: boolean }> = [];
   secretAnswers: Array<{ threadId: string; turnItemId: string; answer: SecretAnswer }> = [];
   secretError: Error | null = null;
@@ -112,6 +114,11 @@ export class FakePort implements T3Port {
   async setScheduledTaskEnabled(id: string, enabled: boolean) {
     if (this.enabledError) throw this.enabledError;
     this.enabledCalls.push({ id, enabled });
+  }
+
+  async runScheduledTaskNow(id: string) {
+    if (this.runNowError) throw this.runNowError;
+    this.runNowCalls.push(id);
   }
 
   subscribeScheduledTasks(onTasks: (tasks: RawScheduledTask[]) => void, onEnd: (error?: Error) => void) {

@@ -39,7 +39,7 @@ interface StartOptions {
   site?: Site;
   linearKey?: string;
   linearFetch?: (url: string, init: RequestInit) => Promise<Response>;
-  automations?: Pick<Automations, "list" | "create" | "remove" | "update">;
+  automations?: Pick<Automations, "list" | "create" | "remove" | "update"> & Partial<Pick<Automations, "setEnabled" | "runNow">>;
   // Content of the Linear file. Without it, `linearKey` feeds the board directly.
   linear?: unknown;
   pasteResult?: "ok" | "rejected" | "unreachable" | "locked";
@@ -170,7 +170,7 @@ async function start(startOptions: StartOptions = {}) {
     usage,
     limits,
     serverStats,
-    automations,
+    automations: { setEnabled: async () => {}, runNow: async () => {}, ...automations },
     getState,
     connection: () => connection,
     site,
@@ -593,6 +593,8 @@ test("every POST route refuses a body that is not JSON", async () => {
     "/api/automations",
     "/api/automations/task-1/delete",
     "/api/automations/task-1/update",
+    "/api/automations/task-1/enabled",
+    "/api/automations/task-1/run",
     "/api/threads/run-1/messages",
     "/api/threads/run-1/settings",
     "/api/threads/run-1/interrupt",
@@ -857,6 +859,46 @@ test("a creation still needs the signing secret", async () => {
 test("the rename route is gone", async () => {
   const { server } = await updateStart([]);
   assert.notEqual((await post(server, "/api/automations/task-1/rename", { title: "x" })).status, 200);
+});
+
+const toggleStart = (calls: unknown[], error?: Error) =>
+  start({
+    automations: {
+      list: async () => ({ automations: [], automationThreadIds: [], setupThreadIds: [] }),
+      create: async () => created,
+      remove: async () => {},
+      update: async () => {},
+      setEnabled: async (id, enabled) => (error ? Promise.reject(error) : void calls.push(["enabled", id, enabled])),
+      runNow: async (id) => (error ? Promise.reject(error) : void calls.push(["run", id])),
+    },
+  });
+
+test("POST /api/automations/:id/enabled validates the flag and passes it on", async () => {
+  const calls: unknown[] = [];
+  const { server } = await toggleStart(calls);
+  const reply = await post(server, "/api/automations/task%2F1/enabled", { enabled: false });
+  assert.equal(reply.status, 200);
+  assert.deepEqual(reply.json, { ok: true });
+  assert.deepEqual(calls, [["enabled", "task/1", false]]);
+  for (const body of [{}, { enabled: "yes" }, { enabled: 1 }]) assert.equal((await post(server, "/api/automations/task-1/enabled", body)).status, 400, JSON.stringify(body));
+  assert.equal(calls.length, 1);
+});
+
+test("POST /api/automations/:id/run starts a run", async () => {
+  const calls: unknown[] = [];
+  const { server } = await toggleStart(calls);
+  const reply = await post(server, "/api/automations/task%2F1/run", {});
+  assert.equal(reply.status, 200);
+  assert.deepEqual(reply.json, { ok: true });
+  assert.deepEqual(calls, [["run", "task/1"]]);
+});
+
+test("enabled and run map an unknown automation to 404 and a T3 failure to 502", async () => {
+  const status = async (path: string, error: Error) => (await post((await toggleStart([], error)).server, path, { enabled: true })).status;
+  for (const path of ["/api/automations/task-1/enabled", "/api/automations/task-1/run"]) {
+    assert.equal(await status(path, new DomainError("not-found", "gone")), 404, path);
+    assert.equal(await status(path, new IntegrationError("T3 is down", { system: "t3", kind: "unreachable" })), 502, path);
+  }
 });
 
 test("update errors map to 404, 400, 409 and 502", async () => {

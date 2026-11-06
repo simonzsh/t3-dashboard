@@ -483,6 +483,8 @@ export interface T3Port {
   setScheduledTaskWorkspace(id: string, workspaceStrategy: { type: "root" }): Promise<void>;
   /** Pauses or resumes a scheduled task. */
   setScheduledTaskEnabled(id: string, enabled: boolean): Promise<void>;
+  /** Starts a run of a scheduled task now, whatever its schedule. */
+  runScheduledTaskNow(id: string): Promise<void>;
   /** Full task snapshots: T3 sends the whole list on each change. */
   subscribeScheduledTasks(onTasks: (tasks: RawScheduledTask[]) => void, onEnd: (error?: Error) => void): { cancel(): void };
   /** Message matches in T3, best first. */

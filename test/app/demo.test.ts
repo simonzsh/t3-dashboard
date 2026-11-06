@@ -348,3 +348,23 @@ test("the demo server stats are plausible, move over time and show an amber disk
   assert.ok(a.disk!.usedPercent >= 75 && a.disk!.usedPercent < 90);
   assert.equal(a.disk!.path, "/home/demo");
 });
+
+test("demo runNow opens a running run thread that the task matches, and setEnabled pauses it", async () => {
+  const port = new DemoPort(() => NOW);
+  const store = syncedStore(port);
+  await Bun.sleep(0);
+  const automations = createAutomations({ port, store, dedicated: { read: () => new Set() } });
+  const before = (await automations.list()).automations.find((a) => a.id === "dependency-check")!;
+  await automations.runNow("dependency-check");
+  const task = (await port.listScheduledTasks()).find((entry) => entry.id === "dependency-check")!;
+  assert.deepEqual([task.lastRunAt, task.lastRunStatus], [NOW.toISOString(), "running"]);
+  const run = store.rawThreads().find((thread) => thread.title === task.title && thread.createdAt === NOW.toISOString())!;
+  assert.deepEqual([run.projectId, run.creationSource, run.status], [task.projectId, task.creationSource, "running"]);
+  const after = (await automations.list()).automations.find((a) => a.id === "dependency-check")!;
+  assert.equal(after.runs.length, before.runs.length + 1);
+  assert.equal(after.lastRunStatus, "running");
+  await automations.setEnabled("dependency-check", false);
+  assert.equal((await port.listScheduledTasks()).find((entry) => entry.id === "dependency-check")!.enabled, false);
+  await automations.setEnabled("dependency-check", true);
+  assert.equal((await port.listScheduledTasks()).find((entry) => entry.id === "dependency-check")!.enabled, true);
+});

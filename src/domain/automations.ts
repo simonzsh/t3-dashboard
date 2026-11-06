@@ -75,7 +75,7 @@ function titleFromRequest(text: string): string {
 }
 
 export interface AutomationsOptions {
-  port: Pick<T3Port, "listScheduledTasks" | "deleteScheduledTask" | "updateScheduledTask" | "createScheduledTask" | "ensureScratchProject" | "dispatch">;
+  port: Pick<T3Port, "listScheduledTasks" | "setScheduledTaskEnabled" | "runScheduledTaskNow" | "deleteScheduledTask" | "updateScheduledTask" | "createScheduledTask" | "ensureScratchProject" | "dispatch">;
   store: Pick<ShellStore, "project" | "rawThreads">;
   /** The setup threads that older versions created: the UI marks them as automation sessions. */
   dedicated: { read(): ReadonlySet<string> };
@@ -96,6 +96,10 @@ export interface Automations {
   remove(id: string): Promise<void>;
   /** Applies the form to the T3 task. The kind cannot change. A new title also renames the bound thread. */
   update(id: string, body: UpdateAutomationBody): Promise<void>;
+  /** Pauses or resumes the T3 task. */
+  setEnabled(id: string, enabled: boolean): Promise<void>;
+  /** Starts a run of the T3 task now. */
+  runNow(id: string): Promise<void>;
 }
 
 async function viaT3<T>(work: Promise<T>): Promise<T> {
@@ -114,6 +118,10 @@ export function createAutomations(options: AutomationsOptions): Automations {
   const warn = options.warn ?? console.warn;
   const rearmed = options.rearmed ?? new RearmedStore();
   const runs = options.runs ?? new AutomationRunLog();
+
+  async function known(id: string): Promise<void> {
+    if (!(await viaT3(port.listScheduledTasks())).some((task) => task.id === id)) throw new DomainError("not-found", "This automation no longer exists");
+  }
 
   return {
     async list() {
@@ -137,6 +145,16 @@ export function createAutomations(options: AutomationsOptions): Automations {
           warn(`Could not archive thread ${run.id} of the deleted reminder: ${(error as Error).message}`);
         }
       }
+    },
+
+    async setEnabled(id, enabled) {
+      await known(id);
+      await viaT3(port.setScheduledTaskEnabled(id, enabled));
+    },
+
+    async runNow(id) {
+      await known(id);
+      await viaT3(port.runScheduledTaskNow(id));
     },
 
     async update(id, body) {
