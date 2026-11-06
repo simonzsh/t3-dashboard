@@ -127,17 +127,12 @@ test("parseSessions caps the saved ids at 100", () => {
   assert.equal(s.focusedId, "t99");
 });
 
-test("loadSessions and saveSessions use storage and survive errors", () => {
+test("loadSessions and saveSessions use storage", () => {
   const store = memoryStore();
   const s = open(EMPTY_SESSIONS, "a");
   saveSessions(store, s);
   assert.ok(store.data.has(SESSIONS_KEY));
   assert.deepEqual(loadSessions(store), s);
-  const broken = { getItem: () => { throw new Error("denied"); }, setItem: () => { throw new Error("denied"); } };
-  assert.deepEqual(loadSessions(broken), EMPTY_SESSIONS);
-  assert.doesNotThrow(() => saveSessions(broken, s));
-  assert.deepEqual(loadSessions(null), EMPTY_SESSIONS);
-  assert.doesNotThrow(() => saveSessions(null, s));
 });
 
 test("neighborId in column view moves one column and stops at the ends", () => {

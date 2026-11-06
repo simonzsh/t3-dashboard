@@ -98,7 +98,7 @@ export function Popover({ anchor, onClose, align = "start", minWidth = 0, matchW
       const target = e.target as Node;
       if (!wasInside && !box.current?.contains(target) && !anchor.current?.contains(target)) close.current("outside");
     };
-    // Capture and stop: a dialog or the Sessions must not also react to this Escape.
+    // Capture and stop: a dialog or the Sessions page must not also react to this Escape.
     const key = (e: KeyboardEvent) => {
       if (e.key !== "Escape" || open[open.length - 1] !== self.current) return;
       e.stopPropagation();

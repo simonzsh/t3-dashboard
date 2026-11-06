@@ -13,6 +13,7 @@ import {
   stackedOrder,
   validateLayout,
 } from "../../../src/features/dashboard/layout.ts";
+import { memoryStore } from "../../fixtures.ts";
 
 test("the default layout has the usage card, Running and Up next on the left and Notifications on the right", () => {
   assert.deepEqual(DEFAULT_LAYOUT, { left: ["usage", "running", "up-next"], right: ["notifications"], hidden: [] });
@@ -57,12 +58,11 @@ test("on a phone the usage card leads, then the right column, then the rest", ()
 });
 
 test("the layout is saved and loaded, and a broken value gives the default", () => {
-  const store = new Map<string, string>();
-  const storage = { getItem: (k: string) => store.get(k) ?? null, setItem: (k: string, v: string) => void store.set(k, v) };
+  const storage = memoryStore();
   const moved = moveCard(DEFAULT_LAYOUT, "running", "right");
   saveLayout(storage, moved);
   assert.deepEqual(loadLayout(storage), moved);
-  store.set(DASHBOARD_LAYOUT_KEY, "{not json");
+  storage.data.set(DASHBOARD_LAYOUT_KEY, "{not json");
   assert.deepEqual(loadLayout(storage), DEFAULT_LAYOUT);
   assert.deepEqual(loadLayout(null), DEFAULT_LAYOUT);
 });

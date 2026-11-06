@@ -1,6 +1,6 @@
 import { SESSIONS_MAX } from "../../../../shared/sessions.ts";
 import type { SessionLayout } from "../../lib/sessionLayout.ts";
-import type { Store } from "../../lib/storage.ts";
+import { readKey, writeKey, type Store } from "../../lib/storage.ts";
 
 export const SESSIONS_KEY = "t3-dashboard-sessions";
 
@@ -113,21 +113,9 @@ export function parseSessions(raw: string | null): SessionsState {
   return settle({ ids, focusedId: typeof data.focusedId === "string" ? data.focusedId : null, maximized: data.maximized === true });
 }
 
-export function loadSessions(storage: Store | null): SessionsState {
-  try {
-    return parseSessions(storage?.getItem(SESSIONS_KEY) ?? null);
-  } catch {
-    return EMPTY_SESSIONS;
-  }
-}
+export const loadSessions = (storage: Store | null): SessionsState => parseSessions(readKey(storage, SESSIONS_KEY));
 
-export function saveSessions(storage: Store | null, state: SessionsState): void {
-  try {
-    storage?.setItem(SESSIONS_KEY, JSON.stringify(state));
-  } catch {
-    // Ignored on purpose: the Sessions page then starts empty on the next load.
-  }
-}
+export const saveSessions = (storage: Store | null, state: SessionsState): void => writeKey(storage, SESSIONS_KEY, JSON.stringify(state));
 
 /** The sessions a prune keeps: live threads, and subagent threads, which the shell never lists but the server resolves. */
 export async function sessionsToKeep(sessionIds: readonly string[], liveIds: ReadonlySet<string>, isSubagentThread: (id: string) => Promise<boolean>): Promise<Set<string>> {

@@ -56,9 +56,10 @@ function bounce(el: Element): Animation | null {
   return el.animate([{ scale: "1" }, { scale: "1.12" }, { scale: "1" }], { duration: BASE, easing: EASE });
 }
 
-/** A ghost of `source` flies from `from` into `target` and shrinks; the target bounces when it lands. */
-export function fly(source: Element, target: Element | null, from: Rect = source.getBoundingClientRect()): Animation | null {
+/** A ghost of `source` flies from its place into `target` and shrinks; the target bounces when it lands. */
+export function fly(source: Element, target: Element | null): Animation | null {
   if (!target || reducedMotion()) return null;
+  const from = source.getBoundingClientRect();
   const g = ghost(source, from);
   const end = fitInto(from, target.getBoundingClientRect());
   const anim = g.animate([{ ...AT_REST, opacity: 1 }, { ...placed(end, from), opacity: 0.4 }], { duration: LONG, easing: EASE });
@@ -87,7 +88,7 @@ export function enter(el: Element, { x = 0, y = 0, scale = 1, duration = BASE, s
 }
 
 /** Slides an element from its old rect to the one it has now (FLIP), above its neighbours while it moves. */
-function flip(el: Element, before: Rect, { delay = 0 } = {}): Animation | null {
+function flip(el: Element, before: Rect, delay: number): Animation | null {
   if (reducedMotion()) return null;
   const after = el.getBoundingClientRect();
   if (!moved(before, after)) return null;
@@ -139,7 +140,7 @@ export function useFlip(root: RefObject<HTMLElement | null>, key: string, { item
     for (const step of plan) {
       const now = items.get(step.id)?.el;
       const was = before.get(step.id);
-      if (step.kind === "move" && now && was) track(flip(now, was.rect, { delay: leaving ? SHORT / 2 : 0 }));
+      if (step.kind === "move" && now && was) track(flip(now, was.rect, leaving ? SHORT / 2 : 0));
       else if (step.kind === "enter" && now) track(enter(now, { scale: 0.96 }));
       else if (step.kind === "leave" && was) track(exit(was.el, was.rect));
     }

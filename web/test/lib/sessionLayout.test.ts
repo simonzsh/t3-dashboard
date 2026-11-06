@@ -16,11 +16,3 @@ test("the layout survives a save and a load", () => {
   assert.equal(store.data.get(SESSION_LAYOUT_KEY), "grid");
   assert.equal(loadSessionLayout(store), "grid");
 });
-
-test("without a working storage the layout is columns and saving does not throw", () => {
-  const broken = { getItem: () => { throw new Error("denied"); }, setItem: () => { throw new Error("denied"); }, };
-  assert.equal(loadSessionLayout(null), "columns");
-  assert.equal(loadSessionLayout(broken), "columns");
-  assert.doesNotThrow(() => saveSessionLayout(broken, "grid"));
-  assert.doesNotThrow(() => saveSessionLayout(null, "grid"));
-});

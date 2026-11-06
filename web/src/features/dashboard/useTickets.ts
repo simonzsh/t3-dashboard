@@ -24,7 +24,7 @@ export function useTickets(version: number, threads: DashboardThread[], seen: Se
       }),
     [],
   );
-  // Bypass the server cache only for a settings change, not on each visit to the Inbox.
+  // Bypass the server cache only for a settings change, not on each visit to the Dashboard.
   const loadedVersion = useRef(version);
   useEffect(() => {
     void load(version !== loadedVersion.current);

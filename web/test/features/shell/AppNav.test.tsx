@@ -5,8 +5,8 @@ import { AppNav } from "../../../src/features/shell/AppNav.tsx";
 
 const base = {
   tab: "sessions" as const,
-  badges: { dashboardUnread: 0, sessionsRunning: 0, sessionsWaiting: false },
-  badgeText: (n: number) => (n > 9 ? "9+" : String(n)),
+  unread: 0,
+  badges: { sessionsRunning: 0, sessionsWaiting: false },
   live: true,
   update: null,
   collapsed: false,
@@ -32,17 +32,16 @@ test("the sidebar has the search button with its shortcut hint", () => {
 });
 
 test("the sidebar shows unread on Dashboard, running on Sessions and a dot for a waiting agent", () => {
-  const out = side({ badges: { dashboardUnread: 12, sessionsRunning: 2, sessionsWaiting: true } });
+  const out = side({ unread: 12, badges: { sessionsRunning: 2, sessionsWaiting: true } });
   assert.match(out, /aria-label="12 unread">9\+</);
   assert.match(out, /aria-label="2 running">2</);
   assert.match(out, /aria-label="An agent is waiting for your reply"/);
   assert.doesNotMatch(side(), /nav-badge|An agent is waiting/);
 });
 
-test("the sidebar footer holds the connection, Settings and collapse on one row, with no theme toggle", () => {
+test("the sidebar footer holds the connection, Settings and collapse on one row", () => {
   assert.match(side(), /sidebar-actions[^>]*>[\s\S]*?Connected[\s\S]*?aria-label="Settings"[\s\S]*?aria-label="Collapse the sidebar"/);
   assert.match(side({ live: false }), /Offline/);
-  assert.doesNotMatch(side(), /theme/i);
 });
 
 test("the sidebar shows the update button only when an update is ready", () => {
@@ -60,7 +59,7 @@ test("the bottom bar has the three pages and Settings, and no sidebar", () => {
 });
 
 test("the bottom bar puts the badges on the icons", () => {
-  const out = bottom({ badges: { dashboardUnread: 3, sessionsRunning: 0, sessionsWaiting: true } });
+  const out = bottom({ unread: 3, badges: { sessionsRunning: 0, sessionsWaiting: true } });
   assert.match(out, /aria-label="3 unread">3</);
   assert.match(out, /aria-label="An agent is waiting for your reply"/);
 });

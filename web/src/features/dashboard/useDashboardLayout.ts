@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useState } from "react";
 import { browserStorage } from "../../lib/storage.ts";
 import { DEFAULT_LAYOUT, loadLayout, saveLayout, type DashboardLayout } from "./layout.ts";
 
@@ -6,9 +6,7 @@ import { DEFAULT_LAYOUT, loadLayout, saveLayout, type DashboardLayout } from "./
 export function useDashboardLayout(active: boolean) {
   const [layout, setLayoutState] = useState<DashboardLayout>(() => loadLayout(browserStorage()));
   const [editing, setEditing] = useState(false);
-  useEffect(() => {
-    if (!active) setEditing(false);
-  }, [active]);
+  if (!active && editing) setEditing(false);
   const setLayout = useCallback((next: DashboardLayout) => {
     setLayoutState(next);
     saveLayout(browserStorage(), next);

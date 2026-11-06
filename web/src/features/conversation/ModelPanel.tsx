@@ -72,7 +72,7 @@ export function ModelPanel({ providers, selection, mode, modes, onSelection, onM
     const down = (e: MouseEvent) => {
       if (!root.current?.contains(e.target as Node)) setOpen(false);
     };
-    // Capture and stop: the Sessions must not also react to this Escape.
+    // Capture and stop: the Sessions page must not also react to this Escape.
     const key = (e: globalThis.KeyboardEvent) => {
       if (e.key !== "Escape") return;
       e.stopPropagation();

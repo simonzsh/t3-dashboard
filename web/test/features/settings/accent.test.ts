@@ -1,6 +1,7 @@
 import { test } from "bun:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
+import { memoryStore } from "../../fixtures.ts";
 import { ACCENTS, ACCENT_KEY, DEFAULT_ACCENT, faviconSvg, loadAccent, parseAccent, saveAccent } from "../../../src/features/settings/accent.ts";
 
 test("an unknown or missing accent falls back to blue", () => {
@@ -9,15 +10,12 @@ test("an unknown or missing accent falls back to blue", () => {
   assert.equal(parseAccent(null), "blue");
 });
 
-test("the accent survives a reload, and a throwing storage does not break it", () => {
-  const store = new Map<string, string>();
-  const storage = { getItem: (k: string) => store.get(k) ?? null, setItem: (k: string, v: string) => void store.set(k, v), removeItem: (k: string) => void store.delete(k) };
-  saveAccent(storage, "purple");
-  assert.equal(store.get(ACCENT_KEY), "purple");
-  assert.equal(loadAccent(storage), "purple");
-  const broken = { getItem: () => { throw new Error("blocked"); }, setItem: () => { throw new Error("blocked"); }, removeItem: () => {} };
-  assert.equal(loadAccent(broken), "blue");
-  saveAccent(broken, "red");
+test("the accent survives a reload", () => {
+  const store = memoryStore();
+  assert.equal(loadAccent(store), "blue");
+  saveAccent(store, "purple");
+  assert.equal(store.data.get(ACCENT_KEY), "purple");
+  assert.equal(loadAccent(store), "purple");
 });
 
 test("every accent but blue has a light and a dark rule in styles.css, and index.html knows them all", () => {

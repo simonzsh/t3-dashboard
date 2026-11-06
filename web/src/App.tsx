@@ -12,7 +12,6 @@ import { SessionsView } from "./features/sessions/SessionsView.tsx";
 import { NewAutomationDialog } from "./features/new-thread/NewAutomationDialog.tsx";
 import { NewThreadDialog } from "./features/new-thread/NewThreadDialog.tsx";
 import { NotificationToasts } from "./features/notifications/NotificationToasts.tsx";
-import { badgeText } from "./features/notifications/notifications.ts";
 import { useNotifications } from "./features/notifications/useNotifications.ts";
 import { useSetupRows } from "./features/automations/useSetupRows.ts";
 import { listedThreads, threadSections, unreadCount } from "./features/dashboard/sections.ts";
@@ -30,9 +29,8 @@ import { useSessions } from "./features/sessions/useSessions.ts";
 import { useSessionsSync } from "./features/sessions/useSessionsSync.ts";
 import { useMediaQuery } from "./lib/useMediaQuery.ts";
 import { useShortcuts } from "./lib/useShortcuts.ts";
-import { browserStorage } from "./lib/storage.ts";
 import { useSessionLayout } from "./lib/sessionLayout.ts";
-import { loadSidebarCollapsed, saveSidebarCollapsed } from "./lib/sidebar.ts";
+import { useSidebarCollapsed } from "./lib/sidebar.ts";
 import { navBadges } from "./lib/navBadges.ts";
 import { TABS } from "./lib/tabs.ts";
 import { useTab } from "./lib/useTab.ts";
@@ -49,7 +47,7 @@ const PHONE = "(max-width: 700px)";
 export function App() {
   const { state, sseDown, remoteSessions, remoteSeen, connects } = useDashboard();
   const [tab, setTab] = useTab();
-  // Always loaded while live: the Inbox badge must leave out automation run threads.
+  // Always loaded while live: the Dashboard badge must leave out automation run threads.
   const automations = useAutomations(state?.connection.t3 === "live");
   const [sessions, dispatchSessions] = useSessions();
   const [openHistory, recordOpened] = useOpenHistory();
@@ -70,7 +68,7 @@ export function App() {
     connects,
   });
   // The focused sessions window on the visible Sessions tab is read: on a click, a restore, and on each new activity.
-  // Only openInSessions marked threads before, so a window already on the sessions stayed unread in the Inbox.
+  // Only openInSessions marked threads before, so a session already open stayed unread on the Dashboard.
   const readId = tab === "sessions" ? sessions.focusedId : null;
   const readAt = readId ? state?.threads.find((t) => t.id === readId)?.lastActivityAt : undefined;
   const { markSeen, seenReady } = notify;
@@ -92,13 +90,7 @@ export function App() {
   const showLayoutToggle = !useMediaQuery(NARROW_STRIP);
   const [now, setNow] = useState(() => new Date());
   const compact = useMediaQuery(PHONE);
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(() => loadSidebarCollapsed(browserStorage()));
-  const toggleSidebar = useCallback(() => {
-    setSidebarCollapsed((was) => {
-      saveSidebarCollapsed(browserStorage(), !was);
-      return !was;
-    });
-  }, []);
+  const [sidebarCollapsed, toggleSidebar] = useSidebarCollapsed();
 
   // The error banner starts under the header, whatever its height (one line on a phone).
   const header = useRef<HTMLElement>(null);
@@ -106,13 +98,13 @@ export function App() {
   useLayoutEffect(() => {
     const el = header.current;
     if (!el) return;
-    const set = () => document.documentElement.style.setProperty("--topbar-h", `${el.offsetHeight}px`);
+    const set = () => document.documentElement.style.setProperty("--header-h", `${el.offsetHeight}px`);
     set();
     const observer = new ResizeObserver(set);
     observer.observe(el);
     return () => {
       observer.disconnect();
-      document.documentElement.style.removeProperty("--topbar-h");
+      document.documentElement.style.removeProperty("--header-h");
     };
   }, [hasHeader]);
 
@@ -140,6 +132,10 @@ export function App() {
   const onOpen = useCallback((id: string, addOnly: boolean) => handlers.current.openInSessions(id, !addOnly), []);
   const onToggleSessions = useCallback((id: string) => handlers.current.toggleInSessions(id), []);
   const onSettle = useCallback((id: string, settle: boolean) => (settle ? api.settle(id) : api.unsettle(id)), []);
+
+  const openSearch = () => {
+    if (state) setSwitcherQuery("");
+  };
 
   const blocked = creating || creatingAutomation || settingsOpen || confirmingUpdate || switcherQuery !== null;
   useShortcuts(
@@ -184,7 +180,7 @@ export function App() {
     [state?.threads, automations.result?.hiddenThreadIds, setup],
   );
   const unread = useMemo(() => unreadCount(threadSections(visible, notify.seen), notify.seen), [visible, notify.seen]);
-  const badges = navBadges(state?.threads ?? NO_THREADS, sessionIds, unread);
+  const badges = navBadges(state?.threads ?? NO_THREADS, sessionIds);
   const dashboardLayout = useDashboardLayout(tab === "dashboard");
   const usage = useUsage(tab === "dashboard" && state !== null);
   const page = TABS.find((t) => t.id === tab)!;
@@ -207,12 +203,12 @@ export function App() {
         collapsed={sidebarCollapsed}
         onToggleCollapsed={toggleSidebar}
         tab={tab}
+        unread={unread}
         badges={badges}
-        badgeText={badgeText}
         live={live}
         update={updateNav}
         onTab={setTab}
-        onSearch={() => state && setSwitcherQuery("")}
+        onSearch={openSearch}
         onSettings={() => setSettingsOpen(true)}
         onUpdate={() => setConfirmingUpdate(true)}
       />
@@ -234,7 +230,7 @@ export function App() {
               showLayoutToggle={showLayoutToggle}
               onNewSession={() => setCreating(true)}
               onNewAutomation={() => setCreatingAutomation(true)}
-              onSearch={() => setSwitcherQuery("")}
+              onSearch={openSearch}
               onEditLayout={() => dashboardLayout.setEditing(true)}
               onDoneLayout={() => dashboardLayout.setEditing(false)}
               onResetLayout={dashboardLayout.reset}

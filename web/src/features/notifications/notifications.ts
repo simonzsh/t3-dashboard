@@ -27,8 +27,6 @@ function entryOf(t: DashboardThread, kind: NotifyKind): NotifyEntry {
   return { thread: t, kind, tone: threadState(t) === "error" ? "error" : "done", label: finishedLabel(t) };
 }
 
-export const badgeText = (n: number): string => (n > 9 ? "9+" : String(n));
-
 // The T3 clock, not the browser's, so a device with a skewed clock hides nothing and shows nothing extra.
 export const baselineOf = (threads: DashboardThread[]): string => threads.map((t) => t.lastActivityAt).reduce(later, "") || new Date().toISOString();
 

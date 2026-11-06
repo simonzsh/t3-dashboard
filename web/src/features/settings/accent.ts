@@ -1,4 +1,5 @@
-import type { Store } from "../../lib/storage.ts";
+import { LOGO_TILES } from "../../ui/index.ts";
+import { readKey, writeKey, type Store } from "../../lib/storage.ts";
 
 export type Accent = "blue" | "purple" | "pink" | "red" | "orange" | "yellow" | "green";
 
@@ -20,26 +21,13 @@ export function parseAccent(raw: string | null): Accent {
   return ACCENTS.some((a) => a.id === raw) ? (raw as Accent) : DEFAULT_ACCENT;
 }
 
-// Storage can throw (private mode): the accent then resets on reload.
-export function loadAccent(storage: Store | null): Accent {
-  try {
-    return parseAccent(storage?.getItem(ACCENT_KEY) ?? null);
-  } catch {
-    return DEFAULT_ACCENT;
-  }
-}
+export const loadAccent = (storage: Store | null): Accent => parseAccent(readKey(storage, ACCENT_KEY));
 
-export function saveAccent(storage: Store | null, accent: Accent): void {
-  try {
-    storage?.setItem(ACCENT_KEY, accent);
-  } catch {
-    // Ignored on purpose: see loadAccent.
-  }
-}
+export const saveAccent = (storage: Store | null, accent: Accent): void => writeKey(storage, ACCENT_KEY, accent);
 
 /** The tab icon: the logo's four tiles in the accent color. */
 export function faviconSvg(color: string): string {
-  const tile = (x: number, y: number, opacity: number) => `<rect x='${x}' y='${y}' width='128' height='128' rx='30' fill='${color}' opacity='${opacity}'/>`;
-  const svg = `<svg xmlns='http://www.w3.org/2000/svg' viewBox='104 104 304 304'>${tile(112, 112, 1)}${tile(272, 112, 0.35)}${tile(112, 272, 0.35)}${tile(272, 272, 0.65)}</svg>`;
+  const tiles = LOGO_TILES.map(({ x, y, opacity }) => `<rect x='${x}' y='${y}' width='128' height='128' rx='30' fill='${color}' opacity='${opacity}'/>`).join("");
+  const svg = `<svg xmlns='http://www.w3.org/2000/svg' viewBox='104 104 304 304'>${tiles}</svg>`;
   return `data:image/svg+xml,${encodeURIComponent(svg)}`;
 }

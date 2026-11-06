@@ -37,6 +37,7 @@ function SessionWindowView({ id, thread, title, projectTitle, projectIcon, missi
   const onClose = () => dispatch({ type: "close", id });
   const onToggleMaximize = () => dispatch({ type: "maximize", id });
   const state = thread ? threadState(thread) : null;
+  const fullscreen = maximized ? "Exit fullscreen" : "Fullscreen";
   const badge = state === "waiting" || state === "running" || state === "error" ? state : null;
   return (
     <section
@@ -62,7 +63,7 @@ function SessionWindowView({ id, thread, title, projectTitle, projectIcon, missi
           <span className="dw-buttons">
             <OpenInT3 environmentId={t3EnvironmentId} threadId={id} />
             {!compact && (
-              <IconButton variant="ghost" size="sm" label={maximized ? "Exit fullscreen" : "Fullscreen"} tooltip={maximized ? "Exit fullscreen" : "Fullscreen"} shortcut={maximized ? `${ctrlLabel("F")} / Esc` : ctrlLabel("F")} onClick={onToggleMaximize}>
+              <IconButton variant="ghost" size="sm" label={fullscreen} tooltip={fullscreen} shortcut={maximized ? `${ctrlLabel("F")} / Esc` : ctrlLabel("F")} onClick={onToggleMaximize}>
                 <Icon name={maximized ? "exitFullscreen" : "fullscreen"} />
               </IconButton>
             )}

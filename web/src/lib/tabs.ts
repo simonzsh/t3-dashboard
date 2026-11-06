@@ -2,10 +2,10 @@ import type { IconName } from "../ui/index.ts";
 
 export type Tab = "dashboard" | "sessions" | "automations";
 
-export const TABS: ReadonlyArray<{ id: Tab; label: string; key: string; icon: IconName; description: string }> = [
-  { id: "dashboard", label: "Dashboard", key: "1", icon: "layoutPanels", description: "Usage, and every agent that needs you." },
-  { id: "sessions", label: "Sessions", key: "2", icon: "messagesSquare", description: "Your open conversations side by side, scrolling sideways." },
-  { id: "automations", label: "Automations", key: "3", icon: "calendarClock", description: "Scheduled agents and their latest runs." },
+export const TABS: ReadonlyArray<{ id: Tab; label: string; icon: IconName; description: string }> = [
+  { id: "dashboard", label: "Dashboard", icon: "layoutPanels", description: "Usage, and every agent that needs you." },
+  { id: "sessions", label: "Sessions", icon: "messagesSquare", description: "Your open conversations side by side, scrolling sideways." },
+  { id: "automations", label: "Automations", icon: "calendarClock", description: "Scheduled agents and their latest runs." },
 ];
 
 // The nav entry, found by the animations that fly into it.

@@ -1,8 +1,10 @@
 import type { DashboardThread } from "../../../shared/api.ts";
 import { agentStatus } from "../../../shared/status.ts";
 
+/** A count in a nav badge: 9+ past nine. */
+export const badgeText = (n: number): string => (n > 9 ? "9+" : String(n));
+
 export interface NavBadges {
-  dashboardUnread: number;
   sessionsRunning: number;
   sessionsWaiting: boolean;
 }
@@ -18,7 +20,7 @@ export function agentCounts(threads: readonly DashboardThread[]): { waiting: num
   return counts;
 }
 
-export function navBadges(threads: readonly DashboardThread[], sessionIds: ReadonlySet<string>, unread: number): NavBadges {
+export function navBadges(threads: readonly DashboardThread[], sessionIds: ReadonlySet<string>): NavBadges {
   const counts = agentCounts(threads.filter((t) => sessionIds.has(t.id)));
-  return { dashboardUnread: unread, sessionsRunning: counts.running, sessionsWaiting: counts.waiting > 0 };
+  return { sessionsRunning: counts.running, sessionsWaiting: counts.waiting > 0 };
 }

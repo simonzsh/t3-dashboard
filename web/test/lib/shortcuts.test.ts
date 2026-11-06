@@ -23,7 +23,7 @@ test("Ctrl shortcuts work while typing in a field", () => {
   assert.equal(matchShortcut(ctrl("x", { target: typing }), false, true), "close-window");
 });
 
-test("plain keys and Cmd no longer trigger the shortcuts", () => {
+test("plain keys and Cmd do not trigger the shortcuts", () => {
   for (const key of ["1", "2", "3", "n", ","]) assert.equal(matchShortcut(press(key), false), null, key);
   assert.equal(matchShortcut(press("N", { shiftKey: true }), false), null);
   assert.equal(matchShortcut(press("n", { metaKey: true }), false), null);

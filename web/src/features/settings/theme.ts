@@ -1,4 +1,4 @@
-import type { Store } from "../../lib/storage.ts";
+import { readKey, writeKey, type Store } from "../../lib/storage.ts";
 
 export type ThemeSetting = "system" | "light" | "dark";
 
@@ -14,19 +14,6 @@ export function resolveTheme(setting: ThemeSetting, prefersDark: boolean): "ligh
   return setting;
 }
 
-// Storage can throw (private mode, blocked cookies): the theme then just resets on reload.
-export function loadTheme(storage: Store | null): ThemeSetting {
-  try {
-    return parseTheme(storage?.getItem(THEME_KEY) ?? null);
-  } catch {
-    return "system";
-  }
-}
+export const loadTheme = (storage: Store | null): ThemeSetting => parseTheme(readKey(storage, THEME_KEY));
 
-export function saveTheme(storage: Store | null, setting: ThemeSetting): void {
-  try {
-    storage?.setItem(THEME_KEY, setting);
-  } catch {
-    // Ignored on purpose: see loadTheme.
-  }
-}
+export const saveTheme = (storage: Store | null, setting: ThemeSetting): void => writeKey(storage, THEME_KEY, setting);

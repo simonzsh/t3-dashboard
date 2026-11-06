@@ -118,7 +118,7 @@ kbd { font: 11px/1 system-ui, -apple-system, "Segoe UI", sans-serif; padding: 2p
 .banner { padding: 8px 24px; background: var(--warn-bg); color: var(--warn-text); border-bottom: 1px solid var(--line); }
 .banner-line { display: flex; align-items: center; gap: 8px; }
 .banner .loader.inline rect { fill: var(--warn); }
-.error-banner { position: fixed; z-index: 70; top: calc(var(--topbar-h, 0px) + 8px); left: 50%; translate: -50% 0; width: min(640px, calc(100vw - 24px)); display: flex; flex-direction: column; gap: 6px; }
+.error-banner { position: fixed; z-index: 70; top: calc(var(--header-h, 0px) + 8px); left: 50%; translate: -50% 0; width: min(640px, calc(100vw - 24px)); display: flex; flex-direction: column; gap: 6px; }
 .notice-scope { position: relative; flex: 1; min-height: 0; min-width: 0; display: flex; flex-direction: column; }
 .error-banner.local { position: absolute; z-index: 4; top: 8px; width: calc(100% - 16px); }
 .error-banner-line { display: flex; align-items: center; gap: 10px; padding: 8px 8px 8px 12px; border-radius: var(--radius-md); background: var(--danger); color: #fff; box-shadow: 0 2px 6px rgb(0 0 0 / 0.25), 0 10px 28px rgb(0 0 0 / 0.35); font-size: 13px; line-height: 1.4; }
@@ -160,8 +160,6 @@ main { flex: 1; min-height: 0; overflow: hidden; padding: 24px; display: flex; f
 .spinning { animation: spin 0.9s linear infinite; }
 @keyframes spin { to { transform: rotate(360deg); } }
 .skeleton { display: block; flex: none; max-width: 100%; border-radius: var(--radius-sm, 4px); background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--text-primary) 6%, transparent), transparent) 0 0 / 200% 100% no-repeat, color-mix(in srgb, var(--text-primary) 7%, var(--surface-1)); animation: skeleton-shimmer 1.6s ease-in-out infinite; }
-.skeleton-text { display: flex; flex-direction: column; gap: 6px; width: 100%; }
-.skeleton-circle { border-radius: 50%; }
 .skeleton-bars { display: flex; align-items: flex-end; gap: 8px; height: 190px; padding: 8px 20px 12px 52px; box-sizing: border-box; }
 .skeleton-bars .skeleton { flex: 1; }
 .skeleton-row { display: flex; gap: 10px; padding: 10px 16px; border-bottom: 1px solid var(--line); }
@@ -186,7 +184,7 @@ main { flex: 1; min-height: 0; overflow: hidden; padding: 24px; display: flex; f
 .notif-title { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .notif-toast-body .provider-icon { width: 16px; height: 16px; margin: 0; }
 /* Under popovers (50): an open menu stays on top of a toast. */
-.notif-toasts { position: fixed; z-index: 45; top: calc(var(--topbar-h, 0px) + 8px); right: 12px; width: min(340px, calc(100vw - 24px)); display: flex; flex-direction: column; gap: 6px; pointer-events: none; }
+.notif-toasts { position: fixed; z-index: 45; top: calc(var(--header-h, 0px) + 8px); right: 12px; width: min(340px, calc(100vw - 24px)); display: flex; flex-direction: column; gap: 6px; pointer-events: none; }
 .notif-toast { pointer-events: auto; display: flex; align-items: center; gap: 4px; padding: 4px; border-radius: var(--radius-md); background: var(--surface-1); border: 1px solid var(--line); box-shadow: var(--shadow); font-size: 13px; }
 .notif-toast .icon-button { border: 0; background: none; }
 .conversation { flex: 1; min-height: 0; display: flex; flex-direction: column; position: relative; }
@@ -584,7 +582,7 @@ ol.install-steps { padding-left: 18px; }
 .ticket-meta { display: flex; align-items: center; gap: 8px; min-width: 0; }
 /* Two lines at most. */
 .ticket-title { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; line-clamp: 2; overflow: hidden; font-weight: 500; color: inherit; text-decoration: none; }
-/* Stretched link: the whole card opens the issue, like an Inbox row opens its conversation. */
+/* Stretched link: the whole card opens the issue, like a Dashboard row opens its conversation. */
 .ticket-title::after { content: ""; position: absolute; inset: 0; border-radius: inherit; }
 .ticket-foot > * { position: relative; z-index: 1; }
 .ticket-foot { display: flex; align-items: center; justify-content: flex-end; gap: 6px; min-width: 0; margin-top: auto; }
@@ -614,7 +612,6 @@ ol.install-steps { padding-left: 18px; }
 .auto-model .provider-icon { width: 15px; height: 15px; margin: 0; }
 .auto-table tr.waiting { background: color-mix(in srgb, var(--warn-bg) 40%, var(--surface-1)); }
 .auto-actions { text-align: right; white-space: nowrap; }
-/* Sits close to its label: the button gap alone would leave the badge floating between label and shortcut. */
 .app { display: flex; height: 100dvh; overflow: hidden; }
 .app-column { flex: 1; min-width: 0; min-height: 0; display: flex; flex-direction: column; }
 .app.sessions-mode main { padding: 0; gap: 0; }
@@ -800,13 +797,11 @@ ol.install-steps { padding-left: 18px; }
   .page-actions .icon-button .icon { width: 22px; height: 22px; }
   .page-actions .header-new { border-radius: 12px; }
   .app-column { padding-bottom: calc(var(--bottom-bar) + env(safe-area-inset-bottom)); }
-  /* Inbox and Automations scroll the page itself, so Safari's floating address bar sits over the content instead of under a cut-off box. */
+  /* Dashboard and Automations scroll the page itself, so Safari's floating address bar sits over the content instead of under a cut-off box. */
   .app:not(.sessions-mode) { height: auto; min-height: 100dvh; overflow: visible; }
   .app:not(.sessions-mode) :is(main, .dashboard) { flex: none; overflow: visible; }
   .app:not(.sessions-mode) main { padding-bottom: 24px; }
   .app:not(.sessions-mode) .auto-page { flex: none; overflow: visible; }
-  /* The search stays under the sticky top bar, as on a wide screen where the list scrolls below it. */
-  /* Stuck 12px under the top bar; the band shows only once the page scrolls, with 12px above and below the search. */
 }
 @media (max-width: 899px), (pointer: coarse) {
   /* No keyboard shortcuts on phones and tablets. */

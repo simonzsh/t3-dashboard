@@ -1,20 +1,15 @@
-import type { Store } from "./storage.ts";
+import { useCallback, useEffect, useState } from "react";
+import { browserStorage, readKey, writeKey, type Store } from "./storage.ts";
 
 export const SIDEBAR_KEY = "t3-dashboard-sidebar";
 
-// Storage can throw (private mode): the sidebar then just opens expanded.
-export function loadSidebarCollapsed(storage: Store | null): boolean {
-  try {
-    return storage?.getItem(SIDEBAR_KEY) === "collapsed";
-  } catch {
-    return false;
-  }
-}
+export const loadSidebarCollapsed = (storage: Store | null): boolean => readKey(storage, SIDEBAR_KEY) === "collapsed";
 
-export function saveSidebarCollapsed(storage: Store | null, collapsed: boolean): void {
-  try {
-    storage?.setItem(SIDEBAR_KEY, collapsed ? "collapsed" : "expanded");
-  } catch {
-    // Ignored on purpose: see loadSidebarCollapsed.
-  }
+export const saveSidebarCollapsed = (storage: Store | null, collapsed: boolean): void => writeKey(storage, SIDEBAR_KEY, collapsed ? "collapsed" : "expanded");
+
+/** Whether the sidebar is collapsed, saved in this browser, and a toggle. */
+export function useSidebarCollapsed(): [boolean, () => void] {
+  const [collapsed, setCollapsed] = useState(() => loadSidebarCollapsed(browserStorage()));
+  useEffect(() => saveSidebarCollapsed(browserStorage(), collapsed), [collapsed]);
+  return [collapsed, useCallback(() => setCollapsed((was) => !was), [])];
 }

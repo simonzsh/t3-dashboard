@@ -1,7 +1,7 @@
 import { afterEach, test } from "bun:test";
 import assert from "node:assert/strict";
-import { browserStorage } from "../../src/lib/storage.ts";
-import { loadTheme, saveTheme } from "../../src/features/settings/theme.ts";
+import { browserStorage, readKey, writeKey } from "../../src/lib/storage.ts";
+import { memoryStore } from "../fixtures.ts";
 
 const original = Object.getOwnPropertyDescriptor(globalThis, "localStorage");
 afterEach(() => {
@@ -19,7 +19,17 @@ test("browserStorage returns null when reading the localStorage global throws", 
   assert.equal(browserStorage(), null);
 });
 
-test("the theme falls back without storage", () => {
-  assert.equal(loadTheme(null), "system");
-  assert.doesNotThrow(() => saveTheme(null, "dark"));
+test("readKey and writeKey read and write a store", () => {
+  const store = memoryStore();
+  assert.equal(readKey(store, "k"), null);
+  writeKey(store, "k", "v");
+  assert.equal(readKey(store, "k"), "v");
+});
+
+test("without a working storage a read finds nothing and a write does not throw", () => {
+  const blocked = { getItem: () => { throw new Error("blocked"); }, setItem: () => { throw new Error("blocked"); } };
+  for (const storage of [blocked, null]) {
+    assert.equal(readKey(storage, "k"), null);
+    assert.doesNotThrow(() => writeKey(storage, "k", "v"));
+  }
 });

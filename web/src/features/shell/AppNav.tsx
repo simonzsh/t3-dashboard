@@ -1,9 +1,9 @@
 import { ctrlLabel } from "../../lib/shortcuts.ts";
 import { TABS, type Tab } from "../../lib/tabs.ts";
-import type { NavBadges } from "../../lib/navBadges.ts";
+import { badgeText, type NavBadges } from "../../lib/navBadges.ts";
 import { Icon, IconButton, Kbd, Logo, Pressable, type IconName } from "../../ui/index.ts";
 
-export interface NavUpdate {
+interface NavUpdate {
   label: string;
   busy: boolean;
 }
@@ -12,8 +12,9 @@ interface Props {
   /** The sidebar on a wide screen, the bottom bar on a phone: only one is in the page. */
   layout: "side" | "bottom";
   tab: Tab;
+  /** Dashboard items that wait for you and were not read yet. */
+  unread: number;
   badges: NavBadges;
-  badgeText: (n: number) => string;
   live: boolean;
   update: NavUpdate | null;
   /** Sidebar only: App owns it so Ctrl+B can toggle it. */
@@ -27,9 +28,9 @@ interface Props {
 
 const WAITING = "An agent is waiting for your reply";
 
-function Badges({ id, badges, badgeText }: { id: Tab; badges: NavBadges; badgeText: Props["badgeText"] }) {
-  if (id === "dashboard" && badges.dashboardUnread > 0) {
-    return <span className="nav-badge ok" role="img" aria-label={`${badges.dashboardUnread} unread`}>{badgeText(badges.dashboardUnread)}</span>;
+function Badges({ id, unread, badges }: { id: Tab; unread: number; badges: NavBadges }) {
+  if (id === "dashboard" && unread > 0) {
+    return <span className="nav-badge ok" role="img" aria-label={`${unread} unread`}>{badgeText(unread)}</span>;
   }
   if (id !== "sessions") return null;
   return (
@@ -40,9 +41,10 @@ function Badges({ id, badges, badgeText }: { id: Tab; badges: NavBadges; badgeTe
   );
 }
 
-function Sidebar({ tab, badges, badgeText, live, update, collapsed, onToggleCollapsed, onTab, onSearch, onSettings, onUpdate }: Omit<Props, "layout">) {
+function Sidebar({ tab, unread, badges, live, update, collapsed, onToggleCollapsed, onTab, onSearch, onSettings, onUpdate }: Omit<Props, "layout">) {
   // Collapsed rows hold only an icon: the tooltip gives the name back.
   const hint = (text: string) => (collapsed ? text : undefined);
+  const collapse = collapsed ? "Expand the sidebar" : "Collapse the sidebar";
   return (
     <nav className={`sidebar${collapsed ? " collapsed" : ""}`} aria-label="Pages">
       <div className="sidebar-brand">
@@ -59,7 +61,7 @@ function Sidebar({ tab, badges, badgeText, live, update, collapsed, onToggleColl
           <Pressable key={id} data-tab={id} className={`nav-row${tab === id ? " active" : ""}`} aria-current={tab === id ? "page" : undefined} tooltip={hint(label)} onClick={() => onTab(id)}>
             <Icon name={icon} className="nav-icon" />
             <span className="nav-label">{label}</span>
-            <Badges id={id} badges={badges} badgeText={badgeText} />
+            <Badges id={id} unread={unread} badges={badges} />
           </Pressable>
         ))}
       </div>
@@ -78,7 +80,7 @@ function Sidebar({ tab, badges, badgeText, live, update, collapsed, onToggleColl
           <IconButton variant="ghost" label="Settings" tooltip="Settings" shortcut={ctrlLabel(",")} onClick={onSettings}>
             <Icon name="settings" strokeWidth={1.8} />
           </IconButton>
-          <IconButton variant="ghost" className="sidebar-collapse" label={collapsed ? "Expand the sidebar" : "Collapse the sidebar"} tooltip={collapsed ? "Expand the sidebar" : "Collapse the sidebar"} shortcut={ctrlLabel("B")} onClick={onToggleCollapsed}>
+          <IconButton variant="ghost" className="sidebar-collapse" label={collapse} tooltip={collapse} shortcut={ctrlLabel("B")} onClick={onToggleCollapsed}>
             <Icon name="panelLeft" />
           </IconButton>
         </div>
@@ -87,12 +89,12 @@ function Sidebar({ tab, badges, badgeText, live, update, collapsed, onToggleColl
   );
 }
 
-function BottomBar({ tab, badges, badgeText, onTab, onSettings }: Pick<Props, "tab" | "badges" | "badgeText" | "onTab" | "onSettings">) {
+function BottomBar({ tab, unread, badges, onTab, onSettings }: Pick<Props, "tab" | "unread" | "badges" | "onTab" | "onSettings">) {
   const item = (icon: IconName, label: string, props: { id?: Tab; onClick: () => void }) => (
     <Pressable key={label} data-tab={props.id} className={`bottom-item${props.id && tab === props.id ? " active" : ""}`} aria-current={props.id && tab === props.id ? "page" : undefined} onClick={props.onClick}>
       <span className="bottom-icon">
         <Icon name={icon} className="bottom-glyph" />
-        {props.id && <Badges id={props.id} badges={badges} badgeText={badgeText} />}
+        {props.id && <Badges id={props.id} unread={unread} badges={badges} />}
       </span>
       <span className="bottom-label">{label}</span>
     </Pressable>

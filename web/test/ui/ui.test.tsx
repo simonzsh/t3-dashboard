@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { test } from "bun:test";
 import { renderToStaticMarkup } from "react-dom/server";
 import { nextRadioIndex } from "../../src/ui/radioKeys.ts";
-import { Badge, Button, Choice, Dialog, Segmented, FileInput, Icon, IconButton, PageHeader, Pressable, SecretInput, Skeleton, SkeletonGroup, SkeletonText, Tabs, TextArea, TextInput } from "../../src/ui/index.ts";
+import { Badge, Button, Choice, Dialog, Segmented, FileInput, Icon, IconButton, PageHeader, Pressable, SecretInput, Skeleton, SkeletonGroup, Tabs, TextArea, TextInput } from "../../src/ui/index.ts";
 
 const html = renderToStaticMarkup;
 
@@ -157,7 +157,7 @@ test("Tabs is a tab list with the active tab selected and the only tab stop", ()
 });
 
 test("the shell icons exist and draw a path", () => {
-  for (const name of ["messagesSquare", "layoutPanels", "panelLeft", "sun", "moon", "chart"] as const) assert.match(html(<Icon name={name} />), /<path d="/, name);
+  for (const name of ["messagesSquare", "layoutPanels", "panelLeft", "chart"] as const) assert.match(html(<Icon name={name} />), /<path d="/, name);
 });
 
 test("a PageHeader is a header with a title, a description and its actions", () => {
@@ -175,16 +175,10 @@ test("a PageHeader shows its leading element first and no empty actions", () => 
 });
 
 test("a Skeleton is an aria-hidden block of the given size", () => {
-  const out = html(<Skeleton width={40} height="2rem" radius="50%" className="x" />);
-  assert.match(out, /class="skeleton x"/);
+  const out = html(<Skeleton width={40} height="2rem" radius="50%" />);
+  assert.match(out, /class="skeleton"/);
   assert.match(out, /aria-hidden="true"/);
   assert.match(out, /width:40px;height:2rem;border-radius:50%/);
-});
-
-test("SkeletonText draws the lines, the last one shorter", () => {
-  const out = html(<SkeletonText lines={3} />);
-  assert.equal(out.match(/class="skeleton"/g)?.length, 3);
-  assert.match(out, /width:60%/);
 });
 
 test("a SkeletonGroup is one busy, labelled region", () => {

@@ -26,16 +26,3 @@ test("a remembered project that no longer exists is not preselected", () => {
   saveAssignProject(storage, "ENG", "gone");
   assert.equal(loadAssignProject(storage, "ENG", projects), "");
 });
-
-test("a storage that throws gives no preselection and no error", () => {
-  const broken = {
-    getItem: () => {
-      throw new Error("blocked");
-    },
-    setItem: () => {
-      throw new Error("blocked");
-    },
-  };
-  assert.equal(loadAssignProject(broken, "ENG", projects), "");
-  assert.doesNotThrow(() => saveAssignProject(broken, "ENG", "p1"));
-});
