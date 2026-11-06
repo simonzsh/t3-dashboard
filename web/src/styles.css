@@ -96,6 +96,9 @@ input.field { height: var(--control-md); padding-block: 0; }
 .icon-button.has-update::after { content: ""; position: absolute; top: 8px; right: 8px; width: 8px; height: 8px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 0 2px var(--surface-0); }
 .icon-button.md { min-width: var(--control-md); height: var(--control-md); }
 .icon-button.sm { min-width: var(--control-sm); height: var(--control-sm); }
+.notif-bell { position: relative; }
+.notif-bell .nav-badge { position: absolute; top: 2px; right: 2px; min-width: 16px; height: 16px; padding: 0 4px; font-size: 10px; }
+.icon-button.ghost[aria-pressed="true"] { background: color-mix(in srgb, var(--text-primary) 10%, transparent); color: var(--text-primary); }
 .icon-button:has(kbd) { gap: 6px; padding: 0 6px; }
 .icon-button:not(.primary):hover:not(:disabled) { color: var(--text-primary); }
 button.primary { background: var(--accent); border-color: var(--accent); color: var(--on-accent); font-weight: 500; }
@@ -699,36 +702,37 @@ ol.install-steps { padding-left: 18px; }
 .page-description { margin: 0; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--text-secondary); font-size: 12px; }
 .page-actions { flex: none; display: flex; align-items: center; gap: 8px; }
 .page-actions .icon { width: 18px; height: 18px; }
-/* Dashboard: two columns of cards in one scroll area; the layout model decides which card goes where. */
-.dashboard { flex: 1; min-height: 0; overflow-y: auto; display: grid; grid-template-columns: minmax(0, 2fr) minmax(260px, 1fr); align-items: start; gap: 16px; padding: 4px; margin: -4px; }
-.dashboard-col { min-width: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); align-items: start; gap: 16px; }
-.dashboard-col.right { grid-template-columns: minmax(0, 1fr); }
-/* Sticky only for the capped Notifications card alone: a taller column would hide its lower cards. */
-.dashboard-col.pinned { position: sticky; top: 0; }
+/* Dashboard: one flowing grid of cards in one scroll area, and the Notifications panel on the right when open. */
+.dashboard { flex: 1; min-height: 0; overflow-y: auto; display: grid; grid-template-columns: minmax(0, 1fr); align-items: start; gap: 16px; padding: 4px; margin: -4px; }
+.dashboard.with-panel { grid-template-columns: minmax(0, 1fr) 340px; }
+.dashboard-main { min-width: 0; display: flex; flex-direction: column; gap: 16px; container-type: inline-size; }
+.dashboard-cards { min-width: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); align-items: start; gap: 16px; }
+/* Sticky: the panel stays in view while the cards scroll; the card cap (100dvh - 120px) keeps it on screen. */
+.dashboard-panel { position: sticky; top: 0; min-width: 0; }
 .dashboard-slot { min-width: 0; }
 .dashboard-slot:is(.usage, .server, .activity), .dashboard-drop:is(.usage, .server, .activity) { grid-column: 1 / -1; }
-/* Wide screens: Up next takes 3/5 of the left column, the other cards 2/5. */
-@media (min-width: 1100px) {
-  .dashboard-col.left { grid-template-columns: repeat(5, minmax(0, 1fr)); }
-  .dashboard-col.left > :is(.dashboard-slot, .dashboard-drop) { grid-column: span 2; }
-  .dashboard-col.left > :is(.dashboard-slot, .dashboard-drop).up-next { grid-column: span 3; }
-  .dashboard-col.left > :is(.dashboard-slot, .dashboard-drop):is(.usage, .server, .activity) { grid-column: 1 / -1; }
+/* Room for two cards a row: Up next takes 3/5, the other cards 2/5. */
+@container (min-width: 600px) {
+  .dashboard-cards { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+  .dashboard-cards > :is(.dashboard-slot, .dashboard-drop) { grid-column: span 2; }
+  .dashboard-cards > :is(.dashboard-slot, .dashboard-drop).up-next { grid-column: span 3; }
+  .dashboard-cards > :is(.dashboard-slot, .dashboard-drop):is(.usage, .server, .activity) { grid-column: 1 / -1; }
 }
 /* Drop preview: the size of the dragged card, where it will land. */
 .dashboard-drop { min-height: 64px; border: 2px dashed color-mix(in srgb, var(--accent) 60%, transparent); border-radius: var(--radius-lg); background: color-mix(in srgb, var(--accent) 8%, transparent); }
-/* Edit mode: each card has a bar on top, and a column accepts drops even when it is empty. */
-.dashboard-col.editing { min-height: 96px; padding: 8px; border: 1px dashed var(--line); border-radius: var(--radius-lg); }
+/* Edit mode: each card has a bar on top, and the grid accepts drops even when it is empty. */
+.dashboard-cards.editing { min-height: 96px; padding: 8px; border: 1px dashed var(--line); border-radius: var(--radius-lg); }
 .dashboard-slot.dragging { opacity: 0.4; }
-.dashboard-hidden { grid-column: 1 / -1; display: flex; flex-wrap: wrap; align-items: center; gap: 8px; color: var(--text-secondary); font-size: 12px; }
+.dashboard-hidden { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; color: var(--text-secondary); font-size: 12px; }
 /* Edit mode: the bar lies over the card header (44 px), so the header itself is the handle. */
-.dashboard-col.editing .dashboard-slot { position: relative; }
-.dashboard-col.editing .dashboard-card { border-color: color-mix(in srgb, var(--accent) 60%, var(--line)); }
+.dashboard-cards.editing .dashboard-slot { position: relative; }
+.dashboard-cards.editing .dashboard-card { border-color: color-mix(in srgb, var(--accent) 60%, var(--line)); }
 .card-edit-bar { position: absolute; z-index: 2; top: 1px; left: 1px; right: 1px; height: 44px; display: flex; align-items: center; justify-content: flex-end; padding: 0 8px; border-radius: var(--radius-lg) var(--radius-lg) 0 0; cursor: grab; }
 .card-edit-bar:hover { background: color-mix(in srgb, var(--accent) 7%, transparent); }
 .card-edit-bar:active { cursor: grabbing; }
 .card-edit-buttons { display: flex; align-items: center; gap: 2px; }
 /* The edit buttons take the place of the card's own header buttons. */
-.dashboard-col.editing .card-actions { visibility: hidden; }
+.dashboard-cards.editing .card-actions { visibility: hidden; }
 .dashboard-card { background: var(--surface-1); border: 1px solid var(--line); border-radius: var(--radius-lg); }
 .activity-card { overflow: hidden; }
 .limits-card { overflow: hidden; }
@@ -907,11 +911,15 @@ ol.install-steps { padding-left: 18px; }
   .limits-tiles { grid-template-columns: minmax(0, 1fr); }
   .limits-tile.stat-tile + .limits-tile { border-left: 0; border-top: 1px solid var(--line); }
   .skeleton-bars { height: 140px; padding-right: 12px; }
-  /* One column: the columns dissolve and every card is as wide as the page, never wider. */
+  /* One column: every card is as wide as the page, never wider. */
   .dashboard { display: flex; flex-direction: column; align-items: stretch; gap: 16px; }
-  .dashboard-col { display: contents; }
-  .dashboard-slot { order: var(--stack); width: 100%; min-width: 0; }
-  .notifications-card { max-height: 70dvh; }
+  .dashboard-cards { display: flex; flex-direction: column; gap: 16px; }
+  .dashboard-slot { width: 100%; min-width: 0; }
+  /* Full screen over the page, like an opened session; Close or Escape returns. */
+  .dashboard-panel { position: fixed; inset: 0; z-index: 30; display: flex; flex-direction: column; padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left); background: var(--surface-1); overscroll-behavior: contain; }
+  .dashboard-panel .notifications-card { flex: 1; min-height: 0; max-height: none; border: 0; border-radius: 0; }
+  .dashboard-panel .card-head .icon-button { min-width: 44px; height: 44px; }
+  .app.notifications-shown { height: 100dvh; overflow: hidden; }
   /* The bottom bar replaces the sidebar. The header is one line; its insets keep it clear of the iPhone notch in landscape. */
   .page-header { position: sticky; top: 0; gap: 10px; padding: max(8px, env(safe-area-inset-top)) max(12px, env(safe-area-inset-right)) 8px max(12px, env(safe-area-inset-left)); }
   .page-header .logo { width: 30px; height: 30px; }

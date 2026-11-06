@@ -4,6 +4,7 @@ import { AutomationsView } from "./features/automations/AutomationsView.tsx";
 import { DashboardView } from "./features/dashboard/DashboardView.tsx";
 import { isDefaultLayout, type DashboardCard } from "./features/dashboard/layout.ts";
 import { useDashboardLayout } from "./features/dashboard/useDashboardLayout.ts";
+import { useNotificationsPanel } from "./features/dashboard/useNotificationsPanel.ts";
 import { useActivity } from "./features/dashboard/useActivity.ts";
 import { useLimits } from "./features/dashboard/useLimits.ts";
 import { useServerStats } from "./features/dashboard/useServerStats.ts";
@@ -187,6 +188,8 @@ export function App() {
   const agents = useMemo(() => agentCounts(visible), [visible]);
   const sessionsBadge = useMemo(() => ({ count: sessionsBadgeCount(visible, notify.seen), waiting: agents.waiting > 0 }), [visible, notify.seen, agents.waiting]);
   const dashboardLayout = useDashboardLayout(tab === "dashboard");
+  const notifPanel = useNotificationsPanel(compact, tab === "dashboard");
+  const notifPanelShown = compact && tab === "dashboard" && notifPanel.open && !dashboardLayout.editing;
   const dashboardOpen = tab === "dashboard" && state !== null;
   // A hidden card reads nothing; showing it again reads at once.
   const cardShown = (id: DashboardCard) => dashboardOpen && !dashboardLayout.layout.hidden.includes(id);
@@ -206,7 +209,7 @@ export function App() {
   }
 
   return (
-    <div className={`app${tab === "sessions" ? " sessions-mode" : ""}${sessionShown ? " session-shown" : ""}`}>
+    <div className={`app${tab === "sessions" ? " sessions-mode" : ""}${sessionShown ? " session-shown" : ""}${notifPanelShown ? " notifications-shown" : ""}`}>
       <TooltipLayer />
       <AppNav
         layout={compact ? "bottom" : "side"}
@@ -247,6 +250,9 @@ export function App() {
               onEditLayout={() => dashboardLayout.setEditing(true)}
               onDoneLayout={() => dashboardLayout.setEditing(false)}
               onResetLayout={dashboardLayout.reset}
+              unread={unread}
+              notificationsOpen={notifPanel.open}
+              onToggleNotifications={notifPanel.toggle}
             />
           }
         />
@@ -267,6 +273,8 @@ export function App() {
                 running={agents.running}
                 editing={dashboardLayout.editing}
                 onLayout={dashboardLayout.setLayout}
+                panelOpen={notifPanel.open}
+                onClosePanel={compact ? notifPanel.close : undefined}
                 onOpen={onOpen}
                 onSettle={onSettle}
                 seen={notify.seen}

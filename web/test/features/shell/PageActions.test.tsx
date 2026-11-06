@@ -7,7 +7,7 @@ import type { Tab } from "../../../src/lib/tabs.ts";
 const noop = () => {};
 const render = (tab: Tab, over: Partial<Parameters<typeof PageActions>[0]> = {}) =>
   renderToStaticMarkup(
-    <PageActions tab={tab} compact={false} ready editingLayout={false} layoutIsDefault={false} layout="columns" onLayoutChange={noop} listHidden={false} onToggleList={noop} onNewSession={noop} onNewAutomation={noop} onSearch={noop} onSettings={noop} updateReady={false} onEditLayout={noop} onDoneLayout={noop} onResetLayout={noop} {...over} />,
+    <PageActions tab={tab} compact={false} ready editingLayout={false} layoutIsDefault={false} layout="columns" onLayoutChange={noop} listHidden={false} onToggleList={noop} onNewSession={noop} onNewAutomation={noop} onSearch={noop} onSettings={noop} updateReady={false} onEditLayout={noop} onDoneLayout={noop} onResetLayout={noop} unread={0} notificationsOpen={false} onToggleNotifications={noop} {...over} />,
   );
 
 test("Sessions shows the list toggle, then the layout toggle, then New Session", () => {
@@ -56,10 +56,34 @@ test("Automations shows New Automation only", () => {
   assert.doesNotMatch(out, /New Session|Edit layout/);
 });
 
-test("Dashboard shows Edit layout only", () => {
+test("Dashboard shows the bell, then Edit layout", () => {
   const out = render("dashboard");
-  assert.match(out, /Edit layout/);
+  assert.ok(out.indexOf('aria-label="Notifications"') >= 0 && out.indexOf('aria-label="Notifications"') < out.indexOf("Edit layout"));
   assert.doesNotMatch(out, /New Session|New Automation/);
+});
+
+test("the bell is pressed while the panel is open, and its tooltip names the next action", () => {
+  const open = render("dashboard", { notificationsOpen: true });
+  assert.match(open, /aria-pressed="true"/);
+  assert.match(open, /data-tooltip="Hide notifications"/);
+  const closed = render("dashboard");
+  assert.match(closed, /aria-pressed="false"/);
+  assert.match(closed, /data-tooltip="Show notifications"/);
+});
+
+test("the bell badge shows the unread count, 9+ above nine, and nothing at zero", () => {
+  const some = render("dashboard", { unread: 3 });
+  assert.match(some, /aria-label="Notifications, 3 unread"/);
+  assert.match(some, /class="nav-badge"[^>]*>3</);
+  const many = render("dashboard", { unread: 12 });
+  assert.match(many, /aria-label="Notifications, 12 unread"/);
+  assert.match(many, />9\+</);
+  assert.doesNotMatch(render("dashboard"), /nav-badge/);
+});
+
+test("the bell shows only on Dashboard and not in edit mode", () => {
+  assert.doesNotMatch(render("dashboard", { editingLayout: true }), /Notifications/);
+  for (const tab of ["sessions", "automations"] as const) assert.doesNotMatch(render(tab), /Notifications/);
 });
 
 test("in edit mode Dashboard shows Reset, then the primary Done", () => {
@@ -84,8 +108,9 @@ test("without the dashboard state Sessions and Automations show no create button
   assert.equal(render("automations", { ready: false }), "");
 });
 
-test("on a phone Dashboard has Edit layout as an icon, then Reset and Done while editing", () => {
+test("on a phone Dashboard has the bell, Edit layout as an icon, then Reset and Done while editing", () => {
   const out = render("dashboard", { compact: true });
+  assert.ok(out.indexOf('aria-label="Notifications"') < out.indexOf('aria-label="Edit layout"'));
   assert.match(out, /aria-label="Edit layout"/);
   assert.match(out, /aria-label="Search"/);
   const editing = render("dashboard", { compact: true, editingLayout: true });
@@ -103,7 +128,7 @@ test("on a phone every page header ends with Search and Settings", () => {
 
 test("on a phone the Settings button shows a dot when an update is ready", () => {
   const out = renderToStaticMarkup(
-    <PageActions tab="sessions" compact ready editingLayout={false} layoutIsDefault={false} layout="columns" onLayoutChange={noop} listHidden={false} onToggleList={noop} onNewSession={noop} onNewAutomation={noop} onSearch={noop} onSettings={noop} updateReady onEditLayout={noop} onDoneLayout={noop} onResetLayout={noop} />,
+    <PageActions tab="sessions" compact ready editingLayout={false} layoutIsDefault={false} layout="columns" onLayoutChange={noop} listHidden={false} onToggleList={noop} onNewSession={noop} onNewAutomation={noop} onSearch={noop} onSettings={noop} updateReady onEditLayout={noop} onDoneLayout={noop} onResetLayout={noop} unread={0} notificationsOpen={false} onToggleNotifications={noop} />,
   );
   assert.match(out, /class="[^"]*has-update[^"]*"[^>]*aria-label="Settings, an update is ready"|aria-label="Settings, an update is ready"[^>]*class="[^"]*has-update/);
 });

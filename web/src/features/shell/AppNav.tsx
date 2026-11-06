@@ -28,7 +28,7 @@ interface Props {
 
 const WAITING = "An agent is waiting for your reply";
 
-const badgeText = (n: number): string => (n > 9 ? "9+" : String(n));
+export const badgeText = (n: number): string => (n > 9 ? "9+" : String(n));
 
 function Badges({ id, unread, sessions }: Pick<Props, "unread" | "sessions"> & { id: Tab }) {
   if (id === "dashboard" && unread > 0) {

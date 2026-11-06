@@ -9,7 +9,6 @@ import { threadSections, splitRead } from "./sections.ts";
 import { ThreadRow } from "./ThreadRow.tsx";
 import { UpNextCard } from "./UpNextCard.tsx";
 import { useTickets } from "./useTickets.ts";
-import type { DashboardCard } from "./layout.ts";
 
 export interface CardsInput {
   state: DashboardState;
@@ -30,8 +29,8 @@ export interface CardsInput {
   linearVersion: number;
 }
 
-/** The thread cards of the Dashboard; the Usage, Server and Activity cards are not here, they need no thread. */
-export function useDashboardCards({ state, visible, now, sessionIds, onOpen, onSettle, seen, seenReady, onMarkRead, automations, automationsError, linearVersion }: CardsInput, ticketsShown: boolean): Record<Exclude<DashboardCard, "usage" | "server" | "activity">, ReactNode> {
+/** The thread cards of the Dashboard and the Notifications panel; Usage, Server and Activity need no thread. */
+export function useDashboardCards({ state, visible, now, sessionIds, onOpen, onSettle, seen, seenReady, onMarkRead, automations, automationsError, linearVersion }: CardsInput, ticketsShown: boolean, onCloseNotifications?: () => void): Record<"notifications" | "running" | "up-next", ReactNode> {
   const tickets = useTickets(linearVersion, ticketsShown, visible, seen, now);
   const { relaunch, upNext } = tickets.plan;
   const sections = useMemo(() => threadSections(visible, seen, new Set(relaunch.map((r) => r.thread.id))), [visible, seen, relaunch]);
@@ -61,6 +60,7 @@ export function useDashboardCards({ state, visible, now, sessionIds, onOpen, onS
         renderItem={({ thread, kind }) => <NotificationItem key={thread.id} kind={kind} {...rowProps(thread)} onMarkRead={onMarkRead} />}
         onMarkAllRead={() => sections.unread.forEach((t) => onMarkRead(t.id))}
         onSettle={onSettle}
+        onClose={onCloseNotifications}
       />
     ),
     running: (

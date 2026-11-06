@@ -55,3 +55,9 @@ test("on a phone the three stat tiles stay in one row", () => {
   assert.match(phone, /\.stat-value \{ font-size: 20px/);
   assert.match(phone, /\.skeleton-bars \{ height: 140px/);
 });
+
+test("the Notifications panel is sticky on a wide screen and a full-screen layer on a phone", () => {
+  assert.match(rule(".dashboard-panel"), /position: sticky; top: 0;/);
+  assert.match(rule(".dashboard.with-panel"), /340px/);
+  assert.match(css, /^ {2}\.dashboard-panel \{[^}]*position: fixed; inset: 0;/m);
+});
