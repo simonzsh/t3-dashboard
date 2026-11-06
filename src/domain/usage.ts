@@ -113,7 +113,6 @@ export function createUsage({ port, threads, now, serverTimeZone }: UsageOptions
     }
 
     let status: UsageCostStatus = cost.failure === null ? "ok" : "unavailable";
-    let refreshing = false;
     for (const bucket of cost.summary?.buckets ?? []) {
       const entry = byDay.get(bucket.day);
       if (!entry) continue;
@@ -124,7 +123,7 @@ export function createUsage({ port, threads, now, serverTimeZone }: UsageOptions
       entry.outputTokens += outputTokens;
       if ((bucket.unpricedRecords ?? 0) > 0 || bucket.costSource === "unpriced") status = "partial";
     }
-    if (cost.summary?.sources?.some((source) => source.refreshing === true)) refreshing = true;
+    const refreshing = cost.summary?.sources?.some((source) => source.refreshing === true) ?? false;
 
     const days = [...byDay.values()].map((day) => ({ ...day, costUsd: cents(day.costUsd) }));
     return {
