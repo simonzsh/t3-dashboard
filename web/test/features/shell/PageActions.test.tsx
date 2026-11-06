@@ -7,7 +7,7 @@ import type { Tab } from "../../../src/lib/tabs.ts";
 const noop = () => {};
 const render = (tab: Tab, over: Partial<Parameters<typeof PageActions>[0]> = {}) =>
   renderToStaticMarkup(
-    <PageActions tab={tab} compact={false} ready editingLayout={false} layoutIsDefault={false} layout="columns" onLayoutChange={noop} listHidden={false} onToggleList={noop} onNewSession={noop} onNewAutomation={noop} onSearch={noop} onSettings={noop} onEditLayout={noop} onDoneLayout={noop} onResetLayout={noop} {...over} />,
+    <PageActions tab={tab} compact={false} ready editingLayout={false} layoutIsDefault={false} layout="columns" onLayoutChange={noop} listHidden={false} onToggleList={noop} onNewSession={noop} onNewAutomation={noop} onSearch={noop} onSettings={noop} updateReady={false} onEditLayout={noop} onDoneLayout={noop} onResetLayout={noop} {...over} />,
   );
 
 test("Sessions shows the list toggle, then the layout toggle, then New Session", () => {
@@ -99,4 +99,11 @@ test("on a phone every page header ends with Search and Settings", () => {
     assert.ok(out.indexOf('aria-label="Search"') < out.indexOf('aria-label="Settings"'), tab);
   }
   assert.doesNotMatch(render("dashboard"), /aria-label="Settings"/);
+});
+
+test("on a phone the Settings button shows a dot when an update is ready", () => {
+  const out = renderToStaticMarkup(
+    <PageActions tab="sessions" compact ready editingLayout={false} layoutIsDefault={false} layout="columns" onLayoutChange={noop} listHidden={false} onToggleList={noop} onNewSession={noop} onNewAutomation={noop} onSearch={noop} onSettings={noop} updateReady onEditLayout={noop} onDoneLayout={noop} onResetLayout={noop} />,
+  );
+  assert.match(out, /class="[^"]*has-update[^"]*"[^>]*aria-label="Settings, an update is ready"|aria-label="Settings, an update is ready"[^>]*class="[^"]*has-update/);
 });

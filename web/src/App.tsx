@@ -236,6 +236,7 @@ export function App() {
               onNewAutomation={() => setCreatingAutomation(true)}
               onSearch={openSearch}
               onSettings={() => setSettingsOpen(true)}
+              updateReady={updateNav !== null}
               onEditLayout={() => dashboardLayout.setEditing(true)}
               onDoneLayout={() => dashboardLayout.setEditing(false)}
               onResetLayout={dashboardLayout.reset}

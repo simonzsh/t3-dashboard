@@ -2,7 +2,7 @@
 
 [Back to the README](../README.md)
 
-The dashboard has three pages: Dashboard, Sessions and Automations. A sidebar on the left lists them, with a search button (`⌘` + `K`). Its last row shows the connection state, Settings and a button that collapses the sidebar to icons (`Ctrl` + `B`). The theme and the accent color are in Settings. The sidebar remembers its state. The page header is one line: the title and a short description. Its button depends on the page: Sessions has a list toggle (wide screen), a layout button and New Session (`Ctrl` + `N`), Automations has New Automation (`Ctrl` + `⇧` + `N`), and Dashboard has Edit layout. The two shortcuts work on every page. On a phone, a bar at the bottom of the screen replaces the sidebar: Dashboard, Sessions and Automations. The header then shows the page button as an icon, a search button and Settings.
+The dashboard has three pages: Dashboard, Sessions and Automations. A sidebar on the left lists them, with a search button (`⌘` + `K`). Its last row shows the connection state, Settings and a button that collapses the sidebar to icons (`Ctrl` + `B`). The theme and the accent color are in Settings. The sidebar remembers its state. The page header is one line: the title and a short description. Its button depends on the page: Sessions has a list toggle (wide screen), a layout button and New Session (`Ctrl` + `N`), Automations has New Automation (`Ctrl` + `⇧` + `N`), and Dashboard has Edit layout. The two shortcuts work on every page. On a phone, a bar at the bottom of the screen replaces the sidebar: Dashboard, Sessions and Automations. The header then shows the page button as an icon, a search button and Settings. A dot on Settings shows that an update is ready.
 
 ## Dashboard
 

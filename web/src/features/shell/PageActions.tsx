@@ -22,6 +22,8 @@ interface Props {
   onSearch: () => void;
   /** Phone only: Settings sits in the header, the bottom bar holds the pages. */
   onSettings: () => void;
+  /** Phone only: the bottom bar has no update button, so Settings shows a dot. */
+  updateReady: boolean;
   onEditLayout: () => void;
   onDoneLayout: () => void;
   onResetLayout: () => void;
@@ -64,7 +66,7 @@ function Action({ compact, label, icon, variant = "secondary", withIcon = false,
 }
 
 /** The header buttons of a page: Sessions hides the list, picks its layout and starts a session, Automations a task, Dashboard edits its layout. */
-export function PageActions({ tab, compact, ready, editingLayout, layoutIsDefault, layout, onLayoutChange, listHidden, onToggleList, onNewSession, onNewAutomation, onSearch, onSettings, onEditLayout, onDoneLayout, onResetLayout }: Props) {
+export function PageActions({ tab, compact, ready, editingLayout, layoutIsDefault, layout, onLayoutChange, listHidden, onToggleList, onNewSession, onNewAutomation, onSearch, onSettings, updateReady, onEditLayout, onDoneLayout, onResetLayout }: Props) {
   let main = null;
   if (tab === "dashboard" && editingLayout) {
     main = (
@@ -106,7 +108,7 @@ export function PageActions({ tab, compact, ready, editingLayout, layoutIsDefaul
           <IconButton variant="ghost" label="Search" onClick={onSearch}>
             <Icon name="search" />
           </IconButton>
-          <IconButton variant="ghost" label="Settings" onClick={onSettings}>
+          <IconButton variant="ghost" label={updateReady ? "Settings, an update is ready" : "Settings"} className={updateReady ? "has-update" : undefined} onClick={onSettings}>
             <Icon name="settings" strokeWidth={1.8} />
           </IconButton>
         </>
