@@ -3,22 +3,22 @@ import assert from "node:assert/strict";
 import { renderToStaticMarkup } from "react-dom/server";
 import type { LimitsOverview, LimitWindow, ProviderLimits } from "../../../../shared/api.ts";
 import { UsageCard } from "../../../src/features/dashboard/UsageCard.tsx";
-import type { LimitsState } from "../../../src/features/dashboard/useLimits.ts";
+import type { ReadState } from "../../../src/features/dashboard/pollRead.ts";
 
 const NOW = new Date("2026-11-06T12:00:00.000Z");
 const after = (minutes: number) => new Date(NOW.getTime() + minutes * 60_000).toISOString();
 
 const win = (over: Partial<LimitWindow> = {}): LimitWindow => ({ id: "w", kind: "session", label: "Session", usedPercent: 38, resetsAt: after(131), windowMinutes: 300, ...over });
 const provider = (driver: string, windows: LimitWindow[], resetCredits = 0): ProviderLimits => ({ instanceId: driver, driver, name: driver === "codex" ? "Codex" : "Claude", windows, resetCredits, checkedAt: after(-2) });
-const state = (over: Partial<LimitsState> = {}): LimitsState => ({
-  limits: { supported: true, providers: [], readAt: after(-1) } satisfies LimitsOverview,
+const state = (over: Partial<ReadState<LimitsOverview>> = {}): ReadState<LimitsOverview> => ({
+  value: { supported: true, providers: [], readAt: after(-1) } satisfies LimitsOverview,
   error: null,
   loading: false,
   refresh: () => {},
   ...over,
 });
-const render = (providers: ProviderLimits[], over: Partial<LimitsState> = {}) =>
-  renderToStaticMarkup(<UsageCard state={state({ limits: { supported: true, providers, readAt: after(-1) }, ...over })} now={NOW} />);
+const render = (providers: ProviderLimits[], over: Partial<ReadState<LimitsOverview>> = {}) =>
+  renderToStaticMarkup(<UsageCard state={state({ value: { supported: true, providers, readAt: after(-1) }, ...over })} now={NOW} />);
 const text = (html: string) => html.replace(/<[^>]+>/g, "");
 
 test("providers show Codex first, then Claude, and windows by kind", () => {
@@ -76,7 +76,7 @@ test("the head shows when the oldest check ran", () => {
 });
 
 test("an old T3 gets one sentence", () => {
-  const out = renderToStaticMarkup(<UsageCard state={state({ limits: { supported: false, providers: [], readAt: after(0) } })} now={NOW} />);
+  const out = renderToStaticMarkup(<UsageCard state={state({ value: { supported: false, providers: [], readAt: after(0) } })} now={NOW} />);
   assert.match(out, /This T3 Code version does not report usage limits\./);
 });
 
@@ -85,9 +85,9 @@ test("a supported T3 without any limits says to sign in", () => {
 });
 
 test("before the first answer there is a skeleton, and a failed first read shows the error", () => {
-  const loading = renderToStaticMarkup(<UsageCard state={state({ limits: null })} now={NOW} />);
+  const loading = renderToStaticMarkup(<UsageCard state={state({ value: null })} now={NOW} />);
   assert.match(loading, /aria-busy="true" aria-label="Loading usage limits"/);
-  const failed = renderToStaticMarkup(<UsageCard state={state({ limits: null, error: "T3 Code is not running" })} now={NOW} />);
+  const failed = renderToStaticMarkup(<UsageCard state={state({ value: null, error: "T3 Code is not running" })} now={NOW} />);
   assert.match(failed, /role="alert">T3 Code is not running/);
   assert.doesNotMatch(failed, /Loading usage limits/);
 });

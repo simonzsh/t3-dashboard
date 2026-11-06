@@ -4,7 +4,7 @@ import { relativeTime } from "../../lib/format.ts";
 import { CardHead, Icon, IconButton, Segmented, Skeleton, SkeletonGroup } from "../../ui/index.ts";
 import { ActivityChart } from "./ActivityChart.tsx";
 import { delta, formatUsd, METRICS, type Metric } from "./activityView.ts";
-import type { ActivityState } from "./useActivity.ts";
+import type { ReadState } from "./pollRead.ts";
 
 interface TileProps {
   label: ReactNode;
@@ -71,9 +71,9 @@ function ActivitySkeleton() {
   );
 }
 
-export function ActivityCard({ state, running, now }: { state: ActivityState; running: number; now: Date }) {
+export function ActivityCard({ state, running, now }: { state: ReadState<UsageOverview>; running: number; now: Date }) {
   const [metric, setMetric] = useState<Metric>("turns");
-  const { usage, error, loading, refresh } = state;
+  const { value: usage, error, loading, refresh } = state;
   const costKnown = usage !== null && usage.cost.status !== "unavailable";
   return (
     <section className="dashboard-card activity-card" aria-labelledby="dashboard-activity-head">

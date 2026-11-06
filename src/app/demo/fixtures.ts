@@ -439,7 +439,7 @@ const MIN = 60_000;
 const SESSION_MINUTES = 300;
 const WEEK_MINUTES = 10_080;
 
-/** Limit windows by instance id, timed from `now`: one under, one on and two ahead of the pace. */
+/** Limit windows by instance id, timed from `now`: one under, two on and two ahead of the pace. */
 export function demoUsageLimits(now: Date): Record<string, RawUsageLimits> {
   const checkedAt = new Date(now.getTime() - MIN).toISOString();
   const window = (id: string, kind: string, label: string, usedPercent: number, windowDurationMins: number, leftMinutes: number) => ({

@@ -1,9 +1,9 @@
-import type { LimitWindow, ProviderLimits } from "../../../../shared/api.ts";
+import type { LimitWindow, LimitsOverview, ProviderLimits } from "../../../../shared/api.ts";
 import { ProviderIcon } from "../../lib/ProviderIcon.tsx";
 import { providerKind } from "../../lib/threads.ts";
 import { CardHead, Icon, IconButton, Skeleton, SkeletonGroup } from "../../ui/index.ts";
 import { leftPercent, oldestCheck, pace, PACE, resetLabel, rowLabel, showHatch, sortProviders, sortWindows, timeLeftPercent } from "./limitsView.ts";
-import type { LimitsState } from "./useLimits.ts";
+import type { ReadState } from "./pollRead.ts";
 
 function LimitRow({ window, credits, now }: { window: LimitWindow; credits: number; now: Date }) {
   const left = leftPercent(window);
@@ -75,8 +75,8 @@ function UsageSkeleton() {
   );
 }
 
-export function UsageCard({ state, now }: { state: LimitsState; now: Date }) {
-  const { limits, error, loading, refresh } = state;
+export function UsageCard({ state, now }: { state: ReadState<LimitsOverview>; now: Date }) {
+  const { value: limits, error, loading, refresh } = state;
   return (
     <section className="dashboard-card limits-card" aria-labelledby="dashboard-usage-head">
       <CardHead

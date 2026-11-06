@@ -1,13 +1,12 @@
 import { test } from "bun:test";
 import assert from "node:assert/strict";
 import { renderToStaticMarkup } from "react-dom/server";
-import type { DashboardState, UsageDay, UsageOverview, UsageTotals } from "../../../../shared/api.ts";
+import type { DashboardState, LimitsOverview, UsageDay, UsageOverview, UsageTotals } from "../../../../shared/api.ts";
 import { DashboardView } from "../../../src/features/dashboard/DashboardView.tsx";
 import { DEFAULT_LAYOUT, moveCard, setHidden, type DashboardLayout } from "../../../src/features/dashboard/layout.ts";
 import { agentCounts } from "../../../src/lib/agents.ts";
 import { listedThreads } from "../../../src/features/dashboard/sections.ts";
-import type { ActivityState } from "../../../src/features/dashboard/useActivity.ts";
-import type { LimitsState } from "../../../src/features/dashboard/useLimits.ts";
+import type { ReadState } from "../../../src/features/dashboard/pollRead.ts";
 import { baseState, thread } from "../../fixtures.ts";
 
 const NOW = new Date("2026-01-14T12:00:00.000Z");
@@ -37,9 +36,9 @@ const overview = (over: Partial<UsageOverview> = {}): UsageOverview => ({
   readAt: "2026-01-14T11:59:00.000Z",
   ...over,
 });
-const state = (over: Partial<ActivityState> = {}): ActivityState => ({ usage: overview(), error: null, loading: false, refresh: () => {}, ...over });
-const limitsState = (over: Partial<LimitsState> = {}): LimitsState => ({
-  limits: { supported: true, providers: [], readAt: "2026-01-14T11:59:00.000Z" },
+const state = (over: Partial<ReadState<UsageOverview>> = {}): ReadState<UsageOverview> => ({ value: overview(), error: null, loading: false, refresh: () => {}, ...over });
+const limitsState = (over: Partial<ReadState<LimitsOverview>> = {}): ReadState<LimitsOverview> => ({
+  value: { supported: true, providers: [], readAt: "2026-01-14T11:59:00.000Z" },
   error: null,
   loading: false,
   refresh: () => {},
@@ -47,14 +46,14 @@ const limitsState = (over: Partial<LimitsState> = {}): LimitsState => ({
 });
 const fresh = { since: "2026-01-01T00:00:00.000Z", seen: {} as Record<string, string> };
 interface Options {
-  limits?: LimitsState;
+  limits?: ReadState<LimitsOverview>;
   threads?: ReturnType<typeof thread>[];
   layout?: DashboardLayout;
   editing?: boolean;
   seen?: typeof fresh;
   providers?: DashboardState["providers"];
 }
-const render = (activity: ActivityState, { limits = limitsState(), threads = [thread("a", { status: "running" })], layout = DEFAULT_LAYOUT, editing = false, seen = fresh, providers = [] }: Options = {}) =>
+const render = (activity: ReadState<UsageOverview>, { limits = limitsState(), threads = [thread("a", { status: "running" })], layout = DEFAULT_LAYOUT, editing = false, seen = fresh, providers = [] }: Options = {}) =>
   renderToStaticMarkup(
     <DashboardView
       state={{ ...baseState(threads), providers }}
@@ -109,14 +108,14 @@ test("on a phone the tiles keep only the short label and caption", () => {
 });
 
 test("a partial turn count and unpriced models are said in the captions", () => {
-  const out = render(state({ usage: overview({ turnsPartial: true, cost: { status: "partial", detail: null, refreshing: false } }) }));
+  const out = render(state({ value: overview({ turnsPartial: true, cost: { status: "partial", detail: null, refreshing: false } }) }));
   const text = out.replace(/<[^>]+>/g, "");
   assert.match(text, /last 7 days \(partial\)/);
   assert.match(text, /last 7 days · some models unpriced · all usage on this machine/);
 });
 
 test("unavailable cost shows a dash and T3's reason, and does not crash", () => {
-  const out = render(state({ usage: overview({ cost: { status: "unavailable", detail: "This T3 Code version does not report usage.", refreshing: false } }) }));
+  const out = render(state({ value: overview({ cost: { status: "unavailable", detail: "This T3 Code version does not report usage.", refreshing: false } }) }));
   assert.match(out, /\(API equiv\.\)<\/span><\/span><span class="stat-value">—</);
   assert.match(out, /This T3 Code version does not report usage\./);
 });
@@ -158,7 +157,7 @@ test("each slot carries its place for the one-column layout", () => {
 });
 
 test("before the first answer the Activity card shows a skeleton, with the thread cards already there", () => {
-  const out = render(state({ usage: null }));
+  const out = render(state({ value: null }));
   assert.match(out, /class="skeleton"[^>]*aria-hidden/);
   assert.match(out, /aria-busy="true" aria-label="Loading activity"/);
   assert.match(out, /id="notifications-head"/);
@@ -166,7 +165,7 @@ test("before the first answer the Activity card shows a skeleton, with the threa
 });
 
 test("a failed first read shows the error line instead of the skeleton", () => {
-  const out = render(state({ usage: null, error: "Cannot reach the dashboard server." }));
+  const out = render(state({ value: null, error: "Cannot reach the dashboard server." }));
   assert.match(out, /role="alert">Cannot reach/);
   assert.doesNotMatch(out, /Loading activity/);
 });

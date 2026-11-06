@@ -1,3 +1,4 @@
+import type { LimitsOverview, UsageOverview } from "../../../../shared/api.ts";
 import { Fragment, useState, type CSSProperties, type DragEvent, type ReactNode } from "react";
 import { CardEditBar } from "./CardEditBar.tsx";
 import { CARD_TITLES, dropCard, moveCard, setHidden, shiftCard, stackedOrder, type Column, type DashboardCard, type DashboardLayout } from "./layout.ts";
@@ -5,12 +6,11 @@ import { Button, Icon } from "../../ui/index.ts";
 import { ActivityCard } from "./ActivityCard.tsx";
 import { UsageCard } from "./UsageCard.tsx";
 import { useDashboardCards, type CardsInput } from "./useDashboardCards.tsx";
-import type { ActivityState } from "./useActivity.ts";
-import type { LimitsState } from "./useLimits.ts";
+import type { ReadState } from "./pollRead.ts";
 
 interface Props extends CardsInput {
-  limits: LimitsState;
-  activity: ActivityState;
+  limits: ReadState<LimitsOverview>;
+  activity: ReadState<UsageOverview>;
   /** Agents at work among the listed threads: the same count as the Sessions badge and the Running card. */
   running: number;
   layout: DashboardLayout;
