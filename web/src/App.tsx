@@ -239,6 +239,9 @@ export function App() {
                   <IconButton variant="primary" className="header-new" label="New Agent" onClick={() => setCreating(true)}>
                     <Icon name="assignBot" />
                   </IconButton>
+                  <IconButton variant="ghost" label="New Automation" onClick={() => setCreatingAutomation(true)}>
+                    <Icon name="calendarClock" />
+                  </IconButton>
                   <IconButton variant="ghost" label="Search" onClick={() => setSwitcherQuery("")}>
                     <Icon name="search" />
                   </IconButton>
@@ -247,13 +250,11 @@ export function App() {
             ) : (
               state && (
                 <>
-                  {tab !== "desk" && (
-                    <Button kbd={ctrlLabel("⇧N")} onClick={() => setCreatingAutomation(true)}>
-                      New Automation
-                    </Button>
-                  )}
                   <Button variant="primary" kbd={ctrlLabel("N")} onClick={() => setCreating(true)}>
                     New Agent
+                  </Button>
+                  <Button kbd={ctrlLabel("⇧N")} onClick={() => setCreatingAutomation(true)}>
+                    New Automation
                   </Button>
                 </>
               )
