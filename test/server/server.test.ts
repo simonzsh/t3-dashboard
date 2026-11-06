@@ -1606,3 +1606,62 @@ test("GET /api/server-stats returns the machine's stats", async () => {
   assert.equal(reply.status, 200);
   assert.deepEqual(reply.json, SERVER_STATS);
 });
+
+test("GET /api/folders answers the suggestions and the kind of the path", async () => {
+  const { server, port } = await start();
+  port.browseResult = { parentPath: "/work", entries: [{ name: "root", fullPath: "/work/root" }] };
+  port.kinds = [null];
+  const reply = await call(server, "GET", `/api/folders?path=${encodeURIComponent(" /work/ro ")}`);
+  assert.equal(reply.status, 200);
+  assert.deepEqual(reply.json, { path: "/work/ro", kind: "missing", entries: [{ name: "root", path: "/work/root" }] });
+  assert.deepEqual(port.browseCalls, ["/work/ro"]);
+});
+
+test("GET /api/folders validates the path and maps a T3 failure to 502", async () => {
+  const { server, port } = await start();
+  const message = "path must be an absolute folder path (/… or ~/…), up to 512 characters";
+  for (const path of ["", "   ", "src/x", "~other", "/a\u0000b", `/${"a".repeat(512)}`]) {
+    const reply = await call(server, "GET", `/api/folders?path=${encodeURIComponent(path)}`);
+    assert.deepEqual([reply.status, reply.json?.error], [400, message], JSON.stringify(path));
+  }
+  assert.equal((await call(server, "GET", "/api/folders")).status, 400);
+  assert.deepEqual(port.browseCalls, []);
+  port.browseError = new IntegrationError("T3 is down", { system: "t3", kind: "unreachable" });
+  assert.equal((await call(server, "GET", "/api/folders?path=%2Fwork")).status, 502);
+});
+
+test("POST /api/projects creates a project from a folder", async () => {
+  const { server, port } = await start();
+  const reply = await post(server, "/api/projects", { path: " /home/demo/new-app/ ", title: "  " });
+  assert.deepEqual([reply.status, reply.json], [200, { ok: true, projectId: "id-1", created: true }]);
+  assert.deepEqual(port.mutations[0]!.mutation, { type: "project.create", projectId: "id-1", title: "new-app", workspaceRoot: "/home/demo/new-app", createWorkspaceRootIfMissing: true });
+});
+
+test("POST /api/projects reuses the project that has the folder", async () => {
+  const { server, port } = await start();
+  const reply = await post(server, "/api/projects", { path: "/work/root/", title: "Other" });
+  assert.deepEqual(reply.json, { ok: true, projectId: "project-1", created: false });
+  assert.deepEqual(port.mutations, []);
+});
+
+test("POST /api/projects validates its body", async () => {
+  const { server, port } = await start();
+  const bad = [{}, { path: 3 }, { path: "relative" }, { path: "/x", title: 3 }, { path: "/x", title: "t".repeat(201) }];
+  for (const body of bad) assert.equal((await post(server, "/api/projects", body)).status, 400, JSON.stringify(body));
+  assert.equal((await post(server, "/api/projects", { path: "/x", title: 3 })).json.error, "title must be a string of at most 200 characters");
+  assert.deepEqual(port.mutations, []);
+});
+
+test("POST /api/projects answers 400, 409 and 502 for T3 refusals", async () => {
+  const { server, port } = await start();
+  const refuse = (reason?: string) => new IntegrationError("T3 says no", { system: "t3", kind: "refused", ...(reason && { reason }) });
+  port.mutateError = refuse("WorkspaceRootNotDirectoryError");
+  const file = await post(server, "/api/projects", { path: "/x" });
+  assert.deepEqual([file.status, file.json.error], [400, "This path is a file, not a folder"]);
+  port.mutateError = refuse("ProjectConflictError");
+  const conflict = await post(server, "/api/projects", { path: "/x" });
+  assert.deepEqual([conflict.status, conflict.json.error], [409, "Another T3 project already uses this folder"]);
+  port.mutateError = refuse();
+  const other = await post(server, "/api/projects", { path: "/x" });
+  assert.deepEqual([other.status, other.json.error], [502, "T3 says no"]);
+});

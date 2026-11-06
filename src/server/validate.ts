@@ -1,4 +1,4 @@
-import type { ApprovalDecision, AssignIssueBody, CreateAutomationBody, CreateThreadBody, RoutineSchedule, WebhookFilter, WebhookSignature, ModelSelection, RespondBody, RewindBody, SecretAnswerBody, SendMessageBody, ThreadSettingsBody, UpdateAutomationBody, UploadedAttachment, UserInputAnswers } from "../../shared/api.ts";
+import type { ApprovalDecision, AssignIssueBody, CreateAutomationBody, CreateProjectBody, CreateThreadBody, RoutineSchedule, WebhookFilter, WebhookSignature, ModelSelection, RespondBody, RewindBody, SecretAnswerBody, SendMessageBody, ThreadSettingsBody, UpdateAutomationBody, UploadedAttachment, UserInputAnswers } from "../../shared/api.ts";
 import { isObject } from "../../shared/guards.ts";
 import { normalizeSessions, type SessionsUpdate } from "../../shared/sessions.ts";
 import { IMAGE_TYPES, MAX_ATTACHMENTS, MAX_FILE_BYTES, MAX_IMAGE_BYTES, MAX_IMAGES, MAX_SECRET_CHARS, isRuntimeMode } from "../../shared/limits.ts";
@@ -119,6 +119,28 @@ export function validCreate(body: Record<string, unknown>): CreateThreadBody {
   }
   if (body.runtimeMode !== undefined && !isRuntimeMode(body.runtimeMode)) throw new HttpError(400, "runtimeMode is not a known mode");
   return { projectId: projectId.trim(), title: body.title.trim(), text: body.text, modelSelection, ...(isRuntimeMode(body.runtimeMode) && { runtimeMode: body.runtimeMode }) };
+}
+
+const FOLDER_PATH = /^(\/|~$|~\/)/;
+const FOLDER_PATH_MAX = 512;
+const PROJECT_TITLE_MAX = 200;
+
+const validPath = (value: unknown): string => {
+  const path = typeof value === "string" ? value.trim() : "";
+  if (path.length === 0 || path.length > FOLDER_PATH_MAX || !FOLDER_PATH.test(path) || /[\u0000-\u001f\u007f]/.test(path)) {
+    throw new HttpError(400, `path must be an absolute folder path (/… or ~/…), up to ${FOLDER_PATH_MAX} characters`);
+  }
+  return path;
+};
+
+export const validFolderPath = (params: URLSearchParams): string => validPath(params.get("path"));
+
+export function validCreateProject(body: Record<string, unknown>): CreateProjectBody {
+  const path = validPath(body.path);
+  if (body.title === undefined) return { path };
+  if (typeof body.title !== "string" || body.title.trim().length > PROJECT_TITLE_MAX) throw new HttpError(400, `title must be a string of at most ${PROJECT_TITLE_MAX} characters`);
+  const title = body.title.trim();
+  return title ? { path, title } : { path };
 }
 
 export function validSearch(params: URLSearchParams): { query: string; limit: number } {
