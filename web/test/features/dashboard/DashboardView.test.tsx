@@ -136,13 +136,13 @@ test("the chart has one labelled bar slot per day, today last, and a table for s
   assert.match(out, /<table class="sr-only">/);
 });
 
-test("the default layout puts Usage, Server, Activity, Running and Up next left and Notifications right", () => {
+test("the default layout puts Usage, Activity, Server, Running and Up next left and Notifications right", () => {
   const out = render(state());
   const right = out.indexOf('class="dashboard-col right pinned"');
   assert.ok(right > 0);
-  assert.ok(out.indexOf('id="dashboard-usage-head"') < out.indexOf('id="dashboard-server-head"'));
-  assert.ok(out.indexOf('id="dashboard-server-head"') < out.indexOf('id="dashboard-activity-head"'));
-  assert.ok(out.indexOf('id="dashboard-activity-head"') < out.indexOf('id="running-head"'));
+  assert.ok(out.indexOf('id="dashboard-usage-head"') < out.indexOf('id="dashboard-activity-head"'));
+  assert.ok(out.indexOf('id="dashboard-activity-head"') < out.indexOf('id="dashboard-server-head"'));
+  assert.ok(out.indexOf('id="dashboard-server-head"') < out.indexOf('id="running-head"'));
   assert.ok(out.indexOf('id="running-head"') < out.indexOf('id="up-next-head"'));
   assert.ok(out.indexOf('id="up-next-head"') < right);
   assert.ok(right < out.indexOf('id="notifications-head"'));

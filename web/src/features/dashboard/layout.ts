@@ -2,7 +2,7 @@ import { readJson, writeKey, type Store } from "../../lib/storage.ts";
 
 export const DASHBOARD_LAYOUT_KEY = "t3-dashboard-layout";
 
-const CARDS = ["usage", "server", "activity", "notifications", "running", "up-next"] as const;
+const CARDS = ["usage", "activity", "server", "notifications", "running", "up-next"] as const;
 export type DashboardCard = (typeof CARDS)[number];
 export type Column = "left" | "right";
 
@@ -15,7 +15,7 @@ export interface DashboardLayout {
   hidden: DashboardCard[];
 }
 
-export const DEFAULT_LAYOUT: DashboardLayout = { left: ["usage", "server", "activity", "running", "up-next"], right: ["notifications"], hidden: [] };
+export const DEFAULT_LAYOUT: DashboardLayout = { left: ["usage", "activity", "server", "running", "up-next"], right: ["notifications"], hidden: [] };
 const DEFAULT_COLUMN: Record<DashboardCard, Column> = { usage: "left", server: "left", activity: "left", running: "left", "up-next": "left", notifications: "right" };
 
 const isCard = (v: unknown): v is DashboardCard => CARDS.includes(v as DashboardCard);
