@@ -11,8 +11,8 @@ test("the shimmer animates transform only, never background-position", () => {
   assert.doesNotMatch(frames, /background-position/);
 });
 
-test("both shimmer bars are half-width compositor layers", () => {
-  for (const selector of [".run-row.working::after", ".session-window.state-running .session-window-head::after"]) {
+test("the shimmer bar is a half-width compositor layer", () => {
+  for (const selector of [".run-row.working::after"]) {
     const line = rule(selector);
     assert.match(line, /width: 50%;/, selector);
     assert.match(line, /will-change: transform;/, selector);
@@ -35,10 +35,11 @@ test("messages are never skipped by the renderer: estimated heights make the scr
   assert.doesNotMatch(css, /content-visibility/);
 });
 
-test("reduced motion still stops both shimmer bars", () => {
+test("reduced motion still stops the shimmer bar and the pulse", () => {
   const block = css.slice(css.indexOf("prefers-reduced-motion"));
   assert.match(block, /\.run-row\.working::after/);
-  assert.match(block, /\.session-window\.state-running \.session-window-head::after/);
+  assert.match(block, /\.pulse/);
+  assert.doesNotMatch(css, /\.session-window[^{]*state-running[^{]*::after/);
 });
 
 test("fields and the composer card share one focus ring and radius", () => {

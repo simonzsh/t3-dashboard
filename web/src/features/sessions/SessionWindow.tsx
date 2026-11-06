@@ -58,6 +58,7 @@ function SessionWindowView({ id, thread, projectTitle, projectIcon, missing, foc
           </span>
           {state && (
             <Badge variant={state === "idle" ? "neutral" : state} className="dw-state">
+              {state === "running" && <span className="pulse" aria-hidden="true" />}
               {STATE_LABELS[state]}
             </Badge>
           )}

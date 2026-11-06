@@ -146,6 +146,8 @@ main { flex: 1; min-height: 0; overflow: hidden; padding: 24px; display: flex; f
 .badge.done { background: var(--done-bg); color: var(--done-text); }
 .badge.error { background: var(--err-bg); color: var(--err-text); }
 .badge.neutral { background: var(--surface-0); color: var(--text-secondary); font-weight: 500; }
+/* A running badge carries a pulsing dot instead of a coloured header. */
+.dw-state .pulse { display: inline-block; vertical-align: middle; width: 6px; height: 6px; margin-right: 5px; background: currentColor; }
 .pulse { width: 8px; height: 8px; border-radius: 50%; background: var(--work); animation: pulse 1.4s ease-in-out infinite; }
 @keyframes pulse { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.35; transform: scale(0.7); } }
 @keyframes shimmer { from { transform: translateX(-50%); } to { transform: translateX(150%); } }
@@ -739,23 +741,8 @@ ol.install-steps { padding-left: 18px; }
 .sc-row { display: flex; align-items: center; gap: 6px; min-width: 0; }
 .sc-grip { flex: none; width: 16px; height: 16px; color: var(--text-secondary); }
 .sc-sub { display: flex; align-items: center; gap: 6px; min-width: 0; padding-left: 22px; color: var(--text-secondary); font-size: 12px; }
-/* Same colours as the Inbox rows, on the line under the header: amber waits, blue runs, red failed. */
 .session-window-head { position: relative; }
-.session-window.state-waiting .session-window-head { background: color-mix(in srgb, var(--warn-bg) 60%, var(--surface-1)); border-bottom-color: var(--warn); box-shadow: inset 0 -2px 0 var(--warn); }
-.session-window.state-running .session-window-head { background: color-mix(in srgb, var(--work-bg) 45%, var(--surface-1)); }
-.session-window.state-running .session-window-head::after { content: ""; position: absolute; left: 0; bottom: -1px; height: 3px; width: 50%; background: linear-gradient(90deg, transparent, var(--work), transparent); will-change: transform; animation: shimmer 1.8s ease-in-out infinite; }
-.session-window.state-error .session-window-head { background: color-mix(in srgb, var(--err-bg) 45%, var(--surface-1)); border-bottom-color: var(--danger); box-shadow: inset 0 -2px 0 var(--danger); }
-.session-window.state-done .session-window-head { background: color-mix(in srgb, var(--done-bg) 35%, var(--surface-1)); }
-/* The header takes the badge colour of its state; the focused window gets a deeper shade of it. Placed after the state rules on purpose. */
-.session-window.state-running .session-window-head { background: color-mix(in srgb, var(--work-bg) 55%, var(--surface-1)); }
-.session-window.state-waiting .session-window-head { background: color-mix(in srgb, var(--warn-bg) 55%, var(--surface-1)); }
-.session-window.state-error .session-window-head { background: color-mix(in srgb, var(--err-bg) 55%, var(--surface-1)); }
-.session-window.state-done .session-window-head { background: color-mix(in srgb, var(--done-bg) 55%, var(--surface-1)); }
 .session-window.focused .session-window-head { background: color-mix(in srgb, var(--text-secondary) 12%, var(--surface-1)); }
-.session-window.focused.state-running .session-window-head { background: color-mix(in srgb, var(--work-text) 16%, var(--work-bg)); }
-.session-window.focused.state-waiting .session-window-head { background: color-mix(in srgb, var(--warn-text) 16%, var(--warn-bg)); }
-.session-window.focused.state-error .session-window-head { background: color-mix(in srgb, var(--err-text) 16%, var(--err-bg)); }
-.session-window.focused.state-done .session-window-head { background: color-mix(in srgb, var(--done-text) 16%, var(--done-bg)); }
 .session-window.focused .dw-title { color: var(--text-primary); font-weight: 600; }
 /* Drag a window by its header onto another one to swap their cells. */
 .sessions:not(.compact) .session-window-head { cursor: grab; user-select: none; }
@@ -880,7 +867,7 @@ ol.install-steps { padding-left: 18px; }
 .key-mask { font: 12px/1 var(--font-mono); padding: 4px 7px; border-radius: 6px; border: 1px solid var(--line); color: var(--text-secondary); background: var(--surface-0); }
 /* After every animated rule, so it wins on equal specificity. */
 @media (prefers-reduced-motion: reduce) {
-  .pulse, .run-row.working::after, .session-window.state-running .session-window-head::after, .streaming, .step.running .icon, .todo.running .todo-mark, .spinning { animation: none; }
+  .pulse, .run-row.working::after, .streaming, .step.running .icon, .todo.running .todo-mark, .spinning { animation: none; }
   .loader rect { animation: none; }
   .thread-actions { transition: none; }
 }
