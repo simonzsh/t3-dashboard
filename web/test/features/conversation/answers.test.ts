@@ -1,6 +1,6 @@
 import { test } from "bun:test";
 import assert from "node:assert/strict";
-import { buildAnswers, canSubmit } from "../../../src/features/conversation/answers.ts";
+import { answerReady, buildAnswers, canSubmit, shortcutOption, toggleChoice } from "../../../src/features/conversation/answers.ts";
 import type { UserInputQuestion } from "../../../../shared/api.ts";
 
 function q(id: string, over: Partial<UserInputQuestion> = {}): UserInputQuestion {
@@ -28,4 +28,26 @@ test("canSubmit needs every required question answered", () => {
   assert.equal(canSubmit(qs, {}), false);
   assert.equal(canSubmit(qs, { a: { choices: ["x"], custom: "" } }), true);
   assert.equal(canSubmit([q("c", { required: true, allowCustomAnswer: true })], { c: { choices: [], custom: "  " } }), false);
+});
+
+test("answerReady lets an optional question through and needs an answer for a required one", () => {
+  assert.equal(answerReady(q("a"), undefined), true);
+  assert.equal(answerReady(q("a", { required: true }), undefined), false);
+  assert.equal(answerReady(q("a", { required: true }), { choices: ["x"], custom: "" }), true);
+  assert.equal(answerReady(q("a", { required: true, allowCustomAnswer: true }), { choices: [], custom: "mine" }), true);
+});
+
+test("toggleChoice replaces a radio choice and toggles a checkbox", () => {
+  assert.deepEqual(toggleChoice(q("a"), { choices: ["x"], custom: "" }, "y"), ["y"]);
+  const multi = q("a", { multiSelect: true });
+  assert.deepEqual(toggleChoice(multi, { choices: ["x"], custom: "" }, "y"), ["x", "y"]);
+  assert.deepEqual(toggleChoice(multi, { choices: ["x", "y"], custom: "" }, "x"), ["y"]);
+});
+
+test("shortcutOption maps 1-9 to an existing option only", () => {
+  assert.equal(shortcutOption("1", 3), 0);
+  assert.equal(shortcutOption("3", 3), 2);
+  assert.equal(shortcutOption("4", 3), null);
+  assert.equal(shortcutOption("0", 3), null);
+  assert.equal(shortcutOption("a", 3), null);
 });

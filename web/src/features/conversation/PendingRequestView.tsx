@@ -6,7 +6,7 @@ import { Button, Choice, TextInput } from "../../ui/index.ts";
 import { useAction } from "../../lib/useAction.ts";
 
 // The primary action comes last, on the right, as in the dialogs.
-const DECISIONS: Array<[ApprovalDecision, string]> = [
+export const DECISIONS: Array<[ApprovalDecision, string]> = [
   ["decline", "Decline"],
   ["acceptForSession", "Accept for session"],
   ["accept", "Accept"],

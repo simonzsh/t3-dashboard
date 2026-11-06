@@ -13,6 +13,7 @@ import { MessageActions } from "./MessageActions.tsx";
 import { RewindDialog } from "./RewindDialog.tsx";
 import { attachmentFiles, mergeDraft } from "./rewind.ts";
 import { PendingRequestView } from "./PendingRequestView.tsx";
+import { ApprovalDock, dockedRequest, useQuestionDock } from "./QuestionDock.tsx";
 import { WorkGroup } from "./Steps.tsx";
 import { SecretRequestCard } from "./SecretRequestCard.tsx";
 import { SubagentRows } from "./SubagentRows.tsx";
@@ -247,6 +248,9 @@ function Conversation({ threadId, thread, providers, onOpenThread, onTitle }: Pr
   }, [title]);
 
   const messageEditing = useMemo(() => ({ onEdit: setEditing, disabled: running }), [running]);
+  const docked = detail ? dockedRequest(detail.pendingRequests) : null;
+  const question = useQuestionDock(threadId, docked?.category === "user-input" ? docked : null, load);
+  const otherRequests = detail ? detail.pendingRequests.filter((r) => r !== docked) : [];
 
   const polling = useRef(false);
   polling.current = delay !== null;
@@ -328,6 +332,29 @@ function Conversation({ threadId, thread, providers, onOpenThread, onTitle }: Pr
     }
   }
 
+  const mainComposer = (
+    <Composer
+      providers={providers}
+      selection={detail?.modelSelection ?? null}
+      runtimeMode={detail?.runtimeMode ?? null}
+      running={running}
+      stoppable={running || Boolean(t?.pendingTasks)}
+      draft={text}
+      onDraft={setDraft}
+      onSend={send}
+      searchFiles={(q) => api.searchFiles(threadId, q, 20).then((r) => r.entries)}
+      loadCommands={(provider) => api.getComposerCommands(threadId, provider)}
+      contextUsage={detail?.contextUsage ?? null}
+      onCompact={compact}
+      onEscape={() => frame.current?.focus({ preventScroll: true })}
+      stash={{ threadId, title: t?.title ?? "" }}
+      onStop={() => api.interrupt(threadId)}
+      onSettings={updateSettings}
+      restore={restore}
+      focusKey={restore.key || undefined}
+    />
+  );
+
   return (
     // tabIndex -1: Escape in the composer leaves the field here, so the dashboard shortcuts work again.
     <div
@@ -395,9 +422,9 @@ function Conversation({ threadId, thread, providers, onOpenThread, onTitle }: Pr
           {!detail && !loadError && <Loader />}
           {detail && <Timeline detail={detail} threadId={threadId} running={running} editing={messageEditing} onOpenThread={onOpenThread} onChanged={load} />}
           {detail && !running && pending.map((p) => <PendingBubble key={p.id} message={p} />)}
-          {detail && detail.pendingRequests.length > 0 && (
+          {otherRequests.length > 0 && (
             <div className="requests">
-              {detail.pendingRequests.map((r) => (
+              {otherRequests.map((r) => (
                 <PendingRequestView key={r.requestId} threadId={threadId} request={r} />
               ))}
             </div>
@@ -423,27 +450,37 @@ function Conversation({ threadId, thread, providers, onOpenThread, onTitle }: Pr
       </div>
       {detail?.subagentThread ? (
         <SubagentBar detail={detail} providers={providers} onOpenThread={onOpenThread} />
+      ) : question.composer ? (
+        // The question sits on the Composer, whose field is the free answer.
+        <div className="question-docked" onKeyDown={question.onKeyDown}>
+          {question.card}
+          <Composer
+            providers={providers}
+            selection={detail?.modelSelection ?? null}
+            runtimeMode={detail?.runtimeMode ?? null}
+            running={false}
+            stoppable
+            draft={question.composer.draft}
+            onDraft={question.composer.onDraft}
+            onSend={question.composer.onSend}
+            allowEmpty={question.composer.allowEmpty}
+            readOnly={question.composer.readOnly}
+            placeholder={question.composer.placeholder}
+            submitLabel={question.composer.submitLabel}
+            focusKey={question.composer.focusKey}
+            noImages
+            onEscape={() => frame.current?.focus({ preventScroll: true })}
+            onStop={() => api.interrupt(threadId)}
+            onSettings={updateSettings}
+          />
+        </div>
+      ) : docked?.category === "approval" ? (
+        <div className="question-docked">
+          <ApprovalDock key={docked.requestId} threadId={threadId} request={docked} onAnswered={load} />
+          {mainComposer}
+        </div>
       ) : (
-      <Composer
-        providers={providers}
-        selection={detail?.modelSelection ?? null}
-        runtimeMode={detail?.runtimeMode ?? null}
-        running={running}
-        stoppable={running || Boolean(t?.pendingTasks)}
-        draft={text}
-        onDraft={setDraft}
-        onSend={send}
-        searchFiles={(q) => api.searchFiles(threadId, q, 20).then((r) => r.entries)}
-        loadCommands={(provider) => api.getComposerCommands(threadId, provider)}
-        contextUsage={detail?.contextUsage ?? null}
-        onCompact={compact}
-        onEscape={() => frame.current?.focus({ preventScroll: true })}
-        stash={{ threadId, title: t?.title ?? "" }}
-        onStop={() => api.interrupt(threadId)}
-        onSettings={updateSettings}
-        restore={restore}
-        focusKey={restore.key || undefined}
-      />
+        mainComposer
       )}
       {editing && <RewindDialog message={editing} onClose={() => setEditing(null)} onConfirm={editFromHere} />}
     </div>
