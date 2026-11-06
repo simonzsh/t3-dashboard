@@ -782,9 +782,10 @@ ol.install-steps { padding-left: 18px; }
 .slist-body > .slist-row { padding-left: 8px; }
 /* Hover only with a real pointer: a tap on a phone would leave the row grey. */
 @media (hover: hover) { .slist-row:hover { background: color-mix(in srgb, var(--text-primary) 5%, transparent); } }
-/* Open as a column: an accent tint; the focused one a stronger tint. */
-.slist-row.open { background: color-mix(in srgb, var(--accent) 9%, transparent); }
-.slist-row.focused { background: color-mix(in srgb, var(--accent) 18%, transparent); }
+/* Contrast shows what is open: closed rows are muted, open ones full, the focused one filled like the sidebar's active row. */
+.slist-row:not(.open) .slist-title { color: var(--text-secondary); }
+.slist-row.open .slist-title { font-weight: 500; }
+.slist-row.focused { background: color-mix(in srgb, var(--text-primary) 10%, transparent); }
 .slist-mark { flex: none; width: 8px; height: 8px; margin-top: 6px; border-radius: 50%; }
 .slist-mark.running { background: var(--work); animation: pulse 1.4s ease-in-out infinite; }
 .slist-mark.waiting { background: var(--warn); }
