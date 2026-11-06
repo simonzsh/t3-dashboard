@@ -57,7 +57,7 @@ export function AutomationsView({ state, now, seen, onOpen, automations, automat
   const { withPending } = actions;
   const all = useMemo(() => withPending(automations?.automations ?? []), [automations, withPending]);
   const sorted = useMemo(() => sortAutomations(filterAutomations(all, query), threads, seen), [all, query, threads, seen]);
-  const recent = useMemo(() => recentRuns(all, threads, Infinity), [all, threads]);
+  const recent = useMemo(() => recentRuns(all, threads), [all, threads]);
   const selected = all.find((a) => a.id === selectedId) ?? null;
 
   // The task was deleted, here or elsewhere: nothing stays selected.

@@ -34,7 +34,8 @@ export function AutomationSheet({ automation: a, threads, project, providers, se
   const runs = liveRuns(a, threads);
   const last = lastRunLine(a, threads, now);
   const session = a.bound && a.threadId && threads.has(a.threadId) ? a.threadId : null;
-  const busy = isRunning(a, threads) || starting;
+  const running = isRunning(a, threads);
+  const busy = running || starting;
   const finished = isFinishedReminder(a);
 
   // The sheet takes the focus, and gives it back to the row that opened it.
@@ -53,7 +54,7 @@ export function AutomationSheet({ automation: a, threads, project, providers, se
         <header className="auto-sheet-head">
           <div className="auto-sheet-top">
             <KindBadge kind={a.kind} />
-            {isRunning(a, threads) && <RunningBadge />}
+            {running && <RunningBadge />}
             {finished ? <Badge>Finished</Badge> : !a.enabled && <Badge>Paused</Badge>}
             <IconButton variant="ghost" size="sm" label="Close" onClick={onClose}>
               <Icon name="x" />

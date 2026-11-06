@@ -76,7 +76,7 @@ export function automationsBadge(list: Automation[], threads: Threads, seen: See
   return { count, failed };
 }
 
-export function recentRuns(list: Automation[], threads: Threads, limit = 10): Array<{ automation: Automation; run: AutomationRun }> {
+export function recentRuns(list: Automation[], threads: Threads, limit = Infinity): Array<{ automation: Automation; run: AutomationRun }> {
   return list
     .flatMap((automation) => liveRuns(automation, threads).map((run) => ({ automation, run })))
     .sort((a, b) => b.run.startedAt.localeCompare(a.run.startedAt))
