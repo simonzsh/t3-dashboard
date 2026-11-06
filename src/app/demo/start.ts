@@ -73,7 +73,8 @@ export async function startDemo(env: Record<string, string | undefined>): Promis
   const actions = createActions({ port, store, board });
   const dedicated = new Set(["demo-digest", "demo-setup"]);
   // An older run of the first task whose session is gone: the history shows "Session archived".
-  const archivedRun = { threadId: "demo-run-archived", startedAt: new Date(Date.now() - 5.5 * 86_400_000).toISOString(), finishedAt: new Date(Date.now() - 5.5 * 86_400_000 + 180_000).toISOString(), status: "succeeded" as const, error: null };
+  const archivedAt = Date.now() - 5.5 * 86_400_000;
+  const archivedRun = { threadId: "demo-run-archived", startedAt: new Date(archivedAt).toISOString(), finishedAt: new Date(archivedAt + 180_000).toISOString(), status: "succeeded" as const, error: null };
   const runs = new AutomationRunLog({ "inbox-triage": [archivedRun] });
   const automations = createAutomations({ port, store, dedicated: { read: () => dedicated }, runs });
   const handler = createDashboardServer({
