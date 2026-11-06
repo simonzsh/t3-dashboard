@@ -7,13 +7,20 @@ import type { Tab } from "../../../src/lib/tabs.ts";
 const noop = () => {};
 const render = (tab: Tab, over: Partial<Parameters<typeof PageActions>[0]> = {}) =>
   renderToStaticMarkup(
-    <PageActions tab={tab} compact={false} ready editingLayout={false} layoutIsDefault={false} layout="columns" onLayoutChange={noop} showLayoutToggle onNewSession={noop} onNewAutomation={noop} onSearch={noop} onEditLayout={noop} onDoneLayout={noop} onResetLayout={noop} {...over} />,
+    <PageActions tab={tab} compact={false} ready editingLayout={false} layoutIsDefault={false} layout="columns" onLayoutChange={noop} showLayoutToggle listHidden={false} onToggleList={noop} onNewSession={noop} onNewAutomation={noop} onSearch={noop} onEditLayout={noop} onDoneLayout={noop} onResetLayout={noop} {...over} />,
   );
 
-test("Sessions shows no list button: only the layout toggle, then New Session", () => {
+test("Sessions shows the list toggle, then the layout toggle, then New Session", () => {
   const out = render("sessions");
+  assert.ok(out.indexOf("Hide the list") >= 0 && out.indexOf("Hide the list") < out.indexOf("Switch to grid view"));
   assert.ok(out.indexOf("Switch to grid view") < out.indexOf("New Session"));
-  assert.doesNotMatch(out, /Hide the list|Show the list|recent activity|Group by project|all projects|Close all/);
+  assert.doesNotMatch(out, /recent activity|Group by project|all projects|Close all/);
+});
+
+test("a hidden list offers Show the list", () => {
+  const out = render("sessions", { listHidden: true });
+  assert.match(out, /aria-label="Show the list"/);
+  assert.doesNotMatch(out, /Hide the list/);
 });
 
 test("on a phone Sessions shows New Session, then Search, and no list button", () => {

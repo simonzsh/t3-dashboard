@@ -23,12 +23,10 @@ interface Props {
   onOpen: (id: string) => void;
   onNewSession: (projectId: string) => void;
   onCloseAll: () => void;
-  /** Desktop only: the button that hides the list. */
-  onHide?: () => void;
 }
 
 /** Every listed thread, by project or by recent activity: a click opens it as a session. */
-export function SessionList({ threads, projects, seen, modelNames, now, openIds, focusedId, prefs, onPrefs, onOpen, onNewSession, onCloseAll, onHide }: Props) {
+export function SessionList({ threads, projects, seen, modelNames, now, openIds, focusedId, prefs, onPrefs, onOpen, onNewSession, onCloseAll }: Props) {
   const shown = useMemo(() => listableThreads(threads), [threads]);
   const collapsed = new Set(prefs.collapsed);
   const grouped = prefs.mode === "grouped";
@@ -85,11 +83,6 @@ export function SessionList({ threads, projects, seen, modelNames, now, openIds,
   return (
     <aside className="slist" aria-label="Sessions list">
       <div className="slist-bar">
-        {onHide && (
-          <IconButton variant="ghost" size="sm" label="Hide the list" tooltip="Hide the list" onClick={onHide}>
-            <Icon name="panelLeft" />
-          </IconButton>
-        )}
         <span className="slist-bar-gap" />
         <IconButton variant="ghost" size="sm" label={modeLabel} tooltip={modeLabel} onClick={() => onPrefs({ mode: toMode })}>
           <Icon name={toMode === "grouped" ? "listTree" : "list"} />

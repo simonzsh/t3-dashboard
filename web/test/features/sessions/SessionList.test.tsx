@@ -43,14 +43,15 @@ test("a collapsed project hides its threads; flat mode has no project rows", () 
   assert.match(flat, /Fix login/);
 });
 
-test("the top band on desktop: hide on the left, then view toggle, collapse all, close all", () => {
-  const html = renderToStaticMarkup(<SessionList {...base} onHide={() => {}} />);
+test("the top band, on the right: view toggle, collapse all, close all, and no hide button", () => {
+  const html = renderToStaticMarkup(<SessionList {...base} />);
   const at = (label: string) => html.indexOf(`aria-label="${label}"`);
-  const order = ["Hide the list", "Show one list by recent activity", "Collapse all projects", "Close all sessions"].map(at);
+  const order = ["Show one list by recent activity", "Collapse all projects", "Close all sessions"].map(at);
   assert.ok(order[0]! >= 0 && order.every((n, i) => i === 0 || n > order[i - 1]!));
+  assert.doesNotMatch(html, /Hide the list/);
 });
 
-test("on a phone the band has the toggle, fold and close but no hide; all folded offers Expand all projects", () => {
+test("all folded offers Expand all projects", () => {
   const html = renderToStaticMarkup(<SessionList {...base} />);
   assert.doesNotMatch(html, /Hide the list/);
   assert.match(html, /Show one list by recent activity/);

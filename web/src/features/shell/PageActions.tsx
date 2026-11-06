@@ -15,6 +15,9 @@ interface Props {
   layout: SessionLayout;
   onLayoutChange: (layout: SessionLayout) => void;
   showLayoutToggle: boolean;
+  /** The Sessions list toggle: wide screen only. */
+  listHidden: boolean;
+  onToggleList: () => void;
   onNewSession: () => void;
   onNewAutomation: () => void;
   onSearch: () => void;
@@ -60,8 +63,8 @@ function Action({ compact, label, icon, variant = "secondary", primaryOnPhone = 
   );
 }
 
-/** The header buttons of a page: Sessions picks its layout and starts a session, Automations a task, Dashboard edits its layout (not on a phone). */
-export function PageActions({ tab, compact, ready, editingLayout, layoutIsDefault, layout, onLayoutChange, showLayoutToggle, onNewSession, onNewAutomation, onSearch, onEditLayout, onDoneLayout, onResetLayout }: Props) {
+/** The header buttons of a page: Sessions hides the list, picks its layout and starts a session, Automations a task, Dashboard edits its layout (not on a phone). */
+export function PageActions({ tab, compact, ready, editingLayout, layoutIsDefault, layout, onLayoutChange, showLayoutToggle, listHidden, onToggleList, onNewSession, onNewAutomation, onSearch, onEditLayout, onDoneLayout, onResetLayout }: Props) {
   let main = null;
   // A phone shows one column: there is no layout to edit.
   if (tab === "dashboard" && compact) {
@@ -79,8 +82,14 @@ export function PageActions({ tab, compact, ready, editingLayout, layoutIsDefaul
     // One button: its icon and label name the view it switches to.
     const toLayout = layout === "columns" ? "grid" : "columns";
     const toggle = layout === "columns" ? "Switch to grid view" : "Switch to column view";
+    const list = listHidden ? "Show the list" : "Hide the list";
     main = (
       <>
+        {!compact && (
+          <IconButton variant="ghost" label={list} tooltip={list} onClick={onToggleList}>
+            <Icon name="panelLeft" />
+          </IconButton>
+        )}
         {showLayoutToggle && (
           <IconButton variant="ghost" className="layout-toggle" label={toggle} tooltip={toggle} onClick={() => onLayoutChange(toLayout)}>
             <Icon name={layout === "columns" ? "layoutGrid" : "columns"} />

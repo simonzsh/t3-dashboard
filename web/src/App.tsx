@@ -231,6 +231,8 @@ export function App() {
               layout={layout}
               onLayoutChange={setLayout}
               showLayoutToggle={!compact}
+              listHidden={listPrefs.hidden}
+              onToggleList={() => setListPrefs({ hidden: !listPrefs.hidden })}
               onNewSession={() => setCreating({ projectId: null })}
               onNewAutomation={() => setCreatingAutomation(true)}
               onSearch={openSearch}
