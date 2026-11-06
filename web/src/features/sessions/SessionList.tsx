@@ -84,14 +84,14 @@ export function SessionList({ threads, projects, seen, modelNames, now, openIds,
     <aside className="slist" aria-label="Sessions list">
       <div className="slist-bar">
         <span className="slist-bar-gap" />
-        <IconButton variant="ghost" size="sm" label={modeLabel} tooltip={modeLabel} onClick={() => onPrefs({ mode: toMode })}>
-          <Icon name={toMode === "grouped" ? "listTree" : "list"} />
-        </IconButton>
         {grouped && (
           <IconButton variant="ghost" size="sm" label={foldLabel} tooltip={foldLabel} disabled={projectGroups.length === 0} onClick={() => onPrefs({ collapsed: anyOpen ? projectGroups.map((g) => g.id) : [] })}>
             <Icon name={anyOpen ? "chevronsDownUp" : "chevronsUpDown"} />
           </IconButton>
         )}
+        <IconButton variant="ghost" size="sm" label={modeLabel} tooltip={modeLabel} onClick={() => onPrefs({ mode: toMode })}>
+          <Icon name={toMode === "grouped" ? "listTree" : "list"} />
+        </IconButton>
         <IconButton variant="ghost" size="sm" label="Close all sessions" tooltip="Close all sessions" disabled={openIds.size === 0} onClick={onCloseAll}>
           <Icon name="x" />
         </IconButton>

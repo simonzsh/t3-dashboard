@@ -43,10 +43,10 @@ test("a collapsed project hides its threads; flat mode has no project rows", () 
   assert.match(flat, /Fix login/);
 });
 
-test("the top band, on the right: view toggle, collapse all, close all, and no hide button", () => {
+test("the top band, on the right: collapse all, view toggle, close all, and no hide button", () => {
   const html = renderToStaticMarkup(<SessionList {...base} />);
   const at = (label: string) => html.indexOf(`aria-label="${label}"`);
-  const order = ["Show one list by recent activity", "Collapse all projects", "Close all sessions"].map(at);
+  const order = ["Collapse all projects", "Show one list by recent activity", "Close all sessions"].map(at);
   assert.ok(order[0]! >= 0 && order.every((n, i) => i === 0 || n > order[i - 1]!));
   assert.doesNotMatch(html, /Hide the list/);
 });
