@@ -2,12 +2,14 @@ import { memo, useRef } from "react";
 import type { DashboardProject, DashboardThread } from "../../../../shared/api.ts";
 import { relativeTime } from "../../lib/format.ts";
 import { threadTitle } from "../../lib/threads.ts";
-import { Icon, Pressable } from "../../ui/index.ts";
+import { Icon, IconButton, Pressable } from "../../ui/index.ts";
 import { notificationDetail, notificationIcon, type NotificationKind } from "./inbox.ts";
-import { ThreadActions, flyToDesk, type ThreadActionsProps } from "./ThreadActions.tsx";
+import { flyToDesk } from "./ThreadActions.tsx";
 
-interface Props extends Omit<ThreadActionsProps, "thread" | "rowRef"> {
+interface Props {
   thread: DashboardThread;
+  onDesk: boolean;
+  onMarkRead: (id: string) => void;
   kind: NotificationKind;
   project: DashboardProject | undefined;
   // The model label, resolved by the parent so the row stays memoizable.
@@ -17,7 +19,7 @@ interface Props extends Omit<ThreadActionsProps, "thread" | "rowRef"> {
   onOpen: (id: string, addOnly: boolean) => void;
 }
 
-function NotificationItemView({ thread: t, kind, project, modelName, now, onOpen, ...actions }: Props) {
+function NotificationItemView({ thread: t, kind, project, modelName, now, onDesk, onOpen, onMarkRead }: Props) {
   const rowRef = useRef<HTMLButtonElement>(null);
   const { icon, tone } = notificationIcon(t);
   const meta = [project?.title, relativeTime(t.lastActivityAt, now)].filter(Boolean).join(" · ");
@@ -27,7 +29,7 @@ function NotificationItemView({ thread: t, kind, project, modelName, now, onOpen
         ref={rowRef}
         className="notif-row"
         onClick={(e) => {
-          if (e.shiftKey) flyToDesk(rowRef.current, actions.onDesk);
+          if (e.shiftKey) flyToDesk(rowRef.current, onDesk);
           onOpen(t.id, e.shiftKey);
         }}
       >
@@ -39,7 +41,14 @@ function NotificationItemView({ thread: t, kind, project, modelName, now, onOpen
         </span>
         {kind !== "read" && <span className="notif-dot" aria-label="Unread" role="img" />}
       </Pressable>
-      <ThreadActions thread={t} rowRef={rowRef} {...actions} />
+      {/* Only an unread result can be marked read: a waiting or failed agent still needs you. */}
+      {kind === "unread" && (
+        <span className="thread-actions">
+          <IconButton label="Mark as read" tooltip="Mark as read" size="sm" variant="ghost" onClick={() => onMarkRead(t.id)}>
+            <Icon name="check" />
+          </IconButton>
+        </span>
+      )}
     </div>
   );
 }

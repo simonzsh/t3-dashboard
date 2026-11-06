@@ -80,10 +80,10 @@ test("read threads older than 3 days wait behind See all", () => {
   assert.match(out, /See all \(1 more\)/);
 });
 
-test("every row keeps its buttons: open in T3, settle when allowed, add to Desk", () => {
+test("an unread notification offers only Mark as read; Running rows keep their buttons", () => {
   const out = render([thread("fin", { status: "completed" }), thread("run", { status: "running" })]);
-  assert.match(part(out, "n"), /aria-label="Settle"/);
-  assert.match(part(out, "n"), /aria-label="Add to Desk"/);
+  assert.match(part(out, "n"), /aria-label="Mark as read"/);
+  assert.doesNotMatch(part(out, "n"), /aria-label="Settle"|aria-label="Add to Desk"/);
   assert.doesNotMatch(part(out, "r"), /aria-label="Settle"/);
   assert.match(part(out, "r"), /aria-label="Add to Desk"/);
 });

@@ -93,7 +93,7 @@ export function InboxView({ state, visible, now, deskIds, onOpen, onToggleDesk, 
         sections={sections}
         now={now}
         loading={loading}
-        renderItem={({ thread, kind }: Notification) => <NotificationItem key={thread.id} kind={kind} {...rowProps(thread)} />}
+        renderItem={({ thread, kind }: Notification) => <NotificationItem key={thread.id} kind={kind} {...rowProps(thread)} onMarkRead={onMarkRead} />}
         onMarkAllRead={() => sections.unread.forEach((t) => onMarkRead(t.id))}
         settleAll={settleButton}
       />
