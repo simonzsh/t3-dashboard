@@ -46,3 +46,8 @@ test("only a session with another one under it gets the hairline below", () => {
   assert.equal(out.match(/has-below/g)?.length, 1);
   assert.doesNotMatch(html(opened("a", "b", "c"), "columns"), /has-below/);
 });
+
+test("a cell is near only when pinned until the observer reports it", () => {
+  const out = renderToStaticMarkup(<SessionsStrip windows={opened("a", "b", "c").windows} layout="columns" pinned={["b", null]} render={(w, near) => <span>{`${w.id}:${near}`}</span>} />);
+  assert.deepEqual([...out.matchAll(/<span>([^<]+)<\/span>/g)].map((m) => m[1]), ["a:false", "b:true", "c:false"]);
+});

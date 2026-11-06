@@ -21,7 +21,7 @@ interface Options {
   connects: number;
 }
 
-/** Keeps on the server which windows are on the Sessions, so every device shows the same conversations. */
+/** Keeps on the server which windows are on the Sessions page, so every device shows the same conversations. */
 export function useSessionsSync({ sessions, dispatch, threads, remote, connects }: Options): void {
   const api = useApi();
   const [loaded, setLoaded] = useState(false);

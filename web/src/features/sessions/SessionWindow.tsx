@@ -21,6 +21,8 @@ interface Props {
   focused: boolean;
   maximized: boolean;
   compact: boolean;
+  // False for a column far off screen: the header stays and the conversation is not mounted.
+  live: boolean;
   t3EnvironmentId: string | null;
   providers: DashboardProvider[];
   // A subagent thread has no shell entry: the window takes its name from the conversation.
@@ -30,7 +32,7 @@ interface Props {
   dispatch: Dispatch<SessionsAction>;
 }
 
-function SessionWindowView({ id, thread, projectTitle, projectIcon, missing, focused, maximized, compact, t3EnvironmentId, providers, childTitle, onTitle, dispatch }: Props) {
+function SessionWindowView({ id, thread, projectTitle, projectIcon, missing, focused, maximized, compact, live, t3EnvironmentId, providers, childTitle, onTitle, dispatch }: Props) {
   const onFocus = () => dispatch({ type: "focus", id });
   const onClose = () => dispatch({ type: "close", id });
   const onToggleMaximize = () => dispatch({ type: "maximize", id });
@@ -83,6 +85,8 @@ function SessionWindowView({ id, thread, projectTitle, projectIcon, missing, foc
           <span>This thread was archived or deleted.</span>
           <Button onClick={onClose}>Close</Button>
         </div>
+      ) : !live ? (
+        <div className="sessions-placeholder" />
       ) : (
         <ConversationPanel threadId={id} thread={thread} providers={providers} onOpenThread={(child) => dispatch({ type: "open", id: child })} onTitle={(name) => onTitle?.(id, name)} />
       )}

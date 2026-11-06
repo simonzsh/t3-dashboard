@@ -22,19 +22,42 @@ interface Props {
 }
 
 /** Fixed-width columns in a strip that scrolls sideways; grid view stacks two sessions per column. */
-export function SessionsStrip({ windows, layout, render }: { windows: Win[]; layout: SessionLayout; render: (w: Win) => ReactNode }) {
+export function SessionsStrip({ windows, layout, pinned = [], render }: { windows: Win[]; layout: SessionLayout; pinned?: readonly (string | null)[]; render: (w: Win, near: boolean) => ReactNode }) {
   const { rows } = stripLayout(windows.length, layout);
+  const strip = useRef<HTMLDivElement>(null);
+  // Cells within about one column of the viewport: the others skip their conversation (no fetch, no live reload).
+  const [near, setNear] = useState<ReadonlySet<string>>(new Set());
+  const ids = windows.map((w) => w.id).join(",");
+  useEffect(() => {
+    const root = strip.current;
+    if (!root || typeof IntersectionObserver === "undefined") return;
+    const observer = new IntersectionObserver(
+      (entries) =>
+        setNear((prev) => {
+          const next = new Set(prev);
+          for (const { target, isIntersecting } of entries) {
+            const id = target.getAttribute("data-cell");
+            if (id) isIntersecting ? next.add(id) : next.delete(id);
+          }
+          return next.size === prev.size && [...next].every((id) => prev.has(id)) ? prev : next;
+        }),
+      { root, rootMargin: "0px 400px" },
+    );
+    root.querySelectorAll(".sessions-cell").forEach((cell) => observer.observe(cell));
+    return () => observer.disconnect();
+  }, [ids]);
   // A move in the DOM resets the conversation scroll: cells stay sorted by id and only their coordinates change.
   const cells = windows.map((window, index) => ({ window, index, ...cellOf(index, layout) })).sort((a, b) => a.window.id.localeCompare(b.window.id));
   return (
-    <div className="sessions-strip" style={{ gridTemplateRows: `repeat(${rows}, minmax(0, 1fr))` }}>
+    <div ref={strip} className="sessions-strip" style={{ gridTemplateRows: `repeat(${rows}, minmax(0, 1fr))` }}>
       {cells.map(({ window, index, column, row }) => (
         <div
           key={window.id}
+          data-cell={window.id}
           className={`sessions-cell${row === 0 && rows > 1 && index + 1 < windows.length ? " has-below" : ""}`}
           style={{ gridColumn: column + 1, gridRow: spansRows(index, windows.length, layout) ? "1 / -1" : row + 1 }}
         >
-          {render(window)}
+          {render(window, near.has(window.id) || pinned.includes(window.id))}
         </div>
       ))}
     </div>
@@ -88,6 +111,9 @@ function useWindowSwipe(enabled: boolean, windows: readonly Win[], activeId: str
 
 // Below this distance a press on the header stays a click.
 const DRAG_START_PX = 5;
+// A drag near the left or right edge of the strip scrolls it, so far columns can be reached.
+const EDGE_PX = 40;
+const EDGE_SPEED = 14;
 
 /** Dragging a window by its header onto another window swaps their cells; a copy of the header follows the pointer. */
 function useWindowDrag(enabled: boolean, dispatch: Dispatch<SessionsAction>) {
@@ -105,6 +131,27 @@ function useWindowDrag(enabled: boolean, dispatch: Dispatch<SessionsAction>) {
       const offset = head.getBoundingClientRect();
       let ghost: HTMLElement | null = null;
       let over: Element | null = null;
+      let pointer = { x: startX, y: startY };
+      let frame = 0;
+      const strip = win.closest<HTMLElement>(".sessions-strip");
+      const hover = () => {
+        const hit = document.elementFromPoint(pointer.x, pointer.y)?.closest("[data-session-window]") ?? null;
+        const next = hit && hit !== win ? hit : null;
+        if (next === over) return;
+        over?.classList.remove("drop-target");
+        next?.classList.add("drop-target");
+        over = next;
+      };
+      const autoScroll = () => {
+        frame = requestAnimationFrame(autoScroll);
+        if (!strip) return;
+        const b = strip.getBoundingClientRect();
+        const dir = pointer.x < b.left + EDGE_PX ? -1 : pointer.x > b.right - EDGE_PX ? 1 : 0;
+        if (!dir) return;
+        const before = strip.scrollLeft;
+        strip.scrollLeft += dir * EDGE_SPEED;
+        if (strip.scrollLeft !== before) hover();
+      };
       // The pointer crosses the conversations while it drags: no text selection until the button is released.
       const noSelect = (ev: Event) => ev.preventDefault();
       const move = (ev: globalThis.PointerEvent) => {
@@ -117,20 +164,18 @@ function useWindowDrag(enabled: boolean, dispatch: Dispatch<SessionsAction>) {
           window.getSelection()?.removeAllRanges();
           win.classList.add("dragging");
           document.documentElement.classList.add("sessions-dragging");
+          frame = requestAnimationFrame(autoScroll);
         }
+        pointer = { x: ev.clientX, y: ev.clientY };
         ghost.style.transform = `translate(${offset.left + ev.clientX - startX}px, ${offset.top + ev.clientY - startY}px)`;
-        const hit = document.elementFromPoint(ev.clientX, ev.clientY)?.closest("[data-session-window]") ?? null;
-        const next = hit && hit !== win ? hit : null;
-        if (next === over) return;
-        over?.classList.remove("drop-target");
-        next?.classList.add("drop-target");
-        over = next;
+        hover();
       };
       const cleanup = () => {
         window.removeEventListener("pointermove", move);
         window.removeEventListener("pointerup", drop);
         window.removeEventListener("pointercancel", cleanup);
         document.removeEventListener("selectstart", noSelect);
+        cancelAnimationFrame(frame);
         ghost?.remove();
         over?.classList.remove("drop-target");
         win.classList.remove("dragging");
@@ -179,12 +224,22 @@ export function SessionsView({ sessions, dispatch, threads, projects, layout, t3
     bar.scrollTo({ left: bar.scrollLeft + t.left - b.left - (b.width - t.width) / 2, behavior: "smooth" });
   }, [narrow, activeId]);
 
-  // A focused session that sits off screen scrolls into view, whether a key, a click or a new open focused it.
+  // A press inside a window focuses it: the pointer is already on it, so that focus must not scroll.
+  const pressed = useRef<string | null>(null);
+  const scrolled = useRef<string | null>(null);
+  const onPressCapture = (e: PointerEvent<HTMLDivElement>) => {
+    pressed.current = e.target instanceof Element ? (e.target.closest("[data-session-window]")?.getAttribute("data-session-window") ?? null) : null;
+  };
+  // A focused session that sits off screen scrolls into view after a key, an open or a layout change, never after a press.
   useEffect(() => {
-    if (narrow || !sessions.focusedId || sessions.maximizedId) return;
+    const changed = scrolled.current !== sessions.focusedId;
+    scrolled.current = sessions.focusedId;
+    const byPointer = changed && pressed.current === sessions.focusedId;
+    pressed.current = null;
+    if (byPointer || narrow || !sessions.focusedId || sessions.maximizedId) return;
     const behavior = window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth";
     root.current?.querySelector(`[data-session-window="${CSS.escape(sessions.focusedId)}"]`)?.scrollIntoView({ inline: "nearest", block: "nearest", behavior });
-  }, [narrow, sessions.focusedId]);
+  }, [narrow, sessions.focusedId, sessions.maximizedId, layout]);
 
   if (sessions.windows.length === 0) {
     return (
@@ -200,7 +255,7 @@ export function SessionsView({ sessions, dispatch, threads, projects, layout, t3
     );
   }
 
-  const renderWindow = (w: Win, compact = false) => {
+  const renderWindow = (w: Win, compact = false, live = true) => {
     const thread = byId.get(w.id) ?? null;
     const project = thread ? projectsById.get(thread.projectId) : undefined;
     // The key remounts the window when the narrow view switches tabs: no state leaks between threads.
@@ -215,6 +270,7 @@ export function SessionsView({ sessions, dispatch, threads, projects, layout, t3
         focused={sessions.focusedId === w.id}
         maximized={!compact && sessions.maximizedId === w.id}
         compact={compact}
+        live={live}
         t3EnvironmentId={t3EnvironmentId}
         providers={providers}
         childTitle={childTitles[w.id]}
@@ -253,8 +309,8 @@ export function SessionsView({ sessions, dispatch, threads, projects, layout, t3
 
   return (
     <div ref={root} className="sessions">
-      <div className="sessions-area" {...drag}>
-        <SessionsStrip windows={sessions.windows} layout={layout} render={(w) => renderWindow(w)} />
+      <div className="sessions-area" onPointerDownCapture={onPressCapture} {...drag}>
+        <SessionsStrip windows={sessions.windows} layout={layout} pinned={[sessions.focusedId, sessions.maximizedId]} render={(w, near) => renderWindow(w, false, near)} />
       </div>
     </div>
   );

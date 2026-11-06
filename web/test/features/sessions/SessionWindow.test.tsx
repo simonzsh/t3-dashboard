@@ -4,7 +4,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { SessionWindow } from "../../../src/features/sessions/SessionWindow.tsx";
 import { thread } from "../../fixtures.ts";
 
-const base = { id: "t1", thread: null, projectTitle: null, projectIcon: null, focused: true, maximized: false, compact: false, t3EnvironmentId: null, providers: [], dispatch: () => {} };
+const base = { id: "t1", thread: null, projectTitle: null, projectIcon: null, focused: true, maximized: false, compact: false, live: true, t3EnvironmentId: null, providers: [], dispatch: () => {} };
 
 test("a missing window keeps its classes and shows the message with a close button", () => {
   const html = renderToStaticMarkup(<SessionWindow {...base} missing />);
@@ -26,4 +26,10 @@ test("the sub-line names the project only when the thread and its project are kn
   assert.match(known, /<div class="sc-sub">.*<span class="dw-project">Billing<\/span>/);
   assert.doesNotMatch(renderToStaticMarkup(<SessionWindow {...base} projectTitle="Billing" missing />), /sc-sub/);
   assert.doesNotMatch(renderToStaticMarkup(<SessionWindow {...base} thread={thread("t1")} missing />), /sc-sub/);
+});
+
+test("a window far off screen keeps its header and skips the conversation", () => {
+  const html = renderToStaticMarkup(<SessionWindow {...base} live={false} missing={false} thread={thread("t1")} />);
+  assert.match(html, /<header class="session-window-head">/);
+  assert.match(html, /sessions-placeholder/);
 });

@@ -155,7 +155,7 @@ export function saveSessions(storage: Store | null, state: SessionsState): void 
   try {
     storage?.setItem(SESSIONS_KEY, JSON.stringify(state));
   } catch {
-    // Ignored on purpose: the sessions then starts empty on the next load.
+    // Ignored on purpose: the Sessions page then starts empty on the next load.
   }
 }
 
