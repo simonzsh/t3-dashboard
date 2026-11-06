@@ -6,7 +6,7 @@ import { AppNav } from "../../../src/features/shell/AppNav.tsx";
 const base = {
   tab: "sessions" as const,
   unread: 0,
-  agents: { running: 0, waiting: 0 },
+  sessions: { count: 0, waiting: false },
   live: true,
   update: null,
   collapsed: false,
@@ -31,10 +31,10 @@ test("the sidebar has the search button with its shortcut hint", () => {
   assert.match(side(), /Search…[\s\S]*?<kbd>⌘K<\/kbd>/);
 });
 
-test("the sidebar shows unread on Dashboard, running on Sessions and a dot for a waiting agent", () => {
-  const out = side({ unread: 12, agents: { running: 2, waiting: 1 } });
+test("the sidebar shows unread on Dashboard, running or unread on Sessions and a dot for a waiting agent", () => {
+  const out = side({ unread: 12, sessions: { count: 2, waiting: true } });
   assert.match(out, /aria-label="12 unread">9\+</);
-  assert.match(out, /aria-label="2 running">2</);
+  assert.match(out, /aria-label="2 running or unread">2</);
   assert.match(out, /aria-label="An agent is waiting for your reply"/);
   assert.doesNotMatch(side(), /nav-badge|An agent is waiting/);
 });
@@ -59,7 +59,7 @@ test("the bottom bar has the three pages only (Settings is in the phone header),
 });
 
 test("the bottom bar puts the badges on the icons", () => {
-  const out = bottom({ unread: 3, agents: { running: 0, waiting: 1 } });
+  const out = bottom({ unread: 3, sessions: { count: 0, waiting: true } });
   assert.match(out, /aria-label="3 unread">3</);
   assert.match(out, /aria-label="An agent is waiting for your reply"/);
 });

@@ -25,7 +25,7 @@ import { useAutomations } from "./features/automations/useAutomations.ts";
 import { api } from "./api/client.ts";
 import { useDashboard } from "./api/events.ts";
 import { useSessions } from "./features/sessions/useSessions.ts";
-import { useListPrefs } from "./features/sessions/sessionList.ts";
+import { sessionsBadgeCount, useListPrefs } from "./features/sessions/sessionList.ts";
 import { useSessionsSync } from "./features/sessions/useSessionsSync.ts";
 import { useMediaQuery } from "./lib/useMediaQuery.ts";
 import { useShortcuts } from "./lib/useShortcuts.ts";
@@ -183,6 +183,7 @@ export function App() {
   );
   const unread = useMemo(() => unreadCount(threadSections(visible, notify.seen), notify.seen), [visible, notify.seen]);
   const agents = useMemo(() => agentCounts(visible), [visible]);
+  const sessionsBadge = useMemo(() => ({ count: sessionsBadgeCount(visible, notify.seen), waiting: agents.waiting > 0 }), [visible, notify.seen, agents.waiting]);
   const dashboardLayout = useDashboardLayout(tab === "dashboard");
   const usage = useUsage(tab === "dashboard" && state !== null);
   const page = TABS.find((t) => t.id === tab)!;
@@ -206,7 +207,7 @@ export function App() {
         onToggleCollapsed={toggleSidebar}
         tab={tab}
         unread={unread}
-        agents={agents}
+        sessions={sessionsBadge}
         live={live}
         update={updateNav}
         onTab={showTab}

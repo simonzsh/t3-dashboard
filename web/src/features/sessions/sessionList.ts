@@ -31,6 +31,14 @@ export function statusMark(t: DashboardThread, seen: SeenState): StatusMark {
   return attentionState(t) ?? (isUnseen(t, seen) ? "unread" : null);
 }
 
+/** The Sessions nav badge: the rows of the list with a running or an unread mark. */
+export function sessionsBadgeCount(threads: readonly DashboardThread[], seen: SeenState): number {
+  return listableThreads(threads).filter((t) => {
+    const mark = statusMark(t, seen);
+    return mark === "running" || mark === "unread";
+  }).length;
+}
+
 /** Settled threads leave the list, except one that runs or waits: like on the Dashboard, it is never missed. */
 export function listableThreads(threads: readonly DashboardThread[]): DashboardThread[] {
   return threads

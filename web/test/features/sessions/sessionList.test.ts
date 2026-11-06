@@ -10,6 +10,7 @@ import {
   loadListPrefs,
   parseListPrefs,
   saveListPrefs,
+  sessionsBadgeCount,
   statusMark,
 } from "../../../src/features/sessions/sessionList.ts";
 import { memoryStore, thread } from "../../fixtures.ts";
@@ -71,4 +72,15 @@ test("list prefs: defaults for missing or broken data, and a round trip through 
   saveListPrefs(store, prefs);
   assert.ok(store.data.has(SESSION_LIST_KEY));
   assert.deepEqual(loadListPrefs(store), prefs);
+});
+
+test("sessionsBadgeCount counts running and unread rows, not waiting, read or settled ones", () => {
+  const threads = [
+    thread("run", { status: "running" }),
+    thread("done", { status: "completed" }),
+    thread("ask", { pending: { category: "approval" } }),
+    thread("old", { status: "completed", settled: true }),
+  ];
+  assert.equal(sessionsBadgeCount(threads, seenNone), 2);
+  assert.equal(sessionsBadgeCount(threads, seenAll), 1);
 });
