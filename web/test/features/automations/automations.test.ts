@@ -1,7 +1,7 @@
 import { test } from "bun:test";
 import assert from "node:assert/strict";
 import type { Automation, AutomationRun, DashboardProvider, DashboardThread } from "../../../../shared/api.ts";
-import { automationGroup, automationProjects, automationsBadge, copyableUrl, filterAutomations, finishedSetups, groupAutomations, isEditable, isFinishedReminder, lastResult, latestFinished, liveRun, liveRuns, modelLabel, nextLabel, nextRunText, recentRuns, reminderDate, runDuration, scheduleText, setupThreads } from "../../../src/features/automations/automations.ts";
+import { automationGroup, automationProjects, automationsBadge, copyableUrl, filterAutomations, finishedSetups, groupAutomations, isEditable, isFinishedReminder, lastResult, latestFinished, liveRun, liveRuns, modelLabel, nextLabel, nextRunText, recentRuns, reminderDate, runDuration, runUnread, scheduleText, setupThreads } from "../../../src/features/automations/automations.ts";
 import { thread } from "../../fixtures.ts";
 
 function auto(id: string, over: Partial<Automation> = {}): Automation {
@@ -242,4 +242,16 @@ test("nextRunText: paused, finished, webhook and scheduled tasks", () => {
   assert.equal(nextRunText(hook("h"), NOW), "On each delivery");
   assert.equal(nextRunText(auto("a", { nextRunAt: local(10, 25, 14, 30).toISOString() }), NOW), "in 30 min");
   assert.equal(nextRunText(auto("a"), NOW), "—");
+});
+
+test("liveRun keeps a failure T3 reported when the thread reads done", () => {
+  assert.equal(liveRun(run("t1", at(9), { status: "failed", error: "Timed out" }), thread("t1", { status: "completed" })).status, "failed");
+});
+
+test("runUnread marks only the newest run of a bound task", () => {
+  const runs = [run("chat", at(10)), run("chat", at(9))];
+  const threads = new Map([["chat", thread("chat", { lastActivityAt: at(10, 5) })]]);
+  const seen = { since: at(0), seen: {} };
+  assert.deepEqual(runs.map((r) => runUnread(auto("a", { bound: true, runs }), r, threads, seen)), [true, false]);
+  assert.deepEqual(runs.map((r) => runUnread(auto("a", { runs }), r, threads, seen)), [true, true]);
 });

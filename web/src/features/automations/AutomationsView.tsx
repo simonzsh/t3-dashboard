@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { Automation, AutomationsResult, DashboardState, DashboardThread } from "../../../../shared/api.ts";
 import type { SeenState } from "../../../../shared/seen.ts";
 import { ProjectIcon } from "../../lib/ProjectIcon.tsx";
@@ -50,7 +50,22 @@ export function AutomationsView({ state, now, seen, compact, onOpen, automations
     if (selectedId !== null && !selected && automations) setSelectedId(null);
   }, [selectedId, selected, automations]);
   const toggle = useCallback((group: AutomationGroup) => setOpen((s) => new Set(s.has(group) ? [...s].filter((g) => g !== group) : [...s, group])), []);
-  const close = useCallback(() => setSelectedId(null), []);
+  // On a phone the window scrolls: the panel opens at the top, and Back returns to the list position.
+  const listScroll = useRef(0);
+  const select = useCallback(
+    (id: string) => {
+      if (compact) {
+        listScroll.current = window.scrollY;
+        window.scrollTo(0, 0);
+      }
+      setSelectedId(id);
+    },
+    [compact],
+  );
+  const close = useCallback(() => {
+    setSelectedId(null);
+    if (compact) requestAnimationFrame(() => window.scrollTo(0, listScroll.current));
+  }, [compact]);
   const dialogOpen = editing !== null || deleting !== null;
   useEscape(() => {
     if (compact && selected && !dialogOpen) close();
@@ -108,7 +123,7 @@ export function AutomationsView({ state, now, seen, compact, onOpen, automations
             </div>
           ) : (
             <div className="auto-main">
-              <AutomationList groups={groups} open={open} onToggle={toggle} setup={setup} threads={threads} projects={projects} selectedId={selectedId} now={now} onSelect={setSelectedId} onOpen={onOpen} />
+              <AutomationList groups={groups} open={open} onToggle={toggle} setup={setup} threads={threads} projects={projects} selectedId={selectedId} now={now} onSelect={select} onOpen={onOpen} />
             </div>
           ))}
         {selected && (

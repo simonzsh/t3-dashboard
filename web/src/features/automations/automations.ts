@@ -44,6 +44,8 @@ const OUTCOMES: Record<ThreadState, AutomationRunOutcome | null> = { waiting: "w
 export function liveRun(run: AutomationRun, thread: DashboardThread | undefined): AutomationRun {
   const status = thread && OUTCOMES[threadState(thread)];
   if (!thread || !status) return run;
+  // T3 marks a timed-out or interrupted run failed while its thread reads done: keep the failure.
+  if (run.status === "failed" && status === "succeeded") return run;
   const terminal = status === "succeeded" || status === "failed";
   return { ...run, status, error: status === "failed" ? (thread.lastError ?? run.error) : run.error, finishedAt: terminal ? (run.finishedAt ?? thread.lastActivityAt) : run.finishedAt };
 }
@@ -51,6 +53,13 @@ export function liveRun(run: AutomationRun, thread: DashboardThread | undefined)
 /** A bound task runs in one thread: only its newest run follows that thread. */
 export function liveRuns(a: Automation, threads: Threads): AutomationRun[] {
   return a.runs.map((run, i) => (a.bound && i > 0 ? run : liveRun(run, run.threadId ? threads.get(run.threadId) : undefined)));
+}
+
+/** A bound task runs in one chat: only its newest run can be unread. */
+export function runUnread(a: Automation, run: AutomationRun, threads: Threads, seen: SeenState): boolean {
+  const thread = run.threadId ? threads.get(run.threadId) : undefined;
+  if (!thread || (a.bound && run.startedAt !== a.runs[0]?.startedAt)) return false;
+  return isUnseen(thread, seen);
 }
 
 export const latestFinished = (a: Automation, threads: Threads): AutomationRun | null => liveRuns(a, threads).find((r) => r.status === "succeeded" || r.status === "failed") ?? null;

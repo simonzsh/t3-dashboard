@@ -1,8 +1,8 @@
 import type { Automation, AutomationRun, DashboardThread } from "../../../../shared/api.ts";
-import { isUnseen, type SeenState } from "../../../../shared/seen.ts";
+import type { SeenState } from "../../../../shared/seen.ts";
 import { relativeTime } from "../../lib/format.ts";
 import { Pressable } from "../../ui/index.ts";
-import { runDuration } from "./automations.ts";
+import { runDuration, runUnread } from "./automations.ts";
 import { RunBadge } from "./RunBadge.tsx";
 
 interface Props {
@@ -13,7 +13,7 @@ interface Props {
   onOpen: (id: string, addOnly: boolean) => void;
 }
 
-/** The latest runs of all automations. A run with no session cannot be opened. */
+/** The latest runs of all automations. A run whose session is gone cannot be opened. */
 export function RecentRuns({ runs, threads, seen, now, onOpen }: Props) {
   if (runs.length === 0) return null;
   return (
@@ -32,12 +32,12 @@ export function RecentRuns({ runs, threads, seen, now, onOpen }: Props) {
                 {relativeTime(run.startedAt, now)}
                 {duration && ` · ${duration}`}
               </span>
-              {thread && isUnseen(thread, seen) && <span className="notif-dot" role="img" aria-label="Unread" />}
+              {runUnread(automation, run, threads, seen) && <span className="notif-dot" role="img" aria-label="Unread" />}
             </>
           );
           return (
-            <li key={`${automation.id}:${threadId ?? run.startedAt}`}>
-              {threadId ? (
+            <li key={`${automation.id}:${threadId ?? ""}:${run.startedAt}`}>
+              {thread && threadId ? (
                 <Pressable className="auto-recent-row" onClick={(e) => onOpen(threadId, e.shiftKey)}>
                   {body}
                 </Pressable>

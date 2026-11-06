@@ -675,6 +675,7 @@ ol.install-steps { padding-left: 18px; }
 .auto-history-row { display: flex; align-items: center; gap: 10px; min-height: 36px; border-bottom: 1px solid var(--line); font-size: 13px; }
 .auto-history-when { flex: 1; min-width: 0; color: var(--text-secondary); }
 .auto-history-row .notif-dot { margin: 0; }
+.auto-history-error { display: block; overflow-wrap: anywhere; color: var(--err-text); font-size: 12px; }
 .app { display: flex; height: 100dvh; overflow: hidden; }
 .app-column { flex: 1; min-width: 0; min-height: 0; display: flex; flex-direction: column; }
 .app.sessions-mode main { padding: 0; gap: 0; }

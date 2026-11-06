@@ -1,10 +1,10 @@
 import type { Automation, DashboardProject, DashboardProvider, DashboardThread } from "../../../../shared/api.ts";
-import { isUnseen, type SeenState } from "../../../../shared/seen.ts";
+import type { SeenState } from "../../../../shared/seen.ts";
 import { ProjectTag } from "../../lib/ProjectTag.tsx";
 import { ProviderIcon } from "../../lib/ProviderIcon.tsx";
 import { useCopy } from "../../lib/useCopy.ts";
 import { Button, Icon, IconButton } from "../../ui/index.ts";
-import { copyableUrl, isEditable, liveRuns, modelLabel, nextRunText, reminderDate, runDuration, scheduleText } from "./automations.ts";
+import { copyableUrl, isEditable, liveRuns, modelLabel, nextRunText, reminderDate, runDuration, runUnread, scheduleText } from "./automations.ts";
 import { RunBadge } from "./RunBadge.tsx";
 
 interface Props {
@@ -102,13 +102,15 @@ export function AutomationPanel({ automation: a, threads, project, providers, se
             const duration = runDuration(run, now);
             const { threadId } = run;
             return (
-              <li key={threadId ?? run.startedAt} className="auto-history-row">
+              <li key={`${threadId ?? ""}:${run.startedAt}`} className="auto-history-row">
                 <RunBadge run={run} />
                 <span className="auto-history-when">
                   {reminderDate(run.startedAt)}
                   {duration && ` · ${duration}`}
+                  {/* Tooltips don't exist on touch screens: the error shows as text. */}
+                  {run.status === "failed" && run.error && <span className="auto-history-error">{run.error}</span>}
                 </span>
-                {thread && isUnseen(thread, seen) && <span className="notif-dot" role="img" aria-label="Unread" />}
+                {runUnread(a, run, threads, seen) && <span className="notif-dot" role="img" aria-label="Unread" />}
                 {thread && threadId ? (
                   <Button size="sm" variant="ghost" onClick={(e) => onOpen(threadId, e.shiftKey)}>
                     Open
