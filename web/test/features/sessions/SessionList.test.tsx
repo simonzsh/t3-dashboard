@@ -22,18 +22,18 @@ const base = {
 };
 
 test("grouped mode: a project row with its + button, then its threads with time and model", () => {
-  const html = renderToStaticMarkup(<SessionList {...base} onHide={() => {}} />);
+  const html = renderToStaticMarkup(<SessionList {...base} />);
   assert.match(html, /slist-project-title">Project A</);
   assert.match(html, /aria-label="New session in Project A"/);
   assert.match(html, /5 min ago · Model One/);
-  assert.match(html, /aria-label="Hide the list"/);
+  assert.doesNotMatch(html, /slist-head|Hide the list|Group by project/);
+  assert.match(html, /<aside[^>]*><div class="slist-body"><section/);
 });
 
 test("open threads get the open class, the focused one also the focused class", () => {
   const html = renderToStaticMarkup(<SessionList {...base} />);
   assert.match(html, /class="slist-row open focused" aria-current="true"/);
   assert.equal(html.match(/slist-row open"/g)?.length, 1);
-  assert.doesNotMatch(html, /Hide the list/);
 });
 
 test("a collapsed project hides its threads; flat mode has no project rows", () => {

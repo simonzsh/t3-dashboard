@@ -7,8 +7,29 @@ import type { Tab } from "../../../src/lib/tabs.ts";
 const noop = () => {};
 const render = (tab: Tab, over: Partial<Parameters<typeof PageActions>[0]> = {}) =>
   renderToStaticMarkup(
-    <PageActions tab={tab} compact={false} ready editingLayout={false} layoutIsDefault={false} layout="columns" onLayoutChange={noop} showLayoutToggle onNewSession={noop} onNewAutomation={noop} onSearch={noop} onEditLayout={noop} onDoneLayout={noop} onResetLayout={noop} {...over} />,
+    <PageActions tab={tab} compact={false} ready editingLayout={false} layoutIsDefault={false} layout="columns" onLayoutChange={noop} showLayoutToggle listMode="grouped" onListMode={noop} listHidden={false} onListHidden={noop} onNewSession={noop} onNewAutomation={noop} onSearch={noop} onEditLayout={noop} onDoneLayout={noop} onResetLayout={noop} {...over} />,
   );
+
+test("Sessions shows the view toggle, hide toggle, layout toggle, then New Session", () => {
+  const out = render("sessions");
+  const at = (label: string) => out.indexOf(`aria-label="${label}"`);
+  assert.ok(at("Show one list by recent activity") >= 0);
+  assert.ok(at("Show one list by recent activity") < at("Hide the list") && at("Hide the list") < at("Switch to grid view") && at("Switch to grid view") < out.indexOf("New Session"));
+});
+
+test("the list toggles name what they switch to", () => {
+  const out = render("sessions", { listMode: "flat", listHidden: true });
+  assert.match(out, /aria-label="Group by project"/);
+  assert.match(out, /aria-label="Show the list"/);
+  assert.doesNotMatch(out, /Hide the list/);
+});
+
+test("on a phone Sessions has the view toggle but no hide button", () => {
+  const out = render("sessions", { compact: true, showLayoutToggle: false });
+  assert.ok(out.indexOf("Show one list by recent activity") < out.indexOf('aria-label="New Session"'));
+  assert.ok(out.indexOf('aria-label="New Session"') < out.indexOf('aria-label="Search"'));
+  assert.doesNotMatch(out, /Hide the list|Show the list/);
+});
 
 test("Sessions shows the layout toggle, then New Session with its icon and key", () => {
   const out = render("sessions");

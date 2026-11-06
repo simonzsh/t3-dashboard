@@ -15,6 +15,11 @@ interface Props {
   layout: SessionLayout;
   onLayoutChange: (layout: SessionLayout) => void;
   showLayoutToggle: boolean;
+  /** The Sessions list: grouped or flat, and folded away (wide screen only). */
+  listMode: "grouped" | "flat";
+  onListMode: (mode: "grouped" | "flat") => void;
+  listHidden: boolean;
+  onListHidden: (hidden: boolean) => void;
   onNewSession: () => void;
   onNewAutomation: () => void;
   onSearch: () => void;
@@ -61,7 +66,7 @@ function Action({ compact, label, icon, variant = "secondary", primaryOnPhone = 
 }
 
 /** The header buttons of a page: Sessions picks its layout and starts a session, Automations a task, Dashboard edits its layout (not on a phone). */
-export function PageActions({ tab, compact, ready, editingLayout, layoutIsDefault, layout, onLayoutChange, showLayoutToggle, onNewSession, onNewAutomation, onSearch, onEditLayout, onDoneLayout, onResetLayout }: Props) {
+export function PageActions({ tab, compact, ready, editingLayout, layoutIsDefault, layout, onLayoutChange, showLayoutToggle, listMode, onListMode, listHidden, onListHidden, onNewSession, onNewAutomation, onSearch, onEditLayout, onDoneLayout, onResetLayout }: Props) {
   let main = null;
   // A phone shows one column: there is no layout to edit.
   if (tab === "dashboard" && compact) {
@@ -79,8 +84,19 @@ export function PageActions({ tab, compact, ready, editingLayout, layoutIsDefaul
     // One button: its icon and label name the view it switches to.
     const toLayout = layout === "columns" ? "grid" : "columns";
     const toggle = layout === "columns" ? "Switch to grid view" : "Switch to column view";
+    const toMode = listMode === "grouped" ? "flat" : "grouped";
+    const modeLabel = listMode === "grouped" ? "Show one list by recent activity" : "Group by project";
+    const listLabel = listHidden ? "Show the list" : "Hide the list";
     main = (
       <>
+        <IconButton variant="ghost" label={modeLabel} tooltip={modeLabel} onClick={() => onListMode(toMode)}>
+          <Icon name={toMode === "grouped" ? "listTree" : "list"} />
+        </IconButton>
+        {!compact && (
+          <IconButton variant="ghost" label={listLabel} tooltip={listLabel} onClick={() => onListHidden(!listHidden)}>
+            <Icon name="panelLeft" />
+          </IconButton>
+        )}
         {showLayoutToggle && (
           <IconButton variant="ghost" className="layout-toggle" label={toggle} tooltip={toggle} onClick={() => onLayoutChange(toLayout)}>
             <Icon name={layout === "columns" ? "layoutGrid" : "columns"} />

@@ -4,13 +4,13 @@ import type { SeenState } from "../../../../shared/seen.ts";
 import { threadTitle } from "../../lib/threads.ts";
 import { cellOf, neighborId, perColumn, spansRows, type SessionsAction, type SessionsState } from "./sessions.ts";
 import { focusSessionField, sessionWindowEl } from "./dom.ts";
-import { enter, Icon, IconButton, Kbd, reducedMotion, useFlip } from "../../ui/index.ts";
+import { enter, Kbd, reducedMotion, useFlip } from "../../ui/index.ts";
 import type { SessionLayout } from "../../lib/sessionLayout.ts";
 import { ctrlLabel, startsTyping } from "../../lib/shortcuts.ts";
 import { swipeDirection } from "../../lib/swipe.ts";
 import { SessionWindow } from "./SessionWindow.tsx";
 import { SessionList } from "./SessionList.tsx";
-import { useListPrefs } from "./sessionList.ts";
+import type { ListPrefs } from "./sessionList.ts";
 
 interface Props {
   sessions: SessionsState;
@@ -22,6 +22,8 @@ interface Props {
   seen: SeenState;
   now: Date;
   layout: SessionLayout;
+  prefs: ListPrefs;
+  onPrefs: (change: Partial<ListPrefs>) => void;
   t3EnvironmentId: string | null;
   providers: DashboardProvider[];
   /** The phone layout: the list fills the page, and a session opens over it. */
@@ -210,8 +212,7 @@ function useWindowDrag(enabled: boolean, dispatch: Dispatch<SessionsAction>) {
   };
 }
 
-export function SessionsView({ sessions, dispatch, threads, listed, projects, seen, now, layout, t3EnvironmentId, providers, phone, sessionShown, onBack, onOpen, onNewSession }: Props) {
-  const [prefs, setPrefs] = useListPrefs();
+export function SessionsView({ sessions, dispatch, threads, listed, projects, seen, now, layout, prefs, onPrefs, t3EnvironmentId, providers, phone, sessionShown, onBack, onOpen, onNewSession }: Props) {
   const modelNames = useMemo(() => new Map(providers.flatMap((p) => p.models).map((m) => [m.slug, m.name])), [providers]);
   const openIds = useMemo(() => new Set(sessions.ids), [sessions.ids]);
   // On a phone, closing the open session goes back to the list.
@@ -272,7 +273,7 @@ export function SessionsView({ sessions, dispatch, threads, listed, projects, se
     if (id === focusedId && !phone) sessionWindowEl(id)?.scrollIntoView({ inline: "nearest", block: "nearest", behavior: reducedMotion() ? "auto" : "smooth" });
     onOpen(id);
   };
-  const list = (onHide?: () => void) => (
+  const list = () => (
     <SessionList
       threads={listed}
       projects={projects}
@@ -282,11 +283,10 @@ export function SessionsView({ sessions, dispatch, threads, listed, projects, se
       openIds={openIds}
       focusedId={focusedId}
       prefs={prefs}
-      onPrefs={setPrefs}
+      onPrefs={onPrefs}
       onOpen={openFromList}
       onNewSession={onNewSession}
       onCloseAll={() => dispatch({ type: "closeAll" })}
-      onHide={onHide}
     />
   );
 
@@ -337,15 +337,7 @@ export function SessionsView({ sessions, dispatch, threads, listed, projects, se
 
   return (
     <div ref={root} className="sessions">
-      {prefs.hidden ? (
-        <div className="slist-rail">
-          <IconButton variant="ghost" size="sm" label="Show the list" tooltip="Show the list" onClick={() => setPrefs({ hidden: false })}>
-            <Icon name="panelLeft" />
-          </IconButton>
-        </div>
-      ) : (
-        list(() => setPrefs({ hidden: true }))
-      )}
+      {!prefs.hidden && list()}
       {sessions.ids.length === 0 ? (
         <div className="empty-state sessions-empty">
           <strong>No sessions open</strong>

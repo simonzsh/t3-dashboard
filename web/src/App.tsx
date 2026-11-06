@@ -25,6 +25,7 @@ import { useAutomations } from "./features/automations/useAutomations.ts";
 import { api } from "./api/client.ts";
 import { useDashboard } from "./api/events.ts";
 import { useSessions } from "./features/sessions/useSessions.ts";
+import { useListPrefs } from "./features/sessions/sessionList.ts";
 import { useSessionsSync } from "./features/sessions/useSessionsSync.ts";
 import { useMediaQuery } from "./lib/useMediaQuery.ts";
 import { useShortcuts } from "./lib/useShortcuts.ts";
@@ -50,6 +51,7 @@ export function App() {
   const automations = useAutomations(state?.connection.t3 === "live");
   const [sessions, dispatchSessions] = useSessions();
   const compact = useMediaQuery(PHONE);
+  const [listPrefs, setListPrefs] = useListPrefs();
   // On a phone the Sessions tab is a list; an opened session covers it, with no header or bottom bar.
   const [phoneSession, setPhoneSession] = useState(false);
   const sessionShown = compact && tab === "sessions" && phoneSession && sessions.focusedId !== null;
@@ -229,6 +231,10 @@ export function App() {
               layout={layout}
               onLayoutChange={setLayout}
               showLayoutToggle={!compact}
+              listMode={listPrefs.mode}
+              onListMode={(mode) => setListPrefs({ mode })}
+              listHidden={listPrefs.hidden}
+              onListHidden={(hidden) => setListPrefs({ hidden })}
               onNewSession={() => setCreating({ projectId: null })}
               onNewAutomation={() => setCreatingAutomation(true)}
               onSearch={openSearch}
@@ -286,6 +292,8 @@ export function App() {
                 seen={notify.seen}
                 now={now}
                 layout={layout}
+                prefs={listPrefs}
+                onPrefs={setListPrefs}
                 t3EnvironmentId={state.t3EnvironmentId}
                 providers={state.providers}
                 phone={compact}
