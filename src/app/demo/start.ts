@@ -16,7 +16,7 @@ import { LinearClient } from "../../integrations/linear/client.ts";
 import { createDashboardServer } from "../../server/server.ts";
 import { siteFromBundle } from "../../server/site.ts";
 import { SseHub } from "../../server/sse.ts";
-import { IDLE_TIMEOUT_S, envAllowedHosts } from "../../config/config.ts";
+import { envAllowedHosts } from "../../config/config.ts";
 import { readLinearKey } from "../../config/linearFile.ts";
 import { VERSION } from "../../config/version.ts";
 import { DEMO_ENVIRONMENT_ID } from "./fixtures.ts";
@@ -95,7 +95,6 @@ export async function startDemo(env: Record<string, string | undefined>): Promis
   const server = Bun.serve({
     hostname: "127.0.0.1",
     port: Number.isInteger(requested) && requested > 0 ? requested : DEMO_PORT,
-    idleTimeout: IDLE_TIMEOUT_S,
     fetch: handler.fetch,
     routes: site.devRoutes,
     development: site.devRoutes !== undefined,

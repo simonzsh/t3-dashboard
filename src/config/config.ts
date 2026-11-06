@@ -12,6 +12,3 @@ export function envPort(env: Record<string, string | undefined>): number {
 export function envAllowedHosts(env: Record<string, string | undefined>): string[] {
   return (env.T3_DASHBOARD_ALLOWED_HOSTS ?? "").split(",").map((host) => host.trim().toLowerCase()).filter(Boolean);
 }
-
-/** Seconds a request may stay silent: the first usage read walks every recent thread and can exceed Bun's 10 s default. */
-export const IDLE_TIMEOUT_S = 60;

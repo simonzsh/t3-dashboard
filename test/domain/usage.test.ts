@@ -42,12 +42,6 @@ test("asks T3 for the 14 local days of the zone", async () => {
   assert.deepEqual(port.usageCalls, [{ sinceDay: "2026-10-25", untilDay: "2026-11-07", timeZone: "Asia/Tokyo" }]);
 });
 
-test("falls back to the server zone when none is given", async () => {
-  const { port, usage } = setup();
-  await usage.get(undefined, false);
-  assert.equal(port.usageCalls[0]!.timeZone, Intl.DateTimeFormat().resolvedOptions().timeZone);
-});
-
 test("counts a run on its local day, across midnight", async () => {
   const { port, usage } = setup([thread("a", "2026-11-06T16:30:00Z")], "2026-11-06T16:45:00Z");
   // 16:30Z is 01:30 on the 7th in Tokyo, still the 6th in UTC.

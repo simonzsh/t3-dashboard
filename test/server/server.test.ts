@@ -104,8 +104,8 @@ async function start(startOptions: StartOptions = {}) {
     run: () => (updateRuns.push("run"), new Promise<boolean>(() => {})),
   });
   const port = new FakePort();
-  const usageCalls: Array<{ timeZone: string | undefined; refresh: boolean }> = [];
-  const usage = { get: async (timeZone: string | undefined, refresh: boolean) => (usageCalls.push({ timeZone, refresh }), usageOverview) };
+  const usageCalls: Array<{ timeZone: string; refresh: boolean }> = [];
+  const usage = { get: async (timeZone: string, refresh: boolean) => (usageCalls.push({ timeZone, refresh }), usageOverview) };
   const hub = new SseHub({ batchMs: 10, pingMs: 60_000 });
   let counter = 0;
   const store: ShellStore = new ShellStore({
@@ -649,8 +649,15 @@ test("GET /api/usage returns the overview for the zone and passes ?refresh=1", a
   assert.equal(first.status, 200);
   assert.equal(first.json.days.length, 14);
   await call(server, "GET", "/api/usage?tz=Europe%2FParis&refresh=1");
-  await call(server, "GET", "/api/usage");
-  assert.deepEqual(usageCalls, [{ timeZone: "Europe/Paris", refresh: false }, { timeZone: "Europe/Paris", refresh: true }, { timeZone: undefined, refresh: false }]);
+  assert.deepEqual(usageCalls, [{ timeZone: "Europe/Paris", refresh: false }, { timeZone: "Europe/Paris", refresh: true }]);
+});
+
+test("GET /api/usage without a time zone is a 400", async () => {
+  const { server, usageCalls } = await start();
+  const reply = await call(server, "GET", "/api/usage");
+  assert.equal(reply.status, 400);
+  assert.match(reply.json.error, /tz is required/);
+  assert.equal(usageCalls.length, 0);
 });
 
 test("GET /api/usage refuses an unknown time zone with the usual error shape", async () => {

@@ -17,7 +17,8 @@ import { matchesEtag } from "./etag.ts";
 import { servePwa } from "./pwa.ts";
 import type { Site } from "./site.ts";
 import type { SseHub } from "./sse.ts";
-import { isObject, isText, validAssign, validAttachments, validCreateAutomation, validCreate, validFileSearch, validItemId, validMessage, validProvider, validQueuedEdit, validRespond, validRewind, validSearch, validSecretAnswer, validSeen, validSessions, validSettings, validStash, validTimeZone, validUpdateAutomation, validUpload } from "./validate.ts";
+import { isObject } from "../../shared/guards.ts";
+import { isText, validAssign, validAttachments, validCreateAutomation, validCreate, validFileSearch, validItemId, validMessage, validProvider, validQueuedEdit, validRespond, validRewind, validSearch, validSecretAnswer, validSeen, validSessions, validSettings, validStash, validTimeZone, validUpdateAutomation, validUpload } from "./validate.ts";
 
 export interface SetupControl {
   /** Resolves the token again. */
@@ -47,6 +48,8 @@ export interface DashboardServerOptions {
 }
 
 const MAX_BODY_BYTES = 1024 * 1024;
+// The first usage read walks every recent thread: it can stay silent longer than Bun's 10 s idle default.
+const USAGE_IDLE_TIMEOUT_S = 60;
 const LOCAL_HOSTS = new Set(["127.0.0.1", "localhost"]);
 
 const SECURITY_HEADERS = {
@@ -184,7 +187,8 @@ export function createDashboardServer(options: DashboardServerOptions): Dashboar
     {
       method: "GET",
       path: "/api/usage",
-      handle: async ({ req }) => {
+      handle: async ({ req, server }) => {
+        server?.timeout(req, USAGE_IDLE_TIMEOUT_S);
         const params = new URL(req.url).searchParams;
         return json(200, await usage.get(validTimeZone(params.get("tz")), params.get("refresh") === "1"));
       },

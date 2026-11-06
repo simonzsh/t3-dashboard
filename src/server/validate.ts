@@ -1,4 +1,5 @@
 import type { ApprovalDecision, AssignIssueBody, CreateAutomationBody, CreateThreadBody, RoutineSchedule, WebhookFilter, WebhookSignature, ModelSelection, RespondBody, RewindBody, SecretAnswerBody, SendMessageBody, ThreadSettingsBody, UpdateAutomationBody, UploadedAttachment, UserInputAnswers } from "../../shared/api.ts";
+import { isObject } from "../../shared/guards.ts";
 import { normalizeSessions, type SessionsUpdate } from "../../shared/sessions.ts";
 import { IMAGE_TYPES, MAX_ATTACHMENTS, MAX_FILE_BYTES, MAX_IMAGE_BYTES, MAX_IMAGES, MAX_SECRET_CHARS, isRuntimeMode } from "../../shared/limits.ts";
 import { isSeenId, isSeenTime, type SeenChange } from "../../shared/seen.ts";
@@ -18,7 +19,6 @@ const MAX_FILE_SEARCH_LIMIT = 50;
 const DEFAULT_FILE_SEARCH_LIMIT = 20;
 const DECISIONS = new Set<string>(["accept", "acceptForSession", "decline"]);
 
-export const isObject = (value: unknown): value is Record<string, unknown> => typeof value === "object" && value !== null && !Array.isArray(value);
 export const isText = (value: unknown): value is string => typeof value === "string" && value.trim() !== "";
 
 function validSelection(selection: unknown): ModelSelection | null {
@@ -131,8 +131,8 @@ export function validSearch(params: URLSearchParams): { query: string; limit: nu
 }
 
 /** The IANA zone of `?tz=`, or undefined when absent (the server zone then applies). */
-export function validTimeZone(value: string | null): string | undefined {
-  if (value === null) return undefined;
+export function validTimeZone(value: string | null): string {
+  if (value === null) throw new HttpError(400, "tz is required: an IANA time zone, such as Europe/Paris");
   try {
     new Intl.DateTimeFormat("en-CA", { timeZone: value });
   } catch {

@@ -145,8 +145,7 @@ export function createUsage({ port, threads, now }: UsageOptions) {
   }
 
   return {
-    async get(timeZone: string | undefined, refresh: boolean): Promise<UsageOverview> {
-      const zone = timeZone ?? Intl.DateTimeFormat().resolvedOptions().timeZone;
+    async get(zone: string, refresh: boolean): Promise<UsageOverview> {
       const hit = cache.get(zone);
       if (!refresh && hit && now().getTime() - hit.at < CACHE_MS) return hit.overview;
       const pending = inFlight.get(zone);
