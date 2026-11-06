@@ -3,6 +3,7 @@ import type { DashboardProject, DashboardThread } from "../../../../shared/api.t
 import type { SeenState } from "../../../../shared/seen.ts";
 import { relativeTime } from "../../lib/format.ts";
 import { ProjectIcon } from "../../lib/ProjectIcon.tsx";
+import { ProviderIcon } from "../../lib/ProviderIcon.tsx";
 import { threadTitle } from "../../lib/threads.ts";
 import { Icon, IconButton, Pressable } from "../../ui/index.ts";
 import { groupByProject, listableThreads, statusMark, type ListPrefs } from "./sessionList.ts";
@@ -45,7 +46,16 @@ export function SessionList({ threads, projects, seen, modelNames, now, openIds,
         <span className={`slist-mark${mark ? ` ${mark}` : ""}`} role={mark ? "img" : undefined} aria-label={mark ? MARK_LABELS[mark] : undefined} aria-hidden={mark ? undefined : true} />
         <span className="slist-text">
           <span className="slist-title">{title}</span>
-          <span className="slist-meta">{[relativeTime(t.lastActivityAt, now), model].filter(Boolean).join(" · ")}</span>
+          <span className="slist-meta">
+            {relativeTime(t.lastActivityAt, now)}
+            {model && (
+              <>
+                {" · "}
+                <ProviderIcon provider={t.provider} />
+                {model}
+              </>
+            )}
+          </span>
         </span>
       </Pressable>
     );

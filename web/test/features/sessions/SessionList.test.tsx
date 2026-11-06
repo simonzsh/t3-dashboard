@@ -25,7 +25,7 @@ test("grouped mode: a project row with its + button, then its threads with time 
   const html = renderToStaticMarkup(<SessionList {...base} />);
   assert.match(html, /slist-project-title">Project A</);
   assert.match(html, /aria-label="New session in Project A"/);
-  assert.match(html, /5 min ago · Model One/);
+  assert.match(html, /5 min ago · <svg[^>]*provider-icon[^]*?<\/svg>Model One/);
   assert.doesNotMatch(html, /slist-head|slist-foot|Group by project|Hide the list/);
   assert.match(html, /<aside[^>]*><div class="slist-bar">.*<\/div><div class="slist-body"><section/);
 });

@@ -777,6 +777,7 @@ ol.install-steps { padding-left: 18px; }
 .slist-title, .slist-meta { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .slist-title { font-size: 13px; }
 .slist-meta { color: var(--text-secondary); font-size: 11.5px; }
+.slist-meta .provider-icon { display: inline-block; width: 12px; height: 12px; margin: 0 4px 0 0; vertical-align: -2px; }
 .slist-empty { margin: 12px 8px; color: var(--text-secondary); font-size: 12px; }
 .slist-bar { flex: none; display: flex; align-items: center; gap: 2px; height: 40px; padding: 0 6px; border-bottom: 1px solid var(--line); }
 .slist-bar-gap { flex: 1; }
