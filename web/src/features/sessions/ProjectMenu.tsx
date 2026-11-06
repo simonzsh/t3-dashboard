@@ -42,11 +42,11 @@ export function ProjectMenu({ title, onEdit, onDelete }: Props) {
           <div ref={list} onKeyDown={onKey}>
             <Pressable role="menuitem" className="project-menu-item" onClick={pick(onEdit)}>
               <Icon name="pencil" />
-              Edit project…
+              Edit project
             </Pressable>
             <Pressable role="menuitem" className="project-menu-item danger" onClick={pick(onDelete)}>
               <Icon name="trash" />
-              Delete project…
+              Delete project
             </Pressable>
           </div>
         </Popover>

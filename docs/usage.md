@@ -137,7 +137,7 @@ If an active project already uses the folder, nothing is created. If that projec
 
 ## Edit or delete a project
 
-Each project row of the grouped Sessions list has a "…" button (next to "+"). It shows on hover, always on a touch screen. It opens a menu with "Edit project…" and "Delete project…".
+Each project row of the grouped Sessions list has a "…" button (next to "+"). It shows on hover, always on a touch screen. It opens a menu with "Edit project" and "Delete project".
 
 - **Edit project** changes the title, the folder and the icon. The folder must already exist; the field suggests folders as in "Add project", and Save stays off when the folder is missing or is a file. The icon is a Lucide preset, an emoji (a preset or a pasted one) or a monogram of one or two letters, with a color; "Default" goes back to the monogram that T3 Code draws from the name. Save is off until something changes.
 - **Delete project** asks first. It states the number of sessions that go with the project (settled ones included). T3 Code deletes the project and its sessions. The folder stays on disk. This cannot be undone.
