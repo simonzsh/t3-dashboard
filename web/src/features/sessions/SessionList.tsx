@@ -7,6 +7,7 @@ import { ProviderIcon } from "../../lib/ProviderIcon.tsx";
 import { modelLabel } from "../../lib/models.ts";
 import { threadTitle } from "../../lib/threads.ts";
 import { Icon, IconButton, Pressable } from "../../ui/index.ts";
+import { ProjectMenu } from "./ProjectMenu.tsx";
 import { groupByProject, listableThreads, statusMark, type ListPrefs } from "./sessionList.ts";
 
 const MARK_LABELS = { running: "Running", waiting: "Waiting for you", error: "Failed", unread: "Unread" } as const;
@@ -24,17 +25,22 @@ interface Props {
   onPrefs: (change: Partial<ListPrefs>) => void;
   onOpen: (id: string) => void;
   onNewSession: (projectId: string) => void;
+  onAddProject: () => void;
+  onEditProject: (id: string) => void;
+  onDeleteProject: (id: string) => void;
   onClose: (id: string) => void;
   onCloseAll: () => void;
 }
 
 /** Every listed thread, by project or by recent activity: a click opens it as a session. */
-function SessionListView({ threads, projects, seen, modelNames, now, openIds, focusedId, prefs, onPrefs, onOpen, onNewSession, onClose, onCloseAll }: Props) {
+function SessionListView({ threads, projects, seen, modelNames, now, openIds, focusedId, prefs, onPrefs, onOpen, onNewSession, onAddProject, onEditProject, onDeleteProject, onClose, onCloseAll }: Props) {
   const shown = useMemo(() => listableThreads(threads), [threads]);
   const collapsed = new Set(prefs.collapsed);
   const grouped = prefs.mode === "grouped";
   const projectGroups = useMemo(() => (grouped ? groupByProject(shown, projects) : []), [grouped, shown, projects]);
-  const anyOpen = projectGroups.some((g) => !collapsed.has(g.id));
+  // Empty projects have nothing to fold.
+  const foldable = useMemo(() => projectGroups.filter((g) => g.threads.length > 0), [projectGroups]);
+  const anyOpen = foldable.some((g) => !collapsed.has(g.id));
   const toMode = grouped ? "flat" : "grouped";
   const modeLabel = grouped ? "Show one list by recent activity" : "Group by project";
   const foldLabel = anyOpen ? "Collapse all projects" : "Expand all projects";
@@ -86,6 +92,28 @@ function SessionListView({ threads, projects, seen, modelNames, now, openIds, fo
   const groups =
     grouped
       ? projectGroups.map((g) => {
+          const newSession = g.project && (
+            <>
+              <ProjectMenu title={g.title} onEdit={() => onEditProject(g.id)} onDelete={() => onDeleteProject(g.id)} />
+              <IconButton variant="ghost" size="sm" className="slist-new" label={`New session in ${g.title}`} tooltip="New session here" onClick={() => onNewSession(g.id)}>
+                <Icon name="plus" />
+              </IconButton>
+            </>
+          );
+          if (g.threads.length === 0) {
+            return (
+              <section key={g.id} aria-label={g.title}>
+                <div className="slist-project empty">
+                  <span className="slist-project-toggle">
+                    <span className="slist-chevron" aria-hidden="true" />
+                    <ProjectIcon icon={g.project?.icon ?? null} title={g.title} />
+                    <span className="slist-project-title">{g.title}</span>
+                  </span>
+                  {newSession}
+                </div>
+              </section>
+            );
+          }
           const open = !collapsed.has(g.id);
           const toggle = () => onPrefs({ collapsed: open ? [...prefs.collapsed, g.id] : prefs.collapsed.filter((id) => id !== g.id) });
           return (
@@ -96,12 +124,9 @@ function SessionListView({ threads, projects, seen, modelNames, now, openIds, fo
                   <ProjectIcon icon={g.project?.icon ?? null} title={g.title} />
                   <span className="slist-project-title">{g.title}</span>
                   {g.running > 0 && <span className="slist-count" aria-label={`${g.running} running`}>{g.running}</span>}
+                  <span className="slist-total" aria-label={`${g.threads.length} ${g.threads.length === 1 ? "session" : "sessions"}`}>{g.threads.length}</span>
                 </Pressable>
-                {g.project && (
-                  <IconButton variant="ghost" size="sm" className="slist-new" label={`New session in ${g.title}`} tooltip="New session here" onClick={() => onNewSession(g.id)}>
-                    <Icon name="plus" />
-                  </IconButton>
-                )}
+                {newSession}
               </div>
               {open && g.threads.map(row)}
             </section>
@@ -112,8 +137,11 @@ function SessionListView({ threads, projects, seen, modelNames, now, openIds, fo
   return (
     <aside className="slist" aria-label="Sessions list">
       <div className="slist-bar">
+        <IconButton variant="ghost" size="sm" label="Add project" tooltip="Add project" onClick={onAddProject}>
+          <Icon name="folderPlus" />
+        </IconButton>
         {grouped && (
-          <IconButton variant="ghost" size="sm" label={foldLabel} tooltip={foldLabel} disabled={projectGroups.length === 0} onClick={() => onPrefs({ collapsed: anyOpen ? projectGroups.map((g) => g.id) : [] })}>
+          <IconButton variant="ghost" size="sm" label={foldLabel} tooltip={foldLabel} disabled={foldable.length === 0} onClick={() => onPrefs({ collapsed: anyOpen ? foldable.map((g) => g.id) : [] })}>
             <Icon name={anyOpen ? "chevronsDownUp" : "chevronsUpDown"} />
           </IconButton>
         )}
@@ -125,7 +153,7 @@ function SessionListView({ threads, projects, seen, modelNames, now, openIds, fo
         </IconButton>
       </div>
       <div className="slist-body">
-        {shown.length === 0 ? <p className="slist-empty">No sessions yet.</p> : groups}
+        {(grouped ? projectGroups.length === 0 : shown.length === 0) ? <p className="slist-empty">No sessions yet.</p> : groups}
       </div>
     </aside>
   );

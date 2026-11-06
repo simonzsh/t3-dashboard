@@ -831,3 +831,68 @@ test("answerSecretRequest reads the reason from a cause sent as an array", async
   assert.deepEqual([failure.kind, failure.reason], ["refused", "agent_stopped"]);
   assert.equal(failure.message.includes("dummy-secret"), false);
 });
+
+const projectRow = { id: "p1", title: "Atlas", workspaceRoot: "/home/demo/atlas", archivedAt: null };
+
+test("mutateProject sends the create with the command id and no default model", async () => {
+  const { client } = setup();
+  const done = client.mutateProject({ type: "project.create", projectId: "p1", title: "Atlas", workspaceRoot: "/home/demo/atlas", createWorkspaceRootIfMissing: true }, "c1");
+  const socket = await nextSocket();
+  assert.equal(socket.sent[0]!.tag, "projects.mutate");
+  assert.deepEqual(socket.sent[0]!.payload, { type: "project.create", projectId: "p1", title: "Atlas", workspaceRoot: "/home/demo/atlas", createWorkspaceRootIfMissing: true, commandId: "c1", defaultModelSelection: null });
+  socket.receive(ok("1", projectRow));
+  assert.equal((await done).id, "p1");
+});
+
+test("mutateProject sends an update as is and is not retried after a cut", async () => {
+  const { client } = setup();
+  const done = client.mutateProject({ type: "project.update", projectId: "p1", archived: false }, "c2");
+  const socket = await nextSocket();
+  assert.deepEqual(socket.sent[0]!.payload, { type: "project.update", projectId: "p1", archived: false, commandId: "c2" });
+  socket.close();
+  await assert.rejects(done, (error: Error) => error instanceof IntegrationError && error.kind === "unreachable");
+  for (let i = 0; i < 5; i++) await tick();
+  assert.equal(FakeSocket.instances.length, 1);
+});
+
+test("mutateProject sends an edit with only the given fields, and a null icon", async () => {
+  const { client } = setup();
+  const done = client.mutateProject({ type: "project.update", projectId: "p1", title: "Atlas 2", projectIcon: null }, "c3");
+  const socket = await nextSocket();
+  assert.deepEqual(socket.sent[0]!.payload, { type: "project.update", projectId: "p1", title: "Atlas 2", projectIcon: null, commandId: "c3" });
+  socket.receive(ok("1", projectRow));
+  await done;
+});
+
+test("mutateProject sends a delete with force and reads the deleted row", async () => {
+  const { client } = setup();
+  const done = client.mutateProject({ type: "project.delete", projectId: "p1", force: true }, "c4");
+  const socket = await nextSocket();
+  assert.deepEqual(socket.sent[0]!.payload, { type: "project.delete", projectId: "p1", force: true, commandId: "c4" });
+  socket.receive(ok("1", { ...projectRow, deletedAt: "2026-11-06T10:00:00Z" }));
+  assert.equal((await done).deletedAt, "2026-11-06T10:00:00Z");
+});
+
+test("browseFolders sends the partial path and is retried after a cut", async () => {
+  const { client } = setup();
+  const done = client.browseFolders("/home/demo/s");
+  const socket = await nextSocket();
+  assert.equal(socket.sent[0]!.tag, "filesystem.browse");
+  assert.deepEqual(socket.sent[0]!.payload, { partialPath: "/home/demo/s" });
+  socket.close();
+  await waitFor(() => FakeSocket.instances.length === 2);
+  const retry = FakeSocket.instances[1]!;
+  retry.open();
+  retry.receive(ok("1", { parentPath: "/home/demo", entries: [{ name: "src", fullPath: "/home/demo/src" }] }));
+  assert.deepEqual(await done, { parentPath: "/home/demo", entries: [{ name: "src", fullPath: "/home/demo/src" }] });
+});
+
+test("pathKinds returns one kind per path and null for a missing path", async () => {
+  const { client } = setup();
+  const done = client.pathKinds(["/a", "/b"]);
+  const socket = await nextSocket();
+  assert.equal(socket.sent[0]!.tag, "filesystem.getMetadata");
+  assert.deepEqual(socket.sent[0]!.payload, { paths: ["/a", "/b"] });
+  socket.receive(ok("1", { entries: [{ kind: "directory" }, null] }));
+  assert.deepEqual(await done, ["directory", null]);
+});

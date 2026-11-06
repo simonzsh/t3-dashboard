@@ -9,6 +9,8 @@ interface Action {
   label: string;
   onClick: () => void;
   disabled?: boolean;
+  /** A destructive action: the primary button turns red. */
+  danger?: boolean;
 }
 
 interface Props {
@@ -24,13 +26,17 @@ interface Props {
   /** A second choice between Cancel and the primary action. */
   secondary?: Action;
   className?: string;
+  /** Kept mounted but out of sight and deaf to Escape, e.g. while another dialog takes its place. */
+  hidden?: boolean;
   children?: ReactNode;
 }
 
+const ignore = () => {};
+
 const FOCUSABLE = 'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
 
-export function Dialog({ title, label, onClose, onCancel, cancelLabel = "Cancel", primary, secondary, className, children }: Props) {
-  useEscape(onClose);
+export function Dialog({ title, label, onClose, onCancel, cancelLabel = "Cancel", primary, secondary, className, hidden = false, children }: Props) {
+  useEscape(hidden ? ignore : onClose);
   const titleId = useId();
   const box = useRef<HTMLDivElement>(null);
   const backdrop = useRef<HTMLDivElement>(null);
@@ -71,7 +77,7 @@ export function Dialog({ title, label, onClose, onCancel, cancelLabel = "Cancel"
     }
   }
   return (
-    <div className="dialog-backdrop" ref={backdrop} onClick={onClose}>
+    <div className="dialog-backdrop" ref={backdrop} onClick={onClose} hidden={hidden}>
       <div
         className={className ? `dialog ${className}` : "dialog"}
         role="dialog"
@@ -98,7 +104,7 @@ export function Dialog({ title, label, onClose, onCancel, cancelLabel = "Cancel"
               </Button>
             )}
             {primary && (
-              <Button variant="primary" disabled={primary.disabled} onClick={primary.onClick}>
+              <Button variant={primary.danger ? "danger" : "primary"} disabled={primary.disabled} onClick={primary.onClick}>
                 {primary.label}
               </Button>
             )}

@@ -1,8 +1,10 @@
+import { posix } from "node:path";
 import { RUNNING_RUN_STATUSES } from "../../../shared/status.ts";
+import { IntegrationError } from "../../integrations/errors.ts";
 import type { FetchLike } from "../../integrations/linear/client.ts";
-import type { AttachmentRef, Command, FileUpload, ImageUpload, NewScheduledTask, RawConfig, RawProjection, RawScheduledTask, RawSearchMatch, RawThread, RawTurnItem, RawUsageSummary, SearchEntriesResponse, ScheduledTaskChange, ShellItem, T3Port } from "../../integrations/t3/schemas.ts";
+import type { AttachmentRef, Command, FileUpload, ImageUpload, NewScheduledTask, ProjectMutation, RawConfig, RawProject, RawProjection, RawScheduledTask, RawSearchMatch, RawThread, RawTurnItem, RawUsageSummary, SearchEntriesResponse, ScheduledTaskChange, ShellItem, T3Port } from "../../integrations/t3/schemas.ts";
 import { searchEntries, searchProjections } from "./search.ts";
-import { DEMO_CONTEXT_TOKENS, demoFixtures, demoIssues, demoScheduledTasks, demoUsageBuckets, demoUsageLimits, SCRATCH_PROJECT_ID } from "./fixtures.ts";
+import { DEMO_CONTEXT_TOKENS, demoFixtures, demoIssues, demoScheduledTasks, demoUsageBuckets, demoUsageLimits, DEMO_FILES, DEMO_FOLDERS, SCRATCH_PROJECT_ID } from "./fixtures.ts";
 
 const COMPACTED_TOKENS = 12_000;
 
@@ -18,7 +20,8 @@ function storedSchedule(schedule: ScheduledTaskChange["schedule"]): RawScheduled
 /** An in-memory T3 for the demo: it serves the fixtures and applies commands locally. */
 export class DemoPort implements T3Port {
   private readonly now: () => Date;
-  private readonly projects;
+  private readonly projects: RawProject[];
+  private readonly folders = new Set(DEMO_FOLDERS);
   private readonly config: RawConfig;
   private readonly projections = new Map<string, RawProjection>();
   private readonly listeners = new Set<Listener>();
@@ -33,7 +36,7 @@ export class DemoPort implements T3Port {
   constructor(now: () => Date) {
     this.now = now;
     const fixtures = demoFixtures(now());
-    this.projects = fixtures.projects;
+    this.projects = [...fixtures.projects];
     this.config = fixtures.config;
     this.hidden = new Set(fixtures.hiddenThreadIds);
     for (const [id, projection] of Object.entries(fixtures.projections)) this.projections.set(id, projection);
@@ -280,6 +283,65 @@ export class DemoPort implements T3Port {
     return SCRATCH_PROJECT_ID;
   }
 
+  async mutateProject(mutation: ProjectMutation): Promise<RawProject> {
+    if (mutation.type !== "project.create") return this.changeProject(mutation);
+    const root = mutation.workspaceRoot;
+    if (DEMO_FILES.includes(root)) throw new IntegrationError(`Workspace root is not a directory: ${root}`, { system: "t3", kind: "refused", reason: "WorkspaceRootNotDirectoryError" });
+    // Like mkdir -p: the folder and its parents now exist.
+    for (let dir = root; !this.folders.has(dir); dir = posix.dirname(dir)) this.folders.add(dir);
+    const project: RawProject = { id: mutation.projectId, title: mutation.title, workspaceRoot: root, archivedAt: null };
+    this.projects.push(project);
+    this.publishProject(project);
+    return project;
+  }
+
+  private changeProject(mutation: Exclude<ProjectMutation, { type: "project.create" }>): RawProject {
+    const index = this.projects.findIndex((project) => project.id === mutation.projectId);
+    if (index < 0) throw new IntegrationError("Unknown demo project", { system: "t3", kind: "refused", reason: "ProjectNotFoundError" });
+    const current = this.projects[index]!;
+    if (mutation.type === "project.delete") {
+      const deleted = { ...current, deletedAt: this.now().toISOString() };
+      this.projects.splice(index, 1);
+      for (const [id, projection] of this.projections) {
+        if (projection.thread?.projectId !== current.id) continue;
+        this.projections.delete(id);
+        for (const listener of this.listeners) listener([{ kind: "thread.removed", threadId: id }]);
+      }
+      for (const listener of this.listeners) listener([{ kind: "project.removed", projectId: current.id }]);
+      return deleted;
+    }
+    const root = mutation.workspaceRoot;
+    if (root !== undefined && !this.folders.has(root)) {
+      const reason = DEMO_FILES.includes(root) ? "WorkspaceRootNotDirectoryError" : "WorkspaceRootNotExistsError";
+      throw new IntegrationError(`Workspace root problem: ${root}`, { system: "t3", kind: "refused", reason });
+    }
+    const project: RawProject = {
+      ...current,
+      ...(mutation.title !== undefined && { title: mutation.title }),
+      ...(root !== undefined && { workspaceRoot: root }),
+      ...(mutation.projectIcon !== undefined && { projectIcon: mutation.projectIcon }),
+      ...(mutation.archived !== undefined && { archivedAt: mutation.archived ? this.now().toISOString() : null }),
+    };
+    this.projects[index] = project;
+    this.publishProject(project);
+    return project;
+  }
+
+  async browseFolders(partialPath: string): Promise<{ parentPath: string; entries: Array<{ name: string; fullPath: string }> }> {
+    const cut = partialPath.lastIndexOf("/");
+    const parentPath = partialPath.slice(0, cut) || "/";
+    const prefix = partialPath.slice(cut + 1);
+    if (!this.folders.has(parentPath)) throw new IntegrationError("Cannot read this folder", { system: "t3", kind: "refused", reason: "read_directory_failed" });
+    const entries = [...this.folders]
+      .filter((dir) => dir !== "/" && posix.dirname(dir) === parentPath && posix.basename(dir).startsWith(prefix))
+      .map((dir) => ({ name: posix.basename(dir), fullPath: dir }));
+    return { parentPath, entries };
+  }
+
+  async pathKinds(paths: string[]): Promise<Array<string | null>> {
+    return paths.map((path) => (this.folders.has(path) ? "directory" : DEMO_FILES.includes(path) ? "file" : null));
+  }
+
   // The demo stores no files: every image or page is missing.
   async fetchAsset(): Promise<{ response: Response; fileName: string }> {
     return { response: new Response("Not available in the demo", { status: 404 }), fileName: "missing.txt" };
@@ -301,6 +363,10 @@ export class DemoPort implements T3Port {
 
   private updateRun(projection: RawProjection, runId: string, patch: Partial<NonNullable<RawProjection["runs"]>[number]>): void {
     projection.runs = (projection.runs ?? []).map((run) => (run.id === runId ? { ...run, ...patch } : run));
+  }
+
+  private publishProject(project: RawProject): void {
+    for (const listener of this.listeners) listener([{ kind: "project.updated", project }]);
   }
 
   private publish(thread: RawThread): void {

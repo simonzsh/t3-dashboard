@@ -7,15 +7,27 @@ import type { RawConfig, RawProject, RawProjection, RawScheduledTask, RawSubagen
 
 export const SCRATCH_PROJECT_ID = "demo-no-project";
 export const DEMO_ENVIRONMENT_ID = "demo-environment";
+export const DEMO_HOME = "/home/demo";
+/** The folders of the demo machine, parents first: "~/src/" lists the four projects and a hidden one. */
+export const DEMO_FOLDERS = [
+  "/",
+  "/home",
+  DEMO_HOME,
+  `${DEMO_HOME}/src`,
+  ...["atlas-web", "atlas-api", "sandbox", "notes"].map((name) => `${DEMO_HOME}/src/${name}`),
+  `${DEMO_HOME}/.config`,
+];
+export const DEMO_FILES = [`${DEMO_HOME}/todo.txt`];
 const CHILD_ID = "demo-checkout-mobile-child";
 
 const PROJECTS: RawProject[] = [
-  { id: "demo-atlas-web", title: "Atlas Web", workspaceRoot: "/demo/atlas-web", projectIcon: { kind: "lucide", name: "folder-code", color: "blue" } },
-  { id: "demo-atlas-api", title: "Atlas API", workspaceRoot: "/demo/atlas-api", projectIcon: { kind: "lucide", name: "folder-tree", color: "green" } },
+  { id: "demo-atlas-web", title: "Atlas Web", workspaceRoot: `${DEMO_HOME}/src/atlas-web`, projectIcon: { kind: "lucide", name: "folder-code", color: "blue" } },
+  { id: "demo-atlas-api", title: "Atlas API", workspaceRoot: `${DEMO_HOME}/src/atlas-api`, projectIcon: { kind: "lucide", name: "folder-tree", color: "green" } },
   { id: "demo-mobile", title: "Mobile App", projectIcon: { kind: "lucide", name: "smartphone", color: "purple" } },
   { id: "demo-docs", title: "Docs site", projectIcon: { kind: "lucide", name: "book-open", color: "gray" } },
   { id: "demo-assistant", title: "Assistant", projectIcon: { kind: "lucide", name: "brain", color: "purple" } },
   { id: SCRATCH_PROJECT_ID, title: "No project" },
+  { id: "demo-sandbox", title: "Sandbox", workspaceRoot: `${DEMO_HOME}/src/sandbox` },
 ];
 
 const SUMMARY_DIFF = [
