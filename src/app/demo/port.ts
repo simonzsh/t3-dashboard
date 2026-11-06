@@ -27,12 +27,15 @@ export class DemoPort implements T3Port {
   private readonly createdTasks: RawScheduledTask[] = [];
   private readonly pausedTasks = new Set<string>();
   private readonly updatedTasks = new Map<string, Partial<RawScheduledTask>>();
+  // Built once, like the threads: a lastRunAt that moves on each read would log a new run every poll.
+  private readonly tasks: RawScheduledTask[];
   private sequence = 0;
   private uploads = 0;
 
   constructor(now: () => Date) {
     this.now = now;
     const fixtures = demoFixtures(now());
+    this.tasks = demoScheduledTasks(now());
     this.projects = fixtures.projects;
     this.config = fixtures.config;
     this.hidden = new Set(fixtures.hiddenThreadIds);
@@ -77,7 +80,7 @@ export class DemoPort implements T3Port {
   }
 
   async listScheduledTasks(): Promise<RawScheduledTask[]> {
-    return [...demoScheduledTasks(this.now()), ...this.createdTasks]
+    return [...this.tasks, ...this.createdTasks]
       .filter((task) => !this.deletedTasks.has(task.id))
       .map((task) => ({ ...task, ...this.updatedTasks.get(task.id), ...(this.pausedTasks.has(task.id) && { enabled: false }) }));
   }
