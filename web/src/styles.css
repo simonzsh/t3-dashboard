@@ -790,9 +790,14 @@ ol.install-steps { padding-left: 18px; }
 .slist-new { opacity: 0; }
 .slist-project:hover .slist-new, .slist-new:focus-visible { opacity: 1; }
 .slist-row { position: relative; display: flex; align-items: flex-start; gap: 8px; width: 100%; padding: 5px 8px 5px 26px; border: 0; border-radius: var(--radius-md); background: none; color: var(--text-primary); text-align: left; }
-.slist-body > .slist-row { padding-left: 8px; }
+.slist-body > .slist-item > .slist-row { padding-left: 8px; }
+/* An open row has a close button on hover; its title leaves room for it. */
+.slist-item { position: relative; }
+.slist-row.open { padding-right: 32px; }
+.slist-close { position: absolute; top: 4px; right: 4px; opacity: 0; }
+.slist-item:hover .slist-close, .slist-close:focus-visible { opacity: 1; }
 /* Hover only with a real pointer: a tap on a phone would leave the row grey. */
-@media (hover: hover) { .slist-row:hover { background: color-mix(in srgb, var(--text-primary) 5%, transparent); } }
+@media (hover: hover) { .slist-item:hover .slist-row:not(.focused) { background: color-mix(in srgb, var(--text-primary) 5%, transparent); } }
 .slist-row.focused { background: color-mix(in srgb, var(--text-primary) 10%, transparent); }
 /* A thread open as a column: a thin accent bar, a bold title; closed ones are muted. */
 .slist-row:not(.open) .slist-title { color: var(--text-secondary); }
@@ -814,8 +819,10 @@ ol.install-steps { padding-left: 18px; }
 /* On a phone the list fills the page. */
 .sessions.phone-list .slist { flex: 1; width: auto; min-width: 0; border-right: 0; }
 @media (pointer: coarse) {
-  .slist-new { opacity: 1; }
-  .slist-project-toggle, .slist-new { min-height: 44px; min-width: 44px; }
+  .slist-new, .slist-close { opacity: 1; }
+  .slist-project-toggle, .slist-new, .slist-close { min-height: 44px; min-width: 44px; }
+  .slist-close { top: 0; right: 0; }
+  .slist-row.open { padding-right: 48px; }
   .slist-row { padding-block: 10px; }
 }
 /* On a phone an opened session covers the page: no header, no bottom bar. */
