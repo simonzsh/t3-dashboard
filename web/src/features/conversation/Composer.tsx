@@ -422,9 +422,11 @@ export function Composer({ providers, selection, runtimeMode, running, stoppable
             ))}
           </ul>
         )}
+        {/* One line: the field, then the model and the buttons; a narrow card wraps them below. */}
+        <div className="composer-row">
         <TextArea
           ref={textarea}
-          rows={2}
+          rows={1}
           value={draft}
           onChange={(e) => {
             onDraft(e.target.value);
@@ -545,6 +547,7 @@ export function Composer({ providers, selection, runtimeMode, running, stoppable
               </IconButton>
             )}
           </div>
+        </div>
         </div>
       </div>
     </form>
