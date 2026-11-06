@@ -161,7 +161,9 @@ function validIcon(value: unknown): ProjectIconSpec {
   if (icon.kind === "lucide" && color && typeof icon.name === "string" && icon.name.length <= 64 && LUCIDE_NAME.test(icon.name)) return { kind: "lucide", name: icon.name, color };
   if (icon.kind === "monogram" && color && typeof icon.text === "string") {
     const text = icon.text.trim();
-    if (MONOGRAM.test(text) && Array.from(text).length <= 2) return { kind: "monogram", text: text.toUpperCase(), color };
+    // Count after uppercasing: "ß" becomes "SS", and T3 refuses more than 2 characters.
+    const upper = text.toUpperCase();
+    if (MONOGRAM.test(upper) && Array.from(upper).length <= 2) return { kind: "monogram", text: upper, color };
   }
   if (icon.kind === "emoji" && typeof icon.emoji === "string") {
     const emoji = icon.emoji.trim();

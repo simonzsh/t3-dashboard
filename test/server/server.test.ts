@@ -1668,6 +1668,7 @@ test("POST /api/projects/:id/update validates its body and maps errors", async (
     [{ icon: { ...lucide, name: "a".repeat(65) } }, "icon is not a valid project icon"],
     [{ icon: { kind: "monogram", text: "ABC", color: "blue" } }, "icon is not a valid project icon"],
     [{ icon: { kind: "monogram", text: "A!", color: "blue" } }, "icon is not a valid project icon"],
+    [{ icon: { kind: "monogram", text: "aß", color: "blue" } }, "icon is not a valid project icon"],
     [{ icon: { kind: "monogram", text: " ", color: "blue" } }, "icon is not a valid project icon"],
     [{ icon: { kind: "monogram", text: "A" } }, "icon is not a valid project icon"],
     [{ icon: { kind: "emoji", emoji: " " } }, "icon is not a valid project icon"],
