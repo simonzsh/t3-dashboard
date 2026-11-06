@@ -44,6 +44,14 @@ export function moveCard(layout: HomeLayout, id: HomeCard, column: Column, index
   return next;
 }
 
+/** Drops a card before the slot `index` of the layout as shown; the same layout when that changes nothing. */
+export function dropCard(layout: HomeLayout, id: HomeCard, column: Column, index: number): HomeLayout {
+  const from = layout[column].indexOf(id);
+  if (from !== -1 && (index === from || index === from + 1)) return layout;
+  // moveCard removes the card first: a lower slot in its own column shifts up by one.
+  return moveCard(layout, id, column, from !== -1 && from < index ? index - 1 : index);
+}
+
 /** One step up (-1) or down (+1) inside its column. */
 export function shiftCard(layout: HomeLayout, id: HomeCard, step: -1 | 1): HomeLayout {
   const column = columnOf(layout, id);

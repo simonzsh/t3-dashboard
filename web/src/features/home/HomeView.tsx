@@ -1,8 +1,8 @@
-import { useState, type CSSProperties, type DragEvent, type ReactNode } from "react";
+import { Fragment, useState, type CSSProperties, type DragEvent, type ReactNode } from "react";
 import type { DashboardThread, UsageOverview } from "../../../../shared/api.ts";
 import { agentCounts } from "../../lib/navBadges.ts";
 import { CardEditBar } from "./CardEditBar.tsx";
-import { CARD_TITLES, moveCard, setHidden, shiftCard, stackedOrder, type Column, type HomeCard, type HomeLayout } from "./layout.ts";
+import { CARD_TITLES, dropCard, moveCard, setHidden, shiftCard, stackedOrder, type Column, type HomeCard, type HomeLayout } from "./layout.ts";
 import { relativeTime } from "../../lib/format.ts";
 import { Button, IconButton, Icon, Loader, Segmented } from "../../ui/index.ts";
 import { UsageChart } from "./UsageChart.tsx";
@@ -103,28 +103,51 @@ interface Props {
 
 export function HomeView({ usage, threads, now, layout, cards, editing = false, onLayout = () => {} }: Props) {
   const [dragged, setDragged] = useState<HomeCard | null>(null);
+  // Where the dragged card would land, shown as a placeholder of its size.
+  const [target, setTarget] = useState<{ column: Column; index: number } | null>(null);
+  const [dragHeight, setDragHeight] = useState(0);
   const body: Record<HomeCard, ReactNode> = { usage: <UsageCard state={usage} threads={threads} now={now} />, ...cards };
   const order = stackedOrder(layout);
-  const drop = (e: DragEvent, column: Column, index?: number) => {
+  const endDrag = () => {
+    setDragged(null);
+    setTarget(null);
+  };
+  const aim = (e: DragEvent, column: Column, index: number) => {
+    if (!dragged) return;
     e.preventDefault();
     e.stopPropagation();
-    if (dragged) {
-      // Dropped on a slot: land before that card. moveCard removes the card first, so a lower slot in its own column shifts up by one.
-      const from = layout[column].indexOf(dragged);
-      const at = index !== undefined && from !== -1 && from < index ? index - 1 : index;
-      onLayout(moveCard(layout, dragged, column, at));
-    }
-    setDragged(null);
+    if (target?.column !== column || target.index !== index) setTarget({ column, index });
   };
+  const drop = (e: DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (dragged && target) {
+      onLayout(dropCard(layout, dragged, target.column, target.index));
+    }
+    endDrag();
+  };
+  // No placeholder where the card already is: dropping there changes nothing.
+  const showsDrop = (column: Column, index: number) =>
+    dragged !== null && target?.column === column && target.index === index && dropCard(layout, dragged, column, index) !== layout;
+  const placeholder = (column: Column, index: number) =>
+    showsDrop(column, index) && dragged && (
+      <div className={`home-drop ${dragged}`} style={{ height: dragHeight }} aria-hidden="true" onDragOver={(e) => aim(e, column, index)} onDrop={drop} />
+    );
   const column = (id: Column) => (
-    <div className={`home-col ${id}${editing ? " editing" : ""}${id === "right" && layout.right.length === 1 && layout.right[0] === "notifications" ? " pinned" : ""}`} onDragOver={editing && dragged ? (e) => e.preventDefault() : undefined} onDrop={editing ? (e) => drop(e, id) : undefined}>
+    <div
+      className={`home-col ${id}${editing ? " editing" : ""}${id === "right" && layout.right.length === 1 && layout.right[0] === "notifications" ? " pinned" : ""}`}
+      onDragOver={editing ? (e) => aim(e, id, layout[id].length) : undefined}
+      onDrop={editing ? drop : undefined}
+    >
       {layout[id].map((card, index) => (
-        <div
+        <Fragment key={card}>
+          {placeholder(id, index)}
+          <div
           key={card}
           className={`home-slot ${card}${dragged === card ? " dragging" : ""}`}
           style={{ "--stack": order.indexOf(card) } as CSSProperties}
-          onDragOver={editing && dragged ? (e) => e.preventDefault() : undefined}
-          onDrop={editing ? (e) => drop(e, id, index) : undefined}
+          onDragOver={editing ? (e) => aim(e, id, index) : undefined}
+          onDrop={editing ? drop : undefined}
         >
           {editing && (
             <CardEditBar
@@ -134,9 +157,12 @@ export function HomeView({ usage, threads, now, layout, cards, editing = false, 
                 setDragged(card);
                 e.dataTransfer.effectAllowed = "move";
                 const slot = e.currentTarget.closest(".home-slot");
-                if (slot) e.dataTransfer.setDragImage(slot, 16, 16);
+                if (slot) {
+                  e.dataTransfer.setDragImage(slot, 16, 16);
+                  setDragHeight(Math.min(slot.getBoundingClientRect().height, 240));
+                }
               }}
-              onDragEnd={() => setDragged(null)}
+              onDragEnd={endDrag}
               onShift={(step) => onLayout(shiftCard(layout, card, step))}
               onSwitch={() => onLayout(moveCard(layout, card, id === "left" ? "right" : "left"))}
               onHide={() => onLayout(setHidden(layout, card, true))}
@@ -146,7 +172,9 @@ export function HomeView({ usage, threads, now, layout, cards, editing = false, 
             {body[card]}
           </div>
         </div>
+        </Fragment>
       ))}
+      {placeholder(id, layout[id].length)}
     </div>
   );
   return (

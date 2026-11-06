@@ -661,7 +661,9 @@ ol.install-steps { padding-left: 18px; }
 /* Sticky only for the capped Notifications card alone: a taller column would hide its lower cards. */
 .home-col.pinned { position: sticky; top: 0; }
 .home-slot { min-width: 0; }
-.home-slot.usage { grid-column: 1 / -1; }
+.home-slot.usage, .home-drop.usage { grid-column: 1 / -1; }
+/* Drop preview: the size of the dragged card, where it will land. */
+.home-drop { min-height: 64px; border: 2px dashed color-mix(in srgb, var(--accent) 60%, transparent); border-radius: var(--radius-lg); background: color-mix(in srgb, var(--accent) 8%, transparent); }
 /* Edit mode: each card has a bar on top, and a column accepts drops even when it is empty. */
 .home-col.editing { min-height: 96px; padding: 8px; border: 1px dashed var(--line); border-radius: var(--radius-lg); }
 .home-slot.dragging { opacity: 0.4; }

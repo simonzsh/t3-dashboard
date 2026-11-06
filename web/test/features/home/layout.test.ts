@@ -6,6 +6,7 @@ import {
   columnOf,
   isDefaultLayout,
   loadLayout,
+  dropCard,
   moveCard,
   saveLayout,
   setHidden,
@@ -65,4 +66,14 @@ test("the layout is saved and loaded, and a broken value gives the default", () 
   store.set(HOME_LAYOUT_KEY, "{not json");
   assert.deepEqual(loadLayout(storage), DEFAULT_LAYOUT);
   assert.deepEqual(loadLayout(null), DEFAULT_LAYOUT);
+});
+
+test("dropCard lands before the target slot, and changes nothing next to the card", () => {
+  // Default left column: usage, running, up-next.
+  assert.deepEqual(dropCard(DEFAULT_LAYOUT, "usage", "left", 2).left, ["running", "usage", "up-next"]);
+  assert.deepEqual(dropCard(DEFAULT_LAYOUT, "usage", "left", 3).left, ["running", "up-next", "usage"]);
+  assert.deepEqual(dropCard(DEFAULT_LAYOUT, "up-next", "left", 0).left, ["up-next", "usage", "running"]);
+  assert.deepEqual(dropCard(DEFAULT_LAYOUT, "running", "right", 1).right, ["notifications", "running"]);
+  assert.equal(dropCard(DEFAULT_LAYOUT, "running", "left", 1), DEFAULT_LAYOUT);
+  assert.equal(dropCard(DEFAULT_LAYOUT, "running", "left", 2), DEFAULT_LAYOUT);
 });
