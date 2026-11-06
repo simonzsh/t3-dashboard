@@ -741,7 +741,8 @@ ol.install-steps { padding-left: 18px; }
 .sc-grip { flex: none; width: 16px; height: 16px; color: var(--text-secondary); }
 .sc-sub { display: flex; align-items: center; gap: 6px; min-width: 0; padding-left: 22px; color: var(--text-secondary); font-size: 12px; }
 .session-window-head { position: relative; }
-.session-window.focused .session-window-head { background: color-mix(in srgb, var(--text-secondary) 12%, var(--surface-1)); }
+/* The session the keyboard acts on: a light tint of the accent color. */
+.session-window.focused .session-window-head { background: color-mix(in srgb, var(--accent) 12%, var(--surface-1)); }
 .session-window.focused .dw-title { color: var(--text-primary); font-weight: 600; }
 /* Drag a window by its header onto another one to swap their cells. */
 .sessions:not(.compact) .session-window-head { cursor: grab; user-select: none; }
