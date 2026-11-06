@@ -15,6 +15,7 @@ export interface SessionsState {
 export type SessionsAction =
   | { type: "open"; id: string }
   | { type: "close"; id: string }
+  | { type: "closeAll" }
   | { type: "focus"; id: string }
   | { type: "maximize"; id: string }
   | { type: "swap"; id: string; with: string }
@@ -69,6 +70,8 @@ export function sessionsReducer(state: SessionsState, action: SessionsAction): S
       return show(state.ids.includes(action.id) ? state : { ...state, ids: [...state.ids, action.id] }, action.id);
     case "close":
       return settle({ ...state, ids: state.ids.filter((id) => id !== action.id) });
+    case "closeAll":
+      return EMPTY_SESSIONS;
     case "focus":
       return state.ids.includes(action.id) ? show(state, action.id) : state;
     case "maximize":

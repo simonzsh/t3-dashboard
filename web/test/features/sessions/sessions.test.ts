@@ -50,6 +50,11 @@ test("open on an open window focuses it without moving it", () => {
   assert.equal(s.focusedId, "a");
 });
 
+test("closeAll empties the strip and leaves full screen", () => {
+  const s = sessionsReducer(sessionsReducer(open(EMPTY_SESSIONS, "a", "b"), { type: "maximize", id: "b" }), { type: "closeAll" });
+  assert.deepEqual(s, EMPTY_SESSIONS);
+});
+
 test("close removes the window and moves the focus to the last one", () => {
   let s = open(EMPTY_SESSIONS, "a", "b", "c");
   s = sessionsReducer(s, { type: "close", id: "c" });
