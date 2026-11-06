@@ -10,6 +10,7 @@ export { Kbd } from "./Kbd.tsx";
 export { Loader } from "./Loader.tsx";
 export { enter, fly, useFlip } from "./motion.ts";
 export { NO_AUTOFILL, SECRET_FIELD } from "./noAutofill.ts";
+export { PageHeader } from "./PageHeader.tsx";
 export { Popover } from "./Popover.tsx";
 export { Pressable } from "./Pressable.tsx";
 export { TooltipLayer } from "./Tooltip.tsx";
