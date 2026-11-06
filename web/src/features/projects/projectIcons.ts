@@ -11,8 +11,9 @@ export const EMOJI_PRESETS: ReadonlyArray<{ emoji: string; label: string }> = [
 
 /** At most two letters or digits, uppercased: what T3 accepts as a monogram. */
 export function monogramFromInput(text: string): string {
-  const chars = Array.from(text.normalize("NFKC")).filter((c) => /[\p{L}\p{N}]/u.test(c));
-  return chars.slice(0, 2).join("").toUpperCase();
+  // Uppercase first: "ß" becomes "SS", and the server counts after uppercasing.
+  const chars = Array.from(text.normalize("NFKC").toUpperCase()).filter((c) => /[\p{L}\p{N}]/u.test(c));
+  return chars.slice(0, 2).join("");
 }
 
 /** The first user-perceived character, so a pasted "🖥️" stays whole. */

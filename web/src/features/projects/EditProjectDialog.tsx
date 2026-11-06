@@ -24,8 +24,9 @@ export function EditProjectDialog({ project, onClose }: Props) {
   const [error, setError] = useState<string | null>(null);
 
   const body = editBody(project, { title, path, icon });
+  // The folder is checked only when it changes: a moved folder must not block a rename.
   // An unknown folder kind is allowed: the server checks the folder anyway.
-  const valid = title.trim() !== "" && isFolderPath(path) && kind !== "file" && kind !== "missing";
+  const valid = title.trim() !== "" && (!body?.path || (isFolderPath(path) && kind !== "file" && kind !== "missing"));
 
   async function submit() {
     if (busy || !body || !valid) return;

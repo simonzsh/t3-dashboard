@@ -158,7 +158,7 @@ export function App() {
 
   const editedProject = state?.projects.find((p) => p.id === editingProject);
   const deletedProject = state?.projects.find((p) => p.id === deletingProject);
-  const blocked = creating !== null || creatingAutomation || addingProject || editingProject !== null || deletingProject !== null || settingsOpen || confirmingUpdate || switcherQuery !== null;
+  const blocked = creating !== null || creatingAutomation || addingProject || editedProject !== undefined || deletedProject !== undefined || settingsOpen || confirmingUpdate || switcherQuery !== null;
   useShortcuts(
     (action) => {
       if (action === "dashboard" || action === "sessions" || action === "automations") setTab(action);

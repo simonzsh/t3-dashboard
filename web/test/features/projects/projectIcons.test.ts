@@ -45,6 +45,7 @@ test("monogramFromInput keeps two letters or digits, uppercased", () => {
   assert.equal(monogramFromInput("abc"), "AB");
   assert.equal(monogramFromInput("  a "), "A");
   assert.equal(monogramFromInput("é1"), "É1");
+  assert.equal(monogramFromInput("ßa"), "SS");
   assert.equal(monogramFromInput("a-b"), "AB");
   assert.equal(monogramFromInput("…"), "");
   assert.equal(monogramFromInput("ＡＢ"), "AB");

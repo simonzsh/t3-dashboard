@@ -34,7 +34,7 @@ export function DeleteProjectDialog({ project, sessions, onClose }: Props) {
   return (
     <Dialog title="Delete project?" className="add-project" onClose={onClose} onCancel={onClose} primary={{ label: busy ? "Deleting…" : "Delete", onClick: () => void submit(), disabled: busy, danger: true }}>
       <p>{what}</p>
-      <p className="hint">The sessions are deleted from T3 Code. The folder stays on disk. This cannot be undone.</p>
+      <p className="hint">The sessions, archived ones included, are deleted from T3 Code. The folder stays on disk. This cannot be undone.</p>
       {error && <p className="auto-error" role="alert">{error}</p>}
     </Dialog>
   );
