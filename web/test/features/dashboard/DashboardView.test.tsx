@@ -290,7 +290,7 @@ test("routine threads stay out of every card", () => {
   assert.doesNotMatch(render(state(), { threads: [thread("t-routine", { title: "Routine run" })] }), /Routine run/);
 });
 
-test("on a phone the panel is a dialog sheet with a backdrop, and it takes no room", () => {
+test("in sheet mode the panel is a dialog sheet with a backdrop, and it takes no room", () => {
   const out = render(state(), { sheet: true });
   assert.match(out, /<div class="dashboard-backdrop open" aria-hidden="true">/);
   assert.match(out, /<aside tabindex="-1" class="dashboard-panel open" role="dialog" aria-modal="true" aria-label="Notifications">/);
@@ -298,13 +298,13 @@ test("on a phone the panel is a dialog sheet with a backdrop, and it takes no ro
   assert.equal(out.match(/id="notifications-head"/g)?.length, 1);
 });
 
-test("a closed phone sheet stays mounted for its slide-out, but inert", () => {
+test("a closed sheet stays mounted for its slide-out, but inert", () => {
   const out = render(state(), { sheet: true, panelOpen: false });
   assert.match(out, /<aside tabindex="-1" class="dashboard-panel" role="dialog"[^>]* inert=""/);
   assert.doesNotMatch(out, /dashboard-backdrop open|dashboard-panel open/);
 });
 
-test("edit mode removes the phone sheet and its backdrop", () => {
+test("edit mode removes the sheet and its backdrop", () => {
   assert.doesNotMatch(render(state(), { sheet: true, editing: true }), /dashboard-panel|dashboard-backdrop|notifications-head/);
 });
 

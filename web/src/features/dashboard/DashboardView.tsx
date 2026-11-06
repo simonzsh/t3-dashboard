@@ -21,7 +21,7 @@ interface Props extends CardsInput {
   onLayout: (layout: DashboardLayout) => void;
   /** The Notifications panel is open; edit mode hides it anyway. */
   panelOpen: boolean;
-  /** Phone: the panel is a side sheet over the page, and a tap on the backdrop closes it. */
+  /** Sheet mode: the panel is a side sheet over the page, and a tap on the backdrop closes it. */
   sheet: boolean;
   onCloseSheet: () => void;
 }

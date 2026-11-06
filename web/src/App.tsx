@@ -46,6 +46,8 @@ import { updateLabel } from "./features/update/updateFlow.ts";
 const NO_THREADS: DashboardThread[] = [];
 // Same breakpoint as the bottom bar in styles.css.
 const PHONE = "(max-width: 700px)";
+// No room for the Notifications column: it becomes a side sheet.
+const SHEET = "(max-width: 1200px)";
 
 export function App() {
   const { state, sseDown, remoteSessions, remoteSeen, connects } = useDashboard();
@@ -54,6 +56,7 @@ export function App() {
   const automations = useAutomations(state?.connection.t3 === "live");
   const [sessions, dispatchSessions] = useSessions();
   const compact = useMediaQuery(PHONE);
+  const sheetMode = useMediaQuery(SHEET);
   const [listPrefs, setListPrefs] = useListPrefs();
   // On a phone the Sessions tab is a list; an opened session covers it, with no header or bottom bar.
   const [phoneSession, setPhoneSession] = useState(false);
@@ -188,10 +191,10 @@ export function App() {
   const agents = useMemo(() => agentCounts(visible), [visible]);
   const sessionsBadge = useMemo(() => ({ count: sessionsBadgeCount(visible, notify.seen), waiting: agents.waiting > 0 }), [visible, notify.seen, agents.waiting]);
   const dashboardLayout = useDashboardLayout(tab === "dashboard");
-  const notifPanel = useNotificationsPanel(compact, tab === "dashboard");
+  const notifPanel = useNotificationsPanel(sheetMode, tab === "dashboard");
   const dashboardOpen = tab === "dashboard" && state !== null;
-  // The phone sheet locks the page scroll while it shows.
-  const sheetShown = compact && notifPanel.open && dashboardOpen && !dashboardLayout.editing;
+  // The sheet locks the page scroll while it shows.
+  const sheetShown = sheetMode && notifPanel.open && dashboardOpen && !dashboardLayout.editing;
   const closeSheet = () => {
     notifPanel.close();
     document.querySelector<HTMLElement>(".notif-bell")?.focus();
@@ -282,7 +285,7 @@ export function App() {
                 editing={dashboardLayout.editing}
                 onLayout={dashboardLayout.setLayout}
                 panelOpen={notifPanel.open}
-                sheet={compact}
+                sheet={sheetMode}
                 onCloseSheet={closeSheet}
                 onOpen={onOpen}
                 onSettle={onSettle}

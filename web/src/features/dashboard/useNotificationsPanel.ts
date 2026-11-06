@@ -9,14 +9,14 @@ export const savePanelOpen = (storage: Store | null, open: boolean): void => wri
 
 /**
  * Open state of the Notifications panel. Wide screens: open by default, saved per browser.
- * Phone: the side sheet is closed by default, kept in memory, and closes when the Dashboard tab is left.
+ * Sheet mode (no room for the right column): the side sheet is closed by default, kept in memory, and closes when the Dashboard tab is left.
  */
-export function useNotificationsPanel(phone: boolean, active: boolean) {
+export function useNotificationsPanel(sheetMode: boolean, active: boolean) {
   const [saved, setSaved] = usePersisted(loadPanelOpen, savePanelOpen);
   const [sheet, setSheet] = useState(false);
   useEffect(() => {
     if (!active) setSheet(false);
   }, [active]);
-  const set = phone ? setSheet : setSaved;
-  return { open: phone ? sheet : saved, toggle: () => set((was) => !was), close: () => setSheet(false) };
+  const set = sheetMode ? setSheet : setSaved;
+  return { open: sheetMode ? sheet : saved, toggle: () => set((was) => !was), close: () => setSheet(false) };
 }
