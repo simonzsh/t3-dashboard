@@ -42,6 +42,8 @@ export interface DashboardProject {
   title: string;
   defaultModelSelection: ModelSelection | null;
   icon: ProjectIcon | null;
+  /** Set (true) only when T3 archived the project; absent otherwise. */
+  archived?: boolean;
 }
 
 export interface ModelEffort {

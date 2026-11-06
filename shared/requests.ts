@@ -153,3 +153,35 @@ export interface CreateThreadResult {
   ok: true;
   threadId: string;
 }
+
+/** POST /api/projects */
+export interface CreateProjectBody {
+  /** The folder, absolute ("/…") or under the home folder ("~" or "~/…"); missing folders are created. */
+  path: string;
+  /** Empty or absent: the folder's name. */
+  title?: string;
+}
+
+export interface CreateProjectResult {
+  ok: true;
+  projectId: string;
+  /** False when an active project already had this folder: nothing was created. */
+  created: boolean;
+}
+
+export interface FolderEntry {
+  name: string;
+  /** Absolute path, no trailing slash. */
+  path: string;
+}
+
+/** GET /api/folders?path=… */
+export interface FolderBrowseResult {
+  /** The typed path made absolute: "~" expanded, no trailing slash ("/" stays "/"). */
+  path: string;
+  /** What is at `path`: a folder, nothing yet (it will be created), or something that is not a folder. */
+  kind: "directory" | "missing" | "file";
+  /** Sub-folders of the typed parent whose name starts with the last typed segment, by name, at most 100.
+   *  Hidden folders only when that segment starts with ".". */
+  entries: FolderEntry[];
+}
