@@ -238,6 +238,7 @@ The News tab shows a daily article with the news on your topics. A T3 routine, o
 - The routine is a normal routine: it also shows in Automations, where you can pause or delete it. If you delete it, the next save creates it again.
 - The dashboard archives the run threads of the news when the article is written. A failed run stays visible in Sessions.
 - Without an article, the page says "No news yet".
+- The News tab (sidebar and phone bar) has a badge with the number of unread articles, like the other tabs. Opening an article marks it read: this includes the newest one, which the page opens by itself. On a phone, only the article view counts, not the list. A new run on the same day makes that article unread again. Articles that exist at the first visit count as read. The read marks use the same shared state as the Dashboard (`seen.json`), so they follow you across devices.
 
 ## Settings
 

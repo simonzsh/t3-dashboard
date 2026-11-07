@@ -1,8 +1,10 @@
 import { test } from "bun:test";
 import assert from "node:assert/strict";
 import type { DashboardProvider, NewsSettings, NewsTask } from "../../../../shared/api.ts";
+import type { SeenState } from "../../../../shared/seen.ts";
+import { prune } from "../../../../shared/seen.ts";
 import { formatMessageTime } from "../../../src/lib/format.ts";
-import { dateLabel, formFromSettings, pickModel, shortDate, statusLine, toBody, topicsFromText } from "../../../src/features/news/news.ts";
+import { isUnreadArticle, newsMark, readTarget, unreadNewsCount, dateLabel, formFromSettings, pickModel, shortDate, statusLine, toBody, topicsFromText } from "../../../src/features/news/news.ts";
 
 const provider: DashboardProvider = { instanceId: "provider-a", displayName: "Provider A", models: [{ slug: "model-x", name: "Model X" }, { slug: "model-y", name: "Model Y" }] as never, runtimeModes: [] };
 const settings: NewsSettings = { timeOfDay: "07:00", topics: ["Tech", "AI"], language: "French", modelSelection: { instanceId: "provider-a", model: "model-y" } };
@@ -72,4 +74,41 @@ test("a date reads as a long English date, whatever the time zone", () => {
 test("the list shows a short date", () => {
   assert.equal(shortDate("2026-11-07"), "Sat 7 Nov");
   assert.equal(shortDate("2026-12-25"), "Fri 25 Dec");
+});
+
+const A7 = { date: "2026-11-07", title: "7", mtimeMs: Date.parse("2026-11-07T07:05:00.000Z") };
+const A6 = { date: "2026-11-06", title: "6", mtimeMs: Date.parse("2026-11-06T07:05:00.000Z") };
+const seenState = (over: Partial<SeenState> = {}): SeenState => ({ since: "2026-11-06T12:00:00.000Z", seen: {}, ...over });
+
+test("a mark uses the day as id and the file time as time", () => {
+  assert.deepEqual(newsMark(A7), { id: "news:2026-11-07", at: "2026-11-07T07:05:00.000Z" });
+});
+
+test("articles older than the baseline are read; newer ones are unread until marked", () => {
+  assert.equal(isUnreadArticle(A6, seenState()), false);
+  assert.equal(isUnreadArticle(A7, seenState()), true);
+  assert.equal(unreadNewsCount([A7, A6], seenState()), 1);
+  assert.equal(unreadNewsCount([A7, A6], seenState({ seen: { "news:2026-11-07": newsMark(A7).at } })), 0);
+});
+
+test("a re-run on the same day is unread again", () => {
+  const seen = seenState({ seen: { "news:2026-11-07": newsMark(A7).at } });
+  assert.equal(isUnreadArticle({ ...A7, mtimeMs: A7.mtimeMs + 60_000 }, seen), true);
+});
+
+test("the unread count is zero before the seen state is known", () => {
+  assert.equal(unreadNewsCount([A7, A6], { since: "9999", seen: {} }), 0);
+});
+
+test("news marks survive pruning with the thread marks", () => {
+  const state = prune(seenState({ seen: { "news:2026-11-07": newsMark(A7).at, "thread-1": "2026-11-07T09:00:00.000Z" } }));
+  assert.equal(Object.keys(state.seen).length, 2);
+});
+
+test("only an article in front of the user is marked: not the phone list", () => {
+  assert.deepEqual(readTarget([A7, A6], "2026-11-07", false), newsMark(A7));
+  assert.deepEqual(readTarget([A7, A6], "2026-11-06", false), newsMark(A6));
+  assert.equal(readTarget([A7, A6], "2026-11-07", true), null);
+  assert.equal(readTarget([], null, false), null);
+  assert.equal(readTarget([A7], "2026-01-01", false), null);
 });

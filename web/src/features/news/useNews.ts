@@ -8,7 +8,8 @@ import { usePoll } from "../../lib/usePoll.ts";
 
 const POLL_MS = 60_000;
 
-// Polls while active, so a new article shows without a reload. Save throws: the dialog shows the error.
+// Polls all the time, so a new article shows and the tab badge counts without a reload. `active`: the News page is open.
+// Save throws: the dialog shows the error.
 export function useNews(active: boolean) {
   const api = useApi();
   const notify = useNotify();
@@ -31,14 +32,15 @@ export function useNews(active: boolean) {
       },
     );
   };
+  // Opening the page refreshes at once; the first load happens on mount.
   useEffect(() => {
-    if (active) void load();
+    void load();
   }, [active]);
-  // Once per distinct error: a poll that keeps failing must not reopen a dismissed banner.
+  // Once per distinct error, and only on the page: a poll that keeps failing must not reopen a dismissed banner.
   useEffect(() => {
-    if (error) notify(error);
-  }, [error]);
-  usePoll(load, active ? POLL_MS : null);
+    if (error && active) notify(error);
+  }, [error, active]);
+  usePoll(load, POLL_MS);
 
   async function save(body: SaveNewsBody): Promise<void> {
     seq.current++;

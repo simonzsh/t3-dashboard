@@ -4,15 +4,19 @@ import { useApi } from "../../api/ApiContext.tsx";
 import { failure } from "../../lib/format.ts";
 import { renderMarkdown } from "../../lib/markdown.tsx";
 import { Button, Icon, Loader, Pressable } from "../../ui/index.ts";
-import { dateLabel, shortDate, statusLine } from "./news.ts";
+import { dateLabel, readTarget, shortDate, statusLine } from "./news.ts";
 
 interface Props {
   news: NewsState;
   now: Date;
+  /** Phone layout: the list and the article take turns. */
+  compact: boolean;
+  /** Called when an article is in front of the user. */
+  onRead: (mark: { id: string; at: string }) => void;
 }
 
 /** The article list and the open article. On a phone they take turns: the list, then the article with a back button. */
-export function NewsView({ news, now }: Props) {
+export function NewsView({ news, now, compact, onRead }: Props) {
   const api = useApi();
   const { articles, task } = news;
   const [picked, setPicked] = useState<string | null>(null);
@@ -37,6 +41,12 @@ export function NewsView({ news, now }: Props) {
       stale = true;
     };
   }, [date, mtimeMs]);
+
+  // The article in front of the user is read: on a click, on the auto-selected newest one, and after a re-run.
+  const mark = readTarget(articles, date, compact && !reading);
+  useEffect(() => {
+    if (mark) onRead(mark);
+  }, [mark?.id, mark?.at, onRead]);
 
   // Phone: the article is shown only now, so bring it to the top of the page.
   useEffect(() => {

@@ -1,4 +1,6 @@
 import type { DashboardProvider, ModelSelection, NewsSettings, NewsTask, SaveNewsBody } from "../../../../shared/api.ts";
+import type { NewsArticleSummary } from "../../../../shared/news.ts";
+import { later, type SeenState } from "../../../../shared/seen.ts";
 import { formatMessageTime, relativeTime } from "../../lib/format.ts";
 import { NEWS_DEFAULT_MODEL } from "../../../../shared/news.ts";
 import { presetSelection } from "../new-thread/newAgent.ts";
@@ -77,4 +79,23 @@ export function dateLabel(date: string): string {
 export function shortDate(date: string): string {
   const p = parts(SHORT_DAY, date);
   return `${p.weekday} ${p.day} ${p.month}`;
+}
+
+// Read marks live in the shared seen state (one mark per day), so every device agrees.
+export const newsMarkId = (date: string) => `news:${date}`;
+
+/** The mark for an article: its file time, so a re-run on the same day is unread again. */
+export const newsMark = (a: Pick<NewsArticleSummary, "date" | "mtimeMs">): { id: string; at: string } => ({ id: newsMarkId(a.date), at: new Date(a.mtimeMs).toISOString() });
+
+export function isUnreadArticle(a: Pick<NewsArticleSummary, "date" | "mtimeMs">, seen: SeenState): boolean {
+  const { id, at } = newsMark(a);
+  return at.localeCompare(later(seen.since, seen.seen[id] ?? "")) > 0;
+}
+
+export const unreadNewsCount = (articles: readonly NewsArticleSummary[], seen: SeenState): number => articles.filter((a) => isUnreadArticle(a, seen)).length;
+
+/** The mark to send for the article in front of the user. On a phone the list alone shows no article. */
+export function readTarget(articles: readonly NewsArticleSummary[], date: string | null, onList: boolean): { id: string; at: string } | null {
+  const article = onList ? undefined : articles.find((a) => a.date === date);
+  return article ? newsMark(article) : null;
 }

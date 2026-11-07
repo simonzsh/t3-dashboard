@@ -12,7 +12,7 @@ const now = new Date("2026-11-07T12:00:00.000Z");
 const view = (news: NewsState) =>
   renderToStaticMarkup(
     <ApiProvider value={{} as never}>
-      <NewsView news={news} now={now} />
+      <NewsView news={news} now={now} compact={false} onRead={() => {}} />
     </ApiProvider>,
   );
 

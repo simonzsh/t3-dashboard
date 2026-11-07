@@ -3,6 +3,7 @@ import type { DashboardThread } from "../../shared/api.ts";
 import { AutomationsView } from "./features/automations/AutomationsView.tsx";
 import { NewsSettingsDialog } from "./features/news/NewsSettingsDialog.tsx";
 import { NewsView } from "./features/news/NewsView.tsx";
+import { unreadNewsCount } from "./features/news/news.ts";
 import { useNews } from "./features/news/useNews.ts";
 import { DashboardView } from "./features/dashboard/DashboardView.tsx";
 import { isDefaultLayout, type DashboardCard } from "./features/dashboard/layout.ts";
@@ -211,6 +212,10 @@ export function App() {
   const automationsNav = useMemo(() => automationsBadge(automations.result?.automations ?? [], threadsById, notify.seen), [automations.result?.automations, threadsById, notify.seen]);
   const unread = useMemo(() => attentionCount(threadSections(threads, notify.seen)), [threads, notify.seen]);
   const agents = useMemo(() => agentCounts(threads), [threads]);
+  const newsUnread = useMemo(() => unreadNewsCount(news.state?.articles ?? [], notify.seen), [news.state?.articles, notify.seen]);
+  // A new identity once the seen state is known, so the page marks its open article again then.
+  const { markRead, seenReady: ready } = notify;
+  const readNews = useCallback((mark: { id: string; at: string }) => ready && markRead(mark), [ready, markRead]);
   const sessionsBadge = useMemo(() => ({ count: sessionsBadgeCount(threads, notify.seen), waiting: agents.waiting > 0 }), [threads, notify.seen, agents.waiting]);
   const dashboardLayout = useDashboardLayout(tab === "dashboard");
   const notifPanel = useNotificationsPanel(sheetMode, tab === "dashboard");
@@ -250,6 +255,7 @@ export function App() {
           unread={unread}
           sessions={sessionsBadge}
           automations={automationsNav}
+          news={newsUnread}
           live={live}
           update={updateNav}
           onTab={showTab}
@@ -332,7 +338,7 @@ export function App() {
                   setup={setup}
                 />
               ) : <Loader />)}
-            {tab === "news" && (news.state ? <NewsView news={news.state} now={now} /> : <Loader />)}
+            {tab === "news" && (news.state ? <NewsView news={news.state} now={now} compact={compact} onRead={readNews} /> : <Loader />)}
             {tab === "sessions" &&
               (state ? (
                 <SessionsView

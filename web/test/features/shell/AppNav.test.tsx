@@ -8,6 +8,7 @@ const base = {
   unread: 0,
   sessions: { count: 0, waiting: false },
   automations: { count: 0, failed: false },
+  news: 0,
   live: true,
   update: null,
   collapsed: false,
@@ -80,4 +81,12 @@ test("the Automations entry shows the unread runs and a red dot when one failed,
 
 test("the Automations entry shows nothing when no run is unread", () => {
   assert.doesNotMatch(side(), /unread runs|automation run failed/);
+});
+
+test("News shows its unread articles like the other tabs, in the sidebar and the bottom bar", () => {
+  for (const out of [side({ news: 2 }), bottom({ news: 2 })]) assert.match(out, /aria-label="2 unread articles">2</);
+  assert.match(side({ news: 1 }), /aria-label="1 unread article">1</);
+  assert.match(side({ news: 14 }), /aria-label="14 unread articles">9\+</);
+  assert.doesNotMatch(side(), /nav-badge/);
+  assert.match(side({ news: 2 }), /data-tab="news"[\s\S]*nav-badge/);
 });
