@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { afterEach, test } from "bun:test";
-import type { LimitsOverview, ServerStats, UsageOverview, Automation, AutomationsResult, ConnectionStatus, DashboardEvent, DashboardState } from "../../shared/api.ts";
+import type { CacheCleanupPreview, CacheCleanupResult, LimitsOverview, ServerStats, UsageOverview, Automation, AutomationsResult, ConnectionStatus, DashboardEvent, DashboardState } from "../../shared/api.ts";
 import { LinearClient } from "../../src/integrations/linear/client.ts";
 import { createActions } from "../../src/domain/actions.ts";
 import type { Automations } from "../../src/domain/automations.ts";
@@ -36,6 +36,7 @@ afterEach(async () => {
 
 interface StartOptions {
   limitsError?: Error;
+  cleanupError?: Error;
   site?: Site;
   linearKey?: string;
   linearFetch?: (url: string, init: RequestInit) => Promise<Response>;
@@ -49,6 +50,9 @@ interface StartOptions {
   stash?: StashEntry[];
   seen?: SeenState | null;
 }
+
+const CACHE_PREVIEW: CacheCleanupPreview = { supported: true, targets: [{ id: "npm", label: "npm cache", bytes: 300 }, { id: "uv", label: "uv cache", bytes: 200 }], totalBytes: 500 };
+const CACHE_RESULT: CacheCleanupResult = { targets: [{ id: "npm", label: "npm cache", freedBytes: 300, error: null }, { id: "uv", label: "uv cache", freedBytes: 0, error: "EBUSY" }], totalBytes: 300 };
 
 const SERVER_STATS: ServerStats = {
   host: "box",
@@ -126,6 +130,15 @@ async function start(startOptions: StartOptions = {}) {
     },
   };
   const serverStats = { get: async (): Promise<ServerStats> => SERVER_STATS };
+  const cleanupCalls: string[] = [];
+  const cacheCleanup = {
+    sizes: async (): Promise<CacheCleanupPreview> => (cleanupCalls.push("sizes"), CACHE_PREVIEW),
+    clear: async (): Promise<CacheCleanupResult> => {
+      cleanupCalls.push("clear");
+      if (startOptions.cleanupError) throw startOptions.cleanupError;
+      return CACHE_RESULT;
+    },
+  };
   const hub = new SseHub({ batchMs: 10, pingMs: 60_000 });
   let counter = 0;
   const store: ShellStore = new ShellStore({
@@ -171,6 +184,7 @@ async function start(startOptions: StartOptions = {}) {
     usage,
     limits,
     serverStats,
+    cacheCleanup,
     automations: { setEnabled: async () => {}, runNow: async () => {}, ...automations },
     getState,
     connection: () => connection,
@@ -181,7 +195,7 @@ async function start(startOptions: StartOptions = {}) {
     allowedHosts: startOptions.allowedHosts,
   });
   running.push(async () => hub.close());
-  return { port, store, hub, server, usageCalls, limitsCalls, savedSessions, savedStashes, savedSeen, events, linearCalls, files, setupCalls, updateRuns };
+  return { port, store, hub, server, cleanupCalls, usageCalls, limitsCalls, savedSessions, savedStashes, savedSeen, events, linearCalls, files, setupCalls, updateRuns };
 }
 
 interface Reply {
@@ -582,6 +596,7 @@ test("every POST route refuses a body that is not JSON", async () => {
     "/api/sessions",
     "/api/stash",
     "/api/seen",
+    "/api/cache-cleanup",
     "/api/setup/retry",
     "/api/setup/token",
     "/api/update/check",
@@ -1661,6 +1676,27 @@ test("GET /api/server-stats returns the machine's stats", async () => {
   const reply = await call(server, "GET", "/api/server-stats");
   assert.equal(reply.status, 200);
   assert.deepEqual(reply.json, SERVER_STATS);
+});
+
+test("GET /api/cache-cleanup lists the reclaimable size per target without clearing", async () => {
+  const { server, cleanupCalls } = await start();
+  const reply = await call(server, "GET", "/api/cache-cleanup");
+  assert.equal(reply.status, 200);
+  assert.deepEqual(reply.json, CACHE_PREVIEW);
+  assert.deepEqual(cleanupCalls, ["sizes"]);
+});
+
+test("POST /api/cache-cleanup clears and answers the freed bytes per target", async () => {
+  const { server, cleanupCalls } = await start();
+  const reply = await post(server, "/api/cache-cleanup", { path: "/home" });
+  assert.equal(reply.status, 200);
+  assert.deepEqual(reply.json, CACHE_RESULT);
+  assert.deepEqual(cleanupCalls, ["clear"]);
+});
+
+test("POST /api/cache-cleanup answers an error when the cleanup itself fails", async () => {
+  const { server } = await start({ cleanupError: new Error("disk gone") });
+  assert.equal((await post(server, "/api/cache-cleanup")).status, 500);
 });
 
 test("GET /api/folders answers the suggestions and the kind of the path", async () => {

@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "bun:test";
 import { DemoPort, demoLinearFetch } from "../../src/app/demo/port.ts";
-import { DEMO_HOME, demoFixtures, demoServerStats, demoUsageBuckets } from "../../src/app/demo/fixtures.ts";
+import { DEMO_HOME, createDemoCacheCleanup, demoFixtures, demoServerStats, demoUsageBuckets } from "../../src/app/demo/fixtures.ts";
 import { issues } from "../../src/integrations/contract.ts";
 import { LinearClient } from "../../src/integrations/linear/client.ts";
 import { RawConfig, RawProjection, RawProject, RawThread, UsageSummaryResponse } from "../../src/integrations/t3/schemas.ts";
@@ -429,4 +429,16 @@ test("the demo lists its folders and adds a created folder as a project", async 
   assert.deepEqual(await actions.createProject({ path: "~/src/new-thing/" }), { projectId: created.projectId, created: false });
   await assert.rejects(actions.createProject({ path: "~/todo.txt" }), /file, not a folder/);
   assert.deepEqual(await actions.createProject({ path: "~/src/sandbox" }), { projectId: "demo-sandbox", created: false });
+});
+
+test("the demo cache cleanup lists sizes, frees them once and then has nothing left", async () => {
+  const cleanup = createDemoCacheCleanup();
+  const before = await cleanup.sizes();
+  assert.equal(before.supported, true);
+  assert.ok(before.totalBytes > 0);
+  assert.equal(before.totalBytes, before.targets.reduce((sum, t) => sum + t.bytes, 0));
+  const result = await cleanup.clear();
+  assert.equal(result.totalBytes, before.totalBytes);
+  assert.deepEqual(result.targets.map((t) => t.id), before.targets.map((t) => t.id));
+  assert.equal((await cleanup.sizes()).totalBytes, 0);
 });

@@ -1,4 +1,4 @@
-import type { ServerStats } from "../../../shared/api.ts";
+import type { CacheCleanupPreview, CacheCleanupResult, ServerStats } from "../../../shared/api.ts";
 import type { LinearIssueNode } from "../../integrations/linear/schemas.ts";
 import type { RawConfig, RawProject, RawProjection, RawScheduledTask, RawSubagent, RawThread, RawTurnItem, RawUsageLimits, RawUsageSummary } from "../../integrations/t3/schemas.ts";
 
@@ -555,6 +555,32 @@ export function demoServerStats(now: Date): ServerStats {
     memory: { usedBytes: memoryUsed, totalBytes: memoryTotal, usedPercent: (memoryUsed / memoryTotal) * 100 },
     disk: { path: "/home/demo", usedBytes: diskUsed, totalBytes: diskTotal, usedPercent: 78 },
     readAt: now.toISOString(),
+  };
+}
+
+const DEMO_CACHES = [
+  { id: "npm", label: "npm cache", bytes: 4.3 * GIB },
+  { id: "yarn", label: "Yarn cache", bytes: 2.4 * GIB },
+  { id: "pnpm", label: "pnpm store cache", bytes: 0.8 * GIB },
+  { id: "uv", label: "uv cache", bytes: 1.8 * GIB },
+  { id: "bun", label: "Bun install cache", bytes: 3.3 * GIB },
+  { id: "node-compile-cache", label: "Node compile cache (temp)", bytes: 0.9 * GIB },
+] as const;
+
+/** A cleaner with invented sizes: the first clear frees them all, nothing touches the disk. */
+export function createDemoCacheCleanup() {
+  let cleared = false;
+  const bytes = (size: number) => Math.round(cleared ? 0 : size);
+  return {
+    sizes: async (): Promise<CacheCleanupPreview> => {
+      const targets = DEMO_CACHES.map((t) => ({ ...t, bytes: bytes(t.bytes) }));
+      return { supported: true, targets, totalBytes: targets.reduce((sum, t) => sum + t.bytes, 0) };
+    },
+    clear: async (): Promise<CacheCleanupResult> => {
+      const targets = DEMO_CACHES.map((t) => ({ id: t.id, label: t.label, freedBytes: bytes(t.bytes), error: null }));
+      cleared = true;
+      return { targets, totalBytes: targets.reduce((sum, t) => sum + t.freedBytes, 0) };
+    },
   };
 }
 
