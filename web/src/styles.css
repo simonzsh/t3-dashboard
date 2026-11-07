@@ -84,6 +84,8 @@ body { margin: 0; font: 14px/1.45 Inter, ui-sans-serif, system-ui, -apple-system
 /* Never the browser blue: every focusable element gets the accent ring. */
 :focus-visible { outline: var(--focus-ring); outline-offset: 2px; }
 :where(.field):focus-visible { outline: none; border-color: var(--field-border-focus); box-shadow: var(--field-ring); }
+/* The ring fades in and out, like the composer card. */
+:where(.field), .dropdown.field .dropdown-trigger { transition: border-color 0.12s, box-shadow 0.12s; }
 /* Shared text-field look: the composer's border, ring and placeholder; a textarea also takes its radius and padding. */
 .field::placeholder { color: var(--text-secondary); opacity: 1; }
 textarea.field { padding: 10px 14px; border-radius: var(--radius-lg); line-height: 1.5; resize: none; max-height: min(40vh, 260px); overflow-y: auto; }
