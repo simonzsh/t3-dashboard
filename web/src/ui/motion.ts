@@ -50,6 +50,29 @@ function removeWhenDone(anim: Animation, el: Element): Animation {
   return anim;
 }
 
+/**
+ * Call it while React unmounts `el`: an inert copy (typed values included) fades out where it was, `part` also shrinks a little.
+ * Nothing plays if `el` is still in the page after the commit (a StrictMode remount in development).
+ */
+export function leaveCopy(el: HTMLElement, part?: string): void {
+  if (el.hidden || reducedMotion()) return;
+  const copy = el.cloneNode(true) as HTMLElement;
+  const fields = el.querySelectorAll<HTMLInputElement>("input, textarea, select");
+  copy.querySelectorAll<HTMLInputElement>("input, textarea, select").forEach((field, i) => {
+    if (field.type !== "file") field.value = fields[i]?.value ?? "";
+  });
+  for (const node of [copy, ...copy.querySelectorAll("[id]")]) node.removeAttribute("id");
+  copy.inert = true;
+  copy.setAttribute("aria-hidden", "true");
+  copy.style.pointerEvents = "none";
+  queueMicrotask(() => {
+    if (el.isConnected) return;
+    document.body.append(copy);
+    copy.querySelector(part ?? ":not(*)")?.animate([AT_REST, { translate: "0 8px", scale: "0.96" }], { duration: SHORT, easing: EASE, fill: "forwards" });
+    removeWhenDone(copy.animate([{ opacity: 1 }, { opacity: 0 }], { duration: SHORT, easing: EASE, fill: "forwards" }), copy);
+  });
+}
+
 /** A small pop on the element that just received something. */
 function bounce(el: Element): Animation | null {
   if (reducedMotion()) return null;
