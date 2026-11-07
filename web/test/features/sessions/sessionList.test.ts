@@ -48,9 +48,9 @@ test("groupByProject: projects with threads first in T3 order, then empty ones i
     thread("b2", { projectId: "p2", status: "completed" }),
     thread("b3", { projectId: "p2", pending: { category: "approval" } }),
   ];
-  const groups = groupByProject(threads, projects);
+  const groups = groupByProject(threads, projects, seenAll);
   assert.deepEqual(
-    groups.map((g) => [g.id, g.title, g.threads.map((t) => t.id), g.running]),
+    groups.map((g) => [g.id, g.title, g.threads.map((t) => t.id), g.badge]),
     [
       ["p1", "Alpha", ["a1"], 0],
       ["p2", "Beta", ["b1", "b2", "b3"], 1],
@@ -62,17 +62,17 @@ test("groupByProject: projects with threads first in T3 order, then empty ones i
 
 test("groupByProject: an archived project shows only while it has a listed thread", () => {
   const projects = [{ ...project("p1", "Old"), archived: true }, { ...project("p2", "Gone"), archived: true }, project("p3", "Live")];
-  const groups = groupByProject([thread("o1", { projectId: "p1" })], projects);
+  const groups = groupByProject([thread("o1", { projectId: "p1" })], projects, seenAll);
   assert.deepEqual(groups.map((g) => g.id), ["p1", "p3"]);
 });
 
 test("groupByProject: a thread of an unknown project gets its own group", () => {
-  const groups = groupByProject([thread("x", { projectId: "gone" })], [project("p1", "Alpha")]);
+  const groups = groupByProject([thread("x", { projectId: "gone" })], [project("p1", "Alpha")], seenAll);
   assert.deepEqual(groups.map((g) => [g.id, g.title, g.project, g.threads.length]), [["gone", "Unknown project", null, 1], ["p1", "Alpha", { ...project("p1", "Alpha") }, 0]]);
 });
 
 test("groupByProject: unknown-project groups sit between projects with threads and empty ones", () => {
-  const groups = groupByProject([thread("x", { projectId: "gone" }), thread("a", { projectId: "p2" })], [project("p1", "Empty"), project("p2", "Busy")]);
+  const groups = groupByProject([thread("x", { projectId: "gone" }), thread("a", { projectId: "p2" })], [project("p1", "Empty"), project("p2", "Busy")], seenAll);
   assert.deepEqual(groups.map((g) => g.id), ["p2", "gone", "p1"]);
 });
 
@@ -96,4 +96,17 @@ test("sessionsBadgeCount counts running and unread rows, not waiting, read or se
   ];
   assert.equal(sessionsBadgeCount(threads, seenNone), 2);
   assert.equal(sessionsBadgeCount(threads, seenAll), 1);
+});
+
+test("groupByProject: a project badge counts running and unread rows, and the badges add up to the nav badge", () => {
+  const threads = listableThreads([
+    thread("run", { projectId: "p1", status: "running" }),
+    thread("done", { projectId: "p1", status: "completed" }),
+    thread("ask", { projectId: "p2", pending: { category: "approval" } }),
+    thread("fail", { projectId: "p2", status: "failed" }),
+    thread("other", { projectId: "p2", status: "completed" }),
+  ]);
+  const groups = groupByProject(threads, [project("p1", "Alpha"), project("p2", "Beta")], seenNone);
+  assert.deepEqual(groups.map((g) => [g.id, g.badge]), [["p1", 2], ["p2", 1]]);
+  assert.equal(groups.reduce((sum, g) => sum + g.badge, 0), sessionsBadgeCount(threads, seenNone));
 });
