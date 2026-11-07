@@ -55,9 +55,9 @@ test("sortWindows orders by kind and keeps T3's order within a kind", () => {
   assert.deepEqual(sorted.map((w) => w.id), ["s", "w1", "w2", "m", "o"]);
 });
 
-test("sortProviders puts Codex first, then Claude, then the rest", () => {
-  const sorted = sortProviders([provider("cursor"), provider("claudeAgent"), provider("codex"), provider("opencode")]);
-  assert.deepEqual(sorted.map((p) => p.driver), ["codex", "claudeAgent", "cursor", "opencode"]);
+test("sortProviders puts Codex first, then Claude, then the known kinds by label, then the rest by name", () => {
+  const sorted = sortProviders([provider("zed"), provider("opencode"), provider("claudeAgent"), provider("cursor"), provider("codex"), provider("kiro")]);
+  assert.deepEqual(sorted.map((p) => p.driver), ["codex", "claudeAgent", "cursor", "opencode", "kiro", "zed"]);
 });
 
 test("oldestCheck uses the earliest provider check, else the read time", () => {

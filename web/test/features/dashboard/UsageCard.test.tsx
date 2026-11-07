@@ -74,7 +74,7 @@ test("an old T3 gets one sentence", () => {
 });
 
 test("a supported T3 without any limits says to sign in", () => {
-  assert.match(render([]), /No provider reports usage limits\. Sign in to Codex or Claude in T3 Code\./);
+  assert.match(render([]), /No provider reports usage limits\. Sign in to an agent in T3 Code\./);
 });
 
 test("before the first answer there is a skeleton, and a failed first read shows the error", () => {

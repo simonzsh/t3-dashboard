@@ -57,7 +57,7 @@ export interface DashboardProject {
 }
 
 export interface ModelEffort {
-  /** Option id in ModelSelection.options: "effort" for Claude, "reasoningEffort" for Codex. */
+  /** Option id in ModelSelection.options, named by the provider (e.g. "effort", "reasoningEffort"). */
   optionId: string;
   /** T3's title for the option, e.g. "Reasoning". */
   label: string;
@@ -92,7 +92,7 @@ export interface ModelDefaults {
 
 export interface DashboardProvider {
   instanceId: string;
-  /** The provider kind, e.g. claudeAgent. */
+  /** The provider kind (driver slug), e.g. codex. */
   driver?: string;
   displayName: string;
   models: DashboardModel[];
