@@ -30,7 +30,6 @@ const SORTS: Array<{ id: AutomationSort; label: string }> = [
   { id: "recent", label: "Recent activity" },
   { id: "next", label: "Next run" },
   { id: "project", label: "Project" },
-  { id: "name", label: "Name" },
 ];
 
 const EMPTY: Record<AutomationFilter, string> = {

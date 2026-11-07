@@ -11,12 +11,14 @@ test("parseAutomationPrefs keeps known values and falls back for the rest", () =
   assert.deepEqual(parseAutomationPrefs(null), DEFAULT_AUTOMATION_PREFS);
   assert.deepEqual(parseAutomationPrefs({ filter: "failed", sort: "project" }), { filter: "failed", sort: "project" });
   assert.deepEqual(parseAutomationPrefs({ filter: "nope", sort: 3 }), DEFAULT_AUTOMATION_PREFS);
+  // "name" was a sort once: a saved one falls back to the default.
+  assert.deepEqual(parseAutomationPrefs({ filter: "all", sort: "name" }), DEFAULT_AUTOMATION_PREFS);
 });
 
 test("the prefs round-trip through the store", () => {
   const store = memoryStore();
   assert.deepEqual(loadAutomationPrefs(store), DEFAULT_AUTOMATION_PREFS);
-  saveAutomationPrefs(store, { filter: "paused", sort: "name" });
+  saveAutomationPrefs(store, { filter: "paused", sort: "next" });
   assert.ok(store.data.has(AUTOMATIONS_LIST_KEY));
-  assert.deepEqual(loadAutomationPrefs(store), { filter: "paused", sort: "name" });
+  assert.deepEqual(loadAutomationPrefs(store), { filter: "paused", sort: "next" });
 });

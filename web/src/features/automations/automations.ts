@@ -87,7 +87,7 @@ export function runDuration(run: AutomationRun, now: Date): string | null {
 }
 
 export type AutomationFilter = "all" | "unread" | "failed" | "running" | "paused";
-export type AutomationSort = "recent" | "next" | "project" | "name";
+export type AutomationSort = "recent" | "next" | "project";
 
 /** Failed: the latest run failed, a dispatch failure included. Paused: disabled, so a finished reminder too. */
 export function matchesFilter(a: Automation, filter: AutomationFilter, threads: Threads, seen: SeenState): boolean {
@@ -105,7 +105,7 @@ const byRecent = (a: Automation, b: Automation) => Number(!a.runs[0]) - Number(!
 
 /** "project" sorts like "recent": the view then groups the rows under their project. */
 export function sortAutomations(list: Automation[], sort: AutomationSort): Automation[] {
-  return [...list].sort(sort === "next" ? byNextRun : sort === "name" ? byName : byRecent);
+  return [...list].sort(sort === "next" ? byNextRun : byRecent);
 }
 
 export function filterAutomations(list: Automation[], query: string): Automation[] {

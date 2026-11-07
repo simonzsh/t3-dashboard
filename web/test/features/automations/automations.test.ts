@@ -242,11 +242,6 @@ test("sortAutomations: next run in order, webhooks and paused tasks last", () =>
   assert.deepEqual(sortAutomations(list, "next").map((a) => a.id), ["soon", "later", "hook", "paused"]);
 });
 
-test("sortAutomations: by name", () => {
-  const list = [auto("b", { title: "Zeta" }), auto("a", { title: "Alpha" })];
-  assert.deepEqual(sortAutomations(list, "name").map((a) => a.id), ["a", "b"]);
-});
-
 test("filterAutomations matches title, project name and schedule, ignoring case and outer spaces", () => {
   const list = [auto("a", { title: "Nightly Backup", project: "Alpha", scheduleLabel: "Daily 2:00" }), auto("b", { title: "Report", project: "Beta", scheduleLabel: "Weekly Mon" })];
   const ids = (query: string) => filterAutomations(list, query).map((a) => a.id);

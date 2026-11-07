@@ -12,7 +12,7 @@ export const AUTOMATIONS_LIST_KEY = "t3-dashboard-automations-list";
 export const DEFAULT_AUTOMATION_PREFS: AutomationPrefs = { filter: "all", sort: "recent" };
 
 const FILTERS: readonly AutomationFilter[] = ["all", "unread", "failed", "running", "paused"];
-const SORTS: readonly AutomationSort[] = ["recent", "next", "project", "name"];
+const SORTS: readonly AutomationSort[] = ["recent", "next", "project"];
 
 export function parseAutomationPrefs(data: unknown): AutomationPrefs {
   if (!isObject(data)) return DEFAULT_AUTOMATION_PREFS;
