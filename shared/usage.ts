@@ -1,5 +1,10 @@
 // Usage shown on the Dashboard: turns from T3 threads, cost and tokens from T3's usage scan.
 
+/** Lengths in days the Activity card can cover. */
+export const ACTIVITY_PERIODS = [7, 30, 90] as const;
+export type ActivityPeriod = (typeof ACTIVITY_PERIODS)[number];
+export const DEFAULT_ACTIVITY_PERIOD: ActivityPeriod = 7;
+
 /** One local day. Cost and tokens are machine-wide; turns count T3 threads only. */
 export interface UsageDay {
   /** "YYYY-MM-DD" in the time zone the client asked for. */
@@ -15,17 +20,32 @@ export interface UsageDay {
 
 export type UsageTotals = Omit<UsageDay, "day">;
 
+/** The totals of some days; the server tiles and the weekly chart bars share it. Costs keep the cents. */
+export function sumTotals(days: UsageDay[]): UsageTotals {
+  const total: UsageTotals = { turns: 0, costUsd: 0, inputTokens: 0, cachedInputTokens: 0, outputTokens: 0 };
+  for (const day of days) {
+    total.turns += day.turns;
+    total.costUsd += day.costUsd;
+    total.inputTokens += day.inputTokens;
+    total.cachedInputTokens += day.cachedInputTokens;
+    total.outputTokens += day.outputTokens;
+  }
+  return { ...total, costUsd: Math.round(total.costUsd * 100) / 100 };
+}
+
 /** ok: every record priced; partial: some records unpriced; unavailable: T3 sent no usage. */
 export type UsageCostStatus = "ok" | "partial" | "unavailable";
 
 export interface UsageOverview {
-  /** Always 14 entries, oldest first, the last one is today; days with no data hold zeros. */
+  /** The period the totals cover, in days. */
+  period: ActivityPeriod;
+  /** 2 × period local days, oldest first, the last one is today; days with no data hold zeros. */
   days: UsageDay[];
-  /** The last 7 days (today included) and the 7 days before them, for the deltas. */
-  thisWeek: UsageTotals;
-  lastWeek: UsageTotals;
+  /** The last `period` days (today included) and the `period` days before them, for the deltas. */
+  current: UsageTotals;
+  previous: UsageTotals;
   /** T3 threads with at least one turn in each period. */
-  sessions: { thisWeek: number; lastWeek: number };
+  sessions: { current: number; previous: number };
   /** True when some thread histories could not be read: turns may be low. */
   turnsPartial: boolean;
   cost: {

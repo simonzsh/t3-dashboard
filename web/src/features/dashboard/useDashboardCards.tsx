@@ -67,6 +67,7 @@ export function useDashboardCards({ state, visible, now, sessionIds, onOpen, onS
     "up-next": (
       <UpNextCard
         board={tickets.board}
+        now={now}
         needsKey={tickets.needsKey}
         loading={tickets.loading}
         failed={tickets.failed}

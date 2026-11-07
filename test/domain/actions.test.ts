@@ -32,13 +32,13 @@ function stopHarness(projections: Record<string, RawProjection>, config: RawConf
   } as unknown as T3Port;
   const store = { thread: () => undefined, project: () => undefined, backgroundTasks: () => tasks, workspaceOf: () => null, projectByRoot: () => undefined };
   let counter = 0;
-  const actions = createActions({ port, store, board: { get: async () => ({ configured: true, ok: true, error: null, issues: [] }) }, newId: () => `id-${++counter}` });
+  const actions = createActions({ port, store, board: { get: async () => ({ configured: true, ok: true, error: null, issues: [], readAt: "2026-11-06T12:00:00.000Z" }) }, newId: () => `id-${++counter}` });
   return { actions, commands, port };
 }
 
 const delegated = { id: "sub-1", runId: "run-1", status: "running", origin: "app_owned", childThreadId: "child-1" };
 
-function harness({ searchResult = [] as ReturnType<typeof searchMatch>[], searchError = null as Error | null, board = { configured: true, ok: true, error: null, issues: [issue] } as BoardResult, dispatchError = null as Error | null } = {}) {
+function harness({ searchResult = [] as ReturnType<typeof searchMatch>[], searchError = null as Error | null, board = { configured: true, ok: true, error: null, issues: [issue], readAt: "2026-11-06T12:00:00.000Z" } as BoardResult, dispatchError = null as Error | null } = {}) {
   const commands: Command[] = [];
   const port: T3Port = {
     threadProjection: async () => ({}),
@@ -48,6 +48,7 @@ function harness({ searchResult = [] as ReturnType<typeof searchMatch>[], search
       commands.push(command);
     },
     getConfig: async () => ({}),
+    refreshProviders: async () => {},
     listScheduledTasks: async () => [],
     deleteScheduledTask: async () => {},
     updateScheduledTask: async () => {},
@@ -221,7 +222,7 @@ function fakeHarness(workspaces: Record<string, string | null> = {}) {
   const port = new FakePort();
   const store = { thread: () => undefined, project: () => undefined, backgroundTasks: () => [], workspaceOf: (id: string) => workspaces[id] ?? null, projectByRoot: () => undefined };
   let counter = 0;
-  const actions = createActions({ port, store, board: { get: async () => ({ configured: true, ok: true, error: null, issues: [] }) }, newId: () => `id-${++counter}` });
+  const actions = createActions({ port, store, board: { get: async () => ({ configured: true, ok: true, error: null, issues: [], readAt: "2026-11-06T12:00:00.000Z" }) }, newId: () => `id-${++counter}` });
   return { actions, port };
 }
 
@@ -312,7 +313,7 @@ function projectHarness(existing: { id: string; archived: boolean } | undefined 
   const known = { id: "p1", title: "Atlas", defaultModelSelection: null, icon: null, workspaceRoot: "/home/demo/atlas" };
   const store = { thread: () => undefined, project: (id: string) => (id === "p1" || id === "Atlas" ? known : undefined), backgroundTasks: () => [], workspaceOf: () => null, projectByRoot: (root: string) => (root === "/home/demo/atlas" ? existing : undefined) };
   let counter = 0;
-  const actions = createActions({ port, store, board: { get: async () => ({ configured: true, ok: true, error: null, issues: [] }) }, newId: () => `id-${++counter}`, home: "/home/demo" });
+  const actions = createActions({ port, store, board: { get: async () => ({ configured: true, ok: true, error: null, issues: [], readAt: "2026-11-06T12:00:00.000Z" }) }, newId: () => `id-${++counter}`, home: "/home/demo" });
   return { actions, port };
 }
 

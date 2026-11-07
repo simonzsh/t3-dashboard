@@ -61,10 +61,11 @@ const SERVER_STATS: ServerStats = {
 };
 const usageTotals = { turns: 0, costUsd: 0, inputTokens: 0, cachedInputTokens: 0, outputTokens: 0 };
 const usageOverview: UsageOverview = {
+  period: 7,
   days: Array.from({ length: 14 }, (_, index) => ({ day: `2026-03-${String(7 + index).padStart(2, "0")}`, ...usageTotals })),
-  thisWeek: usageTotals,
-  lastWeek: usageTotals,
-  sessions: { thisWeek: 0, lastWeek: 0 },
+  current: usageTotals,
+  previous: usageTotals,
+  sessions: { current: 0, previous: 0 },
   turnsPartial: false,
   cost: { status: "ok", detail: null, refreshing: false },
   readAt: now.toISOString(),
@@ -114,8 +115,8 @@ async function start(startOptions: StartOptions = {}) {
     run: () => (updateRuns.push("run"), new Promise<boolean>(() => {})),
   });
   const port = new FakePort();
-  const usageCalls: Array<{ timeZone: string; refresh: boolean }> = [];
-  const usage = { get: async (timeZone: string, refresh: boolean) => (usageCalls.push({ timeZone, refresh }), usageOverview) };
+  const usageCalls: Array<{ timeZone: string; period: number; refresh: boolean }> = [];
+  const usage = { get: async (timeZone: string, period: number, refresh: boolean) => (usageCalls.push({ timeZone, period, refresh }), usageOverview) };
   const limitsCalls: boolean[] = [];
   const limits = {
     get: async (refresh: boolean): Promise<LimitsOverview> => {
@@ -656,8 +657,9 @@ test("GET /api/board returns the board and caches it until ?refresh=1", async ()
   const { server, linearCalls } = await start({ linearKey: "key-1" });
   const first = await call(server, "GET", "/api/board");
   assert.equal(first.status, 200);
-  const { issues, ...status } = first.json;
+  const { issues, readAt, ...status } = first.json;
   assert.deepEqual(status, { configured: true, ok: true, error: null });
+  assert.ok(!Number.isNaN(Date.parse(readAt)));
   assert.deepEqual(issues.map((issue: { identifier: string }) => issue.identifier), ["TEAM-1"]);
   await call(server, "GET", "/api/board");
   assert.equal(linearCalls.length, 1);
@@ -672,7 +674,19 @@ test("GET /api/usage returns the overview for the zone and passes ?refresh=1", a
   assert.equal(first.status, 200);
   assert.equal(first.json.days.length, 14);
   await call(server, "GET", "/api/usage?tz=Europe%2FParis&refresh=1");
-  assert.deepEqual(usageCalls, [{ timeZone: "Europe/Paris", refresh: false }, { timeZone: "Europe/Paris", refresh: true }]);
+  assert.deepEqual(usageCalls, [{ timeZone: "Europe/Paris", period: 7, refresh: false }, { timeZone: "Europe/Paris", period: 7, refresh: true }]);
+});
+
+test("GET /api/usage passes ?period= and refuses any other value", async () => {
+  const { server, usageCalls } = await start();
+  await call(server, "GET", "/api/usage?tz=UTC&period=30");
+  assert.deepEqual(usageCalls, [{ timeZone: "UTC", period: 30, refresh: false }]);
+  for (const bad of ["14", "abc", "", "30.0"]) {
+    const reply = await call(server, "GET", `/api/usage?tz=UTC&period=${bad}`);
+    assert.equal(reply.status, 400);
+    assert.equal(reply.json.error, "period must be 7, 30 or 90");
+  }
+  assert.equal(usageCalls.length, 1);
 });
 
 test("GET /api/limits returns the overview and passes ?refresh=1", async () => {

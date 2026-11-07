@@ -1,10 +1,19 @@
-import type { UsageOverview } from "../../../../shared/api.ts";
+import { useMemo } from "react";
+import type { ActivityPeriod, UsageOverview } from "../../../../shared/api.ts";
 import { useApi } from "../../api/ApiContext.tsx";
-import { usePolledRead, type ReadState } from "./pollRead.ts";
+import { useActivityPeriod } from "./activityPeriod.ts";
+import { DASHBOARD_POLL_MS, usePolledRead, type ReadState } from "./pollRead.ts";
 
-// Reads while `enabled`; a manual refresh asks T3 for a fresh scan.
-export function useActivity(enabled: boolean): ReadState<UsageOverview> {
+export interface ActivityState extends ReadState<UsageOverview> {
+  period: ActivityPeriod;
+  setPeriod: (period: ActivityPeriod) => void;
+}
+
+// Reads while `enabled`; a manual refresh asks T3 for a fresh scan. A new period reads at once.
+export function useActivity(enabled: boolean): ActivityState {
   const api = useApi();
   const zone = Intl.DateTimeFormat().resolvedOptions().timeZone;
-  return usePolledRead(enabled, (force) => api.getUsage(zone, force));
+  const [period, setPeriod] = useActivityPeriod();
+  const read = usePolledRead(enabled, (force) => api.getUsage(zone, period, force), DASHBOARD_POLL_MS, period);
+  return useMemo(() => ({ ...read, period, setPeriod }), [read, period, setPeriod]);
 }

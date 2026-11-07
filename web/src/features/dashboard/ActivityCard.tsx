@@ -1,16 +1,17 @@
 import { useState, type ReactNode } from "react";
-import type { UsageOverview } from "../../../../shared/api.ts";
+import type { ActivityPeriod, UsageOverview } from "../../../../shared/api.ts";
 import { relativeTime } from "../../lib/format.ts";
-import { CardHead, Icon, IconButton, Segmented, Skeleton, SkeletonGroup } from "../../ui/index.ts";
+import { CardHead, Dropdown, Icon, IconButton, Segmented, Skeleton, SkeletonGroup } from "../../ui/index.ts";
 import { ActivityChart } from "./ActivityChart.tsx";
-import { delta, formatUsd, METRICS, type Metric } from "./activityView.ts";
-import type { ReadState } from "./pollRead.ts";
+import { PERIOD_OPTIONS } from "./activityPeriod.ts";
+import { chartBars, chartTitle, delta, formatUsd, METRICS, type Metric } from "./activityView.ts";
+import type { ActivityState } from "./useActivity.ts";
 
 interface TileProps {
   label: ReactNode;
   value: string;
   caption: ReactNode;
-  /** The week-over-week change, shown beside the number. */
+  /** The change from the previous period, shown beside the number. */
   change?: string | null;
 }
 
@@ -20,25 +21,25 @@ function StatTile({ label, value, caption, change }: TileProps) {
       <span className="stat-label">{label}</span>
       <span className="stat-value">
         {value}
-        {change && <span className={`stat-delta${change.startsWith("−") ? " down" : ""}`}>{change}</span>}
+        {change && <span className={`stat-delta${change.startsWith("−") ? " down" : change === "0 %" ? " flat" : ""}`}>{change}</span>}
       </span>
       <span className="stat-caption">{caption}</span>
     </div>
   );
 }
 
-function Tiles({ usage, running, costKnown }: { usage: UsageOverview; running: number; costKnown: boolean }) {
-  const { thisWeek, lastWeek, cost, sessions } = usage;
+function Tiles({ usage, costKnown }: { usage: UsageOverview; costKnown: boolean }) {
+  const { current, previous, cost, sessions } = usage;
   // On a phone the tiles show only the short part; `.stat-more` holds the rest.
   const more = (text: string) => <span className="stat-more">{text}</span>;
-  const costCaption = !costKnown ? (cost.detail ?? "No usage reported by T3 Code") : <>last 7 days{more(cost.status === "partial" ? " · some models unpriced · all usage on this machine" : " · all usage on this machine")}</>;
+  const costCaption = !costKnown ? (cost.detail ?? "No usage reported by T3 Code") : cost.status === "partial" ? "some models unpriced · all usage on this machine" : "all usage on this machine";
   // A turn is one agent run: each message sent to an agent, by you or by an automation.
-  const turnsCaption = <>{more("messages sent to agents · ")}last 7 days{usage.turnsPartial ? " (partial)" : ""}</>;
+  const turnsCaption = `messages sent to agents${usage.turnsPartial ? " (partial)" : ""}`;
   return (
     <div className="stat-tiles">
-      <StatTile label="Turns" value={String(thisWeek.turns)} change={delta(thisWeek.turns, lastWeek.turns)} caption={turnsCaption} />
-      <StatTile label="Sessions" value={String(sessions.thisWeek)} change={delta(sessions.thisWeek, sessions.lastWeek)} caption={<>{running} running{more(" · last 7 days")}</>} />
-      <StatTile label={<>Spend{more(" (API equiv.)")}</>} value={costKnown ? formatUsd(thisWeek.costUsd) : "—"} change={costKnown ? delta(thisWeek.costUsd, lastWeek.costUsd) : null} caption={costCaption} />
+      <StatTile label="Turns" value={String(current.turns)} change={delta(current.turns, previous.turns)} caption={turnsCaption} />
+      <StatTile label="Sessions" value={String(sessions.current)} change={delta(sessions.current, sessions.previous)} caption="conversations with at least one turn" />
+      <StatTile label={<>Spend{more(" (API equiv.)")}</>} value={costKnown ? formatUsd(current.costUsd) : "—"} change={costKnown ? delta(current.costUsd, previous.costUsd) : null} caption={costCaption} />
     </div>
   );
 }
@@ -71,9 +72,11 @@ function ActivitySkeleton() {
   );
 }
 
-export function ActivityCard({ state, running, now }: { state: ReadState<UsageOverview>; running: number; now: Date }) {
+export function ActivityCard({ state, now }: { state: ActivityState; now: Date }) {
   const [metric, setMetric] = useState<Metric>("turns");
-  const { value: usage, error, loading, refresh } = state;
+  const { period, setPeriod, error, loading, refresh } = state;
+  // The previous period's numbers never sit under the new label while its read is on the way.
+  const usage = state.value?.period === period ? state.value : null;
   const costKnown = usage !== null && usage.cost.status !== "unavailable";
   return (
     <section className="dashboard-card activity-card" aria-labelledby="dashboard-activity-head">
@@ -81,6 +84,7 @@ export function ActivityCard({ state, running, now }: { state: ReadState<UsageOv
         id="dashboard-activity-head"
         icon="chart"
         title="Activity"
+        note={<Dropdown label="Activity period" value={String(period)} options={PERIOD_OPTIONS} onPick={(id) => setPeriod(Number(id) as ActivityPeriod)} />}
         actions={
           <>
             {usage && <span className="card-updated">Updated {relativeTime(usage.readAt, now)}</span>}
@@ -94,15 +98,15 @@ export function ActivityCard({ state, running, now }: { state: ReadState<UsageOv
         error ? <p className="dashboard-note error" role="alert">{error}</p> : <ActivitySkeleton />
       ) : (
         <>
-          <Tiles usage={usage} running={running} costKnown={costKnown} />
+          <Tiles usage={usage} costKnown={costKnown} />
           <div className="activity-chart-head">
-            <h2>Last 14 days</h2>
+            <h2>{chartTitle(period)}</h2>
             <Segmented label="Chart metric" value={metric} options={METRICS} onChange={setMetric} />
           </div>
           {metric !== "turns" && !costKnown ? (
             <p className="dashboard-note">{usage.cost.detail ?? "T3 Code sent no usage."}</p>
           ) : (
-            <ActivityChart days={usage.days} metric={metric} costKnown={costKnown} />
+            <ActivityChart bars={chartBars(usage.days, period)} weekly={period === 90} metric={metric} costKnown={costKnown} />
           )}
           {error && <p className="dashboard-note error" role="alert">Could not refresh activity. {error}</p>}
         </>

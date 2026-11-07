@@ -483,6 +483,8 @@ export interface T3Port {
   usageSummary(range: { sinceDay: string; untilDay: string; timeZone: string }): Promise<RawUsageSummary>;
   dispatch(command: Command): Promise<unknown>;
   getConfig(): Promise<RawConfig>;
+  /** Asks T3 to probe every provider again, which updates the usage limits. Slow: about 4 s. */
+  refreshProviders(): Promise<void>;
   listScheduledTasks(): Promise<RawScheduledTask[]>;
   deleteScheduledTask(id: string): Promise<void>;
   /** Creates the task in T3. Never retried: a second send could make a duplicate. */

@@ -65,7 +65,7 @@ test("the provider head shows the banked reset credits only when there are some"
 });
 
 test("the head shows when the oldest check ran", () => {
-  assert.match(render([provider("codex", [win()])]), /Checked 2 min ago/);
+  assert.match(render([provider("codex", [win()])]), /Updated 2 min ago/);
 });
 
 test("an old T3 gets one sentence", () => {

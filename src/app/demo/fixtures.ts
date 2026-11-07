@@ -117,6 +117,9 @@ const AUTOMATION_RUNS: ThreadSpec[] = [
   runSpec({ taskId: "offsite-reminder", title: "Reminder: Book the offsite room", projectId: "demo-assistant", prompt: "Remind me to book the offsite room.", id: "demo-run-offsite-1", started: 1200, outcome: "completed", answer: "Reminder: book the offsite room today." }),
 ];
 
+/** Finished runs from days ago, so the 30 and 90 day periods have turns to count. */
+const earlier = (id: string, days: number[]) => days.map((age) => ({ id: `run-${id}-${age}d`, status: "completed", started: age * 1440, completed: age * 1440 - 15 }));
+
 const SPECS: ThreadSpec[] = [
   ...AUTOMATION_RUNS,
   {
@@ -270,7 +273,7 @@ const SPECS: ThreadSpec[] = [
         "Fixed. Changes:\n\n- Axis labels and grid lines now use theme tokens instead of fixed grays.\n- Tooltip background follows `--surface-raised`.\n- All text passes WCAG AA (4.5:1) in both themes.\n\nTests and visual snapshots pass.",
       ],
     ],
-    runs: [{ id: "run-dark-1", status: "completed", started: 47, completed: 25 }],
+    runs: [...earlier("dark", [150, 120, 70, 41, 33, 19]), { id: "run-dark-1", status: "completed", started: 47, completed: 25 }],
   },
   {
     id: "demo-release-notes",
@@ -287,7 +290,7 @@ const SPECS: ThreadSpec[] = [
         "## Atlas 2.4\n\n**New**\n- Shared dashboards with view-only links\n- CSV export for every report\n\n**Improved**\n- Checkout loads 30% faster\n- Dark mode charts are easier to read\n\n**Fixed**\n- Duplicate emails after a password reset\n\nThe draft is in `docs/releases/2.4.md`.",
       ],
     ],
-    runs: [{ id: "run-notes-1", status: "completed", started: 74, completed: 62 }],
+    runs: [...earlier("notes", [165, 98, 52, 26, 15]), { id: "run-notes-1", status: "completed", started: 74, completed: 62 }],
   },
   {
     id: "demo-flaky-test",
@@ -303,7 +306,7 @@ const SPECS: ThreadSpec[] = [
       ["user", 190, "`payments/webhook.test.ts` fails about once in ten runs on CI. Find out why."],
       ["assistant", 171, "The test depended on the order of two async events. It now waits for both events before it checks the result. 200 runs in a row pass on CI."],
     ],
-    runs: [{ id: "run-flaky-test-old0", status: "completed", started: 9999, completed: 9980 }, { id: "run-flaky-test-old1", status: "completed", started: 4399, completed: 4380 }, { id: "run-flaky-1", status: "completed", started: 189, completed: 171 }],
+    runs: [...earlier("flaky-test", [140, 85, 62, 38, 22]), { id: "run-flaky-test-old0", status: "completed", started: 9999, completed: 9980 }, { id: "run-flaky-test-old1", status: "completed", started: 4399, completed: 4380 }, { id: "run-flaky-1", status: "completed", started: 189, completed: 171 }],
   },
   {
     id: "demo-charts",
@@ -322,7 +325,7 @@ const SPECS: ThreadSpec[] = [
         "| Library | Bundle | Accessibility | Notes |\n| --- | --- | --- | --- |\n| Recharts | 95 kB | Partial | Easy React API |\n| Visx | 40 kB | Manual | Flexible, more code |\n| ECharts | 320 kB | Good | Many chart types |\n\nI recommend **Visx**: smallest bundle, and we already build our own components.",
       ],
     ],
-    runs: [{ id: "run-charts-old0", status: "completed", started: 2899, completed: 2880 }, { id: "run-charts-1", status: "completed", started: 139, completed: 128 }],
+    runs: [...earlier("charts", [112, 77, 45, 29, 17]), { id: "run-charts-old0", status: "completed", started: 2899, completed: 2880 }, { id: "run-charts-1", status: "completed", started: 139, completed: 128 }],
   },
   {
     id: "demo-digest",
@@ -336,7 +339,7 @@ const SPECS: ThreadSpec[] = [
       ["user", 1500, "Write this week's product digest."],
       ["assistant", 1490, "This week: 14 pull requests merged, 3 bugs closed, and the 2.4 release is ready for review. Full digest posted in the team channel."],
     ],
-    runs: [{ id: "run-digest-old0", status: "completed", started: 10999, completed: 10990 }, { id: "run-digest-1", status: "completed", started: 1499, completed: 1490 }],
+    runs: [...earlier("digest", [160, 66, 48, 35, 24, 14]), { id: "run-digest-old0", status: "completed", started: 10999, completed: 10990 }, { id: "run-digest-1", status: "completed", started: 1499, completed: 1490 }],
     thread: { settledOverride: "settled", settledAt: LAST },
   },
   {
@@ -353,7 +356,7 @@ const SPECS: ThreadSpec[] = [
       ["user", 1700, "Notification taps should open the right screen, not the home screen."],
       ["assistant", 1650, "Done: each notification now carries a route, and the app opens it after login. Tested on iOS and Android simulators."],
     ],
-    runs: [{ id: "run-deep-links-old0", status: "completed", started: 12999, completed: 12980 }, { id: "run-deep-links-old1", status: "completed", started: 2999, completed: 2980 }, { id: "run-links-1", status: "completed", started: 1695, completed: 1650 }],
+    runs: [...earlier("deep-links", [130, 101, 58, 31, 21]), { id: "run-deep-links-old0", status: "completed", started: 12999, completed: 12980 }, { id: "run-deep-links-old1", status: "completed", started: 2999, completed: 2980 }, { id: "run-links-1", status: "completed", started: 1695, completed: 1650 }],
     thread: { settledOverride: "settled", settledAt: LAST },
   },
   {
@@ -368,7 +371,7 @@ const SPECS: ThreadSpec[] = [
       ["user", 30, "Profile the product page build and keep the dev server up while you look."],
       ["assistant", 25, "The dev server runs in the background on port 5173. The run is over, but the server still runs."],
     ],
-    runs: [{ id: "run-dev-server-old0", status: "completed", started: 3999, completed: 3990 }, { id: "run-profile-1", status: "completed", started: 29, completed: 25 }],
+    runs: [...earlier("dev-server", [172, 91, 55, 43, 27, 18]), { id: "run-dev-server-old0", status: "completed", started: 3999, completed: 3990 }, { id: "run-profile-1", status: "completed", started: 29, completed: 25 }],
     thread: { pendingBackgroundTasks: [{ taskId: "bg-dev-server", kind: "shell", description: "bun run dev (port 5173)" }] },
   },
 ];
@@ -394,7 +397,9 @@ function buildThread(spec: ThreadSpec, at: (minutes: number) => string): { threa
   const last = messages.at(-1)!;
   const lastUser = messages.findLast((message) => message.role === "user");
   const userMessages = messages.filter((message) => message.role === "user");
-  const runs = (spec.runs ?? []).map((run, index) => ({ id: run.id, ordinal: index + 1, userMessageId: userMessages[index]?.id, status: run.status, startedAt: at(run.started), completedAt: run.completed === undefined ? null : at(run.completed) }));
+  const specRuns = spec.runs ?? [];
+  // Older runs come first and have no message: the last runs pair with the last user messages.
+  const runs = specRuns.map((run, index) => ({ id: run.id, ordinal: index + 1, userMessageId: userMessages[index - (specRuns.length - userMessages.length)]?.id, status: run.status, startedAt: at(run.started), completedAt: run.completed === undefined ? null : at(run.completed) }));
   // The start checkpoint, then one per finished run: "Edit from here" rewinds to one of them.
   const checkpoints = [{ id: `${spec.id}-cp0`, scopeId: `${spec.id}-scope`, runId: null, status: "ready", ordinalWithinScope: 0, appRunOrdinal: null }, ...runs.filter((run) => run.completedAt).map((run) => ({ id: `${spec.id}-cp${run.ordinal}`, scopeId: `${spec.id}-scope`, runId: run.id, status: "ready", ordinalWithinScope: run.ordinal, appRunOrdinal: run.ordinal }))];
   const latestRun = runs.at(-1);
@@ -742,6 +747,7 @@ const USAGE_MODELS = [
 ] as const;
 
 // Fixed per-day weights (Monday-ish peaks), so the chart is the same on every run.
+// A day takes its weight from its distance to `untilDay`: every range shows the same days alike.
 const USAGE_LOAD = [0.4, 0.7, 1, 0.9, 0.6, 0.2, 0.1, 0.5, 0.8, 1.1, 1, 0.7, 0.9, 0.8];
 
 /** Usage buckets for the days `sinceDay` to `untilDay`, as T3's scan reports them, one per day and model. */
@@ -751,7 +757,9 @@ export function demoUsageBuckets(sinceDay: string, untilDay: string): RawUsageSu
   const count = Math.round((end - Date.parse(`${sinceDay}T00:00:00Z`)) / 86_400_000) + 1;
   for (let index = 0; index < count; index++) {
     const day = new Date(end - (count - 1 - index) * 86_400_000).toISOString().slice(0, 10);
-    const load = USAGE_LOAD[index % USAGE_LOAD.length]!;
+    const daysAgo = count - 1 - index;
+    // Older days weigh a little less: a gentle growth over the long periods.
+    const load = USAGE_LOAD[daysAgo % USAGE_LOAD.length]! * (1 - daysAgo / 400);
     for (const { share, price, costSource } of USAGE_MODELS) {
       const input = Math.round(load * share * 4_000_000);
       const cached = Math.round(input * 0.7);

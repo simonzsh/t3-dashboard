@@ -58,6 +58,10 @@ export class FakePort implements T3Port {
   usageCalls: Array<{ sinceDay: string; untilDay: string; timeZone: string }> = [];
   /** Holds each usage read until it settles. */
   usageGate: (() => Promise<void>) | null = null;
+  refreshCalls = 0;
+  refreshProviders: () => Promise<void> = async () => {
+    this.refreshCalls++;
+  };
   config: () => Promise<RawConfig> = async () => ({ providers: [], environment: { serverVersion: "1.0.0", orchestrationProtocolVersion: 2 } });
 
   async threadProjection(threadId?: string): Promise<RawProjection> {

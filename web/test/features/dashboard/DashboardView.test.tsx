@@ -1,12 +1,12 @@
 import { test } from "bun:test";
 import assert from "node:assert/strict";
 import { renderToStaticMarkup } from "react-dom/server";
-import type { DashboardState, LimitsOverview, ServerStats, UsageDay, UsageOverview, UsageTotals } from "../../../../shared/api.ts";
+import type { ActivityPeriod, DashboardState, LimitsOverview, ServerStats, UsageDay, UsageOverview, UsageTotals } from "../../../../shared/api.ts";
 import { DashboardView } from "../../../src/features/dashboard/DashboardView.tsx";
 import { DEFAULT_LAYOUT, setHidden, shiftCard, type DashboardLayout } from "../../../src/features/dashboard/layout.ts";
-import { agentCounts } from "../../../src/lib/agents.ts";
 import { AutomationThreadsContext } from "../../../src/lib/automationThreads.tsx";
 import type { ReadState } from "../../../src/features/dashboard/pollRead.ts";
+import type { ActivityState } from "../../../src/features/dashboard/useActivity.ts";
 import { baseState, thread } from "../../fixtures.ts";
 
 const NOW = new Date("2026-01-14T12:00:00.000Z");
@@ -27,16 +27,22 @@ const totals = (list: UsageDay[]): UsageTotals => ({
   outputTokens: list.reduce((n, d) => n + d.outputTokens, 0),
 });
 const overview = (over: Partial<UsageOverview> = {}): UsageOverview => ({
+  period: 7,
   days,
-  thisWeek: totals(days.slice(7)),
-  lastWeek: totals(days.slice(0, 7)),
-  sessions: { thisWeek: 9, lastWeek: 6 },
+  current: totals(days.slice(7)),
+  previous: totals(days.slice(0, 7)),
+  sessions: { current: 9, previous: 6 },
   turnsPartial: false,
   cost: { status: "ok", detail: null, refreshing: false },
   readAt: "2026-01-14T11:59:00.000Z",
   ...over,
 });
-const state = (over: Partial<ReadState<UsageOverview>> = {}): ReadState<UsageOverview> => ({ value: overview(), error: null, loading: false, refresh: () => {}, ...over });
+const state = (over: Partial<ActivityState> = {}): ActivityState => ({ value: overview(), error: null, loading: false, refresh: () => {}, period: 7, setPeriod: () => {}, ...over });
+// An overview of `period`: twice as many days, ending 2026-01-14.
+const overviewOf = (period: ActivityPeriod): UsageOverview => {
+  const list = Array.from({ length: 2 * period }, (_, i): UsageDay => ({ ...days[0]!, day: new Date(Date.UTC(2026, 0, 14 - (2 * period - 1 - i))).toISOString().slice(0, 10), turns: 1 }));
+  return overview({ period, days: list, current: totals(list.slice(period)), previous: totals(list.slice(0, period)) });
+};
 const limitsState = (over: Partial<ReadState<LimitsOverview>> = {}): ReadState<LimitsOverview> => ({
   value: { supported: true, providers: [], readAt: "2026-01-14T11:59:00.000Z" },
   error: null,
@@ -63,7 +69,7 @@ interface Options {
   providers?: DashboardState["providers"];
   automationIds?: string[];
 }
-const render = (activity: ReadState<UsageOverview>, { limits = limitsState(), threads = [thread("a", { status: "running" })], layout = DEFAULT_LAYOUT, editing = false, panelOpen = true, sheet = false, seen = fresh, providers = [], automationIds = [] }: Options = {}) =>
+const render = (activity: ActivityState, { limits = limitsState(), threads = [thread("a", { status: "running" })], layout = DEFAULT_LAYOUT, editing = false, panelOpen = true, sheet = false, seen = fresh, providers = [], automationIds = [] }: Options = {}) =>
   renderToStaticMarkup(
     <AutomationThreadsContext.Provider value={new Set(automationIds)}>
     <DashboardView
@@ -74,7 +80,6 @@ const render = (activity: ReadState<UsageOverview>, { limits = limitsState(), th
       visible={threads}
       now={NOW}
       sessionIds={new Set()}
-      running={agentCounts(threads).running}
       layout={layout}
       editing={editing}
       panelOpen={panelOpen}
@@ -102,30 +107,33 @@ test("the Activity card is titled Activity and sits under Usage", () => {
   assert.match(out, /<h2 id="dashboard-usage-head">Usage<\/h2>/);
 });
 
-test("the three tiles cover the last 7 days, each with its change", () => {
+test("the card says once that it covers the last 7 days, and each tile shows its change", () => {
   const out = render(state());
   // 63 turns this week against 49 the week before.
   assert.match(out, /Turns<\/span><span class="stat-value">63<span class="stat-delta">\+29 %/);
   const text = out.replace(/<[^>]+>/g, "");
-  assert.match(text, /messages sent to agents · last 7 days/);
+  assert.match(out, /<button[^>]*aria-label="Activity period"[^>]*><span class="dropdown-value">last 7 days<\/span>/);
+  assert.equal(text.match(/last 7 days/g)?.length, 1);
+  assert.match(text, /messages sent to agents/);
   assert.match(out, /Sessions<\/span><span class="stat-value">9<span class="stat-delta">\+50 %/);
-  assert.match(text, /1 running · last 7 days/);
-  assert.match(out, /Spend<span class="stat-more"> \(API equiv\.\)<\/span><\/span><span class="stat-value">\$[\d.]+<span class="stat-delta">/);
-  assert.match(text, /last 7 days · all usage on this machine/);
+  assert.match(text, /conversations with at least one turn/);
+  assert.match(out, /Spend<span class="stat-more"> \(API equiv\.\)<\/span><\/span><span class="stat-value">\$[\d.]+<span class="stat-delta[^"]*">/);
+  assert.match(text, /all usage on this machine/);
   assert.doesNotMatch(out, /last 14 days ·/);
 });
 
-test("on a phone the tiles keep only the short label and caption", () => {
-  const out = render(state());
-  assert.match(out, /Spend<span class="stat-more">/);
-  assert.match(out, /<span class="stat-more">messages sent to agents · <\/span>last 7 days/);
+test("a drop shows in red, a rise in green and no change in gray", () => {
+  const down = render(state({ value: overview({ current: { ...overview().current, turns: 30 }, previous: { ...overview().previous, turns: 60 } }) }));
+  assert.match(down, /<span class="stat-delta down">−50 %/);
+  const flat = render(state({ value: overview({ current: { ...overview().current, turns: 60 }, previous: { ...overview().previous, turns: 60 } }) }));
+  assert.match(flat, /<span class="stat-delta flat">0 %/);
 });
 
 test("a partial turn count and unpriced models are said in the captions", () => {
   const out = render(state({ value: overview({ turnsPartial: true, cost: { status: "partial", detail: null, refreshing: false } }) }));
   const text = out.replace(/<[^>]+>/g, "");
-  assert.match(text, /last 7 days \(partial\)/);
-  assert.match(text, /last 7 days · some models unpriced · all usage on this machine/);
+  assert.match(text, /messages sent to agents \(partial\)/);
+  assert.match(text, /some models unpriced · all usage on this machine/);
 });
 
 test("unavailable cost shows a dash and T3's reason, and does not crash", () => {
@@ -140,6 +148,23 @@ test("the chart has one labelled bar slot per day, today last, and a table for s
   assert.match(out, /Jan 14: 9 turns, \$0\.50, 1\.2k tokens/);
   assert.match(out, />Today</);
   assert.match(out, /<table class="sr-only">/);
+});
+
+test("each period has its own heading, number of bars and menu label", () => {
+  for (const [period, title, count, label] of [[30, "Last 30 days", 30, "last 30 days"], [90, "Last 13 weeks", 13, "last 90 days"]] as const) {
+    const out = render(state({ value: overviewOf(period), period }));
+    assert.equal(out.match(/class="activity-hit"/g)?.length, count);
+    assert.match(out, new RegExp(`<h2>${title}</h2>`));
+    assert.match(out, new RegExp(`aria-label="Activity period"[^>]*><span class="dropdown-value">${label}</span>`));
+  }
+  assert.match(render(state({ value: overviewOf(90), period: 90 })), /Jan 8 – Jan 14/);
+});
+
+test("numbers of another period never show under the new label", () => {
+  const out = render(state({ value: overview(), period: 30 }));
+  assert.match(out, /aria-label="Loading activity"/);
+  assert.doesNotMatch(out, /class="activity-hit"/);
+  assert.match(out, /last 30 days/);
 });
 
 test("the default layout draws Activity full width, then two columns of half cards", () => {
@@ -287,6 +312,12 @@ test("the Running card lists working agents with a pulsing dot, model and projec
   assert.match(out, /Running one/);
   assert.match(out, /Model X · Project A/);
   assert.match(out, /Running<\/h2><span class="count">1</);
+});
+
+test("the Running card says it is live, with a dot", () => {
+  const out = card(render(state()), "running-head");
+  assert.match(out, /<span class="card-live"><span class="live-dot" aria-hidden="true"><\/span>Live<\/span>/);
+  assert.match(card(render(state(), { threads: [] }), "running-head"), /Live/);
 });
 
 test("an automation run is listed like any session, with the automation icon", () => {

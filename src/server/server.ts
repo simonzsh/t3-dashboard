@@ -20,7 +20,7 @@ import { servePwa } from "./pwa.ts";
 import type { Site } from "./site.ts";
 import type { SseHub } from "./sse.ts";
 import { isObject } from "../../shared/guards.ts";
-import { isText, validAssign, validAttachments, validCreateAutomation, validCreate, validCreateProject, validEnabled, validUpdateProject, validFolderPath, validFileSearch, validItemId, validMessage, validProvider, validQueuedEdit, validRespond, validRewind, validSearch, validSecretAnswer, validSeen, validSessions, validSettings, validStash, validTimeZone, validUpdateAutomation, validUpload } from "./validate.ts";
+import { isText, validActivityPeriod, validAssign, validAttachments, validCreateAutomation, validCreate, validCreateProject, validEnabled, validUpdateProject, validFolderPath, validFileSearch, validItemId, validMessage, validProvider, validQueuedEdit, validRespond, validRewind, validSearch, validSecretAnswer, validSeen, validSessions, validSettings, validStash, validTimeZone, validUpdateAutomation, validUpload } from "./validate.ts";
 
 export interface SetupControl {
   /** Resolves the token again. */
@@ -194,7 +194,7 @@ export function createDashboardServer(options: DashboardServerOptions): Dashboar
       handle: async ({ req, server }) => {
         server?.timeout(req, USAGE_IDLE_TIMEOUT_S);
         const params = new URL(req.url).searchParams;
-        return json(200, await usage.get(validTimeZone(params.get("tz")), params.get("refresh") === "1"));
+        return json(200, await usage.get(validTimeZone(params.get("tz")), validActivityPeriod(params.get("period")), params.get("refresh") === "1"));
       },
     },
     { method: "GET", path: "/api/server-stats", handle: async () => json(200, await serverStats.get()) },

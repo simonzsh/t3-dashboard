@@ -26,7 +26,7 @@ This folder contains the base components of the dashboard. The screens in `web/s
 | `Dialog` | Modal window: title, close cross at the top right, Escape and outside click to close. `onCancel`, `secondary` and `primary` add the action row. |
 | `Sheet` | Side sheet under the header, always mounted. `open` slides it in and out and fades the backdrop. `width`: `narrow` (380 px) or `wide` (600 px). Backdrop click and Escape call `onClose`; the focus goes in and comes back; Tab stays inside. |
 | `ActionMenu` | The "…" button of a row and its menu. `items` are `{ label, icon, onSelect, danger?, disabled?, tooltip? }`. The arrows move between items; Escape gives the focus back. Use it for every row menu, with no separator. |
-| `CardHead` | Header of a card: icon, title, count and icon buttons on the right. |
+| `CardHead` | Header of a card: icon, title, a note (a muted word or a menu), count and icon buttons on the right. |
 | `Badge` | Status label: `waiting`, `running`, `done`, `error`, `neutral`. |
 | `Dropdown` | Choice menu. Use it in place of `<select>`. A filter field appears for long lists. |
 | `Popover` | Panel attached next to an element. Escape and outside click close it. |

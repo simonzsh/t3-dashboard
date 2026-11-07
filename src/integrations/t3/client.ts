@@ -11,10 +11,13 @@ const UPLOAD_TIMEOUT_MS = 60_000;
 const FILE_UPLOAD_TIMEOUT_MS = 120_000;
 // A first usage scan reads every session file on the machine.
 const USAGE_TIMEOUT_MS = 60_000;
+// T3 probes each provider in turn: about 4 s with three providers.
+const REFRESH_TIMEOUT_MS = 60_000;
 
 /** The RPC tags the dashboard calls: the contract check looks for each one in the T3 client bundle. */
 export const RPC = {
   getConfig: "server.getConfig",
+  refreshProviders: "server.refreshProviders",
   persistAttachments: "assets.persistChatAttachments",
   createAssetUrl: "assets.createUrl",
   ensureScratch: "projects.ensureScratch",
@@ -67,7 +70,7 @@ export interface T3ClientOptions {
 }
 
 // Safe to send twice: a retry after a lost connection cannot repeat a side effect.
-const IDEMPOTENT = new Set<string>([RPC.getConfig, RPC.searchThreads, RPC.createAssetUrl, RPC.ensureScratch, RPC.getTurnItem, RPC.searchEntries, RPC.setEnabledScheduledTask, RPC.getUsageSummary, RPC.browseFolders, RPC.pathMetadata]);
+const IDEMPOTENT = new Set<string>([RPC.getConfig, RPC.refreshProviders, RPC.searchThreads, RPC.createAssetUrl, RPC.ensureScratch, RPC.getTurnItem, RPC.searchEntries, RPC.setEnabledScheduledTask, RPC.getUsageSummary, RPC.browseFolders, RPC.pathMetadata]);
 
 const SECRET_REFUSALS: Record<string, string> = {
   not_found: "This secret request no longer exists.",
@@ -119,6 +122,10 @@ export class T3Client implements T3Port {
   async usageSummary({ sinceDay, untilDay, timeZone }: { sinceDay: string; untilDay: string; timeZone: string }): Promise<RawUsageSummary> {
     const answer = await this.call(RPC.getUsageSummary, { sinceDay, untilDay, timeZone, resolution: "day" }, USAGE_TIMEOUT_MS);
     return read(UsageSummaryResponse, answer, RPC.getUsageSummary);
+  }
+
+  async refreshProviders(): Promise<void> {
+    await this.call(RPC.refreshProviders, {}, REFRESH_TIMEOUT_MS);
   }
 
   async getConfig(): Promise<RawConfig> {

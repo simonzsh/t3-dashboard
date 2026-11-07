@@ -86,6 +86,15 @@ test("getConfig uses the server.getConfig tag", async () => {
   await done;
 });
 
+test("refreshProviders sends server.refreshProviders with an empty payload and waits for the slow probe", async () => {
+  const { client } = setup();
+  const done = client.refreshProviders();
+  const socket = await nextSocket();
+  assert.deepEqual([socket.sent[0]!.tag, socket.sent[0]!.payload], ["server.refreshProviders", {}]);
+  socket.receive({ _tag: "Exit", requestId: "1", exit: { _tag: "Success", value: { providers: [] } } });
+  await done;
+});
+
 test("getConfig keeps usageLimits, and accepts a provider without them or with an unknown window kind", async () => {
   const { client } = setup();
   const done = client.getConfig();
