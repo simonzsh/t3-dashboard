@@ -124,8 +124,10 @@ test("an open dialog locks the page scroll", () => {
   assert.match(css, /html:has\(\.dialog-backdrop:not\(\[hidden\]\)\) \{ overflow: hidden; \}/);
 });
 
-test("on a phone the automations toolbar starts where it sticks", () => {
+test("automations: only the list scrolls, under a fixed toolbar, on a phone too", () => {
+  assert.match(css, /\.auto-scroll \{[^}]*overflow-y: auto/);
+  assert.doesNotMatch(css, /\.auto-page \{[^}]*overflow-y/);
+  assert.doesNotMatch(css, /\.auto-toolbar \{[^}]*sticky/);
   const phone = css.slice(css.indexOf("@media (max-width: 700px)"));
-  assert.match(phone, /\.auto-toolbar \{ top: var\(--header-h, 48px\); \}/);
-  assert.match(phone, /main:has\(> \.auto-page\) \{ padding-top: 0; \}/);
+  assert.match(phone, /\.app:not\(\.sessions-mode, \.automations-mode\) \{ height: auto;/);
 });
