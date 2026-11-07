@@ -614,7 +614,8 @@ ol.install-steps { padding-left: 18px; }
 .notif-detail { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; line-clamp: 2; overflow: hidden; color: var(--text-secondary); font-size: 12px; overflow-wrap: anywhere; }
 .notif-meta { display: flex; align-items: center; gap: 4px; min-width: 0; overflow: hidden; white-space: nowrap; color: var(--text-secondary); font-size: 12px; }
 .notif-meta .provider-icon { width: 13px; height: 13px; margin: 0; }
-.notif-dot { flex: none; width: 8px; height: 8px; margin-top: 5px; border-radius: 50%; background: var(--accent); }
+/* Unread is a hollow accent ring everywhere, like the Sessions list: a filled dot means running. */
+.notif-dot { flex: none; box-sizing: border-box; width: 8px; height: 8px; margin-top: 5px; border-radius: 50%; border: 2px solid var(--accent); background: none; }
 /* The buttons replace the dot corner on hover and keyboard focus; touch screens show them at once. */
 .thread-actions { position: absolute; right: 8px; bottom: 6px; display: flex; align-items: center; gap: 4px; padding: 2px; border-radius: var(--radius-md); background: var(--surface-1); box-shadow: 0 0 0 1px var(--line); opacity: 0; pointer-events: none; transition: opacity 0.12s; }
 .notif-item:hover .thread-actions, .thread-actions:focus-within { opacity: 1; pointer-events: auto; }
