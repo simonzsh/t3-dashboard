@@ -666,6 +666,14 @@ ol.install-steps { padding-left: 18px; }
 .glance-action .icon-button { opacity: 0; pointer-events: none; transition: opacity 0.12s; }
 .glance-row:hover .glance-action .icon-button, .glance-row:focus-within .glance-action .icon-button { opacity: 1; pointer-events: auto; }
 @media (hover: none) { .glance-action .icon-button { opacity: 1; pointer-events: auto; } }
+/* On a phone the meta takes a second line, so the title keeps the full width. */
+@media (max-width: 700px) {
+  .glance-row { grid-template-columns: 16px minmax(0, 1fr) var(--control-sm); grid-template-areas: "kind link action" ". meta action"; row-gap: 0; padding-block: 6px; }
+  .glance-kind { grid-area: kind; }
+  .glance-link { grid-area: link; }
+  .glance-meta { grid-area: meta; max-width: none; }
+  .glance-action { grid-area: action; }
+}
 main:has(> .auto-page) { padding-top: 8px; }
 .auto-page { flex: 1; min-height: 0; overflow-y: auto; display: flex; flex-direction: column; gap: 28px; padding: 4px; margin: -4px; }
 .auto-section { flex: none; display: flex; flex-direction: column; gap: 8px; }
