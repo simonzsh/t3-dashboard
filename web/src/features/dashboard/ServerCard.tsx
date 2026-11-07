@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import type { ServerStats } from "../../../../shared/api.ts";
-import { CardHead, Skeleton, SkeletonGroup } from "../../ui/index.ts";
+import { relativeTime } from "../../lib/format.ts";
+import { CardHead, Icon, IconButton, Skeleton, SkeletonGroup } from "../../ui/index.ts";
 import { Meter } from "./Meter.tsx";
 import type { ReadState } from "./pollRead.ts";
 import { formatBytesPair, hostLine, meterText, percentLabel } from "./serverView.ts";
@@ -62,12 +63,24 @@ function ServerSkeleton() {
   );
 }
 
-export function ServerCard({ state }: { state: ReadState<ServerStats> }) {
-  const { value: stats, error } = state;
-  const host = stats ? hostLine(stats) : null;
+export function ServerCard({ state, now }: { state: ReadState<ServerStats>; now: Date }) {
+  const { value: stats, error, loading, refresh } = state;
   return (
     <section className="dashboard-card server-card" aria-labelledby="dashboard-server-head">
-      <CardHead id="dashboard-server-head" icon="server" title="Server" actions={host && <span className="card-updated server-host" data-tooltip={host}>{host}</span>} />
+      <CardHead
+        id="dashboard-server-head"
+        icon="server"
+        title="Server"
+        note={stats ? hostLine(stats) : undefined}
+        actions={
+          <>
+            {stats && <span className="card-updated">Updated {relativeTime(stats.readAt, now)}</span>}
+            <IconButton size="sm" variant="ghost" label="Refresh server stats" tooltip="Refresh server stats" disabled={loading} onClick={refresh}>
+              <Icon name="refresh" className={loading ? "icon spinning" : "icon"} />
+            </IconButton>
+          </>
+        }
+      />
       {!stats ? (
         error ? <p className="dashboard-note error" role="alert">{error}</p> : <ServerSkeleton />
       ) : (

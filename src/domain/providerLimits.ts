@@ -6,7 +6,7 @@ const CACHE_MS = 15_000;
 const KINDS: readonly LimitWindowKind[] = ["session", "weekly", "monthly", "other"];
 
 export interface ProviderLimitsOptions {
-  port: Pick<T3Port, "getConfig">;
+  port: Pick<T3Port, "getConfig" | "refreshProviders">;
   now: () => Date;
 }
 
@@ -46,10 +46,11 @@ export function toLimitsOverview(config: RawConfig, now: Date): LimitsOverview {
   return { supported: raw.some((provider) => provider.usageLimits), providers, readAt: now.toISOString() };
 }
 
-/** The usage limits of the providers. It reads getConfig only, so it never waits behind the usage scan. */
+/** The usage limits of the providers. It never waits behind the usage scan. */
 export function createProviderLimits({ port, now }: ProviderLimitsOptions) {
   let cached: { at: number; overview: LimitsOverview } | null = null;
   let inFlight: Promise<LimitsOverview> | null = null;
+  let refreshing: Promise<LimitsOverview> | null = null;
 
   const read = (): Promise<LimitsOverview> => {
     const pending = port
@@ -66,9 +67,28 @@ export function createProviderLimits({ port, now }: ProviderLimitsOptions) {
     return pending;
   };
 
+  // T3 keeps its own check time per provider: only a probe moves it. A failed probe still lets the read run, so the card is not stale.
+  const probeAndRead = async (): Promise<LimitsOverview> => {
+    let failure: unknown = null;
+    try {
+      await port.refreshProviders();
+    } catch (error) {
+      failure = error;
+    }
+    const overview = await read();
+    if (failure) throw failure;
+    return overview;
+  };
+
   return {
-    /** `refresh` skips the cache but still joins a read in flight. */
+    /** `refresh` asks T3 to probe the providers again, then reads. Without it, a read in flight is joined. */
     async get(refresh: boolean): Promise<LimitsOverview> {
+      if (refresh) {
+        refreshing ??= probeAndRead().finally(() => {
+          refreshing = null;
+        });
+        return refreshing;
+      }
       if (inFlight) return inFlight;
       if (!refresh && cached && now().getTime() - cached.at < CACHE_MS) return cached.overview;
       return read();

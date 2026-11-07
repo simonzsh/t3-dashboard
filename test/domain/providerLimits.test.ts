@@ -120,11 +120,24 @@ test("serves a read from the cache for 15 s, then reads again", async () => {
   assert.equal(third.readAt, "2026-11-06T12:00:15.000Z");
 });
 
-test("refresh skips the cache", async () => {
-  const { calls, reader } = setup();
+test("refresh asks T3 to check the providers, then reads the config", async () => {
+  const { port, calls, reader } = setup();
+  const order: string[] = [];
+  const inner = port.config;
+  port.config = async () => (order.push("config"), inner());
+  port.refreshProviders = async () => void order.push("refresh");
   await reader.get(false);
   await reader.get(true);
+  assert.deepEqual(order, ["config", "refresh", "config"]);
   assert.equal(calls.n, 2);
+});
+
+test("a plain read never asks T3 to check the providers", async () => {
+  const { port, reader, tick } = setup();
+  await reader.get(false);
+  tick(60_000);
+  await reader.get(false);
+  assert.equal(port.refreshCalls, 0);
 });
 
 test("reads in flight are shared, refresh included", async () => {
@@ -133,10 +146,20 @@ test("reads in flight are shared, refresh included", async () => {
   const gate = new Promise<void>((resolve) => (release = resolve));
   const inner = port.config;
   port.config = async () => (await gate, inner());
-  const first = reader.get(false);
+  const first = reader.get(true);
   const second = reader.get(true);
   release();
   assert.equal(await first, await second);
+  assert.equal(calls.n, 1);
+  assert.equal(port.refreshCalls, 1);
+});
+
+test("a refresh that fails still reads the config, then passes the error on", async () => {
+  const { port, calls, reader } = setup();
+  port.refreshProviders = async () => {
+    throw new IntegrationError("T3 could not check", { system: "t3", kind: "unreachable" });
+  };
+  await assert.rejects(reader.get(true), /T3 could not check/);
   assert.equal(calls.n, 1);
 });
 

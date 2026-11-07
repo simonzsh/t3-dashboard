@@ -33,21 +33,21 @@ test("reads the assigned issues of the key", async () => {
   const result = await board.get();
   assert.equal(calls.length, 1);
   assert.equal(calls[0]!.authorization, "key-1");
-  assert.deepEqual(result, { configured: true, ok: true, error: null, issues: [linearNode(1)] });
+  assert.deepEqual(result, { configured: true, ok: true, error: null, issues: [linearNode(1)], readAt: "1970-01-01T00:16:40.000Z" });
 });
 
 test("a client failure becomes the board error", async () => {
   const { board, calls } = setup("key-1", () => linearPage([linearNode(1)], { hasNextPage: true, endCursor: "next" }));
   const result = await board.get();
   assert.equal(calls.length, 20);
-  assert.deepEqual(result, { configured: true, ok: false, error: "Too many assigned issues to load (over 2000)", issues: [] });
+  assert.deepEqual(result, { configured: true, ok: false, error: "Too many assigned issues to load (over 2000)", issues: [], readAt: "1970-01-01T00:16:40.000Z" });
 });
 
 test("no key gives an unconfigured board without calling Linear", async () => {
   const { board, calls } = setup("", () => linearPage([]));
   const result = await board.get();
   assert.equal(calls.length, 0);
-  assert.deepEqual(result, { configured: false, ok: false, error: "Missing API key", issues: [] });
+  assert.deepEqual(result, { configured: false, ok: false, error: "Missing API key", issues: [], readAt: "1970-01-01T00:16:40.000Z" });
 });
 
 test("an HTTP failure becomes the board error, without the key", async () => {
@@ -107,4 +107,12 @@ test("invalidate drops the cache", async () => {
   board.invalidate();
   await board.get();
   assert.equal(calls.length, 2);
+});
+
+test("a cached board keeps its read time, a refresh sets a new one", async () => {
+  const { board, tick } = setup("key-1", () => linearPage([linearNode(1)]));
+  const first = await board.get();
+  tick(30_000);
+  assert.equal((await board.get()).readAt, first.readAt);
+  assert.equal((await board.get(true)).readAt, "1970-01-01T00:17:10.000Z");
 });

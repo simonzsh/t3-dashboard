@@ -654,8 +654,9 @@ test("GET /api/board returns the board and caches it until ?refresh=1", async ()
   const { server, linearCalls } = await start({ linearKey: "key-1" });
   const first = await call(server, "GET", "/api/board");
   assert.equal(first.status, 200);
-  const { issues, ...status } = first.json;
+  const { issues, readAt, ...status } = first.json;
   assert.deepEqual(status, { configured: true, ok: true, error: null });
+  assert.ok(!Number.isNaN(Date.parse(readAt)));
   assert.deepEqual(issues.map((issue: { identifier: string }) => issue.identifier), ["TEAM-1"]);
   await call(server, "GET", "/api/board");
   assert.equal(linearCalls.length, 1);

@@ -104,7 +104,7 @@ test("the card says once that it covers the last 7 days, and each tile shows its
   // 63 turns this week against 49 the week before.
   assert.match(out, /Turns<\/span><span class="stat-value">63<span class="stat-delta">\+29 %/);
   const text = out.replace(/<[^>]+>/g, "");
-  assert.match(out, /<span class="card-note">last 7 days<\/span>/);
+  assert.match(out, /<span class="card-note"[^>]*>last 7 days<\/span>/);
   assert.equal(text.match(/last 7 days/g)?.length, 1);
   assert.match(text, /messages sent to agents/);
   assert.match(out, /Sessions<\/span><span class="stat-value">9<span class="stat-delta">\+50 %/);
@@ -287,6 +287,12 @@ test("the Running card lists working agents with a pulsing dot, model and projec
   assert.match(out, /Running one/);
   assert.match(out, /Model X · Project A/);
   assert.match(out, /Running<\/h2><span class="count">1</);
+});
+
+test("the Running card says it is live, with a dot", () => {
+  const out = card(render(state()), "running-head");
+  assert.match(out, /<span class="card-live"><span class="live-dot" aria-hidden="true"><\/span>Live<\/span>/);
+  assert.match(card(render(state(), { threads: [] }), "running-head"), /Live/);
 });
 
 test("routine threads stay out of every card", () => {
