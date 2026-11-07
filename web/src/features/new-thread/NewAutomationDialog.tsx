@@ -7,7 +7,7 @@ import { browserStorage } from "../../lib/storage.ts";
 import { useCopy } from "../../lib/useCopy.ts";
 import { findModel } from "../conversation/composer.ts";
 import { Composer } from "../conversation/Composer.tsx";
-import { Button, Choice, Dialog, Dropdown, Icon, IconButton, Segmented, SecretInput, TextInput, ToggleGroup } from "../../ui/index.ts";
+import { Button, Dialog, Dropdown, Icon, IconButton, Segmented, SecretInput, Switch, TextInput, ToggleGroup } from "../../ui/index.ts";
 import { FILTER_OPS, WEEKDAY_LABELS, WEEKDAY_ORDER, addFilter, emptyForm, formFromAutomation, promptPlaceholder, removeFilter, toCreateBody, toUpdateBody, toggleWeekday, updateFilter, type AutomationForm, type FilterOp, type FormKind } from "./automationForm.ts";
 import { presetSelection } from "./newAgent.ts";
 
@@ -119,7 +119,8 @@ function ScheduleFields({ form, keepSecret, onChange }: { form: AutomationForm; 
       </div>
       <div className="dialog-field">
         <label className="auto-check">
-          <Choice type="checkbox" checked={form.signed} onChange={(e) => set({ signed: e.target.checked })} />
+          {/* The same switch as the automation rows; a click on the text toggles it too. */}
+          <Switch checked={form.signed} label="Check the signature" onChange={(signed) => set({ signed })} />
           Check the signature
         </label>
         {form.signed && (
