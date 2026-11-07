@@ -22,9 +22,10 @@ test("it lists each cache with its size and the total", () => {
   assert.match(out, /Total7\.6 GB/);
 });
 
-test("the confirm button is the red primary action, with Cancel beside it", () => {
+test("the confirm button is the primary action, not a danger one, with Cancel beside it", () => {
   const out = render();
-  assert.match(out, /<button[^>]*class="[^"]*danger[^"]*"[^>]*>Clear caches<\/button>/);
+  assert.match(out, /<button[^>]*class="[^"]*primary[^"]*"[^>]*>Clear caches<\/button>/);
+  assert.doesNotMatch(out, /danger/);
   assert.match(out, />Cancel<\/button>/);
   assert.doesNotMatch(out, /<button[^>]*disabled=""[^>]*>Clear caches/);
 });
