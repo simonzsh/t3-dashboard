@@ -2,7 +2,7 @@
 
 [Back to the README](../README.md)
 
-The dashboard has three pages: Dashboard, Sessions and Automations. A sidebar on the left lists them, with a search button (`⌘` + `K`). Its last row shows the connection state, Settings and a button that collapses the sidebar to icons (`Ctrl` + `B`). The theme, the accent color and the tinted interface are in Settings. The sidebar remembers its state. The page header is one line: the title and a short description. Its button depends on the page: Sessions has a list toggle (wide screen), a layout button and New Session (`Ctrl` + `N`), Automations has New Automation (`Ctrl` + `⇧` + `N`), and Dashboard has the Notifications bell, with the number of unread items, then Edit layout. The two shortcuts work on every page. On a phone, a bar at the bottom of the screen replaces the sidebar: Dashboard, Sessions and Automations. The header then shows the page buttons as icons (on Dashboard, the bell too), a search button and Settings. A dot on Settings shows that an update is ready.
+The dashboard has three pages: Dashboard, Sessions and Automations. A sidebar on the left lists them, with a search button (`⌘` + `K`). Its last row shows the connection state, Settings and a button that collapses the sidebar to icons (`Ctrl` + `B`). The theme, the accent color and the interface tint are in Settings. The sidebar remembers its state. The page header is one line: the title and a short description. Its button depends on the page: Sessions has a list toggle (wide screen), a layout button and New Session (`Ctrl` + `N`), Automations has New Automation (`Ctrl` + `⇧` + `N`), and Dashboard has the Notifications bell, with the number of unread items, then Edit layout. The two shortcuts work on every page. On a phone, a bar at the bottom of the screen replaces the sidebar: Dashboard, Sessions and Automations. The header then shows the page buttons as icons (on Dashboard, the bell too), a search button and Settings. A dot on Settings shows that an update is ready.
 
 ## Dashboard
 
@@ -218,7 +218,7 @@ A task without a linked thread creates a new thread at each run. These threads s
 
 Open Settings with the header button or the `,` key. A sidebar on the left lists the tabs. Only one tab is visible at a time.
 
-- Appearance: "System", "Light" or "Dark" theme, the accent color (blue by default; purple, pink, red, orange, yellow or green). The accent color paints the buttons, the links, the focus ring, the logo and the tab icon. "Tinted interface" (off by default) mixes the accent color into the background, the cards and the lines. Each browser keeps its own choice.
+- Appearance: "System", "Light" or "Dark" theme, the accent color (blue by default; purple, pink, red, orange, yellow or green). The accent color paints the buttons, the links, the focus ring, the logo and the tab icon. The interface is "Neutral" (default) or "Tinted": "Tinted" mixes the accent color into the background, the cards and the lines. Each browser keeps its own choice.
 - Connections: status of the Linear key, change or removal of the key.
 - App: how to install the dashboard as an application (Dock, Launchpad, Start menu, home screen). The steps change with the browser and the device: Safari, Chrome, Edge, iPhone and iPad, Android. Dia and Firefox do not install web apps.
 - Updates: installed version, check for and installation of an update. See [install.md](install.md#updates).

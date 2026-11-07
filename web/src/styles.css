@@ -587,8 +587,6 @@ input.dropdown-search { position: absolute; inset: 0 auto 0 0; z-index: 1; width
 .settings-row > span:first-child { font-weight: 500; }
 .install-steps { margin: 0; color: var(--text-secondary); font-size: 12px; line-height: 1.5; }
 ol.install-steps { padding-left: 18px; }
-.settings-switch { display: flex; align-items: center; gap: 10px; }
-.settings-hint { color: var(--text-secondary); font-size: 12px; }
 .swatches { display: flex; flex-wrap: wrap; gap: 5px; }
 .swatch { width: 28px; height: 28px; padding: 0; border-radius: 8px; border: 1px solid var(--line); background-size: cover; background-position: center; }
 .swatch.active { box-shadow: 0 0 0 2px var(--surface-1), 0 0 0 4px var(--accent); }

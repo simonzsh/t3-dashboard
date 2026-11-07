@@ -6,7 +6,7 @@ import { InstallSettings } from "./InstallSettings.tsx";
 import { LinearSettings } from "./LinearSettings.tsx";
 import { UpdateSettings } from "./UpdateSettings.tsx";
 import { onRadioKeyDown } from "../../ui/radioKeys.ts";
-import { Dialog, Icon, Pressable, Segmented, Switch, Tabs, type IconName } from "../../ui/index.ts";
+import { Dialog, Icon, Pressable, Segmented, Tabs, type IconName } from "../../ui/index.ts";
 
 interface Props {
   theme: ThemeSetting;
@@ -31,6 +31,11 @@ const SECTIONS = [
 type SectionId = (typeof SECTIONS)[number]["id"];
 
 const LABELS: Record<ThemeSetting, string> = { system: "System", light: "Light", dark: "Dark" };
+// "Tinted" mixes the accent color into the background, cards and lines.
+const SURFACES = [
+  { id: "neutral", label: "Neutral" },
+  { id: "tinted", label: "Tinted" },
+] as const;
 const THEME_ICONS: Record<ThemeSetting, IconName> = { system: "monitor", light: "sun", dark: "moon" };
 
 export function SettingsDialog({ theme, onThemeChange, accent, onAccentChange, tint, onTintChange, onLinearChange, update, onUpdate, onClose }: Props) {
@@ -62,11 +67,8 @@ export function SettingsDialog({ theme, onThemeChange, accent, onAccentChange, t
           </div>
         </div>
         <div className="settings-row">
-          <span>Tinted interface</span>
-          <div className="settings-switch">
-            <Switch checked={tint} label="Tinted interface" onChange={onTintChange} />
-            <span className="settings-hint">Mix the accent color into the background, cards and lines.</span>
-          </div>
+          <span>Interface</span>
+          <Segmented label="Interface" value={tint ? "tinted" : "neutral"} options={SURFACES} onChange={(id) => onTintChange(id === "tinted")} />
         </div>
       </>
     ),
