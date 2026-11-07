@@ -120,7 +120,7 @@ test("assignIssue posts the body to the assign route", async () => {
 });
 
 test("getAutomations reads /api/automations with GET", async () => {
-  const result = { automations: [], hiddenThreadIds: [] };
+  const result = { automations: [], automationThreadIds: [], setupThreadIds: [] };
   const { calls, api } = fake(200, result);
   assert.deepEqual(await api.getAutomations(), result);
   assert.equal(calls[0]?.url, "/api/automations");
@@ -141,6 +141,21 @@ test("deleteAutomation posts to the delete route of the task", async () => {
   const { calls, api } = fake(200, { ok: true });
   await api.deleteAutomation("task/1");
   assert.equal(calls[0]?.url, "/api/automations/task%2F1/delete");
+  assert.equal(calls[0]?.init?.method, "POST");
+});
+
+test("setAutomationEnabled posts the flag to the enabled route of the task", async () => {
+  const { calls, api } = fake(200, { ok: true });
+  await api.setAutomationEnabled("task/1", false);
+  assert.equal(calls[0]?.url, "/api/automations/task%2F1/enabled");
+  assert.equal(calls[0]?.init?.method, "POST");
+  assert.deepEqual(JSON.parse(String(calls[0]?.init?.body)), { enabled: false });
+});
+
+test("runAutomation posts to the run route of the task", async () => {
+  const { calls, api } = fake(200, { ok: true });
+  await api.runAutomation("task/1");
+  assert.equal(calls[0]?.url, "/api/automations/task%2F1/run");
   assert.equal(calls[0]?.init?.method, "POST");
 });
 

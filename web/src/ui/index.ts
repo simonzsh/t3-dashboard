@@ -1,3 +1,4 @@
+export { ActionMenu, type ActionMenuItem } from "./ActionMenu.tsx";
 export { Badge, type BadgeVariant } from "./Badge.tsx";
 export { Button, type ButtonProps, type ButtonVariant, type ControlSize } from "./Button.tsx";
 export { CardHead } from "./CardHead.tsx";
@@ -17,7 +18,9 @@ export { Popover } from "./Popover.tsx";
 export { Pressable } from "./Pressable.tsx";
 export { TooltipLayer } from "./Tooltip.tsx";
 export { Skeleton, SkeletonGroup } from "./Skeleton.tsx";
+export { Sheet } from "./Sheet.tsx";
 export { Segmented } from "./Segmented.tsx";
+export { Switch } from "./Switch.tsx";
 export { Tabs } from "./Tabs.tsx";
 export { ToggleGroup } from "./ToggleGroup.tsx";
 export { useEscape } from "./useEscape.ts";

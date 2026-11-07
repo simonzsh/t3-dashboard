@@ -1,8 +1,26 @@
 // T3 Code scheduled tasks, as the Agents page shows them.
 
+import type { ThreadState } from "./status.ts";
 import type { ModelSelection, RuntimeMode } from "./threads.ts";
 
 export type AutomationRunStatus = "running" | "succeeded" | "failed";
+
+/** A run as the dashboard last saw it. "waiting": the agent asks the user something. */
+export type AutomationRunOutcome = "running" | "waiting" | "succeeded" | "failed" | "unknown";
+
+/** The outcome a run thread shows, for the server and the web. An idle thread says nothing. */
+export const RUN_OUTCOMES: Record<ThreadState, AutomationRunOutcome | null> = { waiting: "waiting", running: "running", error: "failed", done: "succeeded", idle: null };
+
+export interface AutomationRun {
+  /** The session of the run; null when T3 failed before it opened one. */
+  threadId: string | null;
+  /** ISO. Thread creation for an unbound task, T3's lastRunAt for a bound one. */
+  startedAt: string;
+  /** ISO; null while it runs, or when the end is not known. */
+  finishedAt: string | null;
+  status: AutomationRunOutcome;
+  error: string | null;
+}
 
 export type AutomationKind = "routine" | "reminder" | "webhook";
 
@@ -64,12 +82,14 @@ export interface Automation {
   bound: boolean;
   /** Set only for kind "webhook". */
   webhook: AutomationWebhook | null;
+  /** Newest first, at most 20. Best effort: the dashboard builds it as it sees the threads. */
+  runs: AutomationRun[];
 }
 
 export interface AutomationsResult {
   automations: Automation[];
-  /** Threads the Agents grid leaves out: dedicated bound threads and runs of unbound tasks. */
-  hiddenThreadIds: string[];
+  /** Threads tied to a task (run threads, dedicated bound threads, setup threads): the UI marks them with the automation icon. */
+  automationThreadIds: string[];
   /** Dedicated threads with no task yet: the agent is still setting the task up, or it failed. */
   setupThreadIds: string[];
 }

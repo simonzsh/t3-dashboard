@@ -1,6 +1,7 @@
 import index from "../../../web/index.html";
 import type { DashboardProvider } from "../../../shared/api.ts";
 import { createActions } from "../../domain/actions.ts";
+import { AutomationRunLog } from "../../domain/automationRuns.ts";
 import { createAutomations } from "../../domain/automations.ts";
 import { SessionsStore } from "../../domain/sessionsStore.ts";
 import { StashStore } from "../../domain/stashStore.ts";
@@ -71,7 +72,11 @@ export async function startDemo(env: Record<string, string | undefined>): Promis
   const site = siteFromBundle(index);
   const actions = createActions({ port, store, board, home: DEMO_HOME });
   const dedicated = new Set(["demo-digest", "demo-setup"]);
-  const automations = createAutomations({ port, store, dedicated: { read: () => dedicated } });
+  // An older run of the first task whose session is gone: the history shows "Session archived".
+  const archivedAt = Date.now() - 5.5 * 86_400_000;
+  const archivedRun = { threadId: "demo-run-archived", startedAt: new Date(archivedAt).toISOString(), finishedAt: new Date(archivedAt + 180_000).toISOString(), status: "succeeded" as const, error: null };
+  const runs = new AutomationRunLog({ "inbox-triage": [archivedRun] });
+  const automations = createAutomations({ port, store, dedicated: { read: () => dedicated }, runs });
   const handler = createDashboardServer({
     actions,
     sessions: new SessionsStore(null, () => {}),

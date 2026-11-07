@@ -1,8 +1,8 @@
 import type { LimitsOverview, ServerStats, UsageOverview } from "../../../../shared/api.ts";
-import { Fragment, useEffect, useRef, useState, type DragEvent, type ReactNode } from "react";
+import { Fragment, useRef, useState, type DragEvent, type ReactNode } from "react";
 import { CardEditBar } from "./CardEditBar.tsx";
 import { CARD_TITLES, dropCard, layoutRows, resolveDrop, setHidden, shiftCard, toggleWidth, type CardColumn, type DashboardCard, type DashboardLayout, type DropTarget } from "./layout.ts";
-import { Button, Icon, useFlip } from "../../ui/index.ts";
+import { Button, Icon, Sheet, useFlip } from "../../ui/index.ts";
 import { ActivityCard } from "./ActivityCard.tsx";
 import { ServerCard } from "./ServerCard.tsx";
 import { UsageCard } from "./UsageCard.tsx";
@@ -38,10 +38,6 @@ export function DashboardView({ limits, server, activity, layout, editing, onLay
   // The sheet takes no room, so the cards do not move for it.
   const inline = showPanel && !sheet;
   const root = useRef<HTMLDivElement>(null);
-  const panel = useRef<HTMLElement>(null);
-  useEffect(() => {
-    if (sheet && showPanel) panel.current?.focus();
-  }, [sheet, showPanel]);
   // Cards slide to their new place when the panel shows or hides, or the layout changes. Not gated on the drag:
   // a drop ends the drag in the same render, and a gate would skip the slide of that drop.
   useFlip(root, `${inline}|${layout.order.map((p) => `${p.id}:${p.width}:${p.column}`).join(",")}`, { item: "data-dash-item" });
@@ -193,11 +189,10 @@ export function DashboardView({ limits, server, activity, layout, editing, onLay
           {gapDrop(rows.length)}
         </div>
       </div>
-      {sheet && !editing && <div className={`dashboard-backdrop${showPanel ? " open" : ""}`} aria-hidden="true" onClick={onCloseSheet} />}
       {sheet && !editing ? (
-        <aside ref={panel} tabIndex={-1} className={`dashboard-panel${showPanel ? " open" : ""}`} role="dialog" aria-modal="true" aria-label="Notifications" inert={!showPanel}>
+        <Sheet open={showPanel} label="Notifications" width="narrow" onClose={onCloseSheet}>
           {notifications}
-        </aside>
+        </Sheet>
       ) : (
         inline && (
           <aside data-dash-item="notifications" className="dashboard-panel" aria-label="Notifications">

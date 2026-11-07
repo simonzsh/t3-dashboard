@@ -7,6 +7,7 @@ const base = {
   tab: "sessions" as const,
   unread: 0,
   sessions: { count: 0, waiting: false },
+  automations: { count: 0, failed: false },
   live: true,
   update: null,
   collapsed: false,
@@ -67,4 +68,16 @@ test("the bottom bar puts the badges on the icons", () => {
 test("the collapse button shows its Ctrl+B shortcut and follows the collapsed prop", () => {
   assert.match(side(), /aria-label="Collapse the sidebar"[^>]*data-shortcut="(Ctrl\+B|⌃B)"/);
   assert.match(side({ collapsed: true }), /<nav class="sidebar collapsed"[\s\S]*aria-label="Expand the sidebar"/);
+});
+
+test("the Automations entry shows the unread runs and a red dot when one failed, in both bars", () => {
+  for (const out of [side({ automations: { count: 3, failed: true } }), bottom({ automations: { count: 3, failed: true } })]) {
+    assert.match(out, /aria-label="3 unread runs">3</);
+    assert.match(out, /class="nav-alert err"[^>]*aria-label="An automation run failed"|aria-label="An automation run failed"[^>]*class="nav-alert err"/);
+  }
+  assert.doesNotMatch(side({ automations: { count: 2, failed: false } }), /nav-alert/);
+});
+
+test("the Automations entry shows nothing when no run is unread", () => {
+  assert.doesNotMatch(side(), /unread runs|automation run failed/);
 });

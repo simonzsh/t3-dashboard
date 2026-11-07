@@ -1,7 +1,7 @@
 import { test } from "bun:test";
 import assert from "node:assert/strict";
-import type { Automation, DashboardProvider, DashboardThread } from "../../../../shared/api.ts";
-import { automationGroup, automationProjects, copyableUrl, excludeRoutineThreads, filterAutomations, finishedSetups, groupAutomations, isEditable, isFinishedReminder, lastRunState, modelLabel, nextLabel, reminderDate, scheduleText, setupThreads } from "../../../src/features/automations/automations.ts";
+import type { Automation, AutomationRun, DashboardProvider, DashboardThread } from "../../../../shared/api.ts";
+import { automationsBadge, capitalize, copyableUrl, filterAutomations, finishedSetups, isEditable, isFinishedReminder, isRunning, runWhen, lastRunLine, latestFinished, latestUnread, liveRun, liveRuns, matchesFilter, modelLabel, nextRunLine, nextRunText, runDuration, runUnread, scheduleText, sortAutomations } from "../../../src/features/automations/automations.ts";
 import { thread } from "../../fixtures.ts";
 
 function auto(id: string, over: Partial<Automation> = {}): Automation {
@@ -24,6 +24,7 @@ function auto(id: string, over: Partial<Automation> = {}): Automation {
     runtimeMode: null,
     bound: false,
     webhook: null,
+    runs: [],
     ...over,
   };
 }
@@ -32,78 +33,12 @@ function auto(id: string, over: Partial<Automation> = {}): Automation {
 const local = (m: number, d: number, h: number, min: number) => new Date(2026, m - 1, d, h, min);
 const NOW = local(10, 25, 14, 0);
 
-test("excludeRoutineThreads drops the hidden threads only", () => {
-  const threads = [thread("t-hidden"), thread("t-chat"), thread("t-other")];
-  assert.deepEqual(excludeRoutineThreads(threads, ["t-hidden", "t-gone"]).map((t) => t.id), ["t-chat", "t-other"]);
-});
-
-test("excludeRoutineThreads keeps a hidden run that waits for the user", () => {
-  const waiting = { ...thread("t-run"), pending: { category: "approval" as const } };
-  assert.deepEqual(excludeRoutineThreads([waiting, thread("t-done")], ["t-run", "t-done"]).map((t) => t.id), ["t-run"]);
-});
-
-test("excludeRoutineThreads returns the same threads when nothing is hidden", () => {
-  const threads = [thread("a"), thread("b")];
-  assert.equal(excludeRoutineThreads(threads, []), threads);
-});
-
 test("isFinishedReminder needs a disabled reminder that ran", () => {
   const lastRunAt = "2026-10-24T09:00:00.000Z";
   assert.equal(isFinishedReminder(auto("a", { kind: "reminder", enabled: false, lastRunAt })), true);
   assert.equal(isFinishedReminder(auto("a", { kind: "reminder", enabled: false })), false);
   assert.equal(isFinishedReminder(auto("a", { kind: "reminder", lastRunAt })), false);
   assert.equal(isFinishedReminder(auto("a", { enabled: false, lastRunAt })), false);
-});
-
-test("lastRunState reads the task's last run", () => {
-  const lastRunAt = local(10, 25, 9, 40).toISOString();
-  assert.deepEqual(lastRunState(auto("a", { lastRunStatus: "running" })), { kind: "running" });
-  assert.deepEqual(lastRunState(auto("a", { lastRunStatus: "failed", lastRunError: "boom" })), { kind: "failed", error: "boom" });
-  assert.deepEqual(lastRunState(auto("a", { lastRunStatus: "failed" })), { kind: "failed", error: null });
-  assert.deepEqual(lastRunState(auto("a", { lastRunStatus: "succeeded", lastRunAt })), { kind: "done", at: "09:40" });
-  assert.equal(lastRunState(auto("a", { lastRunStatus: "succeeded" })), null);
-  assert.equal(lastRunState(auto("a")), null);
-});
-
-test("lastRunState says waiting when the thread is blocked on the user", () => {
-  const pending = { requestId: "r", kind: "command", category: "approval" as const };
-  const blocked = thread("t", { status: "waiting", pending });
-  assert.deepEqual(lastRunState(auto("a", { lastRunStatus: "succeeded" }), blocked), { kind: "waiting" });
-  assert.deepEqual(lastRunState(auto("a", { lastRunStatus: "running" }), thread("t", { status: "running" })), { kind: "running" });
-});
-
-test("lastRunState follows the thread after T3 sent the run", () => {
-  const sent = auto("a", { lastRunStatus: "succeeded", lastRunAt: local(10, 25, 9, 40).toISOString() });
-  assert.deepEqual(lastRunState(sent, thread("t", { status: "running" })), { kind: "running" });
-  assert.deepEqual(lastRunState(sent, thread("t", { status: "failed", lastError: "turn failed" })), { kind: "failed", error: "turn failed" });
-  assert.deepEqual(lastRunState(sent, thread("t", { status: "idle" })), { kind: "done", at: "09:40" });
-});
-
-test("nextLabel gives minutes, then a day word and a time", () => {
-  assert.equal(nextLabel(null, NOW), "");
-  assert.equal(nextLabel(local(10, 25, 14, 0).toISOString(), NOW), "now");
-  assert.equal(nextLabel(local(10, 25, 13, 50).toISOString(), NOW), "now");
-  assert.equal(nextLabel(local(10, 25, 14, 12).toISOString(), NOW), "in 12 min");
-  assert.equal(nextLabel(local(10, 25, 14, 59).toISOString(), NOW), "in 59 min");
-  assert.equal(nextLabel(local(10, 25, 18, 5).toISOString(), NOW), "today 18:05");
-  assert.equal(nextLabel(local(10, 26, 9, 0).toISOString(), NOW), "tomorrow 9:00");
-  assert.equal(nextLabel(local(10, 29, 18, 30).toISOString(), NOW), "Thu 18:30");
-  assert.equal(nextLabel(local(11, 12, 7, 5).toISOString(), NOW), "Nov 12, 7:05");
-});
-
-test("reminderDate shows the day and time of the reminder", () => {
-  assert.equal(reminderDate(local(10, 26, 9, 0).toISOString()), "Oct 26, 9:00");
-});
-
-test("setupThreads keeps the setup threads that are active or waiting, in the given order", () => {
-  const threads = [
-    thread("t-chat"),
-    thread("t-run", { status: "running" }),
-    thread("t-idle"),
-    thread("t-ask", { pending: { category: "approval" } }),
-  ];
-  assert.deepEqual(setupThreads(threads, ["t-idle", "t-run", "t-ask", "t-gone"]).map((t) => t.id), ["t-run", "t-ask"]);
-  assert.deepEqual(setupThreads(threads, []), []);
 });
 
 test("finishedSetups lists the setup threads that stopped being active", () => {
@@ -121,79 +56,99 @@ test("copyableUrl gives the URL of a webhook only", () => {
   assert.equal(copyableUrl(auto("c")), null);
 });
 
-const waitingThread = thread("t-wait", { status: "waiting", pending: { category: "approval" } });
+const run = (threadId: string | null, startedAt: string, over: Partial<AutomationRun> = {}): AutomationRun => ({ threadId, startedAt, finishedAt: null, status: "succeeded", error: null, ...over });
+const at = (h: number, min = 0) => local(10, 25, h, min).toISOString();
+const byId = (...list: DashboardThread[]) => new Map(list.map((t) => [t.id, t]));
+const waitingThread = thread("t1", { status: "waiting", pending: { category: "approval" } });
 const tomorrow9 = local(10, 26, 9, 0).toISOString();
+const NO_SEEN = { since: "2026-01-01T00:00:00.000Z", seen: {} };
+const SEEN = { since: "2026-01-01T00:00:00.000Z", seen: { t1: "2026-01-10T10:00:00.000Z" } };
 
-test("automationGroup: a failed or waiting last run needs attention, even when paused", () => {
-  assert.equal(automationGroup(auto("a", { lastRunStatus: "failed" }), undefined, NOW), "attention");
-  assert.equal(automationGroup(auto("a", { enabled: false, lastRunStatus: "failed" }), undefined, NOW), "attention");
-  assert.equal(automationGroup(auto("a", { nextRunAt: tomorrow9 }), waitingThread, NOW), "attention");
+test("liveRun lets the thread override a stored status", () => {
+  const stored = run("t1", at(9), { status: "running" });
+  assert.equal(liveRun(stored, thread("t1", { status: "completed" })).status, "succeeded");
+  assert.equal(liveRun(stored, waitingThread).status, "waiting");
+  assert.equal(liveRun(run("t1", at(9)), thread("t1", { status: "running" })).status, "running");
+  const failed = liveRun(run("t1", at(9)), thread("t1", { status: "failed", lastError: "turn failed" }));
+  assert.deepEqual([failed.status, failed.error], ["failed", "turn failed"]);
 });
 
-test("automationGroup: paused and finished reminders are inactive", () => {
-  assert.equal(automationGroup(auto("a", { enabled: false }), undefined, NOW), "inactive");
-  const done = auto("r", { kind: "reminder", enabled: false, lastRunAt: local(10, 24, 9, 0).toISOString(), lastRunStatus: "succeeded" });
-  assert.equal(automationGroup(done, undefined, NOW), "inactive");
+test("liveRun keeps the stored status for an idle thread or a missing thread", () => {
+  assert.equal(liveRun(run("t1", at(9), { status: "unknown" }), thread("t1")).status, "unknown");
+  assert.equal(liveRun(run("t1", at(9), { status: "failed" }), undefined).status, "failed");
 });
 
-test("automationGroup: running, or due before tomorrow's local midnight, is today", () => {
-  assert.equal(automationGroup(auto("a", { lastRunStatus: "running", nextRunAt: local(11, 5, 9, 0).toISOString() }), undefined, NOW), "today");
-  assert.equal(automationGroup(auto("a", { nextRunAt: local(10, 25, 23, 59).toISOString() }), undefined, NOW), "today");
-  assert.equal(automationGroup(auto("a", { nextRunAt: local(10, 26, 0, 0).toISOString() }), undefined, NOW), "upcoming");
+test("liveRun ends a run the thread finished, at the last activity", () => {
+  const ended = liveRun(run("t1", at(9), { status: "running" }), thread("t1", { status: "completed", lastActivityAt: at(9, 5) }));
+  assert.equal(ended.finishedAt, at(9, 5));
 });
 
-test("automationGroup: enabled webhooks and tasks without a next run are upcoming", () => {
-  assert.equal(automationGroup(hook("h"), undefined, NOW), "upcoming");
-  assert.equal(automationGroup(auto("a"), undefined, NOW), "upcoming");
+test("liveRuns layers the thread on every run of an unbound task but only on the newest of a bound one", () => {
+  const runs = [run("t1", at(10), { status: "running" }), run("t1", at(9), { status: "running" })];
+  const done = byId(thread("t1", { status: "completed" }));
+  assert.deepEqual(liveRuns(auto("a", { runs }), done).map((r) => r.status), ["succeeded", "succeeded"]);
+  assert.deepEqual(liveRuns(auto("a", { bound: true, runs }), done).map((r) => r.status), ["succeeded", "running"]);
 });
 
-test("groupAutomations sorts today and upcoming by next run (none last), attention and inactive by last run", () => {
-  const groups = groupAutomations(
-    [
-      auto("up-none"),
-      auto("up-late", { nextRunAt: local(10, 30, 9, 0).toISOString() }),
-      auto("up-soon", { nextRunAt: tomorrow9 }),
-      auto("today-2", { nextRunAt: local(10, 25, 20, 0).toISOString() }),
-      auto("today-1", { nextRunAt: local(10, 25, 15, 0).toISOString() }),
-      auto("fail-old", { lastRunStatus: "failed", lastRunAt: local(10, 20, 9, 0).toISOString() }),
-      auto("fail-new", { lastRunStatus: "failed", lastRunAt: local(10, 24, 9, 0).toISOString() }),
-      auto("off-old", { enabled: false, lastRunAt: local(10, 1, 9, 0).toISOString() }),
-      auto("off-new", { enabled: false, lastRunAt: local(10, 2, 9, 0).toISOString() }),
-    ],
-    new Map(),
-    NOW,
-  );
-  const ids = (list: Automation[]) => list.map((a) => a.id);
-  assert.deepEqual(ids(groups.today), ["today-1", "today-2"]);
-  assert.deepEqual(ids(groups.upcoming), ["up-soon", "up-late", "up-none"]);
-  assert.deepEqual(ids(groups.attention), ["fail-new", "fail-old"]);
-  assert.deepEqual(ids(groups.inactive), ["off-new", "off-old"]);
+test("latestFinished skips a run in progress", () => {
+  const runs = [run("t2", at(11), { status: "running" }), run("t1", at(9), { status: "failed" })];
+  assert.equal(latestFinished(auto("a", { runs }), byId())?.threadId, "t1");
+  assert.equal(latestFinished(auto("a", { runs: [runs[0]!] }), byId()), null);
 });
 
-test("groupAutomations reads the thread of each automation", () => {
-  const groups = groupAutomations([auto("a", { threadId: "t-wait" }), auto("b")], new Map([["t-wait", waitingThread]]), NOW);
-  assert.deepEqual(groups.attention.map((a) => a.id), ["a"]);
+test("automationsBadge counts automations whose latest finished run is unread, and flags a failure", () => {
+  const list = [
+    auto("a", { runs: [run("t1", at(9))] }),
+    auto("b", { runs: [run("t2", at(9), { status: "failed" })] }),
+    auto("c", { runs: [run("t3", at(9))] }),
+    auto("d", { runs: [run("t4", at(9))] }),
+    auto("e", { runs: [run(null, at(9), { status: "failed" })] }),
+  ];
+  const threads = byId(thread("t1", { status: "completed" }), thread("t2", { status: "failed" }), thread("t3", { status: "completed" }));
+  const seen = { since: NO_SEEN.since, seen: { t3: "2026-01-10T10:00:00.000Z" } };
+  assert.deepEqual(automationsBadge(list, threads, seen), { count: 2, failed: true });
+  assert.deepEqual(automationsBadge([list[0]!], threads, NO_SEEN), { count: 1, failed: false });
+  assert.deepEqual(automationsBadge(list, threads, { since: "2027-01-01T00:00:00.000Z", seen: {} }), { count: 0, failed: false });
 });
 
-test("filterAutomations matches title, project name and schedule, ignoring case and outer spaces", () => {
-  const list = [auto("a", { title: "Nightly Backup", project: "Alpha", scheduleLabel: "Daily 2:00", projectId: "pa" }), auto("b", { title: "Report", project: "Beta", scheduleLabel: "Weekly Mon", projectId: "pb" })];
-  const ids = (f: { projectId: string | null; query: string }) => filterAutomations(list, f).map((a) => a.id);
-  assert.deepEqual(ids({ projectId: null, query: "" }), ["a", "b"]);
-  assert.deepEqual(ids({ projectId: null, query: "  backup " }), ["a"]);
-  assert.deepEqual(ids({ projectId: null, query: "BETA" }), ["b"]);
-  assert.deepEqual(ids({ projectId: null, query: "weekly" }), ["b"]);
-  assert.deepEqual(ids({ projectId: "pa", query: "" }), ["a"]);
-  assert.deepEqual(ids({ projectId: "pa", query: "report" }), []);
+test("automationsBadge reads only the latest finished run of a task", () => {
+  const list = [auto("a", { runs: [run("t1", at(11)), run("t2", at(9))] })];
+  assert.deepEqual(automationsBadge(list, byId(thread("t1", { status: "completed" }), thread("t2", { status: "completed" })), SEEN), { count: 0, failed: false });
 });
 
-test("filterAutomations keeps only tasks without a project for the empty project id", () => {
-  const list = [auto("a", { projectId: "" }), auto("b", { projectId: "pb" })];
-  assert.deepEqual(filterAutomations(list, { projectId: "", query: "" }).map((a) => a.id), ["a"]);
+test("runDuration formats seconds, minutes and hours; a running run counts up to now", () => {
+  const start = at(9);
+  const ended = (ms: number) => run("t", start, { finishedAt: new Date(new Date(start).getTime() + ms).toISOString() });
+  assert.equal(runDuration(ended(42_000), NOW), "42 s");
+  assert.equal(runDuration(ended(3 * 60_000 + 20_000), NOW), "3 min");
+  assert.equal(runDuration(ended(65 * 60_000), NOW), "1 h 05");
+  assert.equal(runDuration(run("t", at(13, 30), { status: "running" }), NOW), "30 min");
+  assert.equal(runDuration(run("t", start), NOW), null);
 });
 
-test("automationProjects lists each project once, sorted by title", () => {
-  const list = [auto("a", { projectId: "p2", project: "Zeta" }), auto("b", { projectId: "p1", project: "Alpha" }), auto("c", { projectId: "p2", project: "Zeta" })];
-  assert.deepEqual(automationProjects(list), [{ id: "p1", title: "Alpha" }, { id: "p2", title: "Zeta" }]);
+test("matchesFilter: unread follows the latest finished run, like the badge", () => {
+  const a = auto("a", { runs: [run("t1", at(9))] });
+  const done = byId(thread("t1", { status: "completed", lastActivityAt: at(9, 5) }));
+  assert.equal(matchesFilter(a, "unread", done, { since: at(0), seen: {} }), true);
+  assert.equal(matchesFilter(a, "unread", done, { since: at(0), seen: { t1: at(10) } }), false);
+  assert.equal(matchesFilter(a, "all", done, SEEN), true);
+});
+
+test("matchesFilter: failed is the latest run failed, a dispatch failure included", () => {
+  const failed = run("t1", at(9));
+  assert.equal(matchesFilter(auto("a", { runs: [failed] }), "failed", byId(thread("t1", { status: "failed" })), SEEN), true);
+  assert.equal(matchesFilter(auto("a", { runs: [run(null, at(9), { status: "failed", error: "no slot" })] }), "failed", byId(), SEEN), true);
+  assert.equal(matchesFilter(auto("a", { runs: [run("t2", at(10)), failed] }), "failed", byId(thread("t2", { status: "completed" }), thread("t1", { status: "failed" })), SEEN), false);
+});
+
+test("matchesFilter: running and paused", () => {
+  const a = auto("a", { runs: [run("t1", at(9))] });
+  assert.equal(matchesFilter(a, "running", byId(thread("t1", { status: "running" })), SEEN), true);
+  assert.equal(matchesFilter(a, "running", byId(thread("t1", { status: "completed" })), SEEN), false);
+  assert.equal(matchesFilter(a, "paused", byId(), SEEN), false);
+  assert.equal(matchesFilter(auto("a", { enabled: false }), "paused", byId(), SEEN), true);
+  const done = auto("r", { kind: "reminder", enabled: false, lastRunAt: at(9) });
+  assert.equal(matchesFilter(done, "paused", byId(), SEEN), true);
 });
 
 test("scheduleText: a reminder shows its date, a webhook says Webhook, a routine its label", () => {
@@ -222,4 +177,101 @@ test("isEditable refuses a routine without a readable schedule and a signed webh
   assert.equal(isEditable(auto("a", { kind: "webhook", webhook: webhook(true, null) })), false);
   assert.equal(isEditable(auto("a", { kind: "webhook", webhook: webhook(true, { header: "X-Sig", encoding: "hex", prefix: "" }) })), true);
   assert.equal(isEditable(auto("a", { kind: "webhook", webhook: webhook(false, null) })), true);
+});
+
+test("nextRunText: paused, finished, webhook and scheduled tasks", () => {
+  assert.equal(nextRunText(auto("a", { enabled: false }), NOW), "Paused");
+  assert.equal(nextRunText(auto("r", { kind: "reminder", enabled: false, lastRunAt: at(9) }), NOW), "—");
+  assert.equal(nextRunText(hook("h"), NOW), "On each delivery");
+  assert.equal(nextRunText(auto("a", { nextRunAt: local(10, 25, 14, 30).toISOString() }), NOW), "in 30 min");
+  assert.equal(nextRunText(auto("a"), NOW), "—");
+});
+
+test("liveRun keeps a failure T3 reported when the thread reads done", () => {
+  assert.equal(liveRun(run("t1", at(9), { status: "failed", error: "Timed out" }), thread("t1", { status: "completed" })).status, "failed");
+});
+
+test("runUnread marks only the newest run of a bound task", () => {
+  const runs = [run("chat", at(10)), run("chat", at(9))];
+  const threads = new Map([["chat", thread("chat", { lastActivityAt: at(10, 5) })]]);
+  const seen = { since: at(0), seen: {} };
+  assert.deepEqual(runs.map((r) => runUnread(auto("a", { bound: true, runs }), r, threads, seen)), [true, false]);
+  assert.deepEqual(runs.map((r) => runUnread(auto("a", { runs }), r, threads, seen)), [true, true]);
+});
+
+test("lastRunLine says how the latest run ended, through its thread", () => {
+  const runs = [run("t1", at(11), { finishedAt: at(11, 3) })];
+  const line = (threads: Map<string, DashboardThread>, list = runs) => lastRunLine(auto("a", { runs: list }), threads, NOW);
+  assert.deepEqual(line(byId(thread("t1", { status: "completed" }))), { status: "succeeded", label: "Succeeded", detail: "3 h ago · 3 min" });
+  assert.deepEqual(line(byId(thread("t1", { status: "failed", lastError: "boom" }))), { status: "failed", label: "Failed", detail: "3 h ago · 3 min" });
+  assert.equal(line(byId(waitingThread)).label, "Waiting for you");
+  assert.deepEqual(line(byId(thread("t1", { status: "running" })), [run("t1", at(13, 30))]), { status: "running", label: "Running", detail: "30 min ago · 30 min" });
+  assert.deepEqual(line(byId(), []), { status: null, label: "Never run", detail: "" });
+});
+
+test("lastRunLine has no duration while the end is unknown", () => {
+  assert.equal(lastRunLine(auto("a", { runs: [run(null, at(13), { status: "failed", error: "no slot" })] }), byId(), NOW).detail, "1 h ago");
+});
+
+test("isRunning follows the latest run only", () => {
+  assert.equal(isRunning(auto("a", { runs: [run("t1", at(9))] }), byId(thread("t1", { status: "running" }))), true);
+  assert.equal(isRunning(auto("a", { runs: [run("t2", at(10)), run("t1", at(9), { status: "running" })] }), byId()), false);
+});
+
+test("latestUnread is true while the latest finished run is unread", () => {
+  const a = auto("a", { runs: [run("t1", at(9))] });
+  const threads = byId(thread("t1", { status: "completed", lastActivityAt: at(9, 5) }));
+  assert.equal(latestUnread(a, threads, { since: at(0), seen: {} }), true);
+  assert.equal(latestUnread(a, threads, { since: at(0), seen: { t1: at(10) } }), false);
+  assert.equal(latestUnread(auto("b"), threads, NO_SEEN), false);
+});
+
+test("sortAutomations: recent activity puts the newest run first and never-run tasks last", () => {
+  const list = [auto("never"), auto("old", { runs: [run("t1", at(8))] }), auto("new", { runs: [run("t2", at(11))] })];
+  assert.deepEqual(sortAutomations(list, "recent").map((a) => a.id), ["new", "old", "never"]);
+  assert.deepEqual(sortAutomations(list, "project").map((a) => a.id), ["new", "old", "never"]);
+});
+
+test("sortAutomations: next run in order, webhooks and paused tasks last", () => {
+  const list = [
+    auto("paused", { enabled: false, nextRunAt: local(10, 26, 9, 0).toISOString() }),
+    hook("hook"),
+    auto("later", { nextRunAt: local(10, 30, 9, 0).toISOString() }),
+    auto("soon", { nextRunAt: tomorrow9 }),
+  ];
+  assert.deepEqual(sortAutomations(list, "next").map((a) => a.id), ["soon", "later", "hook", "paused"]);
+});
+
+test("filterAutomations matches title, project name and schedule, ignoring case and outer spaces", () => {
+  const list = [auto("a", { title: "Nightly Backup", project: "Alpha", scheduleLabel: "Daily 2:00" }), auto("b", { title: "Report", project: "Beta", scheduleLabel: "Weekly Mon" })];
+  const ids = (query: string) => filterAutomations(list, query).map((a) => a.id);
+  assert.deepEqual(ids(""), ["a", "b"]);
+  assert.deepEqual(ids("  backup "), ["a"]);
+  assert.deepEqual(ids("BETA"), ["b"]);
+  assert.deepEqual(ids("weekly"), ["b"]);
+  assert.deepEqual(ids("nothing"), []);
+});
+
+test("nextRunLine: relative next run, paused, webhook and finished", () => {
+  const next = (min: number) => auto("a", { nextRunAt: new Date(NOW.getTime() + min * 60_000).toISOString() });
+  assert.equal(nextRunLine(next(30), NOW), "Next in 30 min");
+  assert.equal(nextRunLine(next(3 * 60 + 10), NOW), "Next in 3 h");
+  assert.equal(nextRunLine(next(2 * 1440 + 60), NOW), "Next in 2 d");
+  assert.equal(nextRunLine(next(0), NOW), "Next now");
+  assert.equal(nextRunLine(auto("a", { enabled: false }), NOW), "Paused");
+  assert.equal(nextRunLine(hook("h"), NOW), "On each delivery");
+  assert.equal(nextRunLine(auto("r", { kind: "reminder", enabled: false, lastRunAt: at(9) }), NOW), "");
+  assert.equal(nextRunLine(auto("a"), NOW), "");
+});
+
+test("capitalize raises the first letter only", () => {
+  assert.equal(capitalize("every 15 minutes"), "Every 15 minutes");
+  assert.equal(capitalize(""), "");
+});
+
+test("runWhen leaves the duration out for a bound chat", () => {
+  const done = run("chat", at(9), { finishedAt: at(12) });
+  const now = new Date(at(13));
+  assert.match(runWhen(done, now), /3 h/);
+  assert.doesNotMatch(runWhen(done, now, true), /·/);
 });

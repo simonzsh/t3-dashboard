@@ -107,6 +107,8 @@ export function createApi(fetchImpl: Fetch) {
     createAutomation: (b: CreateAutomationBody) => call<CreateAutomationResult>("/api/automations", b),
     updateAutomation: (id: string, b: UpdateAutomationBody) => call<OkResult>(`/api/automations/${encodeURIComponent(id)}/update`, b),
     deleteAutomation: (id: string) => call<OkResult>(`/api/automations/${encodeURIComponent(id)}/delete`, {}),
+    setAutomationEnabled: (id: string, enabled: boolean) => call<OkResult>(`/api/automations/${encodeURIComponent(id)}/enabled`, { enabled }),
+    runAutomation: (id: string) => call<OkResult>(`/api/automations/${encodeURIComponent(id)}/run`, {}),
     getBoard: (refresh = false) => call<BoardResult>(refresh ? "/api/board?refresh=1" : "/api/board"),
     getUsage: (timeZone: string, period: ActivityPeriod, refresh = false) => call<UsageOverview>(`/api/usage?tz=${encodeURIComponent(timeZone)}&period=${period}${refresh ? "&refresh=1" : ""}`),
     getServerStats: () => call<ServerStats>("/api/server-stats"),

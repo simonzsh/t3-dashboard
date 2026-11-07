@@ -39,7 +39,7 @@ interface StartOptions {
   site?: Site;
   linearKey?: string;
   linearFetch?: (url: string, init: RequestInit) => Promise<Response>;
-  automations?: Pick<Automations, "list" | "create" | "remove" | "update">;
+  automations?: Pick<Automations, "list" | "create" | "remove" | "update"> & Partial<Pick<Automations, "setEnabled" | "runNow">>;
   // Content of the Linear file. Without it, `linearKey` feeds the board directly.
   linear?: unknown;
   pasteResult?: "ok" | "rejected" | "unreachable" | "locked";
@@ -74,7 +74,7 @@ const usageOverview: UsageOverview = {
 const LINEAR_FILE = "/cfg/linear.json";
 
 async function start(startOptions: StartOptions = {}) {
-  const { site = { serve: async () => null }, linearKey = "", linearFetch, automations = { list: async () => ({ automations: [], hiddenThreadIds: [], setupThreadIds: [] }), create: async () => created, remove: async () => {}, update: async () => {} } } = startOptions;
+  const { site = { serve: async () => null }, linearKey = "", linearFetch, automations = { list: async () => ({ automations: [], automationThreadIds: [], setupThreadIds: [] }), create: async () => created, remove: async () => {}, update: async () => {} } } = startOptions;
   const linearCalls: string[] = [];
   const files: Record<string, string> = startOptions.linear === undefined ? {} : { [LINEAR_FILE]: JSON.stringify(startOptions.linear) };
   const readFile = (path: string) => {
@@ -171,7 +171,7 @@ async function start(startOptions: StartOptions = {}) {
     usage,
     limits,
     serverStats,
-    automations,
+    automations: { setEnabled: async () => {}, runNow: async () => {}, ...automations },
     getState,
     connection: () => connection,
     site,
@@ -594,6 +594,8 @@ test("every POST route refuses a body that is not JSON", async () => {
     "/api/automations",
     "/api/automations/task-1/delete",
     "/api/automations/task-1/update",
+    "/api/automations/task-1/enabled",
+    "/api/automations/task-1/run",
     "/api/threads/run-1/messages",
     "/api/threads/run-1/settings",
     "/api/threads/run-1/interrupt",
@@ -797,7 +799,7 @@ test("assign answers 502 when Linear fails and when T3 fails", async () => {
 
 test("GET /api/automations returns the automations listed at each call", async () => {
   let calls = 0;
-  const result: AutomationsResult = { automations: [], hiddenThreadIds: ["thread-1"], setupThreadIds: ["thread-2"] };
+  const result: AutomationsResult = { automations: [], automationThreadIds: ["thread-1"], setupThreadIds: ["thread-2"] };
   const { server } = await start({ automations: { list: async () => (calls++, result), create: async () => created, remove: async () => {}, update: async () => {} } });
   const first = await call(server, "GET", "/api/automations");
   assert.equal(first.status, 200);
@@ -812,9 +814,9 @@ test("GET /api/automations carries the kind and the webhook of each automation",
     id: "task-1", kind: "webhook", title: "PR reviews", projectId: "p", project: "P", scheduleLabel: "Webhook", enabled: true,
     nextRunAt: null, lastRunAt: null, lastRunStatus: null, lastRunError: null, threadId: null, modelSelection: null,
     prompt: "Review", schedule: null, runtimeMode: null, bound: false,
-    webhook: { url: "https://relay.example.invalid/v1/hooks/k/task-1/tok", signed: true, filters: [{ path: "body.action", op: "exists" }], signature: { header: "x-hub-signature-256", encoding: "hex", prefix: "sha256=" } },
+    webhook: { url: "https://relay.example.invalid/v1/hooks/k/task-1/tok", signed: true, filters: [{ path: "body.action", op: "exists" }], signature: { header: "x-hub-signature-256", encoding: "hex", prefix: "sha256=" } }, runs: [{ threadId: "run-1", startedAt: "2026-03-20T10:00:00.000Z", finishedAt: null, status: "running", error: null }],
   };
-  const { server } = await start({ automations: { list: async () => ({ automations: [automation], hiddenThreadIds: [], setupThreadIds: [] }), create: async () => created, remove: async () => {}, update: async () => {} } });
+  const { server } = await start({ automations: { list: async () => ({ automations: [automation], automationThreadIds: [], setupThreadIds: [] }), create: async () => created, remove: async () => {}, update: async () => {} } });
   const { json } = await call(server, "GET", "/api/automations");
   assert.deepEqual((json as AutomationsResult).automations, [automation]);
 });
@@ -831,7 +833,7 @@ test("an automations failure gives 502", async () => {
 
 test("POST /api/automations/:id/delete removes the task", async () => {
   const removed: string[] = [];
-  const { server } = await start({ automations: { list: async () => ({ automations: [], hiddenThreadIds: [], setupThreadIds: [] }), create: async () => created, remove: async (id) => void removed.push(id), update: async () => {} } });
+  const { server } = await start({ automations: { list: async () => ({ automations: [], automationThreadIds: [], setupThreadIds: [] }), create: async () => created, remove: async (id) => void removed.push(id), update: async () => {} } });
   const reply = await post(server, "/api/automations/task%2F1/delete", {});
   assert.equal(reply.status, 200);
   assert.deepEqual(reply.json, { ok: true });
@@ -839,7 +841,7 @@ test("POST /api/automations/:id/delete removes the task", async () => {
 });
 
 const updateStart = (updated: unknown[]) =>
-  start({ automations: { list: async () => ({ automations: [], hiddenThreadIds: [], setupThreadIds: [] }), create: async () => created, remove: async () => {}, update: async (id, body) => void updated.push([id, body]) } });
+  start({ automations: { list: async () => ({ automations: [], automationThreadIds: [], setupThreadIds: [] }), create: async () => created, remove: async () => {}, update: async (id, body) => void updated.push([id, body]) } });
 
 test("POST /api/automations/:id/update validates the body and passes it on", async () => {
   const updated: unknown[] = [];
@@ -873,8 +875,48 @@ test("the rename route is gone", async () => {
   assert.notEqual((await post(server, "/api/automations/task-1/rename", { title: "x" })).status, 200);
 });
 
+const toggleStart = (calls: unknown[], error?: Error) =>
+  start({
+    automations: {
+      list: async () => ({ automations: [], automationThreadIds: [], setupThreadIds: [] }),
+      create: async () => created,
+      remove: async () => {},
+      update: async () => {},
+      setEnabled: async (id, enabled) => (error ? Promise.reject(error) : void calls.push(["enabled", id, enabled])),
+      runNow: async (id) => (error ? Promise.reject(error) : void calls.push(["run", id])),
+    },
+  });
+
+test("POST /api/automations/:id/enabled validates the flag and passes it on", async () => {
+  const calls: unknown[] = [];
+  const { server } = await toggleStart(calls);
+  const reply = await post(server, "/api/automations/task%2F1/enabled", { enabled: false });
+  assert.equal(reply.status, 200);
+  assert.deepEqual(reply.json, { ok: true });
+  assert.deepEqual(calls, [["enabled", "task/1", false]]);
+  for (const body of [{}, { enabled: "yes" }, { enabled: 1 }]) assert.equal((await post(server, "/api/automations/task-1/enabled", body)).status, 400, JSON.stringify(body));
+  assert.equal(calls.length, 1);
+});
+
+test("POST /api/automations/:id/run starts a run", async () => {
+  const calls: unknown[] = [];
+  const { server } = await toggleStart(calls);
+  const reply = await post(server, "/api/automations/task%2F1/run", {});
+  assert.equal(reply.status, 200);
+  assert.deepEqual(reply.json, { ok: true });
+  assert.deepEqual(calls, [["run", "task/1"]]);
+});
+
+test("enabled and run map an unknown automation to 404 and a T3 failure to 502", async () => {
+  const status = async (path: string, error: Error) => (await post((await toggleStart([], error)).server, path, { enabled: true })).status;
+  for (const path of ["/api/automations/task-1/enabled", "/api/automations/task-1/run"]) {
+    assert.equal(await status(path, new DomainError("not-found", "gone")), 404, path);
+    assert.equal(await status(path, new IntegrationError("T3 is down", { system: "t3", kind: "unreachable" })), 502, path);
+  }
+});
+
 test("update errors map to 404, 400, 409 and 502", async () => {
-  const fail = (error: Error) => ({ list: async () => ({ automations: [], hiddenThreadIds: [], setupThreadIds: [] }), create: async () => created, remove: async () => {}, update: async () => Promise.reject(error) });
+  const fail = (error: Error) => ({ list: async () => ({ automations: [], automationThreadIds: [], setupThreadIds: [] }), create: async () => created, remove: async () => {}, update: async () => Promise.reject(error) });
   const status = async (error: Error) => (await post((await start({ automations: fail(error) })).server, "/api/automations/task-1/update", { ...routineBody })).status;
   assert.equal(await status(new DomainError("not-found", "gone")), 404);
   assert.equal(await status(new DomainError("invalid", "kind")), 400);
@@ -888,7 +930,7 @@ const hookBody = { ...routineBody, kind: "webhook", filters: [{ path: "headers.x
 
 function createStart(requests: unknown[]) {
   const result = { ...created, webhookUrl: "https://relay.example.invalid/v1/hooks/k/t/token", nextRunAt: "2026-11-05T09:00:00.000Z" };
-  return start({ automations: { list: async () => ({ automations: [], hiddenThreadIds: [], setupThreadIds: [] }), create: async (body) => (requests.push(body), result), remove: async () => {}, update: async () => {} } });
+  return start({ automations: { list: async () => ({ automations: [], automationThreadIds: [], setupThreadIds: [] }), create: async (body) => (requests.push(body), result), remove: async () => {}, update: async () => {} } });
 }
 
 test("POST /api/automations passes a routine on and returns the task", async () => {

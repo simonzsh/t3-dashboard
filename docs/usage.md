@@ -23,7 +23,7 @@ Notifications, Running and Up next list your agents and tickets. Notifications i
 - "See all" shows every read agent, also the ones with no activity for 3 days or more, and the "Settle all older than 3 days" button. When nothing needs you, the card says "Nothing needs you". Settled agents are not listed: find them with `⌘` + `K`.
 - Running lists the agents that work (its header shows a green dot and "Live": the list follows T3 Code with no delay), each with a pulsing dot, the model, the project and the time. A click opens the conversation in Sessions, or goes to it when it is already open.
 - Up next lists the agents of started tickets that stopped ("To relaunch": the agent finished, you read it, and it has been idle for more than 24 hours), then the tickets that have no agent, started ones first (see [Tickets](#tickets)). It shows 5 tickets, then "Show N more". The header shows the Linear connection, "Updated" with the time of the last read from Linear, and a refresh button. The card also shows the setup card when you have no key.
-- Archived or deleted sessions, sub-agents and the threads of scheduled tasks, webhook runs included (see [Automations](#automations)), do not appear.
+- Archived or deleted sessions and sub-agents do not appear. The sessions of automations (run threads of routines, reminders and webhooks) appear like any session, with a small calendar icon after the title (see [Automations](#automations)).
 - The "Settle" button (box icon) settles an agent, as T3 Code does: it leaves the lists. It does not exist for an agent that works or waits.
 
 The rows change status live, without a page reload. The toasts and the browser notifications still tell you when an agent waits or finishes. A click on a toast opens the conversation.
@@ -42,7 +42,7 @@ The Linear tickets feed "To relaunch" and "Up next". They need a Linear API key:
 
 Sessions shows your open conversations side by side. Each session is a column at least 380 px wide that fills the height of the page. When the columns do not fill the width, they widen to share it; when they need more room, the strip scrolls sideways. A hairline separates the columns.
 
-- A list panel sits left of the columns. It lists every thread that is not settled (a settled thread that runs or waits stays), without automation run threads, setup threads and sub-agents. ⌘K finds the settled ones.
+- A list panel sits left of the columns. It lists every thread that is not settled (a settled thread that runs or waits stays), without sub-agents. Automation sessions show with a calendar icon after the title. ⌘K finds the settled ones.
   - Grouped view (default): one row per T3 Code project, with a chevron to fold it, its icon, the number of its threads that run or are unread (accent, the same rule as the Sessions entry: the project numbers add up to it) and the number of listed threads (muted). Projects with listed threads come first, then "Unknown project" rows, then the empty projects at the end: muted, with no count and no chevron to fold. An archived project shows only while it has a listed thread. In the grouped view each thread row shows the provider logo and the model; in the flat view it shows the project icon and name instead. Point at a project and click "+" to start a New Session in it. Flat view: one list, most recent first. A button in the list band, after collapse/expand all, switches the view.
   - Each row has a status mark (a pulsing dot when it runs, orange when it waits for you, red when it failed, a hollow accent ring when it is unread), the title and "time · model". A thread open as a column has a thin accent bar on its left and a bold title, a closed one has a muted title, and the focused one a filled background. Click a row to open it as a column, or to focus its column and scroll it into view. Point at an open row to see a cross that closes its column; the thread stays in the list.
   - A slim band at the top of the panel has small icon buttons. On the right: "Add project" (see below), "Collapse all projects" or "Expand all projects" (grouped view only), the view button (grouped or flat), and "Close all sessions", which closes every column with no confirmation. There is no band at the bottom.
@@ -144,23 +144,24 @@ Each project row of the grouped Sessions list has a "…" button (next to "+"). 
 
 ## Automations
 
-The Automations tab lists the scheduled tasks of T3 Code in a table. It needs T3 Code to be connected. The list updates every 30 s while T3 Code is connected.
+The Automations tab lists the scheduled tasks of T3 Code, with the history of their runs. It needs T3 Code to be connected. The list updates every 30 s while T3 Code is connected.
 
-- The columns are: name, project, schedule, next run, last result and actions.
-- The groups are: "Needs attention" (last run failed or waiting), "Today", "Upcoming" and "Paused / finished" (closed). An empty group does not appear.
-- Search by name, project or schedule. The project list filters by project.
-- Click a name to open the thread of the task in Sessions. Shift + click opens it in Sessions without leaving the page.
-- Without a task, the tab shows "No automations yet" and a New Automation button.
+- One list shows every task, one row each, with three lines. Line 1: the name, the kind (Routine, Reminder, Webhook), "Paused" or "Finished", and a dot when the latest finished run is unread. Line 2: the project, the schedule, then the next run ("Next in 3 h"; point at it to read the date; "Paused"; "On each delivery" for a webhook; nothing for a finished reminder). Line 3: the status of the last run as a pill, like the Dashboard rows ("Succeeded", "Failed", "Running" or "Waiting for you"), then how long ago and how long it took, or "Never run". Paused and finished rows are dimmed. Setup threads of older versions come first, with a "Setting up" badge: click one to open its session.
+- A toolbar sits above the list. The search field filters by name, project or schedule. The filter shows All, Unread (with the count of tasks whose latest finished run is unread), Failed (the last run failed, or T3 Code failed before it opened a session), Running and Paused (paused tasks and finished reminders). The sort menu has Recent activity (default: the newest run first, tasks that never ran last), Next run (webhooks and paused tasks last) and Project (rows grouped under their project, which then leaves line 2). The browser remembers the filter and the sort (`t3-dashboard-automations-list` in local storage). When no task matches, the list says so.
+- Each row has a switch (pause or resume; a finished reminder has none), a play button "Run now" (it waits while a run is in progress) and a "⋯" menu, the same menu as a project row in Sessions: Edit, Copy webhook URL (webhooks) and Delete.
+- Click a row to open the task in a side sheet (600 px wide, full width on a phone). `Esc`, a click on the backdrop or the close button closes it. The sheet shows the kind, the title, the schedule and the buttons "Run now", "Edit", "Delete", "Copy webhook URL" (webhooks) and the switch. Then it lists the next run, the last run, the project, the model, the mode and, for a bound task, "Open session". The prompt follows, then "Run history": all runs, newest first, each with its status pill, a dot when unread and "Open session". When the session was archived or deleted, the run shows "Session archived".
+- Sessions of runs show everywhere as normal sessions (Dashboard, Sessions, search), with a calendar icon. Opening a run anywhere marks it read.
+- The Automations entry of the sidebar shows a number: the tasks whose latest finished run is unread. A red dot shows when one of these runs failed. Opening the tab does not clear it: open the runs. A run with no session is not counted.
+- The dashboard builds the history itself: T3 Code keeps none. It ties each run thread to its task by the task id that T3 Code writes on a user message of the thread, remembers the link, and keeps the runs in `~/.config/t3-dashboard/automation-runs.json` (20 per task). Renaming a task or a run thread keeps the link. A thread with no task id falls back to the project, title and creation date. A run whose session was archived before the dashboard saw it is missing.
+- Without a task, the tab shows "No automations yet" and a "New automation" button. While it loads, the list shows three placeholder rows.
 
-- A routine runs at each occurrence. The row shows the project, the frequency, the next run and the status of the last run. A paused task shows "paused".
+- A routine runs at each occurrence. The row shows the frequency, the next run and the last run. A paused task shows "Paused".
 - A reminder is a task whose title starts with "Reminder: " or "Rappel : ". The prefix is not shown. T3 Code has no one-time type, so the dashboard pauses the task after its run. Older reminders paused themselves from their prompt: the dashboard still detects them. The row shows the date of the reminder.
 - A webhook is a task that runs when a request arrives (see [Webhooks](#webhooks)).
-- After its run, the dashboard pauses a reminder, also when the run failed (the row keeps its error). The dashboard never deletes a reminder. The row then shows "Finished" with the time of the run. Finished reminders are at the bottom of the list, the most recent first.
-- Click a row to open the thread of the task.
-- Each row shows the project icon and the model (provider icon and model name). The Model column is empty when the task has no model.
-- To edit a task, click the pencil icon on its row. The creation form opens with the title, project, schedule, prompt, model and access mode of the task. Change what you need, then send. The kind of the task is fixed. A reminder needs a new time in the future: the form shows its next time, or no time when it already ran. Saving re-arms a paused reminder, and the dashboard keeps it enabled until its next run. A task linked to a thread runs there: its project is fixed, and a new title also renames the thread. A reminder keeps its "Reminder: " prefix.
-- To delete a task, click the trash icon on its row, then click "Delete". T3 Code deletes the task. You cannot undo this action.
-- When you delete a reminder, the dashboard also archives the threads of its runs. Without this, they would come back on the Dashboard. A reminder linked to a conversation keeps that conversation.
+- After its run, the dashboard pauses a reminder, also when the run failed (the row keeps its error). The dashboard never deletes a reminder. The row then shows "Finished" with the time of the run.
+- To edit a task, choose "Edit" in the "⋯" menu of its row, or click "Edit" in its sheet. The creation form opens with the title, project, schedule, prompt, model and access mode of the task. Change what you need, then send. The kind of the task is fixed. A reminder needs a new time in the future: the form shows its next time, or no time when it already ran. Saving re-arms a paused reminder, and the dashboard keeps it enabled until its next run. A task linked to a thread runs there: its project is fixed, and a new title also renames the thread. A reminder keeps its "Reminder: " prefix.
+- To delete a task, choose "Delete" in the "⋯" menu of its row, or click "Delete" in its sheet, then confirm. T3 Code deletes the task. You cannot undo this action.
+- When you delete a reminder, the dashboard also archives the threads of its runs. A reminder linked to a conversation keeps that conversation.
 - If T3 Code is too old to list the tasks, the tab shows the error. The Dashboard continues to work.
 
 ### Create an automation
@@ -169,14 +170,14 @@ The Automations tab lists the scheduled tasks of T3 Code in a table. It needs T3
 2. Pick the kind: Routine, Reminder or Webhook.
 3. Select a project, or keep "No project". The dashboard keeps this selection for the next time.
 4. Set the schedule (see below), write the prompt, and pick the model. The first line of the prompt becomes the title.
-5. Send. The dashboard creates the task in T3 Code directly: no agent thread is involved. The task runs with full access unless you pick another mode in the model menu. If an error occurs, the window stays open and shows the error.
+5. Click "Create" ("Cancel" closes the form). The dashboard creates the task in T3 Code directly: no agent thread is involved. The task runs with full access unless you pick another mode in the model menu. If an error occurs, the window stays open and shows the error.
 
 - A routine repeats. Choose "At a time" (a time and the days; no day means every day) or "Every N minutes" (1 to 525600).
 - A reminder runs once at the date and time you pick (1 minute to 366 days ahead). The dashboard gives the task the title "Reminder: <title>" and pauses it after its run. The prompt stays as you wrote it.
 - A reminder time is in your browser's time zone. A routine time is in the time zone of the machine that runs T3 Code. The row shows the next run: check it.
 - If T3 Code is off for more than 10 minutes at the time of a reminder set less than 7 days ahead, T3 Code moves it one week later.
 - The new task is not linked to a thread: each run opens its own thread.
-- Setup threads from older versions still show on a setup row while their agent works. The dashboard reads `~/.config/t3-dashboard/automation-threads.json` to hide their Dashboard entries. It no longer writes to this file.
+- Setup threads from older versions still show on a setup row while their agent works. The dashboard reads `~/.config/t3-dashboard/automation-threads.json` to mark these threads with the automation icon. It no longer writes to this file.
 
 ### Webhooks
 
@@ -184,7 +185,7 @@ A webhook task runs when a service sends a request to its URL, for example a Git
 
 1. Choose the kind "Webhook" in the new automation form.
 2. Add filters. Only requests that match every filter start a run. Example for a review request: `headers.x-github-event` equals `pull_request`, `body.action` equals `review_requested`, `body.requested_reviewer.login` equals your GitHub login.
-3. Keep "Check the signature" on and type the signing secret. The defaults fit GitHub: header `x-hub-signature-256`, encoding hex, prefix `sha256=`. Use the same secret in GitHub.
+3. Turn on "Check the signature" (it is off by default) and type the signing secret. The defaults fit GitHub: header `x-hub-signature-256`, encoding hex, prefix `sha256=`. Use the same secret in GitHub.
 4. Write the prompt for one event. It can use values such as `{{body.pull_request.html_url}}`. These values are untrusted data, not instructions.
 5. Send. A panel shows the GitHub settings: Payload URL (a copy button), content type `application/json`, the secret you typed, and the events to select (for example Pull requests).
 
@@ -203,7 +204,7 @@ You can also ask for a task in a normal conversation. `t3-dashboard install` add
 
 ### Threads of tasks without a linked conversation
 
-A task without a linked thread creates a new thread at each run. The dashboard hides these threads from the Dashboard. It identifies them by the project, the title, the origin and the creation date of the task. You open the thread of the last run from the row of the task.
+A task without a linked thread creates a new thread at each run. These threads show like any session, with the automation icon. The dashboard ties a thread to its task by the task id that T3 Code writes on the first message of the thread, and remembers the link. A thread that this id does not tie is matched by the project, the title, the origin and the creation date of the task. Renaming a task or a run thread does not break the link. You open the thread of the last run from the row of the task.
 
 ### T3 Code limits
 

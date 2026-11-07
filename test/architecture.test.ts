@@ -63,7 +63,6 @@ const FEATURE_EDGES = new Map([
   ["features/new-thread -> features/projects", "the New Session dialog swaps to the Add project form"],
   ["features/automations -> features/new-thread", "a row opens the automation dialog to edit the task"],
   ["features/automations -> features/conversation", "the Model column reuses the model lookup of the composer"],
-  ["features/dashboard -> features/automations", "the cards hide routine and setup threads"],
   ["features/dashboard -> features/settings", "the Linear setup card reuses the key form"],
   ["features/dashboard -> features/new-thread", "assigning a ticket opens the New Session dialog"],
   ["features/settings -> features/update", "the Updates tab shows the update status"],
@@ -73,6 +72,7 @@ const FEATURE_EDGES = new Map([
 const EXCEPTIONS = new Map([
   ["web/src/ui/Dropdown.tsx -> web/src/lib/dropdown.ts", "the dropdown menu logic is pure and tested in lib"],
   ["web/src/ui/Popover.tsx -> web/src/lib/dropdown.ts", "the popover uses the same menu placement"],
+  ["web/src/ui/ActionMenu.tsx -> web/src/lib/dropdown.ts", "the action menu moves its active row like the dropdown"],
 ]);
 
 const SPECIFIER = /(?:^|\s)(?:import|export)\s[^"';]*?from\s*["']([^"']+)["']|import\(\s*["']([^"']+)["']\s*\)/g;

@@ -219,14 +219,19 @@ test("the demo Linear board and automations need no network", async () => {
   const port = new DemoPort(() => NOW);
   const store = syncedStore(port);
   await Bun.sleep(0);
-  const { automations, hiddenThreadIds, setupThreadIds } = await createAutomations({ port, store, dedicated: { read: () => new Set(["demo-digest", "demo-setup"]) } }).list();
-  assert.ok(automations.length >= 3 && automations.filter((automation) => automation.kind !== "webhook").every((automation) => automation.nextRunAt !== null));
+  const { automations, automationThreadIds, setupThreadIds } = await createAutomations({ port, store, dedicated: { read: () => new Set(["demo-digest", "demo-setup"]) } }).list();
+  assert.ok(automations.length >= 3 && automations.filter((automation) => automation.kind !== "webhook" && automation.enabled).every((automation) => automation.nextRunAt !== null));
   assert.ok(automations.some((automation) => automation.kind === "reminder"));
   const hooks = automations.filter((automation) => automation.kind === "webhook");
   assert.equal(hooks.length, 2);
-  assert.ok(hooks.some((hook) => hook.webhook?.signed === true && hook.webhook.url !== null && hook.enabled && hook.threadId === null && hook.lastRunStatus === "succeeded"));
+  assert.ok(hooks.some((hook) => hook.webhook?.signed === true && hook.webhook.url !== null && hook.enabled && hook.runs.length === 2 && hook.lastRunStatus === "succeeded"));
   assert.ok(hooks.some((hook) => hook.webhook?.url === null && !hook.enabled));
-  assert.deepEqual(hiddenThreadIds, ["demo-digest"]);
+  assert.ok(["demo-digest", "demo-setup", "demo-run-inbox-1", "demo-run-metrics-2"].every((id) => automationThreadIds.includes(id)));
+  const inbox = automations.find((automation) => automation.id === "inbox-triage")!;
+  assert.ok(inbox.runs.length > 1 && inbox.runs.some((run) => run.status === "failed") && inbox.runs.some((run) => run.status === "succeeded"));
+  assert.ok(automations.find((automation) => automation.id === "dependency-check")!.runs.some((run) => run.threadId === null && run.status === "failed"));
+  assert.ok(automations.find((automation) => automation.id === "metrics-snapshot")!.runs.some((run) => run.status === "running"));
+  assert.equal((await port.threadProjection("demo-run-inbox-1")).messages?.[0]?.scheduledTaskId, "inbox-triage");
   assert.deepEqual(setupThreadIds, ["demo-setup"]);
   assert.equal(store.thread("demo-setup")?.status, "running");
   const reminder = automations.find((automation) => automation.kind === "reminder")!;
@@ -362,6 +367,26 @@ test("the demo server stats are plausible, move over time and show an amber disk
   assert.notEqual(a.memory.usedBytes, b.memory.usedBytes);
   assert.ok(a.disk!.usedPercent >= 75 && a.disk!.usedPercent < 90);
   assert.equal(a.disk!.path, "/home/demo");
+});
+
+test("demo runNow opens a running run thread that the task matches, and setEnabled pauses it", async () => {
+  const port = new DemoPort(() => NOW);
+  const store = syncedStore(port);
+  await Bun.sleep(0);
+  const automations = createAutomations({ port, store, dedicated: { read: () => new Set() } });
+  const before = (await automations.list()).automations.find((a) => a.id === "dependency-check")!;
+  await automations.runNow("dependency-check");
+  const task = (await port.listScheduledTasks()).find((entry) => entry.id === "dependency-check")!;
+  assert.deepEqual([task.lastRunAt, task.lastRunStatus], [NOW.toISOString(), "running"]);
+  const run = store.rawThreads().find((thread) => thread.title === task.title && thread.createdAt === NOW.toISOString())!;
+  assert.deepEqual([run.projectId, run.creationSource, run.status], [task.projectId, task.creationSource, "running"]);
+  const after = (await automations.list()).automations.find((a) => a.id === "dependency-check")!;
+  assert.equal(after.runs.length, before.runs.length + 1);
+  assert.equal(after.lastRunStatus, "running");
+  await automations.setEnabled("dependency-check", false);
+  assert.equal((await port.listScheduledTasks()).find((entry) => entry.id === "dependency-check")!.enabled, false);
+  await automations.setEnabled("dependency-check", true);
+  assert.equal((await port.listScheduledTasks()).find((entry) => entry.id === "dependency-check")!.enabled, true);
 });
 
 test("the demo edits and deletes a project with its threads", async () => {

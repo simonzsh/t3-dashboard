@@ -24,11 +24,14 @@ This folder contains the base components of the dashboard. The screens in `web/s
 | `Choice` | Checkbox or radio button (`type="checkbox"` or `type="radio"`). |
 | `FileInput` | Hidden file field. A button opens it with `ref.current.click()`. |
 | `Dialog` | Modal window: title, close cross at the top right, Escape and outside click to close. `onCancel`, `secondary` and `primary` add the action row. |
+| `Sheet` | Side sheet under the header, always mounted. `open` slides it in and out and fades the backdrop. `width`: `narrow` (380 px) or `wide` (600 px). Backdrop click and Escape call `onClose`; the focus goes in and comes back; Tab stays inside. |
+| `ActionMenu` | The "…" button of a row and its menu. `items` are `{ label, icon, onSelect, danger?, disabled?, tooltip? }`. The arrows move between items; Escape gives the focus back. Use it for every row menu, with no separator. |
 | `CardHead` | Header of a card: icon, title, a note (a muted word or a menu), count and icon buttons on the right. |
 | `Badge` | Status label: `waiting`, `running`, `done`, `error`, `neutral`. |
 | `Dropdown` | Choice menu. Use it in place of `<select>`. A filter field appears for long lists. |
 | `Popover` | Panel attached next to an element. Escape and outside click close it. |
 | `Segmented` | Single choice between some visible options (for example the theme). |
+| `Switch` | On/off setting that acts at once (pause an automation). `role="switch"`; `label` gives the accessible name. |
 | `ToggleGroup` | Several options that each turn on and off (for example the weekdays). The "on" look is the same gray as `Segmented`. |
 | `Kbd` | Keyboard shortcut. |
 | `TooltipLayer` | Dashboard tooltip, mounted one time in `App`. It shows immediately on hover and on keyboard focus of an element with `data-tooltip` (and `data-shortcut` for the shortcut, in a frame). It closes when the pointer leaves, on click, on scroll and with Escape. It does not exist on a touch screen. `Button`, `IconButton` and `Pressable` set these attributes with `tooltip` and `shortcut`. On a different element, write `data-tooltip`. |

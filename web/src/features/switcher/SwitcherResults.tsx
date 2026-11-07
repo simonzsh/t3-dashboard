@@ -1,5 +1,6 @@
 import { relativeTime } from "../../lib/format.ts";
 import { ProjectIcon } from "../../lib/ProjectIcon.tsx";
+import { AutomationMark } from "../../lib/automationThreads.tsx";
 import { ProviderIcon } from "../../lib/ProviderIcon.tsx";
 import { threadTitle } from "../../lib/threads.ts";
 import { Loader, Pressable } from "../../ui/index.ts";
@@ -45,6 +46,7 @@ export function SwitcherResults({ rows, selected, now, loading, error, label, se
                 <span className="switcher-title">
                   <Highlight text={threadTitle(row.thread)} query={query} />
                 </span>
+                <AutomationMark id={row.thread.id} />
                 <span className="switcher-meta">
                   <ProjectIcon icon={row.project.icon} title={row.project.title} />
                   {row.project.title} · {relativeTime(row.thread.lastActivityAt, now)}

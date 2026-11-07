@@ -30,6 +30,8 @@ export class DemoPort implements T3Port {
   private readonly createdTasks: RawScheduledTask[] = [];
   private readonly pausedTasks = new Set<string>();
   private readonly updatedTasks = new Map<string, Partial<RawScheduledTask>>();
+  // Built once, like the threads: a lastRunAt that moves on each read would log a new run every poll.
+  private readonly tasks: RawScheduledTask[];
   private refreshedAt: Date | null = null;
   private sequence = 0;
   private uploads = 0;
@@ -37,6 +39,7 @@ export class DemoPort implements T3Port {
   constructor(now: () => Date) {
     this.now = now;
     const fixtures = demoFixtures(now());
+    this.tasks = demoScheduledTasks(now());
     this.projects = [...fixtures.projects];
     this.config = fixtures.config;
     this.hidden = new Set(fixtures.hiddenThreadIds);
@@ -87,7 +90,7 @@ export class DemoPort implements T3Port {
   }
 
   async listScheduledTasks(): Promise<RawScheduledTask[]> {
-    return [...demoScheduledTasks(this.now()), ...this.createdTasks]
+    return [...this.tasks, ...this.createdTasks]
       .filter((task) => !this.deletedTasks.has(task.id))
       .map((task) => ({ ...task, ...this.updatedTasks.get(task.id), ...(this.pausedTasks.has(task.id) && { enabled: false }) }));
   }
@@ -98,6 +101,31 @@ export class DemoPort implements T3Port {
   async setScheduledTaskEnabled(id: string, enabled: boolean): Promise<void> {
     if (enabled) this.pausedTasks.delete(id);
     else this.pausedTasks.add(id);
+  }
+
+  // Like T3: an unbound task opens a fresh thread, which the demo leaves running.
+  async runScheduledTaskNow(id: string): Promise<void> {
+    const task = (await this.listScheduledTasks()).find((entry) => entry.id === id);
+    if (!task) throw new Error("Unknown demo task");
+    const at = this.now().toISOString();
+    this.updatedTasks.set(id, { ...this.updatedTasks.get(id), lastRunAt: at, lastRunStatus: "running", lastRunError: undefined });
+    if (task.threadId) return;
+    const threadId = `demo-run-${id}-${++this.sequence}`;
+    const thread: RawThread = {
+      id: threadId,
+      projectId: task.projectId ?? SCRATCH_PROJECT_ID,
+      title: task.title,
+      modelSelection: task.modelSelection,
+      providerInstanceId: task.modelSelection?.instanceId,
+      runtimeMode: task.runtimeMode,
+      creationSource: task.creationSource,
+      status: "running",
+      activeRunId: `run-${threadId}`,
+      createdAt: at,
+      updatedAt: at,
+    };
+    this.projections.set(threadId, { thread, messages: [{ id: `${threadId}-m0`, role: "user", text: task.prompt ?? "", createdAt: at, scheduledTaskId: id }], visibleTurnItems: [], runs: [] });
+    this.publish(thread);
   }
 
   subscribeScheduledTasks(onTasks: (tasks: RawScheduledTask[]) => void): { cancel(): void } {

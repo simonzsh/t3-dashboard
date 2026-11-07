@@ -140,6 +140,8 @@ export const RawMessage = s.object({
   text: s.optional(s.string()),
   streaming: s.optional(s.boolean()),
   createdAt: s.optional(s.string()),
+  // Set by T3 on the first message of a scheduled run: the id of the task.
+  scheduledTaskId: text(),
   attachments: s.optional(s.nullable(s.array(s.object({ type: s.string(), id: s.string(), name: text(), mimeType: text(), sizeBytes: s.optional(s.nullable(s.number())) })))),
   context: s.optional(s.nullable(s.object({ guest: s.optional(s.nullable(s.object({ text: text() }))) }))),
   delegatedCompletion: s.optional(s.unknown()),
@@ -493,6 +495,8 @@ export interface T3Port {
   setScheduledTaskWorkspace(id: string, workspaceStrategy: { type: "root" }): Promise<void>;
   /** Pauses or resumes a scheduled task. */
   setScheduledTaskEnabled(id: string, enabled: boolean): Promise<void>;
+  /** Starts a run of a scheduled task now, whatever its schedule. */
+  runScheduledTaskNow(id: string): Promise<void>;
   /** Full task snapshots: T3 sends the whole list on each change. */
   subscribeScheduledTasks(onTasks: (tasks: RawScheduledTask[]) => void, onEnd: (error?: Error) => void): { cancel(): void };
   /** Message matches in T3, best first. */

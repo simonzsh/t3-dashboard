@@ -35,6 +35,23 @@ const ignore = () => {};
 
 const FOCUSABLE = 'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
 
+/** Tab and Shift+Tab stay inside the element that has this handler (a modal). */
+export function trapTab(e: KeyboardEvent<HTMLElement>) {
+  if (e.key !== "Tab") return;
+  const items = Array.from(e.currentTarget.querySelectorAll<HTMLElement>(FOCUSABLE));
+  if (items.length === 0) return e.preventDefault();
+  const first = items[0]!;
+  const last = items[items.length - 1]!;
+  const active = document.activeElement;
+  if (e.shiftKey && (active === first || !e.currentTarget.contains(active))) {
+    e.preventDefault();
+    last.focus();
+  } else if (!e.shiftKey && (active === last || !e.currentTarget.contains(active))) {
+    e.preventDefault();
+    first.focus();
+  }
+}
+
 export function Dialog({ title, label, onClose, onCancel, cancelLabel = "Cancel", primary, secondary, className, hidden = false, children }: Props) {
   useEscape(hidden ? ignore : onClose);
   const titleId = useId();
@@ -65,21 +82,6 @@ export function Dialog({ title, label, onClose, onCancel, cancelLabel = "Cancel"
     return () => previous.current?.focus?.();
   }, []);
 
-  function trapTab(e: KeyboardEvent<HTMLDivElement>) {
-    if (e.key !== "Tab") return;
-    const items = Array.from(e.currentTarget.querySelectorAll<HTMLElement>(FOCUSABLE));
-    if (items.length === 0) return e.preventDefault();
-    const first = items[0]!;
-    const last = items[items.length - 1]!;
-    const active = document.activeElement;
-    if (e.shiftKey && (active === first || !e.currentTarget.contains(active))) {
-      e.preventDefault();
-      last.focus();
-    } else if (!e.shiftKey && (active === last || !e.currentTarget.contains(active))) {
-      e.preventDefault();
-      first.focus();
-    }
-  }
   return (
     <div className="dialog-backdrop" ref={backdrop} onClick={onClose} hidden={hidden}>
       <div

@@ -1,7 +1,7 @@
 import { test } from "bun:test";
 import assert from "node:assert/strict";
 import type { SeenState } from "../../../../shared/seen.ts";
-import { listedThreads, notificationDetail, notificationIcon, notificationList, splitRead, threadSections, attentionCount } from "../../../src/features/dashboard/sections.ts";
+import { notificationDetail, notificationIcon, notificationList, splitRead, threadSections, attentionCount } from "../../../src/features/dashboard/sections.ts";
 import { thread } from "../../fixtures.ts";
 
 const now = new Date("2026-01-12T12:00:00.000Z");
@@ -108,10 +108,4 @@ test("the detail line says what the agent waits for, the error, or the model", (
   assert.equal(notificationDetail(thread("b2", { status: "failed" }), null), "The run failed");
   assert.equal(notificationDetail(thread("c", { status: "completed" }), "Model X"), "Finished · Model X");
   assert.equal(notificationDetail(thread("d", { status: "completed" }), null), "Finished");
-});
-
-test("listedThreads leaves out hidden routine runs and setup threads", () => {
-  const list = [thread("a"), thread("routine"), thread("setup")];
-  assert.deepEqual(ids(listedThreads(list, ["routine"], ["setup"])), ["a"]);
-  assert.deepEqual(ids(listedThreads(list)), ["a", "routine", "setup"]);
 });

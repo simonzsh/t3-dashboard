@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { test } from "bun:test";
 import { renderToStaticMarkup } from "react-dom/server";
 import { nextRadioIndex } from "../../src/ui/radioKeys.ts";
-import { Badge, Button, Choice, Dialog, Segmented, FileInput, Icon, IconButton, PageHeader, Pressable, SecretInput, Skeleton, SkeletonGroup, Tabs, TextArea, TextInput } from "../../src/ui/index.ts";
+import { ActionMenu, Badge, Button, Choice, Dialog, Segmented, FileInput, Icon, IconButton, PageHeader, Pressable, SecretInput, Sheet, Skeleton, SkeletonGroup, Switch, Tabs, TextArea, TextInput } from "../../src/ui/index.ts";
 
 const html = renderToStaticMarkup;
 
@@ -194,4 +194,33 @@ test("a Skeleton is an aria-hidden block of the given size", () => {
 
 test("a SkeletonGroup is one busy, labelled region", () => {
   assert.match(html(<SkeletonGroup label="Loading usage"><Skeleton /></SkeletonGroup>), /role="status" aria-busy="true" aria-label="Loading usage"/);
+});
+
+test("a Switch is a named switch button that shows its state", () => {
+  const on = html(<Switch checked label="Pause Inbox" onChange={() => {}} />);
+  assert.match(on, /role="switch"/);
+  assert.match(on, /aria-checked="true"/);
+  assert.match(on, /aria-label="Pause Inbox"/);
+  assert.match(html(<Switch checked={false} label="x" onChange={() => {}} disabled />), /aria-checked="false"[^>]*disabled=""|disabled=""[^>]*aria-checked="false"/);
+});
+
+test("a closed Sheet stays mounted, inert and without the open class", () => {
+  const out = html(<Sheet open={false} label="Notifications" onClose={() => {}}>x</Sheet>);
+  assert.match(out, /class="ui-sheet-backdrop"/);
+  assert.match(out, /class="ui-sheet narrow"/);
+  assert.match(out, / inert=""/);
+});
+
+test("an open Sheet is a labelled modal dialog with the width class", () => {
+  const out = html(<Sheet open width="wide" label="Inbox triage" onClose={() => {}}>x</Sheet>);
+  assert.match(out, /class="ui-sheet wide open" role="dialog" aria-modal="true" aria-label="Inbox triage"/);
+  assert.doesNotMatch(out, /inert/);
+});
+
+test("an ActionMenu is a closed menu button with the given name", () => {
+  const out = html(<ActionMenu label="Actions for X" tooltip="Actions" items={[{ label: "Edit", icon: "pencil", onSelect: () => {} }]} />);
+  assert.match(out, /aria-label="Actions for X"/);
+  assert.match(out, /aria-haspopup="menu"/);
+  assert.match(out, /aria-expanded="false"/);
+  assert.doesNotMatch(out, /role="menu"/);
 });

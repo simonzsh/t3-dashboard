@@ -302,6 +302,20 @@ test("a refused task update is rebuilt without T3's message", async () => {
   assert.deepEqual([failure?.kind, failure?.message], ["refused", "T3 refused the scheduled task update."]);
 });
 
+test("runScheduledTaskNow sends the id and is not retried on a dropped socket", async () => {
+  const { client } = setup();
+  const done = client.runScheduledTaskNow("task-1");
+  const socket = await nextSocket();
+  assert.equal(socket.sent[0]!.tag, "scheduledTasks.runNow");
+  assert.deepEqual(socket.sent[0]!.payload, { id: "task-1" });
+  socket.close();
+  // A run started twice would run the agent twice: a cut fails the call instead.
+  assert.equal(await done.then(() => "resolved", () => "rejected"), "rejected");
+  for (let i = 0; i < 20 && FakeSocket.instances.length < 2; i++) await tick();
+  const resent = FakeSocket.instances.slice(1).some((s) => s.sent.some((frame) => frame.tag === "scheduledTasks.runNow"));
+  assert.equal(resent, false);
+});
+
 test("setScheduledTaskEnabled sends the id and the flag, and is sent again after a cut", async () => {
   const { client } = setup();
   const done = client.setScheduledTaskEnabled("task-1", false);

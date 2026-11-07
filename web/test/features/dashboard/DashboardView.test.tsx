@@ -4,7 +4,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import type { ActivityPeriod, DashboardState, LimitsOverview, ServerStats, UsageDay, UsageOverview, UsageTotals } from "../../../../shared/api.ts";
 import { DashboardView } from "../../../src/features/dashboard/DashboardView.tsx";
 import { DEFAULT_LAYOUT, setHidden, shiftCard, type DashboardLayout } from "../../../src/features/dashboard/layout.ts";
-import { listedThreads } from "../../../src/features/dashboard/sections.ts";
+import { AutomationThreadsContext } from "../../../src/lib/automationThreads.tsx";
 import type { ReadState } from "../../../src/features/dashboard/pollRead.ts";
 import type { ActivityState } from "../../../src/features/dashboard/useActivity.ts";
 import { baseState, thread } from "../../fixtures.ts";
@@ -67,15 +67,16 @@ interface Options {
   sheet?: boolean;
   seen?: typeof fresh;
   providers?: DashboardState["providers"];
+  automationIds?: string[];
 }
-const render = (activity: ActivityState, { limits = limitsState(), threads = [thread("a", { status: "running" })], layout = DEFAULT_LAYOUT, editing = false, panelOpen = true, sheet = false, seen = fresh, providers = [] }: Options = {}) =>
+const render = (activity: ActivityState, { limits = limitsState(), threads = [thread("a", { status: "running" })], layout = DEFAULT_LAYOUT, editing = false, panelOpen = true, sheet = false, seen = fresh, providers = [], automationIds = [] }: Options = {}) =>
   renderToStaticMarkup(
+    <AutomationThreadsContext.Provider value={new Set(automationIds)}>
     <DashboardView
       state={{ ...baseState(threads), providers }}
       limits={limits}
       server={serverState()}
       activity={activity}
-      visible={listedThreads(threads, ["t-routine"])}
       now={NOW}
       sessionIds={new Set()}
       layout={layout}
@@ -89,10 +90,9 @@ const render = (activity: ActivityState, { limits = limitsState(), threads = [th
       seen={seen}
       seenReady
       onMarkRead={() => {}}
-      automations={{ automations: [], hiddenThreadIds: ["t-routine"], setupThreadIds: [] }}
-      automationsError={null}
       linearVersion={0}
-    />,
+    />
+    </AutomationThreadsContext.Provider>,
   );
 // One card, from its opening tag to its closing one.
 const card = (out: string, head: "notifications-head" | "running-head" | "up-next-head") => {
@@ -319,26 +319,30 @@ test("the Running card says it is live, with a dot", () => {
   assert.match(card(render(state(), { threads: [] }), "running-head"), /Live/);
 });
 
-test("routine threads stay out of every card", () => {
-  assert.doesNotMatch(render(state(), { threads: [thread("t-routine", { title: "Routine run" })] }), /Routine run/);
+test("an automation run is listed like any session, with the automation icon", () => {
+  const run = thread("t-routine", { title: "Routine run", status: "running" });
+  const done = thread("t-done", { title: "Finished run", status: "completed", lastActivityAt: "2026-01-14T11:00:00.000Z" });
+  const out = render(state(), { threads: [run, done], automationIds: ["t-routine", "t-done"] });
+  assert.match(card(out, "running-head"), /Routine run.*auto-mark/);
+  assert.match(card(out, "notifications-head"), /Finished run.*auto-mark/);
 });
 
 test("in sheet mode the panel is a dialog sheet with a backdrop, and it takes no room", () => {
   const out = render(state(), { sheet: true });
-  assert.match(out, /<div class="dashboard-backdrop open" aria-hidden="true">/);
-  assert.match(out, /<aside tabindex="-1" class="dashboard-panel open" role="dialog" aria-modal="true" aria-label="Notifications">/);
+  assert.match(out, /<div class="ui-sheet-backdrop open" aria-hidden="true">/);
+  assert.match(out, /<aside tabindex="-1" class="ui-sheet narrow open" role="dialog" aria-modal="true" aria-label="Notifications">/);
   assert.doesNotMatch(out, /with-panel|data-dash-item="notifications"/);
   assert.equal(out.match(/id="notifications-head"/g)?.length, 1);
 });
 
 test("a closed sheet stays mounted for its slide-out, but inert", () => {
   const out = render(state(), { sheet: true, panelOpen: false });
-  assert.match(out, /<aside tabindex="-1" class="dashboard-panel" role="dialog"[^>]* inert=""/);
-  assert.doesNotMatch(out, /dashboard-backdrop open|dashboard-panel open/);
+  assert.match(out, /<aside tabindex="-1" class="ui-sheet narrow" role="dialog"[^>]* inert=""/);
+  assert.doesNotMatch(out, /ui-sheet-backdrop open|ui-sheet narrow open/);
 });
 
 test("edit mode removes the sheet and its backdrop", () => {
-  assert.doesNotMatch(render(state(), { sheet: true, editing: true }), /dashboard-panel|dashboard-backdrop|notifications-head/);
+  assert.doesNotMatch(render(state(), { sheet: true, editing: true }), /dashboard-panel|ui-sheet|notifications-head/);
 });
 
 test("the wide panel is a plain aside: no dialog role, no close button, nothing inert", () => {

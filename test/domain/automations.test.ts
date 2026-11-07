@@ -2,10 +2,11 @@ import assert from "node:assert/strict";
 import { test } from "bun:test";
 import type { CreateAutomationBody, UpdateAutomationBody } from "../../shared/api.ts";
 import { createAutomations, toAutomations } from "../../src/domain/automations.ts";
+import { AutomationRunLog, type RunLog } from "../../src/domain/automationRuns.ts";
 import { DomainError } from "../../src/domain/errors.ts";
 import { RearmedStore } from "../../src/domain/rearmedStore.ts";
 import { IntegrationError } from "../../src/integrations/errors.ts";
-import type { RawScheduledTask, RawThread } from "../../src/integrations/t3/schemas.ts";
+import type { RawProjection, RawScheduledTask, RawThread } from "../../src/integrations/t3/schemas.ts";
 import { FakePort } from "../helpers/fakePort.ts";
 
 const task = (extra: Partial<RawScheduledTask> = {}): RawScheduledTask => ({
@@ -47,6 +48,7 @@ test("a task becomes a routine with its project, schedule label, state and model
     runtimeMode: null,
     bound: false,
     webhook: null,
+    runs: [],
   });
 });
 
@@ -107,21 +109,21 @@ test("setupThreadIds lists the dedicated threads that no task is bound to", () =
   assert.deepEqual(convert([task({ threadId: "t-chat" })], [], []).setupThreadIds, []);
 });
 
-test("a dedicated thread is hidden only while a task is bound to it", () => {
+test("a dedicated thread is marked only while a task is bound to it, and a setup thread is marked too", () => {
   const bound = convert([task({ threadId: "t-dedicated" })], [], ["t-dedicated"]);
-  assert.deepEqual(bound.hiddenThreadIds, ["t-dedicated"]);
+  assert.deepEqual(bound.automationThreadIds, ["t-dedicated"]);
   assert.equal(bound.automations[0]!.threadId, "t-dedicated");
-  assert.deepEqual(convert([], [], ["t-dedicated"]).hiddenThreadIds, []);
-  assert.deepEqual(convert([task({ threadId: "t-other" })], [], ["t-dedicated"]).hiddenThreadIds, []);
+  assert.deepEqual(convert([], [], ["t-dedicated"]).automationThreadIds, ["t-dedicated"]);
+  assert.deepEqual(convert([task({ threadId: "t-other" })], [], ["t-dedicated"]).automationThreadIds, ["t-dedicated"]);
 });
 
-test("a normal conversation bound to a task stays visible", () => {
+test("a normal conversation bound to a task is not marked", () => {
   const result = convert([task({ threadId: "t-chat" })], [thread("t-chat")]);
-  assert.deepEqual(result.hiddenThreadIds, []);
+  assert.deepEqual(result.automationThreadIds, []);
   assert.equal(result.automations[0]!.threadId, "t-chat");
 });
 
-test("run threads of an unbound task are hidden and the newest is the row thread", () => {
+test("run threads of an unbound task are marked and the newest is the row thread", () => {
   const threads = [
     thread("run-old", { createdAt: "2026-03-20T10:00:00.000Z" }),
     thread("run-new", { createdAt: "2026-03-20T12:00:00.000Z" }),
@@ -131,20 +133,26 @@ test("run threads of an unbound task are hidden and the newest is the row thread
     thread("by-user", { creationSource: "server" }),
   ];
   const result = convert([task()], threads);
-  assert.deepEqual(result.hiddenThreadIds.sort(), ["run-new", "run-old"]);
+  assert.deepEqual(result.automationThreadIds.sort(), ["run-new", "run-old"]);
   assert.equal(result.automations[0]!.threadId, "run-new");
 });
 
-test("webhook event threads are hidden like any run thread and the newest is the row thread", () => {
+test("webhook event threads are marked like any run thread and the newest is the row thread", () => {
   const threads = [thread("event-1", { createdAt: "2026-03-20T10:00:00.000Z" }), thread("event-2", { createdAt: "2026-03-20T12:00:00.000Z" })];
   const result = convert([task({ schedule: { type: "webhook" } })], threads);
-  assert.deepEqual(result.hiddenThreadIds.sort(), ["event-1", "event-2"]);
+  assert.deepEqual(result.automationThreadIds.sort(), ["event-1", "event-2"]);
   assert.equal(result.automations[0]!.threadId, "event-2");
 });
 
 test("a bound task never matches run threads", () => {
   const result = convert([task({ threadId: "t-chat" })], [thread("t-chat"), thread("lookalike")]);
-  assert.deepEqual(result.hiddenThreadIds, []);
+  assert.deepEqual(result.automationThreadIds, []);
+});
+
+test("an automation carries the runs logged for its task", () => {
+  const run = { threadId: "run-1", startedAt: "2026-03-20T10:00:00.000Z", finishedAt: null, status: "running" as const, error: null };
+  const result = toAutomations([task(), task({ id: "task-2" })], [], new Set(), () => null, { "task-1": [run] });
+  assert.deepEqual(result.automations.map((item) => item.runs), [[run], []]);
 });
 
 test("remove deletes the task through the port", async () => {
@@ -200,8 +208,10 @@ test("remove wraps a port failure as an IntegrationError", async () => {
   await assert.rejects(automations.remove("task-1"), (error) => error instanceof IntegrationError && error.kind === "refused");
 });
 
-function harness(threads: RawThread[] = [thread("run-1")]) {
+function harness(threads: RawThread[] = [thread("run-1")], runs?: AutomationRunLog) {
   const port = new FakePort();
+  // A thread whose first message exists but has no task id.
+  port.projection = { messages: [{ id: "m", role: "user" }] };
   const warnings: string[] = [];
   const automations = createAutomations({
     warn: (message) => void warnings.push(message),
@@ -210,6 +220,7 @@ function harness(threads: RawThread[] = [thread("run-1")]) {
     dedicated: { read: () => new Set(["t-dedicated"]) },
     newId: () => "id-1",
     now: () => new Date(2026, 10, 4, 10, 0, 0),
+    runs,
   });
   return { automations, port, warnings };
 }
@@ -299,7 +310,26 @@ test("list converts the tasks of T3 with the live threads and the dedicated set"
   port.scheduledTasks = [task({ threadId: "t-dedicated" }), task({ id: "task-2", threadId: null })];
   const result = await automations.list();
   assert.deepEqual(result.automations.map((item) => [item.id, item.threadId]), [["task-1", "t-dedicated"], ["task-2", "run-1"]]);
-  assert.deepEqual(result.hiddenThreadIds.sort(), ["run-1", "t-dedicated"]);
+  assert.deepEqual(result.automationThreadIds.sort(), ["run-1", "t-dedicated"]);
+});
+
+test("list logs the runs, saves them once and returns them", async () => {
+  const saved: RunLog[] = [];
+  const { automations, port } = harness([thread("run-1", { status: "completed", latestRunCompletedAt: "2026-03-20T10:05:00.000Z" })], new AutomationRunLog({}, (log) => void saved.push(log)));
+  port.scheduledTasks = [task()];
+  const first = await automations.list();
+  assert.deepEqual(first.automations[0]!.runs.map((run) => [run.threadId, run.status]), [["run-1", "succeeded"]]);
+  await automations.list();
+  assert.equal(saved.length, 1);
+});
+
+test("remove drops the runs of the deleted task", async () => {
+  const saved: RunLog[] = [];
+  const { automations, port } = harness([thread("run-1", { status: "completed", latestRunCompletedAt: "2026-03-20T10:05:00.000Z" })], new AutomationRunLog({}, (log) => void saved.push(log)));
+  port.scheduledTasks = [task()];
+  await automations.list();
+  await automations.remove("task-1");
+  assert.deepEqual(saved.at(-1), {});
 });
 
 test("list turns a plain port error into a T3 error and keeps an integration error", async () => {
@@ -450,4 +480,124 @@ test("a failed update rolls back only the mark it added", async () => {
   const earlier = new RearmedStore({ "task-1": lastRunAt });
   await assert.rejects(make(earlier).update("task-1", { ...base, kind: "reminder", at }));
   assert.equal(earlier.has("task-1", lastRunAt), true);
+});
+
+test("setEnabled and runNow reach T3, and an unknown automation is not found", async () => {
+  const port = new FakePort();
+  const automations = createAutomations({ port, store: { project: () => undefined, rawThreads: () => [] }, dedicated: { read: () => new Set() } });
+  port.scheduledTasks = [task({})];
+  await automations.setEnabled("task-1", false);
+  await automations.runNow("task-1");
+  assert.deepEqual(port.enabledCalls, [{ id: "task-1", enabled: false }]);
+  assert.deepEqual(port.runNowCalls, ["task-1"]);
+  for (const call of [() => automations.setEnabled("nope", true), () => automations.runNow("nope")]) {
+    await assert.rejects(call, (error: DomainError) => error.code === "not-found");
+  }
+  assert.equal(port.enabledCalls.length + port.runNowCalls.length, 2);
+  port.runNowError = new Error("T3 is down");
+  await assert.rejects(automations.runNow("task-1"), (error: IntegrationError) => error.kind === "unreachable");
+});
+
+const stamped = (taskId: string | null): RawProjection => ({ messages: [{ id: "m", role: "user", ...(taskId && { scheduledTaskId: taskId }) }] });
+const runIds = (result: Awaited<ReturnType<ReturnType<typeof harness>["automations"]["list"]>>, index = 0) => result.automations[index]!.runs.map((run) => run.threadId);
+
+test("list links a new run by the scheduledTaskId of its thread, even with another title", async () => {
+  const { automations, port } = harness([thread("run-1", { title: "Renamed by the user" }), thread("run-2")]);
+  port.scheduledTasks = [task(), task({ id: "task-2" })];
+  port.projections = { "run-1": stamped("task-1"), "run-2": stamped("task-2") };
+  const result = await automations.list();
+  assert.deepEqual([runIds(result, 0), runIds(result, 1)], [["run-1"], ["run-2"]]);
+  assert.deepEqual(result.automationThreadIds.filter((id) => id !== "t-dedicated").sort(), ["run-1", "run-2"]);
+});
+
+test("a thread linked to a task by id is not taken by another task with its title", async () => {
+  const { automations, port } = harness([thread("run-1")]);
+  port.scheduledTasks = [task({ id: "task-other", title: "Other" }), task()];
+  port.projections = { "run-1": stamped("task-other") };
+  const result = await automations.list();
+  assert.deepEqual([runIds(result, 0), runIds(result, 1)], [["run-1"], []]);
+});
+
+test("a renamed run thread and a renamed task keep their runs on the next lists", async () => {
+  const threads = [thread("run-1")];
+  const { automations, port } = harness(threads);
+  port.scheduledTasks = [task()];
+  port.projections = { "run-1": stamped("task-1") };
+  await automations.list();
+  threads[0] = thread("run-1", { title: "Renamed", status: "running", activeRunId: "r", latestRunCompletedAt: null });
+  threads.push(thread("run-2", { title: "New title", createdAt: "2026-03-21T10:00:00.000Z" }));
+  port.scheduledTasks = [task({ title: "New title" })];
+  port.projections["run-2"] = stamped("task-1");
+  const result = await automations.list();
+  assert.deepEqual(result.automations[0]!.runs.map((run) => [run.threadId, run.status]), [["run-2", "unknown"], ["run-1", "running"]]);
+  assert.equal(result.automations[0]!.threadId, "run-2");
+  assert.deepEqual(result.automationThreadIds.filter((id) => id !== "t-dedicated").sort(), ["run-1", "run-2"]);
+});
+
+test("a thread is probed once, and a probe that fails is tried again", async () => {
+  const { automations, port } = harness([thread("run-1"), thread("run-2", { title: "Renamed" })]);
+  port.scheduledTasks = [task()];
+  port.projections = { "run-2": stamped("task-1") };
+  port.projectionFailures.add("run-2");
+  await automations.list();
+  await automations.list();
+  assert.equal(port.projectionCalls, 3);
+  port.projectionFailures.clear();
+  const result = await automations.list();
+  assert.equal(port.projectionCalls, 4);
+  assert.deepEqual(runIds(result).sort(), ["run-1", "run-2"]);
+});
+
+test("a list is not broken by a probe error and falls back to the title", async () => {
+  const { automations, port } = harness([thread("run-1")]);
+  port.scheduledTasks = [task()];
+  port.projectionError = new Error("T3 is unreachable");
+  assert.deepEqual(runIds(await automations.list()), ["run-1"]);
+});
+
+test("a list probes at most 30 threads, 4 at a time, and the rest on the next call", async () => {
+  const threads = Array.from({ length: 35 }, (_, index) => thread(`run-${index}`, { createdAt: new Date(Date.parse("2026-03-21T00:00:00.000Z") + index * 60_000).toISOString() }));
+  const { automations, port } = harness(threads);
+  port.scheduledTasks = [task()];
+  port.projectionGate = () => new Promise((resolve) => setTimeout(resolve, 1));
+  await automations.list();
+  assert.equal(port.projectionCalls, 30);
+  assert.equal(port.peakProjectionsInFlight, 4);
+  await automations.list();
+  assert.equal(port.projectionCalls, 35);
+});
+
+test("only candidate threads are probed", async () => {
+  const { automations, port } = harness([
+    thread("old", { createdAt: "2026-03-01T00:00:00.000Z" }),
+    thread("archived", { archivedAt: "2026-03-21T00:00:00.000Z" }),
+    thread("web", { creationSource: "web" }),
+    thread("chat", {}),
+    thread("candidate"),
+  ]);
+  port.scheduledTasks = [task(), task({ id: "bound", threadId: "chat" })];
+  await automations.list();
+  assert.equal(port.projectionCalls, 1);
+});
+
+test("a stored thread that was never probed is probed, and its id wins over the stored link", async () => {
+  const log = new AutomationRunLog({ "task-1": [{ threadId: "run-1", startedAt: "2026-03-20T10:00:00.000Z", finishedAt: null, status: "succeeded", error: null }], "task-2": [{ threadId: "run-1", startedAt: "2026-03-20T10:00:00.000Z", finishedAt: null, status: "succeeded", error: null }] });
+  const { automations, port } = harness([thread("run-1")], log);
+  port.scheduledTasks = [task(), task({ id: "task-2" })];
+  port.projections = { "run-1": stamped("task-2") };
+  const result = await automations.list();
+  assert.deepEqual([runIds(result, 0), runIds(result, 1)], [[], ["run-1"]]);
+});
+
+test("a projection with no user message is not cached and is probed again", async () => {
+  const { automations, port } = harness([thread("run-1")]);
+  port.scheduledTasks = [task()];
+  port.projections = { "run-1": { messages: [] } };
+  await automations.list();
+  await automations.list();
+  assert.equal(port.projectionCalls, 2);
+  port.projections = { "run-1": stamped(null) };
+  await automations.list();
+  await automations.list();
+  assert.equal(port.projectionCalls, 3);
 });

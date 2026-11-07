@@ -388,3 +388,8 @@ export function validSeen(body: Record<string, unknown>): SeenChange {
   if (isSeenTime(body.since)) return { since: body.since };
   throw new HttpError(400, "id and at (a mark), or since (the baseline), are required");
 }
+
+export function validEnabled(body: Record<string, unknown>): boolean {
+  if (typeof body.enabled !== "boolean") throw new HttpError(400, "enabled (true or false) is required");
+  return body.enabled;
+}

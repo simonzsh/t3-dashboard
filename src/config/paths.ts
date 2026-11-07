@@ -45,3 +45,6 @@ export const codexRulesFile = (env: Env, homedir: string): string => join(env.CO
 
 /** Reminders re-armed from the dashboard after a run, so the guard does not pause them again. */
 export const rearmedFile = (env: Env, homedir: string): string => join(configDir(env, homedir), "rearmed-reminders.json");
+
+/** The runs of each scheduled task, kept by the dashboard because T3 keeps only the last one. */
+export const automationRunsFile = (env: Env, homedir: string): string => join(configDir(env, homedir), "automation-runs.json");

@@ -54,6 +54,7 @@ function harness({ searchResult = [] as ReturnType<typeof searchMatch>[], search
     updateScheduledTask: async () => {},
     setScheduledTaskWorkspace: async () => {},
     setScheduledTaskEnabled: async () => {},
+    runScheduledTaskNow: async () => {},
     subscribeScheduledTasks: () => ({ cancel() {} }),
     createScheduledTask: async (task) => ({ id: task.id }),
     answerSecretRequest: async () => {},
