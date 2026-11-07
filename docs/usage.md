@@ -152,7 +152,7 @@ The Automations tab lists the scheduled tasks of T3 Code, with the history of th
 - Click a row to open the task in a side sheet (600 px wide, full width on a phone). `Esc`, a click on the backdrop or the close button closes it. The sheet shows the kind, the title, the schedule and the buttons "Run now", "Edit", "Delete", "Copy webhook URL" (webhooks) and the switch. Then it lists the next run, the last run, the project, the model, the mode and, for a bound task, "Open session". The prompt follows, then "Run history": all runs, newest first, each with its status pill, a dot when unread and "Open session". When the session was archived or deleted, the run shows "Session archived".
 - Sessions of runs show everywhere as normal sessions (Dashboard, Sessions, search), with a calendar icon. Opening a run anywhere marks it read.
 - The Automations entry of the sidebar shows a number: the tasks whose latest finished run is unread. A red dot shows when one of these runs failed. Opening the tab does not clear it: open the runs. A run with no session is not counted.
-- The dashboard builds the history itself: T3 Code keeps none. It matches run threads to tasks by project, title and creation date, and keeps the runs in `~/.config/t3-dashboard/automation-runs.json` (20 per task). This is best effort: renaming a task or a thread can break the match, and a run whose session was archived before the dashboard saw it is missing.
+- The dashboard builds the history itself: T3 Code keeps none. It ties each run thread to its task by the task id that T3 Code writes on a user message of the thread, remembers the link, and keeps the runs in `~/.config/t3-dashboard/automation-runs.json` (20 per task). Renaming a task or a run thread keeps the link. A thread with no task id falls back to the project, title and creation date. A run whose session was archived before the dashboard saw it is missing.
 - Without a task, the tab shows "No automations yet" and a "New automation" button. While it loads, the list shows three placeholder rows.
 
 - A routine runs at each occurrence. The row shows the frequency, the next run and the last run. A paused task shows "Paused".
@@ -204,7 +204,7 @@ You can also ask for a task in a normal conversation. `t3-dashboard install` add
 
 ### Threads of tasks without a linked conversation
 
-A task without a linked thread creates a new thread at each run. The dashboard hides these threads from the Dashboard. It ties a thread to its task by the task id that T3 Code writes on the first message of the thread, and remembers the link. A thread that this id does not tie is matched by the project, the title, the origin and the creation date of the task. Renaming a task or a run thread does not break the link. You open the thread of the last run from the row of the task.
+A task without a linked thread creates a new thread at each run. These threads show like any session, with the automation icon. The dashboard ties a thread to its task by the task id that T3 Code writes on the first message of the thread, and remembers the link. A thread that this id does not tie is matched by the project, the title, the origin and the creation date of the task. Renaming a task or a run thread does not break the link. You open the thread of the last run from the row of the task.
 
 ### T3 Code limits
 
