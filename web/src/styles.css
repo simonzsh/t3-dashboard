@@ -1095,7 +1095,9 @@ main:has(> .auto-page) { padding-top: 8px; }
   .dialog-backdrop > .dialog.preview-dialog { height: var(--sheet-max); }
   .dialog-backdrop > .dialog > .dialog-head { position: sticky; top: 0; z-index: 1; margin: 0 calc(-1 * var(--sheet-x)); padding: 20px var(--sheet-x) 6px; background: inherit; touch-action: none; }
   .dialog-head::before { content: ""; position: absolute; top: 7px; left: calc(50% - 18px); width: 36px; height: 5px; border-radius: 3px; background: color-mix(in srgb, var(--text-primary) 22%, transparent); }
-  .dialog-backdrop > .dialog > .dialog-actions { position: sticky; bottom: 0; flex-wrap: nowrap; margin: 4px calc(-1 * var(--sheet-x)) calc(-1 * var(--sheet-bottom)); padding: 10px var(--sheet-x) var(--sheet-bottom); background: inherit; }
+  /* The actions carry the bottom padding: a scroll container keeps its own padding below a sticky child. */
+  .dialog-backdrop > .dialog:has(> .dialog-actions) { padding-bottom: 0; }
+  .dialog-backdrop > .dialog > .dialog-actions { position: sticky; bottom: 0; flex-wrap: nowrap; margin: 4px calc(-1 * var(--sheet-x)) 0; padding: 10px var(--sheet-x) var(--sheet-bottom); background: inherit; }
   .dialog-actions > .btn { flex: 1; min-width: 0; height: 44px; }
 }
 /* After every animated rule, so it wins on equal specificity. */
