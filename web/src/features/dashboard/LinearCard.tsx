@@ -29,7 +29,7 @@ function Counters({ counts }: { counts: GlanceCounts }) {
   return (
     <div className="glance-counters">
       <Counter label="Urgent" value={counts.urgent} />
-      <Counter label="Assigned" value={counts.assigned} />
+      <Counter label="Newly assigned" value={counts.assigned} />
       <Counter label="Mentions" value={counts.mentions} />
       <Counter label="Due" value={counts.due} caption={counts.overdue > 0 ? `${counts.overdue} overdue` : undefined} danger={counts.overdue > 0} />
     </div>
@@ -51,15 +51,15 @@ interface DialogProps {
   onStarted: (issueId: string) => void;
 }
 
-interface RowProps extends DialogProps {
+interface RowProps {
   signal: Signal;
   now: Date;
   /** The issue to assign, or null when this row offers no agent. */
   assignable: LinearIssue | null;
+  onAssign: (issue: LinearIssue) => void;
 }
 
-function SignalRow({ signal, now, assignable, projects, providers, modelDefaults, onOpen, onStarted }: RowProps) {
-  const [choosing, setChoosing] = useState(false);
+function SignalRow({ signal, now, assignable, onAssign }: RowProps) {
   const kind = KINDS[signal.kind];
   return (
     <div className="glance-row">
@@ -73,28 +73,11 @@ function SignalRow({ signal, now, assignable, projects, providers, modelDefaults
       <span className="glance-meta">{signal.actor ? `${signal.actor} · ${when(signal, now)}` : when(signal, now)}</span>
       <span className="glance-action">
         {assignable && (
-          <IconButton label="Assign to an agent" tooltip="Assign to an agent" size="sm" aria-haspopup="dialog" onClick={() => setChoosing(true)}>
+          <IconButton label="Assign to an agent" tooltip="Assign to an agent" size="sm" aria-haspopup="dialog" onClick={() => onAssign(assignable)}>
             <Icon name="assignBot" strokeWidth={1.8} />
           </IconButton>
         )}
       </span>
-      {choosing &&
-        assignable &&
-        createPortal(
-          <NewThreadDialog
-            issue={assignable}
-            projects={projects}
-            providers={providers}
-            defaults={modelDefaults}
-            onClose={() => setChoosing(false)}
-            onCreated={(threadId) => {
-              setChoosing(false);
-              onStarted(assignable.id);
-              onOpen(threadId, true);
-            }}
-          />,
-          document.body,
-        )}
     </div>
   );
 }
@@ -110,7 +93,9 @@ interface Props extends DialogProps {
 }
 
 /** Counters and a short feed of what needs you in Linear. The parent shows it only once Linear is connected. */
-export function LinearCard({ board, now, loading, threads, started, onRefresh, ...dialog }: Props) {
+export function LinearCard({ board, now, loading, threads, started, onRefresh, projects, providers, modelDefaults, onOpen, onStarted }: Props) {
+  // Held here, not in the row: a poll can drop or rekey the row while the dialog is open.
+  const [choosing, setChoosing] = useState<LinearIssue | null>(null);
   const { counts, feed } = glance(board, now);
   const linked = linkedIdentifiers(threads);
   const issues = new Map(board.issues.map((i) => [i.id, i]));
@@ -140,7 +125,7 @@ export function LinearCard({ board, now, loading, threads, started, onRefresh, .
           {feed.length > 0 ? (
             <div className="glance-feed">
               {feed.map((signal) => (
-                <SignalRow key={signal.key} signal={signal} now={now} assignable={assignable(signal)} {...dialog} />
+                <SignalRow key={signal.key} signal={signal} now={now} assignable={assignable(signal)} onAssign={setChoosing} />
               ))}
             </div>
           ) : (
@@ -155,6 +140,22 @@ export function LinearCard({ board, now, loading, threads, started, onRefresh, .
           </Button>
         </div>
       )}
+      {choosing &&
+        createPortal(
+          <NewThreadDialog
+            issue={choosing}
+            projects={projects}
+            providers={providers}
+            defaults={modelDefaults}
+            onClose={() => setChoosing(null)}
+            onCreated={(threadId) => {
+              setChoosing(null);
+              onStarted(choosing.id);
+              onOpen(threadId, true);
+            }}
+          />,
+          document.body,
+        )}
     </section>
   );
 }

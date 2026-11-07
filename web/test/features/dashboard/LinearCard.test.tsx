@@ -64,7 +64,7 @@ test("the card is titled Linear, with the update time and a refresh button", () 
 test("four counters show the figures of the board", () => {
   const out = render(board({ issues: [issue("A-1", { priority: 1 }), issue("A-2", { dueDate: day(-1) })], inbox: [mention(1), mention(2, { kind: "assigned" })] }));
   const counters = [...out.matchAll(/<div class="glance-counter[^"]*"><span class="stat-label">([^<]+)<\/span><span class="glance-value">([^<]+)<\/span>/g)].map((m) => [m[1], m[2]]);
-  assert.deepEqual(counters, [["Urgent", "1"], ["Assigned", "1"], ["Mentions", "1"], ["Due", "1"]]);
+  assert.deepEqual(counters, [["Urgent", "1"], ["Newly assigned", "1"], ["Mentions", "1"], ["Due", "1"]]);
 });
 
 test("the Due counter turns to the error tone only when an issue is overdue", () => {
@@ -75,7 +75,7 @@ test("the Due counter turns to the error tone only when an issue is overdue", ()
 
 test("a failed inbox shows dashes for its counters and a note, and keeps the rest", () => {
   const out = render(board({ issues: [issue("A-1", { priority: 1 })], inboxError: "boom" }));
-  assert.match(out, /Assigned<\/span><span class="glance-value">–</);
+  assert.match(out, /Newly assigned<\/span><span class="glance-value">–</);
   assert.match(out, /Mentions<\/span><span class="glance-value">–</);
   assert.match(out, /Urgent<\/span><span class="glance-value">1</);
   assert.match(text(out), /Inbox not available/);
