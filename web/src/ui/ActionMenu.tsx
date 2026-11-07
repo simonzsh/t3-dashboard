@@ -1,8 +1,8 @@
-import { useEffect, useRef, useState, type KeyboardEvent } from "react";
+import { useEffect, useId, useRef, useState, type KeyboardEvent } from "react";
+import { moveActive } from "../lib/dropdown.ts";
 import { Icon, type IconName } from "./Icon.tsx";
 import { IconButton } from "./IconButton.tsx";
 import { Popover } from "./Popover.tsx";
-import { Pressable } from "./Pressable.tsx";
 
 export interface ActionMenuItem {
   label: string;
@@ -23,53 +23,76 @@ interface Props {
   className?: string;
 }
 
-/** The "…" button of a row, and the menu of actions that it opens. */
+/** The "…" button of a row, and its menu of actions. Same menu, rows and keys as the Dropdown. */
 export function ActionMenu({ label, tooltip, items, className }: Props) {
   const [open, setOpen] = useState(false);
+  const [active, setActive] = useState(-1);
   const anchor = useRef<HTMLButtonElement>(null);
   const list = useRef<HTMLDivElement>(null);
-  const enabled = () => Array.from(list.current?.querySelectorAll<HTMLElement>('[role="menuitem"]:not(:disabled)') ?? []);
-  // The menu is a portal: move the focus into it, so Tab and the arrows reach its items.
+  const id = useId();
+
+  // The menu is a portal: the list takes the focus, and the active row moves with the arrows.
   useEffect(() => {
-    if (open) enabled()[0]?.focus();
+    if (open) list.current?.focus({ preventScroll: true });
   }, [open]);
-  function onKey(e: KeyboardEvent<HTMLDivElement>) {
-    if (e.key === "Tab") return setOpen(false);
-    if (e.key !== "ArrowDown" && e.key !== "ArrowUp") return;
-    e.preventDefault();
-    const all = enabled();
-    const at = all.indexOf(document.activeElement as HTMLElement);
-    all[(at + (e.key === "ArrowDown" ? 1 : all.length - 1)) % all.length]?.focus();
+
+  function show() {
+    setActive(-1);
+    setOpen(true);
   }
-  const pick = (action: () => void) => () => {
+
+  function close(refocus: boolean) {
     setOpen(false);
-    action();
-  };
+    if (refocus) anchor.current?.focus();
+  }
+
+  function pick(item: ActionMenuItem) {
+    if (item.disabled) return;
+    close(false);
+    item.onSelect();
+  }
+
+  // Escape is handled by the Popover.
+  function onKeyDown(e: KeyboardEvent) {
+    if (e.key === "ArrowDown" || e.key === "ArrowUp") {
+      e.preventDefault();
+      setActive(moveActive(items.length, active, e.key === "ArrowDown" ? 1 : -1));
+    } else if (e.key === "Home" || e.key === "End") {
+      e.preventDefault();
+      setActive(e.key === "Home" ? 0 : items.length - 1);
+    } else if (e.key === "Enter" || e.key === " ") {
+      e.preventDefault();
+      const item = items[active];
+      if (item) pick(item);
+    } else if (e.key === "Tab") {
+      close(false);
+    }
+  }
+
   return (
     <>
-      <IconButton ref={anchor} variant="ghost" size="sm" className={className} label={label} tooltip={tooltip} aria-haspopup="menu" aria-expanded={open} onClick={() => setOpen((o) => !o)}>
+      <IconButton ref={anchor} variant="ghost" size="sm" className={className} label={label} tooltip={tooltip} aria-haspopup="menu" aria-expanded={open} onClick={() => (open ? close(false) : show())}>
         <Icon name="moreHorizontal" />
       </IconButton>
       {open && (
-        <Popover anchor={anchor} align="end" minWidth={170} role="menu" className="project-menu" onClose={(reason) => {
-          setOpen(false);
-          if (reason === "escape") anchor.current?.focus();
-        }}>
-          <div ref={list} onKeyDown={onKey}>
-            {items.map((item) => {
-              const button = (
-                <Pressable role="menuitem" className={`project-menu-item${item.danger ? " danger" : ""}`} disabled={item.disabled} onClick={pick(item.onSelect)}>
-                  <Icon name={item.icon} />
-                  {item.label}
-                </Pressable>
-              );
-              // A disabled button gets no hover events: the wrapper carries the tooltip.
-              return (
-                <span key={item.label} data-tooltip={item.tooltip}>
-                  {button}
-                </span>
-              );
-            })}
+        <Popover anchor={anchor} align="end" minWidth={170} className="dropdown-menu" onClose={(reason) => close(reason === "escape")}>
+          <div ref={list} className="dropdown-list" role="menu" aria-label={label} tabIndex={-1} aria-activedescendant={active >= 0 ? `${id}-${active}` : undefined} onKeyDown={onKeyDown}>
+            {items.map((item, i) => (
+              <div
+                key={item.label}
+                id={`${id}-${i}`}
+                role="menuitem"
+                aria-disabled={item.disabled || undefined}
+                data-tooltip={item.tooltip}
+                className={["dropdown-option", i === active && "active", item.danger && "danger", item.disabled && "disabled"].filter(Boolean).join(" ")}
+                onMouseDown={(e) => e.preventDefault()}
+                onMouseEnter={() => setActive(i)}
+                onClick={() => pick(item)}
+              >
+                <Icon name={item.icon} />
+                <span className="dropdown-text">{item.label}</span>
+              </div>
+            ))}
           </div>
         </Popover>
       )}
