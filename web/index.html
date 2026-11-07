@@ -14,6 +14,10 @@
         var a = null;
         try { a = localStorage.getItem("t3-dashboard-accent"); } catch (e) {}
         if (a) document.documentElement.setAttribute("data-accent", a);
+        // Mirrors features/settings/tint.ts.
+        var t = null;
+        try { t = localStorage.getItem("t3-dashboard-tint"); } catch (e) {}
+        if (t === "on") document.documentElement.setAttribute("data-tint", "on");
       })();
     </script>
     <meta name="theme-color" content="#ffffff" />

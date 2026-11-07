@@ -6,13 +6,15 @@ import { InstallSettings } from "./InstallSettings.tsx";
 import { LinearSettings } from "./LinearSettings.tsx";
 import { UpdateSettings } from "./UpdateSettings.tsx";
 import { onRadioKeyDown } from "../../ui/radioKeys.ts";
-import { Dialog, Icon, Pressable, Segmented, Tabs, type IconName } from "../../ui/index.ts";
+import { Dialog, Icon, Pressable, Segmented, Switch, Tabs, type IconName } from "../../ui/index.ts";
 
 interface Props {
   theme: ThemeSetting;
   onThemeChange: (theme: ThemeSetting) => void;
   accent: Accent;
   onAccentChange: (accent: Accent) => void;
+  tint: boolean;
+  onTintChange: (on: boolean) => void;
   onLinearChange: () => void;
   update: UpdateControl;
   onUpdate: () => void;
@@ -31,7 +33,7 @@ type SectionId = (typeof SECTIONS)[number]["id"];
 const LABELS: Record<ThemeSetting, string> = { system: "System", light: "Light", dark: "Dark" };
 const THEME_ICONS: Record<ThemeSetting, IconName> = { system: "monitor", light: "sun", dark: "moon" };
 
-export function SettingsDialog({ theme, onThemeChange, accent, onAccentChange, onLinearChange, update, onUpdate, onClose }: Props) {
+export function SettingsDialog({ theme, onThemeChange, accent, onAccentChange, tint, onTintChange, onLinearChange, update, onUpdate, onClose }: Props) {
   const [section, setSection] = useState<SectionId>("appearance");
 
   const panels: Record<SectionId, ReactNode> = {
@@ -57,6 +59,13 @@ export function SettingsDialog({ theme, onThemeChange, accent, onAccentChange, o
                 onClick={() => onAccentChange(a.id)}
               />
             ))}
+          </div>
+        </div>
+        <div className="settings-row">
+          <span>Tinted interface</span>
+          <div className="settings-switch">
+            <Switch checked={tint} label="Tinted interface" onChange={onTintChange} />
+            <span className="settings-hint">Mix the accent color into the background, cards and lines.</span>
           </div>
         </div>
       </>
