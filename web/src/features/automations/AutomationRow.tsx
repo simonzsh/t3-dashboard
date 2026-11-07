@@ -2,7 +2,7 @@ import type { Automation, DashboardThread, ProjectIcon } from "../../../../share
 import type { SeenState } from "../../../../shared/seen.ts";
 import { ProjectTag } from "../../lib/ProjectTag.tsx";
 import { useCopy } from "../../lib/useCopy.ts";
-import { ActionMenu, Badge, Button, Pressable, Switch, type ActionMenuItem } from "../../ui/index.ts";
+import { ActionMenu, Badge, Icon, IconButton, Pressable, Switch, type ActionMenuItem } from "../../ui/index.ts";
 import { capitalize, copyableUrl, isEditable, isFinishedReminder, isRunning, lastRunLine, latestUnread, nextRunLine, reminderDate, scheduleText } from "./automations.ts";
 import { KindBadge } from "./KindBadge.tsx";
 import { RunBadge } from "./RunBadge.tsx";
@@ -65,9 +65,9 @@ export function AutomationRow({ automation: a, project, threads, seen, now, star
       </Pressable>
       <div className="auto-row-actions">
         {!finished && <Switch checked={a.enabled} label={`Enable ${a.title}`} onChange={(on) => onToggle(a, on)} />}
-        <Button size="sm" className="auto-run-now" aria-label={`Run ${a.title} now`} disabled={running || starting} onClick={() => onRun(a)}>
-          {running || starting ? "Running…" : "Run now"}
-        </Button>
+        <IconButton variant="ghost" size="sm" label={`Run ${a.title} now`} tooltip="Run now" disabled={running || starting} onClick={() => onRun(a)}>
+          <Icon name={running || starting ? "refresh" : "play"} className={running || starting ? "icon spinning" : "icon"} />
+        </IconButton>
         <ActionMenu label={`More actions for ${a.title}`} items={items} />
       </div>
     </div>

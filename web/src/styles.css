@@ -682,8 +682,6 @@ ol.install-steps { padding-left: 18px; }
 .auto-text { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .kind-badge .icon { width: 11px; height: 11px; }
 .auto-row-actions { flex: none; display: flex; align-items: center; gap: 8px; }
-/* "Run now" and "Running…" take the same width, so the switches stay in line. */
-.auto-run-now { min-width: 84px; justify-content: center; }
 /* Fixed first column: the dates of every run line up, whatever the pill says. */
 .auto-run-row { display: grid; grid-template-columns: 92px minmax(0, 1fr) 8px auto; align-items: center; column-gap: 12px; row-gap: 4px; padding: 8px 12px 8px 16px; font-size: 13px; }
 .auto-run-row > .badge { justify-self: start; }
