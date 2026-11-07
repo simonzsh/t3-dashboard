@@ -69,26 +69,32 @@ test("the Notifications panel is sticky on a wide screen, with no block above th
   assert.doesNotMatch(css, /position: static; grid-row: 1|max-height: 60dvh|position: fixed; inset: 0; z-index: 15|notifications-shown/);
 });
 
-test("at 1200 px and below the Notifications panel is a side sheet under the header", () => {
-  const start = css.indexOf("@media (max-width: 1200px)");
-  const narrow = css.slice(start, css.indexOf("\n}\n", start));
-  const sheet = narrow.match(/\n  \.dashboard-panel \{([^}]*)\}/)?.[1] ?? "";
+test("the shared Sheet slides and fades both ways, under the header", () => {
+  const sheet = rule(".ui-sheet");
   assert.match(sheet, /position: fixed;/);
   assert.match(sheet, /top: var\(--header-h, 0px\);/);
-  assert.match(sheet, /bottom: 0;/);
   assert.match(sheet, /width: min\(380px, 100vw\);/);
   assert.match(sheet, /transform: translateX\(100%\);/);
   assert.match(sheet, /transition: transform 200ms/);
-  assert.match(narrow, /\.dashboard-panel\.open \{[^}]*transform: none/);
+  assert.match(rule(".ui-sheet.open"), /transform: none/);
+  assert.match(rule(".ui-sheet.wide"), /width: min\(600px, 100vw\);/);
+  assert.match(rule(".ui-sheet-backdrop"), /opacity: 0;[^}]*transition: opacity 200ms/);
+  assert.match(rule(".ui-sheet-backdrop.open"), /opacity: 0\.5;/);
+});
+
+test("at 1200 px and below the Notifications panel is a side sheet under the header", () => {
+  const start = css.indexOf("@media (max-width: 1200px)");
+  const narrow = css.slice(start, css.indexOf("\n}\n", start));
+  assert.match(narrow, /\.ui-sheet \.notifications-card \{/);
   assert.match(narrow, /html:has\(\.app\.sheet-shown\) \{ overflow: hidden; \}/);
 });
 
 test("on a phone the sheet is full width and stops above the bottom bar", () => {
   const phone = css.slice(css.indexOf("@media (max-width: 700px)"));
-  const sheet = phone.match(/\n  \.dashboard-panel \{([^}]*)\}/)?.[1] ?? "";
+  const sheet = phone.match(/\n  \.ui-sheet \{([^}]*)\}/)?.[1] ?? "";
   assert.match(sheet, /bottom: calc\(var\(--bottom-bar\) \+ env\(safe-area-inset-bottom\)\);/);
   assert.match(sheet, /width: 100vw;/);
-  assert.match(phone, /\.dashboard-backdrop \{ bottom: calc\(var\(--bottom-bar\)/);
+  assert.match(phone, /\.ui-sheet-backdrop \{ bottom: calc\(var\(--bottom-bar\)/);
 const reduced = css.slice(css.indexOf("@media (prefers-reduced-motion: reduce)"));
-  assert.match(reduced, /\.dashboard-panel, \.dashboard-backdrop \{ transition: none; \}/);
+  assert.match(reduced, /\.ui-sheet, \.ui-sheet-backdrop \{ transition: none; \}/);
 });

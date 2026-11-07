@@ -1,9 +1,9 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { Automation, AutomationsResult, DashboardState, DashboardThread } from "../../../../shared/api.ts";
 import type { SeenState } from "../../../../shared/seen.ts";
 import { agentStatus } from "../../../../shared/status.ts";
 import { RunningBadge, StatusBadge } from "../../lib/StatusBadge.tsx";
-import { Badge, Button, Icon, Pressable, Skeleton, SkeletonGroup, TextInput, useEscape } from "../../ui/index.ts";
+import { Badge, Button, Icon, Pressable, Skeleton, SkeletonGroup, Sheet, TextInput } from "../../ui/index.ts";
 import { NewAutomationDialog } from "../new-thread/NewAutomationDialog.tsx";
 import { AutomationRow } from "./AutomationRow.tsx";
 import { AutomationSheet } from "./AutomationSheet.tsx";
@@ -59,6 +59,10 @@ export function AutomationsView({ state, now, seen, onOpen, automations, automat
   const sorted = useMemo(() => sortAutomations(filterAutomations(all, query), threads, seen), [all, query, threads, seen]);
   const recent = useMemo(() => recentRuns(all, threads), [all, threads]);
   const selected = all.find((a) => a.id === selectedId) ?? null;
+  // The sheet stays mounted to slide out: it keeps showing the last selection while it closes.
+  const shown = useRef<string | null>(null);
+  if (selected) shown.current = selected.id;
+  const sheetAutomation = selected ?? all.find((a) => a.id === shown.current) ?? null;
 
   // The task was deleted, here or elsewhere: nothing stays selected.
   useEffect(() => {
@@ -66,9 +70,10 @@ export function AutomationsView({ state, now, seen, onOpen, automations, automat
   }, [selectedId, selected, automations]);
   const close = useCallback(() => setSelectedId(null), []);
   const dialogOpen = editing !== null || deleting !== null;
-  useEscape(() => {
-    if (selected && !dialogOpen) close();
-  });
+  // A dialog over the sheet takes Escape first.
+  const closeSheet = useCallback(() => {
+    if (!dialogOpen) close();
+  }, [dialogOpen, close]);
 
   if (state.connection.t3 !== "live") {
     return (
@@ -145,23 +150,25 @@ export function AutomationsView({ state, now, seen, onOpen, automations, automat
         </div>
       </section>
       <RecentRuns runs={recent} threads={threads} seen={seen} now={now} onOpen={onOpen} />
-      {selected && (
-        <AutomationSheet
-          automation={selected}
-          threads={threads}
-          project={projects.get(selected.projectId)}
-          providers={state.providers}
-          seen={seen}
-          now={now}
-          starting={actions.starting.has(selected.id)}
-          onClose={close}
-          onOpen={onOpen}
-          onToggle={actions.toggle}
-          onRun={actions.run}
-          onEdit={setEditing}
-          onDelete={setDeleting}
-        />
-      )}
+      <Sheet open={selected !== null} label={sheetAutomation?.title ?? "Automation"} width="wide" onClose={closeSheet}>
+        {sheetAutomation && (
+          <AutomationSheet
+            automation={sheetAutomation}
+            threads={threads}
+            project={projects.get(sheetAutomation.projectId)}
+            providers={state.providers}
+            seen={seen}
+            now={now}
+            starting={actions.starting.has(sheetAutomation.id)}
+            onClose={close}
+            onOpen={onOpen}
+            onToggle={actions.toggle}
+            onRun={actions.run}
+            onEdit={setEditing}
+            onDelete={setDeleting}
+          />
+        )}
+      </Sheet>
       {editing && (
         <NewAutomationDialog
           projects={state.projects}

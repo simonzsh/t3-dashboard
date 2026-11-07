@@ -45,7 +45,7 @@ import { useTab } from "./lib/useTab.ts";
 import { useTheme } from "./features/settings/useTheme.ts";
 import { useAccent } from "./features/settings/useAccent.ts";
 import { useUpdate } from "./features/update/useUpdate.ts";
-import { Loader, Logo, PageHeader, TooltipLayer, useEscape } from "./ui/index.ts";
+import { Loader, Logo, PageHeader, TooltipLayer } from "./ui/index.ts";
 import { updateLabel } from "./features/update/updateFlow.ts";
 
 const NO_THREADS: DashboardThread[] = [];
@@ -211,9 +211,6 @@ export function App() {
     notifPanel.close();
     document.querySelector<HTMLElement>(".notif-bell")?.focus();
   };
-  useEscape(() => {
-    if (sheetShown) closeSheet();
-  });
   // A hidden card reads nothing; showing it again reads at once.
   const cardShown = (id: DashboardCard) => dashboardOpen && !dashboardLayout.layout.hidden.includes(id);
   const activity = useActivity(cardShown("activity"));

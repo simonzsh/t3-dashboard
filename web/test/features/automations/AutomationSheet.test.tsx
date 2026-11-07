@@ -50,9 +50,8 @@ test("the sheet says so when the task never ran, and shows the prompt", () => {
   assert.match(out, /<pre class="auto-prompt">Sort the inbox<\/pre>/);
 });
 
-test("the sheet is a labelled dialog with a close button and a switch for the task", () => {
+test("the sheet content has a close button and a switch for the task", () => {
   const out = sheet(auto([]));
-  assert.match(out, /role="dialog" aria-modal="true" aria-label="Inbox triage"/);
   assert.match(out, /aria-label="Close"/);
   assert.match(out, /role="switch" aria-checked="true" aria-label="Enable Inbox triage"/);
 });

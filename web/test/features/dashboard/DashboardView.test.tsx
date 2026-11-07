@@ -299,20 +299,20 @@ test("an automation run is listed like any session, with the automation icon", (
 
 test("in sheet mode the panel is a dialog sheet with a backdrop, and it takes no room", () => {
   const out = render(state(), { sheet: true });
-  assert.match(out, /<div class="dashboard-backdrop open" aria-hidden="true">/);
-  assert.match(out, /<aside tabindex="-1" class="dashboard-panel open" role="dialog" aria-modal="true" aria-label="Notifications">/);
+  assert.match(out, /<div class="ui-sheet-backdrop open" aria-hidden="true">/);
+  assert.match(out, /<aside tabindex="-1" class="ui-sheet narrow open" role="dialog" aria-modal="true" aria-label="Notifications">/);
   assert.doesNotMatch(out, /with-panel|data-dash-item="notifications"/);
   assert.equal(out.match(/id="notifications-head"/g)?.length, 1);
 });
 
 test("a closed sheet stays mounted for its slide-out, but inert", () => {
   const out = render(state(), { sheet: true, panelOpen: false });
-  assert.match(out, /<aside tabindex="-1" class="dashboard-panel" role="dialog"[^>]* inert=""/);
-  assert.doesNotMatch(out, /dashboard-backdrop open|dashboard-panel open/);
+  assert.match(out, /<aside tabindex="-1" class="ui-sheet narrow" role="dialog"[^>]* inert=""/);
+  assert.doesNotMatch(out, /ui-sheet-backdrop open|ui-sheet narrow open/);
 });
 
 test("edit mode removes the sheet and its backdrop", () => {
-  assert.doesNotMatch(render(state(), { sheet: true, editing: true }), /dashboard-panel|dashboard-backdrop|notifications-head/);
+  assert.doesNotMatch(render(state(), { sheet: true, editing: true }), /dashboard-panel|ui-sheet|notifications-head/);
 });
 
 test("the wide panel is a plain aside: no dialog role, no close button, nothing inert", () => {
