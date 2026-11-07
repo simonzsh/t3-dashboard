@@ -30,6 +30,7 @@ import { neighborId, type Direction } from "./features/sessions/sessions.ts";
 import { useAutomations } from "./features/automations/useAutomations.ts";
 import { automationsBadge } from "./features/automations/automations.ts";
 import { AutomationThreadsContext } from "./lib/automationThreads.tsx";
+import { useKeyboardClass } from "./lib/keyboard.ts";
 import { api } from "./api/client.ts";
 import { useDashboard } from "./api/events.ts";
 import { useSessions } from "./features/sessions/useSessions.ts";
@@ -128,6 +129,8 @@ export function App() {
       document.documentElement.style.removeProperty("--header-h");
     };
   }, [hasHeader]);
+
+  useKeyboardClass();
 
   // Relative times and the 24 h window need a clock that moves.
   useEffect(() => {

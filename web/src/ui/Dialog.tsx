@@ -81,8 +81,6 @@ export function Dialog({ title, label, onClose, onCancel, cancelLabel = "Cancel"
     const fit = () => {
       root.style.top = `${vv.offsetTop}px`;
       root.style.setProperty("--visible-h", `${vv.height}px`);
-      // The keyboard hides the home indicator: no need for its inset then.
-      root.classList.toggle("keyboard", innerHeight - vv.height > 120);
     };
     // The sheet just got shorter: keep the field being typed in on screen.
     const resized = () => {
