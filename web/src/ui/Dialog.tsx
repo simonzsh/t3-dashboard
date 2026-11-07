@@ -2,7 +2,7 @@ import { useEffect, useId, useLayoutEffect, useRef, type KeyboardEvent, type Rea
 import { Button } from "./Button.tsx";
 import { Icon } from "./Icon.tsx";
 import { IconButton } from "./IconButton.tsx";
-import { enter } from "./motion.ts";
+import { enter, leaveCopy } from "./motion.ts";
 import { useEscape } from "./useEscape.ts";
 
 interface Action {
@@ -41,10 +41,14 @@ export function Dialog({ title, label, onClose, onCancel, cancelLabel = "Cancel"
   const box = useRef<HTMLDivElement>(null);
   const backdrop = useRef<HTMLDivElement>(null);
 
-  // Before the first paint, so the dialog never shows at full size first.
+  // Before the first paint, so the dialog never shows at full size first. On close, a copy fades out: React removes the real one at once.
   useLayoutEffect(() => {
-    const anims = [backdrop.current && enter(backdrop.current), box.current && enter(box.current, { y: 16, scale: 0.85, duration: 420, spring: true })];
-    return () => anims.forEach((anim) => anim?.cancel());
+    const root = backdrop.current;
+    const anims = [root && enter(root), box.current && enter(box.current, { y: 16, scale: 0.85, duration: 420, spring: true })];
+    return () => {
+      anims.forEach((anim) => anim?.cancel());
+      if (root) leaveCopy(root, ".dialog");
+    };
   }, []);
 
   // Read before the children's effects: a menu that opens on mount takes the focus there.
