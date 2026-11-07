@@ -846,7 +846,7 @@ export function demoUsageBuckets(sinceDay: string, untilDay: string): RawUsageSu
 export const DEMO_NEWS_DIR = "/demo/news";
 
 const demoArticle = (date: string, title: string, sections: Array<[string, string, string]>) =>
-  `# ${title} (${date})\n\n${sections.map(([topic, headline, text]) => `## ${topic}\n\n**${headline}** ${text} [Source](https://news.example.invalid/${topic.toLowerCase()})\n`).join("\n")}\n## Key takeaways\n\n1. Open tools keep getting faster.\n2. Teams ship smaller changes more often.\n3. Review output before you trust it.\n`;
+  `# ${title} (${date})\n\n${sections.map(([area, headline, text]) => `## ${area}\n\n**${headline}** ${text} [Source](https://news.example.invalid/${area.toLowerCase()})\n`).join("\n")}\n## Key takeaways\n\n1. Open tools keep getting faster.\n2. Teams ship smaller changes more often.\n3. Review output before you trust it.\n`;
 
 /** The news settings and three daily articles. The stored task id is the demo task `news`. */
 export function demoNews(now: Date) {
@@ -858,6 +858,6 @@ export function demoNews(now: Date) {
   ];
   const entries = articles.map(([offset]) => ({ name: `${day(offset)}.md`, mtimeMs: now.getTime() - offset * 86_400_000, isFile: true }));
   const contents = Object.fromEntries(articles.map(([offset, title, sections]) => [`${DEMO_NEWS_DIR}/${day(offset)}.md`, demoArticle(day(offset), title, sections)]));
-  const settings = JSON.stringify({ version: 1, settings: { enabled: true, frequency: "daily", weekday: 1, timeOfDay: "07:00", topics: ["Tech", "Software development", "AI"], language: "English", modelSelection: SONNET }, taskId: "news", taskCreatedAt: hoursFrom(now, -72) });
+  const settings = JSON.stringify({ version: 1, settings: { enabled: true, frequency: "daily", weekday: 1, timeOfDay: "07:00", language: "English", modelSelection: SONNET }, taskId: "news", taskCreatedAt: hoursFrom(now, -72) });
   return { settings, entries, contents };
 }

@@ -6,7 +6,7 @@ export const TABS: ReadonlyArray<{ id: Tab; label: string; icon: IconName; descr
   { id: "dashboard", label: "Dashboard", icon: "layoutPanels", description: "Usage limits, activity, and every agent that needs you." },
   { id: "sessions", label: "Sessions", icon: "messagesSquare", description: "Your open conversations side by side, scrolling sideways." },
   { id: "automations", label: "Automations", icon: "calendarClock", description: "Scheduled agents and their latest runs." },
-  { id: "news", label: "News", icon: "newspaper", description: "A daily AI article with the news on your topics." },
+  { id: "news", label: "News", icon: "newspaper", description: "A daily article with the latest tech news." },
 ];
 
 // The nav entry, found by the animations that fly into it.

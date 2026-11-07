@@ -62,7 +62,7 @@ export function NewsView({ news, now, compact, onRead }: Props) {
           <div className="empty-state">
             <Icon name="newspaper" />
             <strong>No news yet</strong>
-            <span>{task ? "Your first article shows here after the next run. Use Run now to get one at once." : "Open News settings, pick your topics and save."}</span>
+            <span>{task ? "Your first article shows here after the next run. Use Run now to get one at once." : "Open News settings, review the settings and save."}</span>
           </div>
         </section>
       </div>

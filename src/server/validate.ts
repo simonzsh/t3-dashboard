@@ -395,25 +395,19 @@ export function validEnabled(body: Record<string, unknown>): boolean {
   return body.enabled;
 }
 
-const NEWS_TOPICS_MAX = 10;
-const NEWS_TOPIC_MAX = 60;
 const NEWS_LANGUAGE_MAX = 40;
 // Control characters would break the task prompt, which the agent reads as text.
 const CONTROL = /\p{Cc}/u;
 
 export function validSaveNews(body: Record<string, unknown>): SaveNewsBody {
-  const { timeOfDay, topics, language, enabled, frequency, weekday } = body;
+  const { timeOfDay, language, enabled, frequency, weekday } = body;
   const modelSelection = validSelection(body.modelSelection);
   if (typeof enabled !== "boolean") throw bad("enabled must be true or false");
   if (frequency !== "daily" && frequency !== "weekly") throw bad('frequency must be "daily" or "weekly"');
   if (!isWeekday(weekday)) throw bad("weekday must be a whole number from 0 (Sunday) to 6");
   if (typeof timeOfDay !== "string" || !isTimeOfDay(timeOfDay)) throw bad("timeOfDay must look like 07:00");
-  if (!Array.isArray(topics) || topics.some((topic) => typeof topic !== "string")) throw bad("topics must be a list of text");
-  const clean = (topics as string[]).map((topic) => topic.trim()).filter((topic, index, all) => topic !== "" && all.findIndex((other) => other.toLowerCase() === topic.toLowerCase()) === index);
-  if (clean.length === 0 || clean.length > NEWS_TOPICS_MAX) throw bad(`topics must list 1 to ${NEWS_TOPICS_MAX} topics`);
-  if (clean.some((topic) => topic.length > NEWS_TOPIC_MAX || CONTROL.test(topic))) throw bad(`each topic must be text of at most ${NEWS_TOPIC_MAX} characters`);
   const name = typeof language === "string" ? language.trim() : "";
   if (name === "" || name.length > NEWS_LANGUAGE_MAX || CONTROL.test(name)) throw bad(`language must be text of 1 to ${NEWS_LANGUAGE_MAX} characters`);
   if (!modelSelection) throw bad("modelSelection (instanceId, model) is required");
-  return { enabled, frequency, weekday, timeOfDay, topics: clean, language: name, modelSelection };
+  return { enabled, frequency, weekday, timeOfDay, language: name, modelSelection };
 }

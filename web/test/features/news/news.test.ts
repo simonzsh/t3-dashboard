@@ -4,56 +4,21 @@ import type { DashboardProvider, NewsSettings, NewsTask } from "../../../../shar
 import type { SeenState } from "../../../../shared/seen.ts";
 import { prune } from "../../../../shared/seen.ts";
 import { formatMessageTime } from "../../../src/lib/format.ts";
-import { isUnreadArticle, newsMark, readTarget, unreadNewsCount, dateLabel, formFromSettings, pickModel, shortDate, statusLine, toBody, addTopic, toggleTopic, topicOptions, customsFrom, scheduleHint, WEEKDAYS } from "../../../src/features/news/news.ts";
+import { isUnreadArticle, newsMark, readTarget, unreadNewsCount, dateLabel, formFromSettings, pickModel, shortDate, statusLine, toBody, scheduleHint, WEEKDAYS } from "../../../src/features/news/news.ts";
 
 const provider: DashboardProvider = { instanceId: "provider-a", displayName: "Provider A", models: [{ slug: "model-x", name: "Model X" }, { slug: "model-y", name: "Model Y" }] as never, runtimeModes: [] };
-const settings: NewsSettings = { enabled: true, frequency: "daily", weekday: 1, timeOfDay: "07:00", topics: ["Tech", "AI"], language: "French", modelSelection: { instanceId: "provider-a", model: "model-y" } };
+const settings: NewsSettings = { enabled: true, frequency: "daily", weekday: 1, timeOfDay: "07:00", language: "French", modelSelection: { instanceId: "provider-a", model: "model-y" } };
 const task = (over: Partial<NewsTask> = {}): NewsTask => ({ id: "t", enabled: true, nextRunAt: "2026-11-08T07:00:00.000Z", lastRunAt: null, lastRunStatus: null, lastRunError: null, ...over });
 const now = new Date("2026-11-07T12:00:00.000Z");
 
-test("the form checks the saved topics and keeps the customs after the presets", () => {
-  const form = formFromSettings({ ...settings, topics: ["Quantum", "Tech", "ai"] }, settings.modelSelection);
-  assert.deepEqual(form.customs, ["Quantum"]);
-  assert.deepEqual(form.topics, ["AI", "Tech", "Quantum"]);
-  assert.deepEqual(topicOptions(form.customs).slice(-2), ["Hardware & chips", "Quantum"]);
-  assert.deepEqual(customsFrom(["Quantum", "quantum", "AI"]), ["Quantum"]);
-});
-
-test("a topic toggles on and off, and the checked list keeps the display order", () => {
+test("the form shows the saved values", () => {
   const form = formFromSettings(settings, settings.modelSelection);
-  assert.deepEqual(toggleTopic(form, "Security"), ["AI", "Tech", "Security"]);
-  assert.deepEqual(toggleTopic(form, "AI"), ["Tech"]);
-});
-
-test("a custom topic is added checked, and a known name checks the option", () => {
-  const form = formFromSettings(settings, settings.modelSelection);
-  const added = addTopic(form, "  Quantum ");
-  assert.deepEqual([added.topics, added.customs], [["AI", "Tech", "Quantum"], ["Quantum"]]);
-  const again = addTopic({ ...form, ...added }, "QUANTUM");
-  assert.deepEqual([again.topics, again.customs], [added.topics, added.customs]);
-  const preset = addTopic({ ...form, topics: ["Tech"] }, "ai");
-  assert.deepEqual([preset.topics, preset.customs], [["AI", "Tech"], []]);
-  assert.match(addTopic(form, "x".repeat(61)).error!, /60/);
-  assert.match(addTopic(form, "a\u0007b").error!, /special/);
-  assert.equal(addTopic(form, "  ").error, undefined);
-});
-
-test("no more than 10 topics can be checked", () => {
-  const form = { ...formFromSettings(settings, settings.modelSelection), topics: topicOptions([]).slice(0, 10) };
-  assert.deepEqual(toggleTopic(form, "Hardware & chips"), form.topics);
-  assert.match(addTopic(form, "Quantum").error!, /10/);
-  assert.equal(addTopic(form, "ai").error, undefined);
-});
-
-test("the form shows the topics as checked options", () => {
-  const form = formFromSettings(settings, settings.modelSelection);
-  assert.deepEqual(form.topics, ["AI", "Tech"]);
   assert.deepEqual([form.timeOfDay, form.language, form.selection], ["07:00", "French", settings.modelSelection]);
 });
 
 test("a valid form becomes the save body", () => {
-  const form = { ...formFromSettings(settings, settings.modelSelection), topics: ["Tech", "AI"] };
-  assert.deepEqual(toBody(form), { body: { enabled: true, frequency: "daily", weekday: 1, timeOfDay: "07:00", topics: ["AI", "Tech"], language: "French", modelSelection: settings.modelSelection } });
+  const form = formFromSettings(settings, settings.modelSelection);
+  assert.deepEqual(toBody(form), { body: { enabled: true, frequency: "daily", weekday: 1, timeOfDay: "07:00", language: "French", modelSelection: settings.modelSelection } });
 });
 
 test("the schedule fields go through the form and the body", () => {
@@ -83,9 +48,6 @@ test("an invalid form names the problem", () => {
   const ok = formFromSettings(settings, settings.modelSelection);
   const error = (over: object) => ("error" in toBody({ ...ok, ...over }) ? (toBody({ ...ok, ...over }) as { error: string }).error : null);
   assert.match(error({ timeOfDay: "" })!, /time/i);
-  assert.match(error({ topics: [] })!, /topic/i);
-  assert.match(error({ topics: topicOptions([]).slice(0, 11) })!, /10 topics/);
-  assert.match(error({ topics: ["x".repeat(61)], customs: ["x".repeat(61)] })!, /60/);
   assert.match(error({ language: "  " })!, /language/i);
   assert.match(error({ language: "x".repeat(41) })!, /40/);
   assert.match(error({ selection: null })!, /model/i);

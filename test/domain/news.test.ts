@@ -13,7 +13,7 @@ const FILE = "/cfg/news.json";
 const DIR = "/cfg/news";
 const NOW = new Date("2026-11-07T10:00:00.000Z");
 const SELECTION = { instanceId: "claudeAgent", model: "model-x" };
-const body = (extra: Partial<SaveNewsBody> = {}): SaveNewsBody => ({ enabled: true, frequency: "daily", weekday: 1, timeOfDay: "06:45", topics: ["Space", "Chips"], language: "English", modelSelection: SELECTION, ...extra });
+const body = (extra: Partial<SaveNewsBody> = {}): SaveNewsBody => ({ enabled: true, frequency: "daily", weekday: 1, timeOfDay: "06:45", language: "English", modelSelection: SELECTION, ...extra });
 
 interface Entry { name: string; mtimeMs: number; isFile: boolean }
 
@@ -57,9 +57,9 @@ function setup(options: { stored?: unknown; entries?: Entry[]; contents?: Record
 const liveTask = (extra: Partial<RawScheduledTask> = {}): RawScheduledTask => ({ id: "scheduled-task:old", title: "News", enabled: true, projectId: "project-9", runtimeMode: "approval-required", nextRunAt: "2026-11-08T06:45:00.000Z", ...extra });
 const known = { settings: NEWS_DEFAULTS, taskId: "scheduled-task:old", taskCreatedAt: "2026-11-01T08:00:00.000Z" };
 
-test("the prompt names the topics, the language, the folder and the date steps", () => {
-  const prompt = newsPrompt({ ...NEWS_DEFAULTS, topics: ["Space", "Chips"], language: "English" }, "/data/news");
-  for (const part of ["Run `date +%F`", "Space; Chips", "in English:", "/data/news/DATE.md.tmp", "rename it to /data/news/DATE.md", "do not ask questions", "No HTML, no images"]) assert.ok(prompt.includes(part), part);
+test("the prompt names the scope, the language, the folder and the date steps", () => {
+  const prompt = newsPrompt({ ...NEWS_DEFAULTS, language: "English" }, "/data/news");
+  for (const part of ["Run `date +%F`", "software developer who follows", "security (vulnerabilities, breaches, incidents)", "Rank stories by importance", "`## Top stories`", "3 to 5 most important", "`## Key takeaways`", "in English:", "/data/news/DATE.md.tmp", "rename it to /data/news/DATE.md", "do not ask questions", "No HTML, no images"]) assert.ok(prompt.includes(part), part);
 });
 
 test("the default model is Codex gpt-6-luna, and nothing is saved by default", () => {
@@ -76,11 +76,11 @@ test("an article title is its first heading, or its date", () => {
 
 test("the daily prompt covers 24 hours, the weekly prompt 7 days", () => {
   const daily = newsPrompt(NEWS_DEFAULTS, DIR);
-  for (const part of ["last 24 hours", "older than 48 hours", "3 to 6 items", "`# News — DATE`"]) assert.ok(daily.includes(part), part);
+  for (const part of ["last 24 hours", "older than 48 hours", "3 to 6 items", "`## Top stories`", "that day", "`# News — DATE`"]) assert.ok(daily.includes(part), part);
   const weekly = newsPrompt({ ...NEWS_DEFAULTS, frequency: "weekly" }, DIR);
-  for (const part of ["last 7 days", "older than 8 days", "3 to 8 items", "`# News — DATE`"]) assert.ok(weekly.includes(part), part);
+  for (const part of ["last 7 days", "older than 8 days", "3 to 8 items", "that week", "`# News — DATE`"]) assert.ok(weekly.includes(part), part);
   for (const gone of ["24 hours", "48 hours", "6 items"]) assert.ok(!weekly.includes(gone), gone);
-  assert.equal(weekly.replace("7 days", "24 hours").replace("8 days", "48 hours").replace("3 to 8", "3 to 6"), daily);
+  assert.equal(weekly.replace("7 days", "24 hours").replace("8 days", "48 hours").replace("3 to 8", "3 to 6").replace("that week", "that day"), daily);
 });
 
 test("a weekly save schedules the chosen weekday, a daily save none", async () => {
@@ -179,10 +179,10 @@ test("saves run one after the other: two quick saves create one task", async () 
     port.scheduledTasks.push(liveTask({ id: task.id }));
     return result;
   };
-  await Promise.all([news.save(body()), news.save(body({ topics: ["Only"] }))]);
+  await Promise.all([news.save(body()), news.save(body({ language: "French" }))]);
   assert.equal(port.createdTasks.length, 1);
   assert.equal(port.updatedTasks.length, 1);
-  assert.match(port.updatedTasks[0]!.prompt, /Only/);
+  assert.match(port.updatedTasks[0]!.prompt, /in French/);
 });
 
 test("get returns the defaults, the live task and the articles newest first", async () => {

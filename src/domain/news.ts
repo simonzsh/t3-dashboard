@@ -26,11 +26,12 @@ export function newsPrompt(settings: NewsSettings, dir: string): string {
   return `Write today's news article. Nobody reads this thread: do not ask questions.
 
 1. Run \`date +%F\` to get today's date in this machine's time zone. Call it DATE.
-2. Search the web for the most important news of the last ${weekly ? "7 days" : "24 hours"} on these topics: ${settings.topics.join("; ")}. Prefer primary sources and skip anything older than ${weekly ? "8 days" : "48 hours"}.
+2. Search the web for the most important news of the last ${weekly ? "7 days" : "24 hours"} for a software developer who follows: AI (models, research, products), software development (languages, frameworks, tools), security (vulnerabilities, breaches, incidents), the tech industry (major announcements, companies, regulation), and open source. Prefer primary sources and skip anything older than ${weekly ? "8 days" : "48 hours"}. Rank stories by importance, not by category.
 3. Write the article in Markdown, in ${settings.language}:
    - first line, exactly: \`# News — DATE\` (with DATE replaced by the date);
-   - one \`## \` section per topic, 3 to ${weekly ? 8 : 6} items each: a bold headline, two or three sentences, and a source link [name](https://...);
-   - end with a \`## \` section of 3 key takeaways.
+   - \`## Top stories\`: the 3 to 5 most important stories, each a bold headline, two or three sentences and a source link [name](https://...);
+   - then up to 5 short \`## \` sections named after the areas that had real news that ${weekly ? "week" : "day"} (skip an area with nothing worth reading), ${weekly ? "3 to 8" : "3 to 6"} items each, same item format;
+   - end with \`## Key takeaways\`: 3 bullet points.
    No HTML, no images.
 4. Save it: create the folder ${dir} if missing, write the file ${dir}/DATE.md.tmp, then rename it to ${dir}/DATE.md (replace an older file of that name). Write nothing anywhere else.
 5. Reply with one line: the path of the file.`;
@@ -144,7 +145,7 @@ export function createNews(options: NewsOptions): News {
   }
 
   async function persist(body: SaveNewsBody): Promise<NewsState> {
-    const settings: NewsSettings = { enabled: body.enabled, frequency: body.frequency, weekday: body.weekday, timeOfDay: body.timeOfDay, topics: body.topics, language: body.language, modelSelection: body.modelSelection };
+    const settings: NewsSettings = { enabled: body.enabled, frequency: body.frequency, weekday: body.weekday, timeOfDay: body.timeOfDay, language: body.language, modelSelection: body.modelSelection };
     const stored = { ...load(), settings };
     write(stored);
     fs.mkdir(dir);

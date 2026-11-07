@@ -2,8 +2,8 @@ import { useState } from "react";
 import type { DashboardProvider, ModelDefaults, NewsSettings, SaveNewsBody } from "../../../../shared/api.ts";
 import { errorMessage } from "../../lib/format.ts";
 import { ModelPanel } from "../conversation/ModelPanel.tsx";
-import { Button, Choice, Dialog, Dropdown, Segmented, Switch, TextInput } from "../../ui/index.ts";
-import { TOPICS_MAX, WEEKDAYS, addTopic, formFromSettings, topicOptions, toggleTopic, pickModel, scheduleHint, toBody, type NewsFrequency } from "./news.ts";
+import { Dialog, Dropdown, Segmented, Switch, TextInput } from "../../ui/index.ts";
+import { WEEKDAYS, formFromSettings, pickModel, scheduleHint, toBody, type NewsFrequency } from "./news.ts";
 
 interface Props {
   settings: NewsSettings;
@@ -13,24 +13,11 @@ interface Props {
   onClose: () => void;
 }
 
-/** The news schedule, topics, language and model. Saving updates the T3 routine too. */
+/** The news schedule, language and model. Saving updates the T3 routine too. */
 export function NewsSettingsDialog({ settings, providers, defaults, onSave, onClose }: Props) {
   const [form, setForm] = useState(() => formFromSettings(settings, pickModel(settings, providers, defaults.selection)));
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [draft, setDraft] = useState("");
-  const [topicError, setTopicError] = useState<string | null>(null);
-
-  function add() {
-    const { error: problem, ...next } = addTopic(form, draft);
-    setTopicError(problem ?? null);
-    if (problem) return;
-    setForm({ ...form, ...next });
-    setDraft("");
-  }
-
-  const full = form.topics.length >= TOPICS_MAX;
-
   async function save() {
     const built = toBody(form);
     if ("error" in built) return setError(built.error);
@@ -71,26 +58,6 @@ export function NewsSettingsDialog({ settings, providers, defaults, onSave, onCl
           <p className="hint">{scheduleHint(form.frequency, form.weekday)}</p>
         </div>
         </fieldset>
-        <div className="dialog-field">
-          <span>Topics</span>
-          <div className="topic-grid" role="group" aria-label="Topics">
-            {topicOptions(form.customs).map((topic) => {
-              const checked = form.topics.includes(topic);
-              return (
-                <label key={topic} className="topic-option">
-                  <Choice type="checkbox" checked={checked} disabled={!checked && full} onChange={() => setForm({ ...form, topics: toggleTopic(form, topic) })} />
-                  <span>{topic}</span>
-                </label>
-              );
-            })}
-          </div>
-          <div className="topic-add">
-            <TextInput aria-label="Add a topic" placeholder="Add a topic" maxLength={60} value={draft} onChange={(e) => setDraft(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); add(); } }} />
-            <Button onClick={add} disabled={draft.trim() === ""}>Add</Button>
-          </div>
-          {topicError && <p className="auto-error" role="alert">{topicError}</p>}
-          <p className="hint">{full ? `${TOPICS_MAX} topics checked: uncheck one to pick another.` : `Check up to ${TOPICS_MAX} topics.`}</p>
-        </div>
         <div className="dialog-field">
           <span>Language</span>
           <TextInput aria-label="Language" maxLength={40} value={form.language} onChange={(e) => setForm({ ...form, language: e.target.value })} />

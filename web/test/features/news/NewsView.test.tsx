@@ -7,7 +7,7 @@ import { NewsView } from "../../../src/features/news/NewsView.tsx";
 import { NewsSettingsDialog } from "../../../src/features/news/NewsSettingsDialog.tsx";
 
 const task = { id: "t", enabled: true, nextRunAt: "2026-11-08T07:00:00.000Z", lastRunAt: null, lastRunStatus: null, lastRunError: null };
-const state = (over: Partial<NewsState> = {}): NewsState => ({ settings: { enabled: true, frequency: "daily", weekday: 1, timeOfDay: "07:00", topics: ["Tech", "AI"], language: "French", modelSelection: null }, task, articles: [], ...over });
+const state = (over: Partial<NewsState> = {}): NewsState => ({ settings: { enabled: true, frequency: "daily", weekday: 1, timeOfDay: "07:00", language: "French", modelSelection: null }, task, articles: [], ...over });
 const now = new Date("2026-11-07T12:00:00.000Z");
 const view = (news: NewsState) =>
   renderToStaticMarkup(
@@ -39,12 +39,8 @@ test("the settings dialog shows the saved values", () => {
     <NewsSettingsDialog settings={state().settings} providers={[]} defaults={{ selection: null, runtimeMode: null }} onSave={async () => {}} onClose={() => {}} />,
   );
   assert.match(out, /value="07:00"/);
-  assert.match(out, /role="group" aria-label="Topics"/);
-  for (const topic of ["AI", "Software development", "Tech", "Hardware &amp; chips"]) assert.ok(out.includes(`<span>${topic}</span>`), topic);
+  assert.doesNotMatch(out, /topic/i);
   assert.ok(!out.includes("<textarea"));
-  assert.match(out, /checked=""[^>]*\/><span>AI<\/span>/);
-  assert.match(out, /checked=""[^>]*\/><span>Tech<\/span>/);
-  assert.doesNotMatch(out, /checked=""[^>]*\/><span>Security<\/span>/);
   assert.match(out, /value="French"/);
   assert.match(out, /role="switch"[^>]*aria-checked="true"[^>]*aria-label="Automatic generation"/);
   assert.match(out, /runs every day/);
@@ -61,16 +57,7 @@ test("the settings dialog shows the weekday of a weekly news and the off state",
   assert.match(out, /aria-label="Weekday"/);
   assert.match(out, /Sunday/);
   assert.match(out, /every Sunday/);
-  // Off: the schedule controls are locked; the topics stay editable.
+  // Off: the schedule controls are locked; the language and model stay editable.
   assert.match(out, /<fieldset class="news-schedule" disabled=""/);
 });
 
-test("a saved custom topic shows checked after the presets", () => {
-  const settings = { ...state().settings, topics: ["Quantum", "AI"] };
-  const out = renderToStaticMarkup(
-    <NewsSettingsDialog settings={settings} providers={[]} defaults={{ selection: null, runtimeMode: null }} onSave={async () => {}} onClose={() => {}} />,
-  );
-  assert.match(out, /checked=""[^>]*\/><span>Quantum<\/span>/);
-  assert.ok(out.indexOf("<span>Hardware &amp; chips</span>") < out.indexOf("<span>Quantum</span>"));
-  assert.match(out, /aria-label="Add a topic"/);
-});

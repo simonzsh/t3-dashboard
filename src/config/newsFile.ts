@@ -30,14 +30,12 @@ export function readNews(file: string, readFile: ReadFile): StoredNews {
     // A missing or broken file means the defaults.
   }
   const settings = fields(root.settings);
-  const topics = Array.isArray(settings.topics) ? settings.topics.filter((topic): topic is string => typeof topic === "string" && topic.trim() !== "") : [];
   return {
     settings: {
       enabled: typeof settings.enabled === "boolean" ? settings.enabled : NEWS_DEFAULTS.enabled,
       frequency: settings.frequency === "daily" || settings.frequency === "weekly" ? settings.frequency : NEWS_DEFAULTS.frequency,
       weekday: isWeekday(settings.weekday) ? settings.weekday : NEWS_DEFAULTS.weekday,
       timeOfDay: isTimeOfDay(settings.timeOfDay) ? settings.timeOfDay : NEWS_DEFAULTS.timeOfDay,
-      topics: topics.length > 0 ? topics : [...NEWS_DEFAULTS.topics],
       language: text(settings.language) ?? NEWS_DEFAULTS.language,
       modelSelection: selectionOf(settings.modelSelection),
     },
