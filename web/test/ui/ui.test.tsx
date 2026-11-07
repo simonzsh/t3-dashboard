@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { test } from "bun:test";
 import { renderToStaticMarkup } from "react-dom/server";
 import { nextRadioIndex } from "../../src/ui/radioKeys.ts";
-import { Badge, Button, Choice, Dialog, Segmented, FileInput, Icon, IconButton, PageHeader, Pressable, SecretInput, Sheet, Skeleton, SkeletonGroup, Switch, Tabs, TextArea, TextInput } from "../../src/ui/index.ts";
+import { ActionMenu, Badge, Button, Choice, Dialog, Segmented, FileInput, Icon, IconButton, PageHeader, Pressable, SecretInput, Sheet, Skeleton, SkeletonGroup, Switch, Tabs, TextArea, TextInput } from "../../src/ui/index.ts";
 
 const html = renderToStaticMarkup;
 
@@ -215,4 +215,12 @@ test("an open Sheet is a labelled modal dialog with the width class", () => {
   const out = html(<Sheet open width="wide" label="Inbox triage" onClose={() => {}}>x</Sheet>);
   assert.match(out, /class="ui-sheet wide open" role="dialog" aria-modal="true" aria-label="Inbox triage"/);
   assert.doesNotMatch(out, /inert/);
+});
+
+test("an ActionMenu is a closed menu button with the given name", () => {
+  const out = html(<ActionMenu label="Actions for X" tooltip="Actions" items={[{ label: "Edit", icon: "pencil", onSelect: () => {} }]} />);
+  assert.match(out, /aria-label="Actions for X"/);
+  assert.match(out, /aria-haspopup="menu"/);
+  assert.match(out, /aria-expanded="false"/);
+  assert.doesNotMatch(out, /role="menu"/);
 });

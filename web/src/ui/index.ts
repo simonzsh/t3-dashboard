@@ -1,3 +1,4 @@
+export { ActionMenu, type ActionMenuItem } from "./ActionMenu.tsx";
 export { Badge, type BadgeVariant } from "./Badge.tsx";
 export { Button, type ButtonProps, type ButtonVariant, type ControlSize } from "./Button.tsx";
 export { CardHead } from "./CardHead.tsx";
