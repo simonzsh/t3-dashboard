@@ -123,3 +123,11 @@ test("on a phone an open keyboard drops the bottom bar and the bottom inset", ()
 test("an open dialog locks the page scroll", () => {
   assert.match(css, /html:has\(\.dialog-backdrop:not\(\[hidden\]\)\) \{ overflow: hidden; \}/);
 });
+
+test("automations: only the list scrolls, under a fixed toolbar, on a phone too", () => {
+  assert.match(css, /\.auto-scroll \{[^}]*overflow-y: auto/);
+  assert.doesNotMatch(css, /\.auto-page \{[^}]*overflow-y/);
+  assert.doesNotMatch(css, /\.auto-toolbar \{[^}]*sticky/);
+  const phone = css.slice(css.indexOf("@media (max-width: 700px)"));
+  assert.match(phone, /\.app:not\(\.sessions-mode, \.automations-mode\) \{ height: auto;/);
+});

@@ -170,6 +170,8 @@ export function AutomationsView({ state, now, seen, onOpen, automations, automat
           />
           <Dropdown label="Sort automations" className="auto-sort" value={prefs.sort} options={SORTS} onPick={(sort) => setPrefs({ sort: sort as AutomationSort })} />
         </div>
+        {/* Only the list scrolls: the toolbar stays above its scrollbar, as in the sessions list. */}
+        <div className="auto-scroll">
         {sorted.length === 0 && setupRows.length === 0 ? (
           <EmptyList {...(query !== "" ? NO_MATCH : EMPTY[prefs.filter])} />
         ) : (
@@ -218,6 +220,7 @@ export function AutomationsView({ state, now, seen, onOpen, automations, automat
             </ul>
           </div>
         )}
+        </div>
       </section>
       <Sheet open={selected !== null} label={sheetAutomation?.title ?? "Automation"} width="wide" onClose={closeSheet}>
         {sheetAutomation && (

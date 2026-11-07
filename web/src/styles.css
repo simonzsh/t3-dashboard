@@ -669,13 +669,16 @@ ol.install-steps { padding-left: 18px; }
 .glance-row:hover .glance-action .icon-button, .glance-row:focus-within .glance-action .icon-button { opacity: 1; pointer-events: auto; }
 @media (hover: none) { .glance-action .icon-button { opacity: 1; pointer-events: auto; } }
 main:has(> .auto-page) { padding-top: 8px; }
-.auto-page { flex: 1; min-height: 0; overflow-y: auto; display: flex; flex-direction: column; gap: 28px; padding: 4px; margin: -4px; }
-.auto-section { flex: none; display: flex; flex-direction: column; gap: 8px; }
+.auto-page { flex: 1; min-height: 0; display: flex; flex-direction: column; gap: 28px; }
+.auto-section { flex: 1; min-height: 0; display: flex; flex-direction: column; gap: 8px; }
+/* The list scrolls on its own; the 4 px give room to the focus rings and the card shadow. */
+.auto-scroll { flex: 1; min-height: 0; overflow-y: auto; display: flex; flex-direction: column; padding: 4px; margin: -4px; }
+.auto-scroll > .auto-card { flex: none; }
 .auto-section-title { margin: 0; font-size: 12px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-secondary); }
 .auto-note { margin: 0; font-size: 12px; color: var(--text-secondary); }
 .auto-model { display: inline-flex; align-items: center; gap: 6px; }
 .auto-model .provider-icon { width: 15px; height: 15px; margin: 0; }
-.auto-toolbar { position: sticky; top: -4px; z-index: 2; flex: none; display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-inline: -4px; padding: 8px 4px; background: var(--page-bg); }
+.auto-toolbar { flex: none; display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 8px 0; background: var(--page-bg); }
 .auto-toolbar .segmented { max-width: 100%; overflow-x: auto; }
 .auto-toolbar .segmented button { white-space: nowrap; }
 .auto-search { position: relative; display: flex; align-items: center; flex: 1 1 200px; min-width: 0; max-width: 360px; }
@@ -685,7 +688,6 @@ main:has(> .auto-page) { padding-top: 8px; }
 .auto-rows { margin: 0; padding: 0; list-style: none; }
 .auto-rows > li + li { border-top: 1px solid var(--line); }
 /* An empty list fills the free space and centers its message, with no frame. */
-.auto-section:has(> .auto-empty) { flex: 1; }
 .auto-empty { flex: 1; min-height: 280px; justify-content: center; gap: 6px; border: 0; }
 .auto-empty > .icon { width: 28px; height: 28px; margin-bottom: 6px; }
 .auto-empty .btn { margin-top: 8px; }
@@ -1010,7 +1012,9 @@ main:has(> .auto-page) { padding-top: 8px; }
   .glance-meta { grid-area: meta; max-width: none; }
   .glance-action { grid-area: action; }
   .switcher-meta { display: none; }
-  .auto-toolbar { top: var(--header-h, 48px); }
+  /* The list runs down to the bottom bar, as the sessions list does. */
+  main:has(> .auto-page) { padding-top: 0; padding-bottom: 0; }
+  .auto-scroll { padding-bottom: 16px; }
   .notif-toasts { left: 12px; right: 12px; width: auto; }
   /* Three compact tiles in one row; the chart is lower (see ActivityChart). */
   .stat-tile { gap: 2px; padding: 12px; }
@@ -1041,11 +1045,10 @@ main:has(> .auto-page) { padding-top: 8px; }
   .notif-bell .nav-badge { top: 2px; right: 2px; }
   .page-actions .header-new { border-radius: 12px; }
   .app-column { padding-bottom: calc(var(--bottom-bar) + env(safe-area-inset-bottom)); }
-  /* Dashboard and Automations scroll the page itself, so Safari's floating address bar sits over the content instead of under a cut-off box. */
-  .app:not(.sessions-mode) { height: auto; min-height: 100dvh; overflow: visible; }
-  .app:not(.sessions-mode) :is(main, .dashboard) { flex: none; overflow: visible; }
-  .app:not(.sessions-mode) main { padding-bottom: 24px; }
-  .app:not(.sessions-mode) .auto-page { flex: none; overflow: visible; }
+  /* The Dashboard scrolls the page itself, so Safari's floating address bar sits over the content instead of under a cut-off box. */
+  .app:not(.sessions-mode, .automations-mode) { height: auto; min-height: 100dvh; overflow: visible; }
+  .app:not(.sessions-mode, .automations-mode) :is(main, .dashboard) { flex: none; overflow: visible; }
+  .app:not(.sessions-mode, .automations-mode) main { padding-bottom: 24px; }
   /* The keyboard covers the bottom bar and the home indicator: the composer sits right on top of it. */
   .keyboard-open .bottom-nav { display: none; }
   .keyboard-open .app .app-column { padding-bottom: 0; }
