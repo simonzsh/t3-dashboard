@@ -12,7 +12,7 @@ const ids = (list: Array<{ id: string }>) => list.map((t) => t.id);
 const fresh: SeenState = { since: "2026-01-01T00:00:00.000Z", seen: {} };
 // Reads the thread at its current activity.
 const readAt = (...threads: Array<{ id: string; lastActivityAt: string }>): SeenState => ({ since: fresh.since, seen: Object.fromEntries(threads.map((t) => [t.id, t.lastActivityAt])) });
-const sectionsOf = (threads: ReturnType<typeof thread>[], seen = fresh, relaunch: ReadonlySet<string> = new Set()) => threadSections(threads, seen, relaunch);
+const sectionsOf = (threads: ReturnType<typeof thread>[], seen = fresh) => threadSections(threads, seen);
 
 test("waiting threads and unsettled errors need you, whether read or not", () => {
   const wait = thread("wait", { status: "waiting", pending: ask });
@@ -48,13 +48,6 @@ test("a pending thread needs you even when settled", () => {
 test("a settled thread that does not run or wait is left out", () => {
   const s = sectionsOf([thread("a", { settled: true, status: "failed", lastError: "x" }), thread("b", { settled: true, status: "completed" })]);
   assert.deepEqual([...s.needsYou, ...s.unread, ...s.readIdle, ...s.running], []);
-});
-
-test("threads to relaunch leave read and idle", () => {
-  const a = thread("a", { status: "completed" });
-  const b = thread("b", { status: "completed" });
-  const s = sectionsOf([a, b], readAt(a, b), new Set(["a"]));
-  assert.deepEqual(ids(s.readIdle), ["b"]);
 });
 
 test("running lists pinned threads first, then the most recent", () => {

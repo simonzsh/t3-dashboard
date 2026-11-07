@@ -16,7 +16,7 @@ interface Props {
   onOpen: (id: string, addOnly: boolean) => void;
 }
 
-/** A thread in the Running and Up next cards: title, then model, project and time. A click opens it in Sessions. */
+/** A thread in the Running card: title, then model, project and time. A click opens it in Sessions. */
 function ThreadRowView({ thread: t, project, modelName, now, inSessions, onOpen }: Props) {
   const working = agentStatus(t) === "working";
   return (

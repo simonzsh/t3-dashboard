@@ -1,7 +1,7 @@
 import type { LimitsOverview, ServerStats, UsageOverview } from "../../../../shared/api.ts";
 import { Fragment, useRef, useState, type DragEvent, type ReactNode } from "react";
 import { CardEditBar } from "./CardEditBar.tsx";
-import { CARD_TITLES, dropCard, layoutRows, resolveDrop, setHidden, shiftCard, toggleWidth, type CardColumn, type DashboardCard, type DashboardLayout, type DropTarget } from "./layout.ts";
+import { CARD_TITLES, dropCard, layoutRows, resolveDrop, omitCard, restoreCard, setHidden, shiftCard, toggleWidth, type CardColumn, type DashboardCard, type DashboardLayout, type DropTarget } from "./layout.ts";
 import { Button, Icon, Sheet, useFlip } from "../../ui/index.ts";
 import { ActivityCard } from "./ActivityCard.tsx";
 import { ServerCard } from "./ServerCard.tsx";
@@ -26,13 +26,17 @@ interface Props extends CardsInput {
   onCloseSheet: () => void;
 }
 
-export function DashboardView({ limits, server, activity, layout, editing, onLayout, panelOpen, sheet, onCloseSheet, ...input }: Props) {
+export function DashboardView({ limits, server, activity, layout: saved, editing, onLayout: save, panelOpen, sheet, onCloseSheet, ...input }: Props) {
   const [dragged, setDragged] = useState<DashboardCard | null>(null);
   // Where the dragged card would land, shown as a placeholder of its size.
   const [target, setTarget] = useState<DropTarget | null>(null);
   const [dragHeight, setDragHeight] = useState(0);
-  // A hidden Up next reads no tickets.
-  const { notifications, ...cards } = useDashboardCards(input, !layout.hidden.includes("up-next"));
+  // A hidden Linear card still loads nothing; a shown one loads to learn whether Linear is connected.
+  const { notifications, ...cards } = useDashboardCards(input, !saved.hidden.includes("linear"));
+  // While the card has no content it has no slot, in edit mode too; a change of layout keeps the saved place of the card.
+  const absent = cards.linear === null;
+  const layout = absent ? omitCard(saved, "linear") : saved;
+  const onLayout = (next: DashboardLayout) => save(absent ? restoreCard(saved, next, "linear") : next);
   const body: Record<DashboardCard, ReactNode> = { usage: <UsageCard state={limits} now={input.now} />, server: <ServerCard state={server} now={input.now} />, activity: <ActivityCard state={activity} now={input.now} />, ...cards };
   const showPanel = panelOpen && !editing;
   // The sheet takes no room, so the cards do not move for it.

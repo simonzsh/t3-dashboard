@@ -2,10 +2,10 @@ import { readJson, writeKey, type Store } from "../../lib/storage.ts";
 
 export const DASHBOARD_LAYOUT_KEY = "t3-dashboard-layout";
 
-const CARDS = ["activity", "usage", "running", "server", "up-next"] as const;
+const CARDS = ["activity", "usage", "running", "server", "linear"] as const;
 export type DashboardCard = (typeof CARDS)[number];
 
-export const CARD_TITLES: Record<DashboardCard, string> = { usage: "Usage", server: "Server", activity: "Activity", running: "Running", "up-next": "Up next" };
+export const CARD_TITLES: Record<DashboardCard, string> = { usage: "Usage", server: "Server", activity: "Activity", running: "Running", linear: "Linear" };
 
 export type CardWidth = "half" | "full";
 export type CardColumn = "left" | "right";
@@ -33,7 +33,7 @@ export type DropTarget =
 const CARD_DEFAULTS: Record<DashboardCard, { width: CardWidth; column: CardColumn }> = {
   activity: { width: "full", column: "left" },
   usage: { width: "half", column: "left" },
-  "up-next": { width: "half", column: "right" },
+  linear: { width: "half", column: "right" },
   running: { width: "half", column: "right" },
   server: { width: "half", column: "right" },
 };
@@ -74,8 +74,11 @@ export const layoutRows = (layout: DashboardLayout): LayoutRow[] =>
 export const DEFAULT_LAYOUT: DashboardLayout = { order: CARDS.map(defaultPlace), hidden: [] };
 
 const isCard = (v: unknown): v is DashboardCard => CARDS.includes(v as DashboardCard);
+// Ids saved by an older version, read as the card that replaced them.
+const CARD_ALIASES: Record<string, DashboardCard> = { "up-next": "linear" };
+const canonicalId = (id: unknown): unknown => (typeof id === "string" ? (CARD_ALIASES[id] ?? id) : id);
 // The default order saved before cards had a width: it becomes the default layout.
-const LEGACY_ORDER: DashboardCard[] = ["usage", "activity", "server", "running", "up-next"];
+const LEGACY_ORDER: DashboardCard[] = ["usage", "activity", "server", "running", "linear"];
 const followsInOrder = (ids: DashboardCard[], reference: DashboardCard[]): boolean => {
   let from = 0;
   return ids.every((id) => {
@@ -93,12 +96,13 @@ export function validateLayout(raw: unknown): DashboardLayout {
   const order: CardPlace[] = [];
   for (const entry of input.order) {
     const item = (entry && typeof entry === "object" ? entry : { id: entry }) as Record<string, unknown>;
-    if (!isCard(item.id) || seen.has(item.id)) continue;
-    seen.add(item.id);
-    const base = defaultPlace(item.id);
-    order.push({ id: item.id, width: item.width === "half" || item.width === "full" ? item.width : base.width, column: item.column === "left" || item.column === "right" ? item.column : base.column });
+    const id = canonicalId(item.id);
+    if (!isCard(id) || seen.has(id)) continue;
+    seen.add(id);
+    const base = defaultPlace(id);
+    order.push({ id, width: item.width === "half" || item.width === "full" ? item.width : base.width, column: item.column === "left" || item.column === "right" ? item.column : base.column });
   }
-  const hidden = (Array.isArray(input.hidden) ? input.hidden : []).filter((id, i, all): id is DashboardCard => isCard(id) && !seen.has(id) && all.indexOf(id) === i);
+  const hidden = (Array.isArray(input.hidden) ? input.hidden.map(canonicalId) : []).filter((id, i, all): id is DashboardCard => isCard(id) && !seen.has(id) && all.indexOf(id) === i);
   const ids = order.map((p) => p.id);
   if (input.order.every((e) => typeof e === "string") && followsInOrder(ids, LEGACY_ORDER)) {
     return { order: DEFAULT_LAYOUT.order.filter((p) => !hidden.includes(p.id)), hidden };
@@ -196,6 +200,19 @@ export function setHidden(layout: DashboardLayout, id: DashboardCard, hide: bool
   if (hide === layout.hidden.includes(id)) return layout;
   if (hide) return { order: canon(layout.order.filter((p) => p.id !== id)), hidden: [...layout.hidden, id] };
   return { order: canon([...layout.order, defaultPlace(id)]), hidden: layout.hidden.filter((c) => c !== id) };
+}
+
+/** The layout without this card in its order; the hidden list is kept, so the card can still be shown again. */
+export const omitCard = (layout: DashboardLayout, card: DashboardCard): DashboardLayout =>
+  layout.order.some((p) => p.id === card) ? { ...layout, order: layout.order.filter((p) => p.id !== card) } : layout;
+
+/** Undoes `omitCard` after a change of the view: the card returns after the nearest earlier card still in the order, or first. */
+export function restoreCard(original: DashboardLayout, next: DashboardLayout, card: DashboardCard): DashboardLayout {
+  const place = original.order.find((p) => p.id === card);
+  if (!place || next.order.some((p) => p.id === card) || next.hidden.includes(card)) return next;
+  const before = original.order.slice(0, original.order.indexOf(place)).reverse();
+  const anchor = before.map((p) => next.order.findIndex((q) => q.id === p.id)).find((i) => i !== -1) ?? -1;
+  return { ...next, order: canon([...next.order.slice(0, anchor + 1), place, ...next.order.slice(anchor + 1)]) };
 }
 
 export const isDefaultLayout = (layout: DashboardLayout): boolean => JSON.stringify(layout) === JSON.stringify(DEFAULT_LAYOUT);
