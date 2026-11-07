@@ -1011,6 +1011,8 @@ main:has(> .auto-page) { padding-top: 8px; }
   .glance-action { grid-area: action; }
   .switcher-meta { display: none; }
   .auto-toolbar { top: var(--header-h, 48px); }
+  /* The toolbar starts right under the header, where it sticks: no 8 px jump when the page starts to scroll. */
+  main:has(> .auto-page) { padding-top: 0; }
   .notif-toasts { left: 12px; right: 12px; width: auto; }
   /* Three compact tiles in one row; the chart is lower (see ActivityChart). */
   .stat-tile { gap: 2px; padding: 12px; }
