@@ -1123,6 +1123,8 @@ main:has(> .news-page) { padding-top: 8px; }
 .news-article > * { max-width: 68ch; margin-inline: auto; }
 .news-back { display: none; }
 .news-model { container-type: inline-size; }
+/* Inside the settings sheet the picker opens in place: above its chip it would leave the sheet. */
+.news-model .model-panel { position: static; width: 100%; margin-top: 8px; }
 .news-article-date { margin: 8px auto 0; font-size: 12px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-secondary); }
 /* Reading size: a 68-character line, taller leading and roomy blocks. */
 .news-body { font-size: 15.5px; line-height: 1.7; overflow-wrap: anywhere; }
@@ -1135,6 +1137,8 @@ main:has(> .news-page) { padding-top: 8px; }
   main:has(> .news-page) { padding-top: 12px; }
   .news-page { flex: none; display: block; }
   .news-list, .news-article { overflow: visible; margin: 0; padding: 0; }
+  /* The page scrolls under the fixed header: keep the back button in view. */
+  .news-article { scroll-margin-top: 72px; }
   .news-page:not(.reading) .news-article, .news-page.reading .news-list { display: none; }
   .news-item { padding: 12px 10px; }
   .news-back { display: inline-flex; margin: 0 0 4px -8px; }
