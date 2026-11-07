@@ -76,6 +76,21 @@
 :root[data-theme="dark"][data-accent="yellow"] { --accent: #facc15; --on-accent: #18181b; }
 :root[data-accent="green"] { --accent: #16a34a; }
 :root[data-theme="dark"][data-accent="green"] { --accent: #22c55e; --on-accent: #052e16; }
+/* Tinted interface (Settings > Appearance): the neutral grays take a little of the accent. Mirrors features/settings/tint.ts. */
+:root[data-tint="on"] {
+  --page-bg: color-mix(in srgb, var(--accent) 4%, #ffffff);
+  --surface-0: color-mix(in srgb, var(--accent) 8%, #f4f4f5);
+  --surface-1: color-mix(in srgb, var(--accent) 2%, #ffffff);
+  --header-bg: color-mix(in srgb, var(--accent) 4%, #ffffff);
+  --line: color-mix(in srgb, var(--accent) 16%, #e4e4e7);
+}
+:root[data-theme="dark"][data-tint="on"] {
+  --page-bg: color-mix(in srgb, var(--accent) 6%, #09090b);
+  --surface-0: color-mix(in srgb, var(--accent) 6%, #09090b);
+  --surface-1: color-mix(in srgb, var(--accent) 8%, #121214);
+  --header-bg: color-mix(in srgb, var(--accent) 7%, #0c0c0e);
+  --line: color-mix(in srgb, var(--accent) 20%, #27272a);
+}
 * { box-sizing: border-box; }
 /* iOS paints a grey box on every pressed control; the app shows its own pressed states. */
 html { -webkit-tap-highlight-color: transparent; }
