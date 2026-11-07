@@ -57,6 +57,17 @@ test("the demo config carries usage limits that show every pace", async () => {
   assert.ok(share("five_hour", "claudeAgent") < -5);
 });
 
+test("the demo usage gives the same numbers to a day in a short and in a long range", async () => {
+  const port = new DemoPort(() => NOW);
+  const short = await port.usageSummary({ sinceDay: "2026-10-13", untilDay: "2026-10-26", timeZone: "UTC" });
+  const long = await port.usageSummary({ sinceDay: "2026-08-28", untilDay: "2026-10-26", timeZone: "UTC" });
+  assert.equal(new Set(long.buckets.map((bucket) => bucket.day)).size, 60);
+  assert.deepEqual(long.buckets.filter((bucket) => bucket.day >= "2026-10-13"), short.buckets);
+  const year = await port.usageSummary({ sinceDay: "2026-04-30", untilDay: "2026-10-26", timeZone: "UTC" });
+  assert.deepEqual(issues(UsageSummaryResponse, year), []);
+  assert.equal(new Set(year.buckets.map((bucket) => bucket.day)).size, 180);
+});
+
 test("the demo usage matches the T3 schema and shows a partial cost over 14 days", async () => {
   const usage = await new DemoPort(() => NOW).usageSummary({ sinceDay: "2026-10-13", untilDay: "2026-10-26", timeZone: "UTC" });
   assert.deepEqual(issues(UsageSummaryResponse, usage), []);

@@ -1,5 +1,6 @@
 import type { ApprovalDecision, AssignIssueBody, CreateAutomationBody, CreateProjectBody, CreateThreadBody, ProjectIconSpec, RoutineSchedule, WebhookFilter, WebhookSignature, ModelSelection, RespondBody, RewindBody, SecretAnswerBody, SendMessageBody, ThreadSettingsBody, UpdateAutomationBody, UpdateProjectBody, UploadedAttachment, UserInputAnswers } from "../../shared/api.ts";
 import { PROJECT_COLOR_NAMES } from "../../shared/projectColors.ts";
+import { ACTIVITY_PERIODS, DEFAULT_ACTIVITY_PERIOD, type ActivityPeriod } from "../../shared/usage.ts";
 import { isObject } from "../../shared/guards.ts";
 import { normalizeSessions, type SessionsUpdate } from "../../shared/sessions.ts";
 import { IMAGE_TYPES, MAX_ATTACHMENTS, MAX_FILE_BYTES, MAX_IMAGE_BYTES, MAX_IMAGES, MAX_SECRET_CHARS, isRuntimeMode } from "../../shared/limits.ts";
@@ -199,6 +200,14 @@ export function validTimeZone(value: string | null): string {
     throw new HttpError(400, "tz must be an IANA time zone, such as Europe/Paris");
   }
   return value;
+}
+
+/** The Activity period of `?period=`: 7 when absent, so older bundles keep working. */
+export function validActivityPeriod(value: string | null): ActivityPeriod {
+  if (value === null) return DEFAULT_ACTIVITY_PERIOD;
+  const period = ACTIVITY_PERIODS.find((days) => String(days) === value);
+  if (period === undefined) throw new HttpError(400, "period must be 7, 30 or 90");
+  return period;
 }
 
 export function validSettings(body: Record<string, unknown>): ThreadSettingsBody {

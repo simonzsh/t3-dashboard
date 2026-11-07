@@ -1,9 +1,7 @@
-import type { DashboardThread, UsageCostStatus, UsageDay, UsageOverview, UsageTotals } from "../../shared/api.ts";
+import type { ActivityPeriod, DashboardThread, UsageCostStatus, UsageDay, UsageOverview, UsageTotals } from "../../shared/api.ts";
 import { IntegrationError } from "../integrations/errors.ts";
 import type { RawUsageSummary, T3Port } from "../integrations/t3/schemas.ts";
 
-const DAYS = 14;
-const WEEK = 7;
 // Short, so a scan that is still running shows its progress on the next poll.
 const CACHE_MS = 10_000;
 const MAX_READS = 8;
@@ -37,11 +35,11 @@ function sum(days: UsageDay[]): UsageTotals {
 const dayFormat = (timeZone: string) => new Intl.DateTimeFormat("en-CA", { timeZone, year: "numeric", month: "2-digit", day: "2-digit" });
 
 /** The local calendar days, oldest first, as "YYYY-MM-DD". */
-function windowDays(zone: Intl.DateTimeFormat, now: Date): string[] {
+function windowDays(zone: Intl.DateTimeFormat, now: Date, count: number): string[] {
   const today = zone.format(now);
   const [year, month, day] = today.split("-").map(Number) as [number, number, number];
   // Plain calendar arithmetic in UTC: a daylight-saving change cannot skip or repeat a day.
-  return Array.from({ length: DAYS }, (_, index) => new Date(Date.UTC(year, month - 1, day - (DAYS - 1 - index))).toISOString().slice(0, 10));
+  return Array.from({ length: count }, (_, index) => new Date(Date.UTC(year, month - 1, day - (count - 1 - index))).toISOString().slice(0, 10));
 }
 
 const localDay = (zone: Intl.DateTimeFormat, iso: string): string | null => {
@@ -94,29 +92,30 @@ export function createUsage({ port, threads, now }: UsageOptions) {
     }
   }
 
-  async function build(timeZone: string): Promise<UsageOverview> {
+  async function build(timeZone: string, period: ActivityPeriod): Promise<UsageOverview> {
     const at = now();
     const zone = dayFormat(timeZone);
-    const dayKeys = windowDays(zone, at);
+    const dayKeys = windowDays(zone, at, 2 * period);
     const byDay = new Map<string, UsageDay>(dayKeys.map((day) => [day, { day, ...zero() }]));
 
     const active = threads().filter((thread) => {
       const day = localDay(zone, thread.lastActivityAt);
       return day !== null && day >= dayKeys[0]!;
     });
-    const ids = new Set(active.map((thread) => thread.id));
-    for (const id of runTimes.keys()) if (!ids.has(id)) runTimes.delete(id);
+    // Keep entries of threads outside this window: another period may need them.
+    const known = new Set(threads().map((thread) => thread.id));
+    for (const id of runTimes.keys()) if (!known.has(id)) runTimes.delete(id);
 
     const [turns, cost] = await Promise.all([readTurns(active), readCost(dayKeys, timeZone)]);
     // A session counts in a period when one of its turns falls in it.
-    const thisWeekStart = dayKeys[DAYS - WEEK]!;
-    const sessions = { thisWeek: new Set<string>(), lastWeek: new Set<string>() };
+    const currentStart = dayKeys[period]!;
+    const sessions = { current: new Set<string>(), previous: new Set<string>() };
     for (const run of turns.runs) {
       const day = localDay(zone, run.time) ?? "";
       const entry = byDay.get(day);
       if (!entry) continue;
       entry.turns++;
-      (day >= thisWeekStart ? sessions.thisWeek : sessions.lastWeek).add(run.id);
+      (day >= currentStart ? sessions.current : sessions.previous).add(run.id);
     }
 
     let status: UsageCostStatus = cost.failure === null ? "ok" : "unavailable";
@@ -134,10 +133,11 @@ export function createUsage({ port, threads, now }: UsageOptions) {
 
     const days = [...byDay.values()].map((day) => ({ ...day, costUsd: cents(day.costUsd) }));
     return {
+      period,
       days,
-      thisWeek: sum(days.slice(DAYS - WEEK)),
-      lastWeek: sum(days.slice(0, DAYS - WEEK)),
-      sessions: { thisWeek: sessions.thisWeek.size, lastWeek: sessions.lastWeek.size },
+      current: sum(days.slice(period)),
+      previous: sum(days.slice(0, period)),
+      sessions: { current: sessions.current.size, previous: sessions.previous.size },
       turnsPartial: turns.partial,
       cost: { status, detail: cost.failure, refreshing },
       readAt: at.toISOString(),
@@ -145,18 +145,19 @@ export function createUsage({ port, threads, now }: UsageOptions) {
   }
 
   return {
-    async get(zone: string, refresh: boolean): Promise<UsageOverview> {
-      const hit = cache.get(zone);
+    async get(zone: string, period: ActivityPeriod, refresh: boolean): Promise<UsageOverview> {
+      const key = `${zone}|${period}`;
+      const hit = cache.get(key);
       if (!refresh && hit && now().getTime() - hit.at < CACHE_MS) return hit.overview;
-      const pending = inFlight.get(zone);
+      const pending = inFlight.get(key);
       if (pending) return pending;
-      const read = build(zone)
+      const read = build(zone, period)
         .then((overview) => {
-          cache.set(zone, { at: now().getTime(), overview });
+          cache.set(key, { at: now().getTime(), overview });
           return overview;
         })
-        .finally(() => inFlight.delete(zone));
-      inFlight.set(zone, read);
+        .finally(() => inFlight.delete(key));
+      inFlight.set(key, read);
       return read;
     },
   };

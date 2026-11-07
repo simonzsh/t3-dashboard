@@ -1,5 +1,5 @@
 import { formatTokens, MONTHS } from "../../lib/format.ts";
-import type { UsageDay, UsageTotals } from "../../../../shared/api.ts";
+import type { ActivityPeriod, UsageDay, UsageTotals } from "../../../../shared/api.ts";
 
 export type Metric = "turns" | "cost" | "tokens";
 
@@ -14,10 +14,10 @@ export function formatUsd(value: number): string {
   return `$${value.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 }
 
-/** "+29 %", "−5 %", "new" when last week was empty, null when both are. */
-export function delta(thisWeek: number, lastWeek: number): string | null {
-  if (lastWeek === 0) return thisWeek > 0 ? "new" : null;
-  const percent = Math.round(((thisWeek - lastWeek) / lastWeek) * 100);
+/** "+29 %", "−5 %", "new" when the previous period was empty, null when both are. */
+export function delta(current: number, previous: number): string | null {
+  if (previous === 0) return current > 0 ? "new" : null;
+  const percent = Math.round(((current - previous) / previous) * 100);
   if (percent === 0) return "0 %";
   return `${percent > 0 ? "+" : "−"}${Math.abs(percent)} %`;
 }
@@ -29,7 +29,7 @@ export function cacheShare(totals: Pick<UsageTotals, "inputTokens" | "cachedInpu
 
 export const tokensOf = (d: Pick<UsageTotals, "inputTokens" | "outputTokens">): number => d.inputTokens + d.outputTokens;
 
-export function metricValue(d: UsageDay, metric: Metric): number {
+export function metricValue(d: UsageTotals, metric: Metric): number {
   if (metric === "turns") return d.turns;
   return metric === "cost" ? d.costUsd : tokensOf(d);
 }
@@ -71,3 +71,46 @@ export function shortDay(day: string): string {
   const [, month, date] = day.split("-").map(Number);
   return `${MONTHS[month! - 1]} ${date}`;
 }
+
+/** One bar of the chart: a day, or 7 days for the longest period. `from` and `to` are inclusive. */
+export interface ChartBar extends UsageTotals {
+  from: string;
+  to: string;
+}
+
+const DAYS_PER_BAR = { 7: 1, 30: 1, 90: 7 } as const;
+const BARS = { 7: 14, 30: 30, 90: 13 } as const;
+
+function addTotals(days: UsageDay[]): ChartBar {
+  const total = { turns: 0, costUsd: 0, inputTokens: 0, cachedInputTokens: 0, outputTokens: 0 };
+  for (const day of days) {
+    total.turns += day.turns;
+    total.costUsd += day.costUsd;
+    total.inputTokens += day.inputTokens;
+    total.cachedInputTokens += day.cachedInputTokens;
+    total.outputTokens += day.outputTokens;
+  }
+  // Sums of floats: keep the cents, drop the noise.
+  return { ...total, costUsd: Math.round(total.costUsd * 100) / 100, from: days[0]!.day, to: days.at(-1)!.day };
+}
+
+/** The bars of the chart, oldest first; the last one ends today. Groups are counted from the end. */
+export function chartBars(days: UsageDay[], period: ActivityPeriod): ChartBar[] {
+  const size = DAYS_PER_BAR[period];
+  const shown = days.slice(-BARS[period] * size);
+  const bars: ChartBar[] = [];
+  for (let end = shown.length; end > 0; end -= size) bars.unshift(addTotals(shown.slice(Math.max(0, end - size), end)));
+  return bars;
+}
+
+export function chartTitle(period: ActivityPeriod): string {
+  return period === 90 ? `Last ${BARS[90]} weeks` : `Last ${BARS[period]} days`;
+}
+
+/** "Nov 6" for one day, "Oct 31 – Nov 6" for a span. */
+export function barRange({ from, to }: Pick<ChartBar, "from" | "to">): string {
+  return from === to ? shortDay(from) : `${shortDay(from)} – ${shortDay(to)}`;
+}
+
+/** Label every n-th bar so two labels stay at least 48 px apart. */
+export const labelEvery = (slot: number): number => Math.max(1, Math.ceil(48 / slot));

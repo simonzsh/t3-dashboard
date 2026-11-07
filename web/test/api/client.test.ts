@@ -102,11 +102,11 @@ test("getLimits asks for a fresh read on demand", async () => {
   assert.deepEqual(calls.map((c) => c.url), ["/api/limits", "/api/limits?refresh=1"]);
 });
 
-test("getUsage sends the encoded time zone and forces a refresh on demand", async () => {
+test("getUsage sends the encoded time zone and the period, and forces a refresh on demand", async () => {
   const { calls, api } = fake(200, {});
-  await api.getUsage("America/Port-au-Prince");
-  await api.getUsage("Europe/Paris", true);
-  assert.deepEqual(calls.map((c) => c.url), ["/api/usage?tz=America%2FPort-au-Prince", "/api/usage?tz=Europe%2FParis&refresh=1"]);
+  await api.getUsage("America/Port-au-Prince", 7);
+  await api.getUsage("Europe/Paris", 90, true);
+  assert.deepEqual(calls.map((c) => c.url), ["/api/usage?tz=America%2FPort-au-Prince&period=7", "/api/usage?tz=Europe%2FParis&period=90&refresh=1"]);
 });
 
 test("assignIssue posts the body to the assign route", async () => {

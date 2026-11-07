@@ -1,11 +1,12 @@
 import { test } from "bun:test";
 import assert from "node:assert/strict";
 import { renderToStaticMarkup } from "react-dom/server";
-import type { DashboardState, LimitsOverview, ServerStats, UsageDay, UsageOverview, UsageTotals } from "../../../../shared/api.ts";
+import type { ActivityPeriod, DashboardState, LimitsOverview, ServerStats, UsageDay, UsageOverview, UsageTotals } from "../../../../shared/api.ts";
 import { DashboardView } from "../../../src/features/dashboard/DashboardView.tsx";
 import { DEFAULT_LAYOUT, setHidden, shiftCard, type DashboardLayout } from "../../../src/features/dashboard/layout.ts";
 import { listedThreads } from "../../../src/features/dashboard/sections.ts";
 import type { ReadState } from "../../../src/features/dashboard/pollRead.ts";
+import type { ActivityState } from "../../../src/features/dashboard/useActivity.ts";
 import { baseState, thread } from "../../fixtures.ts";
 
 const NOW = new Date("2026-01-14T12:00:00.000Z");
@@ -26,16 +27,22 @@ const totals = (list: UsageDay[]): UsageTotals => ({
   outputTokens: list.reduce((n, d) => n + d.outputTokens, 0),
 });
 const overview = (over: Partial<UsageOverview> = {}): UsageOverview => ({
+  period: 7,
   days,
-  thisWeek: totals(days.slice(7)),
-  lastWeek: totals(days.slice(0, 7)),
-  sessions: { thisWeek: 9, lastWeek: 6 },
+  current: totals(days.slice(7)),
+  previous: totals(days.slice(0, 7)),
+  sessions: { current: 9, previous: 6 },
   turnsPartial: false,
   cost: { status: "ok", detail: null, refreshing: false },
   readAt: "2026-01-14T11:59:00.000Z",
   ...over,
 });
-const state = (over: Partial<ReadState<UsageOverview>> = {}): ReadState<UsageOverview> => ({ value: overview(), error: null, loading: false, refresh: () => {}, ...over });
+const state = (over: Partial<ActivityState> = {}): ActivityState => ({ value: overview(), error: null, loading: false, refresh: () => {}, period: 7, setPeriod: () => {}, ...over });
+// An overview of `period`: twice as many days, ending 2026-01-14.
+const overviewOf = (period: ActivityPeriod): UsageOverview => {
+  const list = Array.from({ length: 2 * period }, (_, i): UsageDay => ({ ...days[0]!, day: new Date(Date.UTC(2026, 0, 14 - (2 * period - 1 - i))).toISOString().slice(0, 10), turns: 1 }));
+  return overview({ period, days: list, current: totals(list.slice(period)), previous: totals(list.slice(0, period)) });
+};
 const limitsState = (over: Partial<ReadState<LimitsOverview>> = {}): ReadState<LimitsOverview> => ({
   value: { supported: true, providers: [], readAt: "2026-01-14T11:59:00.000Z" },
   error: null,
@@ -61,7 +68,7 @@ interface Options {
   seen?: typeof fresh;
   providers?: DashboardState["providers"];
 }
-const render = (activity: ReadState<UsageOverview>, { limits = limitsState(), threads = [thread("a", { status: "running" })], layout = DEFAULT_LAYOUT, editing = false, panelOpen = true, sheet = false, seen = fresh, providers = [] }: Options = {}) =>
+const render = (activity: ActivityState, { limits = limitsState(), threads = [thread("a", { status: "running" })], layout = DEFAULT_LAYOUT, editing = false, panelOpen = true, sheet = false, seen = fresh, providers = [] }: Options = {}) =>
   renderToStaticMarkup(
     <DashboardView
       state={{ ...baseState(threads), providers }}
@@ -104,7 +111,7 @@ test("the card says once that it covers the last 7 days, and each tile shows its
   // 63 turns this week against 49 the week before.
   assert.match(out, /Turns<\/span><span class="stat-value">63<span class="stat-delta">\+29 %/);
   const text = out.replace(/<[^>]+>/g, "");
-  assert.match(out, /<span class="card-note"[^>]*>last 7 days<\/span>/);
+  assert.match(out, /<button[^>]*aria-label="Activity period"[^>]*><span class="dropdown-value">last 7 days<\/span>/);
   assert.equal(text.match(/last 7 days/g)?.length, 1);
   assert.match(text, /messages sent to agents/);
   assert.match(out, /Sessions<\/span><span class="stat-value">9<span class="stat-delta">\+50 %/);
@@ -115,9 +122,9 @@ test("the card says once that it covers the last 7 days, and each tile shows its
 });
 
 test("a drop shows in red, a rise in green and no change in gray", () => {
-  const down = render(state({ value: overview({ thisWeek: { ...overview().thisWeek, turns: 30 }, lastWeek: { ...overview().lastWeek, turns: 60 } }) }));
+  const down = render(state({ value: overview({ current: { ...overview().current, turns: 30 }, previous: { ...overview().previous, turns: 60 } }) }));
   assert.match(down, /<span class="stat-delta down">−50 %/);
-  const flat = render(state({ value: overview({ thisWeek: { ...overview().thisWeek, turns: 60 }, lastWeek: { ...overview().lastWeek, turns: 60 } }) }));
+  const flat = render(state({ value: overview({ current: { ...overview().current, turns: 60 }, previous: { ...overview().previous, turns: 60 } }) }));
   assert.match(flat, /<span class="stat-delta flat">0 %/);
 });
 
@@ -140,6 +147,23 @@ test("the chart has one labelled bar slot per day, today last, and a table for s
   assert.match(out, /Jan 14: 9 turns, \$0\.50, 1\.2k tokens/);
   assert.match(out, />Today</);
   assert.match(out, /<table class="sr-only">/);
+});
+
+test("each period has its own heading, number of bars and menu label", () => {
+  for (const [period, title, count, label] of [[30, "Last 30 days", 30, "last 30 days"], [90, "Last 13 weeks", 13, "last 90 days"]] as const) {
+    const out = render(state({ value: overviewOf(period), period }));
+    assert.equal(out.match(/class="activity-hit"/g)?.length, count);
+    assert.match(out, new RegExp(`<h2>${title}</h2>`));
+    assert.match(out, new RegExp(`aria-label="Activity period"[^>]*><span class="dropdown-value">${label}</span>`));
+  }
+  assert.match(render(state({ value: overviewOf(90), period: 90 })), /Jan 8 – Jan 14/);
+});
+
+test("numbers of another period never show under the new label", () => {
+  const out = render(state({ value: overview(), period: 30 }));
+  assert.match(out, /aria-label="Loading activity"/);
+  assert.doesNotMatch(out, /class="activity-hit"/);
+  assert.match(out, /last 30 days/);
 });
 
 test("the default layout draws Activity full width, then two columns of half cards", () => {
