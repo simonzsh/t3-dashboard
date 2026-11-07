@@ -1,10 +1,10 @@
-import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Fragment, useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import type { Automation, AutomationsResult, DashboardProject, DashboardState, DashboardThread } from "../../../../shared/api.ts";
 import type { SeenState } from "../../../../shared/seen.ts";
 import { agentStatus } from "../../../../shared/status.ts";
 import { RunningBadge, StatusBadge } from "../../lib/StatusBadge.tsx";
 import { ProjectTag } from "../../lib/ProjectTag.tsx";
-import { Badge, Button, Dropdown, Icon, Pressable, Segmented, Sheet, Skeleton, SkeletonGroup, TextInput } from "../../ui/index.ts";
+import { Badge, Button, Dropdown, Icon, type IconName, Pressable, Segmented, Sheet, Skeleton, SkeletonGroup, TextInput } from "../../ui/index.ts";
 import { NewAutomationDialog } from "../new-thread/NewAutomationDialog.tsx";
 import { AutomationRow } from "./AutomationRow.tsx";
 import { AutomationSheet } from "./AutomationSheet.tsx";
@@ -32,13 +32,26 @@ const SORTS: Array<{ id: AutomationSort; label: string }> = [
   { id: "project", label: "Project" },
 ];
 
-const EMPTY: Record<AutomationFilter, string> = {
-  all: "No automation matches.",
-  unread: "No unread runs.",
-  failed: "No failed runs.",
-  running: "No running automations.",
-  paused: "No paused automations.",
+const EMPTY: Record<AutomationFilter, { icon: IconName; title: string; hint: string }> = {
+  all: { icon: "calendarClock", title: "No automations", hint: "Routines, reminders and webhooks show here." },
+  unread: { icon: "checkCheck", title: "All caught up", hint: "Finished runs you have not opened show here." },
+  failed: { icon: "circleCheck", title: "No failed runs", hint: "Automations whose last run failed show here." },
+  running: { icon: "play", title: "Nothing running", hint: "Automations show here while a run is in progress." },
+  paused: { icon: "stop", title: "Nothing paused", hint: "Paused automations and finished reminders show here." },
 };
+const NO_MATCH = { icon: "search" as IconName, title: "No automation matches", hint: "Try another search, or another filter." };
+
+/** Centered in the free space: an icon, a title and a hint. */
+function EmptyList({ icon, title, hint, children }: { icon: IconName; title: string; hint: string; children?: ReactNode }) {
+  return (
+    <div className="empty-state auto-empty">
+      <Icon name={icon} />
+      <strong>{title}</strong>
+      <span>{hint}</span>
+      {children}
+    </div>
+  );
+}
 
 /** Rows under their project, in the order of T3 Code's projects; unknown projects last. */
 function groupByProject(list: Automation[], projects: DashboardProject[]) {
@@ -126,13 +139,12 @@ export function AutomationsView({ state, now, seen, onOpen, automations, automat
   }
   if (all.length === 0 && setup.length === 0) {
     return (
-      <div className="empty-state">
-        <Icon name="calendarClock" />
-        <strong>No automations yet</strong>
-        <span>Routines, reminders and webhooks appear here.</span>
-        <Button variant="primary" onClick={onNewAutomation}>
-          New automation
-        </Button>
+      <div className="auto-page">
+        <EmptyList icon="calendarClock" title="No automations yet" hint="Routines, reminders and webhooks appear here.">
+          <Button variant="primary" onClick={onNewAutomation}>
+            New automation
+          </Button>
+        </EmptyList>
       </div>
     );
   }
@@ -159,7 +171,7 @@ export function AutomationsView({ state, now, seen, onOpen, automations, automat
           <Dropdown label="Sort automations" className="auto-sort" value={prefs.sort} options={SORTS} onPick={(sort) => setPrefs({ sort: sort as AutomationSort })} />
         </div>
         {sorted.length === 0 && setupRows.length === 0 ? (
-          <p className="auto-empty">{query !== "" ? "No automation matches." : EMPTY[prefs.filter]}</p>
+          <EmptyList {...(query !== "" ? NO_MATCH : EMPTY[prefs.filter])} />
         ) : (
           <div className="auto-card">
             <ul className="auto-rows">
