@@ -1,4 +1,4 @@
-import type { ApprovalDecision, AssignIssueBody, CreateAutomationBody, CreateProjectBody, CreateThreadBody, ProjectIconSpec, RoutineSchedule, WebhookFilter, WebhookSignature, ModelSelection, RespondBody, RewindBody, SecretAnswerBody, SendMessageBody, ThreadSettingsBody, UpdateAutomationBody, UpdateProjectBody, UploadedAttachment, UserInputAnswers } from "../../shared/api.ts";
+import type { ApprovalDecision, AssignIssueBody, CreateAutomationBody, CreateProjectBody, CreateThreadBody, ProjectIconSpec, RoutineSchedule, WebhookFilter, WebhookSignature, ModelSelection, RespondBody, RewindBody, SaveNewsBody, SecretAnswerBody, SendMessageBody, ThreadSettingsBody, UpdateAutomationBody, UpdateProjectBody, UploadedAttachment, UserInputAnswers } from "../../shared/api.ts";
 import { PROJECT_COLOR_NAMES } from "../../shared/projectColors.ts";
 import { ACTIVITY_PERIODS, DEFAULT_ACTIVITY_PERIOD, type ActivityPeriod } from "../../shared/usage.ts";
 import { isObject } from "../../shared/guards.ts";
@@ -392,4 +392,25 @@ export function validSeen(body: Record<string, unknown>): SeenChange {
 export function validEnabled(body: Record<string, unknown>): boolean {
   if (typeof body.enabled !== "boolean") throw new HttpError(400, "enabled (true or false) is required");
   return body.enabled;
+}
+
+const NEWS_TIME = /^([01]\d|2[0-3]):[0-5]\d$/;
+const NEWS_TOPICS_MAX = 10;
+const NEWS_TOPIC_MAX = 60;
+const NEWS_LANGUAGE_MAX = 40;
+// Control characters would break the task prompt, which the agent reads as text.
+const CONTROL = /\p{Cc}/u;
+
+export function validSaveNews(body: Record<string, unknown>): SaveNewsBody {
+  const { timeOfDay, topics, language } = body;
+  const modelSelection = validSelection(body.modelSelection);
+  if (typeof timeOfDay !== "string" || !NEWS_TIME.test(timeOfDay)) throw bad("timeOfDay must look like 07:00");
+  if (!Array.isArray(topics) || topics.some((topic) => typeof topic !== "string")) throw bad("topics must be a list of text");
+  const clean = (topics as string[]).map((topic) => topic.trim()).filter((topic, index, all) => topic !== "" && all.findIndex((other) => other.trim().toLowerCase() === topic.toLowerCase()) === index);
+  if (clean.length === 0 || clean.length > NEWS_TOPICS_MAX) throw bad(`topics must list 1 to ${NEWS_TOPICS_MAX} topics`);
+  if (clean.some((topic) => topic.length > NEWS_TOPIC_MAX || CONTROL.test(topic))) throw bad(`each topic must be text of at most ${NEWS_TOPIC_MAX} characters`);
+  const name = typeof language === "string" ? language.trim() : "";
+  if (name === "" || name.length > NEWS_LANGUAGE_MAX || CONTROL.test(name)) throw bad(`language must be text of 1 to ${NEWS_LANGUAGE_MAX} characters`);
+  if (!modelSelection) throw bad("modelSelection (instanceId, model) is required");
+  return { timeOfDay, topics: clean, language: name, modelSelection };
 }

@@ -7,6 +7,7 @@ import type { StashStore } from "../domain/stashStore.ts";
 import type { SeenStore } from "../domain/seenStore.ts";
 import type { CacheCleanup } from "../domain/cacheCleanup.ts";
 import type { Automations } from "../domain/automations.ts";
+import type { News } from "../domain/news.ts";
 import type { LinearBoard } from "../domain/linearBoard.ts";
 import type { ProviderLimitsReader } from "../domain/providerLimits.ts";
 import type { ServerStatsReader } from "../domain/serverStats.ts";
@@ -21,7 +22,7 @@ import { servePwa } from "./pwa.ts";
 import type { Site } from "./site.ts";
 import type { SseHub } from "./sse.ts";
 import { isObject } from "../../shared/guards.ts";
-import { isText, validActivityPeriod, validAssign, validAttachments, validCreateAutomation, validCreate, validCreateProject, validEnabled, validUpdateProject, validFolderPath, validFileSearch, validItemId, validMessage, validProvider, validQueuedEdit, validRespond, validRewind, validSearch, validSecretAnswer, validSeen, validSessions, validSettings, validStash, validTimeZone, validUpdateAutomation, validUpload } from "./validate.ts";
+import { isText, validActivityPeriod, validAssign, validAttachments, validCreateAutomation, validCreate, validCreateProject, validEnabled, validUpdateProject, validFolderPath, validFileSearch, validItemId, validMessage, validProvider, validQueuedEdit, validRespond, validRewind, validSearch, validSecretAnswer, validSeen, validSaveNews, validSessions, validSettings, validStash, validTimeZone, validUpdateAutomation, validUpload } from "./validate.ts";
 
 export interface SetupControl {
   /** Resolves the token again. */
@@ -39,6 +40,7 @@ export interface DashboardServerOptions {
   serverStats: Pick<ServerStatsReader, "get">;
   cacheCleanup: Pick<CacheCleanup, "sizes" | "clear">;
   automations: Pick<Automations, "list" | "create" | "remove" | "update" | "setEnabled" | "runNow">;
+  news: Pick<News, "get" | "article" | "save" | "runNow">;
   sessions: Pick<SessionsStore, "get" | "set">;
   stash: Pick<StashStore, "list" | "add" | "remove">;
   seen: Pick<SeenStore, "get" | "apply">;
@@ -155,7 +157,7 @@ function matchRoute(pattern: string[], segments: string[]): Record<string, strin
 }
 
 export function createDashboardServer(options: DashboardServerOptions): DashboardHandler {
-  const { actions, sessions, stash, seen, hub, board, usage, limits, serverStats, cacheCleanup, automations, getState, connection, site, settings, setup, updates } = options;
+  const { actions, sessions, stash, seen, hub, board, usage, limits, serverStats, cacheCleanup, automations, news, getState, connection, site, settings, setup, updates } = options;
   const allowedHosts = new Set([...LOCAL_HOSTS, ...(options.allowedHosts ?? [])]);
   const ok = (extra: Record<string, unknown> = {}) => json(200, { ok: true, ...extra });
   const done = async (work: Promise<unknown>) => (await work, ok());
@@ -203,6 +205,8 @@ export function createDashboardServer(options: DashboardServerOptions): Dashboar
     { method: "GET", path: "/api/cache-cleanup", handle: async () => json(200, await cacheCleanup.sizes()) },
     { method: "GET", path: "/api/limits", handle: async ({ req }) => json(200, await limits.get(new URL(req.url).searchParams.get("refresh") === "1")) },
     { method: "GET", path: "/api/automations", handle: async () => json(200, await automations.list()) },
+    { method: "GET", path: "/api/news", handle: async () => json(200, await news.get()) },
+    { method: "GET", path: "/api/news/:date", handle: async ({ params }) => json(200, await news.article(params.date!)) },
     { method: "GET", path: "/api/settings", handle: () => json(200, settings.get()) },
     { method: "GET", path: "/api/sessions", handle: () => json(200, { sessions: sessions.get() }) },
     { method: "GET", path: "/api/stash", handle: () => json(200, { entries: stash.list() }) },
@@ -329,6 +333,8 @@ export function createDashboardServer(options: DashboardServerOptions): Dashboar
     },
     { method: "POST", path: "/api/settings/linear/key", handle: async ({ body }) => json(200, await settings.connectKey({ apiKey: String(body.apiKey ?? "") })) },
     { method: "POST", path: "/api/settings/linear/disconnect", handle: () => json(200, settings.disconnect()) },
+    { method: "POST", path: "/api/news/settings", handle: async ({ body }) => json(200, await news.save(validSaveNews(body))) },
+    { method: "POST", path: "/api/news/run", handle: () => done(news.runNow()) },
     { method: "POST", path: "/api/automations", handle: async ({ body }) => json(200, await automations.create(validCreateAutomation(body))) },
     { method: "POST", path: "/api/automations/:id/update", handle: ({ params, body }) => done(automations.update(params.id!, validUpdateAutomation(body))) },
     { method: "POST", path: "/api/automations/:id/enabled", handle: ({ params, body }) => done(automations.setEnabled(params.id!, validEnabled(body))) },
