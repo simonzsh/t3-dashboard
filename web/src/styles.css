@@ -73,7 +73,7 @@
 :root[data-accent="orange"] { --accent: #ea580c; }
 :root[data-theme="dark"][data-accent="orange"] { --accent: #f97316; --on-accent: #18181b; }
 :root[data-accent="yellow"] { --accent: #eab308; --on-accent: #18181b; }
-:root[data-theme="dark"][data-accent="yellow"] { --accent: #eab308; --on-accent: #18181b; }
+:root[data-theme="dark"][data-accent="yellow"] { --accent: #facc15; --on-accent: #18181b; }
 :root[data-accent="green"] { --accent: #16a34a; }
 :root[data-theme="dark"][data-accent="green"] { --accent: #22c55e; --on-accent: #052e16; }
 * { box-sizing: border-box; }

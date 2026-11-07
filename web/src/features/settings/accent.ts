@@ -13,7 +13,7 @@ export const ACCENTS: { id: Accent; label: string; light: string; dark: string }
   { id: "pink", label: "Pink", light: "#db2777", dark: "#ec4899" },
   { id: "red", label: "Red", light: "#dc2626", dark: "#ef4444" },
   { id: "orange", label: "Orange", light: "#ea580c", dark: "#f97316" },
-  { id: "yellow", label: "Yellow", light: "#eab308", dark: "#eab308" },
+  { id: "yellow", label: "Yellow", light: "#eab308", dark: "#facc15" },
   { id: "green", label: "Green", light: "#16a34a", dark: "#22c55e" },
 ];
 
