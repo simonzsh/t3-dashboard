@@ -80,7 +80,7 @@ export function ServerCard({ state, now }: { state: ReadState<ServerStats>; now:
             {stats && <span className="card-updated">Updated {relativeTime(stats.readAt, now)}</span>}
             {stats && cacheCleanupAvailable(stats) && (
               <IconButton size="sm" variant="ghost" label="Clear caches" tooltip="Clear caches" onClick={cleanup.start}>
-                <Icon name="trash" />
+                <Icon name="broom" />
               </IconButton>
             )}
             <IconButton size="sm" variant="ghost" label="Refresh server stats" tooltip="Refresh server stats" disabled={loading} onClick={refresh}>
