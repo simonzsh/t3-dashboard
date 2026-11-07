@@ -683,14 +683,16 @@ ol.install-steps { padding-left: 18px; }
 .auto-row-actions { flex: none; display: flex; align-items: center; gap: 8px; }
 /* "Run now" and "Running…" take the same width, so the switches stay in line. */
 .auto-run-now { min-width: 84px; justify-content: center; }
-.auto-run-row { display: flex; align-items: flex-start; gap: 12px; padding: 10px 16px; font-size: 13px; }
+/* Fixed first column: the dates of every run line up, whatever the pill says. */
+.auto-run-row { display: grid; grid-template-columns: 92px minmax(0, 1fr) 8px auto; align-items: center; column-gap: 12px; row-gap: 4px; padding: 8px 12px 8px 16px; font-size: 13px; }
+.auto-run-row > .badge { justify-self: start; }
+/* Same right edge as the text of the ghost "Open session" button. */
+.auto-run-row > .auto-note { padding: 0 10px; text-align: right; }
 .auto-last { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; }
-.auto-run-main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
-.auto-run-line { display: flex; align-items: center; gap: 8px; min-width: 0; }
-.auto-run-date { flex: none; margin-left: auto; font-size: 12px; color: var(--text-secondary); }
-.auto-run-line .notif-dot { margin: 0; }
-.auto-run-when { font-size: 12px; color: var(--text-secondary); }
-.auto-run-error { font-size: 12px; overflow-wrap: anywhere; color: var(--err-text); }
+.auto-run-date { color: var(--text-primary); }
+.auto-run-when { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 12px; color: var(--text-secondary); }
+.auto-run-error { grid-column: 2 / -1; font-size: 12px; overflow-wrap: anywhere; color: var(--err-text); }
+.auto-run-row .notif-dot { margin: 0; }
 .auto-skeleton { display: flex; flex-direction: column; gap: 8px; padding: 14px 16px; }
 .ui-sheet-backdrop { position: fixed; z-index: 14; inset: var(--header-h, 0px) 0 0; background: color-mix(in srgb, var(--surface-0) 40%, #000 60%); opacity: 0; visibility: hidden; transition: opacity 200ms cubic-bezier(0.2, 0, 0, 1), visibility 0s 200ms; }
 .ui-sheet-backdrop.open { opacity: 0.5; visibility: visible; transition-delay: 0s; }
