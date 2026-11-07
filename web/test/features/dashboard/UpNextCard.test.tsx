@@ -26,11 +26,11 @@ const render = (value: BoardResult | null) =>
   );
 const text = (html: string) => html.replace(/<[^>]+>/g, "");
 
-test("the head says when Linear was read, before the status and the refresh button", () => {
+test("the head shows the Linear status, then when Linear was read, then the refresh button", () => {
   const out = render(board());
   assert.match(text(out), /Updated 5 min ago/);
-  assert.ok(out.indexOf("Updated 5 min ago") < out.indexOf("linear-source"));
-  assert.ok(out.indexOf("linear-source") < out.indexOf('aria-label="Refresh"'));
+  assert.ok(out.indexOf("linear-source") < out.indexOf("Updated 5 min ago"));
+  assert.ok(out.indexOf("Updated 5 min ago") < out.indexOf('aria-label="Refresh"'));
 });
 
 test("a board that failed still says when it was read; no board shows no time", () => {

@@ -115,12 +115,12 @@ export function UpNextCard({ board, now, needsKey, loading, failed, tickets, rel
         actions={
           board && (
             <>
-              <span className="card-updated">Updated {relativeTime(board.readAt, now)}</span>
               {linearConnected(board) && (
                 <span className="linear-source">
                   <span className="conn-dot" aria-hidden="true" /> Linear
                 </span>
               )}
+              <span className="card-updated">Updated {relativeTime(board.readAt, now)}</span>
               <IconButton label="Refresh" tooltip="Refresh data from Linear" size="sm" variant="ghost" aria-busy={loading} disabled={loading} onClick={onRefresh}>
                 <Icon name="refresh" className={`icon${loading ? " spinning" : ""}`} />
               </IconButton>
