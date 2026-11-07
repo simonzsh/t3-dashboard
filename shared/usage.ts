@@ -4,7 +4,6 @@
 export const ACTIVITY_PERIODS = [7, 30, 90] as const;
 export type ActivityPeriod = (typeof ACTIVITY_PERIODS)[number];
 export const DEFAULT_ACTIVITY_PERIOD: ActivityPeriod = 7;
-export const isActivityPeriod = (value: unknown): value is ActivityPeriod => ACTIVITY_PERIODS.includes(value as ActivityPeriod);
 
 /** One local day. Cost and tokens are machine-wide; turns count T3 threads only. */
 export interface UsageDay {
