@@ -1,7 +1,6 @@
 import type { Automation, DashboardThread, ProjectIcon } from "../../../../shared/api.ts";
 import type { SeenState } from "../../../../shared/seen.ts";
 import { ProjectTag } from "../../lib/ProjectTag.tsx";
-import { RunningBadge } from "../../lib/StatusBadge.tsx";
 import { useCopy } from "../../lib/useCopy.ts";
 import { ActionMenu, Badge, Icon, IconButton, Pressable, Switch, type ActionMenuItem } from "../../ui/index.ts";
 import { capitalize, copyableUrl, isEditable, isFinishedReminder, isRunning, lastRunLine, latestUnread, nextRunLine, reminderDate, scheduleText } from "./automations.ts";
@@ -30,7 +29,8 @@ export function AutomationRow({ automation: a, project, threads, seen, now, star
   const running = isRunning(a, threads);
   const last = lastRunLine(a, threads, now);
   const next = nextRunLine(a, now);
-  const schedule = capitalize(scheduleText(a));
+  // The kind badge already says "Webhook".
+  const schedule = a.kind === "webhook" ? "" : capitalize(scheduleText(a));
   const { copy } = useCopy("copy the webhook URL");
   const url = copyableUrl(a);
   const items: ActionMenuItem[] = [
@@ -44,7 +44,6 @@ export function AutomationRow({ automation: a, project, threads, seen, now, star
         <span className="auto-line">
           <span className="auto-name">{a.title}</span>
           <KindBadge kind={a.kind} />
-          {running && <RunningBadge />}
           {finished ? <Badge>Finished</Badge> : !a.enabled && <Badge>Paused</Badge>}
           {latestUnread(a, threads, seen) && <span className="notif-dot" role="img" aria-label="Unread" />}
         </span>
