@@ -43,6 +43,10 @@ The screenshots come from the demo mode: the projects, agents and conversations 
 
 - See the routines, reminders and webhooks (T3 Code scheduled tasks) in a table that you can search and filter by project, and create one with a form. The dashboard pauses a reminder after its run and keeps tasks out of worktrees.
 
+**News**
+
+- Get a daily brief of the news on your topics: a T3 routine asks an agent to search the web and write it. Read it as an article, on a computer or a phone. Pick the time, topics, language and model in Brief settings.
+
 The New Session button (key `N`) starts a session in a T3 project, or in "No project". It uses the default model and the favorites of T3 Code. Each screen is described in [docs/usage.md](docs/usage.md).
 
 ## Install

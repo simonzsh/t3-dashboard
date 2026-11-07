@@ -2,7 +2,7 @@
 
 [Back to the README](../README.md)
 
-The dashboard has three pages: Dashboard, Sessions and Automations. A sidebar on the left lists them, with a search button (`⌘` + `K`). Its last row shows the connection state, Settings and a button that collapses the sidebar to icons (`Ctrl` + `B`). The theme, the accent color and the interface tint are in Settings. The sidebar remembers its state. The page header is one line: the title and a short description. Its button depends on the page: Sessions has a list toggle (wide screen), a layout button and New Session (`Ctrl` + `N`), Automations has New Automation (`Ctrl` + `⇧` + `N`), and Dashboard has the Notifications bell, with the number of unread items, then Edit layout. The two shortcuts work on every page. On a phone, a bar at the bottom of the screen replaces the sidebar: Dashboard, Sessions and Automations. The header then shows the page buttons as icons (on Dashboard, the bell too), a search button and Settings. A dot on Settings shows that an update is ready.
+The dashboard has four pages: Dashboard, Sessions, Automations and News. A sidebar on the left lists them, with a search button (`⌘` + `K`). Its last row shows the connection state, Settings and a button that collapses the sidebar to icons (`Ctrl` + `B`). The theme, the accent color and the interface tint are in Settings. The sidebar remembers its state. The page header is one line: the title and a short description. Its button depends on the page: Sessions has a list toggle (wide screen), a layout button and New Session (`Ctrl` + `N`), Automations has New Automation (`Ctrl` + `⇧` + `N`), News has Brief settings and Run now, and Dashboard has the Notifications bell, with the number of unread items, then Edit layout. The two shortcuts work on every page. On a phone, a bar at the bottom of the screen replaces the sidebar: Dashboard, Sessions, Automations and News. The header then shows the page buttons as icons (on Dashboard, the bell too), a search button and Settings. A dot on Settings shows that an update is ready.
 
 ## Dashboard
 
@@ -227,6 +227,18 @@ A task without a linked thread creates a new thread at each run. These threads s
 - The dashboard pauses a reminder only when its last change is the run itself. If you turn on a finished reminder again, the dashboard leaves it on until its next run ends.
 - Pausing does not stop a run that is under way: T3 Code marks a run as succeeded when it sends the prompt.
 
+## News
+
+The News tab shows a daily brief of the news on your topics. A T3 routine, owned by the dashboard, asks an agent to search the web and write the brief. It needs T3 Code to be connected, and a model that can search the web.
+
+- On a wide screen, the list of briefs is on the left, newest first, and the open article is on the right. The newest brief opens first. The line above the list gives the next run and the result of the last run.
+- On a phone, the page shows the list. A tap opens the article, and the "Briefs" button at its top returns to the list.
+- Click "Brief settings" in the header to set the time of day, the topics (one per line, up to 10), the language and the model. The time is read in the time zone of the machine that runs T3. The first save creates the routine. Each later save updates it.
+- Click "Run now" to start a brief at once. A second brief on the same day replaces the first. The button is off until the first save.
+- The routine is a normal routine: it also shows in Automations, where you can pause or delete it. If you delete it, the next save creates it again.
+- The dashboard archives the run threads of the brief when the article is written. A failed run stays visible in Sessions.
+- Without a brief, the page says "No brief yet".
+
 ## Settings
 
 Open Settings with the header button or the `,` key. A sidebar on the left lists the tabs. Only one tab is visible at a time.
@@ -242,7 +254,7 @@ The shortcuts use `Ctrl`, also on a Mac, and they work while you type in a field
 
 | Key | Action |
 | --- | --- |
-| `Ctrl` + `1`, `2`, `3` | Opens Dashboard, Sessions or Automations. |
+| `Ctrl` + `1`, `2`, `3`, `4` | Opens Dashboard, Sessions, Automations or News. |
 | `Ctrl` + `K` or `⌘` + `K` | Opens or closes the "Jump to" switcher. It finds a conversation by title, project or message. Without text, it shows the agents that wait for an answer, then your recent conversations. `↑` `↓` select, `Enter` opens in Sessions. |
 | `Ctrl` + `S` | In the message field of a conversation: stashes the draft. |
 | `Ctrl` + `N` | Opens New Session. |
