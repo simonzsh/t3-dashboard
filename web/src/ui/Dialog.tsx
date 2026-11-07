@@ -2,7 +2,7 @@ import { useEffect, useId, useLayoutEffect, useRef, type KeyboardEvent, type Poi
 import { Button } from "./Button.tsx";
 import { Icon } from "./Icon.tsx";
 import { IconButton } from "./IconButton.tsx";
-import { enter, leaveCopy } from "./motion.ts";
+import { enter, leaveCopy, reducedMotion } from "./motion.ts";
 import { useEscape } from "./useEscape.ts";
 
 interface Action {
@@ -94,7 +94,7 @@ export function Dialog({ title, label, onClose, onCancel, cancelLabel = "Cancel"
     if (!el || d.dy === 0) return;
     const back = () => {
       el.style.translate = "";
-      el.animate([{ translate: `0 ${d.dy}px` }, { translate: "0 0" }], { duration: 200, easing: "cubic-bezier(0.2, 0, 0, 1)" });
+      if (!reducedMotion()) el.animate([{ translate: `0 ${d.dy}px` }, { translate: "0 0" }], { duration: 200, easing: "cubic-bezier(0.2, 0, 0, 1)" });
     };
     const flick = d.dy / Math.max(1, e.timeStamp - d.t) > 0.5;
     if (e.type !== "pointerup" || (d.dy < 80 && !flick)) return back();

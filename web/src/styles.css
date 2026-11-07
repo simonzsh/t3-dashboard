@@ -1088,7 +1088,6 @@ main:has(> .auto-page) { padding-top: 8px; }
 .row-icons .spinning .icon { animation: spin 0.9s linear infinite; }
 @keyframes spin { to { transform: rotate(360deg); } }
 .key-mask { font: 12px/1 var(--font-mono); padding: 4px 7px; border-radius: 6px; border: 1px solid var(--line); color: var(--text-secondary); background: var(--surface-0); }
-/* After every animated rule, so it wins on equal specificity. */
 /* Phone: every Dialog is a bottom sheet. Its head (with a grip) and its actions stay in view while the body scrolls. */
 @media (max-width: 700px) {
   .dialog-backdrop, .dialog-backdrop:has(.preview-dialog) { z-index: 30; place-items: end stretch; padding: 0; }
@@ -1099,6 +1098,7 @@ main:has(> .auto-page) { padding-top: 8px; }
   .dialog-backdrop > .dialog > .dialog-actions { position: sticky; bottom: 0; flex-wrap: nowrap; margin: 4px calc(-1 * var(--sheet-x)) calc(-1 * var(--sheet-bottom)); padding: 10px var(--sheet-x) var(--sheet-bottom); background: inherit; }
   .dialog-actions > .btn { flex: 1; min-width: 0; height: 44px; }
 }
+/* After every animated rule, so it wins on equal specificity. */
 @media (prefers-reduced-motion: reduce) {
   .pulse::after, .slist-mark.running::after { display: none; }
   .streaming, .step.running .icon, .todo.running .todo-mark, .spinning { animation: none; }
