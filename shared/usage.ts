@@ -20,6 +20,19 @@ export interface UsageDay {
 
 export type UsageTotals = Omit<UsageDay, "day">;
 
+/** The totals of some days; the server tiles and the weekly chart bars share it. Costs keep the cents. */
+export function sumTotals(days: UsageDay[]): UsageTotals {
+  const total: UsageTotals = { turns: 0, costUsd: 0, inputTokens: 0, cachedInputTokens: 0, outputTokens: 0 };
+  for (const day of days) {
+    total.turns += day.turns;
+    total.costUsd += day.costUsd;
+    total.inputTokens += day.inputTokens;
+    total.cachedInputTokens += day.cachedInputTokens;
+    total.outputTokens += day.outputTokens;
+  }
+  return { ...total, costUsd: Math.round(total.costUsd * 100) / 100 };
+}
+
 /** ok: every record priced; partial: some records unpriced; unavailable: T3 sent no usage. */
 export type UsageCostStatus = "ok" | "partial" | "unavailable";
 

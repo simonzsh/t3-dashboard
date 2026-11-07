@@ -61,9 +61,15 @@ export function usePolledRead<T>(enabled: boolean, read: (force: boolean) => Pro
   const forceNext = useRef(false);
   const latest = useRef(read);
   latest.current = read;
+  // A new key reads other data: the last error belongs to the old one.
+  const lastKey = useRef(key);
 
   useEffect(() => {
     if (!enabled) return;
+    if (lastKey.current !== key) {
+      lastKey.current = key;
+      setError(null);
+    }
     const force = forceNext.current;
     forceNext.current = false;
     return startReadPoll(

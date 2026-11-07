@@ -1,5 +1,6 @@
 import { formatTokens, MONTHS } from "../../lib/format.ts";
 import type { ActivityPeriod, UsageDay, UsageTotals } from "../../../../shared/api.ts";
+import { sumTotals } from "../../../../shared/usage.ts";
 
 export type Metric = "turns" | "cost" | "tokens";
 
@@ -82,16 +83,7 @@ const DAYS_PER_BAR = { 7: 1, 30: 1, 90: 7 } as const;
 const BARS = { 7: 14, 30: 30, 90: 13 } as const;
 
 function addTotals(days: UsageDay[]): ChartBar {
-  const total = { turns: 0, costUsd: 0, inputTokens: 0, cachedInputTokens: 0, outputTokens: 0 };
-  for (const day of days) {
-    total.turns += day.turns;
-    total.costUsd += day.costUsd;
-    total.inputTokens += day.inputTokens;
-    total.cachedInputTokens += day.cachedInputTokens;
-    total.outputTokens += day.outputTokens;
-  }
-  // Sums of floats: keep the cents, drop the noise.
-  return { ...total, costUsd: Math.round(total.costUsd * 100) / 100, from: days[0]!.day, to: days.at(-1)!.day };
+  return { ...sumTotals(days), from: days[0]!.day, to: days.at(-1)!.day };
 }
 
 /** The bars of the chart, oldest first; the last one ends today. Groups are counted from the end. */

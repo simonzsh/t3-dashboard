@@ -1,4 +1,5 @@
 import type { ActivityPeriod, DashboardThread, UsageCostStatus, UsageDay, UsageOverview, UsageTotals } from "../../shared/api.ts";
+import { sumTotals } from "../../shared/usage.ts";
 import { IntegrationError } from "../integrations/errors.ts";
 import type { RawUsageSummary, T3Port } from "../integrations/t3/schemas.ts";
 
@@ -19,17 +20,6 @@ const cents = (usd: number): number => Math.round(usd * 100) / 100;
 
 const zero = (): UsageTotals => ({ turns: 0, costUsd: 0, inputTokens: 0, cachedInputTokens: 0, outputTokens: 0 });
 
-function sum(days: UsageDay[]): UsageTotals {
-  const total = zero();
-  for (const day of days) {
-    total.turns += day.turns;
-    total.costUsd += day.costUsd;
-    total.inputTokens += day.inputTokens;
-    total.cachedInputTokens += day.cachedInputTokens;
-    total.outputTokens += day.outputTokens;
-  }
-  return { ...total, costUsd: cents(total.costUsd) };
-}
 
 // en-CA writes a date as "YYYY-MM-DD".
 const dayFormat = (timeZone: string) => new Intl.DateTimeFormat("en-CA", { timeZone, year: "numeric", month: "2-digit", day: "2-digit" });
@@ -135,8 +125,8 @@ export function createUsage({ port, threads, now }: UsageOptions) {
     return {
       period,
       days,
-      current: sum(days.slice(period)),
-      previous: sum(days.slice(0, period)),
+      current: sumTotals(days.slice(period)),
+      previous: sumTotals(days.slice(0, period)),
       sessions: { current: sessions.current.size, previous: sessions.previous.size },
       turnsPartial: turns.partial,
       cost: { status, detail: cost.failure, refreshing },
