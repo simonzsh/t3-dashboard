@@ -17,6 +17,22 @@ export interface NewsSettings {
   modelSelection: ModelSelection | null;
 }
 
+/** The topics the settings offer, in display order. A saved topic outside this list shows after them. */
+export const NEWS_TOPICS: readonly string[] = [
+  "AI",
+  "Software development",
+  "Tech",
+  "Open source",
+  "Web development",
+  "Mobile development",
+  "Cloud & DevOps",
+  "Security",
+  "Programming languages",
+  "Developer tools",
+  "Startups & funding",
+  "Hardware & chips",
+];
+
 export const NEWS_DEFAULTS: NewsSettings = { enabled: true, frequency: "daily", weekday: 1, timeOfDay: "07:00", topics: ["Tech", "Software development", "AI"], language: "English", modelSelection: null };
 
 export interface NewsTask {

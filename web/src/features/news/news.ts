@@ -2,11 +2,11 @@ import type { DashboardProvider, ModelSelection, NewsSettings, NewsTask, SaveNew
 import type { NewsArticleSummary } from "../../../../shared/news.ts";
 import { later, type SeenState } from "../../../../shared/seen.ts";
 import { formatMessageTime, relativeTime } from "../../lib/format.ts";
-import { NEWS_DEFAULT_MODEL } from "../../../../shared/news.ts";
+import { NEWS_DEFAULT_MODEL, NEWS_TOPICS } from "../../../../shared/news.ts";
 import { presetSelection } from "../new-thread/newAgent.ts";
 
 // The same limits as the server, so a bad form fails before the request.
-const TOPICS_MAX = 10;
+export const TOPICS_MAX = 10;
 const TOPIC_MAX = 60;
 const LANGUAGE_MAX = 40;
 
@@ -32,37 +32,69 @@ export interface NewsForm {
   frequency: NewsFrequency;
   weekday: number;
   timeOfDay: string;
-  /** One topic per line. */
-  topics: string;
+  /** The checked topics. */
+  topics: string[];
+  /** Topics outside the presets, in the order they were saved or added. */
+  customs: string[];
   language: string;
   selection: ModelSelection | null;
 }
 
-export function topicsFromText(text: string): string[] {
-  const seen = new Set<string>();
-  return text.split("\n").map((t) => t.trim()).filter((t) => {
-    const key = t.toLowerCase();
-    if (t === "" || seen.has(key)) return false;
-    seen.add(key);
-    return true;
-  });
+const sameTopic = (a: string, b: string) => a.toLowerCase() === b.toLowerCase();
+const findTopic = (list: readonly string[], topic: string) => list.find((t) => sameTopic(t, topic));
+
+/** Every option in display order: the presets, then the custom topics. */
+export const topicOptions = (customs: readonly string[]): string[] => [...NEWS_TOPICS, ...customs];
+
+/** The checked topics in display order, without repeats. */
+export const orderedTopics = (customs: readonly string[], checked: readonly string[]): string[] =>
+  topicOptions(customs).filter((option) => checked.some((t) => sameTopic(t, option)));
+
+/** The saved topics outside the presets, deduplicated without case. */
+export const customsFrom = (saved: readonly string[]): string[] =>
+  saved.reduce<string[]>((all, t) => (findTopic([...NEWS_TOPICS, ...all], t) ? all : [...all, t]), []);
+
+/** Turns a topic on or off. An unchecked topic stays off when the cap is reached. */
+export function toggleTopic(form: Pick<NewsForm, "topics" | "customs">, topic: string): string[] {
+  const on = form.topics.some((t) => sameTopic(t, topic));
+  if (on) return form.topics.filter((t) => !sameTopic(t, topic));
+  if (form.topics.length >= TOPICS_MAX) return form.topics;
+  return orderedTopics(form.customs, [...form.topics, topic]);
 }
 
-export const formFromSettings = (settings: NewsSettings, selection: ModelSelection | null): NewsForm => ({
-  enabled: settings.enabled,
-  frequency: settings.frequency,
-  weekday: settings.weekday,
-  timeOfDay: settings.timeOfDay,
-  topics: settings.topics.join("\n"),
-  language: settings.language,
-  selection,
-});
+/** Adds a custom topic, checked. A name that matches an option checks that option instead. */
+export function addTopic(form: Pick<NewsForm, "topics" | "customs">, text: string): { topics: string[]; customs: string[]; error?: string } {
+  const name = text.trim();
+  const same = { topics: form.topics, customs: form.customs };
+  if (name === "") return same;
+  if (name.length > TOPIC_MAX) return { ...same, error: `Keep each topic under ${TOPIC_MAX} characters.` };
+  if (/\p{Cc}/u.test(name)) return { ...same, error: "Remove special characters from the topic." };
+  const existing = findTopic(topicOptions(form.customs), name);
+  if (existing && form.topics.includes(existing)) return same;
+  if (form.topics.length >= TOPICS_MAX) return { ...same, error: `Use at most ${TOPICS_MAX} topics.` };
+  const customs = existing ? form.customs : [...form.customs, name];
+  return { customs, topics: orderedTopics(customs, [...form.topics, existing ?? name]) };
+}
+
+export const formFromSettings = (settings: NewsSettings, selection: ModelSelection | null): NewsForm => {
+  const customs = customsFrom(settings.topics);
+  return {
+    enabled: settings.enabled,
+    frequency: settings.frequency,
+    weekday: settings.weekday,
+    timeOfDay: settings.timeOfDay,
+    topics: orderedTopics(customs, settings.topics),
+    customs,
+    language: settings.language,
+    selection,
+  };
+};
 
 export function toBody(form: NewsForm): { body: SaveNewsBody } | { error: string } {
-  const topics = topicsFromText(form.topics);
+  const topics = orderedTopics(form.customs, form.topics);
   const language = form.language.trim();
   if (!/^([01]\d|2[0-3]):[0-5]\d$/.test(form.timeOfDay)) return { error: "Pick a time of day." };
-  if (topics.length === 0) return { error: "Add at least one topic." };
+  if (topics.length === 0) return { error: "Check at least one topic." };
   if (topics.length > TOPICS_MAX) return { error: `Use at most ${TOPICS_MAX} topics.` };
   if (topics.some((t) => t.length > TOPIC_MAX)) return { error: `Keep each topic under ${TOPIC_MAX} characters.` };
   if (language === "") return { error: "Name the language of the articles." };
