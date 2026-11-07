@@ -1,11 +1,15 @@
 // T3 Code scheduled tasks, as the Agents page shows them.
 
+import type { ThreadState } from "./status.ts";
 import type { ModelSelection, RuntimeMode } from "./threads.ts";
 
 export type AutomationRunStatus = "running" | "succeeded" | "failed";
 
 /** A run as the dashboard last saw it. "waiting": the agent asks the user something. */
 export type AutomationRunOutcome = "running" | "waiting" | "succeeded" | "failed" | "unknown";
+
+/** The outcome a run thread shows, for the server and the web. An idle thread says nothing. */
+export const RUN_OUTCOMES: Record<ThreadState, AutomationRunOutcome | null> = { waiting: "waiting", running: "running", error: "failed", done: "succeeded", idle: null };
 
 export interface AutomationRun {
   /** The session of the run; null when T3 failed before it opened one. */

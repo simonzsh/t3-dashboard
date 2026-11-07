@@ -1,4 +1,4 @@
-import type { AutomationRun, AutomationRunOutcome } from "../../shared/automations.ts";
+import { RUN_OUTCOMES, type AutomationRun, type AutomationRunOutcome } from "../../shared/automations.ts";
 import { threadState } from "../../shared/status.ts";
 import type { RawScheduledTask, RawThread } from "../integrations/t3/schemas.ts";
 import { toDashboardThread } from "./classify.ts";
@@ -45,8 +45,7 @@ const gone = (thread: RawThread | undefined): thread is undefined => !thread || 
 /** The run a thread shows right now, with the end once it is over. */
 function runOf(thread: RawThread, startedAt: string, now: Date): AutomationRun {
   const dashboard = toDashboardThread(thread, now);
-  const state = threadState(dashboard);
-  const status: AutomationRunOutcome = state === "waiting" ? "waiting" : state === "running" ? "running" : state === "error" ? "failed" : state === "done" || thread.latestRunCompletedAt ? "succeeded" : "unknown";
+  const status: AutomationRunOutcome = RUN_OUTCOMES[threadState(dashboard)] ?? (thread.latestRunCompletedAt ? "succeeded" : "unknown");
   const terminal = status === "succeeded" || status === "failed";
   return { threadId: thread.id, startedAt, finishedAt: terminal ? (thread.latestRunCompletedAt ?? dashboard.lastActivityAt) : null, status, error: status === "failed" ? dashboard.lastError : null };
 }

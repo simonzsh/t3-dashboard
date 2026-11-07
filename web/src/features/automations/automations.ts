@@ -1,6 +1,7 @@
 import type { Automation, AutomationRun, AutomationRunOutcome, DashboardProvider, DashboardThread, ModelSelection } from "../../../../shared/api.ts";
+import { RUN_OUTCOMES } from "../../../../shared/automations.ts";
 import { isUnseen, type SeenState } from "../../../../shared/seen.ts";
-import { ACTIVE_STATUSES, threadState, type ThreadState } from "../../../../shared/status.ts";
+import { ACTIVE_STATUSES, threadState } from "../../../../shared/status.ts";
 import { MONTHS, relativeTime } from "../../lib/format.ts";
 import { findModel } from "../conversation/composer.ts";
 
@@ -32,15 +33,11 @@ export function isEditable(a: Automation): boolean {
   return true;
 }
 
-type AutomationGroup = "running" | "attention" | "upcoming" | "paused" | "finished";
-
 type Threads = ReadonlyMap<string, DashboardThread>;
-
-const OUTCOMES: Record<ThreadState, AutomationRunOutcome | null> = { waiting: "waiting", running: "running", error: "failed", done: "succeeded", idle: null };
 
 /** The run with its thread laid over it; an idle thread says nothing, so the stored status stays. */
 export function liveRun(run: AutomationRun, thread: DashboardThread | undefined): AutomationRun {
-  const status = thread && OUTCOMES[threadState(thread)];
+  const status = thread && RUN_OUTCOMES[threadState(thread)];
   if (!thread || !status) return run;
   // T3 marks a timed-out or interrupted run failed while its thread reads done: keep the failure.
   if (run.status === "failed" && status === "succeeded") return run;
@@ -156,17 +153,20 @@ export function latestUnread(a: Automation, threads: Threads, seen: SeenState): 
 
 export const capitalize = (text: string): string => text.charAt(0).toUpperCase() + text.slice(1);
 
-export function nextRunText(a: Automation, now: Date): string {
-  if (isFinishedReminder(a)) return "—";
+// The words for a task with no next date: "" for a finished reminder. Null when the next run has a date.
+function noNextRun(a: Automation): string | null {
+  if (isFinishedReminder(a)) return "";
   if (!a.enabled) return "Paused";
-  return a.kind === "webhook" ? "On each delivery" : nextLabel(a.nextRunAt, now) || "—";
+  return a.kind === "webhook" ? "On each delivery" : null;
 }
+
+/** The next run for the sheet: a day and a time. */
+export const nextRunText = (a: Automation, now: Date): string => (noNextRun(a) ?? nextLabel(a.nextRunAt, now)) || "—";
 
 /** "Next in 3 h" for the row; the sheet shows a date. Nothing for a finished reminder or a task with no next run. */
 export function nextRunLine(a: Automation, now: Date): string {
-  if (isFinishedReminder(a)) return "";
-  if (!a.enabled) return "Paused";
-  if (a.kind === "webhook") return "On each delivery";
+  const words = noNextRun(a);
+  if (words !== null) return words;
   if (!a.nextRunAt) return "";
   const min = Math.floor((new Date(a.nextRunAt).getTime() - now.getTime()) / 60_000);
   if (min < 1) return "Next now";
