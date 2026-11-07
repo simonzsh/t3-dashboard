@@ -67,9 +67,9 @@ export function notificationIcon(t: DashboardThread): { icon: IconName; tone: "w
   return threadState(t) === "done" ? { icon: "circleCheck", tone: "ok" } : { icon: "info", tone: "info" };
 }
 
-/** The line under the title: what the agent waits for, the error, or the model of a finished run. */
-export function notificationDetail(t: DashboardThread, modelName: string | null): string {
+/** The line under the title: what the agent waits for, the error, or "Finished". */
+export function notificationDetail(t: DashboardThread): string {
   if (t.pending) return t.pending.category === "approval" ? "Waiting for your approval" : t.pending.category === "user-input" ? "Waiting for your answer" : "Waiting for you";
   if (hasFailed(t)) return t.lastError ?? "The run failed";
-  return modelName ? `Finished · ${modelName}` : "Finished";
+  return "Finished";
 }

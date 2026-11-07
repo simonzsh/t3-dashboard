@@ -276,7 +276,7 @@ test("notifications list what needs you first, then unread, with a count and Mar
   assert.match(out, /Waiting for your approval/);
   assert.match(out, /Disk full/);
   assert.match(out, /aria-label="Mark all read"/);
-  assert.match(out, /Project A · /);
+  assert.match(out, /project-tag-text">Project A</);
   assert.doesNotMatch(out, /Nothing needs you/);
 });
 
@@ -309,7 +309,7 @@ test("the Running card lists working agents with a pulsing dot, model and projec
   const out = card(render(state(), { threads: [thread("run", { title: "Running one", status: "running", model: "model-x" })], providers }), "running-head");
   assert.match(out, /class="pulse run-pulse"/);
   assert.match(out, /Running one/);
-  assert.match(out, /Model X · Project A/);
+  assert.match(out, /notif-age.*project-tag-text">Project A<.*provider-icon/);
   assert.match(out, /Running<\/h2><span class="count">1</);
 });
 

@@ -211,6 +211,7 @@ main { flex: 1; min-height: 0; overflow: hidden; padding: 24px; display: flex; f
 /* Notification toasts. */
 .notif-toast-body { flex: 1; min-width: 0; display: flex; align-items: center; gap: 8px; min-height: var(--control-md); border: 0; background: none; text-align: left; }
 .title-line { display: flex; align-items: center; gap: 6px; min-width: 0; }
+.title-line .notif-title { flex: 0 1 auto; }
 .auto-mark { flex: none; display: inline-flex; color: var(--text-secondary); }
 .auto-mark .icon { width: 13px; height: 13px; }
 .notif-title { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 600; font-size: 13px; }
@@ -624,8 +625,13 @@ ol.install-steps { padding-left: 18px; }
 .notif-icon.info { color: var(--accent); }
 .notif-body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
 .notif-detail { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; line-clamp: 2; overflow: hidden; color: var(--text-secondary); font-size: 12px; overflow-wrap: anywhere; }
+.notif-status { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.notif-status .notif-detail { flex: 0 1 auto; min-width: 0; }
+.notif-age { flex: none; color: var(--text-secondary); font-size: 12px; white-space: nowrap; }
 .notif-meta { display: flex; align-items: center; gap: 4px; min-width: 0; overflow: hidden; white-space: nowrap; color: var(--text-secondary); font-size: 12px; }
-.notif-meta .provider-icon { width: 13px; height: 13px; margin: 0; }
+.notif-end { flex: none; display: inline-flex; align-items: center; gap: 6px; margin-left: auto; color: var(--text-secondary); font-size: 12px; white-space: nowrap; }
+.notif-end > span { display: inline-flex; }
+.notif-end .provider-icon, .notif-meta .provider-icon { width: 13px; height: 13px; margin: 0; }
 /* Unread is a hollow accent ring everywhere, like the Sessions list: a filled dot means running. */
 .notif-dot { flex: none; box-sizing: border-box; width: 8px; height: 8px; margin-top: 5px; border-radius: 50%; border: 2px solid var(--accent); background: none; }
 /* The buttons replace the dot corner on hover and keyboard focus; touch screens show them at once. */
