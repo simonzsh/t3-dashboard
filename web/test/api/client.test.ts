@@ -266,6 +266,17 @@ test("getServerStats reads /api/server-stats", async () => {
   assert.deepEqual(calls.map((c) => c.url), ["/api/server-stats"]);
 });
 
+test("getCacheCleanup reads the sizes and clearCaches posts an empty JSON body", async () => {
+  const { calls, api } = fake(200, {});
+  await api.getCacheCleanup();
+  await api.clearCaches();
+  assert.deepEqual(calls.map((c) => c.url), ["/api/cache-cleanup", "/api/cache-cleanup"]);
+  assert.equal(calls[0]?.init?.method ?? "GET", "GET");
+  assert.equal(calls[1]?.init?.method, "POST");
+  assert.equal(calls[1]?.init?.body, "{}");
+  assert.deepEqual(calls[1]?.init?.headers, { "content-type": "application/json" });
+});
+
 test("browseFolders encodes the typed path in the query", async () => {
   const { calls, api } = fake(200, { path: "/home/x/a b", kind: "missing", entries: [] });
   const res = await api.browseFolders("~/a b/&c/");
