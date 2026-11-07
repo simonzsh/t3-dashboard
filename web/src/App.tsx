@@ -110,7 +110,7 @@ export function App() {
   const [now, setNow] = useState(() => new Date());
   const [sidebarCollapsed, toggleSidebar] = useSidebarCollapsed();
 
-  // The error banner starts under the header, whatever its height (one line on a phone).
+  // The error banner and the automations toolbar start under the header, whatever its height.
   const header = useRef<HTMLElement>(null);
   const hasHeader = !state?.connection.setup;
   useLayoutEffect(() => {
@@ -119,7 +119,8 @@ export function App() {
     const set = () => document.documentElement.style.setProperty("--header-h", `${el.offsetHeight}px`);
     set();
     const observer = new ResizeObserver(set);
-    observer.observe(el);
+    // Border box: the phone header's top padding follows the safe area, and a padding-only change (rotation) leaves the content box as is.
+    observer.observe(el, { box: "border-box" });
     return () => {
       observer.disconnect();
       document.documentElement.style.removeProperty("--header-h");

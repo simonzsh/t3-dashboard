@@ -998,8 +998,8 @@ main:has(> .auto-page) { padding-top: 8px; }
   .ui-sheet-backdrop { bottom: calc(var(--bottom-bar) + env(safe-area-inset-bottom)); }
   .ui-sheet { bottom: calc(var(--bottom-bar) + env(safe-area-inset-bottom)); width: 100vw; }
   .auto-row-actions { gap: 4px; }
-  /* The bottom bar replaces the sidebar. The header is one line; its insets keep it clear of the iPhone notch in landscape. */
-  .page-header { position: sticky; top: 0; gap: 10px; padding: max(8px, env(safe-area-inset-top)) max(12px, env(safe-area-inset-right)) 8px max(12px, env(safe-area-inset-left)); }
+  /* The bottom bar replaces the sidebar. The header is one line and opaque, so the list never shows through it; its insets keep it clear of the iPhone notch in landscape. */
+  .page-header { position: sticky; top: 0; gap: 10px; background: var(--header-bg); padding: max(8px, env(safe-area-inset-top)) max(12px, env(safe-area-inset-right)) 8px max(12px, env(safe-area-inset-left)); }
   .page-header .logo { width: 30px; height: 30px; }
   .page-description { display: none; }
   .page-actions { gap: 4px; }
