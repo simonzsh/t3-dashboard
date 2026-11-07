@@ -10,7 +10,7 @@ export interface NewsSettings {
   modelSelection: ModelSelection | null;
 }
 
-export const NEWS_DEFAULTS: NewsSettings = { timeOfDay: "07:00", topics: ["Tech", "Software development", "AI"], language: "French", modelSelection: null };
+export const NEWS_DEFAULTS: NewsSettings = { timeOfDay: "07:00", topics: ["Tech", "Software development", "AI"], language: "English", modelSelection: null };
 
 export interface NewsTask {
   id: string;
