@@ -73,6 +73,32 @@ export function Dialog({ title, label, onClose, onCancel, cancelLabel = "Cancel"
     };
   }, []);
 
+  // iOS leaves fixed elements under the keyboard: on a phone, fit the backdrop to the visible part of the page.
+  useEffect(() => {
+    const root = backdrop.current;
+    const vv = window.visualViewport;
+    if (!root || !vv || !isPhone()) return;
+    const fit = () => {
+      root.style.top = `${vv.offsetTop}px`;
+      root.style.setProperty("--visible-h", `${vv.height}px`);
+      // The keyboard hides the home indicator: no need for its inset then.
+      root.classList.toggle("keyboard", innerHeight - vv.height > 120);
+    };
+    // The sheet just got shorter: keep the field being typed in on screen.
+    const resized = () => {
+      fit();
+      const active = document.activeElement;
+      if (active instanceof HTMLElement && box.current?.contains(active)) active.scrollIntoView({ block: "nearest" });
+    };
+    fit();
+    vv.addEventListener("resize", resized);
+    vv.addEventListener("scroll", fit);
+    return () => {
+      vv.removeEventListener("resize", resized);
+      vv.removeEventListener("scroll", fit);
+    };
+  }, []);
+
   // Phone sheet: drag the head down to close. A short or slow drag slides back.
   const drag = useRef<{ id: number; y: number; t: number; dy: number } | null>(null);
   const onDragStart = (e: PointerEvent<HTMLDivElement>) => {

@@ -107,3 +107,9 @@ test("on a phone a dialog is a bottom sheet that clears the home indicator", () 
   assert.match(phone, /\.dialog-head \{[^}]*position: sticky/);
   assert.match(phone, /\.dialog-actions \{[^}]*position: sticky; bottom: 0/);
 });
+
+test("on a phone the dialog sheet follows the visible height, so the keyboard does not hide it", () => {
+  const phone = css.slice(css.indexOf("/* Phone: every Dialog is a bottom sheet."));
+  assert.match(phone, /\.dialog-backdrop[^{]*\{[^}]*height: var\(--visible-h, 100dvh\)/);
+  assert.match(phone, /--sheet-max: calc\(var\(--visible-h, 100dvh\)/);
+});
