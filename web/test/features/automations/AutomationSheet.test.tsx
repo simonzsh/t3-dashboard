@@ -4,7 +4,6 @@ import { renderToStaticMarkup } from "react-dom/server";
 import type { Automation, AutomationRun } from "../../../../shared/api.ts";
 import { AutomationRow } from "../../../src/features/automations/AutomationRow.tsx";
 import { AutomationSheet } from "../../../src/features/automations/AutomationSheet.tsx";
-import { RecentRuns } from "../../../src/features/automations/RecentRuns.tsx";
 import { thread } from "../../fixtures.ts";
 
 const NOW = new Date("2026-01-10T12:00:00.000Z");
@@ -23,14 +22,14 @@ const noop = () => {};
 const sheet = (a: Automation) =>
   renderToStaticMarkup(<AutomationSheet automation={a} threads={threads} project={undefined} providers={[]} seen={SEEN} now={NOW} starting={false} onClose={noop} onOpen={noop} onToggle={noop} onRun={noop} onEdit={noop} onDelete={noop} />);
 const row = (a: Automation) =>
-  renderToStaticMarkup(<AutomationRow automation={a} threads={threads} seen={SEEN} now={NOW} starting={false} onSelect={noop} onToggle={noop} onRun={noop} onEdit={noop} onDelete={noop} />);
+  renderToStaticMarkup(<AutomationRow automation={a} project={{ icon: null, title: "Project A" }} threads={threads} seen={SEEN} now={NOW} starting={false} onSelect={noop} onToggle={noop} onRun={noop} onEdit={noop} onDelete={noop} />);
 
 test("the sheet history lists each run with its status, an unread dot and an Open session button", () => {
   const out = sheet(auto([run("t-new", "2026-01-10T11:00:00.000Z"), run("t-read", "2026-01-10T08:00:00.000Z")]));
   assert.equal(out.match(/>Open session<\/button>/g)?.length, 2);
   assert.equal(out.match(/aria-label="Unread"/g)?.length, 1);
-  assert.match(out, /Succeeded/);
-  assert.match(out, /Failed/);
+  assert.match(out, /badge done[^>]*>Succeeded</);
+  assert.match(out, /badge error[^>]*>Failed</);
   assert.match(out, /class="auto-run-error">boom</);
 });
 
@@ -74,7 +73,8 @@ test("a row shows three lines: name with kind, schedule with next run, last run"
   assert.match(out, /Routine/);
   assert.match(out, /Daily 9:00/);
   assert.match(out, /Next in 3 h/);
-  assert.match(out, /auto-fail">Failed · 4 h ago · 3 min</);
+  assert.match(out, /badge error[^>]*>Failed<\/span><span class="auto-text">4 h ago · 3 min</);
+  assert.match(out, /project-tag-text">Project A</);
 });
 
 test("a paused row says Paused and is dimmed; a running one disables Run now", () => {
@@ -83,32 +83,32 @@ test("a paused row says Paused and is dimmed; a running one disables Run now", (
   assert.match(paused, /Paused/);
   assert.match(paused, /Never run/);
   const running = renderToStaticMarkup(
-    <AutomationRow automation={auto([run("t-run", "2026-01-10T11:55:00.000Z", { status: "running" })])} threads={new Map([["t-run", thread("t-run", { status: "running" })]])} seen={SEEN} now={NOW} starting={false} onSelect={noop} onToggle={noop} onRun={noop} onEdit={noop} onDelete={noop} />,
+    <AutomationRow automation={auto([run("t-run", "2026-01-10T11:55:00.000Z", { status: "running" })])} project={null} threads={new Map([["t-run", thread("t-run", { status: "running" })]])} seen={SEEN} now={NOW} starting={false} onSelect={noop} onToggle={noop} onRun={noop} onEdit={noop} onDelete={noop} />,
   );
   assert.match(running, /aria-label="Run Inbox triage now"[^>]*disabled=""|disabled=""[^>]*aria-label="Run Inbox triage now"/);
 });
 
-const many = (n: number) => Array.from({ length: n }, (_, i) => ({ automation: auto([]), run: run("t-new", new Date(NOW.getTime() - i * 60_000).toISOString()) }));
-const recent = (n: number) => renderToStaticMarkup(<RecentRuns runs={many(n)} threads={threads} seen={SEEN} now={NOW} onOpen={noop} />);
-
-test("recent runs open a run with a session, and show a run without one as plain text", () => {
-  const out = renderToStaticMarkup(
-    <RecentRuns runs={[{ automation: auto([]), run: run("t-new", "2026-01-10T11:00:00.000Z") }, { automation: auto([]), run: run(null, "2026-01-10T10:00:00.000Z", { status: "failed", error: "no slot" }) }]} threads={threads} seen={SEEN} now={NOW} onOpen={noop} />,
-  );
-  assert.equal(out.match(/<button/g)?.length, 1);
-  assert.match(out, /auto-run-row static/);
-  assert.match(out, /1 h ago/);
-  assert.match(out, /Inbox triage/);
+test("the sheet head has plain Run now, Edit and Delete buttons and no menu", () => {
+  const out = sheet(auto([]));
+  assert.match(out, />Run now</);
+  assert.match(out, />Edit</);
+  assert.match(out, /class="[^"]*danger[^"]*"[^>]*>Delete</);
+  assert.doesNotMatch(out, /aria-haspopup/);
+  assert.doesNotMatch(out, /Copy webhook URL/);
 });
 
-test("recent runs show 8 rows, then a Show older runs button", () => {
-  assert.equal(recent(8).match(/class="auto-run-row/g)?.length, 8);
-  assert.doesNotMatch(recent(8), /Show older runs/);
-  const out = recent(12);
-  assert.equal(out.match(/class="auto-run-row/g)?.length, 8);
-  assert.match(out, /Show older runs/);
+test("the sheet offers Copy webhook URL for a webhook with a URL", () => {
+  const hook = auto([], { kind: "webhook", webhook: { url: "https://example.test/h", signed: false, filters: [], signature: null } });
+  assert.match(sheet(hook), />Copy webhook URL</);
 });
 
-test("recent runs say so without runs", () => {
-  assert.match(recent(0), /No runs yet/);
+test("a row has the shared actions menu button, and the old menu classes are gone", () => {
+  const out = row(auto([]));
+  assert.match(out, /aria-label="More actions for Inbox triage"[^>]*aria-haspopup="menu"|aria-haspopup="menu"[^>]*aria-label="More actions for Inbox triage"/);
+  assert.doesNotMatch(out, /menu-sep|class="menu"/);
+});
+
+test("a row without a project (grouped view) leaves the project tag out", () => {
+  const out = renderToStaticMarkup(<AutomationRow automation={auto([])} project={null} threads={threads} seen={SEEN} now={NOW} starting={false} onSelect={noop} onToggle={noop} onRun={noop} onEdit={noop} onDelete={noop} />);
+  assert.doesNotMatch(out, /project-tag/);
 });

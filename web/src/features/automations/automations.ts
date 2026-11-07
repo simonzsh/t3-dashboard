@@ -76,13 +76,6 @@ export function automationsBadge(list: Automation[], threads: Threads, seen: See
   return { count, failed };
 }
 
-export function recentRuns(list: Automation[], threads: Threads, limit = Infinity): Array<{ automation: Automation; run: AutomationRun }> {
-  return list
-    .flatMap((automation) => liveRuns(automation, threads).map((run) => ({ automation, run })))
-    .sort((a, b) => b.run.startedAt.localeCompare(a.run.startedAt))
-    .slice(0, limit);
-}
-
 /** "42 s", "3 min", "1 h 05"; a running run counts up to now. Null when the end is not known. */
 export function runDuration(run: AutomationRun, now: Date): string | null {
   const end = run.finishedAt ?? (run.status === "running" ? now.toISOString() : null);
@@ -93,30 +86,26 @@ export function runDuration(run: AutomationRun, now: Date): string | null {
   return minutes < 60 ? `${minutes} min` : `${Math.floor(minutes / 60)} h ${two(minutes % 60)}`;
 }
 
-// A failed run stays in attention until the user opens it; a dispatch failure has no session, so a newer run clears it.
-export function automationGroup(a: Automation, threads: Threads, seen: SeenState): AutomationGroup {
-  const latest = liveRuns(a, threads)[0];
-  if (latest?.status === "running") return "running";
-  const thread = latest?.threadId ? threads.get(latest.threadId) : undefined;
-  if (latest?.status === "waiting" || (latest?.status === "failed" && (!latest.threadId || (thread && isUnseen(thread, seen))))) return "attention";
-  if (isFinishedReminder(a)) return "finished";
-  return a.enabled ? "upcoming" : "paused";
+export type AutomationFilter = "all" | "unread" | "failed" | "running" | "paused";
+export type AutomationSort = "recent" | "next" | "project" | "name";
+
+/** Failed: the latest run failed, a dispatch failure included. Paused: disabled, so a finished reminder too. */
+export function matchesFilter(a: Automation, filter: AutomationFilter, threads: Threads, seen: SeenState): boolean {
+  if (filter === "unread") return latestUnread(a, threads, seen);
+  if (filter === "failed") return liveRuns(a, threads)[0]?.status === "failed";
+  if (filter === "running") return isRunning(a, threads);
+  return filter === "paused" ? !a.enabled : true;
 }
 
-const ORDER: AutomationGroup[] = ["running", "attention", "upcoming", "paused", "finished"];
-const byNextRun = (a: Automation, b: Automation) => Number(a.nextRunAt === null) - Number(b.nextRunAt === null) || (a.nextRunAt ?? "").localeCompare(b.nextRunAt ?? "");
-const byLastRunDesc = (a: Automation, b: Automation) => (b.lastRunAt ?? "").localeCompare(a.lastRunAt ?? "");
-const byStartDesc = (a: Automation, b: Automation) => (b.runs[0]?.startedAt ?? "").localeCompare(a.runs[0]?.startedAt ?? "");
+const byName = (a: Automation, b: Automation) => a.title.localeCompare(b.title);
+// A disabled task has no next run to compare: it goes last, like a webhook.
+const nextAt = (a: Automation) => (a.enabled ? a.nextRunAt : null);
+const byNextRun = (a: Automation, b: Automation) => Number(nextAt(a) === null) - Number(nextAt(b) === null) || (nextAt(a) ?? "").localeCompare(nextAt(b) ?? "") || byName(a, b);
+const byRecent = (a: Automation, b: Automation) => Number(!a.runs[0]) - Number(!b.runs[0]) || (b.runs[0]?.startedAt ?? "").localeCompare(a.runs[0]?.startedAt ?? "") || byName(a, b);
 
-/** One flat list: running first, then what needs attention, the next runs in order (webhooks last), paused, finished. */
-export function sortAutomations(list: Automation[], threads: Threads, seen: SeenState): Automation[] {
-  const group = new Map(list.map((a) => [a.id, automationGroup(a, threads, seen)]));
-  const within = (g: AutomationGroup) => (g === "running" ? byStartDesc : g === "upcoming" ? byNextRun : byLastRunDesc);
-  return [...list].sort((a, b) => {
-    const ga = group.get(a.id)!;
-    const gb = group.get(b.id)!;
-    return ORDER.indexOf(ga) - ORDER.indexOf(gb) || within(ga)(a, b);
-  });
+/** "project" sorts like "recent": the view then groups the rows under their project. */
+export function sortAutomations(list: Automation[], sort: AutomationSort): Automation[] {
+  return [...list].sort(sort === "next" ? byNextRun : sort === "name" ? byName : byRecent);
 }
 
 export function filterAutomations(list: Automation[], query: string): Automation[] {
@@ -143,10 +132,6 @@ export const copyableUrl = (a: Automation): string | null => (a.kind === "webhoo
 const two = (n: number) => String(n).padStart(2, "0");
 const hm = (d: Date) => `${d.getHours()}:${two(d.getMinutes())}`;
 
-export type RunTone = "ok" | "error" | "running" | "waiting" | "none";
-
-const TONES: Record<AutomationRunOutcome, RunTone> = { succeeded: "ok", failed: "error", running: "running", waiting: "waiting", unknown: "none" };
-export const runTone = (status: AutomationRunOutcome): RunTone => TONES[status];
 export const RUN_LABELS: Record<AutomationRunOutcome, string> = { succeeded: "Succeeded", failed: "Failed", running: "Running", waiting: "Waiting for you", unknown: "Unknown" };
 
 /** "2 h ago · 3 min": when a run started and how long it took. A bound chat goes on after the run: no duration. */
@@ -155,10 +140,10 @@ export function runWhen(run: AutomationRun, now: Date, bound = false): string {
 }
 
 /** The latest run in words, read through its thread: T3 marks a run "succeeded" once it is sent. */
-export function lastRunLine(a: Automation, threads: Threads, now: Date): { tone: RunTone; label: string; detail: string } {
+export function lastRunLine(a: Automation, threads: Threads, now: Date): { status: AutomationRunOutcome | null; label: string; detail: string } {
   const run = liveRuns(a, threads)[0];
-  if (!run) return { tone: "none", label: "Never run", detail: "" };
-  return { tone: runTone(run.status), label: RUN_LABELS[run.status], detail: runWhen(run, now, a.bound) };
+  if (!run) return { status: null, label: "Never run", detail: "" };
+  return { status: run.status, label: RUN_LABELS[run.status], detail: runWhen(run, now, a.bound) };
 }
 
 export const isRunning = (a: Automation, threads: Threads): boolean => liveRuns(a, threads)[0]?.status === "running";

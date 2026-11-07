@@ -3,11 +3,12 @@ import type { SeenState } from "../../../../shared/seen.ts";
 import { ProjectTag } from "../../lib/ProjectTag.tsx";
 import { ProviderIcon } from "../../lib/ProviderIcon.tsx";
 import { RunningBadge } from "../../lib/StatusBadge.tsx";
+import { useCopy } from "../../lib/useCopy.ts";
 import { Badge, Button, Icon, IconButton, Switch } from "../../ui/index.ts";
 import { RUNTIME_MODE_LABELS } from "../conversation/composer.ts";
-import { AutomationMenu } from "./AutomationMenu.tsx";
-import { capitalize, isEditable, isFinishedReminder, isRunning, lastRunLine, liveRuns, modelLabel, nextRunText, scheduleText } from "./automations.ts";
+import { capitalize, copyableUrl, isEditable, isFinishedReminder, isRunning, lastRunLine, liveRuns, modelLabel, nextRunText, scheduleText } from "./automations.ts";
 import { KindBadge } from "./KindBadge.tsx";
+import { RunBadge } from "./RunBadge.tsx";
 import { RunRow } from "./RunRow.tsx";
 
 interface Props {
@@ -35,6 +36,8 @@ export function AutomationSheet({ automation: a, threads, project, providers, se
   const running = isRunning(a, threads);
   const busy = running || starting;
   const finished = isFinishedReminder(a);
+  const { copy } = useCopy("copy the webhook URL");
+  const url = copyableUrl(a);
 
   return (
     <>
@@ -66,7 +69,14 @@ export function AutomationSheet({ automation: a, threads, project, providers, se
               </Button>
             </span>
           )}
-          <AutomationMenu automation={a} withEdit={false} onEdit={onEdit} onDelete={onDelete} />
+          {url && (
+            <Button size="sm" onClick={() => copy(url)}>
+              Copy webhook URL
+            </Button>
+          )}
+          <Button size="sm" variant="danger" onClick={() => onDelete(a)}>
+            Delete
+          </Button>
           {!finished && <Switch checked={a.enabled} label={`Enable ${a.title}`} onChange={(on) => onToggle(a, on)} />}
         </div>
       </header>
@@ -75,7 +85,10 @@ export function AutomationSheet({ automation: a, threads, project, providers, se
           <dt>Next run</dt>
           <dd>{nextRunText(a, now)}</dd>
           <dt>Last run</dt>
-          <dd>{last.detail ? `${last.label} · ${last.detail}` : last.label}</dd>
+          <dd className="auto-last">
+            {last.status ? <RunBadge status={last.status} /> : last.label}
+            {last.detail}
+          </dd>
           <dt>Project</dt>
           <dd>
             <ProjectTag icon={project?.icon ?? null} title={a.project} />
@@ -119,7 +132,7 @@ export function AutomationSheet({ automation: a, threads, project, providers, se
               <ul className="auto-rows">
                 {runs.map((run) => (
                   <li key={`${run.threadId ?? ""}:${run.startedAt}`}>
-                    <RunRow automation={a} run={run} threads={threads} seen={seen} now={now} onOpen={onOpen} variant="history" />
+                    <RunRow automation={a} run={run} threads={threads} seen={seen} now={now} onOpen={onOpen} />
                   </li>
                 ))}
               </ul>

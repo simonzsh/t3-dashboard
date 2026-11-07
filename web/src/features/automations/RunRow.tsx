@@ -1,7 +1,8 @@
 import type { Automation, AutomationRun, DashboardThread } from "../../../../shared/api.ts";
 import type { SeenState } from "../../../../shared/seen.ts";
-import { Button, Pressable } from "../../ui/index.ts";
-import { reminderDate, RUN_LABELS, runTone, runUnread, runWhen } from "./automations.ts";
+import { Button } from "../../ui/index.ts";
+import { reminderDate, runUnread, runWhen } from "./automations.ts";
+import { RunBadge } from "./RunBadge.tsx";
 
 interface Props {
   automation: Automation;
@@ -10,41 +11,23 @@ interface Props {
   seen: SeenState;
   now: Date;
   onOpen: (id: string, addOnly: boolean) => void;
-  /** "recent": the whole row opens the session, and shows the task name. "history": an Open session button, no name. */
-  variant: "recent" | "history";
 }
 
-/** One run: a status dot and word, the date, the relative time and duration, and the error of a failed run. */
-export function RunRow({ automation, run, threads, seen, now, onOpen, variant }: Props) {
+/** One run of the history: its status pill, the date, the relative time and duration, the error of a failed run and an Open session button. */
+export function RunRow({ automation, run, threads, seen, now, onOpen }: Props) {
   const { threadId } = run;
   const thread = threadId ? threads.get(threadId) : undefined;
-  const body = (
-    <>
-      <span className={`auto-run-dot ${runTone(run.status)}`} aria-hidden="true" />
+  return (
+    <div className="auto-run-row">
       <span className="auto-run-main">
         <span className="auto-run-line">
-          <span className="auto-run-status">{RUN_LABELS[run.status]}</span>
-          {variant === "recent" && <span className="auto-run-name">{automation.title}</span>}
+          <RunBadge status={run.status} />
           <span className="auto-run-date">{reminderDate(run.startedAt)}</span>
           {runUnread(automation, run, threads, seen) && <span className="notif-dot" role="img" aria-label="Unread" />}
         </span>
         <span className="auto-run-when">{runWhen(run, now, automation.bound)}</span>
         {run.status === "failed" && run.error && <span className="auto-run-error">{run.error}</span>}
       </span>
-    </>
-  );
-  if (variant === "recent") {
-    return thread && threadId ? (
-      <Pressable className="auto-run-row" onClick={(e) => onOpen(threadId, e.shiftKey)}>
-        {body}
-      </Pressable>
-    ) : (
-      <div className="auto-run-row static">{body}</div>
-    );
-  }
-  return (
-    <div className="auto-run-row">
-      {body}
       {thread && threadId ? (
         <Button size="sm" variant="ghost" onClick={(e) => onOpen(threadId, e.shiftKey)}>
           Open session

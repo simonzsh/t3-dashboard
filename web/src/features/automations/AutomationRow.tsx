@@ -1,13 +1,17 @@
-import type { Automation, DashboardThread } from "../../../../shared/api.ts";
+import type { Automation, DashboardThread, ProjectIcon } from "../../../../shared/api.ts";
 import type { SeenState } from "../../../../shared/seen.ts";
-import { Badge, Icon, IconButton, Pressable, Switch } from "../../ui/index.ts";
+import { ProjectTag } from "../../lib/ProjectTag.tsx";
 import { RunningBadge } from "../../lib/StatusBadge.tsx";
-import { AutomationMenu } from "./AutomationMenu.tsx";
-import { capitalize, isFinishedReminder, isRunning, lastRunLine, latestUnread, nextRunLine, reminderDate, scheduleText } from "./automations.ts";
+import { useCopy } from "../../lib/useCopy.ts";
+import { ActionMenu, Badge, Icon, IconButton, Pressable, Switch, type ActionMenuItem } from "../../ui/index.ts";
+import { capitalize, copyableUrl, isEditable, isFinishedReminder, isRunning, lastRunLine, latestUnread, nextRunLine, reminderDate, scheduleText } from "./automations.ts";
 import { KindBadge } from "./KindBadge.tsx";
+import { RunBadge } from "./RunBadge.tsx";
 
 interface Props {
   automation: Automation;
+  /** Left out when the row sits under its project header. */
+  project: { icon: ProjectIcon | null; title: string } | null;
   threads: ReadonlyMap<string, DashboardThread>;
   seen: SeenState;
   now: Date;
@@ -20,13 +24,20 @@ interface Props {
   onDelete: (a: Automation) => void;
 }
 
-/** Three lines (name, schedule and next run, last run) and the controls: switch, Run now, menu. */
-export function AutomationRow({ automation: a, threads, seen, now, starting, onSelect, onToggle, onRun, onEdit, onDelete }: Props) {
+/** Three lines (name, project with schedule and next run, last run) and the controls: switch, Run now, menu. */
+export function AutomationRow({ automation: a, project, threads, seen, now, starting, onSelect, onToggle, onRun, onEdit, onDelete }: Props) {
   const finished = isFinishedReminder(a);
   const running = isRunning(a, threads);
   const last = lastRunLine(a, threads, now);
   const next = nextRunLine(a, now);
   const schedule = capitalize(scheduleText(a));
+  const { copy } = useCopy("copy the webhook URL");
+  const url = copyableUrl(a);
+  const items: ActionMenuItem[] = [
+    { label: "Edit", icon: "pencil", onSelect: () => onEdit(a), disabled: !isEditable(a), tooltip: isEditable(a) ? undefined : "This automation can't be edited here" },
+    ...(url ? [{ label: "Copy webhook URL", icon: "copy" as const, onSelect: () => copy(url) }] : []),
+    { label: "Delete", icon: "trash", onSelect: () => onDelete(a), danger: true },
+  ];
   return (
     <div className={`auto-row${!a.enabled ? " dim" : ""}`}>
       <Pressable className="auto-row-main" onClick={() => onSelect(a.id)}>
@@ -38,6 +49,8 @@ export function AutomationRow({ automation: a, threads, seen, now, starting, onS
           {latestUnread(a, threads, seen) && <span className="notif-dot" role="img" aria-label="Unread" />}
         </span>
         <span className="auto-line">
+          {project && <ProjectTag icon={project.icon} title={project.title} />}
+          {project && (schedule || next) && <span aria-hidden="true">·</span>}
           {schedule && <span className="auto-text">{schedule}</span>}
           {schedule && next && <span aria-hidden="true">·</span>}
           {next && (
@@ -47,11 +60,8 @@ export function AutomationRow({ automation: a, threads, seen, now, starting, onS
           )}
         </span>
         <span className="auto-line">
-          <span className={`auto-run-dot ${last.tone}`} aria-hidden="true" />
-          <span className={`auto-text${last.tone === "error" ? " auto-fail" : ""}`}>
-            {last.label}
-            {last.detail && ` · ${last.detail}`}
-          </span>
+          {last.status ? <RunBadge status={last.status} /> : <span className="auto-text">{last.label}</span>}
+          {last.detail && <span className="auto-text">{last.detail}</span>}
         </span>
       </Pressable>
       <div className="auto-row-actions">
@@ -59,7 +69,7 @@ export function AutomationRow({ automation: a, threads, seen, now, starting, onS
         <IconButton variant="ghost" size="sm" label={`Run ${a.title} now`} tooltip="Run now" disabled={running || starting} onClick={() => onRun(a)}>
           <Icon name={running || starting ? "refresh" : "play"} className={running || starting ? "icon spinning" : "icon"} />
         </IconButton>
-        <AutomationMenu automation={a} withEdit onEdit={onEdit} onDelete={onDelete} />
+        <ActionMenu label={`More actions for ${a.title}`} items={items} />
       </div>
     </div>
   );
