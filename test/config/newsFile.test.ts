@@ -1,0 +1,38 @@
+import assert from "node:assert/strict";
+import { test } from "bun:test";
+import { NEWS_DEFAULTS } from "../../shared/news.ts";
+import { isArticleDate, isArticleName, newsText, readNews } from "../../src/config/newsFile.ts";
+
+const read = (value: unknown) => readNews("/cfg/news.json", () => (typeof value === "string" ? value : JSON.stringify(value)));
+const empty = { settings: NEWS_DEFAULTS, taskId: null, taskCreatedAt: null };
+
+test("a missing or broken file gives the defaults", () => {
+  assert.deepEqual(readNews("/cfg/news.json", () => { throw new Error("ENOENT"); }), empty);
+  assert.deepEqual(read("{nope"), empty);
+  assert.deepEqual(read([1, 2]), empty);
+});
+
+test("saved news reads back unchanged", () => {
+  const stored = { settings: { timeOfDay: "06:30", topics: ["Space"], language: "English", modelSelection: { instanceId: "claudeAgent", model: "m-1", options: [{ id: "effort", value: "low" }] } }, taskId: "scheduled-task:1", taskCreatedAt: "2026-11-01T08:00:00.000Z" };
+  assert.deepEqual(read(newsText(stored)), stored);
+});
+
+test("each bad field falls back to its default and keeps the good ones", () => {
+  const stored = read({ settings: { timeOfDay: "7am", topics: ["", 4, "Space"], language: "  ", modelSelection: { instanceId: "x" } }, taskId: 12, taskCreatedAt: "2026-11-01T08:00:00.000Z" });
+  assert.deepEqual(stored, { settings: { ...NEWS_DEFAULTS, topics: ["Space"] }, taskId: null, taskCreatedAt: "2026-11-01T08:00:00.000Z" });
+  assert.deepEqual(read({ settings: { topics: [] } }).settings.topics, NEWS_DEFAULTS.topics);
+});
+
+test("the file carries a version", () => {
+  assert.equal(JSON.parse(newsText(empty)).version, 1);
+});
+
+test("an article name is a real date with the .md extension", () => {
+  assert.equal(isArticleName("2026-11-07.md"), true);
+  for (const name of ["2026-11-07.md.tmp", "2026-11-07.txt", "2026-02-31.md", "x2026-11-07.md", "../2026-11-07.md", "2026-11-07.md\n"]) assert.equal(isArticleName(name), false, name);
+});
+
+test("an article date refuses a day that does not exist", () => {
+  assert.equal(isArticleDate("2024-02-29"), true);
+  for (const date of ["2026-02-29", "2026-13-01", "2026-00-10", "2026-1-1", "../etc", "2026-11-07\n"]) assert.equal(isArticleDate(date), false, date);
+});
