@@ -67,7 +67,6 @@ test("an unreadable or foreign layout gives the default", () => {
 
 test("a layout saved before widths existed becomes the default, keeping its hidden cards", () => {
   assert.deepEqual(validateLayout({ order: ["usage", "activity", "server", "running", "up-next"], hidden: [] }), D);
-  assert.deepEqual(validateLayout({ order: ["activity", "usage", "running", "up-next", "server"], hidden: [] }), D);
   const old = validateLayout({ order: ["usage", "activity", "server", "up-next"], hidden: ["running"] });
   assert.deepEqual(ids(old), ["activity", "usage", "up-next", "server"]);
   assert.deepEqual(old.hidden, ["running"]);

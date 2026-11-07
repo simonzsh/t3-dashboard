@@ -74,11 +74,8 @@ export const layoutRows = (layout: DashboardLayout): LayoutRow[] =>
 export const DEFAULT_LAYOUT: DashboardLayout = { order: CARDS.map(defaultPlace), hidden: [] };
 
 const isCard = (v: unknown): v is DashboardCard => CARDS.includes(v as DashboardCard);
-// Orders saved before cards had a width: they all become the default layout.
-const LEGACY_ORDERS: DashboardCard[][] = [
-  ["usage", "activity", "server", "running", "up-next"],
-  ["activity", "usage", "running", "up-next", "server"],
-];
+// The default order saved before cards had a width: it becomes the default layout.
+const LEGACY_ORDER: DashboardCard[] = ["usage", "activity", "server", "running", "up-next"];
 const followsInOrder = (ids: DashboardCard[], reference: DashboardCard[]): boolean => {
   let from = 0;
   return ids.every((id) => {
@@ -103,7 +100,7 @@ export function validateLayout(raw: unknown): DashboardLayout {
   }
   const hidden = (Array.isArray(input.hidden) ? input.hidden : []).filter((id, i, all): id is DashboardCard => isCard(id) && !seen.has(id) && all.indexOf(id) === i);
   const ids = order.map((p) => p.id);
-  if (input.order.every((e) => typeof e === "string") && LEGACY_ORDERS.some((legacy) => followsInOrder(ids, legacy))) {
+  if (input.order.every((e) => typeof e === "string") && followsInOrder(ids, LEGACY_ORDER)) {
     return { order: DEFAULT_LAYOUT.order.filter((p) => !hidden.includes(p.id)), hidden };
   }
   const missing = CARDS.filter((id) => !seen.has(id) && !hidden.includes(id)).map(defaultPlace);
