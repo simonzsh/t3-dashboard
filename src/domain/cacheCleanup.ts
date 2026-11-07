@@ -1,3 +1,4 @@
+import { isAbsolute } from "node:path";
 import type { CacheCleanupPreview, CacheCleanupResult, CacheTargetId, CacheTargetResult, CacheTargetSize } from "../../shared/api.ts";
 
 /** The part of node:fs/promises the cleaner uses; tests pass a wrapper to inject failures. */
@@ -32,6 +33,8 @@ const message = (error: unknown): string => (error instanceof Error ? error.mess
 function targetsFor({ fs, homedir, tmpdir, platform }: CacheCleanupOptions): Target[] | null {
   if (platform !== "linux" && platform !== "darwin") return null;
   const home = homedir();
+  // A relative or root base would turn the fixed names into paths at the filesystem root.
+  if (!isAbsolute(home) || home === "/" || !isAbsolute(tmpdir()) || tmpdir() === "/") return null;
   const mac = platform === "darwin";
   const fixed = (id: CacheTargetId, label: string, path: string): Target => ({ id, label, paths: async () => [path], aged: false });
   const temp = (id: CacheTargetId, label: string, matches: (name: string) => boolean): Target => ({
@@ -59,14 +62,21 @@ export function createCacheCleanup(options: CacheCleanupOptions) {
   let inFlight: Promise<CacheCleanupResult> | null = null;
 
   // lstat never follows a link; a symlink counts as nothing, so a cache cannot point the walk elsewhere.
-  async function sizeOf(path: string): Promise<number> {
+  // `newest` is the latest mtime in the tree: a folder's own mtime ignores files written in place.
+  async function measure(path: string): Promise<{ bytes: number; newest: number }> {
     const info = await fs.lstat(path);
-    if (info.isSymbolicLink()) return 0;
-    if (!info.isDirectory()) return info.size;
-    let total = 0;
-    for (const name of await fs.readdir(path)) total += await sizeOf(join(path, name)).catch(() => 0);
-    return total;
+    if (info.isSymbolicLink()) return { bytes: 0, newest: 0 };
+    if (!info.isDirectory()) return { bytes: info.size, newest: info.mtimeMs };
+    let bytes = 0;
+    let newest = info.mtimeMs;
+    for (const name of await fs.readdir(path)) {
+      const child = await measure(join(path, name)).catch(() => ({ bytes: 0, newest: 0 }));
+      bytes += child.bytes;
+      newest = Math.max(newest, child.newest);
+    }
+    return { bytes, newest };
   }
+  const sizeOf = async (path: string): Promise<number> => (await measure(path)).bytes;
 
   /** The paths of a target that may go now, with their sizes. A missing or unreadable path counts as none. */
   async function candidates(target: Target): Promise<{ path: string; bytes: number }[]> {
@@ -76,8 +86,9 @@ export function createCacheCleanup(options: CacheCleanupOptions) {
       try {
         const info = await fs.lstat(path);
         if (info.isSymbolicLink()) continue;
-        if (target.aged && now().getTime() - info.mtimeMs < TEMP_MIN_AGE_MS) continue;
-        found.push({ path, bytes: await sizeOf(path) });
+        const { bytes, newest } = await measure(path);
+        if (target.aged && now().getTime() - newest < TEMP_MIN_AGE_MS) continue;
+        found.push({ path, bytes });
       } catch {
         // Gone or unreadable: nothing to free here.
       }

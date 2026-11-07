@@ -99,8 +99,8 @@ test("temp entries are sized and removed only after one hour without change", as
   await file(join(tmp, "mongo-mem-old/db"), 40, 2 * HOUR);
   await file(join(tmp, "mongo-mem-new/db"), 80, 10 * 60_000);
   await file(join(tmp, "unrelated-old/db"), 70, 5 * HOUR);
-  // A directory's own mtime is what the age rule reads.
-  for (const [name, age] of [["node-compile-cache", 3 * HOUR], ["mongo-mem-old", 2 * HOUR], ["mongo-mem-new", 10 * 60_000], ["unrelated-old", 5 * HOUR]] as const) {
+  // Folders made on the way carry the real clock: age them too, the rule reads the newest mtime of the tree.
+  for (const [name, age] of [["node-compile-cache/v22", 3 * HOUR], ["node-compile-cache", 3 * HOUR], ["mongo-mem-old", 2 * HOUR], ["mongo-mem-new", 10 * 60_000], ["unrelated-old", 5 * HOUR]] as const) {
     const at = new Date(NOW - age);
     await utimes(join(tmp, name), at, at);
   }
@@ -179,4 +179,14 @@ test("two clears at once share one run", async () => {
   assert.equal(a.totalBytes, 100);
   // Once done, the next call starts a new run.
   assert.equal((await c.clear()).totalBytes, 0);
+});
+
+test("a temp folder with a recent file inside is kept even when its own mtime is old", async () => {
+  await file(join(tmp, "mongo-mem-busy/db/data"), 40, 10 * 60_000);
+  const at = new Date(NOW - 5 * HOUR);
+  await utimes(join(tmp, "mongo-mem-busy"), at, at);
+  await utimes(join(tmp, "mongo-mem-busy/db"), at, at);
+  const result = await cleaner("linux").clear();
+  assert.equal(result.totalBytes, 0);
+  assert.equal(await exists(join(tmp, "mongo-mem-busy/db/data")), true);
 });

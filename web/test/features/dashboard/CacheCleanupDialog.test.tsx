@@ -43,5 +43,5 @@ test("an error shows as an alert and the dialog keeps its list", () => {
 });
 
 test("it says what is kept: temp entries newer than an hour stay", () => {
-  assert.match(text(render()), /one hour/);
+  assert.match(text(render()), /last hour/);
 });

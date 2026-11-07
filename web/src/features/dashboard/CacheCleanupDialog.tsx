@@ -21,7 +21,7 @@ export function CacheCleanupDialog({ preview, error, running, onConfirm, onClose
       onCancel={onClose}
       primary={{ label: running ? "Clearing…" : "Clear caches", onClick: onConfirm, disabled: empty || running, danger: true }}
     >
-      <p className="hint">These caches are rebuilt when needed. Temp folders keep anything changed in the last one hour. Nothing else is touched.</p>
+      <p className="hint">These caches are rebuilt when needed. Temp folders keep anything changed in the last hour. Nothing else is touched.</p>
       {preview ? (
         <ul className="cache-list">
           {preview.targets.map((target) => (
