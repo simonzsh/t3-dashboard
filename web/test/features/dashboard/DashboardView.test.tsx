@@ -149,8 +149,8 @@ test("the default layout draws Activity full width, then two columns of half car
   assert.equal(out.match(/class="dashboard-band"/g)?.length, 1);
   const left = out.indexOf('class="dashboard-col left"');
   const right = out.indexOf('class="dashboard-col right"');
-  assert.ok(band < left && left < head("dashboard-usage-head") && head("dashboard-usage-head") < head("up-next-head") && head("up-next-head") < right);
-  assert.ok(right < head("running-head") && head("running-head") < head("dashboard-server-head"));
+  assert.ok(band < left && left < head("dashboard-usage-head") && head("dashboard-usage-head") && head("dashboard-usage-head") < right);
+  assert.ok(right < head("running-head") && head("running-head") < head("dashboard-server-head") && head("dashboard-server-head") < head("up-next-head"));
 });
 
 test("an open panel sits beside the cards and holds Notifications", () => {
@@ -216,8 +216,8 @@ test("edit mode shows a bar with a drag handle and the move buttons on every car
 
 test("a card that cannot move up or down has that button disabled", () => {
   const out = render(state(), { editing: true });
-  for (const label of ["Move Activity up", "Move Up next down", "Move Server down"]) assert.match(out, new RegExp(`<button disabled=""[^>]*aria-label="${label}"`));
-  for (const label of ["Move Usage up", "Move Running down", "Move Activity down"]) assert.doesNotMatch(out, new RegExp(`<button disabled=""[^>]*aria-label="${label}"`));
+  for (const label of ["Move Activity up", "Move Up next down", "Move Usage down"]) assert.match(out, new RegExp(`<button disabled=""[^>]*aria-label="${label}"`));
+  for (const label of ["Move Usage up", "Move Running down", "Move Server down", "Move Up next up", "Move Activity down"]) assert.doesNotMatch(out, new RegExp(`<button disabled=""[^>]*aria-label="${label}"`));
 });
 
 test("edit mode lists hidden cards so they can be shown again", () => {

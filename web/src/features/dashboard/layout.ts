@@ -2,7 +2,7 @@ import { readJson, writeKey, type Store } from "../../lib/storage.ts";
 
 export const DASHBOARD_LAYOUT_KEY = "t3-dashboard-layout";
 
-const CARDS = ["activity", "usage", "up-next", "running", "server"] as const;
+const CARDS = ["activity", "usage", "running", "server", "up-next"] as const;
 export type DashboardCard = (typeof CARDS)[number];
 
 export const CARD_TITLES: Record<DashboardCard, string> = { usage: "Usage", server: "Server", activity: "Activity", running: "Running", "up-next": "Up next" };
@@ -33,7 +33,7 @@ export type DropTarget =
 const CARD_DEFAULTS: Record<DashboardCard, { width: CardWidth; column: CardColumn }> = {
   activity: { width: "full", column: "left" },
   usage: { width: "half", column: "left" },
-  "up-next": { width: "half", column: "left" },
+  "up-next": { width: "half", column: "right" },
   running: { width: "half", column: "right" },
   server: { width: "half", column: "right" },
 };

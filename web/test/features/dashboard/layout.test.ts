@@ -31,15 +31,15 @@ test("the default layout has Activity full, then two stacks of half cards", () =
     order: [
       { id: "activity", width: "full", column: "left" },
       { id: "usage", width: "half", column: "left" },
-      { id: "up-next", width: "half", column: "left" },
       { id: "running", width: "half", column: "right" },
       { id: "server", width: "half", column: "right" },
+      { id: "up-next", width: "half", column: "right" },
     ],
     hidden: [],
   });
   assert.deepEqual(layoutRows(D), [
     { kind: "full", card: "activity" },
-    { kind: "band", left: ["usage", "up-next"], right: ["running", "server"] },
+    { kind: "band", left: ["usage"], right: ["running", "server", "up-next"] },
   ]);
   assert.equal(isDefaultLayout(validateLayout(null)), true);
 });
@@ -68,7 +68,7 @@ test("an unreadable or foreign layout gives the default", () => {
 test("a layout saved before widths existed becomes the default, keeping its hidden cards", () => {
   assert.deepEqual(validateLayout({ order: ["usage", "activity", "server", "running", "up-next"], hidden: [] }), D);
   const old = validateLayout({ order: ["usage", "activity", "server", "up-next"], hidden: ["running"] });
-  assert.deepEqual(ids(old), ["activity", "usage", "up-next", "server"]);
+  assert.deepEqual(ids(old), ["activity", "usage", "server", "up-next"]);
   assert.deepEqual(old.hidden, ["running"]);
 });
 
@@ -101,18 +101,20 @@ test("a stored order is rebuilt band by band", () => {
 });
 
 test("shiftCard moves a half card inside its stack", () => {
-  assert.deepEqual(ids(shiftCard(D, "up-next", -1)), ["activity", "up-next", "usage", "running", "server"]);
-  assert.deepEqual(ids(shiftCard(D, "server", -1)), ["activity", "usage", "up-next", "server", "running"]);
+  assert.deepEqual(ids(shiftCard(D, "up-next", -1)), ["activity", "usage", "running", "up-next", "server"]);
+  assert.deepEqual(ids(shiftCard(D, "server", -1)), ["activity", "usage", "server", "running", "up-next"]);
+  assert.deepEqual(ids(shiftCard(D, "server", 1)), ["activity", "usage", "running", "up-next", "server"]);
 });
 
 test("shiftCard moves a half card past the full card at the edge of its band", () => {
   const up = shiftCard(D, "usage", -1);
-  assert.deepEqual(ids(up), ["usage", "activity", "up-next", "running", "server"]);
+  assert.deepEqual(ids(up), ["usage", "activity", "running", "server", "up-next"]);
   assert.deepEqual(layoutRows(up), [
     { kind: "band", left: ["usage"], right: [] },
     { kind: "full", card: "activity" },
-    { kind: "band", left: ["up-next"], right: ["running", "server"] },
+    { kind: "band", left: [], right: ["running", "server", "up-next"] },
   ]);
+  assert.deepEqual(ids(shiftCard(D, "running", -1)), ["running", "activity", "usage", "server", "up-next"]);
   assert.deepEqual(ids(shiftCard(Y, "running", -1)), ["usage", "running", "activity", "up-next", "server"]);
   assert.deepEqual(ids(shiftCard(Y, "server", -1)), ["usage", "server", "activity", "running", "up-next"]);
   const down = shiftCard(Y, "usage", 1);
@@ -125,60 +127,64 @@ test("shiftCard moves a half card past the full card at the edge of its band", (
 
 test("shiftCard changes nothing at the ends of the dashboard or for a hidden card", () => {
   assert.equal(shiftCard(D, "up-next", 1), D);
-  assert.equal(shiftCard(D, "server", 1), D);
+  assert.equal(shiftCard(D, "usage", 1), D);
   assert.equal(shiftCard(D, "activity", -1), D);
   const hidden = setHidden(D, "server", true);
   assert.equal(shiftCard(hidden, "server", -1), hidden);
 });
 
 test("shiftCard swaps a full card with the band or full card next to it", () => {
-  assert.deepEqual(ids(shiftCard(D, "activity", 1)), ["usage", "up-next", "running", "server", "activity"]);
+  assert.deepEqual(ids(shiftCard(D, "activity", 1)), ["usage", "running", "server", "up-next", "activity"]);
   assert.deepEqual(ids(shiftCard(Y, "activity", -1)), ["activity", "usage", "running", "up-next", "server"]);
-  const full = toggleWidth(D, "server");
-  const once = shiftCard(full, "server", -1);
-  assert.deepEqual(ids(once), ["activity", "server", "usage", "up-next", "running"]);
-  assert.deepEqual(ids(shiftCard(once, "server", -1)), ["server", "activity", "usage", "up-next", "running"]);
+  const full = toggleWidth(D, "up-next");
+  const once = shiftCard(full, "up-next", -1);
+  assert.deepEqual(ids(once), ["activity", "up-next", "usage", "running", "server"]);
+  assert.deepEqual(ids(shiftCard(once, "up-next", -1)), ["up-next", "activity", "usage", "running", "server"]);
 });
 
 test("toggleWidth makes a half card full right after its band, and back", () => {
-  const full = toggleWidth(D, "server");
-  assert.deepEqual(ids(full), ["activity", "usage", "up-next", "running", "server"]);
-  assert.deepEqual(full.order[4], { id: "server", width: "full", column: "right" });
+  const full = toggleWidth(D, "up-next");
+  assert.deepEqual(ids(full), ["activity", "usage", "running", "server", "up-next"]);
+  assert.deepEqual(full.order[4], { id: "up-next", width: "full", column: "right" });
   assert.deepEqual(layoutRows(full), [
     { kind: "full", card: "activity" },
-    { kind: "band", left: ["usage", "up-next"], right: ["running"] },
-    { kind: "full", card: "server" },
+    { kind: "band", left: ["usage"], right: ["running", "server"] },
+    { kind: "full", card: "up-next" },
   ]);
-  const back = toggleWidth(full, "server");
+  const back = toggleWidth(full, "up-next");
   assert.deepEqual(back, D);
   assert.equal(isDefaultLayout(back), true);
+  // A card from the middle of a stack comes back at the bottom of its column.
+  assert.deepEqual(ids(toggleWidth(toggleWidth(D, "server"), "server")), ["activity", "usage", "running", "up-next", "server"]);
 });
 
 test("a full card made half joins the band below it", () => {
-  assert.deepEqual(layoutRows(toggleWidth(D, "activity")), [{ kind: "band", left: ["activity", "usage", "up-next"], right: ["running", "server"] }]);
+  assert.deepEqual(layoutRows(toggleWidth(D, "activity")), [{ kind: "band", left: ["activity", "usage"], right: ["running", "server", "up-next"] }]);
   const hidden = setHidden(D, "activity", true);
   assert.equal(toggleWidth(hidden, "activity"), hidden);
 });
 
 test("dropCard puts a half card in a column at an index", () => {
   const right = dropCard(D, "usage", col(1, "right", 1));
-  assert.deepEqual(ids(right), ["activity", "up-next", "running", "usage", "server"]);
-  assert.equal(right.order[3]!.column, "right");
+  assert.deepEqual(ids(right), ["activity", "running", "usage", "server", "up-next"]);
+  assert.equal(right.order[2]!.column, "right");
   assert.equal(dropCard(D, "usage", col(1, "left", 0)), D);
   assert.equal(dropCard(D, "usage", col(1, "left", 1)), D);
-  assert.deepEqual(ids(dropCard(D, "usage", col(1, "left", 2))), ["activity", "up-next", "usage", "running", "server"]);
-  const left = dropCard(D, "server", col(1, "left", 2));
-  assert.deepEqual(ids(left), ["activity", "usage", "up-next", "server", "running"]);
-  assert.equal(left.order[3]!.column, "left");
+  assert.equal(dropCard(D, "server", col(1, "right", 1)), D);
+  assert.equal(dropCard(D, "server", col(1, "right", 2)), D);
+  assert.deepEqual(ids(dropCard(D, "running", col(1, "right", 3))), ["activity", "usage", "server", "up-next", "running"]);
+  const left = dropCard(D, "server", col(1, "left", 1));
+  assert.deepEqual(ids(left), ["activity", "usage", "server", "running", "up-next"]);
+  assert.equal(left.order[2]!.column, "left");
 });
 
 test("dropCard puts a card in a gap between rows", () => {
-  assert.deepEqual(ids(dropCard(D, "activity", gap(2))), ["usage", "up-next", "running", "server", "activity"]);
+  assert.deepEqual(ids(dropCard(D, "activity", gap(2))), ["usage", "running", "server", "up-next", "activity"]);
   assert.equal(dropCard(D, "activity", gap(0)), D);
   assert.equal(dropCard(D, "activity", gap(1)), D);
-  assert.deepEqual(ids(dropCard(D, "running", gap(0, "right"))), ["running", "activity", "usage", "up-next", "server"]);
+  assert.deepEqual(ids(dropCard(D, "running", gap(0, "right"))), ["running", "activity", "usage", "server", "up-next"]);
   assert.equal(dropCard(D, "usage", gap(0, "right")).order[0]!.column, "right");
-  assert.deepEqual(dropCard(D, "running", gap(2)).order, dropCard(D, "running", col(1, "left", 2)).order);
+  assert.deepEqual(dropCard(D, "running", gap(2)).order, dropCard(D, "running", col(1, "left", 1)).order);
   assert.equal(dropCard(D, "running", gap(2)).order.find((p) => p.id === "running")!.column, "left");
   assert.deepEqual(ids(dropCard(Y, "activity", gap(3))), ["usage", "running", "up-next", "server", "activity"]);
 });
@@ -190,21 +196,22 @@ test("dropCard ignores a full card on a column and a hidden card", () => {
 });
 
 test("resolveDrop turns a half card's gap next to a band into a column target", () => {
-  assert.deepEqual(resolveDrop(D, "running", gap(2)), col(1, "left", 2));
+  assert.deepEqual(resolveDrop(D, "running", gap(2)), col(1, "left", 1));
   assert.deepEqual(resolveDrop(D, "running", gap(1, "right")), col(1, "right", 0));
   assert.deepEqual(resolveDrop(D, "activity", gap(2)), gap(2));
-  const full = toggleWidth(D, "server");
+  const full = toggleWidth(D, "up-next");
   assert.deepEqual(resolveDrop(full, "running", gap(3)), gap(3));
 });
 
 test("hiding a card removes it from the order, and showing it puts it back at the end", () => {
-  const hidden = setHidden(D, "running", true);
-  assert.deepEqual(ids(hidden), ["activity", "usage", "up-next", "server"]);
-  assert.deepEqual(hidden.hidden, ["running"]);
-  assert.deepEqual(ids(setHidden(hidden, "running", false)), ["activity", "usage", "up-next", "server", "running"]);
-  assert.deepEqual(ids(setHidden(setHidden(D, "activity", true), "activity", false)), ["usage", "up-next", "running", "server", "activity"]);
-  assert.equal(setHidden(D, "running", false), D);
-  assert.equal(setHidden(hidden, "running", true), hidden);
+  const hidden = setHidden(D, "up-next", true);
+  assert.deepEqual(ids(hidden), ["activity", "usage", "running", "server"]);
+  assert.deepEqual(hidden.hidden, ["up-next"]);
+  assert.deepEqual(setHidden(hidden, "up-next", false), D);
+  assert.deepEqual(ids(setHidden(setHidden(D, "running", true), "running", false)), ["activity", "usage", "server", "up-next", "running"]);
+  assert.deepEqual(ids(setHidden(setHidden(D, "activity", true), "activity", false)), ["usage", "running", "server", "up-next", "activity"]);
+  assert.equal(setHidden(D, "up-next", false), D);
+  assert.equal(setHidden(hidden, "up-next", true), hidden);
 });
 
 test("the layout is saved and loaded, and a broken value gives the default", () => {
