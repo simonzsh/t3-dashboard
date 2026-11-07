@@ -9,6 +9,8 @@ import { linearCardShown } from "./glance.ts";
 
 // Linear changes without notice: items read there leave the card at the next read.
 const POLL_MS = 120_000;
+// Survives the Dashboard unmount on tab change: a known-connected card shows at once, with no layout jump.
+let lastBoard: BoardResult | null = null;
 
 /**
  * The Linear board. It loads while the card is not hidden, even before the card shows, to learn whether Linear is connected.
@@ -17,7 +19,7 @@ const POLL_MS = 120_000;
 export function useLinear(version: number, enabled: boolean) {
   const api = useApi();
   const notify = useNotify();
-  const [board, setBoard] = useState<BoardResult | null>(null);
+  const [board, setBoard] = useState<BoardResult | null>(lastBoard);
   // Issues just started: no assign button until their thread arrives over the event stream.
   const [started, setStarted] = useState<ReadonlySet<string>>(new Set());
   const { busy: loading, run } = useAction("load Linear");
@@ -25,7 +27,8 @@ export function useLinear(version: number, enabled: boolean) {
   const load = useCallback(
     (refresh: boolean) =>
       run(async () => {
-        setBoard(await api.getBoard(refresh));
+        lastBoard = await api.getBoard(refresh);
+        setBoard(lastBoard);
         setStarted(new Set());
       }),
     [],
