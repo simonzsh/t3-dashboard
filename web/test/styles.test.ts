@@ -119,3 +119,7 @@ test("on a phone an open keyboard drops the bottom bar and the bottom inset", ()
   assert.match(phone, /\.keyboard-open \.bottom-nav \{ display: none; \}/);
   assert.match(phone, /\.keyboard-open \.app \.app-column \{ padding-bottom: 0; \}/);
 });
+
+test("an open dialog locks the page scroll", () => {
+  assert.match(css, /html:has\(\.dialog-backdrop:not\(\[hidden\]\)\) \{ overflow: hidden; \}/);
+});
