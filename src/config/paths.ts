@@ -38,7 +38,7 @@ export const sessionsFile = (env: Env, homedir: string): string => join(configDi
 export const stashFile = (env: Env, homedir: string): string => join(configDir(env, homedir), "stash.json");
 
 export interface AgentRulesTarget {
-  agent: "claude" | "codex" | "opencode";
+  agent: "claude" | "codex" | "opencode" | "grok";
   /** The agent's config folder. */
   dir: string;
   /** The global instruction file inside `dir`. */
@@ -49,7 +49,7 @@ export interface AgentRulesTarget {
   imports: boolean;
 }
 
-// Cursor has no global rules file. Grok is left out until its file name is confirmed: add a row then.
+// Cursor keeps global rules in the account, not in a file. Grok reads AGENTS.md in ~/.grok (docs.x.ai).
 // Antigravity is left out: T3 Code runs it with a private GEMINI_HOME, so ~/.gemini/GEMINI.md never reaches it.
 // OpenCode: OPENCODE_CONFIG_DIR adds a folder and does not replace the global one, so only XDG applies.
 export function agentRulesTargets(env: Env, homedir: string): AgentRulesTarget[] {
@@ -58,6 +58,7 @@ export function agentRulesTargets(env: Env, homedir: string): AgentRulesTarget[]
     target("claude", env.CLAUDE_CONFIG_DIR ?? join(homedir, ".claude"), "CLAUDE.md", true, true),
     target("codex", env.CODEX_HOME ?? join(homedir, ".codex"), "AGENTS.md", true, false),
     target("opencode", join(env.XDG_CONFIG_HOME ?? join(homedir, ".config"), "opencode"), "AGENTS.md", false, false),
+    target("grok", join(homedir, ".grok"), "AGENTS.md", false, false),
   ];
 }
 

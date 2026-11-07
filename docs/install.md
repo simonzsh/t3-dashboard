@@ -65,12 +65,12 @@ Script options:
 | Claude Code | `~/.claude/CLAUDE.md` | Always. A missing file is created. |
 | Codex | `~/.codex/AGENTS.md` | Always. A missing file is created. |
 | OpenCode | `~/.config/opencode/AGENTS.md` | Only if `~/.config/opencode` exists. |
+| Grok | `~/.grok/AGENTS.md` | Only if `~/.grok` exists. |
 
-The dashboard never creates the folder of an agent that is not installed. Three agents get no block:
+The dashboard never creates the folder of an agent that is not installed. Two agents get no block:
 
-- Cursor has no global rules file.
+- Cursor keeps its global rules in your Cursor account (Settings, Rules), not in a file. Paste the block there by hand if you use Cursor.
 - Antigravity: T3 Code starts it with a private profile, so it never reads `~/.gemini/GEMINI.md`.
-- Grok: its global file is not confirmed.
 
 - The block sits between the lines `<!-- t3-dashboard:begin -->` and `<!-- t3-dashboard:end -->`. The dashboard changes only the text between them. Do not edit it: the next start replaces it.
 - The compiled binary refreshes the block at each start, so an update brings the new text.

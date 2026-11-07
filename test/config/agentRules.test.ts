@@ -130,6 +130,10 @@ test("write skips an agent whose folder is missing and creates no folder", () =>
   const installed = harness({ "/xdg/opencode": "" }, { XDG_CONFIG_HOME: "/xdg" });
   syncAgentRules("write", installed.deps);
   assert.equal(installed.files["/xdg/opencode/AGENTS.md"], `${AGENT_RULES}\n`);
+  assert.equal("/h/.grok/AGENTS.md" in installed.files, false);
+  const grok = harness({ "/h/.grok": "" });
+  syncAgentRules("write", grok.deps);
+  assert.equal(grok.files["/h/.grok/AGENTS.md"], `${AGENT_RULES}\n`);
 });
 
 test("remove clears every target that has a file, even when its folder check would fail", () => {
