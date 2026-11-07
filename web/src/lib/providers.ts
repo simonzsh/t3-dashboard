@@ -14,7 +14,7 @@ const KNOWN: { kind: Exclude<ProviderKind, "other">; match: string[]; label: str
   { kind: "cursor", match: ["cursor"], label: "Cursor", color: "#6366f1" },
   { kind: "grok", match: ["grok"], label: "Grok", color: "#71717a" },
   { kind: "opencode", match: ["opencode"], label: "OpenCode", color: "#0d9488" },
-  { kind: "antigravity", match: ["antigravity", "gemini"], label: "Antigravity", color: "#4285f4" },
+  { kind: "antigravity", match: ["antigravity"], label: "Antigravity", color: "#4285f4" },
 ];
 
 /** `provider` is an instance id or a driver slug; an unknown slug gets a stable generic look. */

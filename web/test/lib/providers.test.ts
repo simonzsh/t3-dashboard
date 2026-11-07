@@ -12,7 +12,7 @@ test("providerMeta recognises each driver by a case-insensitive part of its name
     grok: "grok",
     opencode: "opencode",
     antigravity: "antigravity",
-    gemini_home: "antigravity",
+    gemini: "other",
   };
   for (const [id, kind] of Object.entries(kinds)) assert.equal(providerMeta(id).kind, kind, id);
 });
