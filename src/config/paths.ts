@@ -49,7 +49,7 @@ export const rearmedFile = (env: Env, homedir: string): string => join(configDir
 /** The runs of each scheduled task, kept by the dashboard because T3 keeps only the last one. */
 export const automationRunsFile = (env: Env, homedir: string): string => join(configDir(env, homedir), "automation-runs.json");
 
-/** The news brief: its settings and the id of its T3 task. */
+/** The news: its settings and the id of its T3 task. */
 export const newsFile = (env: Env, homedir: string): string => join(configDir(env, homedir), "news.json");
 
 /** Where the agent writes one Markdown article per day. Absolute: the task prompt names it. */

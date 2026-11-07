@@ -473,7 +473,7 @@ test("the demo news has a task and three English articles, and needs no file", a
   assert.equal(state.articles.length, 3);
   assert.ok(demo.entries.every((entry) => isArticleName(entry.name)));
   assert.deepEqual(state.articles.map((article) => article.date), [...state.articles.map((article) => article.date)].sort().reverse());
-  assert.equal(state.task?.id, "news-brief");
+  assert.equal(state.task?.id, "news");
   assert.equal(state.task?.lastRunStatus, "succeeded");
   const article = await news.article(state.articles[0]!.date);
   assert.ok(article.markdown.startsWith("# ") && article.markdown.includes("## "));

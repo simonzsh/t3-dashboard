@@ -79,7 +79,7 @@ const usageOverview: UsageOverview = {
   readAt: now.toISOString(),
 };
 
-const newsState: NewsState = { settings: { timeOfDay: "07:00", topics: ["AI"], language: "English", modelSelection: null }, task: null, articles: [{ date: "2026-11-07", title: "Brief", mtimeMs: 1 }] };
+const newsState: NewsState = { settings: { timeOfDay: "07:00", topics: ["AI"], language: "English", modelSelection: null }, task: null, articles: [{ date: "2026-11-07", title: "News", mtimeMs: 1 }] };
 
 const LINEAR_FILE = "/cfg/linear.json";
 

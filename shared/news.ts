@@ -1,4 +1,4 @@
-// The daily news brief: its settings, its T3 task and the articles the agent wrote.
+// The daily news: its settings, its T3 task and the articles the agent wrote.
 import type { AutomationRunStatus } from "./automations.ts";
 import type { ModelSelection } from "./threads.ts";
 
@@ -49,3 +49,6 @@ export interface SaveNewsBody {
   language: string;
   modelSelection: ModelSelection;
 }
+
+/** Model used until the user picks one in the settings. */
+export const NEWS_DEFAULT_MODEL: ModelSelection = { instanceId: "codex", model: "gpt-6-luna" };

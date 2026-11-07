@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "bun:test";
 import type { SaveNewsBody } from "../../shared/api.ts";
-import { NEWS_DEFAULTS } from "../../shared/news.ts";
+import { NEWS_DEFAULT_MODEL, NEWS_DEFAULTS } from "../../shared/news.ts";
 import { readNews } from "../../src/config/newsFile.ts";
 import { DomainError } from "../../src/domain/errors.ts";
 import { articleTitle, createNews, newsPrompt } from "../../src/domain/news.ts";
@@ -54,7 +54,7 @@ function setup(options: { stored?: unknown; entries?: Entry[]; contents?: Record
   return { news, port, files, folder, warnings, stored: () => readNews(FILE, (path) => files[path]!) };
 }
 
-const liveTask = (extra: Partial<RawScheduledTask> = {}): RawScheduledTask => ({ id: "scheduled-task:old", title: "News brief", enabled: true, projectId: "project-9", runtimeMode: "approval-required", nextRunAt: "2026-11-08T06:45:00.000Z", ...extra });
+const liveTask = (extra: Partial<RawScheduledTask> = {}): RawScheduledTask => ({ id: "scheduled-task:old", title: "News", enabled: true, projectId: "project-9", runtimeMode: "approval-required", nextRunAt: "2026-11-08T06:45:00.000Z", ...extra });
 const known = { settings: NEWS_DEFAULTS, taskId: "scheduled-task:old", taskCreatedAt: "2026-11-01T08:00:00.000Z" };
 
 test("the prompt names the topics, the language, the folder and the date steps", () => {
@@ -62,8 +62,13 @@ test("the prompt names the topics, the language, the folder and the date steps",
   for (const part of ["Run `date +%F`", "Space; Chips", "in English:", "/data/news/DATE.md.tmp", "rename it to /data/news/DATE.md", "do not ask questions", "No HTML, no images"]) assert.ok(prompt.includes(part), part);
 });
 
+test("the default model is Codex gpt-6-luna, and nothing is saved by default", () => {
+  assert.deepEqual(NEWS_DEFAULT_MODEL, { instanceId: "codex", model: "gpt-6-luna" });
+  assert.equal(NEWS_DEFAULTS.modelSelection, null);
+});
+
 test("an article title is its first heading, or its date", () => {
-  assert.equal(articleTitle("# Brief of 2026-11-07\n\n## AI", "2026-11-07"), "Brief of 2026-11-07");
+  assert.equal(articleTitle("# News of 2026-11-07\n\n## AI", "2026-11-07"), "News of 2026-11-07");
   assert.equal(articleTitle("Intro\n# Late title\n", "2026-11-07"), "Late title");
   assert.equal(articleTitle("## Only a section\n", "2026-11-07"), "2026-11-07");
   assert.equal(articleTitle("", "2026-11-07"), "2026-11-07");
@@ -76,7 +81,7 @@ test("the first save creates a daily routine, makes the folder and stores the ta
   const created = port.createdTasks[0]!;
   assert.deepEqual(
     { id: created.id, title: created.title, enabled: created.enabled, schedule: created.schedule, projectId: created.projectId, threadId: created.threadId, workspaceStrategy: created.workspaceStrategy, creationSource: created.creationSource, runtimeMode: created.runtimeMode, modelSelection: created.modelSelection },
-    { id: "scheduled-task:id-1", title: "News brief", enabled: true, schedule: { type: "fixed_time", timeOfDay: "06:45" }, projectId: "scratch-project", threadId: null, workspaceStrategy: { type: "root" }, creationSource: "web", runtimeMode: "full-access", modelSelection: SELECTION },
+    { id: "scheduled-task:id-1", title: "News", enabled: true, schedule: { type: "fixed_time", timeOfDay: "06:45" }, projectId: "scratch-project", threadId: null, workspaceStrategy: { type: "root" }, creationSource: "web", runtimeMode: "full-access", modelSelection: SELECTION },
   );
   assert.equal(created.prompt, newsPrompt(body(), DIR));
   assert.deepEqual(folder.made, [DIR]);
@@ -179,7 +184,7 @@ test("run now starts the stored task, and asks for a save when there is none", a
 });
 
 // A finished run thread of the news task, with its first user message read by the sweep.
-const run = (id: string, extra: Partial<RawThread> = {}): RawThread => ({ id, projectId: "project-9", title: "News brief", status: "completed", createdAt: "2026-11-07T06:45:00.000Z", latestRunCompletedAt: "2026-11-07T06:55:00.000Z", ...extra });
+const run = (id: string, extra: Partial<RawThread> = {}): RawThread => ({ id, projectId: "project-9", title: "News", status: "completed", createdAt: "2026-11-07T06:45:00.000Z", latestRunCompletedAt: "2026-11-07T06:55:00.000Z", ...extra });
 const owned = (port: FakePort, id: string, taskId = "scheduled-task:old") => void (port.projections[id] = { messages: [{ id: `${id}-m`, role: "user", text: "p", scheduledTaskId: taskId }] });
 const FRESH: Entry[] = [{ name: "2026-11-07.md", mtimeMs: Date.parse("2026-11-07T06:50:00.000Z"), isFile: true }];
 

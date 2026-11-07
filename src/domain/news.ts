@@ -13,7 +13,7 @@ import { DomainError } from "./errors.ts";
 import { readScheduledTaskId } from "./threadOwner.ts";
 import type { ShellStore } from "./shellStore.ts";
 
-const TASK_TITLE = "News brief";
+const TASK_TITLE = "News";
 const ARTICLE_MAX_CHARS = 512 * 1024;
 const SWEEP_READS = 10;
 const TITLE_BYTES = 4096;
@@ -22,11 +22,11 @@ const RUN_MARGIN_MS = 2 * 60_000;
 const RUN_STATUSES = new Set<string>(["running", "succeeded", "failed"] satisfies AutomationRunStatus[]);
 
 export function newsPrompt(settings: NewsSettings, dir: string): string {
-  return `Write today's news brief. Nobody reads this thread: do not ask questions.
+  return `Write today's news article. Nobody reads this thread: do not ask questions.
 
 1. Run \`date +%F\` to get today's date in this machine's time zone. Call it DATE.
 2. Search the web for the most important news of the last 24 hours on these topics: ${settings.topics.join("; ")}. Prefer primary sources and skip anything older than 48 hours.
-3. Write the brief in Markdown, in ${settings.language}:
+3. Write the article in Markdown, in ${settings.language}:
    - first line: \`# \` followed by a short title that contains DATE;
    - one \`## \` section per topic, 3 to 6 items each: a bold headline, two or three sentences, and a source link [name](https://...);
    - end with a \`## \` section of 3 key takeaways.

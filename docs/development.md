@@ -90,7 +90,7 @@ The code has three parts: the server (`src/`), the interface (`web/src/`) and th
 | `cli/` | Commands that run one time: arguments, installation, service, binary update. |
 | `config/` | Environment variables, paths, version, dashboard files (Linear key, token, PID, automation threads, news settings) and the agent rules block. |
 | `server/` | HTTP, SSE and static site. The router reads and validates the requests (`validate.ts`), then calls the domain. `htmlRender.ts` applies the theme to the `html_render` pages. |
-| `domain/` | Rules and state: sync with T3, thread sorting, thread detail, actions, token, Linear board, settings, updates, automations (and the guard that moves tasks out of worktrees and pauses reminders), the news brief, project icons, models, usage, provider limits, server stats. |
+| `domain/` | Rules and state: sync with T3, thread sorting, thread detail, actions, token, Linear board, settings, updates, automations (and the guard that moves tasks out of worktrees and pauses reminders), the news, project icons, models, usage, provider limits, server stats. |
 | `integrations/` | All calls to another system: T3 Code, Linear and GitHub. Each response goes through a schema. |
 
 ### Interface (`web/src/`)
@@ -126,7 +126,7 @@ The `test/architecture.test.ts` test reads the imports and blocks a forbidden de
 
 A second test (`test/integrations/boundary.test.ts`) blocks `fetch`, `WebSocket` and process launches outside `integrations/`. Only `app/start.ts` and `app/deps.ts` have an exception.
 
-### News brief
+### News
 
 The News page uses one T3 routine that the dashboard owns. `domain/news.ts` creates or updates it when the user saves the settings. It stores the task id in `news.json` in the config directory. If the task is gone from T3, the next save creates it again.
 
