@@ -140,6 +140,8 @@ export const RawMessage = s.object({
   text: s.optional(s.string()),
   streaming: s.optional(s.boolean()),
   createdAt: s.optional(s.string()),
+  // Set by T3 on the first message of a scheduled run: the id of the task.
+  scheduledTaskId: text(),
   attachments: s.optional(s.nullable(s.array(s.object({ type: s.string(), id: s.string(), name: text(), mimeType: text(), sizeBytes: s.optional(s.nullable(s.number())) })))),
   context: s.optional(s.nullable(s.object({ guest: s.optional(s.nullable(s.object({ text: text() }))) }))),
   delegatedCompletion: s.optional(s.unknown()),

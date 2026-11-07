@@ -4,7 +4,8 @@ import { IntegrationError } from "../integrations/errors.ts";
 import type { RawScheduledTask, RawThread, ScheduleChange, ScheduleInput, T3Port } from "../integrations/t3/schemas.ts";
 import { archiveThreadCommand, renameThreadCommand } from "../integrations/t3/commands.ts";
 import { reminderSchedule, routineOf, routineSchedule, webhookFilters, webhookSchedule } from "./automationSchedule.ts";
-import { AutomationRunLog, recordRuns, runThreads, type RunLog } from "./automationRuns.ts";
+import { AutomationRunLog, recordRuns, runThreads, threadOwners, type RunLog, type ThreadLinks } from "./automationRuns.ts";
+import { isHidden } from "./classify.ts";
 import { DomainError } from "./errors.ts";
 import { RearmedStore } from "./rearmedStore.ts";
 import { scheduleLabel } from "./scheduleLabel.ts";
@@ -26,17 +27,20 @@ function signatureOf(task: RawScheduledTask): WebhookSignature | null {
   return { header: signature.header, encoding: signature.encoding, prefix: signature.prefix ?? "" };
 }
 const TITLE_MAX = 60;
+const PROBES_PER_LIST = 30;
+const PROBE_CONCURRENCY = 4;
 const RUN_STATUSES = new Set<string>(["running", "succeeded", "failed"] satisfies AutomationRunStatus[]);
 
 /** The tasks of T3 as rows, plus the threads that belong to a task. */
-export function toAutomations(tasks: RawScheduledTask[], threads: RawThread[], dedicated: ReadonlySet<string>, projectTitle: (id: string) => string | null, runs: RunLog = {}): AutomationsResult {
+export function toAutomations(tasks: RawScheduledTask[], threads: RawThread[], dedicated: ReadonlySet<string>, projectTitle: (id: string) => string | null, runs: RunLog = {}, links: ThreadLinks = new Map()): AutomationsResult {
+  const owners = threadOwners(tasks, runs, links);
   const marked = new Set<string>();
   const bound = new Set<string>();
   const automations = tasks.map((task): Automation => {
     let threadId = task.threadId ?? null;
     if (threadId !== null) bound.add(threadId);
     if (threadId === null) {
-      const matched = runThreads(task, threads);
+      const matched = runThreads(task, threads, owners);
       for (const run of matched) marked.add(run.id);
       threadId = matched[0]?.id ?? null;
     } else if (dedicated.has(threadId)) {
@@ -75,7 +79,7 @@ function titleFromRequest(text: string): string {
 }
 
 export interface AutomationsOptions {
-  port: Pick<T3Port, "listScheduledTasks" | "setScheduledTaskEnabled" | "runScheduledTaskNow" | "deleteScheduledTask" | "updateScheduledTask" | "createScheduledTask" | "ensureScratchProject" | "dispatch">;
+  port: Pick<T3Port, "threadProjection" | "listScheduledTasks" | "setScheduledTaskEnabled" | "runScheduledTaskNow" | "deleteScheduledTask" | "updateScheduledTask" | "createScheduledTask" | "ensureScratchProject" | "dispatch">;
   store: Pick<ShellStore, "project" | "rawThreads">;
   /** The setup threads that older versions created: the UI marks them as automation sessions. */
   dedicated: { read(): ReadonlySet<string> };
@@ -118,6 +122,37 @@ export function createAutomations(options: AutomationsOptions): Automations {
   const warn = options.warn ?? console.warn;
   const rearmed = options.rearmed ?? new RearmedStore();
   const runs = options.runs ?? new AutomationRunLog();
+  // Thread id -> task id read from its first message. A thread is read once per process.
+  const links = new Map<string, string | null>();
+  const reading = new Set<string>();
+
+  // T3 writes the task id on the first message of a run thread: it ties the thread to its task, whatever its title becomes.
+  async function probe(tasks: RawScheduledTask[], threads: RawThread[]): Promise<void> {
+    const unbound = tasks.filter((task) => task.threadId == null);
+    if (unbound.length === 0) return;
+    const since = Math.min(...unbound.map((task) => Date.parse(task.createdAt ?? "") || 0));
+    const sources = new Set(unbound.map((task) => task.creationSource));
+    const chats = new Set(tasks.map((task) => task.threadId));
+    const queue = threads
+      .filter((thread) => !links.has(thread.id) && !reading.has(thread.id) && !chats.has(thread.id) && !isHidden(thread) && sources.has(thread.creationSource) && Date.parse(thread.createdAt ?? "") >= since)
+      .sort((a, b) => Date.parse(b.createdAt ?? "") - Date.parse(a.createdAt ?? ""))
+      .slice(0, PROBES_PER_LIST);
+    const worker = async () => {
+      for (let thread = queue.shift(); thread; thread = queue.shift()) {
+        reading.add(thread.id);
+        try {
+          const users = ((await port.threadProjection(thread.id)).messages ?? []).filter((message) => message.role === "user");
+          // No user message yet: T3 has not written the first one, so the thread stays unread.
+          if (users.length > 0) links.set(thread.id, users.find((message) => message.scheduledTaskId)?.scheduledTaskId ?? null);
+        } catch {
+          // Left unread: the next list tries again.
+        } finally {
+          reading.delete(thread.id);
+        }
+      }
+    };
+    await Promise.all(Array.from({ length: Math.min(PROBE_CONCURRENCY, queue.length) }, worker));
+  }
 
   async function known(id: string): Promise<void> {
     if (!(await viaT3(port.listScheduledTasks())).some((task) => task.id === id)) throw new DomainError("not-found", "This automation no longer exists");
@@ -127,17 +162,20 @@ export function createAutomations(options: AutomationsOptions): Automations {
     async list() {
       const tasks = await viaT3(port.listScheduledTasks());
       const threads = store.rawThreads();
-      runs.record(recordRuns(runs.current(), tasks, threads, now()));
-      return toAutomations(tasks, threads, dedicated.read(), (id) => store.project(id)?.title || null, runs.current());
+      await probe(tasks, threads);
+      runs.record(recordRuns(runs.current(), tasks, threads, now(), links));
+      return toAutomations(tasks, threads, dedicated.read(), (id) => store.project(id)?.title || null, runs.current(), links);
     },
 
     async remove(id) {
-      const task = (await viaT3(port.listScheduledTasks())).find((entry) => entry.id === id);
+      const tasks = await viaT3(port.listScheduledTasks());
+      const task = tasks.find((entry) => entry.id === id);
+      const owners = threadOwners(tasks, runs.current(), links);
       await viaT3(port.deleteScheduledTask(id));
       runs.drop(id);
       // Without its task, a run thread loses its automation mark. A bound thread is the user's chat: keep it.
       if (!task || task.threadId || !isReminder(task)) return;
-      for (const run of runThreads(task, store.rawThreads())) {
+      for (const run of runThreads(task, store.rawThreads(), owners)) {
         if (run.archivedAt) continue;
         try {
           await port.dispatch({ ...archiveThreadCommand(run.id), commandId: newId() });

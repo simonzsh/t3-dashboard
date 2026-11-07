@@ -152,3 +152,38 @@ test("a stored failure stays failed when the thread later reads as done", () => 
   const log = record({ "task-1": [stored({ status: "failed", error: "Timed out" })] }, [later], [thread("run-1")]);
   assert.deepEqual(log["task-1"]!.map((run) => [run.status, run.error]), [["failed", "Timed out"]]);
 });
+
+test("a stored thread keeps its run, its live status and its task after a rename", () => {
+  const first = record({}, [task()], [thread("run-1", { status: "running", activeRunId: "r", latestRunCompletedAt: null })]);
+  assert.equal(first["task-1"]![0]!.status, "running");
+  const renamed = thread("run-1", { title: "Something else entirely", status: "completed" });
+  const next = record(first, [task()], [renamed]);
+  assert.deepEqual(next["task-1"]!.map((run) => [run.threadId, run.status]), [["run-1", "succeeded"]]);
+});
+
+test("a thread linked to a task by id follows that task, whatever its title, and no other task takes it by title", () => {
+  const links = new Map([["run-1", "task-2"]]);
+  const tasks = [task(), task({ id: "task-2", title: "Renamed task" })];
+  const log = recordRuns({}, tasks, [thread("run-1")], NOW, links);
+  assert.deepEqual(log["task-1"], []);
+  assert.deepEqual(log["task-2"]!.map((run) => run.threadId), ["run-1"]);
+});
+
+test("a thread stored for a task is not taken by another task with the same title", () => {
+  const log: RunLog = { "task-1": [stored()] };
+  const next = record(log, [task(), task({ id: "task-2" })], [thread("run-1", { title: "Renamed" })]);
+  assert.deepEqual([next["task-1"]!.length, next["task-2"]!.length], [1, 0]);
+  const same = record(log, [task({ id: "task-2" }), task()], [thread("run-1")]);
+  assert.deepEqual([same["task-1"]!.length, same["task-2"]!.length], [1, 0]);
+});
+
+test("a thread probed with no task id still matches by title", () => {
+  const next = recordRuns({}, [task()], [thread("run-1")], NOW, new Map([["run-1", null]]));
+  assert.deepEqual(next["task-1"]!.map((run) => run.threadId), ["run-1"]);
+});
+
+test("a thread stored under two tasks and probed to one ends only under that one", () => {
+  const log: RunLog = { "task-1": [stored()], "task-2": [stored()] };
+  const next = recordRuns(log, [task(), task({ id: "task-2" })], [thread("run-1")], NOW, new Map([["run-1", "task-2"]]));
+  assert.deepEqual([next["task-1"]!.length, next["task-2"]!.map((run) => run.threadId)], [0, ["run-1"]]);
+});
