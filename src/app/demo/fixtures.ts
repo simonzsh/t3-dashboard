@@ -85,7 +85,7 @@ interface DemoRun {
   answer?: string;
 }
 
-// The run threads of the demo tasks: T3 ties each to its task by project, title and origin.
+// The run threads of the demo tasks, tied to their task by the id on their first message.
 const runSpec = ({ id, taskId, title, projectId, prompt, started, outcome, answer = "Done." }: DemoRun): ThreadSpec => ({
   id,
   scheduledTaskId: taskId,
