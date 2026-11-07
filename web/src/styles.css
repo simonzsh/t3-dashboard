@@ -834,6 +834,14 @@ main:has(> .auto-page) { padding-top: 8px; }
 .activity-card { overflow: hidden; }
 .limits-card { overflow: hidden; }
 .server-card { overflow: hidden; }
+.cache-summary { padding-top: 0; font-size: 13px; }
+.dialog.cache-cleanup .hint { margin: 0; color: var(--text-secondary); font-size: 12px; }
+.cache-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; font-size: 13px; }
+.cache-list li { display: flex; justify-content: space-between; gap: 12px; padding: 6px 0; border-top: 1px solid var(--line); }
+.cache-list li:first-child { border-top: 0; }
+.cache-size { font-variant-numeric: tabular-nums; color: var(--text-secondary); }
+.cache-total { font-weight: 600; }
+.cache-total .cache-size { color: inherit; }
 .limits-provider + .limits-provider { border-top: 1px solid var(--line); }
 .limits-provider-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 12px 20px 0; }
 .limits-provider-head h2 { display: flex; align-items: center; gap: 8px; margin: 0; font-size: 13px; font-weight: 600; }

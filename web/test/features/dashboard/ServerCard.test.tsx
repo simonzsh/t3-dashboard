@@ -94,3 +94,14 @@ test("a refresh button reads again, and spins while it loads", () => {
   assert.match(busy, /<button[^>]*disabled=""[^>]*aria-label="Refresh server stats"/);
   assert.match(busy, /icon spinning/);
 });
+
+test("a Clear caches button sits in the head on Linux and macOS and is hidden on Windows", () => {
+  assert.match(render(), /<button[^>]*aria-label="Clear caches"/);
+  assert.match(render({ value: stats({ os: "macOS" }) }), /aria-label="Clear caches"/);
+  assert.doesNotMatch(render({ value: stats({ os: "Windows" }) }), /Clear caches/);
+  assert.doesNotMatch(render({ value: null, loading: true }), /Clear caches/);
+});
+
+test("the cleanup dialog is closed until the button is clicked", () => {
+  assert.doesNotMatch(render(), /role="dialog"/);
+});
