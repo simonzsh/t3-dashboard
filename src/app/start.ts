@@ -1,4 +1,4 @@
-import { mkdirSync, readFileSync, readdirSync, lstatSync } from "node:fs";
+import { closeSync, mkdirSync, openSync, readFileSync, readSync, readdirSync, lstatSync } from "node:fs";
 import { lstat, readdir, rm, statfs } from "node:fs/promises";
 import os, { homedir, tmpdir } from "node:os";
 import { join } from "node:path";
@@ -57,6 +57,17 @@ const UPDATE_CHECK_TIMEOUT_MS = 5_000;
 const readText = (path: string) => readFileSync(path, "utf8");
 
 // lstat, not stat: a symlink in the news folder is not an article.
+function readHead(path: string, maxBytes?: number): string {
+  if (maxBytes === undefined) return readText(path);
+  const fd = openSync(path, "r");
+  try {
+    const buffer = Buffer.alloc(maxBytes);
+    return buffer.toString("utf8", 0, readSync(fd, buffer, 0, maxBytes, 0));
+  } finally {
+    closeSync(fd);
+  }
+}
+
 function listFolder(dir: string) {
   return readdirSync(dir).flatMap((name) => {
     try {
@@ -200,7 +211,7 @@ export async function start({ port, log, env }: StartOptions): Promise<void> {
     writeSecret,
     fs: {
       list: listFolder,
-      read: readText,
+      read: readHead,
       mkdir: (dir) => void mkdirSync(dir, { recursive: true, mode: 0o700 }),
     },
   });

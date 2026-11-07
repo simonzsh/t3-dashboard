@@ -20,7 +20,7 @@ interface Entry { name: string; mtimeMs: number; isFile: boolean }
 function setup(options: { stored?: unknown; entries?: Entry[]; contents?: Record<string, string>; threads?: RawThread[] } = {}) {
   const port = new FakePort();
   const files: Record<string, string> = options.stored === undefined ? {} : { [FILE]: JSON.stringify(options.stored) };
-  const folder = { entries: options.entries ?? [], contents: options.contents ?? {}, made: [] as string[], listError: null as Error | null };
+  const folder = { entries: options.entries ?? [], contents: options.contents ?? {}, made: [] as string[], reads: [] as Array<{ path: string; maxBytes?: number }>, listError: null as Error | null };
   const warnings: string[] = [];
   let counter = 0;
   const news = createNews({
@@ -39,7 +39,8 @@ function setup(options: { stored?: unknown; entries?: Entry[]; contents?: Record
         assert.equal(dir, DIR);
         return folder.entries;
       },
-      read: (path) => {
+      read: (path, maxBytes) => {
+        folder.reads.push({ path, maxBytes });
         const text = folder.contents[path];
         if (text === undefined) throw new Error("ENOENT");
         return text;
@@ -86,10 +87,10 @@ test("the first save creates a daily routine, makes the folder and stores the ta
 
 test("a save updates the stored task and keeps its pause and its project", async () => {
   const { news, port, stored } = setup({ stored: known });
-  port.scheduledTasks = [liveTask({ enabled: false })];
+  port.scheduledTasks = [liveTask({ enabled: false, title: "Morning news" })];
   await news.save(body());
   assert.equal(port.createdTasks.length, 0);
-  assert.deepEqual(port.updatedTasks, [{ id: "scheduled-task:old", title: "News brief", prompt: newsPrompt(body(), DIR), enabled: false, schedule: { type: "fixed_time", timeOfDay: "06:45" }, projectId: "project-9", modelSelection: SELECTION, runtimeMode: "approval-required" }]);
+  assert.deepEqual(port.updatedTasks, [{ id: "scheduled-task:old", title: "Morning news", prompt: newsPrompt(body(), DIR), enabled: false, schedule: { type: "fixed_time", timeOfDay: "06:45" }, projectId: "project-9", modelSelection: SELECTION, runtimeMode: "approval-required" }]);
   assert.deepEqual(stored(), { settings: body(), taskId: "scheduled-task:old", taskCreatedAt: known.taskCreatedAt });
 });
 
@@ -139,7 +140,7 @@ test("get returns the defaults, the live task and the articles newest first", as
   const { news, port } = setup({ stored: known, entries, contents });
   port.scheduledTasks = [liveTask({ lastRunAt: "2026-11-07T06:45:00.000Z", lastRunStatus: "failed", lastRunError: "No web" })];
   const state = await news.get();
-  assert.deepEqual(state.articles, [{ date: "2026-11-07", title: "2026-11-07" }, { date: "2026-11-05", title: "Five" }]);
+  assert.deepEqual(state.articles, [{ date: "2026-11-07", title: "2026-11-07", mtimeMs: 3 }, { date: "2026-11-05", title: "Five", mtimeMs: 1 }]);
   assert.deepEqual(state.task, { id: "scheduled-task:old", enabled: true, nextRunAt: "2026-11-08T06:45:00.000Z", lastRunAt: "2026-11-07T06:45:00.000Z", lastRunStatus: "failed", lastRunError: "No web" });
   assert.deepEqual(state.settings, NEWS_DEFAULTS);
 });
@@ -178,12 +179,13 @@ test("run now starts the stored task, and asks for a save when there is none", a
 });
 
 // A finished run thread of the news task, with its first user message read by the sweep.
-const run = (id: string, extra: Partial<RawThread> = {}): RawThread => ({ id, title: "News brief", status: "completed", createdAt: "2026-11-07T06:45:00.000Z", ...extra });
+const run = (id: string, extra: Partial<RawThread> = {}): RawThread => ({ id, projectId: "project-9", title: "News brief", status: "completed", createdAt: "2026-11-07T06:45:00.000Z", latestRunCompletedAt: "2026-11-07T06:55:00.000Z", ...extra });
 const owned = (port: FakePort, id: string, taskId = "scheduled-task:old") => void (port.projections[id] = { messages: [{ id: `${id}-m`, role: "user", text: "p", scheduledTaskId: taskId }] });
 const FRESH: Entry[] = [{ name: "2026-11-07.md", mtimeMs: Date.parse("2026-11-07T06:50:00.000Z"), isFile: true }];
 
 test("the sweep archives a finished run of the news task that wrote an article", async () => {
   const { news, port } = setup({ stored: known, entries: FRESH, threads: [run("t-1")] });
+  port.scheduledTasks = [liveTask()];
   owned(port, "t-1");
   await news.sweep();
   assert.deepEqual(port.commands, [{ type: "thread.archive", threadId: "t-1", commandId: "id-1" }]);
@@ -203,6 +205,7 @@ test("the sweep leaves alone what is not a finished news run with a fresh articl
     run("no-message"),
   ];
   const { news, port } = setup({ stored: known, entries: FRESH, threads });
+  port.scheduledTasks = [liveTask()];
   for (const id of ["failed", "running", "already", "before-task", "no-article"]) owned(port, id);
   owned(port, "other-task", "scheduled-task:else");
   port.projections["no-message"] = { messages: [] };
@@ -215,11 +218,15 @@ test("the sweep does nothing before the first save, and survives T3 errors", asy
   await none.news.sweep();
   assert.equal(none.port.projectionCalls, 0);
   const broken = setup({ stored: known, entries: FRESH, threads: [run("t-1"), run("t-2")] });
+  broken.port.scheduledTasks = [liveTask()];
+  broken.port.scheduledTasks = [liveTask()];
   owned(broken.port, "t-2");
   broken.port.projectionFailures.add("t-1");
   await broken.news.sweep();
   assert.deepEqual(broken.port.commands.map((c) => c.threadId), ["t-2"]);
   const failing = setup({ stored: known, entries: FRESH, threads: [run("t-3")] });
+  failing.port.scheduledTasks = [liveTask()];
+  failing.port.scheduledTasks = [liveTask()];
   owned(failing.port, "t-3");
   failing.port.dispatchError = new Error("no");
   await failing.news.sweep();
@@ -231,6 +238,7 @@ test("the sweep does nothing before the first save, and survives T3 errors", asy
 test("the sweep reads at most 10 new threads at a time", async () => {
   const threads = Array.from({ length: 14 }, (_, index) => run(`t-${index}`));
   const { news, port } = setup({ stored: known, entries: FRESH, threads });
+  port.scheduledTasks = [liveTask()];
   for (const thread of threads) owned(port, thread.id);
   await news.sweep();
   assert.equal(port.projectionCalls, 10);
@@ -240,9 +248,41 @@ test("the sweep reads at most 10 new threads at a time", async () => {
 
 test("the sweep reads a thread again later when T3 had no first message yet", async () => {
   const { news, port } = setup({ stored: known, entries: FRESH, threads: [run("t-1")] });
+  port.scheduledTasks = [liveTask()];
   port.projections["t-1"] = { messages: [] };
   await news.sweep();
   owned(port, "t-1");
   await news.sweep();
   assert.equal(port.commands.length, 1);
+});
+
+test("an empty run is not archived because a later run wrote an article", async () => {
+  const late: Entry[] = [{ name: "2026-11-07.md", mtimeMs: Date.parse("2026-11-07T09:00:00.000Z"), isFile: true }];
+  const { news, port } = setup({ stored: known, entries: late, threads: [run("empty")] });
+  port.scheduledTasks = [liveTask()];
+  owned(port, "empty");
+  await news.sweep();
+  assert.deepEqual(port.commands, []);
+});
+
+test("the sweep never reads a thread of another project and reads the newest first", async () => {
+  const threads = [
+    run("foreign", { projectId: "project-other" }),
+    ...Array.from({ length: 12 }, (_, index) => run(`t-${index}`, { createdAt: `2026-11-07T06:${String(10 + index).padStart(2, "0")}:00.000Z` })),
+  ];
+  const { news, port } = setup({ stored: known, entries: FRESH, threads });
+  port.scheduledTasks = [liveTask()];
+  const read: string[] = [];
+  const projection = port.threadProjection.bind(port);
+  port.threadProjection = async (id: string) => (read.push(id), projection(id as string));
+  for (const thread of threads) owned(port, thread.id);
+  await news.sweep();
+  assert.ok(!read.includes("foreign"));
+  assert.deepEqual(read, Array.from({ length: 10 }, (_, index) => `t-${11 - index}`));
+});
+
+test("get reads only the head of each article and returns its mtime", async () => {
+  const { news, folder } = setup({ entries: [{ name: "2026-11-07.md", mtimeMs: 42, isFile: true }], contents: { [`${DIR}/2026-11-07.md`]: "# A" } });
+  assert.equal((await news.get()).articles[0]!.mtimeMs, 42);
+  assert.deepEqual(folder.reads, [{ path: `${DIR}/2026-11-07.md`, maxBytes: 4096 }]);
 });

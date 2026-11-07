@@ -6,6 +6,7 @@ import { archiveThreadCommand, renameThreadCommand } from "../integrations/t3/co
 import { reminderSchedule, routineOf, routineSchedule, webhookFilters, webhookSchedule } from "./automationSchedule.ts";
 import { AutomationRunLog, recordRuns, runThreads, threadOwners, type RunLog, type ThreadLinks } from "./automationRuns.ts";
 import { isHidden } from "./classify.ts";
+import { readScheduledTaskId } from "./threadOwner.ts";
 import { DomainError } from "./errors.ts";
 import { RearmedStore } from "./rearmedStore.ts";
 import { scheduleLabel } from "./scheduleLabel.ts";
@@ -141,11 +142,9 @@ export function createAutomations(options: AutomationsOptions): Automations {
       for (let thread = queue.shift(); thread; thread = queue.shift()) {
         reading.add(thread.id);
         try {
-          const users = ((await port.threadProjection(thread.id)).messages ?? []).filter((message) => message.role === "user");
-          // No user message yet: T3 has not written the first one, so the thread stays unread.
-          if (users.length > 0) links.set(thread.id, users.find((message) => message.scheduledTaskId)?.scheduledTaskId ?? null);
-        } catch {
-          // Left unread: the next list tries again.
+          // Undefined: T3 has not written the first message, or the read failed. The next list tries again.
+          const owner = await readScheduledTaskId(port, thread.id);
+          if (owner !== undefined) links.set(thread.id, owner);
         } finally {
           reading.delete(thread.id);
         }

@@ -25,6 +25,8 @@ export interface NewsArticleSummary {
   /** YYYY-MM-DD */
   date: string;
   title: string;
+  /** Last change of the file: the web reloads an open article when it moves. */
+  mtimeMs: number;
 }
 
 export interface NewsState {

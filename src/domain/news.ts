@@ -8,13 +8,17 @@ import { IntegrationError } from "../integrations/errors.ts";
 import { archiveThreadCommand } from "../integrations/t3/commands.ts";
 import type { RawScheduledTask, T3Port } from "../integrations/t3/schemas.ts";
 import { routineSchedule } from "./automationSchedule.ts";
-import { toDashboardThread } from "./classify.ts";
+import { isHidden, toDashboardThread } from "./classify.ts";
 import { DomainError } from "./errors.ts";
+import { readScheduledTaskId } from "./threadOwner.ts";
 import type { ShellStore } from "./shellStore.ts";
 
 const TASK_TITLE = "News brief";
 const ARTICLE_MAX_CHARS = 512 * 1024;
 const SWEEP_READS = 10;
+const TITLE_BYTES = 4096;
+// The file lands shortly before or after T3 stamps the end of the run.
+const RUN_MARGIN_MS = 2 * 60_000;
 const RUN_STATUSES = new Set<string>(["running", "succeeded", "failed"] satisfies AutomationRunStatus[]);
 
 export function newsPrompt(settings: NewsSettings, dir: string): string {
@@ -39,7 +43,8 @@ export function articleTitle(markdown: string, date: string): string {
 
 export interface NewsFolder {
   list(dir: string): Array<{ name: string; mtimeMs: number; isFile: boolean }>;
-  read(path: string): string;
+  /** `maxBytes` limits the read to the start of the file. */
+  read(path: string, maxBytes?: number): string;
   mkdir(dir: string): void;
 }
 
@@ -121,17 +126,17 @@ export function createNews(options: NewsOptions): News {
       // T3 does not answer: the articles are still on disk.
     }
     const articles = files()
-      .map((entry) => entry.name.slice(0, 10))
-      .sort()
-      .reverse()
-      .map((date): NewsArticleSummary => {
+      .sort((a, b) => b.name.localeCompare(a.name))
+      .map((entry): NewsArticleSummary => {
+        const date = entry.name.slice(0, 10);
         let markdown = "";
         try {
-          markdown = fs.read(`${dir}/${date}.md`);
+          // Only the head: the title is the first heading.
+          markdown = fs.read(`${dir}/${date}.md`, TITLE_BYTES);
         } catch {
           // An unreadable file keeps its date as title.
         }
-        return { date, title: articleTitle(markdown, date) };
+        return { date, title: articleTitle(markdown, date), mtimeMs: entry.mtimeMs };
       });
     return { settings: stored.settings, task, articles };
   }
@@ -147,7 +152,8 @@ export function createNews(options: NewsOptions): News {
     if (live) {
       await viaT3(
         port.updateScheduledTask(live.id, {
-          title: TASK_TITLE,
+          // Keep a title the user renamed in T3.
+          title: live.title || TASK_TITLE,
           prompt,
           enabled: live.enabled !== false,
           schedule,
@@ -178,34 +184,37 @@ export function createNews(options: NewsOptions): News {
     return get();
   }
 
-  // A run thread belongs to the news task when its first message carries the task id.
-  async function ownerOf(threadId: string): Promise<string | null | undefined> {
-    if (owners.has(threadId)) return owners.get(threadId);
-    try {
-      const users = ((await port.threadProjection(threadId)).messages ?? []).filter((message) => message.role === "user");
-      // No user message yet: T3 has not written it, so the thread is read again later.
-      if (users.length === 0) return undefined;
-      owners.set(threadId, users.find((message) => message.scheduledTaskId)?.scheduledTaskId ?? null);
-      return owners.get(threadId);
-    } catch {
-      return undefined;
-    }
-  }
-
   async function sweepOnce(): Promise<void> {
     const stored = load();
     const since = Date.parse(stored.taskCreatedAt ?? "");
     if (!stored.taskId || Number.isNaN(since)) return;
+    const task = await liveTask(stored);
+    if (!task) return;
     const at = now();
     const finished = store
       .rawThreads()
-      .filter((thread) => !thread.archivedAt && !thread.deletedAt && !archived.has(thread.id) && Date.parse(thread.createdAt ?? "") >= since && threadState(toDashboardThread(thread, at)) === "done");
-    const unread = finished.filter((thread) => !owners.has(thread.id)).slice(0, SWEEP_READS);
-    for (const thread of unread) await ownerOf(thread.id);
-    // Failed or empty runs leave no article, so they stay visible.
+      .filter(
+        (thread) =>
+          thread.projectId === task.projectId &&
+          thread.creationSource === task.creationSource &&
+          !isHidden(thread) &&
+          !archived.has(thread.id) &&
+          Date.parse(thread.createdAt ?? "") >= since &&
+          threadState(toDashboardThread(thread, at)) === "done",
+      )
+      .sort((a, b) => Date.parse(b.createdAt ?? "") - Date.parse(a.createdAt ?? ""));
+    for (const thread of finished.filter((entry) => !owners.has(entry.id)).slice(0, SWEEP_READS)) {
+      // Undefined: not readable yet, so the thread is read again later.
+      const owner = await readScheduledTaskId(port, thread.id);
+      if (owner !== undefined) owners.set(thread.id, owner);
+    }
+    // An article only counts when it was written during the run of this thread: a failed run must not be archived because a later run wrote one.
     const written = files().map((entry) => entry.mtimeMs);
     for (const thread of finished) {
-      if (owners.get(thread.id) !== stored.taskId || !written.some((mtime) => mtime >= Date.parse(thread.createdAt ?? ""))) continue;
+      if (owners.get(thread.id) !== stored.taskId) continue;
+      const from = Date.parse(thread.createdAt ?? "");
+      const to = Date.parse(thread.latestRunCompletedAt ?? thread.updatedAt ?? "") + RUN_MARGIN_MS;
+      if (Number.isNaN(to) || !written.some((mtime) => mtime >= from && mtime <= to)) continue;
       archived.add(thread.id);
       try {
         await port.dispatch({ ...archiveThreadCommand(thread.id), commandId: newId() });
