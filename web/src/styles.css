@@ -419,8 +419,8 @@ a.step-result-title { color: var(--accent); }
 /* A narrow composer stacks the options under the list. */
 @container (max-width: 520px) {
   .model-panel { width: 100%; }
-  /* Taller here: the reasoning row sits under the list and must not squeeze it. */
-  .model-panel-body { height: 360px; grid-template-columns: 44px minmax(0, 1fr); grid-template-rows: minmax(0, 1fr) auto; }
+  /* A bit taller here: the reasoning row sits under the list and must not squeeze it. */
+  .model-panel-body { height: 250px; grid-template-columns: 44px minmax(0, 1fr); grid-template-rows: minmax(0, 1fr) auto; }
   .model-options { grid-column: 1 / -1; border-left: 0; border-top: 1px solid var(--line); }
   .model-list { min-height: 0; }
   .model-options { padding: 2px 8px 6px; }
