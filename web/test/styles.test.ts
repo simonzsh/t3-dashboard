@@ -113,3 +113,9 @@ test("on a phone the dialog sheet follows the visible height, so the keyboard do
   assert.match(phone, /\.dialog-backdrop[^{]*\{[^}]*height: var\(--visible-h, 100dvh\)/);
   assert.match(phone, /--sheet-max: calc\(var\(--visible-h, 100dvh\)/);
 });
+
+test("on a phone an open keyboard drops the bottom bar and the bottom inset", () => {
+  const phone = css.slice(css.indexOf("@media (max-width: 700px)"));
+  assert.match(phone, /\.keyboard-open \.bottom-nav \{ display: none; \}/);
+  assert.match(phone, /\.keyboard-open \.app \.app-column \{ padding-bottom: 0; \}/);
+});

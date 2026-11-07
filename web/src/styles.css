@@ -1028,6 +1028,9 @@ main:has(> .auto-page) { padding-top: 8px; }
   .app:not(.sessions-mode) :is(main, .dashboard) { flex: none; overflow: visible; }
   .app:not(.sessions-mode) main { padding-bottom: 24px; }
   .app:not(.sessions-mode) .auto-page { flex: none; overflow: visible; }
+  /* The keyboard covers the bottom bar and the home indicator: the composer sits right on top of it. */
+  .keyboard-open .bottom-nav { display: none; }
+  .keyboard-open .app .app-column { padding-bottom: 0; }
 }
 @media (max-width: 899px), (pointer: coarse) {
   /* No keyboard shortcuts on phones and tablets. */
@@ -1108,7 +1111,7 @@ main:has(> .auto-page) { padding-top: 8px; }
   /* Dialog.tsx sets top and --visible-h from the visual viewport, so the sheet sits above the iOS keyboard. */
   .dialog-backdrop, .dialog-backdrop:has(.preview-dialog) { z-index: 30; bottom: auto; height: var(--visible-h, 100dvh); place-items: end stretch; padding: 0; }
   .dialog-backdrop > .dialog { --sheet-x: max(16px, env(safe-area-inset-left), env(safe-area-inset-right)); --sheet-bottom: calc(16px + env(safe-area-inset-bottom)); --sheet-max: calc(var(--visible-h, 100dvh) - max(24px, env(safe-area-inset-top))); width: 100%; height: auto; max-height: var(--sheet-max); box-sizing: border-box; border-width: 1px 0 0; border-radius: 16px 16px 0 0; padding: 0 var(--sheet-x) var(--sheet-bottom); overscroll-behavior: contain; }
-  .dialog-backdrop.keyboard > .dialog { --sheet-bottom: 12px; }
+  .keyboard-open .dialog-backdrop > .dialog { --sheet-bottom: 12px; }
   .dialog-backdrop > .dialog.preview-dialog { height: var(--sheet-max); }
   .dialog-backdrop > .dialog > .dialog-head { position: sticky; top: 0; z-index: 1; margin: 0 calc(-1 * var(--sheet-x)); padding: 20px var(--sheet-x) 6px; background: inherit; touch-action: none; }
   .dialog-head::before { content: ""; position: absolute; top: 7px; left: calc(50% - 18px); width: 36px; height: 5px; border-radius: 3px; background: color-mix(in srgb, var(--text-primary) 22%, transparent); }
