@@ -201,7 +201,6 @@ main { flex: 1; min-height: 0; overflow: hidden; padding: 24px; display: flex; f
 .auto-mark { flex: none; display: inline-flex; color: var(--text-secondary); }
 .auto-mark .icon { width: 13px; height: 13px; }
 .notif-title { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 600; font-size: 13px; }
-.notif-toast-body .provider-icon { width: 16px; height: 16px; margin: 0; }
 /* Under popovers (50): an open menu stays on top of a toast. */
 .notif-toasts { position: fixed; z-index: 45; top: calc(var(--header-h, 0px) + 8px); right: 12px; width: min(340px, calc(100vw - 24px)); display: flex; flex-direction: column; gap: 6px; pointer-events: none; }
 .notif-toast { pointer-events: auto; display: flex; align-items: center; gap: 4px; padding: 4px; border-radius: var(--radius-md); background: var(--surface-1); border: 1px solid var(--line); box-shadow: var(--shadow); font-size: 13px; }
