@@ -13,21 +13,19 @@ interface Props {
   onOpen: (id: string, addOnly: boolean) => void;
 }
 
-/** One run of the history: its status pill, the date, the relative time and duration, the error of a failed run and an Open session button. */
+/** One run of the history on one line: status pill, date, relative time and duration, unread dot, Open session. */
 export function RunRow({ automation, run, threads, seen, now, onOpen }: Props) {
   const { threadId } = run;
   const thread = threadId ? threads.get(threadId) : undefined;
+  const unread = runUnread(automation, run, threads, seen);
+  // One line: pill, date with "1 d ago · 3 min", unread dot, action. The error of a failed run goes below.
   return (
     <div className="auto-run-row">
-      <span className="auto-run-main">
-        <span className="auto-run-line">
-          <RunBadge status={run.status} />
-          <span className="auto-run-date">{reminderDate(run.startedAt)}</span>
-          {runUnread(automation, run, threads, seen) && <span className="notif-dot" role="img" aria-label="Unread" />}
-        </span>
-        <span className="auto-run-when">{runWhen(run, now, automation.bound)}</span>
-        {run.status === "failed" && run.error && <span className="auto-run-error">{run.error}</span>}
+      <RunBadge status={run.status} />
+      <span className="auto-run-when">
+        <span className="auto-run-date">{reminderDate(run.startedAt)}</span> · {runWhen(run, now, automation.bound)}
       </span>
+      {unread ? <span className="notif-dot" role="img" aria-label="Unread" /> : <span aria-hidden="true" />}
       {thread && threadId ? (
         <Button size="sm" variant="ghost" onClick={(e) => onOpen(threadId, e.shiftKey)}>
           Open session
@@ -35,6 +33,7 @@ export function RunRow({ automation, run, threads, seen, now, onOpen }: Props) {
       ) : (
         <span className="auto-note">{threadId ? "Session archived" : "No session"}</span>
       )}
+      {run.status === "failed" && run.error && <span className="auto-run-error">{run.error}</span>}
     </div>
   );
 }

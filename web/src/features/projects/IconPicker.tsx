@@ -126,9 +126,9 @@ export function IconPicker({ title, value, onChange, current = null }: Props) {
         />
       )}
       {(tab === "icons" || tab === "monogram") && (
-        <div className="swatches" role="group" aria-label="Color">
+        <div className="icon-swatches" role="group" aria-label="Color">
           {PROJECT_COLOR_NAMES.map((name) => (
-            <Pressable key={name} className="swatch" aria-label={name} aria-pressed={color === name} style={{ background: hex(name) }} onClick={() => pickColor(name)} />
+            <Pressable key={name} className="icon-swatch" aria-label={name} aria-pressed={color === name} style={{ background: hex(name) }} onClick={() => pickColor(name)} />
           ))}
         </div>
       )}

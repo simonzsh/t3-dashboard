@@ -39,7 +39,11 @@ function Badges({ id, unread, sessions, automations }: Pick<Props, "unread" | "s
   if (id === "automations") {
     return (
       <>
-        {automations.failed && <span className="nav-alert err" role="img" aria-label="An automation run failed" />}
+        {automations.failed && (
+          <span className="nav-alert err" role="img" aria-label="An automation run failed">
+            <Icon name="alert" />
+          </span>
+        )}
         {automations.count > 0 && <span className="nav-badge" role="img" aria-label={`${automations.count} unread runs`}>{badgeText(automations.count)}</span>}
       </>
     );
@@ -47,7 +51,11 @@ function Badges({ id, unread, sessions, automations }: Pick<Props, "unread" | "s
   if (id !== "sessions") return null;
   return (
     <>
-      {sessions.waiting && <span className="nav-alert" role="img" aria-label={WAITING} />}
+      {sessions.waiting && (
+        <span className="nav-alert" role="img" aria-label={WAITING}>
+          <Icon name="user" />
+        </span>
+      )}
       {sessions.count > 0 && <span className="nav-badge" role="img" aria-label={`${sessions.count} running or unread`}>{badgeText(sessions.count)}</span>}
     </>
   );

@@ -224,3 +224,10 @@ test("an ActionMenu is a closed menu button with the given name", () => {
   assert.match(out, /aria-expanded="false"/);
   assert.doesNotMatch(out, /role="menu"/);
 });
+
+test("a waiting badge carries the person icon and an error badge the alert circle; others carry none", () => {
+  const html = (variant: "waiting" | "error" | "done") => renderToStaticMarkup(<Badge variant={variant}>x</Badge>);
+  assert.match(html("waiting"), /badge-icon/);
+  assert.match(html("error"), /badge-icon/);
+  assert.doesNotMatch(html("done"), /badge-icon/);
+});
