@@ -91,8 +91,9 @@ test("a paused row says Paused and is dimmed; a running one disables Run now", (
 test("the sheet head has plain Run now, Edit and Delete buttons and no menu", () => {
   const out = sheet(auto([]));
   assert.match(out, />Run now</);
-  assert.match(out, />Edit</);
-  assert.match(out, /class="[^"]*danger[^"]*"[^>]*>Delete</);
+  assert.match(out, /<\/svg>Edit</);
+  // Red in itself, with a trash icon, like the delete buttons of the dialogs.
+  assert.match(out, /class="btn sm danger"[^>]*><svg[^>]*>.*?<\/svg>Delete</);
   assert.doesNotMatch(out, /aria-haspopup/);
   assert.doesNotMatch(out, /Copy webhook URL/);
 });

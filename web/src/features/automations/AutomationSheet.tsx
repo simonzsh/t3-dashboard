@@ -59,22 +59,26 @@ export function AutomationSheet({ automation: a, threads, project, providers, se
           </Button>
           {isEditable(a) ? (
             <Button size="sm" onClick={() => onEdit(a)}>
+              <Icon name="pencil" />
               Edit
             </Button>
           ) : (
             // A disabled button gets no hover events: the wrapper carries the tooltip.
             <span data-tooltip="This automation can't be edited here">
               <Button size="sm" disabled>
+                <Icon name="pencil" />
                 Edit
               </Button>
             </span>
           )}
           {url && (
             <Button size="sm" onClick={() => copy(url)}>
+              <Icon name="copy" />
               Copy webhook URL
             </Button>
           )}
           <Button size="sm" variant="danger" onClick={() => onDelete(a)}>
+            <Icon name="trash" />
             Delete
           </Button>
           {!finished && <Switch checked={a.enabled} label={`Enable ${a.title}`} onChange={(on) => onToggle(a, on)} />}
