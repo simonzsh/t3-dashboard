@@ -4,7 +4,7 @@ import type { DashboardProvider, NewsSettings, NewsTask } from "../../../../shar
 import type { SeenState } from "../../../../shared/seen.ts";
 import { prune } from "../../../../shared/seen.ts";
 import { formatMessageTime } from "../../../src/lib/format.ts";
-import { isUnreadArticle, newsMark, readTarget, unreadNewsCount, dateLabel, formFromSettings, pickModel, shortDate, statusLine, toBody, scheduleHint, WEEKDAYS } from "../../../src/features/news/news.ts";
+import { isUnreadArticle, newsMark, readTarget, unreadNewsCount, dateLabel, formFromSettings, pickModel, shortDate, statusLine, toBody, scheduleHint, WEEKDAYS, LANGUAGES } from "../../../src/features/news/news.ts";
 
 const provider: DashboardProvider = { instanceId: "provider-a", displayName: "Provider A", models: [{ slug: "model-x", name: "Model X" }, { slug: "model-y", name: "Model Y" }] as never, runtimeModes: [] };
 const settings: NewsSettings = { enabled: true, frequency: "daily", weekday: 1, timeOfDay: "07:00", language: "French", modelSelection: { instanceId: "provider-a", model: "model-y" } };
@@ -44,12 +44,14 @@ test("the status line says when automatic generation is off", () => {
   assert.equal(statusLine(task({ enabled: false }), now), "Automatic generation is off. Use Run now to get an article.");
 });
 
+test("the language choices are English and French", () => {
+  assert.deepEqual(LANGUAGES.map((l) => l.label), ["English", "French"]);
+});
+
 test("an invalid form names the problem", () => {
   const ok = formFromSettings(settings, settings.modelSelection);
   const error = (over: object) => ("error" in toBody({ ...ok, ...over }) ? (toBody({ ...ok, ...over }) as { error: string }).error : null);
   assert.match(error({ timeOfDay: "" })!, /time/i);
-  assert.match(error({ language: "  " })!, /language/i);
-  assert.match(error({ language: "x".repeat(41) })!, /40/);
   assert.match(error({ selection: null })!, /model/i);
   assert.equal(error({}), null);
 });

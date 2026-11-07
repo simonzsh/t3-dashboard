@@ -41,7 +41,9 @@ test("the settings dialog shows the saved values", () => {
   assert.match(out, /value="07:00"/);
   assert.doesNotMatch(out, /topic/i);
   assert.ok(!out.includes("<textarea"));
-  assert.match(out, /value="French"/);
+  assert.match(out, /aria-label="Language"/);
+  assert.match(out, /French/);
+  assert.ok(!out.includes('value="French"'));
   assert.match(out, /role="switch"[^>]*aria-checked="true"[^>]*aria-label="Automatic generation"/);
   assert.match(out, /runs every day/);
   assert.doesNotMatch(out, /aria-label="Weekday"/);

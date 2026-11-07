@@ -12,9 +12,12 @@ export interface NewsSettings {
   weekday: number;
   /** "HH:MM" in the time zone of the T3 host. */
   timeOfDay: string;
-  language: string;
+  language: NewsLanguage;
   modelSelection: ModelSelection | null;
 }
+
+export const NEWS_LANGUAGES = ["English", "French"] as const;
+export type NewsLanguage = (typeof NEWS_LANGUAGES)[number];
 
 export const NEWS_DEFAULTS: NewsSettings = { enabled: true, frequency: "daily", weekday: 1, timeOfDay: "07:00", language: "English", modelSelection: null };
 
@@ -54,7 +57,7 @@ export interface SaveNewsBody {
   frequency: NewsFrequency;
   weekday: number;
   timeOfDay: string;
-  language: string;
+  language: NewsLanguage;
   modelSelection: ModelSelection;
 }
 

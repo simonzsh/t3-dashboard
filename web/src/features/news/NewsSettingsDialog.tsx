@@ -1,9 +1,10 @@
 import { useState } from "react";
 import type { DashboardProvider, ModelDefaults, NewsSettings, SaveNewsBody } from "../../../../shared/api.ts";
+import type { NewsLanguage } from "../../../../shared/news.ts";
 import { errorMessage } from "../../lib/format.ts";
 import { ModelPanel } from "../conversation/ModelPanel.tsx";
 import { Dialog, Dropdown, Segmented, Switch, TextInput } from "../../ui/index.ts";
-import { WEEKDAYS, formFromSettings, pickModel, scheduleHint, toBody, type NewsFrequency } from "./news.ts";
+import { LANGUAGES, WEEKDAYS, formFromSettings, pickModel, scheduleHint, toBody, type NewsFrequency } from "./news.ts";
 
 interface Props {
   settings: NewsSettings;
@@ -60,7 +61,7 @@ export function NewsSettingsDialog({ settings, providers, defaults, onSave, onCl
         </fieldset>
         <div className="dialog-field">
           <span>Language</span>
-          <TextInput aria-label="Language" maxLength={40} value={form.language} onChange={(e) => setForm({ ...form, language: e.target.value })} />
+          <Dropdown label="Language" className="field" value={form.language} options={[...LANGUAGES]} onPick={(id) => setForm({ ...form, language: id as NewsLanguage })} />
         </div>
         <div className="dialog-field">
           <span>Model</span>

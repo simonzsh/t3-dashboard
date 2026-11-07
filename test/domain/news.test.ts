@@ -166,8 +166,8 @@ test("when T3 fails the settings stay saved and the error comes back", async () 
   await assert.rejects(news.save(body()), (error) => error instanceof IntegrationError && error.system === "t3");
   assert.deepEqual(stored(), { settings: body(), taskId: null, taskCreatedAt: null });
   port.scheduledTasksError = new IntegrationError("down", { system: "t3", kind: "unreachable" });
-  await assert.rejects(news.save(body({ language: "German" })), IntegrationError);
-  assert.equal(stored().settings.language, "German");
+  await assert.rejects(news.save(body({ language: "French" })), IntegrationError);
+  assert.equal(stored().settings.language, "French");
 });
 
 test("saves run one after the other: two quick saves create one task", async () => {

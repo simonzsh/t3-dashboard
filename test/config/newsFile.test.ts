@@ -13,13 +13,18 @@ test("a missing or broken file gives the defaults", () => {
 });
 
 test("saved news reads back unchanged", () => {
-  const stored = { settings: { enabled: false, frequency: "weekly" as const, weekday: 0, timeOfDay: "06:30", language: "English", modelSelection: { instanceId: "claudeAgent", model: "m-1", options: [{ id: "effort", value: "low" }] } }, taskId: "scheduled-task:1", taskCreatedAt: "2026-11-01T08:00:00.000Z" };
+  const stored = { settings: { enabled: false, frequency: "weekly" as const, weekday: 0, timeOfDay: "06:30", language: "English" as const, modelSelection: { instanceId: "claudeAgent", model: "m-1", options: [{ id: "effort", value: "low" }] } }, taskId: "scheduled-task:1", taskCreatedAt: "2026-11-01T08:00:00.000Z" };
   assert.deepEqual(read(newsText(stored)), stored);
 });
 
 test("each bad field falls back to its default and keeps the good ones", () => {
   const stored = read({ settings: { timeOfDay: "7am", language: "  ", modelSelection: { instanceId: "x" } }, taskId: 12, taskCreatedAt: "2026-11-01T08:00:00.000Z" });
   assert.deepEqual(stored, { settings: NEWS_DEFAULTS, taskId: null, taskCreatedAt: "2026-11-01T08:00:00.000Z" });
+});
+
+test("a stored language outside English and French reads as English", () => {
+  assert.equal(read({ settings: { language: "German" } }).settings.language, "English");
+  assert.equal(read({ settings: { language: "French" } }).settings.language, "French");
 });
 
 test("a file without the schedule fields reads as the defaults, field by field", () => {

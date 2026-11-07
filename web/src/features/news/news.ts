@@ -2,13 +2,13 @@ import type { DashboardProvider, ModelSelection, NewsSettings, NewsTask, SaveNew
 import type { NewsArticleSummary } from "../../../../shared/news.ts";
 import { later, type SeenState } from "../../../../shared/seen.ts";
 import { formatMessageTime, relativeTime } from "../../lib/format.ts";
-import { NEWS_DEFAULT_MODEL } from "../../../../shared/news.ts";
+import { NEWS_DEFAULT_MODEL, NEWS_LANGUAGES, type NewsLanguage } from "../../../../shared/news.ts";
 import { presetSelection } from "../new-thread/newAgent.ts";
 
-// The same limits as the server, so a bad form fails before the request.
-const LANGUAGE_MAX = 40;
-
 export type NewsFrequency = SaveNewsBody["frequency"];
+
+/** The article languages the dropdown offers. */
+export const LANGUAGES: ReadonlyArray<{ id: NewsLanguage; label: string }> = NEWS_LANGUAGES.map((id) => ({ id, label: id }));
 
 /** Monday first; the value is the JS weekday (0 = Sunday). */
 export const WEEKDAYS: ReadonlyArray<{ id: string; label: string }> = [
@@ -30,7 +30,7 @@ export interface NewsForm {
   frequency: NewsFrequency;
   weekday: number;
   timeOfDay: string;
-  language: string;
+  language: NewsLanguage;
   selection: ModelSelection | null;
 }
 
@@ -46,12 +46,9 @@ export const formFromSettings = (settings: NewsSettings, selection: ModelSelecti
 };
 
 export function toBody(form: NewsForm): { body: SaveNewsBody } | { error: string } {
-  const language = form.language.trim();
   if (!/^([01]\d|2[0-3]):[0-5]\d$/.test(form.timeOfDay)) return { error: "Pick a time of day." };
-  if (language === "") return { error: "Name the language of the articles." };
-  if (language.length > LANGUAGE_MAX) return { error: `Keep the language under ${LANGUAGE_MAX} characters.` };
   if (!form.selection) return { error: "Pick a model." };
-  return { body: { enabled: form.enabled, frequency: form.frequency, weekday: form.weekday, timeOfDay: form.timeOfDay, language, modelSelection: form.selection } };
+  return { body: { enabled: form.enabled, frequency: form.frequency, weekday: form.weekday, timeOfDay: form.timeOfDay, language: form.language, modelSelection: form.selection } };
 }
 
 /** The saved model, else the news default if offered, else T3's default, else the first model. */

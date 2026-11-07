@@ -1,4 +1,4 @@
-import { NEWS_DEFAULTS, type NewsSettings } from "../../shared/news.ts";
+import { NEWS_DEFAULTS, NEWS_LANGUAGES, type NewsLanguage, type NewsSettings } from "../../shared/news.ts";
 import type { ModelSelection } from "../../shared/threads.ts";
 import type { ReadFile } from "./config.ts";
 
@@ -36,7 +36,7 @@ export function readNews(file: string, readFile: ReadFile): StoredNews {
       frequency: settings.frequency === "daily" || settings.frequency === "weekly" ? settings.frequency : NEWS_DEFAULTS.frequency,
       weekday: isWeekday(settings.weekday) ? settings.weekday : NEWS_DEFAULTS.weekday,
       timeOfDay: isTimeOfDay(settings.timeOfDay) ? settings.timeOfDay : NEWS_DEFAULTS.timeOfDay,
-      language: text(settings.language) ?? NEWS_DEFAULTS.language,
+      language: NEWS_LANGUAGES.includes(settings.language as NewsLanguage) ? (settings.language as NewsLanguage) : NEWS_DEFAULTS.language,
       modelSelection: selectionOf(settings.modelSelection),
     },
     taskId: text(root.taskId),
