@@ -40,7 +40,7 @@ sha256_of() {
 t3_found() {
   [ -n "${T3_DASHBOARD_T3_BIN:-}" ] && [ -x "$T3_DASHBOARD_T3_BIN" ] && return 0
   command -v t3 >/dev/null 2>&1 && return 0
-  for candidate in "$HOME/.local/bin/t3" /opt/homebrew/bin/t3 /usr/local/bin/t3 "${T3CODE_HOME:-$HOME/.t3}"/runtime/versions/*/t3; do
+  for candidate in "${T3CODE_INSTALL_BIN_DIR:-$HOME/.local/bin}/t3" "$HOME/.local/bin/t3" /opt/homebrew/bin/t3 /usr/local/bin/t3 "${T3CODE_HOME:-$HOME/.t3}"/runtime/versions/*/t3; do
     [ -x "$candidate" ] && return 0
   done
   return 1

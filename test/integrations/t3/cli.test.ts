@@ -12,6 +12,7 @@ test("locateT3 prefers the variable, then PATH, then the usual folders", () => {
   assert.equal(locateT3({}, "/h", exists(["/h/.local/bin/t3"]), none), "/h/.local/bin/t3");
   assert.equal(locateT3({ T3_DASHBOARD_T3_BIN: "/nonexistent" }, "/h", exists([]), none), null);
   assert.equal(locateT3({ LOCALAPPDATA: "C:\\L" }, "/h", exists([join("C:\\L", "Programs", "t3", "t3.exe")]), none), join("C:\\L", "Programs", "t3", "t3.exe"));
+  assert.equal(locateT3({}, "/h", exists([join("/h", ".local", "bin", "t3.exe")]), none), join("/h", ".local", "bin", "t3.exe"));
 });
 
 test("runCommand returns the exit code and stdout, and a null code on a timeout or a missing program", async () => {

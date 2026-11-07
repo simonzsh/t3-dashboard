@@ -40,6 +40,7 @@ export function locateT3(
   const local = env.LOCALAPPDATA;
   const candidates = [
     join(homedir, ".local", "bin", "t3"),
+    join(homedir, ".local", "bin", "t3.exe"),
     "/opt/homebrew/bin/t3",
     "/usr/local/bin/t3",
     ...(local ? [join(local, "Programs", "t3", "t3.exe"), join(local, "Programs", "t3-code", "t3.exe")] : []),
