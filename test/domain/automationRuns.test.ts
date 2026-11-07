@@ -181,3 +181,9 @@ test("a thread probed with no task id still matches by title", () => {
   const next = recordRuns({}, [task()], [thread("run-1")], NOW, new Map([["run-1", null]]));
   assert.deepEqual(next["task-1"]!.map((run) => run.threadId), ["run-1"]);
 });
+
+test("a thread stored under two tasks and probed to one ends only under that one", () => {
+  const log: RunLog = { "task-1": [stored()], "task-2": [stored()] };
+  const next = recordRuns(log, [task(), task({ id: "task-2" })], [thread("run-1")], NOW, new Map([["run-1", "task-2"]]));
+  assert.deepEqual([next["task-1"]!.length, next["task-2"]!.map((run) => run.threadId)], [0, ["run-1"]]);
+});

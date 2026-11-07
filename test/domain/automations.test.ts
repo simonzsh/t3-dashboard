@@ -210,6 +210,8 @@ test("remove wraps a port failure as an IntegrationError", async () => {
 
 function harness(threads: RawThread[] = [thread("run-1")], runs?: AutomationRunLog) {
   const port = new FakePort();
+  // A thread whose first message exists but has no task id.
+  port.projection = { messages: [{ id: "m", role: "user" }] };
   const warnings: string[] = [];
   const automations = createAutomations({
     warn: (message) => void warnings.push(message),
@@ -576,4 +578,26 @@ test("only candidate threads are probed", async () => {
   port.scheduledTasks = [task(), task({ id: "bound", threadId: "chat" })];
   await automations.list();
   assert.equal(port.projectionCalls, 1);
+});
+
+test("a stored thread that was never probed is probed, and its id wins over the stored link", async () => {
+  const log = new AutomationRunLog({ "task-1": [{ threadId: "run-1", startedAt: "2026-03-20T10:00:00.000Z", finishedAt: null, status: "succeeded", error: null }], "task-2": [{ threadId: "run-1", startedAt: "2026-03-20T10:00:00.000Z", finishedAt: null, status: "succeeded", error: null }] });
+  const { automations, port } = harness([thread("run-1")], log);
+  port.scheduledTasks = [task(), task({ id: "task-2" })];
+  port.projections = { "run-1": stamped("task-2") };
+  const result = await automations.list();
+  assert.deepEqual([runIds(result, 0), runIds(result, 1)], [[], ["run-1"]]);
+});
+
+test("a projection with no user message is not cached and is probed again", async () => {
+  const { automations, port } = harness([thread("run-1")]);
+  port.scheduledTasks = [task()];
+  port.projections = { "run-1": { messages: [] } };
+  await automations.list();
+  await automations.list();
+  assert.equal(port.projectionCalls, 2);
+  port.projections = { "run-1": stamped(null) };
+  await automations.list();
+  await automations.list();
+  assert.equal(port.projectionCalls, 3);
 });

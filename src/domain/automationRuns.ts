@@ -61,7 +61,9 @@ function keepFailure(prev: AutomationRun | undefined, run: AutomationRun): Autom
   return prev?.status === "failed" && run.status === "succeeded" ? { ...run, status: "failed", error: prev.error } : run;
 }
 
-function taskRuns(task: RawScheduledTask, stored: AutomationRun[], threads: RawThread[], owners: ReadonlyMap<string, string>, now: Date): AutomationRun[] {
+function taskRuns(task: RawScheduledTask, log: AutomationRun[], threads: RawThread[], owners: ReadonlyMap<string, string>, links: ThreadLinks, now: Date): AutomationRun[] {
+  // A probed task id beats a stored link: the thread leaves the runs of any other task.
+  const stored = isBound(task) ? log : log.filter((run) => run.threadId === null || (links.get(run.threadId) ?? task.id) === task.id);
   const byId = new Map(threads.map((thread) => [thread.id, thread]));
   const runs = new Map<string, AutomationRun>();
   const lastRunAt = stamp(task.lastRunAt);
@@ -99,7 +101,7 @@ function taskRuns(task: RawScheduledTask, stored: AutomationRun[], threads: RawT
 /** The run log after one look at T3: runs of live threads are refreshed by thread id, the others are kept. Deleted tasks leave. */
 export function recordRuns(log: RunLog, tasks: RawScheduledTask[], threads: RawThread[], now: Date, links: ThreadLinks = new Map()): RunLog {
   const owners = threadOwners(tasks, log, links);
-  return Object.fromEntries(tasks.map((task) => [task.id, taskRuns(task, log[task.id] ?? [], threads, owners, now)]));
+  return Object.fromEntries(tasks.map((task) => [task.id, taskRuns(task, log[task.id] ?? [], threads, owners, links, now)]));
 }
 
 /** The in-memory run log of the dashboard, saved to disk only when it changes. */

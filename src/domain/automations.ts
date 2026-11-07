@@ -132,18 +132,18 @@ export function createAutomations(options: AutomationsOptions): Automations {
     if (unbound.length === 0) return;
     const since = Math.min(...unbound.map((task) => Date.parse(task.createdAt ?? "") || 0));
     const sources = new Set(unbound.map((task) => task.creationSource));
-    const owned = threadOwners(tasks, runs.current(), links);
     const chats = new Set(tasks.map((task) => task.threadId));
     const queue = threads
-      .filter((thread) => !links.has(thread.id) && !reading.has(thread.id) && !owned.has(thread.id) && !chats.has(thread.id) && !isHidden(thread) && sources.has(thread.creationSource) && Date.parse(thread.createdAt ?? "") >= since)
+      .filter((thread) => !links.has(thread.id) && !reading.has(thread.id) && !chats.has(thread.id) && !isHidden(thread) && sources.has(thread.creationSource) && Date.parse(thread.createdAt ?? "") >= since)
       .sort((a, b) => Date.parse(b.createdAt ?? "") - Date.parse(a.createdAt ?? ""))
       .slice(0, PROBES_PER_LIST);
     const worker = async () => {
       for (let thread = queue.shift(); thread; thread = queue.shift()) {
         reading.add(thread.id);
         try {
-          const { messages = [] } = await port.threadProjection(thread.id);
-          links.set(thread.id, messages.find((message) => message.role === "user" && message.scheduledTaskId)?.scheduledTaskId ?? null);
+          const users = ((await port.threadProjection(thread.id)).messages ?? []).filter((message) => message.role === "user");
+          // No user message yet: T3 has not written the first one, so the thread stays unread.
+          if (users.length > 0) links.set(thread.id, users.find((message) => message.scheduledTaskId)?.scheduledTaskId ?? null);
         } catch {
           // Left unread: the next list tries again.
         } finally {
