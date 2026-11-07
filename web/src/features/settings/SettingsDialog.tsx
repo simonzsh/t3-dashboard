@@ -33,8 +33,8 @@ type SectionId = (typeof SECTIONS)[number]["id"];
 const LABELS: Record<ThemeSetting, string> = { system: "System", light: "Light", dark: "Dark" };
 // "Tinted" mixes the accent color into the background, cards and lines.
 const SURFACES = [
-  { id: "neutral", label: "Neutral" },
-  { id: "tinted", label: "Tinted" },
+  { id: "neutral", label: "Neutral", icon: <Icon name="circle" /> },
+  { id: "tinted", label: "Tinted", icon: <Icon name="droplet" /> },
 ] as const;
 const THEME_ICONS: Record<ThemeSetting, IconName> = { system: "monitor", light: "sun", dark: "moon" };
 
@@ -47,6 +47,10 @@ export function SettingsDialog({ theme, onThemeChange, accent, onAccentChange, t
         <div className="settings-row">
           <span>Theme</span>
           <Segmented label="Theme" value={theme} options={THEME_SETTINGS.map((id) => ({ id, label: LABELS[id], icon: <Icon name={THEME_ICONS[id]} /> }))} onChange={onThemeChange} />
+        </div>
+        <div className="settings-row">
+          <span>Interface</span>
+          <Segmented label="Interface" value={tint ? "tinted" : "neutral"} options={SURFACES} onChange={(id) => onTintChange(id === "tinted")} />
         </div>
         <div className="settings-row">
           <span>Accent color</span>
@@ -65,10 +69,6 @@ export function SettingsDialog({ theme, onThemeChange, accent, onAccentChange, t
               />
             ))}
           </div>
-        </div>
-        <div className="settings-row">
-          <span>Interface</span>
-          <Segmented label="Interface" value={tint ? "tinted" : "neutral"} options={SURFACES} onChange={(id) => onTintChange(id === "tinted")} />
         </div>
       </>
     ),
