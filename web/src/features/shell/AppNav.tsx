@@ -1,3 +1,4 @@
+import type { CSSProperties } from "react";
 import { ctrlLabel } from "../../lib/shortcuts.ts";
 import { TABS, type Tab } from "../../lib/tabs.ts";
 import { Icon, IconButton, Kbd, Logo, Pressable } from "../../ui/index.ts";
@@ -76,7 +77,7 @@ function Sidebar({ tab, unread, sessions, automations, live, update, collapsed, 
         <span className="nav-label">Search…</span>
         <Kbd>⌘K</Kbd>
       </Pressable>
-      <div className="sidebar-items">
+      <div className="sidebar-items" style={{ "--active-tab": TABS.findIndex(({ id }) => id === tab) } as CSSProperties}>
         {TABS.map(({ id, label, icon }) => (
           <Pressable key={id} data-tab={id} className={`nav-row${tab === id ? " active" : ""}`} aria-current={tab === id ? "page" : undefined} tooltip={hint(label)} onClick={() => onTab(id)}>
             <Icon name={icon} className="nav-icon" />
@@ -111,7 +112,8 @@ function Sidebar({ tab, unread, sessions, automations, live, update, collapsed, 
 
 function BottomBar({ tab, unread, sessions, automations, onTab }: Pick<Props, "tab" | "unread" | "sessions" | "automations" | "onTab">) {
   return (
-    <nav className="bottom-nav" aria-label="Pages">
+    <nav className="bottom-nav" aria-label="Pages" style={{ "--active-tab": TABS.findIndex(({ id }) => id === tab), "--tab-count": TABS.length } as CSSProperties}>
+      <span className="bottom-nav-indicator" aria-hidden="true"><span /></span>
       {TABS.map(({ id, label, icon }) => (
         <Pressable key={id} data-tab={id} className={`bottom-item${tab === id ? " active" : ""}`} aria-current={tab === id ? "page" : undefined} onClick={() => onTab(id)}>
           <span className="bottom-icon">
