@@ -96,9 +96,9 @@ test("a notification shows a warning when it waits, an alert on error, a check w
 });
 
 test("the detail line says what the agent waits for, the error, or the model", () => {
-  assert.equal(notificationDetail(thread("a", { status: "waiting", pending: ask }), null), "Waiting for your approval");
-  assert.equal(notificationDetail(thread("b", { status: "failed", lastError: "Disk full" }), "M"), "Disk full");
-  assert.equal(notificationDetail(thread("b2", { status: "failed" }), null), "The run failed");
-  assert.equal(notificationDetail(thread("c", { status: "completed" }), "Model X"), "Finished · Model X");
-  assert.equal(notificationDetail(thread("d", { status: "completed" }), null), "Finished");
+  assert.equal(notificationDetail(thread("a", { status: "waiting", pending: ask })), "Waiting for your approval");
+  assert.equal(notificationDetail(thread("b", { status: "failed", lastError: "Disk full" })), "Disk full");
+  assert.equal(notificationDetail(thread("b2", { status: "failed" })), "The run failed");
+  assert.equal(notificationDetail(thread("c", { status: "completed" })), "Finished");
+  assert.equal(notificationDetail(thread("d", { status: "completed" })), "Finished");
 });

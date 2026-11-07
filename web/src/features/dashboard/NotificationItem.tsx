@@ -2,9 +2,10 @@ import { memo } from "react";
 import type { DashboardProject, DashboardThread } from "../../../../shared/api.ts";
 import { threadTitle } from "../../lib/threads.ts";
 import { AutomationMark } from "../../lib/automationThreads.tsx";
+import { ProjectTag } from "../../lib/ProjectTag.tsx";
 import { Icon, IconButton, Pressable } from "../../ui/index.ts";
 import { notificationDetail, notificationIcon, type NotificationKind } from "./sections.ts";
-import { openRow, threadMeta } from "./threadRows.ts";
+import { openRow, threadAge } from "./threadRows.ts";
 
 interface Props {
   thread: DashboardThread;
@@ -12,14 +13,12 @@ interface Props {
   onMarkRead: (id: string) => void;
   kind: NotificationKind;
   project: DashboardProject | undefined;
-  // The model label, resolved by the parent so the row stays memoizable.
-  modelName: string | null;
   now: Date;
   // addOnly: put the agent on the Sessions page without leaving the page.
   onOpen: (id: string, addOnly: boolean) => void;
 }
 
-function NotificationItemView({ thread: t, kind, project, modelName, now, inSessions, onOpen, onMarkRead }: Props) {
+function NotificationItemView({ thread: t, kind, project, now, inSessions, onOpen, onMarkRead }: Props) {
   const { icon, tone } = notificationIcon(t);
   return (
     <div className={`notif-item ${kind}`}>
@@ -30,8 +29,11 @@ function NotificationItemView({ thread: t, kind, project, modelName, now, inSess
             <span className="notif-title">{threadTitle(t)}</span>
             <AutomationMark id={t.id} />
           </span>
-          <span className="notif-detail">{notificationDetail(t, modelName)}</span>
-          <span className="notif-meta">{threadMeta(t, project, now)}</span>
+          <span className="notif-status">
+            <span className="notif-detail">{notificationDetail(t)}</span>
+            <span className="notif-age">{threadAge(t, now)}</span>
+            {project && <ProjectTag icon={project.icon} title={project.title} />}
+          </span>
         </span>
         {kind !== "read" && <span className="notif-dot" aria-label="Unread" role="img" />}
       </Pressable>

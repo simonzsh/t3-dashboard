@@ -1,5 +1,5 @@
 import type { MouseEvent } from "react";
-import type { DashboardProject, DashboardThread } from "../../../../shared/api.ts";
+import type { DashboardThread } from "../../../../shared/api.ts";
 import { relativeTime } from "../../lib/format.ts";
 import { tabSelector } from "../../lib/tabs.ts";
 import { fly } from "../../ui/index.ts";
@@ -10,5 +10,5 @@ export function openRow(e: MouseEvent<HTMLElement>, id: string, inSessions: bool
   onOpen(id, e.shiftKey);
 }
 
-/** The project and the age of a thread. */
-export const threadMeta = (t: DashboardThread, project: DashboardProject | undefined, now: Date): string => [project?.title, relativeTime(t.lastActivityAt, now)].filter(Boolean).join(" · ");
+/** The age of a thread. */
+export const threadAge = (t: DashboardThread, now: Date): string => relativeTime(t.lastActivityAt, now);
