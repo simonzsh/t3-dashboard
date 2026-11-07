@@ -10,7 +10,27 @@ const TOPICS_MAX = 10;
 const TOPIC_MAX = 60;
 const LANGUAGE_MAX = 40;
 
+export type NewsFrequency = SaveNewsBody["frequency"];
+
+/** Monday first; the value is the JS weekday (0 = Sunday). */
+export const WEEKDAYS: ReadonlyArray<{ id: string; label: string }> = [
+  { id: "1", label: "Monday" },
+  { id: "2", label: "Tuesday" },
+  { id: "3", label: "Wednesday" },
+  { id: "4", label: "Thursday" },
+  { id: "5", label: "Friday" },
+  { id: "6", label: "Saturday" },
+  { id: "0", label: "Sunday" },
+];
+
+/** The sentence under the time field. */
+export const scheduleHint = (frequency: NewsFrequency, weekday: number): string =>
+  `The news runs ${frequency === "weekly" ? `every ${WEEKDAYS.find((d) => d.id === String(weekday))?.label ?? "week"}` : "every day"}. The time is read in the time zone of the machine that runs T3.${frequency === "weekly" ? " Each article covers the last 7 days." : ""}`;
+
 export interface NewsForm {
+  enabled: boolean;
+  frequency: NewsFrequency;
+  weekday: number;
   timeOfDay: string;
   /** One topic per line. */
   topics: string;
@@ -29,6 +49,9 @@ export function topicsFromText(text: string): string[] {
 }
 
 export const formFromSettings = (settings: NewsSettings, selection: ModelSelection | null): NewsForm => ({
+  enabled: settings.enabled,
+  frequency: settings.frequency,
+  weekday: settings.weekday,
   timeOfDay: settings.timeOfDay,
   topics: settings.topics.join("\n"),
   language: settings.language,
@@ -45,7 +68,7 @@ export function toBody(form: NewsForm): { body: SaveNewsBody } | { error: string
   if (language === "") return { error: "Name the language of the articles." };
   if (language.length > LANGUAGE_MAX) return { error: `Keep the language under ${LANGUAGE_MAX} characters.` };
   if (!form.selection) return { error: "Pick a model." };
-  return { body: { timeOfDay: form.timeOfDay, topics, language, modelSelection: form.selection } };
+  return { body: { enabled: form.enabled, frequency: form.frequency, weekday: form.weekday, timeOfDay: form.timeOfDay, topics, language, modelSelection: form.selection } };
 }
 
 /** The saved model, else the news default if offered, else T3's default, else the first model. */
@@ -54,8 +77,8 @@ export const pickModel = (settings: NewsSettings, providers: DashboardProvider[]
 
 /** One line under the page title: when the next article comes and how the last run went. */
 export function statusLine(task: NewsTask | null, now: Date): string {
-  if (!task) return "Not scheduled yet. Open News settings and save to start the daily news.";
-  if (!task.enabled) return "Paused. Resume it in Automations.";
+  if (!task) return "Not scheduled yet. Open News settings and save to start the news.";
+  if (!task.enabled) return "Automatic generation is off. Use Run now to get an article.";
   const parts = [`Next article ${task.nextRunAt ? formatMessageTime(task.nextRunAt) : "not planned"}`];
   if (task.lastRunStatus === "running") parts.push("Running now");
   else if (task.lastRunAt) {

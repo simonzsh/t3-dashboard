@@ -79,7 +79,7 @@ const usageOverview: UsageOverview = {
   readAt: now.toISOString(),
 };
 
-const newsState: NewsState = { settings: { timeOfDay: "07:00", topics: ["AI"], language: "English", modelSelection: null }, task: null, articles: [{ date: "2026-11-07", title: "News", mtimeMs: 1 }] };
+const newsState: NewsState = { settings: { enabled: true, frequency: "daily", weekday: 1, timeOfDay: "07:00", topics: ["AI"], language: "English", modelSelection: null }, task: null, articles: [{ date: "2026-11-07", title: "News", mtimeMs: 1 }] };
 
 const LINEAR_FILE = "/cfg/linear.json";
 
@@ -1839,7 +1839,7 @@ test("POST /api/projects answers 400, 409 and 502 for T3 refusals", async () => 
   assert.deepEqual([other.status, other.json.error], [502, "T3 says no"]);
 });
 
-const newsBody = { timeOfDay: "06:45", topics: [" Space ", "Chips", "space", "", "Chips"], language: " English ", modelSelection: model };
+const newsBody = { enabled: false, frequency: "weekly", weekday: 0, timeOfDay: "06:45", topics: [" Space ", "Chips", "space", "", "Chips"], language: " English ", modelSelection: model };
 
 test("GET /api/news returns the news state, and GET /api/news/:date one article", async () => {
   const { server } = await start();
@@ -1871,7 +1871,7 @@ test("POST /api/news/settings validates the body and saves the clean settings", 
   const reply = await post(server, "/api/news/settings", newsBody);
   assert.equal(reply.status, 200);
   assert.deepEqual(reply.json, newsState);
-  assert.deepEqual(saved, [{ timeOfDay: "06:45", topics: ["Space", "Chips"], language: "English", modelSelection: model }]);
+  assert.deepEqual(saved, [{ enabled: false, frequency: "weekly", weekday: 0, timeOfDay: "06:45", topics: ["Space", "Chips"], language: "English", modelSelection: model }]);
   const bad: unknown[] = [
     {},
     { ...newsBody, timeOfDay: "7:00" },
@@ -1886,6 +1886,14 @@ test("POST /api/news/settings validates the body and saves the clean settings", 
     { ...newsBody, language: "  " },
     { ...newsBody, language: "x".repeat(41) },
     { ...newsBody, language: "En\nglish" },
+    { ...newsBody, enabled: undefined },
+    { ...newsBody, enabled: "yes" },
+    { ...newsBody, frequency: "monthly" },
+    { ...newsBody, frequency: undefined },
+    { ...newsBody, weekday: 7 },
+    { ...newsBody, weekday: -1 },
+    { ...newsBody, weekday: 1.5 },
+    { ...newsBody, weekday: "1" },
     { ...newsBody, modelSelection: null },
     { ...newsBody, modelSelection: { instanceId: "a" } },
   ];

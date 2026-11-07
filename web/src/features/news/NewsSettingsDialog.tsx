@@ -2,8 +2,8 @@ import { useState } from "react";
 import type { DashboardProvider, ModelDefaults, NewsSettings, SaveNewsBody } from "../../../../shared/api.ts";
 import { errorMessage } from "../../lib/format.ts";
 import { ModelPanel } from "../conversation/ModelPanel.tsx";
-import { Dialog, TextArea, TextInput } from "../../ui/index.ts";
-import { formFromSettings, pickModel, toBody } from "./news.ts";
+import { Dialog, Dropdown, Segmented, Switch, TextArea, TextInput } from "../../ui/index.ts";
+import { WEEKDAYS, formFromSettings, pickModel, scheduleHint, toBody, type NewsFrequency } from "./news.ts";
 
 interface Props {
   settings: NewsSettings;
@@ -37,9 +37,24 @@ export function NewsSettingsDialog({ settings, providers, defaults, onSave, onCl
     <Dialog title="News settings" className="news-settings" onClose={onClose} onCancel={onClose} primary={{ label: saving ? "Saving…" : "Save", onClick: () => void save(), disabled: saving }}>
       <div className="auto-form">
         <div className="dialog-field">
+          <span>Automatic generation</span>
+          <Switch label="Automatic generation" checked={form.enabled} onChange={(enabled) => setForm({ ...form, enabled })} />
+          <p className="hint">{form.enabled ? "The routine writes an article on its schedule." : "Off: the routine is paused. Run now still writes an article."}</p>
+        </div>
+        <div className="dialog-field">
+          <span>Frequency</span>
+          <Segmented<NewsFrequency> label="Frequency" value={form.frequency} options={[{ id: "daily", label: "Every day" }, { id: "weekly", label: "Every week" }]} onChange={(frequency) => setForm({ ...form, frequency })} />
+        </div>
+        {form.frequency === "weekly" && (
+          <div className="dialog-field">
+            <span>Weekday</span>
+            <Dropdown label="Weekday" className="field" value={String(form.weekday)} options={[...WEEKDAYS]} onPick={(id) => setForm({ ...form, weekday: Number(id) })} />
+          </div>
+        )}
+        <div className="dialog-field">
           <span>Time of day</span>
           <TextInput aria-label="Time of day" type="time" value={form.timeOfDay} onChange={(e) => setForm({ ...form, timeOfDay: e.target.value })} />
-          <p className="hint">The news runs every day. The time is read in the time zone of the machine that runs T3.</p>
+          <p className="hint">{scheduleHint(form.frequency, form.weekday)}</p>
         </div>
         <div className="dialog-field">
           <span>Topics</span>

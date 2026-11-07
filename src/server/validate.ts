@@ -2,7 +2,7 @@ import type { ApprovalDecision, AssignIssueBody, CreateAutomationBody, CreatePro
 import { PROJECT_COLOR_NAMES } from "../../shared/projectColors.ts";
 import { ACTIVITY_PERIODS, DEFAULT_ACTIVITY_PERIOD, type ActivityPeriod } from "../../shared/usage.ts";
 import { isObject } from "../../shared/guards.ts";
-import { isTimeOfDay } from "../config/newsFile.ts";
+import { isTimeOfDay, isWeekday } from "../config/newsFile.ts";
 import { normalizeSessions, type SessionsUpdate } from "../../shared/sessions.ts";
 import { IMAGE_TYPES, MAX_ATTACHMENTS, MAX_FILE_BYTES, MAX_IMAGE_BYTES, MAX_IMAGES, MAX_SECRET_CHARS, isRuntimeMode } from "../../shared/limits.ts";
 import { isSeenId, isSeenTime, type SeenChange } from "../../shared/seen.ts";
@@ -402,8 +402,11 @@ const NEWS_LANGUAGE_MAX = 40;
 const CONTROL = /\p{Cc}/u;
 
 export function validSaveNews(body: Record<string, unknown>): SaveNewsBody {
-  const { timeOfDay, topics, language } = body;
+  const { timeOfDay, topics, language, enabled, frequency, weekday } = body;
   const modelSelection = validSelection(body.modelSelection);
+  if (typeof enabled !== "boolean") throw bad("enabled must be true or false");
+  if (frequency !== "daily" && frequency !== "weekly") throw bad('frequency must be "daily" or "weekly"');
+  if (!isWeekday(weekday)) throw bad("weekday must be a whole number from 0 (Sunday) to 6");
   if (typeof timeOfDay !== "string" || !isTimeOfDay(timeOfDay)) throw bad("timeOfDay must look like 07:00");
   if (!Array.isArray(topics) || topics.some((topic) => typeof topic !== "string")) throw bad("topics must be a list of text");
   const clean = (topics as string[]).map((topic) => topic.trim()).filter((topic, index, all) => topic !== "" && all.findIndex((other) => other.toLowerCase() === topic.toLowerCase()) === index);
@@ -412,5 +415,5 @@ export function validSaveNews(body: Record<string, unknown>): SaveNewsBody {
   const name = typeof language === "string" ? language.trim() : "";
   if (name === "" || name.length > NEWS_LANGUAGE_MAX || CONTROL.test(name)) throw bad(`language must be text of 1 to ${NEWS_LANGUAGE_MAX} characters`);
   if (!modelSelection) throw bad("modelSelection (instanceId, model) is required");
-  return { timeOfDay, topics: clean, language: name, modelSelection };
+  return { enabled, frequency, weekday, timeOfDay, topics: clean, language: name, modelSelection };
 }

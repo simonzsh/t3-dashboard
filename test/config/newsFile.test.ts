@@ -13,7 +13,7 @@ test("a missing or broken file gives the defaults", () => {
 });
 
 test("saved news reads back unchanged", () => {
-  const stored = { settings: { timeOfDay: "06:30", topics: ["Space"], language: "English", modelSelection: { instanceId: "claudeAgent", model: "m-1", options: [{ id: "effort", value: "low" }] } }, taskId: "scheduled-task:1", taskCreatedAt: "2026-11-01T08:00:00.000Z" };
+  const stored = { settings: { enabled: false, frequency: "weekly" as const, weekday: 0, timeOfDay: "06:30", topics: ["Space"], language: "English", modelSelection: { instanceId: "claudeAgent", model: "m-1", options: [{ id: "effort", value: "low" }] } }, taskId: "scheduled-task:1", taskCreatedAt: "2026-11-01T08:00:00.000Z" };
   assert.deepEqual(read(newsText(stored)), stored);
 });
 
@@ -21,6 +21,16 @@ test("each bad field falls back to its default and keeps the good ones", () => {
   const stored = read({ settings: { timeOfDay: "7am", topics: ["", 4, "Space"], language: "  ", modelSelection: { instanceId: "x" } }, taskId: 12, taskCreatedAt: "2026-11-01T08:00:00.000Z" });
   assert.deepEqual(stored, { settings: { ...NEWS_DEFAULTS, topics: ["Space"] }, taskId: null, taskCreatedAt: "2026-11-01T08:00:00.000Z" });
   assert.deepEqual(read({ settings: { topics: [] } }).settings.topics, NEWS_DEFAULTS.topics);
+});
+
+test("a file without the schedule fields reads as the defaults, field by field", () => {
+  const old = read({ settings: { timeOfDay: "06:30", topics: ["Space"], language: "English" }, taskId: "t" }).settings;
+  assert.deepEqual([old.enabled, old.frequency, old.weekday, old.timeOfDay], [true, "daily", 1, "06:30"]);
+  const bad = read({ settings: { enabled: "no", frequency: "monthly", weekday: 7 } }).settings;
+  assert.deepEqual([bad.enabled, bad.frequency, bad.weekday], [true, "daily", 1]);
+  assert.equal(read({ settings: { weekday: 1.5 } }).settings.weekday, 1);
+  const good = read({ settings: { enabled: false, frequency: "weekly", weekday: 0 } }).settings;
+  assert.deepEqual([good.enabled, good.frequency, good.weekday], [false, "weekly", 0]);
 });
 
 test("the file carries a version", () => {

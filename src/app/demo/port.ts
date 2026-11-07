@@ -144,7 +144,7 @@ export class DemoPort implements T3Port {
       id: task.id,
       title: task.title,
       prompt: task.prompt,
-      enabled: true,
+      enabled: task.enabled,
       schedule: storedSchedule(schedule),
       projectId: task.projectId,
       threadId: null,

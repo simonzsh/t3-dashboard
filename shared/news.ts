@@ -2,7 +2,14 @@
 import type { AutomationRunStatus } from "./automations.ts";
 import type { ModelSelection } from "./threads.ts";
 
+export type NewsFrequency = "daily" | "weekly";
+
 export interface NewsSettings {
+  /** False pauses the T3 task: only Run now writes an article. */
+  enabled: boolean;
+  frequency: NewsFrequency;
+  /** 0-6, 0 = Sunday (JS getDay, same as T3 weekdays). Used when weekly. */
+  weekday: number;
   /** "HH:MM" in the time zone of the T3 host. */
   timeOfDay: string;
   topics: string[];
@@ -10,7 +17,7 @@ export interface NewsSettings {
   modelSelection: ModelSelection | null;
 }
 
-export const NEWS_DEFAULTS: NewsSettings = { timeOfDay: "07:00", topics: ["Tech", "Software development", "AI"], language: "English", modelSelection: null };
+export const NEWS_DEFAULTS: NewsSettings = { enabled: true, frequency: "daily", weekday: 1, timeOfDay: "07:00", topics: ["Tech", "Software development", "AI"], language: "English", modelSelection: null };
 
 export interface NewsTask {
   id: string;
@@ -44,6 +51,9 @@ export interface NewsArticle {
 }
 
 export interface SaveNewsBody {
+  enabled: boolean;
+  frequency: NewsFrequency;
+  weekday: number;
   timeOfDay: string;
   topics: string[];
   language: string;

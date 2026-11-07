@@ -4,10 +4,10 @@ import type { DashboardProvider, NewsSettings, NewsTask } from "../../../../shar
 import type { SeenState } from "../../../../shared/seen.ts";
 import { prune } from "../../../../shared/seen.ts";
 import { formatMessageTime } from "../../../src/lib/format.ts";
-import { isUnreadArticle, newsMark, readTarget, unreadNewsCount, dateLabel, formFromSettings, pickModel, shortDate, statusLine, toBody, topicsFromText } from "../../../src/features/news/news.ts";
+import { isUnreadArticle, newsMark, readTarget, unreadNewsCount, dateLabel, formFromSettings, pickModel, shortDate, statusLine, toBody, topicsFromText, scheduleHint, WEEKDAYS } from "../../../src/features/news/news.ts";
 
 const provider: DashboardProvider = { instanceId: "provider-a", displayName: "Provider A", models: [{ slug: "model-x", name: "Model X" }, { slug: "model-y", name: "Model Y" }] as never, runtimeModes: [] };
-const settings: NewsSettings = { timeOfDay: "07:00", topics: ["Tech", "AI"], language: "French", modelSelection: { instanceId: "provider-a", model: "model-y" } };
+const settings: NewsSettings = { enabled: true, frequency: "daily", weekday: 1, timeOfDay: "07:00", topics: ["Tech", "AI"], language: "French", modelSelection: { instanceId: "provider-a", model: "model-y" } };
 const task = (over: Partial<NewsTask> = {}): NewsTask => ({ id: "t", enabled: true, nextRunAt: "2026-11-08T07:00:00.000Z", lastRunAt: null, lastRunStatus: null, lastRunError: null, ...over });
 const now = new Date("2026-11-07T12:00:00.000Z");
 
@@ -24,7 +24,30 @@ test("the form shows the topics one per line", () => {
 
 test("a valid form becomes the save body", () => {
   const form = { ...formFromSettings(settings, settings.modelSelection), topics: "Tech\nAI\ntech" };
-  assert.deepEqual(toBody(form), { body: { timeOfDay: "07:00", topics: ["Tech", "AI"], language: "French", modelSelection: settings.modelSelection } });
+  assert.deepEqual(toBody(form), { body: { enabled: true, frequency: "daily", weekday: 1, timeOfDay: "07:00", topics: ["Tech", "AI"], language: "French", modelSelection: settings.modelSelection } });
+});
+
+test("the schedule fields go through the form and the body", () => {
+  const form = formFromSettings({ ...settings, enabled: false, frequency: "weekly", weekday: 0 }, settings.modelSelection);
+  assert.deepEqual([form.enabled, form.frequency, form.weekday], [false, "weekly", 0]);
+  const built = toBody(form);
+  assert.ok("body" in built);
+  assert.deepEqual([built.body.enabled, built.body.frequency, built.body.weekday], [false, "weekly", 0]);
+});
+
+test("the weekdays start on Monday and use JS numbers", () => {
+  assert.deepEqual(WEEKDAYS.map((d) => d.id), ["1", "2", "3", "4", "5", "6", "0"]);
+  assert.equal(WEEKDAYS[6]!.label, "Sunday");
+});
+
+test("the schedule hint follows the frequency", () => {
+  assert.match(scheduleHint("daily", 1), /runs every day/);
+  assert.match(scheduleHint("weekly", 1), /runs every Monday/);
+  assert.match(scheduleHint("weekly", 0), /every Sunday/);
+});
+
+test("the status line says when automatic generation is off", () => {
+  assert.equal(statusLine(task({ enabled: false }), now), "Automatic generation is off. Use Run now to get an article.");
 });
 
 test("an invalid form names the problem", () => {
@@ -61,7 +84,6 @@ test("the status line gives the next run and the last run", () => {
 });
 
 test("the status line says when the routine is paused or running, and shows a failure", () => {
-  assert.match(statusLine(task({ enabled: false }), now), /Paused.*Automations/);
   assert.match(statusLine(task({ lastRunStatus: "running", lastRunAt: "2026-11-07T11:59:00.000Z" }), now), /Running now/);
   assert.match(statusLine(task({ lastRunAt: "2026-11-07T09:00:00.000Z", lastRunStatus: "failed", lastRunError: "No model" }), now), /Last run failed: No model/);
 });

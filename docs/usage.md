@@ -229,11 +229,11 @@ A task without a linked thread creates a new thread at each run. These threads s
 
 ## News
 
-The News tab shows a daily article with the news on your topics. A T3 routine, owned by the dashboard, asks an agent to search the web and write the article. It needs T3 Code to be connected, and a model that can search the web.
+The News tab shows a daily or weekly article with the news on your topics. A T3 routine, owned by the dashboard, asks an agent to search the web and write the article. It needs T3 Code to be connected, and a model that can search the web.
 
-- On a wide screen, the list of articles is on the left, newest first, and the open article is on the right. The newest article opens first. The line above the list gives the next run and the result of the last run.
+- On a wide screen, the list of articles is on the left, newest first, and the open article is on the right. The newest article opens first. The line above the list gives the next run (or says that automatic generation is off) and the result of the last run.
 - On a phone, the page shows the list. A tap opens the article, and the "News" button at its top returns to the list.
-- Click "News settings" in the header to set the time of day, the topics (one per line, up to 10), the language and the model. The default model is Codex `gpt-6-luna`, when T3 offers it; you can pick another one. The time is read in the time zone of the machine that runs T3. The first save creates the routine. Each later save updates it.
+- Click "News settings" in the header to set automatic generation (on or off), the frequency (every day, or every week on a weekday you pick, Monday by default), the time of day, the topics (one per line, up to 10), the language and the model. The default model is Codex `gpt-6-luna`, when T3 offers it; you can pick another one. The time is read in the time zone of the machine that runs T3. A weekly article covers the last 7 days; a daily one covers the last 24 hours. The first save creates the routine. Each later save updates it. Turning "Automatic generation" off pauses the routine; "Run now" still works. If you pause or resume the routine in Automations, the setting follows it.
 - Click "Run now" to start an article at once. A second article on the same day replaces the first. The button is off until the first save.
 - The routine is a normal routine: it also shows in Automations, where you can pause or delete it. If you delete it, the next save creates it again.
 - The dashboard archives the run threads of the news when the article is written. A failed run stays visible in Sessions.

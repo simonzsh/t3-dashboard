@@ -858,6 +858,6 @@ export function demoNews(now: Date) {
   ];
   const entries = articles.map(([offset]) => ({ name: `${day(offset)}.md`, mtimeMs: now.getTime() - offset * 86_400_000, isFile: true }));
   const contents = Object.fromEntries(articles.map(([offset, title, sections]) => [`${DEMO_NEWS_DIR}/${day(offset)}.md`, demoArticle(day(offset), title, sections)]));
-  const settings = JSON.stringify({ version: 1, settings: { timeOfDay: "07:00", topics: ["Tech", "Software development", "AI"], language: "English", modelSelection: SONNET }, taskId: "news", taskCreatedAt: hoursFrom(now, -72) });
+  const settings = JSON.stringify({ version: 1, settings: { enabled: true, frequency: "daily", weekday: 1, timeOfDay: "07:00", topics: ["Tech", "Software development", "AI"], language: "English", modelSelection: SONNET }, taskId: "news", taskCreatedAt: hoursFrom(now, -72) });
   return { settings, entries, contents };
 }

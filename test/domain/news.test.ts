@@ -13,7 +13,7 @@ const FILE = "/cfg/news.json";
 const DIR = "/cfg/news";
 const NOW = new Date("2026-11-07T10:00:00.000Z");
 const SELECTION = { instanceId: "claudeAgent", model: "model-x" };
-const body = (extra: Partial<SaveNewsBody> = {}): SaveNewsBody => ({ timeOfDay: "06:45", topics: ["Space", "Chips"], language: "English", modelSelection: SELECTION, ...extra });
+const body = (extra: Partial<SaveNewsBody> = {}): SaveNewsBody => ({ enabled: true, frequency: "daily", weekday: 1, timeOfDay: "06:45", topics: ["Space", "Chips"], language: "English", modelSelection: SELECTION, ...extra });
 
 interface Entry { name: string; mtimeMs: number; isFile: boolean }
 
@@ -74,6 +74,58 @@ test("an article title is its first heading, or its date", () => {
   assert.equal(articleTitle("", "2026-11-07"), "2026-11-07");
 });
 
+test("the daily prompt covers 24 hours, the weekly prompt 7 days", () => {
+  const daily = newsPrompt(NEWS_DEFAULTS, DIR);
+  for (const part of ["last 24 hours", "older than 48 hours", "3 to 6 items", "contains DATE"]) assert.ok(daily.includes(part), part);
+  const weekly = newsPrompt({ ...NEWS_DEFAULTS, frequency: "weekly" }, DIR);
+  for (const part of ["last 7 days", "older than 8 days", "3 to 8 items", "contains DATE"]) assert.ok(weekly.includes(part), part);
+  for (const gone of ["24 hours", "48 hours", "6 items"]) assert.ok(!weekly.includes(gone), gone);
+  assert.equal(weekly.replace("7 days", "24 hours").replace("8 days", "48 hours").replace("3 to 8", "3 to 6"), daily);
+});
+
+test("a weekly save schedules the chosen weekday, a daily save none", async () => {
+  const weekly = setup();
+  await weekly.news.save(body({ frequency: "weekly", weekday: 1 }));
+  assert.deepEqual(weekly.port.createdTasks[0]!.schedule, { type: "fixed_time", timeOfDay: "06:45", weekdays: [1] });
+  assert.equal(weekly.port.createdTasks[0]!.prompt, newsPrompt(body({ frequency: "weekly", weekday: 1 }), DIR));
+  const sunday = setup({ stored: known });
+  sunday.port.scheduledTasks = [liveTask()];
+  await sunday.news.save(body({ frequency: "weekly", weekday: 0 }));
+  assert.deepEqual(sunday.port.updatedTasks[0]!.schedule, { type: "fixed_time", timeOfDay: "06:45", weekdays: [0] });
+  await sunday.news.save(body());
+  assert.deepEqual(sunday.port.updatedTasks[1]!.schedule, { type: "fixed_time", timeOfDay: "06:45" });
+});
+
+test("a save with automatic generation off pauses the task, and a save with it on resumes it", async () => {
+  const created = setup();
+  await created.news.save(body({ enabled: false }));
+  assert.equal(created.port.createdTasks[0]!.enabled, false);
+  const { news, port, stored } = setup({ stored: known });
+  port.scheduledTasks = [liveTask()];
+  await news.save(body({ enabled: false }));
+  assert.equal(port.updatedTasks[0]!.enabled, false);
+  assert.equal(stored().settings.enabled, false);
+  port.scheduledTasks = [liveTask({ enabled: false })];
+  await news.save(body({ enabled: true }));
+  assert.equal(port.updatedTasks[1]!.enabled, true);
+  assert.equal(stored().settings.enabled, true);
+});
+
+test("get reports the real enabled flag of the task, and the saved one without a task", async () => {
+  const { news, port } = setup({ stored: { ...known, settings: { ...NEWS_DEFAULTS, enabled: true } } });
+  port.scheduledTasks = [liveTask({ enabled: false })];
+  assert.equal((await news.get()).settings.enabled, false);
+  port.scheduledTasks = [];
+  assert.equal((await news.get()).settings.enabled, true);
+});
+
+test("run now works on a paused task", async () => {
+  const { news, port } = setup({ stored: known });
+  port.scheduledTasks = [liveTask({ enabled: false })];
+  await news.runNow();
+  assert.deepEqual(port.runNowCalls, ["scheduled-task:old"]);
+});
+
 test("the first save creates a daily routine, makes the folder and stores the task id", async () => {
   const { news, port, folder, stored } = setup();
   const state = await news.save(body());
@@ -90,12 +142,12 @@ test("the first save creates a daily routine, makes the folder and stores the ta
   assert.equal(state.task, null);
 });
 
-test("a save updates the stored task and keeps its pause and its project", async () => {
+test("a save updates the stored task and keeps its project", async () => {
   const { news, port, stored } = setup({ stored: known });
-  port.scheduledTasks = [liveTask({ enabled: false, title: "Morning news" })];
+  port.scheduledTasks = [liveTask({ title: "Morning news" })];
   await news.save(body());
   assert.equal(port.createdTasks.length, 0);
-  assert.deepEqual(port.updatedTasks, [{ id: "scheduled-task:old", title: "Morning news", prompt: newsPrompt(body(), DIR), enabled: false, schedule: { type: "fixed_time", timeOfDay: "06:45" }, projectId: "project-9", modelSelection: SELECTION, runtimeMode: "approval-required" }]);
+  assert.deepEqual(port.updatedTasks, [{ id: "scheduled-task:old", title: "Morning news", prompt: newsPrompt(body(), DIR), enabled: true, schedule: { type: "fixed_time", timeOfDay: "06:45" }, projectId: "project-9", modelSelection: SELECTION, runtimeMode: "approval-required" }]);
   assert.deepEqual(stored(), { settings: body(), taskId: "scheduled-task:old", taskCreatedAt: known.taskCreatedAt });
 });
 

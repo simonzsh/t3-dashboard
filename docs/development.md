@@ -130,7 +130,7 @@ A second test (`test/integrations/boundary.test.ts`) blocks `fetch`, `WebSocket`
 
 The News page uses one T3 routine that the dashboard owns. `domain/news.ts` creates or updates it when the user saves the settings. It stores the task id in `news.json` in the config directory. If the task is gone from T3, the next save creates it again.
 
-The agent writes one Markdown file for each day, `news/YYYY-MM-DD.md`, in the config directory. The server lists only real files with this name (no symlinks) and cuts an article at 512 KB. Use `T3_DASHBOARD_CONFIG_DIR` for a preview: it gets its own folder and its own task, which you must delete after the test.
+The agent writes one Markdown file for each day, `news/YYYY-MM-DD.md`, in the config directory. The server lists only real files with this name (no symlinks) and cuts an article at 512 KB. `news.json` keeps `enabled`, `frequency` (`daily` or `weekly`) and `weekday` (0-6, 0 = Sunday) with the other settings; a file without them reads as the defaults. A save sets the task `enabled` flag from `enabled`, and `get()` reports the real flag of the task. Use `T3_DASHBOARD_CONFIG_DIR` for a preview: it gets its own folder and its own task, which you must delete after the test.
 
 Every 60 seconds `news.sweep()` archives the finished run threads of this task, when an article is newer than the thread. A failed or empty run stays visible. Demo mode keeps the articles in memory and does not sweep.
 

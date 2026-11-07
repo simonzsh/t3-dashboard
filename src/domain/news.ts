@@ -22,13 +22,14 @@ const RUN_MARGIN_MS = 2 * 60_000;
 const RUN_STATUSES = new Set<string>(["running", "succeeded", "failed"] satisfies AutomationRunStatus[]);
 
 export function newsPrompt(settings: NewsSettings, dir: string): string {
+  const weekly = settings.frequency === "weekly";
   return `Write today's news article. Nobody reads this thread: do not ask questions.
 
 1. Run \`date +%F\` to get today's date in this machine's time zone. Call it DATE.
-2. Search the web for the most important news of the last 24 hours on these topics: ${settings.topics.join("; ")}. Prefer primary sources and skip anything older than 48 hours.
+2. Search the web for the most important news of the last ${weekly ? "7 days" : "24 hours"} on these topics: ${settings.topics.join("; ")}. Prefer primary sources and skip anything older than ${weekly ? "8 days" : "48 hours"}.
 3. Write the article in Markdown, in ${settings.language}:
    - first line: \`# \` followed by a short title that contains DATE;
-   - one \`## \` section per topic, 3 to 6 items each: a bold headline, two or three sentences, and a source link [name](https://...);
+   - one \`## \` section per topic, 3 to ${weekly ? 8 : 6} items each: a bold headline, two or three sentences, and a source link [name](https://...);
    - end with a \`## \` section of 3 key takeaways.
    No HTML, no images.
 4. Save it: create the folder ${dir} if missing, write the file ${dir}/DATE.md.tmp, then rename it to ${dir}/DATE.md (replace an older file of that name). Write nothing anywhere else.
@@ -138,24 +139,25 @@ export function createNews(options: NewsOptions): News {
         }
         return { date, title: articleTitle(markdown, date), mtimeMs: entry.mtimeMs };
       });
-    return { settings: stored.settings, task, articles };
+    // The routine can be paused or resumed in Automations: the real state wins.
+    return { settings: { ...stored.settings, enabled: task?.enabled ?? stored.settings.enabled }, task, articles };
   }
 
   async function persist(body: SaveNewsBody): Promise<NewsState> {
-    const settings: NewsSettings = { timeOfDay: body.timeOfDay, topics: body.topics, language: body.language, modelSelection: body.modelSelection };
+    const settings: NewsSettings = { enabled: body.enabled, frequency: body.frequency, weekday: body.weekday, timeOfDay: body.timeOfDay, topics: body.topics, language: body.language, modelSelection: body.modelSelection };
     const stored = { ...load(), settings };
     write(stored);
     fs.mkdir(dir);
     const live = await liveTask(stored);
     const prompt = newsPrompt(settings, dir);
-    const schedule = routineSchedule({ type: "fixed_time", timeOfDay: settings.timeOfDay, weekdays: [] });
+    const schedule = routineSchedule({ type: "fixed_time", timeOfDay: settings.timeOfDay, weekdays: settings.frequency === "weekly" ? [settings.weekday] : [] });
     if (live) {
       await viaT3(
         port.updateScheduledTask(live.id, {
           // Keep a title the user renamed in T3.
           title: live.title || TASK_TITLE,
           prompt,
-          enabled: live.enabled !== false,
+          enabled: settings.enabled,
           schedule,
           projectId: live.projectId || (await viaT3(port.ensureScratchProject())),
           modelSelection: body.modelSelection,
@@ -168,7 +170,7 @@ export function createNews(options: NewsOptions): News {
           id: `scheduled-task:${newId()}`,
           title: TASK_TITLE,
           prompt,
-          enabled: true,
+          enabled: settings.enabled,
           schedule,
           projectId: await viaT3(port.ensureScratchProject()),
           threadId: null,
