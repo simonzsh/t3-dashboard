@@ -4,7 +4,6 @@ import { renderToStaticMarkup } from "react-dom/server";
 import type { DashboardState, LimitsOverview, ServerStats, UsageDay, UsageOverview, UsageTotals } from "../../../../shared/api.ts";
 import { DashboardView } from "../../../src/features/dashboard/DashboardView.tsx";
 import { DEFAULT_LAYOUT, setHidden, shiftCard, type DashboardLayout } from "../../../src/features/dashboard/layout.ts";
-import { agentCounts } from "../../../src/lib/agents.ts";
 import { listedThreads } from "../../../src/features/dashboard/sections.ts";
 import type { ReadState } from "../../../src/features/dashboard/pollRead.ts";
 import { baseState, thread } from "../../fixtures.ts";
@@ -72,7 +71,6 @@ const render = (activity: ReadState<UsageOverview>, { limits = limitsState(), th
       visible={listedThreads(threads, ["t-routine"])}
       now={NOW}
       sessionIds={new Set()}
-      running={agentCounts(threads).running}
       layout={layout}
       editing={editing}
       panelOpen={panelOpen}
@@ -110,7 +108,7 @@ test("the card says once that it covers the last 7 days, and each tile shows its
   assert.equal(text.match(/last 7 days/g)?.length, 1);
   assert.match(text, /messages sent to agents/);
   assert.match(out, /Sessions<\/span><span class="stat-value">9<span class="stat-delta">\+50 %/);
-  assert.match(text, /1 running/);
+  assert.match(text, /conversations with at least one turn/);
   assert.match(out, /Spend<span class="stat-more"> \(API equiv\.\)<\/span><\/span><span class="stat-value">\$[\d.]+<span class="stat-delta[^"]*">/);
   assert.match(text, /all usage on this machine/);
   assert.doesNotMatch(out, /last 14 days ·/);

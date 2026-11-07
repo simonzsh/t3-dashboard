@@ -14,7 +14,6 @@ interface Props extends CardsInput {
   server: ReadState<ServerStats>;
   activity: ReadState<UsageOverview>;
   /** Agents at work among the listed threads: the same count as the Sessions badge and the Running card. */
-  running: number;
   layout: DashboardLayout;
   /** Edit mode: each card gets a bar to move or hide it. */
   editing: boolean;
@@ -26,14 +25,14 @@ interface Props extends CardsInput {
   onCloseSheet: () => void;
 }
 
-export function DashboardView({ limits, server, activity, running, layout, editing, onLayout, panelOpen, sheet, onCloseSheet, ...input }: Props) {
+export function DashboardView({ limits, server, activity, layout, editing, onLayout, panelOpen, sheet, onCloseSheet, ...input }: Props) {
   const [dragged, setDragged] = useState<DashboardCard | null>(null);
   // Where the dragged card would land, shown as a placeholder of its size.
   const [target, setTarget] = useState<DropTarget | null>(null);
   const [dragHeight, setDragHeight] = useState(0);
   // A hidden Up next reads no tickets.
   const { notifications, ...cards } = useDashboardCards(input, !layout.hidden.includes("up-next"));
-  const body: Record<DashboardCard, ReactNode> = { usage: <UsageCard state={limits} now={input.now} />, server: <ServerCard state={server} />, activity: <ActivityCard state={activity} running={running} now={input.now} />, ...cards };
+  const body: Record<DashboardCard, ReactNode> = { usage: <UsageCard state={limits} now={input.now} />, server: <ServerCard state={server} />, activity: <ActivityCard state={activity} now={input.now} />, ...cards };
   const showPanel = panelOpen && !editing;
   // The sheet takes no room, so the cards do not move for it.
   const inline = showPanel && !sheet;

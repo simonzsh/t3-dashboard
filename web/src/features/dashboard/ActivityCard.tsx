@@ -27,7 +27,7 @@ function StatTile({ label, value, caption, change }: TileProps) {
   );
 }
 
-function Tiles({ usage, running, costKnown }: { usage: UsageOverview; running: number; costKnown: boolean }) {
+function Tiles({ usage, costKnown }: { usage: UsageOverview; costKnown: boolean }) {
   const { thisWeek, lastWeek, cost, sessions } = usage;
   // On a phone the tiles show only the short part; `.stat-more` holds the rest.
   const more = (text: string) => <span className="stat-more">{text}</span>;
@@ -37,7 +37,7 @@ function Tiles({ usage, running, costKnown }: { usage: UsageOverview; running: n
   return (
     <div className="stat-tiles">
       <StatTile label="Turns" value={String(thisWeek.turns)} change={delta(thisWeek.turns, lastWeek.turns)} caption={turnsCaption} />
-      <StatTile label="Sessions" value={String(sessions.thisWeek)} change={delta(sessions.thisWeek, sessions.lastWeek)} caption={`${running} running`} />
+      <StatTile label="Sessions" value={String(sessions.thisWeek)} change={delta(sessions.thisWeek, sessions.lastWeek)} caption="conversations with at least one turn" />
       <StatTile label={<>Spend{more(" (API equiv.)")}</>} value={costKnown ? formatUsd(thisWeek.costUsd) : "—"} change={costKnown ? delta(thisWeek.costUsd, lastWeek.costUsd) : null} caption={costCaption} />
     </div>
   );
@@ -71,7 +71,7 @@ function ActivitySkeleton() {
   );
 }
 
-export function ActivityCard({ state, running, now }: { state: ReadState<UsageOverview>; running: number; now: Date }) {
+export function ActivityCard({ state, now }: { state: ReadState<UsageOverview>; now: Date }) {
   const [metric, setMetric] = useState<Metric>("turns");
   const { value: usage, error, loading, refresh } = state;
   const costKnown = usage !== null && usage.cost.status !== "unavailable";
@@ -95,7 +95,7 @@ export function ActivityCard({ state, running, now }: { state: ReadState<UsageOv
         error ? <p className="dashboard-note error" role="alert">{error}</p> : <ActivitySkeleton />
       ) : (
         <>
-          <Tiles usage={usage} running={running} costKnown={costKnown} />
+          <Tiles usage={usage} costKnown={costKnown} />
           <div className="activity-chart-head">
             <h2>Last 14 days</h2>
             <Segmented label="Chart metric" value={metric} options={METRICS} onChange={setMetric} />
