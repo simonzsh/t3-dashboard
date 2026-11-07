@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "bun:test";
 import { DemoPort, demoLinearFetch } from "../../src/app/demo/port.ts";
-import { demoFixtures, demoServerStats, demoUsageBuckets } from "../../src/app/demo/fixtures.ts";
+import { DEMO_HOME, demoFixtures, demoServerStats, demoUsageBuckets } from "../../src/app/demo/fixtures.ts";
 import { issues } from "../../src/integrations/contract.ts";
 import { LinearClient } from "../../src/integrations/linear/client.ts";
 import { RawConfig, RawProjection, RawProject, RawThread, UsageSummaryResponse } from "../../src/integrations/t3/schemas.ts";
@@ -367,4 +367,46 @@ test("demo runNow opens a running run thread that the task matches, and setEnabl
   assert.equal((await port.listScheduledTasks()).find((entry) => entry.id === "dependency-check")!.enabled, false);
   await automations.setEnabled("dependency-check", true);
   assert.equal((await port.listScheduledTasks()).find((entry) => entry.id === "dependency-check")!.enabled, true);
+});
+
+test("the demo edits and deletes a project with its threads", async () => {
+  const port = new DemoPort(() => NOW);
+  const store = syncedStore(port);
+  store.apply([{ kind: "synchronized" }]);
+  const actions = createActions({ port, store, board: { get: async () => ({ configured: true, ok: true, error: null, issues: [] }) }, home: DEMO_HOME });
+  await Promise.resolve();
+  await actions.updateProject("demo-sandbox", { title: "Playground", path: "~/src/notes", icon: { kind: "emoji", emoji: "🧪" } });
+  const edited = store.project("demo-sandbox");
+  assert.equal(edited?.title, "Playground");
+  assert.equal(edited?.workspaceRoot, `${DEMO_HOME}/src/notes`);
+  assert.deepEqual(edited?.iconSpec, { kind: "emoji", emoji: "🧪" });
+  await assert.rejects(actions.updateProject("demo-sandbox", { path: "~/src/missing" }), /does not exist/);
+  await assert.rejects(actions.updateProject("demo-sandbox", { path: "~/todo.txt" }), /file, not a folder/);
+
+  const connection = { t3: "live", origin: null, serverVersion: null, protocolMismatch: false, error: null, since: "x", setup: null } as const;
+  const { projects, threads } = store.state(connection, []);
+  const target = projects.find((project) => threads.some((thread) => thread.projectId === project.id))!;
+  await actions.deleteProject(target.id);
+  const after = store.state(connection, []);
+  assert.equal(after.projects.some((project) => project.id === target.id), false);
+  assert.equal(after.threads.some((thread) => thread.projectId === target.id), false);
+});
+
+test("the demo lists its folders and adds a created folder as a project", async () => {
+  const port = new DemoPort(() => NOW);
+  const store = syncedStore(port);
+  store.apply([{ kind: "synchronized" }]);
+  const actions = createActions({ port, store, board: { get: async () => ({ configured: true, ok: true, error: null, issues: [] }) }, home: DEMO_HOME });
+  const listed = await actions.browseFolders("~/src/");
+  assert.deepEqual(listed.entries.map((entry) => entry.name), ["atlas-api", "atlas-web", "notes", "sandbox"]);
+  assert.equal((await actions.browseFolders("~/src/new-thing")).kind, "missing");
+
+  const created = await actions.createProject({ path: "~/src/new-thing" });
+  assert.equal(created.created, true);
+  const project = store.project(created.projectId);
+  assert.equal(project?.title, "new-thing");
+  assert.equal((await actions.browseFolders("~/src/new-thing")).kind, "directory");
+  assert.deepEqual(await actions.createProject({ path: "~/src/new-thing/" }), { projectId: created.projectId, created: false });
+  await assert.rejects(actions.createProject({ path: "~/todo.txt" }), /file, not a folder/);
+  assert.deepEqual(await actions.createProject({ path: "~/src/sandbox" }), { projectId: "demo-sandbox", created: false });
 });

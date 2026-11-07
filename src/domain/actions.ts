@@ -1,5 +1,7 @@
+import { homedir } from "node:os";
+import { posix } from "node:path";
 import { marked } from "marked";
-import type { AssignIssueBody, ComposerCommands, CreateThreadBody, FileSearchResult, LinearIssue, ModelSelection, RespondBody, SecretAnswerBody, SendMessageBody, StepDetail, ThreadDetail, ThreadSearchResult, ThreadSettingsBody, UploadedAttachment } from "../../shared/api.ts";
+import type { AssignIssueBody, ComposerCommands, CreateProjectBody, CreateThreadBody, FileSearchResult, FolderBrowseResult, LinearIssue, ModelSelection, ProjectIconChoices, RespondBody, SecretAnswerBody, SendMessageBody, StepDetail, ThreadDetail, ThreadSearchResult, ThreadSettingsBody, UpdateProjectBody, UploadedAttachment } from "../../shared/api.ts";
 import { ACTIVE_STATUSES, RUNNING_RUN_STATUSES } from "../../shared/status.ts";
 import { IntegrationError } from "../integrations/errors.ts";
 import {
@@ -26,6 +28,8 @@ import {
 } from "../integrations/t3/commands.ts";
 import type { AssetResource, FileUpload, ImageUpload, RawProjection, T3Port } from "../integrations/t3/schemas.ts";
 import { DomainError } from "./errors.ts";
+import { expandHome, normalizeFolder } from "./folders.ts";
+import { projectIconChoices } from "./projectIcon.ts";
 import { toComposerCommands } from "./providers.ts";
 import type { LinearBoard } from "./linearBoard.ts";
 import type { ShellStore } from "./shellStore.ts";
@@ -36,9 +40,11 @@ export type { FileUpload, ImageUpload };
 
 export interface ActionsOptions {
   port: T3Port;
-  store: Pick<ShellStore, "thread" | "project" | "backgroundTasks" | "workspaceOf">;
+  store: Pick<ShellStore, "thread" | "project" | "backgroundTasks" | "workspaceOf" | "projectByRoot">;
   board: Pick<LinearBoard, "get">;
   newId?: () => string;
+  /** What "~" means in a typed path; the demo has its own. */
+  home?: string;
 }
 
 /** What the user can do to T3 threads from the dashboard. */
@@ -55,6 +61,15 @@ export interface Actions {
   /** Stores one file in T3, ready to go with a message. */
   uploadAttachment(upload: FileUpload): Promise<UploadedAttachment>;
   deleteAttachment(attachmentId: string): Promise<void>;
+  /** Adds a folder as a T3 project, creating the folder if it is missing; an existing project for it is reused. */
+  createProject(body: CreateProjectBody): Promise<{ projectId: string; created: boolean }>;
+  /** Changes the given fields of a project; the folder must exist. */
+  updateProject(projectId: string, body: UpdateProjectBody): Promise<void>;
+  /** Deletes the project and all its threads from T3; the folder stays on disk. */
+  deleteProject(projectId: string): Promise<void>;
+  projectIcons(): ProjectIconChoices;
+  /** Folder suggestions for a typed path, and what is at that path. */
+  browseFolders(path: string): Promise<FolderBrowseResult>;
   createThread(create: CreateThreadBody, images: ImageUpload[], uploads?: UploadedAttachment[]): Promise<string>;
   sendMessage(threadId: string, body: Omit<SendMessageBody, "attachments" | "uploads">, images: ImageUpload[], uploads?: UploadedAttachment[]): Promise<void>;
   changeSettings(threadId: string, settings: ThreadSettingsBody): Promise<void>;
@@ -80,6 +95,7 @@ export interface Actions {
 
 export type AssetRequest = { attachmentId: string } | { path: string };
 
+const MAX_FOLDERS = 100;
 const MEDIA_FILE = /\.(png|jpe?g|gif|webp|avif|mp4|m4v|webm|mov)$/i;
 const ATTACHMENT_ID = /^[\w-]+$/;
 
@@ -97,6 +113,7 @@ const CITED_TTL_MS = 10_000;
 export function createActions(options: ActionsOptions): Actions {
   const { port, store, board } = options;
   const newId = options.newId ?? (() => crypto.randomUUID());
+  const home = options.home ?? homedir();
 
   // Every T3 failure is a T3 error, even one a fake port throws as a plain Error.
   const t3 = async <T>(work: Promise<T>): Promise<T> => {
@@ -106,6 +123,12 @@ export function createActions(options: ActionsOptions): Actions {
       if (error instanceof IntegrationError) throw error;
       throw new IntegrationError((error as Error).message, { system: "t3", kind: "unreachable" });
     }
+  };
+  // store.project also matches a title; an edit or delete must hit an id.
+  const knownProject = (id: string) => {
+    const project = store.project(id);
+    if (project?.id !== id) throw new DomainError("not-found", "Project not found");
+    return project;
   };
   const send = async (...commands: UnsentCommand[]) => {
     for (const command of commands) await t3(port.dispatch({ ...command, commandId: newId() }));
@@ -227,6 +250,81 @@ export function createActions(options: ActionsOptions): Actions {
       }
       const { response, fileName } = await t3(port.fetchAsset(resource, range));
       return { response, html: resource._tag === "attachment" && fileName.endsWith(".html") };
+    },
+
+    async createProject({ path, title }) {
+      const root = normalizeFolder(path, home);
+      const existing = store.projectByRoot(root);
+      if (existing) {
+        if (existing.archived) await t3(port.mutateProject({ type: "project.update", projectId: existing.id, archived: false }, newId()));
+        return { projectId: existing.id, created: false };
+      }
+      const projectId = newId();
+      const name = title || posix.basename(root) || "project";
+      try {
+        await t3(port.mutateProject({ type: "project.create", projectId, title: name, workspaceRoot: root, createWorkspaceRootIfMissing: true }, newId()));
+      } catch (error) {
+        const reason = error instanceof IntegrationError ? error.reason : undefined;
+        if (reason === "WorkspaceRootNotDirectoryError") throw new DomainError("invalid", "This path is a file, not a folder");
+        if (reason === "ProjectConflictError" || reason === "ProjectAlreadyExistsError") throw new DomainError("conflict", "Another T3 project already uses this folder");
+        throw error;
+      }
+      return { projectId, created: true };
+    },
+
+    async updateProject(projectId, { title, path, icon }) {
+      const current = knownProject(projectId);
+      const root = path === undefined ? undefined : normalizeFolder(path, home);
+      const other = root === undefined ? undefined : store.projectByRoot(root);
+      if (other && other.id !== projectId && !other.archived) throw new DomainError("conflict", "Another T3 project already uses this folder");
+      const fields = {
+        ...(title !== undefined && { title }),
+        ...(root !== undefined && root !== normalizeFolder(current.workspaceRoot ?? "", "") && { workspaceRoot: root }),
+        ...(icon !== undefined && { projectIcon: icon }),
+      };
+      if (Object.keys(fields).length === 0) return;
+      const mutation = { type: "project.update" as const, projectId, ...fields };
+      try {
+        await t3(port.mutateProject(mutation, newId()));
+      } catch (error) {
+        const reason = error instanceof IntegrationError ? error.reason : undefined;
+        if (reason === "WorkspaceRootNotExistsError") throw new DomainError("invalid", "This folder does not exist");
+        if (reason === "WorkspaceRootNotDirectoryError") throw new DomainError("invalid", "This path is a file, not a folder");
+        if (reason === "ProjectConflictError") throw new DomainError("conflict", "Another T3 project already uses this folder");
+        if (reason === "ProjectNotFoundError") throw new DomainError("not-found", "Project not found");
+        throw error;
+      }
+    },
+
+    async deleteProject(projectId) {
+      knownProject(projectId);
+      try {
+        await t3(port.mutateProject({ type: "project.delete", projectId, force: true }, newId()));
+      } catch (error) {
+        if (error instanceof IntegrationError && error.reason === "ProjectNotFoundError") throw new DomainError("not-found", "Project not found");
+        throw error;
+      }
+    },
+
+    projectIcons: projectIconChoices,
+
+    async browseFolders(path) {
+      const root = normalizeFolder(path, home);
+      const [browsed, [kind]] = await Promise.all([
+        // A bare "~" lists the home folder, not its siblings.
+        t3(port.browseFolders(expandHome(path.trim() === "~" ? "~/" : path, home))).catch((error) => {
+          if (error instanceof IntegrationError && error.reason === "read_directory_failed") return { entries: [] };
+          throw error;
+        }),
+        t3(port.pathKinds([root])),
+      ]);
+      const typed = path.slice(path.lastIndexOf("/") + 1);
+      const entries = browsed.entries
+        .filter((entry) => typed.startsWith(".") || !entry.name.startsWith("."))
+        .sort((a, b) => a.name.localeCompare(b.name))
+        .slice(0, MAX_FOLDERS)
+        .map((entry) => ({ name: entry.name, path: entry.fullPath }));
+      return { path: root, kind: kind === "directory" ? "directory" : kind === null ? "missing" : "file", entries };
     },
 
     async createThread(create, images, uploads) {

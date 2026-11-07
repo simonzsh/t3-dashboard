@@ -40,8 +40,8 @@ test("listableThreads: drops settled threads unless they run or wait, newest fir
   assert.deepEqual(listed.map((t) => t.id), ["new", "settled-running", "old", "settled-waiting"]);
 });
 
-test("groupByProject: T3 project order, threads keep their order, the running count, and no group for an empty project", () => {
-  const projects = [project("p1", "Alpha"), project("p2", "Beta"), project("p3", "Empty")];
+test("groupByProject: projects with threads first in T3 order, then empty ones in T3 order", () => {
+  const projects = [project("p0", "Empty first"), project("p1", "Alpha"), project("p2", "Beta"), project("p3", "Empty")];
   const threads = [
     thread("b1", { projectId: "p2", status: "running" }),
     thread("a1", { projectId: "p1", status: "completed" }),
@@ -54,13 +54,26 @@ test("groupByProject: T3 project order, threads keep their order, the running co
     [
       ["p1", "Alpha", ["a1"], 0],
       ["p2", "Beta", ["b1", "b2", "b3"], 1],
+      ["p0", "Empty first", [], 0],
+      ["p3", "Empty", [], 0],
     ],
   );
 });
 
+test("groupByProject: an archived project shows only while it has a listed thread", () => {
+  const projects = [{ ...project("p1", "Old"), archived: true }, { ...project("p2", "Gone"), archived: true }, project("p3", "Live")];
+  const groups = groupByProject([thread("o1", { projectId: "p1" })], projects);
+  assert.deepEqual(groups.map((g) => g.id), ["p1", "p3"]);
+});
+
 test("groupByProject: a thread of an unknown project gets its own group", () => {
   const groups = groupByProject([thread("x", { projectId: "gone" })], [project("p1", "Alpha")]);
-  assert.deepEqual(groups.map((g) => [g.id, g.title, g.project, g.threads.length]), [["gone", "Unknown project", null, 1]]);
+  assert.deepEqual(groups.map((g) => [g.id, g.title, g.project, g.threads.length]), [["gone", "Unknown project", null, 1], ["p1", "Alpha", { ...project("p1", "Alpha") }, 0]]);
+});
+
+test("groupByProject: unknown-project groups sit between projects with threads and empty ones", () => {
+  const groups = groupByProject([thread("x", { projectId: "gone" }), thread("a", { projectId: "p2" })], [project("p1", "Empty"), project("p2", "Busy")]);
+  assert.deepEqual(groups.map((g) => g.id), ["p2", "gone", "p1"]);
 });
 
 test("list prefs: defaults for missing or broken data, and a round trip through storage", () => {

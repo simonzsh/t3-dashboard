@@ -1,10 +1,10 @@
 /* Light theme and very dark zinc theme; data-theme is set on <html> before first paint, and data-accent picks the accent color. */
 :root, :root[data-theme="light"] {
   color-scheme: light;
-  --surface-0: #fafafa;
-  --surface-1: #ffffff;
-  --header-bg: #ffffff;
-  --line: #e4e4e7;
+  --surface-0: #f1f1f3;
+  --surface-1: #f9f9fa;
+  --header-bg: #f9f9fa;
+  --line: #dcdce0;
   --text-primary: #18181b;
   --text-secondary: #71717a;
   --accent: #2563eb;
@@ -70,7 +70,7 @@
 :root[data-theme="dark"][data-accent="red"] { --accent: #ef4444; }
 :root[data-accent="orange"] { --accent: #ea580c; }
 :root[data-theme="dark"][data-accent="orange"] { --accent: #f97316; --on-accent: #18181b; }
-:root[data-accent="yellow"] { --accent: #ca8a04; --on-accent: #18181b; }
+:root[data-accent="yellow"] { --accent: #eab308; --on-accent: #18181b; }
 :root[data-theme="dark"][data-accent="yellow"] { --accent: #eab308; --on-accent: #18181b; }
 :root[data-accent="green"] { --accent: #16a34a; }
 :root[data-theme="dark"][data-accent="green"] { --accent: #22c55e; --on-accent: #052e16; }
@@ -99,7 +99,8 @@ input.field { height: var(--control-md); padding-block: 0; }
 .icon-button.md { min-width: var(--control-md); height: var(--control-md); }
 .icon-button.sm { min-width: var(--control-sm); height: var(--control-sm); }
 .notif-bell { position: relative; }
-.notif-bell .nav-badge { position: absolute; top: 2px; right: 2px; min-width: 16px; height: 16px; padding: 0 4px; font-size: 10px; }
+/* Same look as the other count bubbles, pushed into the corner so it overlaps the edge and the bell stays visible. */
+.notif-bell .nav-badge { position: absolute; top: -6px; right: -6px; min-width: 16px; height: 16px; padding: 0 4px; font-size: 10px; font-weight: 600; background: color-mix(in srgb, var(--accent) 18%, transparent); color: var(--accent); box-shadow: 0 0 0 2px var(--surface-0); }
 .icon-button:has(kbd) { gap: 6px; padding: 0 6px; }
 .icon-button:not(.primary):hover:not(:disabled) { color: var(--text-primary); }
 button.primary { background: var(--accent); border-color: var(--accent); color: var(--on-accent); font-weight: 500; }
@@ -110,6 +111,7 @@ button.ghost { border-color: transparent; background: none; }
 button.icon-button.ghost[aria-pressed="true"]:not(:disabled) { background: color-mix(in srgb, var(--text-primary) 10%, transparent); color: var(--text-primary); }
 button.danger { border-color: var(--danger); }
 button.danger:hover:not(:disabled) { border-color: var(--danger); color: var(--danger); }
+.dialog-actions button.danger, .dialog-actions button.danger:hover:not(:disabled) { background: var(--danger); color: #fff; }
 button.link, .btn.link { display: inline-block; height: auto; border: 0; background: none; padding: 0; color: var(--accent); text-decoration: underline; }
 button.primary kbd { color: var(--on-accent); border-color: color-mix(in srgb, var(--on-accent) 45%, transparent); opacity: 0.9; }
 .conn { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; color: var(--text-secondary); }
@@ -426,8 +428,8 @@ a.step-result-title { color: var(--accent); }
 /* A narrow composer stacks the options under the list. */
 @container (max-width: 520px) {
   .model-panel { width: 100%; }
-  /* Taller here: the reasoning row sits under the list and must not squeeze it. */
-  .model-panel-body { height: 360px; grid-template-columns: 44px minmax(0, 1fr); grid-template-rows: minmax(0, 1fr) auto; }
+  /* A bit taller here: the reasoning row sits under the list and must not squeeze it. */
+  .model-panel-body { height: 250px; grid-template-columns: 44px minmax(0, 1fr); grid-template-rows: minmax(0, 1fr) auto; }
   .model-options { grid-column: 1 / -1; border-left: 0; border-top: 1px solid var(--line); }
   .model-list { min-height: 0; }
   .model-options { padding: 2px 8px 6px; }
@@ -526,6 +528,7 @@ input.dropdown-search { position: absolute; inset: 0 auto 0 0; z-index: 1; width
 .switcher-note { margin: 4px 0; font-size: 12px; color: var(--text-secondary); text-align: center; }
 .dialog-actions, .request .buttons { justify-content: flex-end; }
 .dialog-backdrop { position: fixed; inset: 0; background: var(--backdrop); display: grid; place-items: start center; padding-top: 16vh; box-sizing: border-box; z-index: 20; }
+.dialog-backdrop[hidden] { display: none; }
 .dialog { width: min(480px, 94vw); background: var(--surface-1); border: 1px solid var(--line); border-radius: 14px; padding: 20px; box-shadow: var(--shadow); display: flex; flex-direction: column; gap: 10px; max-height: calc(84dvh - 24px); overflow-y: auto; }
 .dialog-backdrop:has(.preview-dialog) { padding-top: 4vh; }
 /* The model panel overflows the dialog upward: stop clipping while it is open. */
@@ -759,21 +762,21 @@ ol.install-steps { padding-left: 18px; }
 .page-description { margin: 0; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--text-secondary); font-size: 12px; }
 .page-actions { flex: none; display: flex; align-items: center; gap: 8px; }
 .page-actions .icon { width: 18px; height: 18px; }
-/* Dashboard: one flowing grid of cards in one scroll area, and the Notifications panel on the right when open. */
+/* Dashboard: full cards and bands of two stacking columns in one scroll area, and the Notifications panel on the right when open. */
 .dashboard { flex: 1; min-height: 0; overflow-y: auto; display: grid; grid-template-columns: minmax(0, 1fr); align-items: start; gap: 16px; padding: 4px; margin: -4px; }
 .dashboard.with-panel { grid-template-columns: minmax(0, 1fr) 340px; }
 .dashboard-main { min-width: 0; display: flex; flex-direction: column; gap: 16px; container-type: inline-size; }
-.dashboard-cards { min-width: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(min(240px, 100%), 1fr)); align-items: start; gap: 16px; }
+.dashboard-cards { min-width: 0; display: flex; flex-direction: column; gap: 16px; }
 /* Sticky: the panel stays in view while the cards scroll; the card cap (100dvh - 120px) keeps it on screen. */
 .dashboard-panel { position: sticky; top: 0; min-width: 0; }
 .dashboard-slot { min-width: 0; }
-.dashboard-slot:is(.usage, .server, .activity), .dashboard-drop:is(.usage, .server, .activity) { grid-column: 1 / -1; }
-/* Room for two cards a row: Up next takes 3/5, the other cards 2/5. */
-@container (min-width: 600px) {
-  .dashboard-cards { grid-template-columns: repeat(5, minmax(0, 1fr)); }
-  .dashboard-cards > :is(.dashboard-slot, .dashboard-drop) { grid-column: span 2; }
-  .dashboard-cards > :is(.dashboard-slot, .dashboard-drop).up-next { grid-column: span 3; }
-  .dashboard-cards > :is(.dashboard-slot, .dashboard-drop):is(.usage, .server, .activity) { grid-column: 1 / -1; }
+/* One column below 900 px: bands and columns step aside, so cards read band by band, left stack then right. */
+.dashboard-band, .dashboard-col { display: contents; }
+/* Two stacks per band once a half fits the three tiles of Usage and Server; no rows, so a tall card leaves no gap. */
+@container (min-width: 900px) {
+  .dashboard-band { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+  .dashboard-col { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+  .dashboard-cards.editing .dashboard-col { min-height: 64px; }
 }
 /* No room for the right column: Notifications is a side sheet under the header, with a backdrop. Closed, it is off screen and not focusable. */
 @media (max-width: 1200px) {
@@ -905,9 +908,11 @@ ol.install-steps { padding-left: 18px; }
 .slist-project .project-icon { flex: none; width: 16px; height: 16px; }
 .slist-project-title { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .slist-count { flex: none; display: inline-grid; place-items: center; min-width: 18px; height: 18px; padding: 0 5px; border-radius: 999px; background: color-mix(in srgb, var(--accent) 20%, transparent); color: var(--work-text); font-size: 11px; font-weight: 600; }
-/* The + shows on hover and focus, always on touch screens. */
+.slist-total { flex: none; min-width: 18px; padding: 0 2px; color: var(--text-secondary); font-size: 11px; font-weight: 500; text-align: right; }
+.slist-project.empty .slist-project-toggle { color: var(--text-secondary); font-weight: 500; }
+/* The + and … show on hover and focus, always on touch screens. */
 .slist-new { opacity: 0; }
-.slist-project:hover .slist-new, .slist-new:focus-visible { opacity: 1; }
+.slist-project:hover .slist-new, .slist-new:focus-visible, .slist-new[aria-expanded="true"] { opacity: 1; }
 .slist-row { position: relative; display: flex; align-items: flex-start; gap: 8px; width: 100%; padding: 5px 8px 5px 26px; border: 0; border-radius: var(--radius-md); background: none; color: var(--text-primary); text-align: left; }
 .slist-body > .slist-item > .slist-row { padding-left: 8px; }
 /* An open row has a close button on hover; its title leaves room for it. */
@@ -971,7 +976,6 @@ ol.install-steps { padding-left: 18px; }
   .skeleton-bars { height: 140px; padding-right: 12px; }
   /* One column: every card is as wide as the page, never wider. */
   .dashboard { display: flex; flex-direction: column; align-items: stretch; gap: 16px; }
-  .dashboard-cards { display: flex; flex-direction: column; gap: 16px; }
   .dashboard-slot { width: 100%; min-width: 0; }
   /* The sheet is as wide as the screen and stops above the bottom bar. */
   .dashboard-backdrop { bottom: calc(var(--bottom-bar) + env(safe-area-inset-bottom)); }
@@ -1019,6 +1023,30 @@ ol.install-steps { padding-left: 18px; }
 .key-form { display: flex; flex-direction: column; gap: 6px; }
 .key-box { display: flex; flex-direction: column; gap: 8px; }
 .dialog.settings { max-height: 78vh; overflow-y: auto; }
+.dialog.add-project { width: min(480px, 94vw); gap: 12px; }
+.dialog.add-project .hint { margin: 0; color: var(--text-secondary); font-size: 12px; }
+.dialog.add-project .icon-picker { display: flex; flex-direction: column; gap: 8px; }
+.icon-picker-head { display: flex; align-items: center; gap: 10px; }
+.icon-picker-head .segmented { flex: 1; }
+.icon-picker-preview .project-icon { width: 32px; height: 32px; }
+.icon-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(36px, 1fr)); gap: 4px; max-height: 150px; overflow-y: auto; padding: 2px; }
+.icon-choice { display: grid; place-items: center; height: 36px; padding: 0; border: 1px solid transparent; border-radius: var(--radius-md); background: none; color: var(--text-primary); font-size: 18px; }
+.icon-choice .project-icon { width: 20px; height: 20px; }
+.icon-choice[aria-pressed="true"] { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 14%, transparent); }
+@media (hover: hover) { .icon-choice:hover { background: color-mix(in srgb, var(--text-primary) 6%, transparent); } }
+.swatches { display: flex; flex-wrap: wrap; gap: 6px; }
+.swatch { width: 20px; height: 20px; padding: 0; border: 2px solid transparent; border-radius: 50%; background-clip: padding-box; box-shadow: 0 0 0 1px var(--line); }
+.swatch[aria-pressed="true"] { box-shadow: 0 0 0 2px var(--accent); }
+.project-menu { padding: 4px; border-radius: 10px; border: 1px solid var(--line); background: var(--surface-1); box-shadow: var(--shadow); }
+.project-menu > div { display: flex; flex-direction: column; gap: 2px; }
+.project-menu-item { display: flex; align-items: center; gap: 8px; min-height: var(--control-sm); padding: 0 8px; border: 0; border-radius: var(--radius-sm); background: none; color: var(--text-primary); font-size: 13px; text-align: left; }
+.project-menu-item .icon { flex: none; width: 14px; height: 14px; color: var(--text-secondary); }
+.project-menu-item.danger, .project-menu-item.danger .icon { color: var(--danger); }
+@media (hover: hover) { .project-menu-item:hover { background: color-mix(in srgb, var(--text-primary) 6%, transparent); } }
+.folder-list { display: flex; flex-direction: column; max-height: 180px; overflow-y: auto; padding: 2px; border: 1px solid var(--line); border-radius: var(--radius-md); }
+.folder-option { display: flex; align-items: center; gap: 8px; min-height: var(--control-sm); padding: 0 8px; border: 0; border-radius: var(--radius-sm); background: none; color: var(--text-primary); font-size: 13px; text-align: left; }
+.folder-option .icon { flex: none; width: 14px; height: 14px; color: var(--text-secondary); }
+@media (hover: hover) { .folder-option:hover { background: color-mix(in srgb, var(--text-primary) 6%, transparent); } }
 .dialog.new-agent { width: min(640px, 94vw); gap: 12px; }
 .dialog.new-agent .composer { padding: 0; }
 .auto-form { display: flex; flex-direction: column; gap: 12px; }

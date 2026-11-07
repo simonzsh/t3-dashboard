@@ -59,7 +59,10 @@ interface ProjectGroup {
   running: number;
 }
 
-/** One group per T3 project that has a listed thread, in T3's order. */
+/**
+ * Projects with a listed thread first, in T3's order; then "Unknown project" groups for orphan threads;
+ * then the empty projects in T3's order. An archived project with no listed thread is left out.
+ */
 export function groupByProject(threads: readonly DashboardThread[], projects: readonly DashboardProject[]): ProjectGroup[] {
   const groups = new Map<string, ProjectGroup>(projects.map((p) => [p.id, { id: p.id, project: p, title: p.title, threads: [], running: 0 }]));
   for (const t of threads) {
@@ -71,7 +74,13 @@ export function groupByProject(threads: readonly DashboardThread[], projects: re
     group.threads.push(t);
     if (threadState(t) === "running") group.running += 1;
   }
-  return [...groups.values()].filter((g) => g.threads.length > 0);
+  const all = [...groups.values()];
+  const known = all.filter((g) => g.project !== null);
+  return [
+    ...known.filter((g) => g.threads.length > 0),
+    ...all.filter((g) => g.project === null),
+    ...known.filter((g) => g.threads.length === 0 && !g.project?.archived),
+  ];
 }
 
 export function parseListPrefs(data: unknown): ListPrefs {

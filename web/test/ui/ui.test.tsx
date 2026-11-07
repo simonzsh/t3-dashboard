@@ -94,6 +94,11 @@ test("a Dialog has a title, a close button and the dialog role", () => {
   assert.doesNotMatch(out, /dialog-actions/);
 });
 
+test("a hidden Dialog stays in the page, out of sight", () => {
+  assert.match(html(<Dialog title="T" onClose={() => {}} hidden><p>Body</p></Dialog>), /class="dialog-backdrop" hidden=""/);
+  assert.match(html(<Dialog title="T" onClose={() => {}} />), /<div class="dialog-backdrop"><div/);
+});
+
 test("a Dialog puts Cancel on the left and the primary action on the right", () => {
   const out = html(<Dialog title="Update?" label="Update" onClose={() => {}} onCancel={() => {}} primary={{ label: "Update", onClick: () => {} }} />);
   assert.match(out, /aria-label="Update"/);
@@ -107,6 +112,12 @@ test("a Dialog primary action can be disabled and the Cancel label changed", () 
   const out = html(<Dialog title="T" onClose={() => {}} onCancel={() => {}} cancelLabel="Not now" primary={{ label: "Go", onClick: () => {}, disabled: true }} />);
   assert.match(out, />Not now</);
   assert.match(out, /class="btn md primary" disabled="">Go</);
+});
+
+test("a danger primary action uses the danger button", () => {
+  const out = html(<Dialog title="T" onClose={() => {}} onCancel={() => {}} primary={{ label: "Delete", onClick: () => {}, danger: true }} />);
+  assert.match(out, /class="btn md danger">Delete</);
+  assert.doesNotMatch(out, /class="btn md primary"/);
 });
 
 test("a Badge shows a state colour", () => {

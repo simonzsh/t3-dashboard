@@ -120,7 +120,7 @@ test("assignIssue posts the body to the assign route", async () => {
 });
 
 test("getAutomations reads /api/automations with GET", async () => {
-  const result = { automations: [], hiddenThreadIds: [] };
+  const result = { automations: [], automationThreadIds: [], setupThreadIds: [] };
   const { calls, api } = fake(200, result);
   assert.deepEqual(await api.getAutomations(), result);
   assert.equal(calls[0]?.url, "/api/automations");
@@ -264,4 +264,39 @@ test("getServerStats reads /api/server-stats", async () => {
   const { calls, api } = fake(200, {});
   await api.getServerStats();
   assert.deepEqual(calls.map((c) => c.url), ["/api/server-stats"]);
+});
+
+test("browseFolders encodes the typed path in the query", async () => {
+  const { calls, api } = fake(200, { path: "/home/x/a b", kind: "missing", entries: [] });
+  const res = await api.browseFolders("~/a b/&c/");
+  assert.equal(res.kind, "missing");
+  assert.equal(calls[0]?.url, "/api/folders?path=~%2Fa%20b%2F%26c%2F");
+  assert.equal(calls[0]?.init?.method ?? "GET", "GET");
+});
+
+test("createProject posts the body and returns the result", async () => {
+  const { calls, api } = fake(200, { ok: true, projectId: "p9", created: true });
+  const res = await api.createProject({ path: "~/src/new", title: "New" });
+  assert.deepEqual(res, { ok: true, projectId: "p9", created: true });
+  assert.equal(calls[0]?.url, "/api/projects");
+  assert.equal(calls[0]?.init?.method, "POST");
+  assert.deepEqual(JSON.parse(String(calls[0]?.init?.body)), { path: "~/src/new", title: "New" });
+});
+
+test("updateProject posts the changed fields to the project's update route", async () => {
+  const { calls, api } = fake(200, { ok: true });
+  await api.updateProject("p 1", { title: "New", icon: null });
+  assert.equal(calls[0]?.url, "/api/projects/p%201/update");
+  assert.equal(calls[0]?.init?.method, "POST");
+  assert.deepEqual(JSON.parse(String(calls[0]?.init?.body)), { title: "New", icon: null });
+});
+
+test("deleteProject posts an empty body; projectIcons is a GET", async () => {
+  const { calls, api } = fake(200, { ok: true });
+  await api.deleteProject("p1");
+  assert.equal(calls[0]?.url, "/api/projects/p1/delete");
+  assert.equal(calls[0]?.init?.method, "POST");
+  await api.projectIcons();
+  assert.equal(calls[1]?.url, "/api/project-icons");
+  assert.equal(calls[1]?.init?.method ?? "GET", "GET");
 });

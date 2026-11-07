@@ -1,4 +1,4 @@
-import type { AssetResource, Command, FileUpload, ImageUpload, NewScheduledTask, RawConfig, RawProjection, RawScheduledTask, RawSearchMatch, RawTurnItem, RawUsageSummary, SearchEntriesResponse, ScheduledTaskChange, SecretAnswer, ShellItem, T3Port } from "../../src/integrations/t3/schemas.ts";
+import type { AssetResource, Command, FileUpload, ImageUpload, NewScheduledTask, ProjectMutation, RawConfig, RawProject, RawProjection, RawScheduledTask, RawSearchMatch, RawTurnItem, RawUsageSummary, SearchEntriesResponse, ScheduledTaskChange, SecretAnswer, ShellItem, T3Port } from "../../src/integrations/t3/schemas.ts";
 
 /** In-memory T3: records commands, uploads and shell subscriptions; each answer can be swapped. */
 export class FakePort implements T3Port {
@@ -16,6 +16,13 @@ export class FakePort implements T3Port {
   turnItemCalls: Array<{ threadId: string; itemId: string }> = [];
   entriesCalls: Array<{ cwd: string; query: string; limit: number }> = [];
   entries: SearchEntriesResponse = { entries: [], truncated: false };
+  mutations: Array<{ mutation: ProjectMutation; commandId: string }> = [];
+  mutateResult: RawProject = { id: "created-project", title: "Created" };
+  mutateError: Error | null = null;
+  browseCalls: string[] = [];
+  browseResult: { parentPath: string; entries: Array<{ name: string; fullPath: string }> } = { parentPath: "/", entries: [] };
+  browseError: Error | null = null;
+  kinds: Array<string | null> = ["directory"];
   fileUploads: FileUpload[] = [];
   deletedAttachments: string[] = [];
   scheduledTasks: RawScheduledTask[] = [];
@@ -162,6 +169,22 @@ export class FakePort implements T3Port {
   async persistAttachments(threadId: string, messageId: string, images: ImageUpload[]) {
     this.uploads.push({ threadId, messageId, images });
     return images.map((image, index) => ({ type: "image", id: `stored-${index}`, name: image.name, mimeType: image.mimeType, sizeBytes: image.sizeBytes }));
+  }
+
+  async mutateProject(mutation: ProjectMutation, commandId: string) {
+    this.mutations.push({ mutation, commandId });
+    if (this.mutateError) throw this.mutateError;
+    return this.mutateResult;
+  }
+
+  async browseFolders(partialPath: string) {
+    this.browseCalls.push(partialPath);
+    if (this.browseError) throw this.browseError;
+    return this.browseResult;
+  }
+
+  async pathKinds(_paths: string[]) {
+    return this.kinds;
   }
 
   async ensureScratchProject() {

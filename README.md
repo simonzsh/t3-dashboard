@@ -22,7 +22,7 @@ The screenshots come from the demo mode: the projects, agents and conversations 
 
 **Dashboard**
 
-- See what needs you at a glance: a Notifications panel lists agents that wait for a reply or failed, and unread results. The Dashboard entry in the sidebar shows the number of unread items. A Usage card shows the usage limits of Codex and Claude: quota used, pace and time to the reset. A Server card shows the CPU, memory and disk of the machine. An Activity card shows turns, sessions and spend for the last 7 days, and a chart of the last 14 days.
+- See what needs you at a glance: a Notifications panel lists agents that wait for a reply or failed, and unread results. The bell and the Dashboard entry in the sidebar show how many items need you or are unread. A Usage card shows the usage limits of Codex and Claude: quota used, pace and time to the reset. A Server card shows the CPU, memory and disk of the machine. An Activity card shows turns, sessions and spend for the last 7 days, and a chart of the last 14 days.
 - See which Linear tickets to relaunch or to do next, assign a ticket to an agent or copy its link.
 - Open a conversation in Sessions with one click.
 - Press Ctrl+K (Cmd+K on Mac) to open the switcher and jump to a conversation by title, project or message, from any screen. The words you type are highlighted in the matching messages. Before you type, it suggests the agents that wait for you, then your recent ones.
@@ -32,6 +32,7 @@ The screenshots come from the demo mode: the projects, agents and conversations 
 - Follow several conversations side by side, in columns that scroll sideways. Switch to a grid of two rows.
 - Send a message, attach images, change the model, stop a run.
 - Reply to the approvals and questions of the agents.
+- Add a T3 project from a folder (the folder is created if it does not exist). Empty projects show in the list, muted, at the end. Edit a project's title, folder and icon, or delete it with its sessions, from the "…" menu of its row.
 - See the images, videos and HTML pages that the agent shows.
 
 **Automations**

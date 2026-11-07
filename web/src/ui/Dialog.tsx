@@ -2,13 +2,15 @@ import { useEffect, useId, useLayoutEffect, useRef, type KeyboardEvent, type Rea
 import { Button } from "./Button.tsx";
 import { Icon } from "./Icon.tsx";
 import { IconButton } from "./IconButton.tsx";
-import { enter } from "./motion.ts";
+import { enter, leaveCopy } from "./motion.ts";
 import { useEscape } from "./useEscape.ts";
 
 interface Action {
   label: string;
   onClick: () => void;
   disabled?: boolean;
+  /** A destructive action: the primary button turns red. */
+  danger?: boolean;
 }
 
 interface Props {
@@ -24,8 +26,12 @@ interface Props {
   /** A second choice between Cancel and the primary action. */
   secondary?: Action;
   className?: string;
+  /** Kept mounted but out of sight and deaf to Escape, e.g. while another dialog takes its place. */
+  hidden?: boolean;
   children?: ReactNode;
 }
+
+const ignore = () => {};
 
 const FOCUSABLE = 'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
 
@@ -46,16 +52,20 @@ export function trapTab(e: KeyboardEvent<HTMLElement>) {
   }
 }
 
-export function Dialog({ title, label, onClose, onCancel, cancelLabel = "Cancel", primary, secondary, className, children }: Props) {
-  useEscape(onClose);
+export function Dialog({ title, label, onClose, onCancel, cancelLabel = "Cancel", primary, secondary, className, hidden = false, children }: Props) {
+  useEscape(hidden ? ignore : onClose);
   const titleId = useId();
   const box = useRef<HTMLDivElement>(null);
   const backdrop = useRef<HTMLDivElement>(null);
 
-  // Before the first paint, so the dialog never shows at full size first.
+  // Before the first paint, so the dialog never shows at full size first. On close, a copy fades out: React removes the real one at once.
   useLayoutEffect(() => {
-    const anims = [backdrop.current && enter(backdrop.current), box.current && enter(box.current, { y: 16, scale: 0.85, duration: 420, spring: true })];
-    return () => anims.forEach((anim) => anim?.cancel());
+    const root = backdrop.current;
+    const anims = [root && enter(root), box.current && enter(box.current, { y: 16, scale: 0.85, duration: 420, spring: true })];
+    return () => {
+      anims.forEach((anim) => anim?.cancel());
+      if (root) leaveCopy(root, ".dialog");
+    };
   }, []);
 
   // Read before the children's effects: a menu that opens on mount takes the focus there.
@@ -73,7 +83,7 @@ export function Dialog({ title, label, onClose, onCancel, cancelLabel = "Cancel"
   }, []);
 
   return (
-    <div className="dialog-backdrop" ref={backdrop} onClick={onClose}>
+    <div className="dialog-backdrop" ref={backdrop} onClick={onClose} hidden={hidden}>
       <div
         className={className ? `dialog ${className}` : "dialog"}
         role="dialog"
@@ -100,7 +110,7 @@ export function Dialog({ title, label, onClose, onCancel, cancelLabel = "Cancel"
               </Button>
             )}
             {primary && (
-              <Button variant="primary" disabled={primary.disabled} onClick={primary.onClick}>
+              <Button variant={primary.danger ? "danger" : "primary"} disabled={primary.disabled} onClick={primary.onClick}>
                 {primary.label}
               </Button>
             )}

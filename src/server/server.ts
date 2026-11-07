@@ -20,7 +20,7 @@ import { servePwa } from "./pwa.ts";
 import type { Site } from "./site.ts";
 import type { SseHub } from "./sse.ts";
 import { isObject } from "../../shared/guards.ts";
-import { isText, validAssign, validAttachments, validCreateAutomation, validCreate, validEnabled, validFileSearch, validItemId, validMessage, validProvider, validQueuedEdit, validRespond, validRewind, validSearch, validSecretAnswer, validSeen, validSessions, validSettings, validStash, validTimeZone, validUpdateAutomation, validUpload } from "./validate.ts";
+import { isText, validAssign, validAttachments, validCreateAutomation, validCreate, validCreateProject, validEnabled, validUpdateProject, validFolderPath, validFileSearch, validItemId, validMessage, validProvider, validQueuedEdit, validRespond, validRewind, validSearch, validSecretAnswer, validSeen, validSessions, validSettings, validStash, validTimeZone, validUpdateAutomation, validUpload } from "./validate.ts";
 
 export interface SetupControl {
   /** Resolves the token again. */
@@ -221,6 +221,7 @@ export function createDashboardServer(options: DashboardServerOptions): Dashboar
         return json(200, await actions.searchThreads(query, limit));
       },
     },
+    { method: "GET", path: "/api/folders", handle: async ({ req }) => json(200, await actions.browseFolders(validFolderPath(new URL(req.url).searchParams))) },
     { method: "GET", path: "/api/threads/:id", handle: async ({ req, params }) => threadResponse(req, await actions.threadDetail(params.id!)) },
     { method: "GET", path: "/api/threads/:id/items/:itemId", handle: async ({ params }) => json(200, await actions.stepDetail(params.id!, validItemId(params.itemId!))) },
     {
@@ -328,6 +329,10 @@ export function createDashboardServer(options: DashboardServerOptions): Dashboar
     { method: "POST", path: "/api/automations/:id/enabled", handle: ({ params, body }) => done(automations.setEnabled(params.id!, validEnabled(body))) },
     { method: "POST", path: "/api/automations/:id/run", handle: ({ params }) => done(automations.runNow(params.id!)) },
     { method: "POST", path: "/api/automations/:id/delete", handle: ({ params }) => done(automations.remove(params.id!)) },
+    { method: "GET", path: "/api/project-icons", handle: () => json(200, actions.projectIcons()) },
+    { method: "POST", path: "/api/projects/:id/update", handle: ({ params, body }) => done(actions.updateProject(params.id!, validUpdateProject(body))) },
+    { method: "POST", path: "/api/projects/:id/delete", handle: ({ params }) => done(actions.deleteProject(params.id!)) },
+    { method: "POST", path: "/api/projects", handle: async ({ body }) => ok(await actions.createProject(validCreateProject(body))) },
     {
       method: "POST",
       path: "/api/threads",

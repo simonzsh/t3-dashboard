@@ -1,5 +1,5 @@
 import { icons } from "lucide";
-import type { ProjectIcon } from "../../shared/api.ts";
+import type { ProjectIcon, ProjectIconChoices } from "../../shared/api.ts";
 import { PROJECT_COLORS } from "../../shared/projectColors.ts";
 
 const pascal = (name: string) => name.replace(/(^|-)([a-z0-9])/g, (_, __, c: string) => c.toUpperCase());
@@ -23,4 +23,20 @@ export function toProjectIcon(raw: RawIcon | null | undefined): ProjectIcon | nu
   // Only path-like elements with string or number attributes reach the page.
   const shapes = nodes.map(([tag, attrs]) => ({ tag, attrs: Object.fromEntries(Object.entries(attrs).map(([k, v]) => [k, String(v)])) }));
   return { kind: "lucide", shapes, color };
+}
+
+/** The icons the edit form offers, in T3's order. */
+export const PROJECT_ICON_PRESETS = [
+  "folder-code", "code-2", "terminal", "globe-2", "server", "database", "bot", "sparkles", "smartphone", "monitor", "cloud-cog", "package",
+  "book-open", "flask-conical", "shield-check", "rocket", "gamepad-2", "music", "image", "shopping-bag", "git-branch", "workflow", "wrench", "layers-3",
+];
+
+/** The presets the installed lucide can draw. */
+export function projectIconChoices(): ProjectIconChoices {
+  const choices: ProjectIconChoices["icons"] = [];
+  for (const name of PROJECT_ICON_PRESETS) {
+    const icon = toProjectIcon({ kind: "lucide", name, color: null });
+    if (icon) choices.push({ name, icon });
+  }
+  return { icons: choices };
 }

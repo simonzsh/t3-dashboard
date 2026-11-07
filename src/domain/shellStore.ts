@@ -1,7 +1,9 @@
-import type { ConnectionStatus, DashboardProject, DashboardProvider, DashboardState, DashboardThread, Diff, ModelDefaults } from "../../shared/api.ts";
+import type { ConnectionStatus, DashboardProject, DashboardProvider, DashboardState, DashboardThread, Diff, ModelDefaults, ProjectIconSpec } from "../../shared/api.ts";
 import { NO_MODEL_DEFAULTS } from "./providers.ts";
 import { isHidden, isSubagentThread, toDashboardThread } from "./classify.ts";
 import { DiffBatch } from "./diffBatch.ts";
+import { PROJECT_COLORS } from "../../shared/projectColors.ts";
+import { normalizeFolder } from "./folders.ts";
 import { toProjectIcon } from "./projectIcon.ts";
 import type { RawBackgroundTask, RawProject, RawSnapshot, RawThread, ShellItem } from "../integrations/t3/schemas.ts";
 
@@ -12,7 +14,28 @@ export interface ShellStoreOptions {
   onProjects(diff: Diff<DashboardProject>): void;
 }
 
-const toProject = (raw: RawProject): DashboardProject => ({ id: raw.id, title: raw.title ?? "", defaultModelSelection: raw.defaultModelSelection ?? null, icon: toProjectIcon(raw.projectIcon) });
+// The icon as T3 stores it, for the edit form; a legacy monogram (a lucide row with monogramText) reads as a monogram.
+function iconSpecOf(raw: RawProject["projectIcon"]): ProjectIconSpec | undefined {
+  if (!raw) return undefined;
+  const color = raw.color && raw.color in PROJECT_COLORS ? raw.color : undefined;
+  const text = raw.kind === "monogram" ? raw.text : raw.kind === "lucide" ? (raw.monogramText ?? raw.monogram) : undefined;
+  if (text) return color ? { kind: "monogram", text, color } : undefined;
+  if (raw.kind === "emoji") return raw.emoji ? { kind: "emoji", emoji: raw.emoji } : undefined;
+  return raw.kind === "lucide" && raw.name && color ? { kind: "lucide", name: raw.name, color } : undefined;
+}
+
+const toProject = (raw: RawProject): DashboardProject => {
+  const iconSpec = iconSpecOf(raw.projectIcon);
+  return {
+    id: raw.id,
+    title: raw.title ?? "",
+    defaultModelSelection: raw.defaultModelSelection ?? null,
+    icon: toProjectIcon(raw.projectIcon),
+    ...(raw.archivedAt ? { archived: true } : {}),
+    ...(raw.workspaceRoot ? { workspaceRoot: raw.workspaceRoot } : {}),
+    ...(iconSpec ? { iconSpec } : {}),
+  };
+};
 
 interface Maps {
   threads: Map<string, RawThread>;
@@ -77,6 +100,14 @@ export class ShellStore {
     return this.live.threads.get(id)?.pendingBackgroundTasks ?? [];
   }
 
+  /** The project whose folder is `root` (already normalised), archived or not. */
+  projectByRoot(root: string): { id: string; archived: boolean } | undefined {
+    for (const raw of this.live.projects.values()) {
+      if (raw.workspaceRoot && normalizeFolder(raw.workspaceRoot, "") === root) return { id: raw.id, archived: !!raw.archivedAt };
+    }
+    return undefined;
+  }
+
   /** Where the agent works: the thread's worktree, else its project's root. Null when T3 names none. */
   workspaceOf(threadId: string): string | null {
     const raw = this.live.threads.get(threadId) ?? this.live.threads.get(this.live.parents.get(threadId) ?? "");
@@ -113,7 +144,10 @@ export class ShellStore {
         if (isSubagentThread(thread) && thread.lineage?.parentThreadId) maps.parents.set(thread.id, thread.lineage.parentThreadId);
       } else maps.threads.set(thread.id, thread);
     }
-    for (const project of snapshot?.projects ?? []) maps.projects.set(project.id, project);
+    for (const project of snapshot?.projects ?? []) {
+      if (project.deletedAt) maps.projects.delete(project.id);
+      else maps.projects.set(project.id, project);
+    }
   }
 
   private commit(): void {
@@ -169,6 +203,7 @@ export class ShellStore {
   }
 
   private upsertProject(raw: RawProject): void {
+    if (raw.deletedAt) return this.removeProject(raw.id);
     this.live.projects.set(raw.id, raw);
     this.projectDiff.upsert(toProject(raw));
   }

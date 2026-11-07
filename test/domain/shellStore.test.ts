@@ -173,12 +173,45 @@ test("project.updated and project.removed", () => {
   const { store, projects } = live();
   store.apply([{ kind: "project.updated", project: { id: "project-2", title: "Project B", defaultModelSelection: { instanceId: "provider-a", model: "model-x" }, projectIcon: { kind: "lucide", name: "minus", color: "blue" } } }]);
   assert.deepEqual(projects[0], {
-    upserted: [{ id: "project-2", title: "Project B", defaultModelSelection: { instanceId: "provider-a", model: "model-x" }, icon: { kind: "lucide", shapes: [{ tag: "path", attrs: { d: "M5 12h14" } }], color: "#3b82f6" } }],
+    upserted: [{ id: "project-2", title: "Project B", defaultModelSelection: { instanceId: "provider-a", model: "model-x" }, icon: { kind: "lucide", shapes: [{ tag: "path", attrs: { d: "M5 12h14" } }], color: "#3b82f6" }, iconSpec: { kind: "lucide", name: "minus", color: "blue" } }],
     removed: [],
   });
   store.apply([{ kind: "project.removed", projectId: "project-1" }]);
   assert.deepEqual(projects[1], { upserted: [], removed: ["project-1"] });
   assert.deepEqual(store.state(connection, []).projects.map((project) => project.id), ["project-2"]);
+});
+
+test("a project carries its folder and the icon as T3 stores it", () => {
+  const { store } = live();
+  const icon = (projectIcon: NonNullable<RawProject["projectIcon"]>) => {
+    store.apply([{ kind: "project.updated", project: { id: "p", title: "P", workspaceRoot: "/work/p", projectIcon } }]);
+    return store.state(connection, []).projects.find((project) => project.id === "p")!;
+  };
+  assert.equal(icon({ kind: "emoji", emoji: "🚀" }).workspaceRoot, "/work/p");
+  assert.deepEqual(icon({ kind: "emoji", emoji: "🚀" }).iconSpec, { kind: "emoji", emoji: "🚀" });
+  assert.deepEqual(icon({ kind: "monogram", text: "AB", color: "rose" }).iconSpec, { kind: "monogram", text: "AB", color: "rose" });
+  assert.deepEqual(icon({ kind: "lucide", name: "x", color: "teal", monogramText: "Z" }).iconSpec, { kind: "monogram", text: "Z", color: "teal" });
+  assert.deepEqual(icon({ kind: "lucide", name: "x", color: "teal", monogram: "Q" }).iconSpec, { kind: "monogram", text: "Q", color: "teal" });
+  for (const unreadable of [{ kind: "lucide", name: "x", color: "nope" }, { kind: "lucide", color: "blue" }, { kind: "monogram", text: "A" }, { kind: "emoji" }, { kind: "other" }]) {
+    assert.equal(icon(unreadable).iconSpec, undefined, JSON.stringify(unreadable));
+  }
+  store.apply([{ kind: "project.updated", project: { id: "q", title: "Q" } }]);
+  const bare = store.state(connection, []).projects.find((project) => project.id === "q")!;
+  assert.deepEqual(Object.keys(bare).sort(), ["defaultModelSelection", "icon", "id", "title"]);
+});
+
+test("a project row with deletedAt is a removal", () => {
+  const { store, projects } = live();
+  store.apply([{ kind: "project.updated", project: { id: "project-1", title: "Project A", deletedAt: "2026-11-06T10:00:00Z" } }]);
+  assert.deepEqual(projects[0], { upserted: [], removed: ["project-1"] });
+  assert.deepEqual(store.state(connection, []).projects.map((project) => project.id), []);
+});
+
+test("a snapshot drops deleted projects", () => {
+  const { store } = live();
+  store.beginSync();
+  store.apply([snapshot([], [{ id: "kept", title: "Kept" }, { id: "gone", title: "Gone", deletedAt: "2026-11-06T10:00:00Z" }]), { kind: "synchronized" }]);
+  assert.deepEqual(store.state(connection, []).projects.map((project) => project.id), ["kept"]);
 });
 
 test("unknown kinds are ignored", () => {
@@ -229,4 +262,23 @@ test("rawThreads lists the live threads as T3 sent them", () => {
   store.beginSync();
   store.apply([snapshot([raw("thread-1"), raw("thread-2", { title: "Two" })]), { kind: "synchronized" }]);
   assert.deepEqual(store.rawThreads().map((thread) => thread.id).sort(), ["thread-1", "thread-2"]);
+});
+
+test("an archived project is flagged and a live one is not", () => {
+  const { store, projects } = setup();
+  store.beginSync();
+  store.apply([snapshot([], [{ id: "p1", title: "A", archivedAt: "2026-03-01T00:00:00.000Z" }, { id: "p2", title: "B", archivedAt: null }]), { kind: "synchronized" }]);
+  const [a, b] = store.state(connection, []).projects;
+  assert.equal(a!.archived, true);
+  assert.deepEqual(b, { id: "p2", title: "B", defaultModelSelection: null, icon: null });
+  assert.equal(projects.length, 0);
+});
+
+test("projectByRoot ignores a trailing slash and rows without a folder", () => {
+  const { store } = setup();
+  store.beginSync();
+  store.apply([snapshot([], [{ id: "p1", title: "A", workspaceRoot: "/home/demo/atlas/" }, { id: "p2", title: "B" }, { id: "p3", title: "C", workspaceRoot: "/home/demo/old", archivedAt: "2026-03-01T00:00:00.000Z" }]), { kind: "synchronized" }]);
+  assert.deepEqual(store.projectByRoot("/home/demo/atlas"), { id: "p1", archived: false });
+  assert.deepEqual(store.projectByRoot("/home/demo/old"), { id: "p3", archived: true });
+  assert.equal(store.projectByRoot("/home/demo/none"), undefined);
 });

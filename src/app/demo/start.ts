@@ -21,7 +21,7 @@ import { SseHub } from "../../server/sse.ts";
 import { envAllowedHosts } from "../../config/config.ts";
 import { readLinearKey } from "../../config/linearFile.ts";
 import { VERSION } from "../../config/version.ts";
-import { DEMO_ENVIRONMENT_ID, demoServerStats } from "./fixtures.ts";
+import { DEMO_ENVIRONMENT_ID, DEMO_HOME, demoServerStats } from "./fixtures.ts";
 import { DemoPort, demoLinearFetch } from "./port.ts";
 
 const DEMO_PORT = 3001;
@@ -70,7 +70,7 @@ export async function startDemo(env: Record<string, string | undefined>): Promis
   });
   const setup = { refresh: async () => {}, paste: async () => "ok" as const, wake: () => live.retryNow() };
   const site = siteFromBundle(index);
-  const actions = createActions({ port, store, board });
+  const actions = createActions({ port, store, board, home: DEMO_HOME });
   const dedicated = new Set(["demo-digest", "demo-setup"]);
   // An older run of the first task whose session is gone: the history shows "Session archived".
   const archivedAt = Date.now() - 5.5 * 86_400_000;

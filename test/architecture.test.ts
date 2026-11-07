@@ -60,6 +60,7 @@ function allowed(from: string, to: string): boolean {
 const FEATURE_EDGES = new Map([
   ["features/sessions -> features/conversation", "a session window holds a conversation"],
   ["features/new-thread -> features/conversation", "the new thread dialog reuses the composer"],
+  ["features/new-thread -> features/projects", "the New Session dialog swaps to the Add project form"],
   ["features/automations -> features/new-thread", "a row opens the automation dialog to edit the task"],
   ["features/automations -> features/conversation", "the Model column reuses the model lookup of the composer"],
   ["features/dashboard -> features/settings", "the Linear setup card reuses the key form"],

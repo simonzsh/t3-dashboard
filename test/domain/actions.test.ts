@@ -30,7 +30,7 @@ function stopHarness(projections: Record<string, RawProjection>, config: RawConf
     dispatch: async (command: Command) => void commands.push(command),
     getConfig: async () => config,
   } as unknown as T3Port;
-  const store = { thread: () => undefined, project: () => undefined, backgroundTasks: () => tasks, workspaceOf: () => null };
+  const store = { thread: () => undefined, project: () => undefined, backgroundTasks: () => tasks, workspaceOf: () => null, projectByRoot: () => undefined };
   let counter = 0;
   const actions = createActions({ port, store, board: { get: async () => ({ configured: true, ok: true, error: null, issues: [] }) }, newId: () => `id-${++counter}` });
   return { actions, commands, port };
@@ -63,6 +63,9 @@ function harness({ searchResult = [] as ReturnType<typeof searchMatch>[], search
     },
     fetchAsset: async () => ({ response: new Response(""), fileName: "" }),
     ensureScratchProject: async () => "scratch-project",
+    mutateProject: async () => ({ id: "p" }),
+    browseFolders: async () => ({ parentPath: "/", entries: [] }),
+    pathKinds: async () => [],
     persistAttachments: async () => [],
     turnItem: async () => null,
     searchEntries: async () => ({ entries: [], truncated: false }),
@@ -75,6 +78,7 @@ function harness({ searchResult = [] as ReturnType<typeof searchMatch>[], search
     project: (id: string) => (id === "project-1" ? { id, title: "Project", defaultModelSelection: null, icon: null } : undefined),
     backgroundTasks: () => [],
     workspaceOf: () => null,
+    projectByRoot: () => undefined,
   };
   let counter = 0;
   const actions = createActions({ port, store, board: { get: async () => board }, newId: () => `id-${++counter}` });
@@ -215,7 +219,7 @@ test("editing and removing a queued message send one command each, without attac
 
 function fakeHarness(workspaces: Record<string, string | null> = {}) {
   const port = new FakePort();
-  const store = { thread: () => undefined, project: () => undefined, backgroundTasks: () => [], workspaceOf: (id: string) => workspaces[id] ?? null };
+  const store = { thread: () => undefined, project: () => undefined, backgroundTasks: () => [], workspaceOf: (id: string) => workspaces[id] ?? null, projectByRoot: () => undefined };
   let counter = 0;
   const actions = createActions({ port, store, board: { get: async () => ({ configured: true, ok: true, error: null, issues: [] }) }, newId: () => `id-${++counter}` });
   return { actions, port };
@@ -301,4 +305,154 @@ test("composerCommands reads the provider's commands and the folder's skills fro
     commands: [{ name: "compact", description: null }, { name: "local", description: null }],
     skills: [{ name: "s", displayName: null, description: null }],
   });
+});
+
+function projectHarness(existing: { id: string; archived: boolean } | undefined = undefined) {
+  const port = new FakePort();
+  const known = { id: "p1", title: "Atlas", defaultModelSelection: null, icon: null, workspaceRoot: "/home/demo/atlas" };
+  const store = { thread: () => undefined, project: (id: string) => (id === "p1" || id === "Atlas" ? known : undefined), backgroundTasks: () => [], workspaceOf: () => null, projectByRoot: (root: string) => (root === "/home/demo/atlas" ? existing : undefined) };
+  let counter = 0;
+  const actions = createActions({ port, store, board: { get: async () => ({ configured: true, ok: true, error: null, issues: [] }) }, newId: () => `id-${++counter}`, home: "/home/demo" });
+  return { actions, port };
+}
+
+test("createProject creates the folder as a project named after it", async () => {
+  const { actions, port } = projectHarness();
+  assert.deepEqual(await actions.createProject({ path: "~/src/Atlas Web/" }), { projectId: "id-1", created: true });
+  assert.deepEqual(port.mutations, [{ mutation: { type: "project.create", projectId: "id-1", title: "Atlas Web", workspaceRoot: "/home/demo/src/Atlas Web", createWorkspaceRootIfMissing: true }, commandId: "id-2" }]);
+});
+
+test("createProject uses the typed title, and falls back to 'project' for the root folder", async () => {
+  const { actions, port } = projectHarness();
+  await actions.createProject({ path: "/x/y", title: "Mine" });
+  await actions.createProject({ path: "/" });
+  assert.deepEqual(port.mutations.map(({ mutation }) => (mutation as { title: string }).title), ["Mine", "project"]);
+});
+
+test("createProject creates nothing when an active project has the folder", async () => {
+  const { actions, port } = projectHarness({ id: "old", archived: false });
+  assert.deepEqual(await actions.createProject({ path: "~/atlas/../atlas/" }), { projectId: "old", created: false });
+  assert.deepEqual(port.mutations, []);
+});
+
+test("createProject un-archives the project that has the folder", async () => {
+  const { actions, port } = projectHarness({ id: "old", archived: true });
+  assert.deepEqual(await actions.createProject({ path: "/home/demo/atlas" }), { projectId: "old", created: false });
+  assert.deepEqual(port.mutations, [{ mutation: { type: "project.update", projectId: "old", archived: false }, commandId: "id-1" }]);
+});
+
+test("createProject maps T3 refusals to domain errors and re-throws the others", async () => {
+  const { actions, port } = projectHarness();
+  const refuse = (reason: string) => new IntegrationError("T3 says no", { system: "t3", kind: "refused", reason });
+  port.mutateError = refuse("WorkspaceRootNotDirectoryError");
+  await assert.rejects(actions.createProject({ path: "/x" }), (e: Error) => e instanceof DomainError && e.code === "invalid" && e.message === "This path is a file, not a folder");
+  for (const reason of ["ProjectConflictError", "ProjectAlreadyExistsError"]) {
+    port.mutateError = refuse(reason);
+    await assert.rejects(actions.createProject({ path: "/x" }), (e: Error) => e instanceof DomainError && e.code === "conflict" && e.message === "Another T3 project already uses this folder");
+  }
+  const other = refuse("Other");
+  port.mutateError = other;
+  await assert.rejects(actions.createProject({ path: "/x" }), (e: Error) => e === other);
+});
+
+test("updateProject sends only the changed fields", async () => {
+  const { actions, port } = projectHarness();
+  await actions.updateProject("p1", { title: "Atlas 2", path: "~/src/atlas-2/", icon: { kind: "emoji", emoji: "🚀" } });
+  await actions.updateProject("p1", { icon: null });
+  assert.deepEqual(port.mutations, [
+    { mutation: { type: "project.update", projectId: "p1", title: "Atlas 2", workspaceRoot: "/home/demo/src/atlas-2", projectIcon: { kind: "emoji", emoji: "🚀" } }, commandId: "id-1" },
+    { mutation: { type: "project.update", projectId: "p1", projectIcon: null }, commandId: "id-2" },
+  ]);
+});
+
+test("updateProject sends nothing for the folder it already has", async () => {
+  const { actions, port } = projectHarness({ id: "p1", archived: false });
+  await actions.updateProject("p1", { path: "/home/demo/atlas/" });
+  assert.deepEqual(port.mutations, []);
+  await actions.updateProject("p1", { path: "~/atlas", title: "New" });
+  assert.deepEqual(port.mutations.map(({ mutation }) => mutation), [{ type: "project.update", projectId: "p1", title: "New" }]);
+});
+
+test("updateProject refuses a folder another active project has, and an unknown id", async () => {
+  const { actions, port } = projectHarness({ id: "other", archived: false });
+  await assert.rejects(actions.updateProject("p1", { path: "/home/demo/atlas" }), (e: Error) => e instanceof DomainError && e.code === "conflict");
+  await assert.rejects(actions.updateProject("Atlas", { title: "x" }), (e: Error) => e instanceof DomainError && e.code === "not-found");
+  await assert.rejects(actions.updateProject("nope", { title: "x" }), (e: Error) => e instanceof DomainError && e.code === "not-found");
+  assert.deepEqual(port.mutations, []);
+});
+
+test("updateProject maps T3 refusals to domain errors and re-throws the others", async () => {
+  const { actions, port } = projectHarness();
+  const refuse = (reason: string) => new IntegrationError("T3 says no", { system: "t3", kind: "refused", reason });
+  const cases: Array<[string, string, string]> = [
+    ["WorkspaceRootNotExistsError", "invalid", "This folder does not exist"],
+    ["WorkspaceRootNotDirectoryError", "invalid", "This path is a file, not a folder"],
+    ["ProjectConflictError", "conflict", "Another T3 project already uses this folder"],
+    ["ProjectNotFoundError", "not-found", "Project not found"],
+  ];
+  for (const [reason, code, message] of cases) {
+    port.mutateError = refuse(reason);
+    await assert.rejects(actions.updateProject("p1", { title: "x" }), (e: Error) => e instanceof DomainError && e.code === code && e.message === message, reason);
+  }
+  const other = refuse("Other");
+  port.mutateError = other;
+  await assert.rejects(actions.updateProject("p1", { title: "x" }), (e: Error) => e === other);
+});
+
+test("deleteProject sends a forced delete, and refuses an unknown project", async () => {
+  const { actions, port } = projectHarness();
+  await actions.deleteProject("p1");
+  assert.deepEqual(port.mutations, [{ mutation: { type: "project.delete", projectId: "p1", force: true }, commandId: "id-1" }]);
+  await assert.rejects(actions.deleteProject("nope"), (e: Error) => e instanceof DomainError && e.code === "not-found");
+  port.mutateError = new IntegrationError("gone", { system: "t3", kind: "refused", reason: "ProjectNotFoundError" });
+  await assert.rejects(actions.deleteProject("p1"), (e: Error) => e instanceof DomainError && e.code === "not-found");
+});
+
+test("projectIcons lists T3's presets in order, each drawable", () => {
+  const { actions } = projectHarness();
+  const { icons } = actions.projectIcons();
+  assert.equal(icons[0]!.name, "folder-code");
+  assert.ok(icons.length >= 20);
+  assert.ok(icons.every(({ icon }) => icon.kind === "lucide" && icon.shapes.length > 0));
+});
+
+test("browseFolders lists visible folders by name, with the kind of the typed path", async () => {
+  const { actions, port } = projectHarness();
+  port.browseResult = { parentPath: "/home/demo/src", entries: ["b", ".hidden", "a", "C"].map((name) => ({ name, fullPath: `/home/demo/src/${name}` })) };
+  port.kinds = [null];
+  const result = await actions.browseFolders("~/src/");
+  assert.deepEqual(port.browseCalls, ["/home/demo/src/"]);
+  assert.deepEqual(result, { path: "/home/demo/src", kind: "missing", entries: ["a", "b", "C"].map((name) => ({ name, path: `/home/demo/src/${name}` })) });
+});
+
+test("browseFolders lists the home folder for a bare ~", async () => {
+  const { actions, port } = projectHarness();
+  port.kinds = ["directory"];
+  await actions.browseFolders("~");
+  assert.deepEqual(port.browseCalls, ["/home/demo/"]);
+});
+
+test("browseFolders keeps hidden folders when the typed segment starts with a dot", async () => {
+  const { actions, port } = projectHarness();
+  port.browseResult = { parentPath: "/home/demo", entries: [{ name: ".config", fullPath: "/home/demo/.config" }] };
+  assert.deepEqual((await actions.browseFolders("~/.c")).entries, [{ name: ".config", path: "/home/demo/.config" }]);
+});
+
+test("browseFolders keeps at most 100 folders and maps a file kind", async () => {
+  const { actions, port } = projectHarness();
+  port.browseResult = { parentPath: "/d", entries: Array.from({ length: 150 }, (_, i) => ({ name: `d${String(i).padStart(3, "0")}`, fullPath: `/d/d${i}` })) };
+  port.kinds = ["file"];
+  const result = await actions.browseFolders("/d/");
+  assert.equal(result.entries.length, 100);
+  assert.equal(result.entries[0]!.name, "d000");
+  assert.equal(result.kind, "file");
+});
+
+test("browseFolders answers no entries when the parent folder is missing, and fails on other errors", async () => {
+  const { actions, port } = projectHarness();
+  port.browseError = new IntegrationError("no", { system: "t3", kind: "refused", reason: "read_directory_failed" });
+  port.kinds = [null];
+  assert.deepEqual(await actions.browseFolders("/nope/x"), { path: "/nope/x", kind: "missing", entries: [] });
+  port.browseError = new IntegrationError("down", { system: "t3", kind: "unreachable" });
+  await assert.rejects(actions.browseFolders("/nope/x"), /down/);
 });

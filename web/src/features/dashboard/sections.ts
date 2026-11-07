@@ -45,8 +45,8 @@ export function splitRead(readIdle: DashboardThread[], now: Date): { recent: Das
   return { recent: readIdle.filter((t) => t.lastActivityAt >= before), old: readIdle.filter((t) => t.lastActivityAt < before) };
 }
 
-/** The Dashboard badge: what needs you or has an unread result, and was not read yet. `unread` is unseen already. */
-export const unreadCount = (s: ThreadSections, seen: SeenState): number => s.needsYou.filter((t) => isUnseen(t, seen)).length + s.unread.length;
+/** The bell, the sidebar and the Notifications header count the same: what needs you (read or not) and the unread results. */
+export const attentionCount = (s: ThreadSections): number => s.needsYou.length + s.unread.length;
 
 export type NotificationKind = "needs" | "unread" | "read";
 

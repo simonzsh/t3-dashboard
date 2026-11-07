@@ -13,11 +13,14 @@ import { PageActions } from "./features/shell/PageActions.tsx";
 import { ConnectionBanner } from "./features/setup/ConnectionBanner.tsx";
 import { SessionsView } from "./features/sessions/SessionsView.tsx";
 import { NewAutomationDialog } from "./features/new-thread/NewAutomationDialog.tsx";
+import { DeleteProjectDialog } from "./features/projects/DeleteProjectDialog.tsx";
+import { EditProjectDialog } from "./features/projects/EditProjectDialog.tsx";
+import { AddProjectDialog } from "./features/projects/AddProjectDialog.tsx";
 import { NewThreadDialog } from "./features/new-thread/NewThreadDialog.tsx";
 import { NotificationToasts } from "./features/notifications/NotificationToasts.tsx";
 import { useNotifications } from "./features/notifications/useNotifications.ts";
 import { useSetupRows } from "./features/automations/useSetupRows.ts";
-import { threadSections, unreadCount } from "./features/dashboard/sections.ts";
+import { attentionCount, threadSections } from "./features/dashboard/sections.ts";
 import { Switcher } from "./features/switcher/Switcher.tsx";
 import { useOpenHistory } from "./features/switcher/useOpenHistory.ts";
 import { SettingsDialog } from "./features/settings/SettingsDialog.tsx";
@@ -92,6 +95,9 @@ export function App() {
   // null: closed; otherwise open, with the project to preselect, if any.
   const [creating, setCreating] = useState<{ projectId: string | null } | null>(null);
   const [creatingAutomation, setCreatingAutomation] = useState(false);
+  const [addingProject, setAddingProject] = useState(false);
+  const [editingProject, setEditingProject] = useState<string | null>(null);
+  const [deletingProject, setDeletingProject] = useState<string | null>(null);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [confirmingUpdate, setConfirmingUpdate] = useState(false);
   // null: closed; a string: open, seeded with that query.
@@ -154,7 +160,9 @@ export function App() {
     if (state) setSwitcherQuery("");
   };
 
-  const blocked = creating !== null || creatingAutomation || settingsOpen || confirmingUpdate || switcherQuery !== null;
+  const editedProject = state?.projects.find((p) => p.id === editingProject);
+  const deletedProject = state?.projects.find((p) => p.id === deletingProject);
+  const blocked = creating !== null || creatingAutomation || addingProject || editedProject !== undefined || deletedProject !== undefined || settingsOpen || confirmingUpdate || switcherQuery !== null;
   useShortcuts(
     (action) => {
       if (action === "dashboard" || action === "sessions" || action === "automations") setTab(action);
@@ -191,7 +199,7 @@ export function App() {
   const automationThreads = useMemo(() => new Set(automations.result?.automationThreadIds ?? NO_IDS), [automations.result?.automationThreadIds]);
   const threadsById = useMemo(() => new Map(visible.map((t) => [t.id, t])), [visible]);
   const automationsNav = useMemo(() => automationsBadge(automations.result?.automations ?? [], threadsById, notify.seen), [automations.result?.automations, threadsById, notify.seen]);
-  const unread = useMemo(() => unreadCount(threadSections(visible, notify.seen), notify.seen), [visible, notify.seen]);
+  const unread = useMemo(() => attentionCount(threadSections(visible, notify.seen)), [visible, notify.seen]);
   const agents = useMemo(() => agentCounts(visible), [visible]);
   const sessionsBadge = useMemo(() => ({ count: sessionsBadgeCount(visible, notify.seen), waiting: agents.waiting > 0 }), [visible, notify.seen, agents.waiting]);
   const dashboardLayout = useDashboardLayout(tab === "dashboard");
@@ -334,6 +342,9 @@ export function App() {
                   onBack={back}
                   onOpen={openSession}
                   onNewSession={newSession}
+                  onAddProject={() => setAddingProject(true)}
+                  onEditProject={setEditingProject}
+                  onDeleteProject={setDeletingProject}
                 />
               ) : <Loader />)}
           </main>
@@ -350,6 +361,11 @@ export function App() {
               openInSessions(id, true);
             }}
           />
+        )}
+        {addingProject && <AddProjectDialog onClose={() => setAddingProject(false)} onCreated={() => setAddingProject(false)} />}
+        {editedProject && <EditProjectDialog key={editedProject.id} project={editedProject} onClose={() => setEditingProject(null)} />}
+        {deletedProject && (
+          <DeleteProjectDialog project={deletedProject} sessions={state?.threads.filter((t) => t.projectId === deletedProject.id).length ?? 0} onClose={() => setDeletingProject(null)} />
         )}
         {state && creatingAutomation && (
           <NewAutomationDialog

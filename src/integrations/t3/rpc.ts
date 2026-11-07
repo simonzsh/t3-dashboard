@@ -28,15 +28,30 @@ const PING_MS = 30_000;
 function reasonOf(cause: unknown): string | undefined {
   for (const entry of Array.isArray(cause) ? cause : [cause]) {
     const error = (entry as { error?: unknown } | null)?.error ?? entry;
-    const { reason } = (error ?? {}) as { reason?: unknown };
+    const { reason, failure } = (error ?? {}) as { reason?: unknown; failure?: unknown };
     if (typeof reason === "string") return reason;
+    if (typeof failure === "string") return failure;
+    const inner = innermost(error);
+    if (inner && typeof inner.name === "string") return inner.name;
   }
   return undefined;
 }
 
+// A project mutation nests the useful error under `cause`: the top message is generic.
+function innermost(error: unknown): { name?: unknown; message?: unknown } | undefined {
+  if ((error as { _tag?: unknown } | null)?._tag !== "ProjectMutationError") return undefined;
+  let node = (error as { cause?: unknown }).cause as { name?: unknown; message?: unknown; cause?: unknown } | undefined;
+  while (node && typeof node.cause === "object" && node.cause !== null) node = node.cause;
+  return node;
+}
+
 function describeCause(cause: unknown): string {
-  const error = (cause as { error?: unknown } | null)?.error ?? cause;
+  const first = Array.isArray(cause) ? cause.find((entry) => innermost(entry?.error ?? entry)) : undefined;
+  const source = first ?? cause;
+  const error = (source as { error?: unknown } | null)?.error ?? source;
   const { message, commandType } = (error ?? {}) as { message?: unknown; commandType?: unknown };
+  const deep = innermost(error)?.message;
+  if (typeof deep === "string") return deep;
   if (typeof message !== "string") return JSON.stringify(cause);
   return typeof commandType === "string" ? `${commandType}: ${message}` : message;
 }

@@ -1,7 +1,7 @@
 import type { LimitsOverview, ServerStats, UsageOverview } from "../../../../shared/api.ts";
 import { Fragment, useEffect, useRef, useState, type DragEvent, type ReactNode } from "react";
 import { CardEditBar } from "./CardEditBar.tsx";
-import { CARD_TITLES, dropCard, setHidden, shiftCard, type DashboardCard, type DashboardLayout } from "./layout.ts";
+import { CARD_TITLES, dropCard, layoutRows, resolveDrop, setHidden, shiftCard, toggleWidth, type CardColumn, type DashboardCard, type DashboardLayout, type DropTarget } from "./layout.ts";
 import { Button, Icon, useFlip } from "../../ui/index.ts";
 import { ActivityCard } from "./ActivityCard.tsx";
 import { ServerCard } from "./ServerCard.tsx";
@@ -29,7 +29,7 @@ interface Props extends CardsInput {
 export function DashboardView({ limits, server, activity, running, layout, editing, onLayout, panelOpen, sheet, onCloseSheet, ...input }: Props) {
   const [dragged, setDragged] = useState<DashboardCard | null>(null);
   // Where the dragged card would land, shown as a placeholder of its size.
-  const [target, setTarget] = useState<number | null>(null);
+  const [target, setTarget] = useState<DropTarget | null>(null);
   const [dragHeight, setDragHeight] = useState(0);
   // A hidden Up next reads no tickets.
   const { notifications, ...cards } = useDashboardCards(input, !layout.hidden.includes("up-next"));
@@ -42,31 +42,123 @@ export function DashboardView({ limits, server, activity, running, layout, editi
   useEffect(() => {
     if (sheet && showPanel) panel.current?.focus();
   }, [sheet, showPanel]);
-  // Cards slide to their new place when the panel shows or hides, or the order changes; not while dragging.
-  useFlip(root, `${inline}|${layout.order.join(",")}`, { item: "data-dash-item", enabled: dragged === null });
+  // Cards slide to their new place when the panel shows or hides, or the layout changes. Not gated on the drag:
+  // a drop ends the drag in the same render, and a gate would skip the slide of that drop.
+  useFlip(root, `${inline}|${layout.order.map((p) => `${p.id}:${p.width}:${p.column}`).join(",")}`, { item: "data-dash-item" });
   const endDrag = () => {
     setDragged(null);
     setTarget(null);
   };
-  const aim = (e: DragEvent, index: number) => {
+  const draggedWidth = layout.order.find((p) => p.id === dragged)?.width;
+  const aim = (e: DragEvent, t: DropTarget) => {
     if (!dragged) return;
     e.preventDefault();
-    e.stopPropagation();
-    if (target !== index) setTarget(index);
+    const next = resolveDrop(layout, dragged, t);
+    setTarget((prev) => (prev && JSON.stringify(prev) === JSON.stringify(next) ? prev : next));
   };
   const drop = (e: DragEvent) => {
     e.preventDefault();
-    e.stopPropagation();
-    if (dragged && target !== null) onLayout(dropCard(layout, dragged, target));
+    if (dragged && target) onLayout(dropCard(layout, dragged, target));
     endDrag();
   };
   // No placeholder where the card already is: dropping there changes nothing.
-  const placeholder = (index: number) =>
-    dragged &&
-    target === index &&
-    dropCard(layout, dragged, index) !== layout && (
-      <div className={`dashboard-drop ${dragged}`} style={{ height: dragHeight }} aria-hidden="true" onDragOver={(e) => aim(e, index)} onDrop={drop} />
-    );
+  const dropping = dragged !== null && target !== null && dropCard(layout, dragged, target) !== layout;
+  const dropBox = <div className="dashboard-drop" style={{ height: dragHeight }} aria-hidden="true" />;
+  const columnDrop = (row: number, column: CardColumn, index: number) => dropping && target?.kind === "column" && target.row === row && target.column === column && target.index === index && dropBox;
+  const gapDrop = (row: number) =>
+    dropping &&
+    target?.kind === "gap" &&
+    target.row === row &&
+    (draggedWidth === "full" ? (
+      dropBox
+    ) : (
+      <div className="dashboard-band">
+        <div className="dashboard-col left">{target.column === "left" && dropBox}</div>
+        <div className="dashboard-col right">{target.column === "right" && dropBox}</div>
+      </div>
+    ));
+  const slot = (card: DashboardCard, full: boolean) => (
+    <div data-dash-item={card} data-dash-row={full ? "" : undefined} className={`dashboard-slot ${card}${dragged === card ? " dragging" : ""}`}>
+      {editing && (
+        <CardEditBar
+          card={card}
+          width={layout.order.find((p) => p.id === card)?.width ?? "half"}
+          canUp={shiftCard(layout, card, -1) !== layout}
+          canDown={shiftCard(layout, card, 1) !== layout}
+          onDragStart={(e) => {
+            setDragged(card);
+            e.dataTransfer.effectAllowed = "move";
+            const el = e.currentTarget.closest(".dashboard-slot");
+            if (el) {
+              e.dataTransfer.setDragImage(el, 16, 16);
+              setDragHeight(Math.min(el.getBoundingClientRect().height, 240));
+            }
+          }}
+          onDragEnd={endDrag}
+          onShift={(step) => onLayout(shiftCard(layout, card, step))}
+          onWidth={() => onLayout(toggleWidth(layout, card))}
+          onHide={() => onLayout(setHidden(layout, card, true))}
+        />
+      )}
+      <div className="dashboard-slot-body" inert={editing}>
+        {body[card]}
+      </div>
+    </div>
+  );
+  const column = (row: number, side: CardColumn, stack: DashboardCard[]) => (
+    <div className={`dashboard-col ${side}`}>
+      {stack.map((card, index) => (
+        <Fragment key={card}>
+          {columnDrop(row, side, index)}
+          {slot(card, false)}
+        </Fragment>
+      ))}
+      {columnDrop(row, side, stack.length)}
+    </div>
+  );
+  const rows = layoutRows(layout);
+  // One handler for the whole grid: the pointer is matched against the real rows and slots, so gaps and placeholders never make the target jump.
+  const aimAt = (e: DragEvent<HTMLElement>) => {
+    if (!dragged) return;
+    const grid = e.currentTarget;
+    const y = e.clientY;
+    const half = draggedWidth === "half";
+    const mid = (el: Element | null) => {
+      const box = el?.getBoundingClientRect();
+      return box ? box.top + box.height / 2 : Infinity;
+    };
+    const slotOf = (card: DashboardCard) => grid.querySelector(`[data-dash-item="${card}"]`);
+    const els = [...grid.querySelectorAll(":scope > [data-dash-row]")];
+    // Below 900 px a band has no box (display: contents): the cards read band by band, left stack then right.
+    if (els.some((el) => getComputedStyle(el).display === "contents")) {
+      for (const [r, row] of rows.entries()) {
+        if (row.kind === "full") {
+          if (mid(slotOf(row.card)) > y) return aim(e, { kind: "gap", row: r, column: "right" });
+          continue;
+        }
+        for (const [side, stack] of [["left", row.left], ["right", row.right]] as const) {
+          const i = stack.findIndex((card) => mid(slotOf(card)) > y);
+          if (i === -1) continue;
+          if (half) return aim(e, { kind: "column", row: r, column: side, index: i });
+          return aim(e, { kind: "gap", row: side === "left" && i === 0 ? r : r + 1, column: "right" });
+        }
+      }
+      return aim(e, { kind: "gap", row: rows.length, column: "right" });
+    }
+    const box = grid.getBoundingClientRect();
+    const gapColumn: CardColumn = e.clientX < box.left + box.width / 2 ? "left" : "right";
+    for (const [r, el] of els.entries()) {
+      const row = rows[r];
+      const band = el.getBoundingClientRect();
+      if (row?.kind === "band" && half && y >= band.top && y <= band.bottom) {
+        const side: CardColumn = e.clientX < band.left + band.width / 2 ? "left" : "right";
+        const stack = side === "left" ? row.left : row.right;
+        return aim(e, { kind: "column", row: r, column: side, index: stack.filter((card) => mid(slotOf(card)) < y).length });
+      }
+      if (y < band.top + band.height / 2) return aim(e, { kind: "gap", row: r, column: gapColumn });
+    }
+    aim(e, { kind: "gap", row: rows.length, column: gapColumn });
+  };
   return (
     <div ref={root} className={`dashboard${inline ? " with-panel" : ""}`}>
       <div className="dashboard-main">
@@ -80,37 +172,25 @@ export function DashboardView({ limits, server, activity, running, layout, editi
             ))}
           </div>
         )}
-        <div className={`dashboard-cards${editing ? " editing" : ""}`} onDragOver={editing ? (e) => aim(e, layout.order.length) : undefined} onDrop={editing ? drop : undefined}>
-          {layout.order.map((card, index) => (
-            <Fragment key={card}>
-              {placeholder(index)}
-              <div data-dash-item={card} className={`dashboard-slot ${card}${dragged === card ? " dragging" : ""}`} onDragOver={editing ? (e) => aim(e, index) : undefined} onDrop={editing ? drop : undefined}>
-                {editing && (
-                  <CardEditBar
-                    card={card}
-                    index={index}
-                    count={layout.order.length}
-                    onDragStart={(e) => {
-                      setDragged(card);
-                      e.dataTransfer.effectAllowed = "move";
-                      const slot = e.currentTarget.closest(".dashboard-slot");
-                      if (slot) {
-                        e.dataTransfer.setDragImage(slot, 16, 16);
-                        setDragHeight(Math.min(slot.getBoundingClientRect().height, 240));
-                      }
-                    }}
-                    onDragEnd={endDrag}
-                    onShift={(step) => onLayout(shiftCard(layout, card, step))}
-                    onHide={() => onLayout(setHidden(layout, card, true))}
-                  />
-                )}
-                <div className="dashboard-slot-body" inert={editing}>
-                  {body[card]}
+        <div
+          className={`dashboard-cards${editing ? " editing" : ""}`}
+          onDragOver={editing ? aimAt : undefined}
+          onDrop={editing ? drop : undefined}
+        >
+          {rows.map((row, r) => (
+            <Fragment key={row.kind === "full" ? row.card : `band:${r}`}>
+              {gapDrop(r)}
+              {row.kind === "full" ? (
+                slot(row.card, true)
+              ) : (
+                <div className="dashboard-band" data-dash-row="">
+                  {column(r, "left", row.left)}
+                  {column(r, "right", row.right)}
                 </div>
-              </div>
+              )}
             </Fragment>
           ))}
-          {placeholder(layout.order.length)}
+          {gapDrop(rows.length)}
         </div>
       </div>
       {sheet && !editing && <div className={`dashboard-backdrop${showPanel ? " open" : ""}`} aria-hidden="true" onClick={onCloseSheet} />}
