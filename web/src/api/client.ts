@@ -1,4 +1,5 @@
 import type {
+  ActivityPeriod,
   AssignIssueBody,
   AutomationsResult,
   BoardResult,
@@ -107,7 +108,7 @@ export function createApi(fetchImpl: Fetch) {
     updateAutomation: (id: string, b: UpdateAutomationBody) => call<OkResult>(`/api/automations/${encodeURIComponent(id)}/update`, b),
     deleteAutomation: (id: string) => call<OkResult>(`/api/automations/${encodeURIComponent(id)}/delete`, {}),
     getBoard: (refresh = false) => call<BoardResult>(refresh ? "/api/board?refresh=1" : "/api/board"),
-    getUsage: (timeZone: string, refresh = false) => call<UsageOverview>(`/api/usage?tz=${encodeURIComponent(timeZone)}${refresh ? "&refresh=1" : ""}`),
+    getUsage: (timeZone: string, period: ActivityPeriod, refresh = false) => call<UsageOverview>(`/api/usage?tz=${encodeURIComponent(timeZone)}&period=${period}${refresh ? "&refresh=1" : ""}`),
     getServerStats: () => call<ServerStats>("/api/server-stats"),
     getLimits: (refresh = false) => call<LimitsOverview>(refresh ? "/api/limits?refresh=1" : "/api/limits"),
     assignIssue: (b: AssignIssueBody) => call<CreateThreadResult>("/api/board/assign", b),

@@ -8,11 +8,12 @@ import { ServerCard } from "./ServerCard.tsx";
 import { UsageCard } from "./UsageCard.tsx";
 import { useDashboardCards, type CardsInput } from "./useDashboardCards.tsx";
 import type { ReadState } from "./pollRead.ts";
+import type { ActivityState } from "./useActivity.ts";
 
 interface Props extends CardsInput {
   limits: ReadState<LimitsOverview>;
   server: ReadState<ServerStats>;
-  activity: ReadState<UsageOverview>;
+  activity: ActivityState;
   /** Agents at work among the listed threads: the same count as the Sessions badge and the Running card. */
   layout: DashboardLayout;
   /** Edit mode: each card gets a bar to move or hide it. */

@@ -1,7 +1,6 @@
 import { useEffect, useRef, useState } from "react";
-import type { UsageDay } from "../../../../shared/api.ts";
 import { formatTokens } from "../../lib/format.ts";
-import { barLayout, cacheShare, formatMetric, formatUsd, METRICS, metricValue, niceTicks, shortDay, tokensOf, type Metric } from "./activityView.ts";
+import { barLayout, barRange, cacheShare, formatMetric, formatUsd, labelEvery, METRICS, metricValue, niceTicks, shortDay, tokensOf, type ChartBar, type Metric } from "./activityView.ts";
 
 const MARGIN = { top: 10, right: 20, bottom: 24, left: 52 };
 // A lower chart on a phone (under 480 px wide).
@@ -29,39 +28,42 @@ function useWidth(): [React.RefObject<HTMLDivElement | null>, number] {
   return [ref, width];
 }
 
-function describe(d: UsageDay, costKnown: boolean): string {
-  const cost = costKnown ? formatUsd(d.costUsd) : "no cost data";
-  return `${shortDay(d.day)}: ${d.turns} turns, ${cost}, ${formatTokens(tokensOf(d))} tokens`;
+function describe(bar: ChartBar, costKnown: boolean): string {
+  const cost = costKnown ? formatUsd(bar.costUsd) : "no cost data";
+  return `${barRange(bar)}: ${bar.turns} turns, ${cost}, ${formatTokens(tokensOf(bar))} tokens`;
 }
 
 interface Props {
-  days: UsageDay[];
+  bars: ChartBar[];
+  /** Each bar holds 7 days. */
+  weekly: boolean;
   metric: Metric;
   /** False when T3 sent no usage: cost and tokens are then not real zeros. */
   costKnown: boolean;
 }
 
-/** Bars for the last days, one series. The values also sit in a table for screen readers. */
-export function ActivityChart({ days, metric, costKnown }: Props) {
+/** One series of bars, a day or a week each. The values also sit in a table for screen readers. */
+export function ActivityChart({ bars: data, weekly, metric, costKnown }: Props) {
   const [ref, width] = useWidth();
   const label = METRICS.find((m) => m.id === metric)!.label;
   const [active, setActive] = useState<number | null>(null);
   const height = heightFor(width);
   const plotHeight = height - MARGIN.top - MARGIN.bottom;
   const plotWidth = width - MARGIN.left - MARGIN.right;
-  const values = days.map((d) => metricValue(d, metric));
+  const unit = weekly ? "week" : "day";
+  const values = data.map((bar) => metricValue(bar, metric));
   const ticks = niceTicks(Math.max(...values, 0));
   const top = ticks.at(-1)!;
   const bars = barLayout(values, top, plotHeight, plotWidth);
-  const slot = plotWidth / days.length;
-  // Fewer labels on a narrow screen, always including today.
-  const every = width < 480 ? 3 : 2;
-  const hovered = active === null ? null : days[active]!;
+  const slot = plotWidth / data.length;
+  // Labels keep their distance, and the last bar always has one.
+  const every = labelEvery(slot);
+  const hovered = active === null ? null : data[active]!;
   const tipLeft = active === null ? 0 : MARGIN.left + (active + 0.5) * slot;
 
   return (
     <div className="activity-chart" ref={ref} onMouseLeave={() => setActive(null)}>
-      <svg width={width} height={height} role="group" aria-label={`${label} per day, last ${days.length} days`}>
+      <svg width={width} height={height} role="group" aria-label={`${label} per ${unit}, last ${data.length} ${unit}s`}>
         <g transform={`translate(${MARGIN.left},${MARGIN.top})`}>
           {ticks.map((tick) => {
             const y = plotHeight - (tick / top) * plotHeight;
@@ -74,17 +76,17 @@ export function ActivityChart({ days, metric, costKnown }: Props) {
           })}
           {active !== null && <rect className="activity-hover" x={active * slot} y={0} width={slot} height={plotHeight} />}
           {bars.map((bar, i) => {
-            const today = i === days.length - 1;
+            const today = i === data.length - 1;
             return (
-              <g key={days[i]!.day}>
+              <g key={data[i]!.from}>
                 {bar.height > 0 ? (
                   <path className={`activity-bar${today ? " today" : ""}`} d={barPath(bar.x, bar.y, bar.width, bar.height)} />
                 ) : (
                   <rect className="activity-zero" x={bar.x} y={plotHeight - 2} width={bar.width} height={2} rx={1} />
                 )}
-                {(days.length - 1 - i) % every === 0 && (
+                {(data.length - 1 - i) % every === 0 && (
                   <text className={`activity-axis${today ? " today" : ""}`} x={i * slot + slot / 2} y={plotHeight + 16} textAnchor="middle">
-                    {today ? "Today" : shortDay(days[i]!.day)}
+                    {today && !weekly ? "Today" : shortDay(data[i]!.from)}
                   </text>
                 )}
                 <rect
@@ -95,7 +97,7 @@ export function ActivityChart({ days, metric, costKnown }: Props) {
                   height={plotHeight}
                   tabIndex={0}
                   role="img"
-                  aria-label={describe(days[i]!, costKnown)}
+                  aria-label={describe(data[i]!, costKnown)}
                   onMouseEnter={() => setActive(i)}
                   onFocus={() => setActive(i)}
                   onBlur={() => setActive(null)}
@@ -107,7 +109,7 @@ export function ActivityChart({ days, metric, costKnown }: Props) {
       </svg>
       {hovered && (
         <div className="activity-tip" role="presentation" style={{ left: tipLeft, ...(tipLeft > width / 2 ? { transform: "translateX(-100%)" } : {}) }}>
-          <strong>{shortDay(hovered.day)}</strong>
+          <strong>{barRange(hovered)}</strong>
           <span>Turns <b>{hovered.turns}</b></span>
           <span>Spend <b>{costKnown ? formatUsd(hovered.costUsd) : "—"}</b></span>
           <span>Tokens <b>{costKnown ? `${formatTokens(hovered.inputTokens)} → ${formatTokens(hovered.outputTokens)}` : "—"}</b></span>
@@ -115,12 +117,12 @@ export function ActivityChart({ days, metric, costKnown }: Props) {
         </div>
       )}
       <table className="sr-only">
-        <caption>{label} per day</caption>
+        <caption>{label} per {unit}</caption>
         <tbody>
-          {days.map((d) => (
-            <tr key={d.day}>
-              <th scope="row">{d.day}</th>
-              <td>{formatMetric(metricValue(d, metric), metric)}</td>
+          {data.map((bar) => (
+            <tr key={bar.from}>
+              <th scope="row">{barRange(bar)}</th>
+              <td>{formatMetric(metricValue(bar, metric), metric)}</td>
             </tr>
           ))}
         </tbody>

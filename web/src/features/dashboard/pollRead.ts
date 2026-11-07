@@ -51,7 +51,8 @@ export function startReadPoll<T>(
 }
 
 // Reads while `enabled`. `read` may change each render: the latest one is used.
-export function usePolledRead<T>(enabled: boolean, read: (force: boolean) => Promise<T>, ms = DASHBOARD_POLL_MS): ReadState<T> {
+// A new `key` restarts the poll, for a read that depends on a choice.
+export function usePolledRead<T>(enabled: boolean, read: (force: boolean) => Promise<T>, ms = DASHBOARD_POLL_MS, key: string | number = ""): ReadState<T> {
   const [value, setValue] = useState<T | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -60,9 +61,15 @@ export function usePolledRead<T>(enabled: boolean, read: (force: boolean) => Pro
   const forceNext = useRef(false);
   const latest = useRef(read);
   latest.current = read;
+  // A new key reads other data: the last error belongs to the old one.
+  const lastKey = useRef(key);
 
   useEffect(() => {
     if (!enabled) return;
+    if (lastKey.current !== key) {
+      lastKey.current = key;
+      setError(null);
+    }
     const force = forceNext.current;
     forceNext.current = false;
     return startReadPoll(
@@ -76,7 +83,7 @@ export function usePolledRead<T>(enabled: boolean, read: (force: boolean) => Pro
       documentPage,
       ms,
     );
-  }, [enabled, run, ms]);
+  }, [enabled, run, ms, key]);
 
   const refresh = useCallback(() => {
     forceNext.current = true;
