@@ -49,6 +49,7 @@ test("the settings dialog shows the saved values", () => {
   assert.match(out, /role="switch"[^>]*aria-checked="true"[^>]*aria-label="Automatic generation"/);
   assert.match(out, /runs every day/);
   assert.doesNotMatch(out, /aria-label="Weekday"/);
+  assert.doesNotMatch(out, /<fieldset[^>]*disabled/);
 });
 
 test("the settings dialog shows the weekday of a weekly news and the off state", () => {
@@ -60,6 +61,8 @@ test("the settings dialog shows the weekday of a weekly news and the off state",
   assert.match(out, /aria-label="Weekday"/);
   assert.match(out, /Sunday/);
   assert.match(out, /every Sunday/);
+  // Off: the schedule controls are locked; the topics stay editable.
+  assert.match(out, /<fieldset class="news-schedule" disabled=""/);
 });
 
 test("a saved custom topic shows checked after the presets", () => {

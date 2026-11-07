@@ -53,6 +53,8 @@ export function NewsSettingsDialog({ settings, providers, defaults, onSave, onCl
           <Switch label="Automatic generation" checked={form.enabled} onChange={(enabled) => setForm({ ...form, enabled })} />
           <p className="hint">{form.enabled ? "The routine writes an article on its schedule." : "Off: the routine is paused. Run now still writes an article."}</p>
         </div>
+        {/* A native disabled fieldset greys and locks every schedule control at once. */}
+        <fieldset className="news-schedule" disabled={!form.enabled}>
         <div className="dialog-field">
           <span>Frequency</span>
           <Segmented<NewsFrequency> label="Frequency" value={form.frequency} options={[{ id: "daily", label: "Every day" }, { id: "weekly", label: "Every week" }]} onChange={(frequency) => setForm({ ...form, frequency })} />
@@ -68,6 +70,7 @@ export function NewsSettingsDialog({ settings, providers, defaults, onSave, onCl
           <TextInput aria-label="Time of day" type="time" value={form.timeOfDay} onChange={(e) => setForm({ ...form, timeOfDay: e.target.value })} />
           <p className="hint">{scheduleHint(form.frequency, form.weekday)}</p>
         </div>
+        </fieldset>
         <div className="dialog-field">
           <span>Topics</span>
           <div className="topic-grid" role="group" aria-label="Topics">
