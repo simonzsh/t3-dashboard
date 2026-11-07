@@ -14,7 +14,8 @@ export interface OutgoingMessage {
   attachments: unknown[];
 }
 
-export function createThreadCommands(threadId: string, body: Omit<CreateThreadBody, "attachments">, message: OutgoingMessage): UnsentCommand[] {
+// `generateTitle` sends the title as `titleSeed`: T3 then asks the model for a title, like its own client.
+export function createThreadCommands(threadId: string, body: Omit<CreateThreadBody, "attachments">, message: OutgoingMessage, options: { generateTitle?: boolean } = {}): UnsentCommand[] {
   const create = {
     type: "thread.create",
     threadId,
@@ -27,7 +28,11 @@ export function createThreadCommands(threadId: string, body: Omit<CreateThreadBo
     worktreePath: null,
     ...PROVENANCE,
   };
-  const dispatch = { ...messageCommand(threadId, body.text, message, { mode: { type: "start_immediately" } }), modelSelection: body.modelSelection };
+  const dispatch = {
+    ...messageCommand(threadId, body.text, message, { mode: { type: "start_immediately" } }),
+    modelSelection: body.modelSelection,
+    ...(options.generateTitle && { titleSeed: body.title }),
+  };
   return [create, dispatch];
 }
 

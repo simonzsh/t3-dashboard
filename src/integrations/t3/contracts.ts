@@ -56,7 +56,7 @@ export function samplePayloads(): Record<string, Record<string, unknown>[]> {
   const selection: ModelSelection = { instanceId: "i", model: "m" };
   const message = { messageId: "m", attachments: [] };
   const commands: UnsentCommand[] = [
-    ...createThreadCommands("t", { projectId: "p", title: "x", text: "x", modelSelection: selection }, message),
+    ...createThreadCommands("t", { projectId: "p", title: "x", text: "x", modelSelection: selection }, message, { generateTitle: true }),
     messageCommand("t", "x", message, { mode: { type: "queue_after_active" }, steer: true }),
     modelSelectionCommand("t", selection),
     renameThreadCommand("t", "x"),
