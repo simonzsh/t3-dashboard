@@ -1,4 +1,4 @@
-import { claudeRulesFile, codexRulesFile } from "./paths.ts";
+import { agentRulesTargets } from "./paths.ts";
 
 export const RULES_BEGIN = "<!-- t3-dashboard:begin -->";
 export const RULES_END = "<!-- t3-dashboard:end -->";
@@ -64,8 +64,8 @@ export interface AgentRulesDeps {
   log(message: string): void;
 }
 
-// Claude can load another file with an `@path` line. When its file loads the Codex one,
-// a second block would give Claude the rules twice.
+// An agent can load another file with an `@path` line. When its file loads another target's file,
+// a second block would give that agent the rules twice.
 function includes(content: string, target: string, home: string): boolean {
   return content.split(/\r?\n/).some((line) => {
     const path = /^@(\S+)\s*$/.exec(line.trim())?.[1];
@@ -73,16 +73,19 @@ function includes(content: string, target: string, home: string): boolean {
   });
 }
 
-/** Writes or removes the block in the Claude and Codex rules files. A failure is logged, never thrown. */
+/** Writes or removes the block in each agent's rules file. A failure is logged, never thrown. */
 export function syncAgentRules(action: "write" | "remove", deps: AgentRulesDeps): void {
   if (action === "write" && agentRulesOff(deps.env)) return;
-  const codex = codexRulesFile(deps.env, deps.home);
-  for (const path of [claudeRulesFile(deps.env, deps.home), codex]) {
+  const targets = agentRulesTargets(deps.env, deps.home);
+  // An agent that is not installed has no folder: do not create one.
+  const eligible = targets.filter((t) => t.always || deps.exists(t.dir));
+  for (const { file: path } of action === "write" ? eligible : targets) {
     try {
       const present = deps.exists(path);
       if (!present && action === "remove") continue;
       const current = present ? deps.readFile(path) : null;
-      const write = action === "write" && !(path !== codex && current !== null && includes(current, codex, deps.home));
+      const loadsOther = current !== null && eligible.some((t) => t.file !== path && includes(current, t.file, deps.home));
+      const write = action === "write" && !loadsOther;
       const next = write ? withRules(current) : withoutRules(current!);
       if (next === current) continue;
       // The dashboard made this file for its block only: leave no empty file behind.

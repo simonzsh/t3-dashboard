@@ -122,3 +122,28 @@ test("a write error is logged and never thrown", () => {
   syncAgentRules("write", deps);
   assert.deepEqual(logs, ["Could not update /c/CLAUDE.md: read-only", "Could not update /x/AGENTS.md: read-only"]);
 });
+
+test("write skips an agent whose folder is missing and creates no folder", () => {
+  const { files, deps } = harness({ "/g": "", "/g/other": "" });
+  syncAgentRules("write", deps);
+  assert.equal("/g/GEMINI.md" in files, false);
+  assert.equal("/xdg/opencode/AGENTS.md" in files, false);
+  const installed = harness({ "/g": "", "/xdg/opencode": "" }, { GEMINI_HOME: "/g", XDG_CONFIG_HOME: "/xdg" });
+  syncAgentRules("write", installed.deps);
+  assert.equal(installed.files["/g/GEMINI.md"], `${AGENT_RULES}\n`);
+  assert.equal(installed.files["/xdg/opencode/AGENTS.md"], `${AGENT_RULES}\n`);
+});
+
+test("remove clears every target that has a file, even when its folder check would fail", () => {
+  const { files, deps } = harness({ "/g/GEMINI.md": `Mine\n\n${AGENT_RULES}\n`, "/xdg/opencode/AGENTS.md": `${AGENT_RULES}\n` }, { GEMINI_HOME: "/g", XDG_CONFIG_HOME: "/xdg" });
+  syncAgentRules("remove", deps);
+  assert.equal(files["/g/GEMINI.md"], "Mine\n");
+  assert.equal("/xdg/opencode/AGENTS.md" in files, false);
+});
+
+test("any agent file that loads another target's file gets no second block", () => {
+  const { files, deps } = harness({ "/g": "", "/g/GEMINI.md": "@/x/AGENTS.md\n" }, { GEMINI_HOME: "/g" });
+  syncAgentRules("write", deps);
+  assert.equal(files["/g/GEMINI.md"], "@/x/AGENTS.md\n");
+  assert.equal(files["/x/AGENTS.md"], `${AGENT_RULES}\n`);
+});

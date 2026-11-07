@@ -37,11 +37,27 @@ export const sessionsFile = (env: Env, homedir: string): string => join(configDi
 /** Stashed composer drafts, shared by every device. */
 export const stashFile = (env: Env, homedir: string): string => join(configDir(env, homedir), "stash.json");
 
-/** The user rules file of Claude Code. */
-export const claudeRulesFile = (env: Env, homedir: string): string => join(env.CLAUDE_CONFIG_DIR ?? join(homedir, ".claude"), "CLAUDE.md");
+export interface AgentRulesTarget {
+  agent: "claude" | "codex" | "antigravity" | "opencode";
+  /** The agent's config folder. */
+  dir: string;
+  /** The global instruction file inside `dir`. */
+  file: string;
+  /** False: write only when `dir` already exists, so an agent that is not installed gets no folder. */
+  always: boolean;
+}
 
-/** The user rules file of Codex. */
-export const codexRulesFile = (env: Env, homedir: string): string => join(env.CODEX_HOME ?? join(homedir, ".codex"), "AGENTS.md");
+// Cursor has no global rules file. Grok is left out until its file name is confirmed: add a row then.
+// OpenCode: OPENCODE_CONFIG_DIR adds a folder and does not replace the global one, so only XDG applies.
+export function agentRulesTargets(env: Env, homedir: string): AgentRulesTarget[] {
+  const target = (agent: AgentRulesTarget["agent"], dir: string, file: string, always: boolean): AgentRulesTarget => ({ agent, dir, file: join(dir, file), always });
+  return [
+    target("claude", env.CLAUDE_CONFIG_DIR ?? join(homedir, ".claude"), "CLAUDE.md", true),
+    target("codex", env.CODEX_HOME ?? join(homedir, ".codex"), "AGENTS.md", true),
+    target("antigravity", env.GEMINI_HOME ?? join(homedir, ".gemini"), "GEMINI.md", false),
+    target("opencode", join(env.XDG_CONFIG_HOME ?? join(homedir, ".config"), "opencode"), "AGENTS.md", false),
+  ];
+}
 
 /** Reminders re-armed from the dashboard after a run, so the guard does not pause them again. */
 export const rearmedFile = (env: Env, homedir: string): string => join(configDir(env, homedir), "rearmed-reminders.json");
