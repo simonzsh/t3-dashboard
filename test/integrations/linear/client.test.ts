@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { test } from "bun:test";
 import { IntegrationError } from "../../../src/integrations/errors.ts";
 import { LinearClient } from "../../../src/integrations/linear/client.ts";
-import { linearNode, linearPage } from "../../helpers/linear.ts";
+import { linearInbox, linearInboxNode, linearNode, linearPage } from "../../helpers/linear.ts";
 
 interface Call {
   url: string;
@@ -114,4 +114,25 @@ test("verifyKey asks Linear for the viewer and tells ok, refused or unreachable"
   assert.equal(await client.verifyKey("down"), "unreachable");
   assert.equal(await client.verifyKey("offline"), "unreachable");
   assert.equal(await client.verifyKey("odd"), "unreachable");
+});
+
+test("inbox posts one query with the raw key and returns the notifications", async () => {
+  const { client, calls } = setup(() => linearInbox([linearInboxNode(1)]));
+  assert.deepEqual(await client.inbox("key-1"), [linearInboxNode(1)]);
+  assert.equal(calls.length, 1);
+  assert.equal(calls[0]!.authorization, "key-1");
+  assert.match(calls[0]!.query, /notifications\(first: 50/);
+});
+
+test("an inbox answer without the issue is a protocol error", async () => {
+  const { issue: _issue, ...withoutIssue } = linearInboxNode(1);
+  const error = await failure(setup(() => linearInbox([withoutIssue])).client.inbox("key-1"));
+  assert.equal(error.kind, "protocol");
+  assert.match(error.message, /Linear inbox/);
+});
+
+test("a GraphQL error on the inbox is a refusal without a status", async () => {
+  const { client } = setup(() => new Response(JSON.stringify({ errors: [{ message: "bad filter" }] }), { status: 200 }));
+  const error = await failure(client.inbox("key-1"));
+  assert.deepEqual([error.kind, error.status], ["refused", undefined]);
 });

@@ -1,10 +1,10 @@
 import { issues } from "../contract.ts";
 import { Checks, type SystemReport } from "../drift.ts";
 import { IntegrationError } from "../errors.ts";
-import { LinearClient, QUERY, VIEWER_QUERY, type FetchLike } from "./client.ts";
-import { AssignedIssuesPage, Viewer } from "./schemas.ts";
+import { INBOX_QUERY, LinearClient, QUERY, VIEWER_QUERY, type FetchLike } from "./client.ts";
+import { AssignedIssuesPage, InboxPage, Viewer } from "./schemas.ts";
 
-/** The viewer and one page of assigned issues, with the board's own query. Nothing is written. */
+/** The viewer, one page of assigned issues and the inbox, with the board's own queries. Nothing is written. */
 export async function checkLinear(apiKey: string, fetchImpl: FetchLike = fetch): Promise<SystemReport> {
   if (apiKey === "") return { system: "linear", checks: 0, findings: [], skipped: "no Linear key is configured" };
   const client = new LinearClient(fetchImpl);
@@ -17,6 +17,14 @@ export async function checkLinear(apiKey: string, fetchImpl: FetchLike = fetch):
     } catch (error) {
       // The key just worked, so a GraphQL error (no HTTP status) means Linear refuses the board query itself.
       if (error instanceof IntegrationError && error.kind === "refused" && error.status === undefined) return checks.breaking("assigned issues: Linear returned a GraphQL error for the board query");
+      throw error;
+    }
+  });
+  await checks.run("inbox", async () => {
+    try {
+      checks.issues("inbox", issues(InboxPage, await client.query(apiKey, INBOX_QUERY)));
+    } catch (error) {
+      if (error instanceof IntegrationError && error.kind === "refused" && error.status === undefined) return checks.breaking("inbox: Linear returned a GraphQL error for the inbox query");
       throw error;
     }
   });

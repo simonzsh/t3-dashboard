@@ -5,7 +5,7 @@ import type { BoardResult } from "../../../../shared/api.ts";
 import { UpNextCard } from "../../../src/features/dashboard/UpNextCard.tsx";
 
 const NOW = new Date("2026-11-06T12:05:00.000Z");
-const board = (over: Partial<BoardResult> = {}): BoardResult => ({ configured: true, ok: true, error: null, issues: [], readAt: "2026-11-06T12:00:00.000Z", ...over });
+const board = (over: Partial<BoardResult> = {}): BoardResult => ({ configured: true, ok: true, error: null, issues: [], readAt: "2026-11-06T12:00:00.000Z", inbox: [], inboxError: null, ...over });
 const render = (value: BoardResult | null) =>
   renderToStaticMarkup(
     <UpNextCard

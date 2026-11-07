@@ -1,10 +1,13 @@
 import { parse } from "../contract.ts";
 import { IntegrationError, type IntegrationErrorKind } from "../errors.ts";
-import { AssignedIssuesPage, Viewer, type LinearIssueNode } from "./schemas.ts";
+import { AssignedIssuesPage, InboxPage, Viewer, type LinearInboxNode, type LinearIssueNode } from "./schemas.ts";
 
 const ENDPOINT = "https://api.linear.app/graphql";
 export const VIEWER_QUERY = "{ viewer { id } }";
-export const QUERY = `query($after: String) { viewer { assignedIssues(first: 100, after: $after, filter: { state: { type: { nin: ["completed", "canceled"] } } }) { nodes { id identifier title url priority priorityLabel updatedAt state { name type color } project { id name } team { key name } } pageInfo { hasNextPage endCursor } } } }`;
+export const QUERY = `query($after: String) { viewer { assignedIssues(first: 100, after: $after, filter: { state: { type: { nin: ["completed", "canceled"] } } }) { nodes { id identifier title url priority priorityLabel updatedAt dueDate state { name type color } project { id name } team { key name } } pageInfo { hasNextPage endCursor } } } }`;
+export const INBOX_TYPES = ["issueMention", "issueCommentMention", "issueAssignedToYou"] as const;
+// One page of 50: the inbox is a glance, not a full list.
+export const INBOX_QUERY = `{ notifications(first: 50, filter: { type: { in: ["issueMention", "issueCommentMention", "issueAssignedToYou"] } }) { nodes { id type createdAt readAt archivedAt snoozedUntilAt actor { name } botActor { name } ... on IssueNotification { comment { url } issue { id identifier title url priority state { type } } } } } }`;
 // 20 pages of 100: a hard stop for a runaway cursor.
 const MAX_PAGES = 20;
 // A stalled Linear would otherwise hold the board request for minutes.
@@ -52,6 +55,11 @@ export class LinearClient {
       after = pageInfo.endCursor;
     }
     throw fail("unreachable", `Too many assigned issues to load (over ${MAX_PAGES * 100})`);
+  }
+
+  /** The newest inbox notifications about issues, read, archived or not. */
+  async inbox(apiKey: string): Promise<LinearInboxNode[]> {
+    return parse(InboxPage, await this.query(apiKey, INBOX_QUERY), { system: "linear", what: "Linear inbox" }).notifications.nodes;
   }
 
   // Error texts never include the response body or the key: both can echo it back.
