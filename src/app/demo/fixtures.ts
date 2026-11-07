@@ -1,5 +1,5 @@
 import type { ServerStats } from "../../../shared/api.ts";
-import type { LinearIssueNode } from "../../integrations/linear/schemas.ts";
+import type { LinearInboxNode, LinearIssueNode } from "../../integrations/linear/schemas.ts";
 import type { RawConfig, RawProject, RawProjection, RawScheduledTask, RawSubagent, RawThread, RawTurnItem, RawUsageLimits, RawUsageSummary } from "../../integrations/t3/schemas.ts";
 
 // Invented data for `bun run demo`: a small team building "Atlas", no real names.
@@ -593,6 +593,15 @@ const ISSUES: Array<[string, string, string, number, string | null, number]> = [
   ["Dark mode contrast on charts", "Done", "completed", 3, "Reports", 25],
 ];
 
+// Issue index to days from today: one overdue by 2 days, one due tomorrow.
+const DUE_IN_DAYS: Record<number, number> = { 1: -2, 4: 1 };
+
+// The card compares due dates with the local day, so the fixture builds a local one.
+const localDay = (now: Date, days: number) => {
+  const day = new Date(now.getFullYear(), now.getMonth(), now.getDate() + days);
+  return `${day.getFullYear()}-${String(day.getMonth() + 1).padStart(2, "0")}-${String(day.getDate()).padStart(2, "0")}`;
+};
+
 const STATE_COLORS: Record<string, string> = { Backlog: "#bec2c8", Todo: "#e2e2e2", "In Progress": "#f2c94c", "In Review": "#5e6ad2", Done: "#4cb782" };
 const PRIORITY_LABELS = ["No priority", "Urgent", "High", "Medium", "Low"];
 
@@ -607,11 +616,30 @@ export function demoIssues(now: Date): LinearIssueNode[] {
       priority,
       priorityLabel: PRIORITY_LABELS[priority]!,
       updatedAt: new Date(now.getTime() - minutes * 60_000).toISOString(),
+      dueDate: DUE_IN_DAYS[index] === undefined ? null : localDay(now, DUE_IN_DAYS[index]!),
       state: { name: state, type, color: STATE_COLORS[state]! },
       project: project ? { id: `demo-linear-${project.toLowerCase().replace(/\s+/g, "-")}`, name: project } : null,
       team: { key: "ATL", name: "Atlas" },
     };
   });
+}
+
+/** Inbox notifications as Linear sends them: two mentions, two assignments, one read, one archived. */
+export function demoInbox(now: Date): LinearInboxNode[] {
+  const issues = demoIssues(now);
+  const ago = (minutes: number) => new Date(now.getTime() - minutes * 60_000).toISOString();
+  const node = (id: string, type: string, issueIndex: number, minutes: number, over: Partial<LinearInboxNode> = {}): LinearInboxNode => {
+    const { id: issueId, identifier, title, url, priority, state } = issues[issueIndex]!;
+    return { id, type, createdAt: ago(minutes), readAt: null, archivedAt: null, snoozedUntilAt: null, actor: { name: "Maya Chen" }, botActor: null, comment: null, issue: { id: issueId, identifier, title, url, priority, state: { type: state.type } }, ...over };
+  };
+  return [
+    node("demo-notif-1", "issueMention", 0, 12),
+    node("demo-notif-2", "issueCommentMention", 2, 55, { actor: { name: "Leo Martin" }, comment: { url: `${issues[2]!.url}#comment-demo` } }),
+    node("demo-notif-3", "issueAssignedToYou", 5, 180, { actor: { name: "Noor Haddad" } }),
+    node("demo-notif-4", "issueAssignedToYou", 6, 600, { actor: null }),
+    node("demo-notif-5", "issueMention", 3, 240, { readAt: ago(200) }),
+    node("demo-notif-6", "issueMention", 7, 300, { archivedAt: ago(250) }),
+  ];
 }
 
 const hoursFrom = (now: Date, hours: number) => new Date(now.getTime() + hours * 3_600_000).toISOString();

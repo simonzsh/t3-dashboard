@@ -88,7 +88,7 @@ test("non-2xx without JSON error body still throws", async () => {
 });
 
 test("getBoard reads the cache by default and forces a refresh on demand", async () => {
-  const { calls, api } = fake(200, { configured: true, ok: true, error: null, issues: [], readAt: "2026-11-06T12:00:00.000Z" });
+  const { calls, api } = fake(200, { configured: true, ok: true, error: null, issues: [], readAt: "2026-11-06T12:00:00.000Z", inbox: [], inboxError: null });
   await api.getBoard();
   await api.getBoard(true);
   assert.deepEqual(calls.map((c) => c.url), ["/api/board", "/api/board?refresh=1"]);

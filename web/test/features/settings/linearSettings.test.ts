@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import type { BoardResult } from "../../../../shared/api.ts";
 import { boardNeedsKey, linearConnected, maskedKey } from "../../../src/features/settings/linearSettings.ts";
 
-const board = (over: Partial<BoardResult>): BoardResult => ({ configured: true, ok: true, error: null, issues: [], readAt: "2026-11-06T12:00:00.000Z", ...over });
+const board = (over: Partial<BoardResult>): BoardResult => ({ configured: true, ok: true, error: null, issues: [], readAt: "2026-11-06T12:00:00.000Z", inbox: [], inboxError: null, ...over });
 
 test("the setup card shows without a key, or when Linear refuses it, and not for other errors", () => {
   assert.equal(boardNeedsKey(board({ configured: false, ok: false, error: "Missing API key" })), true);
