@@ -5,6 +5,7 @@ import type { Actions, AssetRequest } from "../domain/actions.ts";
 import type { SessionsStore } from "../domain/sessionsStore.ts";
 import type { StashStore } from "../domain/stashStore.ts";
 import type { SeenStore } from "../domain/seenStore.ts";
+import type { CacheCleanup } from "../domain/cacheCleanup.ts";
 import type { Automations } from "../domain/automations.ts";
 import type { LinearBoard } from "../domain/linearBoard.ts";
 import type { ProviderLimitsReader } from "../domain/providerLimits.ts";
@@ -36,6 +37,7 @@ export interface DashboardServerOptions {
   usage: Pick<Usage, "get">;
   limits: Pick<ProviderLimitsReader, "get">;
   serverStats: Pick<ServerStatsReader, "get">;
+  cacheCleanup: Pick<CacheCleanup, "sizes" | "clear">;
   automations: Pick<Automations, "list" | "create" | "remove" | "update" | "setEnabled" | "runNow">;
   sessions: Pick<SessionsStore, "get" | "set">;
   stash: Pick<StashStore, "list" | "add" | "remove">;
@@ -153,7 +155,7 @@ function matchRoute(pattern: string[], segments: string[]): Record<string, strin
 }
 
 export function createDashboardServer(options: DashboardServerOptions): DashboardHandler {
-  const { actions, sessions, stash, seen, hub, board, usage, limits, serverStats, automations, getState, connection, site, settings, setup, updates } = options;
+  const { actions, sessions, stash, seen, hub, board, usage, limits, serverStats, cacheCleanup, automations, getState, connection, site, settings, setup, updates } = options;
   const allowedHosts = new Set([...LOCAL_HOSTS, ...(options.allowedHosts ?? [])]);
   const ok = (extra: Record<string, unknown> = {}) => json(200, { ok: true, ...extra });
   const done = async (work: Promise<unknown>) => (await work, ok());
@@ -198,6 +200,7 @@ export function createDashboardServer(options: DashboardServerOptions): Dashboar
       },
     },
     { method: "GET", path: "/api/server-stats", handle: async () => json(200, await serverStats.get()) },
+    { method: "GET", path: "/api/cache-cleanup", handle: async () => json(200, await cacheCleanup.sizes()) },
     { method: "GET", path: "/api/limits", handle: async ({ req }) => json(200, await limits.get(new URL(req.url).searchParams.get("refresh") === "1")) },
     { method: "GET", path: "/api/automations", handle: async () => json(200, await automations.list()) },
     { method: "GET", path: "/api/settings", handle: () => json(200, settings.get()) },
@@ -285,6 +288,8 @@ export function createDashboardServer(options: DashboardServerOptions): Dashboar
         return ok();
       },
     },
+    // No body field is read: the server alone decides what is cleared.
+    { method: "POST", path: "/api/cache-cleanup", handle: async () => json(200, await cacheCleanup.clear()) },
     {
       method: "POST",
       path: "/api/stash",

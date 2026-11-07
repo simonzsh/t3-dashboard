@@ -1,5 +1,6 @@
-import type { ServerStats } from "../../../../shared/api.ts";
+import type { CacheCleanupResult, ServerStats } from "../../../../shared/api.ts";
 
+const KIB = 1024;
 const MIB = 1024 ** 2;
 const GIB = 1024 ** 3;
 const TIB = 1024 ** 4;
@@ -31,3 +32,19 @@ export const percentLabel = (percent: number | null): string => (percent === nul
 
 /** The text a screen reader gets for one meter. */
 export const meterText = (name: string, percent: number, detail?: string): string => `${name}: ${Math.round(percent)}% used${detail ? `, ${detail}` : ""}`;
+
+/** "12.3 GB", "340 MB", "0 B". */
+export function formatSize(bytes: number): string {
+  if (bytes < KIB) return `${Math.round(bytes)} B`;
+  const [unit, label] = bytes >= TIB ? [TIB, "TB"] : bytes >= GIB ? [GIB, "GB"] : bytes >= MIB ? [MIB, "MB"] : [KIB, "KB"];
+  return `${figure(bytes / unit)} ${label}`;
+}
+
+/** The server has a list of caches for these systems only (see src/domain/cacheCleanup.ts). */
+export const cacheCleanupAvailable = (stats: ServerStats): boolean => stats.os === "Linux" || stats.os === "macOS";
+
+/** "Freed 12.3 GB." and, if a target failed, "Could not clear: uv cache (EBUSY)." */
+export function cleanupSummary(result: CacheCleanupResult): string {
+  const failed = result.targets.filter((t) => t.error !== null).map((t) => `${t.label} (${t.error})`);
+  return `Freed ${formatSize(result.totalBytes)}.${failed.length > 0 ? ` Could not clear: ${failed.join(", ")}.` : ""}`;
+}

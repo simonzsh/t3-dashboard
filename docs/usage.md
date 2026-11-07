@@ -28,6 +28,17 @@ Notifications, Running and Up next list your agents and tickets. Notifications i
 
 The rows change status live, without a page reload. The toasts and the browser notifications still tell you when an agent waits or finishes. A click on a toast opens the conversation.
 
+### Clear caches
+
+The trash button in the header of the Server card frees disk space. It is hidden on Windows. A click opens a dialog that lists each cache with the size it would free, and the total. Nothing is removed until you confirm. Afterwards the card says "Freed" with the size, names any cache that could not be cleared, and reads the stats again.
+
+The server decides what to clear, from a fixed list per system. The request has no path and no option. The list is:
+
+- Package caches: npm (`~/.npm/_cacache`), Yarn, pnpm and uv (`~/.cache/...` on Linux, `~/Library/Caches/...` on macOS), and the Bun install cache (`~/.bun/install/cache`, not the rest of `~/.bun`, which holds the `bun` program).
+- Temp folders: `node-compile-cache` and `mongo-mem-*` in the system temp folder. Only entries that nobody changed for more than one hour are counted and removed.
+
+These limits hold: the server never follows a symbolic link out of a cache, and it never touches worktrees, repositories, outputs, `~/.t3` or any other path. A cache that fails (for example a locked file) shows its error and the other caches still clear. Two clears at the same time share one run. The routes are `GET /api/cache-cleanup` (sizes) and `POST /api/cache-cleanup` (clear).
+
 ### Tickets
 
 The Linear tickets feed "To relaunch" and "Up next". They need a Linear API key: see [install.md](install.md#linear). Only the tickets assigned to you in the states "Todo" and "In Progress" count. The other states (triage, backlog, done, canceled) never show.

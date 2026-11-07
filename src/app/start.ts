@@ -1,6 +1,6 @@
 import { readFileSync } from "node:fs";
-import { statfs } from "node:fs/promises";
-import os, { homedir } from "node:os";
+import { lstat, readdir, rm, statfs } from "node:fs/promises";
+import os, { homedir, tmpdir } from "node:os";
 import { setTimeout as sleep } from "node:timers/promises";
 import index from "../../web/index.html";
 import type { DashboardProvider } from "../../shared/api.ts";
@@ -17,6 +17,7 @@ import { environmentIdFile, readEnvironmentId, readServerVersion, resolveOrigin,
 import { LiveSync } from "../domain/liveSync.ts";
 import { LinearBoard } from "../domain/linearBoard.ts";
 import { createProviderLimits } from "../domain/providerLimits.ts";
+import { createCacheCleanup } from "../domain/cacheCleanup.ts";
 import { createServerStats, vmStatAvailable } from "../domain/serverStats.ts";
 import { createUsage } from "../domain/usage.ts";
 import { readSessions, sessionsText } from "../config/sessionsFile.ts";
@@ -131,6 +132,13 @@ export async function start({ port, log, env }: StartOptions): Promise<void> {
   const usage = createUsage({ port: client, threads: () => getState().threads, now: () => new Date() });
   const limits = createProviderLimits({ port: client, now: () => new Date() });
   const serverStats = createServerStats({ os, statfs, diskPath: homedir(), now: () => new Date(), sleep, availableMemory: os.platform() === "darwin" ? darwinAvailableMemory : undefined });
+  const cacheCleanup = createCacheCleanup({
+    fs: { readdir: (path) => readdir(path), lstat: (path) => lstat(path), rm: (path, options) => rm(path, options) },
+    homedir,
+    tmpdir,
+    platform: os.platform(),
+    now: () => new Date(),
+  });
 
   const settings = createSettings({ file: linearPath, readFile: readText, writeSecret, board });
   const wake = () => {
@@ -174,7 +182,7 @@ export async function start({ port, log, env }: StartOptions): Promise<void> {
   const stash = new StashStore(readStash(stashFile, readText), (entries) => writeSecret(stashFile, stashText(entries)), { now: () => new Date(), newId: () => crypto.randomUUID() });
   const seenFile = seenPath(env, home);
   const seen = new SeenStore(readSeen(seenFile, readText), (value) => writeSecret(seenFile, seenText(value)));
-  const handler = createDashboardServer({ actions, sessions, stash, seen, hub, board, usage, limits, serverStats, automations, getState, connection: () => live.connection(), site, settings, setup, updates, allowedHosts: envAllowedHosts(env) });
+  const handler = createDashboardServer({ actions, sessions, stash, seen, hub, board, usage, limits, serverStats, cacheCleanup, automations, getState, connection: () => live.connection(), site, settings, setup, updates, allowedHosts: envAllowedHosts(env) });
 
   const reclassifier = setInterval(() => store.reclassify(new Date()), RECLASSIFY_MS);
   // A dev build has no version to compare, and its runs must not call GitHub.

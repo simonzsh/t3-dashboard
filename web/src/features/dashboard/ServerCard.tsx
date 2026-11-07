@@ -4,7 +4,9 @@ import { relativeTime } from "../../lib/format.ts";
 import { CardHead, Icon, IconButton, Skeleton, SkeletonGroup } from "../../ui/index.ts";
 import { Meter } from "./Meter.tsx";
 import type { ReadState } from "./pollRead.ts";
-import { formatBytesPair, hostLine, meterText, percentLabel } from "./serverView.ts";
+import { CacheCleanupDialog } from "./CacheCleanupDialog.tsx";
+import { useCacheCleanup } from "./useCacheCleanup.ts";
+import { cacheCleanupAvailable, formatBytesPair, hostLine, meterText, percentLabel } from "./serverView.ts";
 
 interface TileProps {
   label: string;
@@ -65,6 +67,7 @@ function ServerSkeleton() {
 
 export function ServerCard({ state, now }: { state: ReadState<ServerStats>; now: Date }) {
   const { value: stats, error, loading, refresh } = state;
+  const cleanup = useCacheCleanup(refresh);
   return (
     <section className="dashboard-card server-card" aria-labelledby="dashboard-server-head">
       <CardHead
@@ -75,6 +78,11 @@ export function ServerCard({ state, now }: { state: ReadState<ServerStats>; now:
         actions={
           <>
             {stats && <span className="card-updated">Updated {relativeTime(stats.readAt, now)}</span>}
+            {stats && cacheCleanupAvailable(stats) && (
+              <IconButton size="sm" variant="ghost" label="Clear caches" tooltip="Clear caches" onClick={cleanup.start}>
+                <Icon name="broom" />
+              </IconButton>
+            )}
             <IconButton size="sm" variant="ghost" label="Refresh server stats" tooltip="Refresh server stats" disabled={loading} onClick={refresh}>
               <Icon name="refresh" className={loading ? "icon spinning" : "icon"} />
             </IconButton>
@@ -87,8 +95,10 @@ export function ServerCard({ state, now }: { state: ReadState<ServerStats>; now:
         <>
           <Tiles stats={stats} />
           {error && <p className="dashboard-note error" role="alert">Could not refresh server stats. {error}</p>}
+          {cleanup.summary && <p className="dashboard-note cache-summary" role="status">{cleanup.summary}</p>}
         </>
       )}
+      {cleanup.open && <CacheCleanupDialog preview={cleanup.preview} error={cleanup.error} running={cleanup.running} onConfirm={cleanup.confirm} onClose={cleanup.close} />}
     </section>
   );
 }
