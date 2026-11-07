@@ -17,7 +17,8 @@ const stats = (over: Partial<ServerStats> = {}): ServerStats => ({
   ...over,
 });
 const state = (over: Partial<ReadState<ServerStats>> = {}): ReadState<ServerStats> => ({ value: stats(), error: null, loading: false, refresh: () => {}, ...over });
-const render = (over: Partial<ReadState<ServerStats>> = {}) => renderToStaticMarkup(<ServerCard state={state(over)} />);
+const NOW = new Date("2026-11-06T12:03:00.000Z");
+const render = (over: Partial<ReadState<ServerStats>> = {}) => renderToStaticMarkup(<ServerCard state={state(over)} now={NOW} />);
 const text = (html: string) => html.replace(/<[^>]+>/g, "");
 
 test("the card is titled Server and shows three tiles", () => {
@@ -61,9 +62,13 @@ test("a disk that cannot be read shows a dash and a note", () => {
   assert.equal(out.match(/role="img"/g)?.length, 2);
 });
 
-test("the head shows the host, the OS and the uptime, with a tooltip", () => {
+test("the host, the OS and the uptime sit next to the title, with a tooltip", () => {
   const out = render();
-  assert.match(out, /class="card-updated server-host" data-tooltip="devbox · Linux · up 19 d">devbox · Linux · up 19 d</);
+  assert.match(out, /<h2 id="dashboard-server-head">Server<\/h2><span class="card-note" data-tooltip="devbox · Linux · up 19 d"[^>]*>devbox · Linux · up 19 d<\/span>/);
+});
+
+test("the head shows how old the read is", () => {
+  assert.match(text(render()), /Updated 3 min ago/);
 });
 
 test("before the first answer there is a skeleton with three tiles; a failed first read shows the error", () => {
@@ -81,6 +86,11 @@ test("a failed refresh keeps the tiles and says so", () => {
   assert.match(text(out), /Could not refresh server stats\. boom/);
 });
 
-test("there is no button: the card refreshes itself", () => {
-  assert.doesNotMatch(render(), /<button/);
+test("a refresh button reads again, and spins while it loads", () => {
+  const idle = render();
+  assert.match(idle, /<button[^>]*aria-label="Refresh server stats"/);
+  assert.doesNotMatch(idle, /spinning/);
+  const busy = render({ loading: true });
+  assert.match(busy, /<button[^>]*disabled=""[^>]*aria-label="Refresh server stats"/);
+  assert.match(busy, /icon spinning/);
 });

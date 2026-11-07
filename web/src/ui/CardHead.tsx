@@ -17,7 +17,7 @@ export function CardHead({ id, icon, title, note, count, actions }: Props) {
     <div className="card-head">
       <Icon name={icon} />
       <h2 id={id}>{title}</h2>
-      {note && <span className="card-note">{note}</span>}
+      {note && <span className="card-note" data-tooltip={note} data-tooltip-clipped>{note}</span>}
       {count !== undefined && count > 0 && <span className="count">{count}</span>}
       {actions && <span className="card-actions">{actions}</span>}
     </div>

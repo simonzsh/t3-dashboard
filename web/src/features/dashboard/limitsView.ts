@@ -64,11 +64,11 @@ export const sortWindows = (windows: LimitWindow[]): LimitWindow[] => [...window
 const PROVIDER_RANK = { codex: 0, claude: 1, other: 2 };
 export const sortProviders = (providers: ProviderLimits[]): ProviderLimits[] => [...providers].sort((a, b) => PROVIDER_RANK[providerKind(a.driver)] - PROVIDER_RANK[providerKind(b.driver)]);
 
-/** "Checked 2 min ago", from the oldest provider check. */
+/** "Updated 2 min ago", from the oldest provider check. */
 export function oldestCheck(overview: LimitsOverview, now: Date): string {
   const times = overview.providers.flatMap((p) => (p.checkedAt && !Number.isNaN(Date.parse(p.checkedAt)) ? [p.checkedAt] : []));
   const oldest = times.length > 0 ? times.reduce((a, b) => (Date.parse(a) <= Date.parse(b) ? a : b)) : overview.readAt;
-  return `Checked ${relativeTime(oldest, now)}`;
+  return `Updated ${relativeTime(oldest, now)}`;
 }
 
 /** The text a screen reader gets for one meter. */

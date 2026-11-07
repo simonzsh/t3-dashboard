@@ -32,7 +32,7 @@ export function DashboardView({ limits, server, activity, layout, editing, onLay
   const [dragHeight, setDragHeight] = useState(0);
   // A hidden Up next reads no tickets.
   const { notifications, ...cards } = useDashboardCards(input, !layout.hidden.includes("up-next"));
-  const body: Record<DashboardCard, ReactNode> = { usage: <UsageCard state={limits} now={input.now} />, server: <ServerCard state={server} />, activity: <ActivityCard state={activity} now={input.now} />, ...cards };
+  const body: Record<DashboardCard, ReactNode> = { usage: <UsageCard state={limits} now={input.now} />, server: <ServerCard state={server} now={input.now} />, activity: <ActivityCard state={activity} now={input.now} />, ...cards };
   const showPanel = panelOpen && !editing;
   // The sheet takes no room, so the cards do not move for it.
   const inline = showPanel && !sheet;

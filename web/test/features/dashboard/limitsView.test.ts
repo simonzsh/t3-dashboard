@@ -62,8 +62,8 @@ test("sortProviders puts Codex first, then Claude, then the rest", () => {
 
 test("oldestCheck uses the earliest provider check, else the read time", () => {
   const overview = (providers: ProviderLimits[]): LimitsOverview => ({ supported: true, providers, readAt: after(0) });
-  assert.equal(oldestCheck(overview([provider("a", after(-1)), provider("b", after(-30))]), NOW), "Checked 30 min ago");
-  assert.equal(oldestCheck(overview([provider("a")]), NOW), "Checked just now");
+  assert.equal(oldestCheck(overview([provider("a", after(-1)), provider("b", after(-30))]), NOW), "Updated 30 min ago");
+  assert.equal(oldestCheck(overview([provider("a")]), NOW), "Updated just now");
 });
 
 test("caption joins the reset countdown and the pace, and omits unknown parts", () => {

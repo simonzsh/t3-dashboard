@@ -1,6 +1,7 @@
 import { Children, useState, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import type { BoardResult, DashboardProject, DashboardProvider, LinearIssue, ModelDefaults } from "../../../../shared/api.ts";
+import { relativeTime } from "../../lib/format.ts";
 import { useCopy } from "../../lib/useCopy.ts";
 import { Button, CardHead, Icon, IconButton } from "../../ui/index.ts";
 import { NewThreadDialog } from "../new-thread/NewThreadDialog.tsx";
@@ -90,6 +91,7 @@ function TicketRow({ issue, projects, providers, modelDefaults, onOpen, onStarte
 
 interface Props extends Omit<RowProps, "issue"> {
   board: BoardResult | null;
+  now: Date;
   needsKey: boolean;
   loading: boolean;
   failed: boolean;
@@ -100,7 +102,7 @@ interface Props extends Omit<RowProps, "issue"> {
 }
 
 // The Linear connection lives here: its status, refresh and setup card.
-export function UpNextCard({ board, needsKey, loading, failed, tickets, relaunch, onRefresh, ...rowProps }: Props) {
+export function UpNextCard({ board, now, needsKey, loading, failed, tickets, relaunch, onRefresh, ...rowProps }: Props) {
   const relaunchCount = relaunch.length;
   const empty = board !== null && tickets.length === 0 && relaunchCount === 0 && !needsKey;
   return (
@@ -113,6 +115,7 @@ export function UpNextCard({ board, needsKey, loading, failed, tickets, relaunch
         actions={
           board && (
             <>
+              <span className="card-updated">Updated {relativeTime(board.readAt, now)}</span>
               {linearConnected(board) && (
                 <span className="linear-source">
                   <span className="conn-dot" aria-hidden="true" /> Linear
