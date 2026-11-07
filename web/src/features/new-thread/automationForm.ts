@@ -56,7 +56,7 @@ export const emptyForm = (): AutomationForm => ({
   weekdays: [1, 2, 3, 4, 5],
   reminderAt: "",
   filters: [],
-  signed: true,
+  signed: false,
   header: GITHUB_SIGNATURE.header,
   encoding: GITHUB_SIGNATURE.encoding,
   prefix: GITHUB_SIGNATURE.prefix,

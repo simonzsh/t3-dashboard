@@ -185,7 +185,7 @@ export function NewAutomationDialog({ projects, providers, defaults, automation,
     else onClose();
   }
 
-  // Edit mode saves from the dialog footer: the Composer has no send button there.
+  // The dialog footer saves (Create or Save): the Composer has no send button here.
   async function save() {
     setSaving(true);
     setSaveError(null);
@@ -209,7 +209,8 @@ export function NewAutomationDialog({ projects, providers, defaults, automation,
       title={automation ? `Edit ${automation.kind}` : "New automation"}
       className="new-agent"
       onClose={onClose}
-      {...(automation && { onCancel: onClose, primary: { label: saving ? "Saving…" : "Save", onClick: () => void save(), disabled: saving || draft.trim() === "" } })}
+      onCancel={onClose}
+      primary={{ label: automation ? (saving ? "Saving…" : "Save") : saving ? "Creating…" : "Create", onClick: () => void save(), disabled: saving || draft.trim() === "" }}
     >
       <div className="auto-form">
         {automation ? (
@@ -251,7 +252,7 @@ export function NewAutomationDialog({ projects, providers, defaults, automation,
         placeholder={promptPlaceholder(form.kind)}
         noImages
         focusKey={picks || undefined}
-        hideSubmit={automation !== undefined}
+        hideSubmit
       />
       {saveError && <p className="auto-error" role="alert">{saveError}</p>}
     </Dialog>

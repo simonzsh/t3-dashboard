@@ -170,7 +170,7 @@ The Automations tab lists the scheduled tasks of T3 Code, with the history of th
 2. Pick the kind: Routine, Reminder or Webhook.
 3. Select a project, or keep "No project". The dashboard keeps this selection for the next time.
 4. Set the schedule (see below), write the prompt, and pick the model. The first line of the prompt becomes the title.
-5. Send. The dashboard creates the task in T3 Code directly: no agent thread is involved. The task runs with full access unless you pick another mode in the model menu. If an error occurs, the window stays open and shows the error.
+5. Click "Create" ("Cancel" closes the form). The dashboard creates the task in T3 Code directly: no agent thread is involved. The task runs with full access unless you pick another mode in the model menu. If an error occurs, the window stays open and shows the error.
 
 - A routine repeats. Choose "At a time" (a time and the days; no day means every day) or "Every N minutes" (1 to 525600).
 - A reminder runs once at the date and time you pick (1 minute to 366 days ahead). The dashboard gives the task the title "Reminder: <title>" and pauses it after its run. The prompt stays as you wrote it.
@@ -185,7 +185,7 @@ A webhook task runs when a service sends a request to its URL, for example a Git
 
 1. Choose the kind "Webhook" in the new automation form.
 2. Add filters. Only requests that match every filter start a run. Example for a review request: `headers.x-github-event` equals `pull_request`, `body.action` equals `review_requested`, `body.requested_reviewer.login` equals your GitHub login.
-3. Keep "Check the signature" on and type the signing secret. The defaults fit GitHub: header `x-hub-signature-256`, encoding hex, prefix `sha256=`. Use the same secret in GitHub.
+3. Turn on "Check the signature" (it is off by default) and type the signing secret. The defaults fit GitHub: header `x-hub-signature-256`, encoding hex, prefix `sha256=`. Use the same secret in GitHub.
 4. Write the prompt for one event. It can use values such as `{{body.pull_request.html_url}}`. These values are untrusted data, not instructions.
 5. Send. A panel shows the GitHub settings: Payload URL (a copy button), content type `application/json`, the secret you typed, and the events to select (for example Pull requests).
 
