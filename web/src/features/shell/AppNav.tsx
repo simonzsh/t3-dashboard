@@ -53,7 +53,7 @@ function Badges({ id, unread, sessions, automations }: Pick<Props, "unread" | "s
     <>
       {sessions.waiting && (
         <span className="nav-alert" role="img" aria-label={WAITING}>
-          <Icon name="alertTriangle" />
+          <Icon name="user" />
         </span>
       )}
       {sessions.count > 0 && <span className="nav-badge" role="img" aria-label={`${sessions.count} running or unread`}>{badgeText(sessions.count)}</span>}

@@ -63,7 +63,7 @@ export function notificationList(s: ThreadSections, read: DashboardThread[]): No
 
 /** The status icon of a notification and its tone. */
 export function notificationIcon(t: DashboardThread): { icon: IconName; tone: "warn" | "err" | "ok" | "info" } {
-  if (t.pending) return { icon: "alertTriangle", tone: "warn" };
+  if (t.pending) return { icon: "user", tone: "warn" };
   if (hasFailed(t)) return { icon: "alert", tone: "err" };
   return threadState(t) === "done" ? { icon: "circleCheck", tone: "ok" } : { icon: "info", tone: "info" };
 }
