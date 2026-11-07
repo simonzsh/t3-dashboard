@@ -731,8 +731,10 @@ ol.install-steps { padding-left: 18px; }
 .nav-label { flex: 1; min-width: 0; overflow: hidden; }
 /* Both nav badges (unread, running) follow the accent color; the text is darkened or lightened to stay readable. */
 .nav-badge { flex: none; display: inline-grid; place-items: center; min-width: 20px; height: 20px; padding: 0 6px; border-radius: 999px; font-size: 11px; font-weight: 600; line-height: 1; background: color-mix(in srgb, var(--accent) 20%, transparent); color: var(--work-text); }
-.nav-alert { flex: none; width: 8px; height: 8px; border-radius: 50%; background: var(--warn); box-shadow: 0 0 0 2px color-mix(in srgb, var(--warn) 30%, transparent); }
-.nav-alert.err { background: var(--err-text); box-shadow: 0 0 0 2px color-mix(in srgb, var(--err-text) 30%, transparent); }
+/* Waiting is a warning triangle and a failure an alert circle, as in the Notifications card: a dot means running. */
+.nav-alert { flex: none; display: grid; place-items: center; width: 14px; height: 14px; color: var(--warn); }
+.nav-alert.err { color: var(--err-text); }
+.nav-alert > .icon { width: 14px; height: 14px; }
 .sidebar-foot { margin-top: auto; display: flex; flex-direction: column; gap: 8px; }
 .sidebar-foot .conn { flex: 1; min-width: 0; padding-inline: 12px; }
 .sidebar .update-pill { display: flex; align-items: center; gap: 10px; height: 32px; padding: 0 7px; border-radius: var(--radius-md); color: var(--accent); background: color-mix(in srgb, var(--accent) 12%, var(--surface-1)); border-color: color-mix(in srgb, var(--accent) 50%, var(--line)); font-size: 12px; font-weight: 500; }
@@ -933,8 +935,10 @@ ol.install-steps { padding-left: 18px; }
 .slist-row.open::before { content: ""; position: absolute; left: 1px; top: 6px; bottom: 6px; width: 2px; border-radius: 1px; background: var(--accent); }
 .slist-mark { flex: none; width: 8px; height: 8px; margin-top: 6px; border-radius: 50%; }
 .slist-mark.running { background: var(--work); }
-.slist-mark.waiting { background: var(--warn); }
-.slist-mark.error { background: var(--danger); }
+.slist-mark.waiting, .slist-mark.error { display: grid; place-items: center; width: 12px; height: 12px; margin: 4px -2px 0; border-radius: 0; }
+.slist-mark > .icon { width: 12px; height: 12px; }
+.slist-mark.waiting { color: var(--warn); }
+.slist-mark.error { color: var(--danger); }
 /* Unread: a hollow ring, so it never reads as the solid running dot. */
 .slist-mark.unread { box-sizing: border-box; border: 2px solid var(--accent); }
 .slist-text { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 1px; }

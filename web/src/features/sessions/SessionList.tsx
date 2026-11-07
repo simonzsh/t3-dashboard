@@ -56,7 +56,11 @@ function SessionListView({ threads, projects, seen, modelNames, now, openIds, fo
     return (
       <div key={t.id} className="slist-item">
         <Pressable className={`slist-row${isOpen ? " open" : ""}${t.id === focusedId ? " focused" : ""}`} aria-current={t.id === focusedId || undefined} onClick={() => onOpen(t.id)}>
-          <span className={`slist-mark${mark ? ` ${mark}` : ""}`} role={mark ? "img" : undefined} aria-label={mark ? MARK_LABELS[mark] : undefined} aria-hidden={mark ? undefined : true} />
+          <span className={`slist-mark${mark ? ` ${mark}` : ""}`} role={mark ? "img" : undefined} aria-label={mark ? MARK_LABELS[mark] : undefined} aria-hidden={mark ? undefined : true}>
+            {/* Same icons as the Notifications card: a dot would look like "running" with a yellow or red accent. */}
+            {mark === "waiting" && <Icon name="alertTriangle" />}
+            {mark === "error" && <Icon name="alert" />}
+          </span>
           <span className="slist-text">
             <span className="title-line">
               <span className="slist-title">{title}</span>
