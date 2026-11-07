@@ -28,7 +28,7 @@ export function newsPrompt(settings: NewsSettings, dir: string): string {
 1. Run \`date +%F\` to get today's date in this machine's time zone. Call it DATE.
 2. Search the web for the most important news of the last ${weekly ? "7 days" : "24 hours"} on these topics: ${settings.topics.join("; ")}. Prefer primary sources and skip anything older than ${weekly ? "8 days" : "48 hours"}.
 3. Write the article in Markdown, in ${settings.language}:
-   - first line: \`# \` followed by a short title that contains DATE;
+   - first line, exactly: \`# News — DATE\` (with DATE replaced by the date);
    - one \`## \` section per topic, 3 to ${weekly ? 8 : 6} items each: a bold headline, two or three sentences, and a source link [name](https://...);
    - end with a \`## \` section of 3 key takeaways.
    No HTML, no images.
