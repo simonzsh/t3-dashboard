@@ -707,21 +707,21 @@ ol.install-steps { padding-left: 18px; }
 .page-description { margin: 0; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--text-secondary); font-size: 12px; }
 .page-actions { flex: none; display: flex; align-items: center; gap: 8px; }
 .page-actions .icon { width: 18px; height: 18px; }
-/* Dashboard: one flowing grid of cards in one scroll area, and the Notifications panel on the right when open. */
+/* Dashboard: full cards and bands of two stacking columns in one scroll area, and the Notifications panel on the right when open. */
 .dashboard { flex: 1; min-height: 0; overflow-y: auto; display: grid; grid-template-columns: minmax(0, 1fr); align-items: start; gap: 16px; padding: 4px; margin: -4px; }
 .dashboard.with-panel { grid-template-columns: minmax(0, 1fr) 340px; }
 .dashboard-main { min-width: 0; display: flex; flex-direction: column; gap: 16px; container-type: inline-size; }
-.dashboard-cards { min-width: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(min(240px, 100%), 1fr)); align-items: start; gap: 16px; }
+.dashboard-cards { min-width: 0; display: flex; flex-direction: column; gap: 16px; }
 /* Sticky: the panel stays in view while the cards scroll; the card cap (100dvh - 120px) keeps it on screen. */
 .dashboard-panel { position: sticky; top: 0; min-width: 0; }
 .dashboard-slot { min-width: 0; }
-.dashboard-slot:is(.usage, .server, .activity), .dashboard-drop:is(.usage, .server, .activity) { grid-column: 1 / -1; }
-/* Room for two cards a row: Up next takes 3/5, the other cards 2/5. */
-@container (min-width: 600px) {
-  .dashboard-cards { grid-template-columns: repeat(5, minmax(0, 1fr)); }
-  .dashboard-cards > :is(.dashboard-slot, .dashboard-drop) { grid-column: span 2; }
-  .dashboard-cards > :is(.dashboard-slot, .dashboard-drop).up-next { grid-column: span 3; }
-  .dashboard-cards > :is(.dashboard-slot, .dashboard-drop):is(.usage, .server, .activity) { grid-column: 1 / -1; }
+/* One column below 900 px: bands and columns step aside, so cards read band by band, left stack then right. */
+.dashboard-band, .dashboard-col { display: contents; }
+/* Two stacks per band once a half fits the three tiles of Usage and Server; no rows, so a tall card leaves no gap. */
+@container (min-width: 900px) {
+  .dashboard-band { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+  .dashboard-col { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+  .dashboard-cards.editing .dashboard-col { min-height: 64px; }
 }
 /* No room for the right column: Notifications is a side sheet under the header, with a backdrop. Closed, it is off screen and not focusable. */
 @media (max-width: 1200px) {
@@ -931,7 +931,6 @@ ol.install-steps { padding-left: 18px; }
   .skeleton-bars { height: 140px; padding-right: 12px; }
   /* One column: every card is as wide as the page, never wider. */
   .dashboard { display: flex; flex-direction: column; align-items: stretch; gap: 16px; }
-  .dashboard-cards { display: flex; flex-direction: column; gap: 16px; }
   .dashboard-slot { width: 100%; min-width: 0; }
   /* The sheet is as wide as the screen and stops above the bottom bar. */
   .dashboard-backdrop { bottom: calc(var(--bottom-bar) + env(safe-area-inset-bottom)); }
