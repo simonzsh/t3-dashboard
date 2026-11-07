@@ -23,7 +23,7 @@ This folder contains the base components of the dashboard. The screens in `web/s
 | `SecretInput` | Masked field for a key or a token. It is a text field, not a password field: password managers do not open. |
 | `Choice` | Checkbox or radio button (`type="checkbox"` or `type="radio"`). |
 | `FileInput` | Hidden file field. A button opens it with `ref.current.click()`. |
-| `Dialog` | Modal window: title, close cross at the top right, Escape and outside click to close. `onCancel`, `secondary` and `primary` add the action row. |
+| `Dialog` | Modal window: title, close cross at the top right, Escape and outside click to close. `onCancel`, `secondary` and `primary` add the action row. On a phone (700 px or less) it is a bottom sheet: full width, a grip, the head and the actions stay in view, and a drag down on the head closes it. |
 | `Sheet` | Side sheet under the header, always mounted. `open` slides it in and out and fades the backdrop. `width`: `narrow` (380 px) or `wide` (600 px). Backdrop click and Escape call `onClose`; the focus goes in and comes back; Tab stays inside. |
 | `ActionMenu` | The "…" button of a row and its menu. `items` are `{ label, icon, onSelect, danger?, disabled?, tooltip? }`. The arrows move between items; Escape gives the focus back. Use it for every row menu, with no separator. |
 | `CardHead` | Header of a card: icon, title, a note (a muted word or a menu), count and icon buttons on the right. |

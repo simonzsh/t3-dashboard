@@ -51,10 +51,10 @@ function removeWhenDone(anim: Animation, el: Element): Animation {
 }
 
 /**
- * Call it while React unmounts `el`: an inert copy (typed values included) fades out where it was, `part` also shrinks a little.
+ * Call it while React unmounts `el`: an inert copy (typed values included) fades out where it was, `part` also moves to `to`.
  * Nothing plays if `el` is still in the page after the commit (a StrictMode remount in development).
  */
-export function leaveCopy(el: HTMLElement, part?: string): void {
+export function leaveCopy(el: HTMLElement, part?: string, to: Keyframe = { translate: "0 8px", scale: "0.96" }): void {
   if (el.hidden || reducedMotion()) return;
   const copy = el.cloneNode(true) as HTMLElement;
   const fields = el.querySelectorAll<HTMLInputElement>("input, textarea, select");
@@ -68,7 +68,9 @@ export function leaveCopy(el: HTMLElement, part?: string): void {
   queueMicrotask(() => {
     if (el.isConnected) return;
     document.body.append(copy);
-    copy.querySelector(part ?? ":not(*)")?.animate([AT_REST, { translate: "0 8px", scale: "0.96" }], { duration: SHORT, easing: EASE, fill: "forwards" });
+    const moving = copy.querySelector<HTMLElement>(part ?? ":not(*)");
+    // Starts where a drag left it, not at rest.
+    moving?.animate([{ translate: moving.style.translate || "0 0", scale: "1" }, to], { duration: SHORT, easing: EASE, fill: "forwards" });
     removeWhenDone(copy.animate([{ opacity: 1 }, { opacity: 0 }], { duration: SHORT, easing: EASE, fill: "forwards" }), copy);
   });
 }
