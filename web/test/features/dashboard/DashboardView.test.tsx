@@ -95,7 +95,7 @@ const render = (activity: ActivityState, { limits = limitsState(), threads = [th
     </AutomationThreadsContext.Provider>,
   );
 // One card, from its opening tag to its closing one.
-const card = (out: string, head: "notifications-head" | "running-head" | "up-next-head") => {
+const card = (out: string, head: "notifications-head" | "running-head") => {
   const start = out.lastIndexOf("<section", out.indexOf(`aria-labelledby="${head}"`));
   return out.slice(start, out.indexOf("</section>", start));
 };
@@ -175,14 +175,14 @@ test("the default layout draws Activity full width, then two columns of half car
   const left = out.indexOf('class="dashboard-col left"');
   const right = out.indexOf('class="dashboard-col right"');
   assert.ok(band < left && left < head("dashboard-usage-head") && head("dashboard-usage-head") && head("dashboard-usage-head") < right);
-  assert.ok(right < head("running-head") && head("running-head") < head("dashboard-server-head") && head("dashboard-server-head") < head("up-next-head"));
+  assert.ok(right < head("running-head") && head("running-head") < head("dashboard-server-head") && head("dashboard-server-head"));
 });
 
 test("an open panel sits beside the cards and holds Notifications", () => {
   const out = render(state());
   assert.match(out, /<div class="dashboard with-panel">/);
   const aside = out.indexOf('<aside data-dash-item="notifications" class="dashboard-panel" aria-label="Notifications">');
-  assert.ok(aside > out.indexOf('id="up-next-head"'));
+  assert.ok(aside > out.indexOf('id="dashboard-server-head"'));
   assert.ok(aside < out.indexOf('id="notifications-head"'));
   assert.equal(out.match(/id="notifications-head"/g)?.length, 1);
 });
@@ -191,7 +191,7 @@ test("a closed panel is not drawn and the cards stay", () => {
   const out = render(state(), { panelOpen: false });
   assert.match(out, /<div class="dashboard">/);
   assert.doesNotMatch(out, /dashboard-panel|notifications-head/);
-  assert.match(out, /id="up-next-head"/);
+  assert.match(out, /id="running-head"/);
 });
 
 test("edit mode hides the panel even when it is open, and Notifications has no edit bar", () => {
@@ -231,18 +231,18 @@ test("without edit mode there is no edit bar", () => {
 
 test("edit mode shows a bar with a drag handle and the move buttons on every card, and locks the card", () => {
   const out = render(state(), { editing: true });
-  assert.equal(out.match(/class="card-edit-bar"/g)?.length, 5);
-  assert.equal(out.match(/class="card-edit-bar" draggable="true"/g)?.length, 5);
+  assert.equal(out.match(/class="card-edit-bar"/g)?.length, 4);
+  assert.equal(out.match(/class="card-edit-bar" draggable="true"/g)?.length, 4);
   assert.match(out, /aria-label="Make Activity half width"/);
   assert.match(out, /aria-label="Make Usage full width"/);
-  assert.match(out, /aria-label="Hide Up next"/);
-  assert.equal(out.match(/class="dashboard-slot-body" inert=""/g)?.length, 5);
+  assert.match(out, /aria-label="Hide Server"/);
+  assert.equal(out.match(/class="dashboard-slot-body" inert=""/g)?.length, 4);
 });
 
 test("a card that cannot move up or down has that button disabled", () => {
   const out = render(state(), { editing: true });
-  for (const label of ["Move Activity up", "Move Up next down", "Move Usage down"]) assert.match(out, new RegExp(`<button disabled=""[^>]*aria-label="${label}"`));
-  for (const label of ["Move Usage up", "Move Running down", "Move Server down", "Move Up next up", "Move Activity down"]) assert.doesNotMatch(out, new RegExp(`<button disabled=""[^>]*aria-label="${label}"`));
+  for (const label of ["Move Activity up", "Move Server down", "Move Usage down"]) assert.match(out, new RegExp(`<button disabled=""[^>]*aria-label="${label}"`));
+  for (const label of ["Move Usage up", "Move Running down", "Move Server up", "Move Activity down"]) assert.doesNotMatch(out, new RegExp(`<button disabled=""[^>]*aria-label="${label}"`));
 });
 
 test("edit mode lists hidden cards so they can be shown again", () => {
@@ -355,4 +355,20 @@ test("the Server card sits in its slot, and its stats show", () => {
   const out = render(state());
   assert.match(out, /class="dashboard-slot server"/);
   assert.match(out, /devbox · Linux · up 1 h/);
+});
+
+test("while the board is unknown the Linear card has no slot, in normal and edit mode", () => {
+  for (const editing of [false, true]) {
+    const out = render(state(), { editing });
+    assert.doesNotMatch(out, /linear-head|dashboard-slot linear|Move Linear|Hide Linear/, `editing: ${editing}`);
+    for (const head of ["dashboard-activity-head", "dashboard-usage-head", "running-head", "dashboard-server-head"]) assert.match(out, new RegExp(`id="${head}"`));
+  }
+});
+
+test("a Linear card hidden in the layout can be shown again from edit mode", () => {
+  const layout = setHidden(DEFAULT_LAYOUT, "linear", true);
+  const out = render(state(), { layout, editing: true });
+  assert.match(out, /Hidden cards/);
+  assert.match(out, /Show Linear/);
+  assert.doesNotMatch(render(state(), { layout }), /Hidden cards|linear-head/);
 });

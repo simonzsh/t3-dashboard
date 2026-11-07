@@ -198,8 +198,6 @@ main { flex: 1; min-height: 0; overflow: hidden; padding: 24px; display: flex; f
 .skeleton-row-body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 6px; }
 @keyframes skeleton-shimmer { from { background-position: 150% 0, 0 0; } to { background-position: -50% 0, 0 0; } }
 .notice { margin: 0; padding: 10px 14px; border-radius: 10px; background: var(--warn-bg); color: var(--warn-text); }
-.prio-icon { flex: none; width: 14px; height: 14px; color: var(--text-secondary); }
-.prio-icon.urgent { color: var(--err-text); }
 .ident { flex: none; color: var(--text-secondary); font-variant-numeric: tabular-nums; font-size: 12px; }
 /* Small pills: a Badge with the colours of its variant. */
 .session-window-state { flex: none; font-size: 11px; font-weight: 600; padding: 1px 8px; }
@@ -595,10 +593,6 @@ ol.install-steps { padding-left: 18px; }
 .segmented button .icon { width: 15px; height: 15px; }
 /* One "selected" look for single and multiple choice: a gray, not the accent. */
 .segmented button.active, .toggle-group button[aria-pressed="true"] { background: color-mix(in srgb, var(--text-primary) 10%, transparent); color: var(--text-primary); }
-.linear-source { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; color: var(--text-secondary); }
-.linear-source .conn-dot { background: var(--ok); }
-.ticket-list { display: flex; flex-direction: column; }
-.ticket-list > .ticket-more { align-self: flex-start; margin: 4px 12px 8px; }
 .project-tag { flex: 0 1 auto; display: inline-flex; align-items: center; gap: 5px; min-width: 0; max-width: 180px; color: var(--text-secondary); font-size: 12px; }
 .project-tag .project-icon { width: 14px; height: 14px; }
 .project-tag-text { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -610,7 +604,6 @@ ol.install-steps { padding-left: 18px; }
 .card-actions { margin-left: auto; display: flex; align-items: center; gap: 6px; }
 .card-empty { margin: 0; padding: 16px; color: var(--text-secondary); font-size: 13px; }
 .card-empty strong { color: var(--text-primary); font-weight: 600; }
-.card-subhead { margin: 0; padding: 10px 16px 4px; color: var(--text-secondary); font-size: 11px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; }
 /* Notifications: its own scroll, so the card stays beside the left column. */
 .notifications-card { display: flex; flex-direction: column; max-height: calc(100dvh - 120px); }
 .notif-list { flex: 1; min-height: 0; overflow-y: auto; display: flex; flex-direction: column; }
@@ -639,8 +632,8 @@ ol.install-steps { padding-left: 18px; }
 /* Touch: a small plain button on the row (no floating box); an invisible margin makes the tap target 44 px. */
 @media (pointer: coarse) {
   .thread-actions { top: 50%; bottom: auto; transform: translateY(-50%); padding: 0; background: none; box-shadow: none; opacity: 1; pointer-events: auto; }
-  .thread-actions .icon-button, .ticket-foot > .icon-button { position: relative; }
-  .thread-actions .icon-button::before, .ticket-foot > .icon-button::before { content: ""; position: absolute; inset: -8px; }
+  .thread-actions .icon-button { position: relative; }
+  .thread-actions .icon-button::before { content: ""; position: absolute; inset: -8px; }
   .notif-item:has(.thread-actions) .notif-row { padding-right: 44px; }
 }
 /* A working agent has the pulsing dot of the sessions list, on its title line. */
@@ -648,22 +641,29 @@ ol.install-steps { padding-left: 18px; }
 .run-pulse { flex: none; margin-top: 5px; }
 .run-text { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
 .run-list { display: flex; flex-direction: column; }
-.ticket-row { position: relative; display: flex; flex-direction: column; gap: 6px; min-width: 0; padding: 10px 16px; border-bottom: 1px solid var(--line); }
-.ticket-row:last-child { border-bottom: 0; }
-@media (hover: hover) { .ticket-row:hover { background: color-mix(in srgb, var(--text-primary) 5%, transparent); } }
-.ticket-meta { display: flex; align-items: center; gap: 8px; min-width: 0; }
-/* Two lines at most. */
-.ticket-title { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; line-clamp: 2; overflow: hidden; font-weight: 500; color: inherit; text-decoration: none; }
-/* Stretched link: the whole card opens the issue, like a Dashboard row opens its conversation. */
-.ticket-title::after { content: ""; position: absolute; inset: 0; border-radius: inherit; }
-.ticket-foot > * { position: relative; z-index: 1; }
-.ticket-foot { display: flex; align-items: center; justify-content: flex-end; gap: 6px; min-width: 0; margin-top: auto; }
-/* Like the thread rows: the ticket buttons show on hover and focus, always on touch screens. */
-.ticket-foot > .icon-button { opacity: 0; pointer-events: none; transition: opacity 0.12s; }
-.ticket-row:hover .ticket-foot > .icon-button, .ticket-row:focus-within .ticket-foot > .icon-button { opacity: 1; pointer-events: auto; }
-@media (pointer: coarse) { .ticket-foot > .icon-button { opacity: 1; pointer-events: auto; } }
-/* The Linear project fills the left of the foot; the buttons stay on the right even without it. */
-.ticket-linear-project { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--text-secondary); font-size: 12px; }
+/* Linear card: four small counters, then one line per signal. */
+.glance-counters { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); border-bottom: 1px solid var(--line); }
+.glance-counter { display: flex; flex-direction: column; gap: 2px; min-width: 0; padding: 12px 16px; }
+.glance-counter + .glance-counter { border-left: 1px solid var(--line); }
+.glance-value { font-size: 20px; font-weight: 600; line-height: 1.2; letter-spacing: -0.01em; font-variant-numeric: tabular-nums; }
+.glance-counter.danger .glance-value, .glance-counter.danger .stat-caption { color: var(--danger); }
+.glance-note { margin: 0; padding: 8px 16px; border-bottom: 1px solid var(--line); color: var(--text-secondary); font-size: 12px; }
+.glance-error { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.glance-row { position: relative; display: grid; grid-template-columns: 16px minmax(0, 1fr) auto var(--control-sm); align-items: center; gap: 8px; min-width: 0; padding: 4px 8px 4px 16px; border-bottom: 1px solid var(--line); font-size: 13px; }
+.glance-row:last-child { border-bottom: 0; }
+@media (hover: hover) { .glance-row:hover { background: color-mix(in srgb, var(--text-primary) 5%, transparent); } }
+.glance-kind { display: inline-flex; color: var(--text-secondary); }
+.glance-kind .icon { width: 14px; height: 14px; }
+.glance-link { display: flex; align-items: baseline; gap: 8px; min-width: 0; color: inherit; text-decoration: none; }
+/* Stretched link: the whole row opens the issue; the assign button stays above it. */
+.glance-link::after { content: ""; position: absolute; inset: 0; }
+.glance-title { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 500; }
+.glance-meta { max-width: 160px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--text-secondary); font-size: 12px; }
+.glance-action { position: relative; z-index: 1; display: inline-flex; justify-content: center; }
+/* Like the thread rows: the button shows on hover and focus, always on touch screens. */
+.glance-action .icon-button { opacity: 0; pointer-events: none; transition: opacity 0.12s; }
+.glance-row:hover .glance-action .icon-button, .glance-row:focus-within .glance-action .icon-button { opacity: 1; pointer-events: auto; }
+@media (hover: none) { .glance-action .icon-button { opacity: 1; pointer-events: auto; } }
 main:has(> .auto-page) { padding-top: 8px; }
 .auto-page { flex: 1; min-height: 0; overflow-y: auto; display: flex; flex-direction: column; gap: 28px; padding: 4px; margin: -4px; }
 .auto-section { flex: none; display: flex; flex-direction: column; gap: 8px; }
@@ -1050,19 +1050,17 @@ main:has(> .auto-page) { padding-top: 8px; }
   input, textarea { font-size: 16px; }
 }
 .setup { min-height: 100dvh; display: grid; place-items: center; padding: 24px; }
-.setup-card, .linear-card { width: min(520px, 100%); display: flex; flex-direction: column; gap: 12px; padding: 24px; background: var(--surface-1); border: 1px solid var(--line); border-radius: 14px; box-shadow: var(--shadow); }
+.setup-card { width: min(520px, 100%); display: flex; flex-direction: column; gap: 12px; padding: 24px; background: var(--surface-1); border: 1px solid var(--line); border-radius: 14px; box-shadow: var(--shadow); }
 .setup-card h1 { margin: 0; font-size: 13px; color: var(--text-secondary); font-weight: 600; letter-spacing: 0.02em; }
-.setup-card h2, .linear-card h2 { margin: 0; font-size: 18px; letter-spacing: -0.01em; }
+.setup-card h2 { margin: 0; font-size: 18px; letter-spacing: -0.01em; }
 .setup-detail { margin: 0; color: var(--text-secondary); font-size: 13px; }
 .setup-steps { margin: 0; padding-left: 20px; display: flex; flex-direction: column; gap: 4px; }
 .setup-command { display: flex; gap: 8px; align-items: flex-start; padding: 8px 10px; border-radius: 8px; background: var(--surface-0); border: 1px solid var(--line); }
 .setup-command code { flex: 1; min-width: 0; overflow-wrap: anywhere; font: 12px/1.5 var(--font-mono); }
-.setup-link, .linear-card a, .key-box a { color: var(--accent); }
+.setup-link, .key-box a { color: var(--accent); }
 .setup-paste, .key-row { display: flex; gap: 8px; }
 .setup-paste input, .key-row input { flex: 1; min-width: 0; }
-.linear-card { margin: 32px auto 0; }
-.linear-card p { margin: 0; }
-.linear-card small, .key-box small { color: var(--text-secondary); }
+.key-box small { color: var(--text-secondary); }
 .key-form { display: flex; flex-direction: column; gap: 6px; }
 .key-box { display: flex; flex-direction: column; gap: 8px; }
 .dialog.settings { max-height: 78vh; overflow-y: auto; }

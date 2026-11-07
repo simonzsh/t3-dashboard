@@ -5,7 +5,7 @@ export const KEY_PATH = ["Settings", "Account", "Security & access", "Personal A
 
 const REFUSED = "Linear refused this key";
 
-/** The Up next card shows the setup card when there is no key or Linear refuses it. */
+/** True when there is no key or Linear refuses it: the Linear card stays hidden, and Settings holds the connection. */
 export function boardNeedsKey(board: BoardResult): boolean {
   return !board.configured || (!board.ok && (board.error ?? "").startsWith(REFUSED));
 }

@@ -1,20 +1,26 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import type { BoardResult, DashboardThread } from "../../../../shared/api.ts";
-import type { SeenState } from "../../../../shared/seen.ts";
+import { useCallback, useEffect, useRef, useState } from "react";
+import type { BoardResult } from "../../../../shared/api.ts";
 import { useApi } from "../../api/ApiContext.tsx";
 import { useNotify } from "../../lib/notices.tsx";
 import { useAction } from "../../lib/useAction.ts";
+import { usePoll } from "../../lib/usePoll.ts";
 import { boardNeedsKey } from "../settings/linearSettings.ts";
-import { planTickets } from "./tickets.ts";
+import { linearCardShown } from "./glance.ts";
 
-/** The Linear tickets to relaunch or do next. `version` changes with the Linear settings: the issues then load again. */
-export function useTickets(version: number, enabled: boolean, threads: DashboardThread[], seen: SeenState, now: Date) {
+// Linear changes without notice: items read there leave the card at the next read.
+const POLL_MS = 120_000;
+
+/**
+ * The Linear board. It loads while the card is not hidden, even before the card shows, to learn whether Linear is connected.
+ * `version` changes with the Linear settings: the board then loads again.
+ */
+export function useLinear(version: number, enabled: boolean) {
   const api = useApi();
   const notify = useNotify();
   const [board, setBoard] = useState<BoardResult | null>(null);
-  // Issues just started: hidden until their thread arrives over the event stream.
+  // Issues just started: no assign button until their thread arrives over the event stream.
   const [started, setStarted] = useState<ReadonlySet<string>>(new Set());
-  const { busy: loading, error, run } = useAction("load the tickets");
+  const { busy: loading, run } = useAction("load Linear");
 
   const load = useCallback(
     (refresh: boolean) =>
@@ -31,14 +37,13 @@ export function useTickets(version: number, enabled: boolean, threads: Dashboard
     void load(version !== loadedVersion.current);
     loadedVersion.current = version;
   }, [load, version, enabled]);
+  usePoll(() => load(false), enabled ? POLL_MS : null);
 
-  const needsKey = board !== null && boardNeedsKey(board);
-  const linearError = board && !needsKey && !board.ok ? board.error : null;
+  const linearError = board && !boardNeedsKey(board) && !board.ok ? board.error : null;
   useEffect(() => {
     if (linearError) notify(`Linear returned an error: ${linearError}`);
   }, [linearError]);
 
-  const plan = useMemo(() => planTickets((board?.issues ?? []).filter((i) => !started.has(i.id)), threads, seen, now), [board, threads, started, seen, now]);
   const markStarted = useCallback((id: string) => setStarted((s) => new Set([...s, id])), []);
-  return { board, needsKey, loading, failed: error !== null, plan, reload: load, markStarted };
+  return { board, shown: linearCardShown(board), loading, reload: load, markStarted, started };
 }
