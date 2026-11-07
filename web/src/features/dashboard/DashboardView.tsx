@@ -42,8 +42,9 @@ export function DashboardView({ limits, server, activity, running, layout, editi
   useEffect(() => {
     if (sheet && showPanel) panel.current?.focus();
   }, [sheet, showPanel]);
-  // Cards slide to their new place when the panel shows or hides, or the layout changes; not while dragging.
-  useFlip(root, `${inline}|${layout.order.map((p) => `${p.id}:${p.width}:${p.column}`).join(",")}`, { item: "data-dash-item", enabled: dragged === null });
+  // Cards slide to their new place when the panel shows or hides, or the layout changes. Not gated on the drag:
+  // a drop ends the drag in the same render, and a gate would skip the slide of that drop.
+  useFlip(root, `${inline}|${layout.order.map((p) => `${p.id}:${p.width}:${p.column}`).join(",")}`, { item: "data-dash-item" });
   const endDrag = () => {
     setDragged(null);
     setTarget(null);
