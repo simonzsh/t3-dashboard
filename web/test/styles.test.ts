@@ -131,3 +131,12 @@ test("automations: only the list scrolls, under a fixed toolbar, on a phone too"
   const phone = css.slice(css.indexOf("@media (max-width: 700px)"));
   assert.match(phone, /\.app:not\(\.sessions-mode, \.automations-mode\) \{ height: auto;/);
 });
+
+test("news: the article is a readable column, and on a phone the list and the article take turns", () => {
+  assert.match(css, /\.news-article > \* \{ max-width: 68ch;/);
+  assert.match(rule(".news-body"), /line-height: 1\.7/);
+  assert.match(rule(".news-back"), /display: none/);
+  const phone = css.slice(css.indexOf("@media (max-width: 700px)"));
+  assert.match(phone, /\.news-page:not\(\.reading\) \.news-article, \.news-page\.reading \.news-list \{ display: none; \}/);
+  assert.match(phone, /\.news-back \{ display: inline-flex;/);
+});

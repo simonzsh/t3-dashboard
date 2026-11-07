@@ -311,3 +311,14 @@ test("deleteProject posts an empty body; projectIcons is a GET", async () => {
   assert.equal(calls[1]?.url, "/api/project-icons");
   assert.equal(calls[1]?.init?.method ?? "GET", "GET");
 });
+
+test("the news calls hit the news routes", async () => {
+  const { calls, api } = fake(200, {});
+  await api.getNews();
+  await api.getNewsArticle("2026-11-07");
+  const body = { timeOfDay: "07:00", topics: ["AI"], language: "French", modelSelection: { instanceId: "provider-a", model: "model-x" } };
+  await api.saveNews(body);
+  await api.runNews();
+  assert.deepEqual(calls.map((c) => [c.url, c.init?.method ?? "GET"]), [["/api/news", "GET"], ["/api/news/2026-11-07", "GET"], ["/api/news/settings", "POST"], ["/api/news/run", "POST"]]);
+  assert.deepEqual(JSON.parse(calls[2]!.init!.body as string), body);
+});

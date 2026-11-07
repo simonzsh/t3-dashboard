@@ -1,6 +1,9 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import type { DashboardThread } from "../../shared/api.ts";
 import { AutomationsView } from "./features/automations/AutomationsView.tsx";
+import { NewsSettingsDialog } from "./features/news/NewsSettingsDialog.tsx";
+import { NewsView } from "./features/news/NewsView.tsx";
+import { useNews } from "./features/news/useNews.ts";
 import { DashboardView } from "./features/dashboard/DashboardView.tsx";
 import { isDefaultLayout, type DashboardCard } from "./features/dashboard/layout.ts";
 import { useDashboardLayout } from "./features/dashboard/useDashboardLayout.ts";
@@ -63,6 +66,7 @@ export function App() {
   // Always loaded while live: it feeds the Automations badge and the automation icon, besides the page.
   const threadIds = useMemo(() => state?.threads.map((t) => t.id) ?? NO_IDS, [state?.threads]);
   const automations = useAutomations(state?.connection.t3 === "live", threadIds);
+  const news = useNews(tab === "news");
   const [sessions, dispatchSessions] = useSessions();
   const compact = useMediaQuery(PHONE);
   const sheetMode = useMediaQuery(SHEET);
@@ -97,6 +101,7 @@ export function App() {
   // null: closed; otherwise open, with the project to preselect, if any.
   const [creating, setCreating] = useState<{ projectId: string | null } | null>(null);
   const [creatingAutomation, setCreatingAutomation] = useState(false);
+  const [newsSettingsOpen, setNewsSettingsOpen] = useState(false);
   const [addingProject, setAddingProject] = useState(false);
   const [editingProject, setEditingProject] = useState<string | null>(null);
   const [deletingProject, setDeletingProject] = useState<string | null>(null);
@@ -168,10 +173,10 @@ export function App() {
 
   const editedProject = state?.projects.find((p) => p.id === editingProject);
   const deletedProject = state?.projects.find((p) => p.id === deletingProject);
-  const blocked = creating !== null || creatingAutomation || addingProject || editedProject !== undefined || deletedProject !== undefined || settingsOpen || confirmingUpdate || switcherQuery !== null;
+  const blocked = creating !== null || creatingAutomation || newsSettingsOpen || addingProject || editedProject !== undefined || deletedProject !== undefined || settingsOpen || confirmingUpdate || switcherQuery !== null;
   useShortcuts(
     (action) => {
-      if (action === "dashboard" || action === "sessions" || action === "automations") setTab(action);
+      if (action === "dashboard" || action === "sessions" || action === "automations" || action === "news") setTab(action);
       else if (action === "settings") setSettingsOpen(true);
       else if (action === "toggle-sidebar") {
         if (!compact) toggleSidebar();
@@ -262,7 +267,7 @@ export function App() {
               <PageActions
                 tab={tab}
                 compact={compact}
-                ready={state !== null}
+                ready={state !== null && (tab !== "news" || news.state !== null)}
                 editingLayout={dashboardLayout.editing}
                 layoutIsDefault={isDefaultLayout(dashboardLayout.layout)}
                 layout={layout}
@@ -271,6 +276,10 @@ export function App() {
                 onToggleList={() => setListPrefs({ hidden: !listPrefs.hidden })}
                 onNewSession={() => setCreating({ projectId: null })}
                 onNewAutomation={() => setCreatingAutomation(true)}
+                newsCanRun={news.state?.task != null}
+                newsRunning={news.starting}
+                onNewsRun={() => void news.run()}
+                onNewsSettings={() => setNewsSettingsOpen(true)}
                 onSearch={openSearch}
                 onSettings={() => setSettingsOpen(true)}
                 updateReady={updateNav !== null}
@@ -323,6 +332,7 @@ export function App() {
                   setup={setup}
                 />
               ) : <Loader />)}
+            {tab === "news" && (news.state ? <NewsView news={news.state} now={now} /> : <Loader />)}
             {tab === "sessions" &&
               (state ? (
                 <SessionsView
@@ -375,6 +385,9 @@ export function App() {
             onClose={() => setCreatingAutomation(false)}
             onSaved={automations.reload}
           />
+        )}
+        {state && news.state && newsSettingsOpen && (
+          <NewsSettingsDialog settings={news.state.settings} providers={state.providers} defaults={state.modelDefaults} onSave={news.save} onClose={() => setNewsSettingsOpen(false)} />
         )}
         {state && switcherQuery !== null && (
           <Switcher

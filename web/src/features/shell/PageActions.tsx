@@ -20,6 +20,11 @@ interface Props {
   onToggleList: () => void;
   onNewSession: () => void;
   onNewAutomation: () => void;
+  /** News: Run now needs a saved task, and waits while a run starts. */
+  newsCanRun: boolean;
+  newsRunning: boolean;
+  onNewsRun: () => void;
+  onNewsSettings: () => void;
   onSearch: () => void;
   /** Phone only: Settings sits in the header, the bottom bar holds the pages. */
   onSettings: () => void;
@@ -70,8 +75,8 @@ function Action({ compact, label, icon, variant = "secondary", withIcon = false,
   );
 }
 
-/** The header buttons of a page: Sessions hides the list, picks its layout and starts a session, Automations a task, Dashboard shows the Notifications bell and edits its layout. */
-export function PageActions({ tab, compact, ready, editingLayout, layoutIsDefault, layout, onLayoutChange, listHidden, onToggleList, onNewSession, onNewAutomation, onSearch, onSettings, updateReady, onEditLayout, onDoneLayout, onResetLayout, unread, notificationsOpen, onToggleNotifications }: Props) {
+/** The header buttons of a page: Sessions hides the list, picks its layout and starts a session, Automations a task, News edits its brief and runs it, Dashboard shows the Notifications bell and edits its layout. */
+export function PageActions({ tab, compact, ready, editingLayout, layoutIsDefault, layout, onLayoutChange, listHidden, onToggleList, onNewSession, onNewAutomation, newsCanRun, newsRunning, onNewsRun, onNewsSettings, onSearch, onSettings, updateReady, onEditLayout, onDoneLayout, onResetLayout, unread, notificationsOpen, onToggleNotifications }: Props) {
   let main = null;
   if (tab === "dashboard" && editingLayout) {
     main = (
@@ -117,6 +122,13 @@ export function PageActions({ tab, compact, ready, editingLayout, layoutIsDefaul
     );
   } else if (tab === "automations" && ready) {
     main = <Action compact={compact} label="New Automation" icon="calendarClock" variant="primary" kbd={ctrlLabel("⇧N")} onClick={onNewAutomation} />;
+  } else if (tab === "news" && ready) {
+    main = (
+      <>
+        <Action compact={compact} label="Brief settings" icon="pencil" onClick={onNewsSettings} />
+        <Action compact={compact} label="Run now" icon="play" variant="primary" withIcon disabled={!newsCanRun || newsRunning} onClick={onNewsRun} />
+      </>
+    );
   }
   return (
     <>
