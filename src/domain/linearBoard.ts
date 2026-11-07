@@ -30,17 +30,17 @@ export class LinearBoard {
   async get(refresh = false): Promise<BoardResult> {
     const now = this.options.now();
     if (!refresh && this.cached && now.getTime() - this.cached.at < CACHE_MS) return this.cached.board;
-    const board = await this.read(this.options.readKey());
+    const board = await this.read(this.options.readKey(), now.toISOString());
     this.cached = { at: now.getTime(), board };
     return board;
   }
 
-  private async read(apiKey: string): Promise<BoardResult> {
-    if (apiKey === "") return { configured: false, ok: false, error: "Missing API key", issues: [] };
+  private async read(apiKey: string, readAt: string): Promise<BoardResult> {
+    if (apiKey === "") return { configured: false, ok: false, error: "Missing API key", issues: [], readAt };
     try {
-      return { configured: true, ok: true, error: null, issues: await this.options.client.assignedIssues(apiKey) };
+      return { configured: true, ok: true, error: null, issues: await this.options.client.assignedIssues(apiKey), readAt };
     } catch (error) {
-      return { configured: true, ok: false, error: (error as Error).message, issues: [] };
+      return { configured: true, ok: false, error: (error as Error).message, issues: [], readAt };
     }
   }
 }

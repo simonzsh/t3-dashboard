@@ -23,6 +23,8 @@ export interface BoardResult {
   ok: boolean;
   error: string | null;
   issues: LinearIssue[];
+  /** When the issues were read from Linear (ISO). A cached board keeps its time. */
+  readAt: string;
 }
 
 export interface AssignIssueBody {

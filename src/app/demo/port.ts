@@ -30,6 +30,7 @@ export class DemoPort implements T3Port {
   private readonly createdTasks: RawScheduledTask[] = [];
   private readonly pausedTasks = new Set<string>();
   private readonly updatedTasks = new Map<string, Partial<RawScheduledTask>>();
+  private refreshedAt: Date | null = null;
   private sequence = 0;
   private uploads = 0;
 
@@ -74,8 +75,14 @@ export class DemoPort implements T3Port {
   // The demo keeps no secret: the card stays as it is.
   async answerSecretRequest(): Promise<void> {}
 
+  // The demo has no probe: a refresh only moves the check time to now.
+  async refreshProviders(): Promise<void> {
+    this.refreshedAt = this.now();
+  }
+
   async getConfig(): Promise<RawConfig> {
     const limits = demoUsageLimits(this.now());
+    if (this.refreshedAt) for (const entry of Object.values(limits)) entry.checkedAt = this.refreshedAt.toISOString();
     return { ...this.config, providers: this.config.providers?.map((provider) => ({ ...provider, usageLimits: limits[provider.instanceId] })) };
   }
 
