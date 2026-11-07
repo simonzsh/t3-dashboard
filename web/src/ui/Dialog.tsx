@@ -3,6 +3,7 @@ import { Button } from "./Button.tsx";
 import { Icon } from "./Icon.tsx";
 import { IconButton } from "./IconButton.tsx";
 import { enter, leaveCopy, reducedMotion } from "./motion.ts";
+import { lockScroll } from "./scrollLock.ts";
 import { useEscape } from "./useEscape.ts";
 
 interface Action {
@@ -71,6 +72,13 @@ export function Dialog({ title, label, onClose, onCancel, cancelLabel = "Cancel"
       anims.forEach((anim) => anim?.cancel());
       if (root) leaveCopy(root, ".dialog", phone ? { translate: "0 100%", scale: "1" } : undefined);
     };
+  }, []);
+
+  // The page behind never scrolls: not through the backdrop, not past the end of the dialog.
+  useEffect(() => {
+    const root = backdrop.current;
+    const el = box.current;
+    return root && el ? lockScroll(root, el) : undefined;
   }, []);
 
   // iOS leaves fixed elements under the keyboard: on a phone, fit the backdrop to the visible part of the page.
