@@ -67,10 +67,11 @@ export function createCacheCleanup(options: CacheCleanupOptions) {
     const info = await fs.lstat(path);
     if (info.isSymbolicLink()) return { bytes: 0, newest: 0 };
     if (!info.isDirectory()) return { bytes: info.size, newest: info.mtimeMs };
+    // Children in parallel: a serial walk of a few million files takes about 40 s.
+    const children = await Promise.all((await fs.readdir(path)).map((name) => measure(join(path, name)).catch(() => ({ bytes: 0, newest: 0 }))));
     let bytes = 0;
     let newest = info.mtimeMs;
-    for (const name of await fs.readdir(path)) {
-      const child = await measure(join(path, name)).catch(() => ({ bytes: 0, newest: 0 }));
+    for (const child of children) {
       bytes += child.bytes;
       newest = Math.max(newest, child.newest);
     }
@@ -123,8 +124,7 @@ export function createCacheCleanup(options: CacheCleanupOptions) {
   return {
     async sizes(): Promise<CacheCleanupPreview> {
       if (!targets) return { supported: false, targets: [], totalBytes: 0 };
-      const sizes: CacheTargetSize[] = [];
-      for (const target of targets) sizes.push({ id: target.id, label: target.label, bytes: total(await candidates(target)) });
+      const sizes: CacheTargetSize[] = await Promise.all(targets.map(async (target) => ({ id: target.id, label: target.label, bytes: total(await candidates(target)) })));
       return { supported: true, targets: sizes, totalBytes: total(sizes) };
     },
     /** Two calls at once share one run, so the same folder is never removed twice at the same time. */
