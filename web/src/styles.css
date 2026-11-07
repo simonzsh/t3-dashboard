@@ -157,6 +157,7 @@ main { flex: 1; min-height: 0; overflow: hidden; padding: 24px; display: flex; f
 .badge.done { background: var(--done-bg); color: var(--done-text); }
 .badge.error { background: var(--err-bg); color: var(--err-text); }
 .badge.neutral { background: var(--surface-0); color: var(--text-secondary); font-weight: 500; }
+.badge > .badge-icon { flex: none; width: 12px; height: 12px; margin-left: -2px; }
 /* A running badge carries a pulsing dot instead of a coloured header. */
 .session-window-state .pulse { display: inline-block; vertical-align: middle; width: 6px; height: 6px; margin-right: 5px; background: currentColor; }
 .pulse { width: 8px; height: 8px; border-radius: 50%; background: var(--work); }

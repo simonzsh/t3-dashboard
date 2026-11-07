@@ -29,7 +29,7 @@ test("the sheet history lists each run with its status, an unread dot and an Ope
   assert.equal(out.match(/>Open session<\/button>/g)?.length, 2);
   assert.equal(out.match(/aria-label="Unread"/g)?.length, 1);
   assert.match(out, /badge done[^>]*>Succeeded</);
-  assert.match(out, /badge error[^>]*>Failed</);
+  assert.match(out, /badge error[^>]*><svg class="icon badge-icon"[^>]*>.*?<\/svg>Failed</);
   assert.match(out, /class="auto-run-error">boom</);
 });
 
@@ -73,7 +73,7 @@ test("a row shows three lines: name with kind, schedule with next run, last run"
   assert.match(out, /Routine/);
   assert.match(out, /Daily 9:00/);
   assert.match(out, /Next in 3 h/);
-  assert.match(out, /badge error[^>]*>Failed<\/span><span class="auto-text">4 h ago · 3 min</);
+  assert.match(out, /badge error[^>]*><svg class="icon badge-icon"[^>]*>.*?<\/svg>Failed<\/span><span class="auto-text">4 h ago · 3 min</);
   assert.match(out, /project-tag-text">Project A</);
 });
 
