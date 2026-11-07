@@ -49,6 +49,13 @@ test("on a phone every dashboard card slot is full width and may shrink", () => 
   assert.match(phone, /\.dashboard-slot \{[^}]*width: 100%; min-width: 0/);
 });
 
+test("dashboard bands are two stacking columns from 900 px, and one flow below", () => {
+  assert.match(css, /\.dashboard-band, \.dashboard-col \{ display: contents; \}/);
+  const wide = css.slice(css.indexOf("@container (min-width: 900px)"));
+  assert.match(wide, /\.dashboard-band \{ display: grid; grid-template-columns: repeat\(2, minmax\(0, 1fr\)\)/);
+  assert.doesNotMatch(css, /grid-column: span/);
+});
+
 test("on a phone the three stat tiles stay in one row", () => {
   const phone = css.slice(css.indexOf("@media (max-width: 700px)"));
   assert.doesNotMatch(phone, /\.stat-tiles \{/);

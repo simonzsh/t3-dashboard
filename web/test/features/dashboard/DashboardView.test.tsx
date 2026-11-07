@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { renderToStaticMarkup } from "react-dom/server";
 import type { DashboardState, LimitsOverview, ServerStats, UsageDay, UsageOverview, UsageTotals } from "../../../../shared/api.ts";
 import { DashboardView } from "../../../src/features/dashboard/DashboardView.tsx";
-import { DEFAULT_LAYOUT, moveCard, setHidden, type DashboardLayout } from "../../../src/features/dashboard/layout.ts";
+import { DEFAULT_LAYOUT, setHidden, shiftCard, type DashboardLayout } from "../../../src/features/dashboard/layout.ts";
 import { agentCounts } from "../../../src/lib/agents.ts";
 import { listedThreads } from "../../../src/features/dashboard/sections.ts";
 import type { ReadState } from "../../../src/features/dashboard/pollRead.ts";
@@ -141,14 +141,16 @@ test("the chart has one labelled bar slot per day, today last, and a table for s
   assert.match(out, /<table class="sr-only">/);
 });
 
-test("the default layout draws the cards in order inside one grid", () => {
+test("the default layout draws Activity full width, then two columns of half cards", () => {
   const out = render(state());
-  const grid = out.indexOf('class="dashboard-cards"');
-  assert.ok(grid > 0);
-  const heads = ["dashboard-usage-head", "dashboard-activity-head", "dashboard-server-head", "running-head", "up-next-head"].map((id) => out.indexOf(`id="${id}"`));
-  assert.ok(grid < Math.min(...heads));
-  assert.deepEqual([...heads].sort((x, y) => x - y), heads);
-  assert.doesNotMatch(out, /dashboard-col/);
+  const head = (id: string) => out.indexOf(`id="${id}"`);
+  const band = out.indexOf('class="dashboard-band"');
+  assert.ok(band > head("dashboard-activity-head"));
+  assert.equal(out.match(/class="dashboard-band"/g)?.length, 1);
+  const left = out.indexOf('class="dashboard-col left"');
+  const right = out.indexOf('class="dashboard-col right"');
+  assert.ok(band < left && left < head("dashboard-usage-head") && head("dashboard-usage-head") && head("dashboard-usage-head") < right);
+  assert.ok(right < head("running-head") && head("running-head") < head("dashboard-server-head") && head("dashboard-server-head") < head("up-next-head"));
 });
 
 test("an open panel sits beside the cards and holds Notifications", () => {
@@ -173,8 +175,8 @@ test("edit mode hides the panel even when it is open, and Notifications has no e
 });
 
 test("a moved card follows the layout, and a hidden card is not drawn", () => {
-  const moved = render(state(), { layout: moveCard(DEFAULT_LAYOUT, "running", 0) });
-  assert.ok(moved.indexOf('id="running-head"') < moved.indexOf('id="dashboard-usage-head"'));
+  const moved = render(state(), { layout: shiftCard(DEFAULT_LAYOUT, "running", -1) });
+  assert.ok(moved.indexOf('id="running-head"') < moved.indexOf('id="dashboard-activity-head"'));
   assert.doesNotMatch(render(state(), { layout: setHidden(DEFAULT_LAYOUT, "running", true) }), /running-head/);
 });
 
@@ -206,16 +208,16 @@ test("edit mode shows a bar with a drag handle and the move buttons on every car
   const out = render(state(), { editing: true });
   assert.equal(out.match(/class="card-edit-bar"/g)?.length, 5);
   assert.equal(out.match(/class="card-edit-bar" draggable="true"/g)?.length, 5);
-  assert.doesNotMatch(out, /column"/);
+  assert.match(out, /aria-label="Make Activity half width"/);
+  assert.match(out, /aria-label="Make Usage full width"/);
   assert.match(out, /aria-label="Hide Up next"/);
   assert.equal(out.match(/class="dashboard-slot-body" inert=""/g)?.length, 5);
 });
 
-test("the first card cannot move up and the last cannot move down", () => {
+test("a card that cannot move up or down has that button disabled", () => {
   const out = render(state(), { editing: true });
-  assert.match(out, /<button disabled=""[^>]*aria-label="Move Usage up"/);
-  assert.match(out, /<button disabled=""[^>]*aria-label="Move Up next down"/);
-  assert.doesNotMatch(out, /<button disabled=""[^>]*aria-label="Move Running up"/);
+  for (const label of ["Move Activity up", "Move Up next down", "Move Usage down"]) assert.match(out, new RegExp(`<button disabled=""[^>]*aria-label="${label}"`));
+  for (const label of ["Move Usage up", "Move Running down", "Move Server down", "Move Up next up", "Move Activity down"]) assert.doesNotMatch(out, new RegExp(`<button disabled=""[^>]*aria-label="${label}"`));
 });
 
 test("edit mode lists hidden cards so they can be shown again", () => {
@@ -314,7 +316,7 @@ test("the wide panel is a plain aside: no dialog role, no close button, nothing 
   assert.doesNotMatch(out, /class="dashboard-main" inert/);
 });
 
-test("the Server card sits in a full-width slot, and its stats show", () => {
+test("the Server card sits in its slot, and its stats show", () => {
   const out = render(state());
   assert.match(out, /class="dashboard-slot server"/);
   assert.match(out, /devbox · Linux · up 1 h/);
