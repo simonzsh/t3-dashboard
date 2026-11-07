@@ -650,16 +650,17 @@ ol.install-steps { padding-left: 18px; }
 @media (pointer: coarse) { .ticket-foot > .icon-button { opacity: 1; pointer-events: auto; } }
 /* The Linear project fills the left of the foot; the buttons stay on the right even without it. */
 .ticket-linear-project { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--text-secondary); font-size: 12px; }
+main:has(> .auto-page) { padding-top: 8px; }
 .auto-page { flex: 1; min-height: 0; overflow-y: auto; display: flex; flex-direction: column; gap: 28px; padding: 4px; margin: -4px; }
 .auto-section { flex: none; display: flex; flex-direction: column; gap: 8px; }
 .auto-section-title { margin: 0; font-size: 12px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-secondary); }
 .auto-note { margin: 0; font-size: 12px; color: var(--text-secondary); }
 .auto-model { display: inline-flex; align-items: center; gap: 6px; }
 .auto-model .provider-icon { width: 15px; height: 15px; margin: 0; }
-.auto-toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.auto-toolbar { position: sticky; top: -4px; z-index: 2; flex: none; display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-inline: -4px; padding: 8px 4px; background: var(--page-bg); }
 .auto-toolbar .segmented { max-width: 100%; overflow-x: auto; }
 .auto-toolbar .segmented button { white-space: nowrap; }
-.auto-search { position: relative; display: flex; align-items: center; flex: 1 1 200px; max-width: 360px; }
+.auto-search { position: relative; display: flex; align-items: center; flex: 1 1 200px; min-width: 0; max-width: 360px; }
 .auto-search .icon { position: absolute; left: 11px; width: 15px; height: 15px; color: var(--text-secondary); pointer-events: none; }
 .auto-search .field { width: 100%; padding-left: 32px; }
 .auto-card { overflow: hidden; border: 1px solid var(--line); border-radius: var(--radius-lg); background: var(--surface-1); box-shadow: var(--shadow); }
@@ -974,6 +975,7 @@ ol.install-steps { padding-left: 18px; }
 .sessions.compact :is(.session-window-back, .session-window-buttons .icon-button) { min-width: 36px; height: 36px; }
 @media (max-width: 700px) {
   .switcher-meta { display: none; }
+  .auto-toolbar { top: var(--header-h, 48px); }
   .notif-toasts { left: 12px; right: 12px; width: auto; }
   /* Three compact tiles in one row; the chart is lower (see ActivityChart). */
   .stat-tile { gap: 2px; padding: 12px; }
