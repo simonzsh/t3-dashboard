@@ -278,7 +278,7 @@ export function App() {
             }
           />
           <ConnectionBanner connection={state?.connection ?? null} sseDown={sseDown} />
-          <NotificationToasts toasts={notify.toasts} onOpen={(id) => openInSessions(id, true)} onDismiss={notify.dismiss} />
+          <NotificationToasts toasts={notify.toasts} projects={state?.projects ?? []} onOpen={(id) => openInSessions(id, true)} onDismiss={notify.dismiss} />
           <main>
             {tab === "dashboard" &&
               (state ? (
