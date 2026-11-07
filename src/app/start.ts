@@ -1,12 +1,14 @@
-import { readFileSync } from "node:fs";
+import { mkdirSync, readFileSync, readdirSync, lstatSync } from "node:fs";
 import { lstat, readdir, rm, statfs } from "node:fs/promises";
 import os, { homedir, tmpdir } from "node:os";
+import { join } from "node:path";
 import { setTimeout as sleep } from "node:timers/promises";
 import index from "../../web/index.html";
 import type { DashboardProvider } from "../../shared/api.ts";
 import { createActions } from "../domain/actions.ts";
 import { AutomationGuard } from "../domain/automationGuard.ts";
 import { createAutomations } from "../domain/automations.ts";
+import { createNews } from "../domain/news.ts";
 import { TokenManager } from "../domain/tokenManager.ts";
 import { envAllowedHosts, envPort } from "../config/config.ts";
 import { latestTag } from "../integrations/github/releases.ts";
@@ -30,7 +32,7 @@ import { automationRunsText, readAutomationRuns } from "../config/automationRuns
 import { AutomationRunLog } from "../domain/automationRuns.ts";
 import { RearmedStore } from "../domain/rearmedStore.ts";
 import { readAutomationThreads } from "../config/automationThreads.ts";
-import { automationRunsFile, automationThreadsFile, linearFile, pidFile, rearmedFile, seenFile as seenPath, sessionsFile as sessionsPath, stashFile as stashPath } from "../config/paths.ts";
+import { automationRunsFile, automationThreadsFile, linearFile, newsDir, newsFile, pidFile, rearmedFile, seenFile as seenPath, sessionsFile as sessionsPath, stashFile as stashPath } from "../config/paths.ts";
 import { redirectConsole, writePidFile } from "../config/runFiles.ts";
 import { writeSecret } from "../config/secretFile.ts";
 import { createDashboardServer } from "../server/server.ts";
@@ -48,10 +50,23 @@ import { UpdateManager } from "../domain/updates.ts";
 import { VERSION } from "../config/version.ts";
 
 const RECLASSIFY_MS = 60_000;
+const NEWS_SWEEP_MS = 60_000;
 const LISTEN_RETRY_MS = 5_000;
 const UPDATE_CHECK_MS = 60 * 60 * 1000;
 const UPDATE_CHECK_TIMEOUT_MS = 5_000;
 const readText = (path: string) => readFileSync(path, "utf8");
+
+// lstat, not stat: a symlink in the news folder is not an article.
+function listFolder(dir: string) {
+  return readdirSync(dir).flatMap((name) => {
+    try {
+      const entry = lstatSync(join(dir, name));
+      return [{ name, mtimeMs: entry.mtimeMs, isFile: entry.isFile() }];
+    } catch {
+      return [];
+    }
+  });
+}
 
 // A restart can race the old process for the port: retry for a few seconds.
 async function listen(options: Parameters<typeof Bun.serve>[0] & { port: number }): Promise<Bun.Server<undefined>> {
@@ -176,16 +191,31 @@ export async function start({ port, log, env }: StartOptions): Promise<void> {
     rearmed,
     runs: new AutomationRunLog(readAutomationRuns(runsPath, readText), (log) => writeSecret(runsPath, automationRunsText(log))),
   });
+  const news = createNews({
+    port: client,
+    store,
+    file: newsFile(env, home),
+    dir: newsDir(env, home),
+    readFile: readText,
+    writeSecret,
+    fs: {
+      list: listFolder,
+      read: readText,
+      mkdir: (dir) => void mkdirSync(dir, { recursive: true, mode: 0o700 }),
+    },
+  });
   const sessionsFile = sessionsPath(env, home);
   const sessions = new SessionsStore(readSessions(sessionsFile, readText), (value) => writeSecret(sessionsFile, sessionsText(value)));
   const stashFile = stashPath(env, home);
   const stash = new StashStore(readStash(stashFile, readText), (entries) => writeSecret(stashFile, stashText(entries)), { now: () => new Date(), newId: () => crypto.randomUUID() });
   const seenFile = seenPath(env, home);
   const seen = new SeenStore(readSeen(seenFile, readText), (value) => writeSecret(seenFile, seenText(value)));
-  const handler = createDashboardServer({ actions, sessions, stash, seen, hub, board, usage, limits, serverStats, cacheCleanup, automations, getState, connection: () => live.connection(), site, settings, setup, updates, allowedHosts: envAllowedHosts(env) });
+  const handler = createDashboardServer({ actions, sessions, stash, seen, hub, board, usage, limits, serverStats, cacheCleanup, automations, news, getState, connection: () => live.connection(), site, settings, setup, updates, allowedHosts: envAllowedHosts(env) });
 
   const reclassifier = setInterval(() => store.reclassify(new Date()), RECLASSIFY_MS);
   // A dev build has no version to compare, and its runs must not call GitHub.
+  // It only touches the run threads of its own task, so it runs in dev builds too.
+  const sweeper = setInterval(() => void news.sweep(), NEWS_SWEEP_MS);
   const checker = VERSION === "dev" ? undefined : setInterval(() => void updates.check(), UPDATE_CHECK_MS);
   if (checker) void updates.check();
   // The compiled binary refreshes the rules at each start, so a self-update brings the new text.
@@ -208,6 +238,7 @@ export async function start({ port, log, env }: StartOptions): Promise<void> {
   const shutdown = () => {
     clearInterval(reclassifier);
     clearInterval(checker);
+    clearInterval(sweeper);
     live.stop();
     guard.stop();
     hub.close();
