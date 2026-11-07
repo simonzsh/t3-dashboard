@@ -16,8 +16,13 @@ export interface NewsForm {
 }
 
 export function topicsFromText(text: string): string[] {
-  const topics = text.split(/[\n,]/).map((t) => t.trim()).filter((t) => t !== "");
-  return [...new Set(topics)];
+  const seen = new Set<string>();
+  return text.split("\n").map((t) => t.trim()).filter((t) => {
+    const key = t.toLowerCase();
+    if (t === "" || seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
 }
 
 export const formFromSettings = (settings: NewsSettings, selection: ModelSelection | null): NewsForm => ({

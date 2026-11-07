@@ -9,9 +9,9 @@ const settings: NewsSettings = { timeOfDay: "07:00", topics: ["Tech", "AI"], lan
 const task = (over: Partial<NewsTask> = {}): NewsTask => ({ id: "t", enabled: true, nextRunAt: "2026-11-08T07:00:00.000Z", lastRunAt: null, lastRunStatus: null, lastRunError: null, ...over });
 const now = new Date("2026-11-07T12:00:00.000Z");
 
-test("topics split on lines and commas, trimmed, without empties or repeats", () => {
-  assert.deepEqual(topicsFromText(" Tech, AI \n\nSoftware development\r\nai,  Tech "), ["Tech", "AI", "Software development", "ai"]);
-  assert.deepEqual(topicsFromText(" ,\n "), []);
+test("topics split on lines only, trimmed, without empties or repeats", () => {
+  assert.deepEqual(topicsFromText(" Tech \n\nAI, ML\r\nSoftware development\nAI, ML\nTECH "), ["Tech", "AI, ML", "Software development"]);
+  assert.deepEqual(topicsFromText(" \n "), []);
 });
 
 test("the form shows the topics one per line", () => {
@@ -21,7 +21,7 @@ test("the form shows the topics one per line", () => {
 });
 
 test("a valid form becomes the save body", () => {
-  const form = { ...formFromSettings(settings, settings.modelSelection), topics: "Tech, AI\nTech" };
+  const form = { ...formFromSettings(settings, settings.modelSelection), topics: "Tech\nAI\ntech" };
   assert.deepEqual(toBody(form), { body: { timeOfDay: "07:00", topics: ["Tech", "AI"], language: "French", modelSelection: settings.modelSelection } });
 });
 
@@ -29,8 +29,8 @@ test("an invalid form names the problem", () => {
   const ok = formFromSettings(settings, settings.modelSelection);
   const error = (over: object) => ("error" in toBody({ ...ok, ...over }) ? (toBody({ ...ok, ...over }) as { error: string }).error : null);
   assert.match(error({ timeOfDay: "" })!, /time/i);
-  assert.match(error({ topics: " , " })!, /topic/i);
-  assert.match(error({ topics: Array.from({ length: 11 }, (_, i) => `t${i}`).join(",") })!, /10 topics/);
+  assert.match(error({ topics: " \n " })!, /topic/i);
+  assert.match(error({ topics: Array.from({ length: 11 }, (_, i) => `t${i}`).join("\n") })!, /10 topics/);
   assert.match(error({ topics: "x".repeat(61) })!, /60/);
   assert.match(error({ language: "  " })!, /language/i);
   assert.match(error({ language: "x".repeat(41) })!, /40/);

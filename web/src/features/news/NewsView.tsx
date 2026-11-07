@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { NewsArticle, NewsState } from "../../../../shared/api.ts";
 import { useApi } from "../../api/ApiContext.tsx";
 import { failure } from "../../lib/format.ts";
@@ -19,10 +19,11 @@ export function NewsView({ news, now }: Props) {
   // Phone only: the article covers the list. A wide screen shows both and ignores it.
   const [reading, setReading] = useState(false);
   const [article, setArticle] = useState<NewsArticle | null>(null);
+  const articleRef = useRef<HTMLElement>(null);
   const [error, setError] = useState<string | null>(null);
   const date = (articles.some((a) => a.date === picked) ? picked : articles[0]?.date) ?? null;
-  // A second run on the same day replaces that day's file: a new run date reloads it.
-  const lastRun = task?.lastRunAt ?? null;
+  // A second run on the same day rewrites that day's file: a new mtime reloads it.
+  const mtimeMs = articles.find((a) => a.date === date)?.mtimeMs ?? null;
 
   useEffect(() => {
     if (!date) return;
@@ -35,7 +36,12 @@ export function NewsView({ news, now }: Props) {
     return () => {
       stale = true;
     };
-  }, [date, lastRun]);
+  }, [date, mtimeMs]);
+
+  // Phone: the article is shown only now, so bring it to the top of the page.
+  useEffect(() => {
+    if (reading) articleRef.current?.scrollIntoView({ block: "start" });
+  }, [reading, picked]);
 
   const status = <p className="news-status">{statusLine(task, now)}</p>;
   if (articles.length === 0) {
@@ -75,7 +81,7 @@ export function NewsView({ news, now }: Props) {
           ))}
         </ul>
       </section>
-      <article className="news-article" aria-label={shown?.title ?? "Brief"}>
+      <article ref={articleRef} className="news-article" aria-label={shown?.title ?? "Brief"}>
         <Button variant="ghost" size="sm" className="news-back" onClick={() => setReading(false)}>
           <Icon name="arrowLeft" /> Briefs
         </Button>
