@@ -289,7 +289,6 @@ export function App() {
                 now={now}
                 sessionIds={sessionIds}
                 layout={dashboardLayout.layout}
-                running={agents.running}
                 editing={dashboardLayout.editing}
                 onLayout={dashboardLayout.setLayout}
                 panelOpen={notifPanel.open}

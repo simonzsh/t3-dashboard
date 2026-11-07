@@ -4,7 +4,6 @@ import { renderToStaticMarkup } from "react-dom/server";
 import type { DashboardState, LimitsOverview, ServerStats, UsageDay, UsageOverview, UsageTotals } from "../../../../shared/api.ts";
 import { DashboardView } from "../../../src/features/dashboard/DashboardView.tsx";
 import { DEFAULT_LAYOUT, setHidden, shiftCard, type DashboardLayout } from "../../../src/features/dashboard/layout.ts";
-import { agentCounts } from "../../../src/lib/agents.ts";
 import { listedThreads } from "../../../src/features/dashboard/sections.ts";
 import type { ReadState } from "../../../src/features/dashboard/pollRead.ts";
 import { baseState, thread } from "../../fixtures.ts";
@@ -72,7 +71,6 @@ const render = (activity: ReadState<UsageOverview>, { limits = limitsState(), th
       visible={listedThreads(threads, ["t-routine"])}
       now={NOW}
       sessionIds={new Set()}
-      running={agentCounts(threads).running}
       layout={layout}
       editing={editing}
       panelOpen={panelOpen}
@@ -101,30 +99,33 @@ test("the Activity card is titled Activity and sits under Usage", () => {
   assert.match(out, /<h2 id="dashboard-usage-head">Usage<\/h2>/);
 });
 
-test("the three tiles cover the last 7 days, each with its change", () => {
+test("the card says once that it covers the last 7 days, and each tile shows its change", () => {
   const out = render(state());
   // 63 turns this week against 49 the week before.
   assert.match(out, /Turns<\/span><span class="stat-value">63<span class="stat-delta">\+29 %/);
   const text = out.replace(/<[^>]+>/g, "");
-  assert.match(text, /messages sent to agents · last 7 days/);
+  assert.match(out, /<span class="card-note">last 7 days<\/span>/);
+  assert.equal(text.match(/last 7 days/g)?.length, 1);
+  assert.match(text, /messages sent to agents/);
   assert.match(out, /Sessions<\/span><span class="stat-value">9<span class="stat-delta">\+50 %/);
-  assert.match(text, /1 running · last 7 days/);
-  assert.match(out, /Spend<span class="stat-more"> \(API equiv\.\)<\/span><\/span><span class="stat-value">\$[\d.]+<span class="stat-delta">/);
-  assert.match(text, /last 7 days · all usage on this machine/);
+  assert.match(text, /conversations with at least one turn/);
+  assert.match(out, /Spend<span class="stat-more"> \(API equiv\.\)<\/span><\/span><span class="stat-value">\$[\d.]+<span class="stat-delta[^"]*">/);
+  assert.match(text, /all usage on this machine/);
   assert.doesNotMatch(out, /last 14 days ·/);
 });
 
-test("on a phone the tiles keep only the short label and caption", () => {
-  const out = render(state());
-  assert.match(out, /Spend<span class="stat-more">/);
-  assert.match(out, /<span class="stat-more">messages sent to agents · <\/span>last 7 days/);
+test("a drop shows in red, a rise in green and no change in gray", () => {
+  const down = render(state({ value: overview({ thisWeek: { ...overview().thisWeek, turns: 30 }, lastWeek: { ...overview().lastWeek, turns: 60 } }) }));
+  assert.match(down, /<span class="stat-delta down">−50 %/);
+  const flat = render(state({ value: overview({ thisWeek: { ...overview().thisWeek, turns: 60 }, lastWeek: { ...overview().lastWeek, turns: 60 } }) }));
+  assert.match(flat, /<span class="stat-delta flat">0 %/);
 });
 
 test("a partial turn count and unpriced models are said in the captions", () => {
   const out = render(state({ value: overview({ turnsPartial: true, cost: { status: "partial", detail: null, refreshing: false } }) }));
   const text = out.replace(/<[^>]+>/g, "");
-  assert.match(text, /last 7 days \(partial\)/);
-  assert.match(text, /last 7 days · some models unpriced · all usage on this machine/);
+  assert.match(text, /messages sent to agents \(partial\)/);
+  assert.match(text, /some models unpriced · all usage on this machine/);
 });
 
 test("unavailable cost shows a dash and T3's reason, and does not crash", () => {
