@@ -23,7 +23,7 @@ import { ShellStore } from "../../src/domain/shellStore.ts";
 import { SseHub } from "../../src/server/sse.ts";
 import { VERSION } from "../../src/config/version.ts";
 import { FakePort } from "../helpers/fakePort.ts";
-import { linearNode, linearPage } from "../helpers/linear.ts";
+import { linearInbox, linearInboxNode, linearNode, linearPage } from "../helpers/linear.ts";
 import type { RawConfig, ShellItem } from "../../src/integrations/t3/schemas.ts";
 
 const now = new Date("2026-03-20T12:00:00.000Z");
@@ -40,6 +40,8 @@ interface StartOptions {
   site?: Site;
   linearKey?: string;
   linearFetch?: (url: string, init: RequestInit) => Promise<Response>;
+  // Notifications the fake Linear answers to the inbox query.
+  inbox?: unknown[];
   automations?: Pick<Automations, "list" | "create" | "remove" | "update"> & Partial<Pick<Automations, "setEnabled" | "runNow">>;
   // Content of the Linear file. Without it, `linearKey` feeds the board directly.
   linear?: unknown;
@@ -87,6 +89,8 @@ async function start(startOptions: StartOptions = {}) {
   };
   const board = new LinearBoard({
     client: new LinearClient(async (url, init) => {
+      // linearCalls counts the other queries: one board read sends the inbox query too.
+      if (String(init.body).includes("notifications")) return linearInbox(startOptions.inbox ?? []);
       linearCalls.push(String(new Headers(init.headers).get("authorization")));
       return linearFetch ? linearFetch(url, init) : linearPage([linearNode(1)]);
     }),
@@ -673,7 +677,7 @@ test("GET /api/board returns the board and caches it until ?refresh=1", async ()
   const first = await call(server, "GET", "/api/board");
   assert.equal(first.status, 200);
   const { issues, readAt, ...status } = first.json;
-  assert.deepEqual(status, { configured: true, ok: true, error: null });
+  assert.deepEqual(status, { configured: true, ok: true, error: null, inbox: [], inboxError: null });
   assert.ok(!Number.isNaN(Date.parse(readAt)));
   assert.deepEqual(issues.map((issue: { identifier: string }) => issue.identifier), ["TEAM-1"]);
   await call(server, "GET", "/api/board");
@@ -681,6 +685,15 @@ test("GET /api/board returns the board and caches it until ?refresh=1", async ()
   await call(server, "GET", "/api/board?refresh=1");
   assert.equal(linearCalls.length, 2);
   assert.ok(!first.text.includes("key-1"));
+});
+
+test("GET /api/board passes the unread inbox through, and an inbox failure alone", async () => {
+  const { server } = await start({ linearKey: "key-1", inbox: [linearInboxNode(1), linearInboxNode(2, { readAt: "2026-03-20T11:00:00.000Z" })] });
+  const { inbox, inboxError } = (await call(server, "GET", "/api/board")).json;
+  assert.deepEqual([inbox.map((item: { id: string }) => item.id), inboxError], [["notif-1"], null]);
+  const broken = await start({ linearKey: "key-1", inbox: [{ id: "x" }] });
+  const reply = (await call(broken.server, "GET", "/api/board")).json;
+  assert.deepEqual([reply.ok, reply.issues.length, reply.inbox, typeof reply.inboxError], [true, 1, [], "string"]);
 });
 
 test("GET /api/usage returns the overview for the zone and passes ?refresh=1", async () => {

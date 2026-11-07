@@ -4,7 +4,7 @@ import { IntegrationError } from "../../integrations/errors.ts";
 import type { FetchLike } from "../../integrations/linear/client.ts";
 import type { AttachmentRef, Command, FileUpload, ImageUpload, NewScheduledTask, ProjectMutation, RawConfig, RawProject, RawProjection, RawScheduledTask, RawSearchMatch, RawThread, RawTurnItem, RawUsageSummary, SearchEntriesResponse, ScheduledTaskChange, ShellItem, T3Port } from "../../integrations/t3/schemas.ts";
 import { searchEntries, searchProjections } from "./search.ts";
-import { DEMO_CONTEXT_TOKENS, demoFixtures, demoIssues, demoScheduledTasks, demoUsageBuckets, demoUsageLimits, DEMO_FILES, DEMO_FOLDERS, SCRATCH_PROJECT_ID } from "./fixtures.ts";
+import { DEMO_CONTEXT_TOKENS, demoFixtures, demoInbox, demoIssues, demoScheduledTasks, demoUsageBuckets, demoUsageLimits, DEMO_FILES, DEMO_FOLDERS, SCRATCH_PROJECT_ID } from "./fixtures.ts";
 
 const COMPACTED_TOKENS = 12_000;
 
@@ -409,8 +409,10 @@ export class DemoPort implements T3Port {
   }
 }
 
-/** A Linear API that answers every query with the demo issues. */
+/** A Linear API that answers the inbox query with the demo inbox and every other query with the demo issues. */
 export const demoLinearFetch =
   (now: Date): FetchLike =>
-  async () =>
-    Response.json({ data: { viewer: { id: "demo-viewer", assignedIssues: { nodes: demoIssues(now), pageInfo: { hasNextPage: false, endCursor: null } } } } });
+  async (_url, init) => {
+    if (JSON.parse(String(init.body)).query.includes("notifications")) return Response.json({ data: { notifications: { nodes: demoInbox(now) } } });
+    return Response.json({ data: { viewer: { id: "demo-viewer", assignedIssues: { nodes: demoIssues(now), pageInfo: { hasNextPage: false, endCursor: null } } } } });
+  };

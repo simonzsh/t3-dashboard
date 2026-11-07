@@ -5,10 +5,10 @@ import { modelLabel, modelNameMap } from "../../lib/models.ts";
 import { NotificationItem } from "./NotificationItem.tsx";
 import { NotificationsCard } from "./NotificationsCard.tsx";
 import { RunningCard } from "./RunningCard.tsx";
+import { LinearCard } from "./LinearCard.tsx";
 import { threadSections, splitRead } from "./sections.ts";
 import { ThreadRow } from "./ThreadRow.tsx";
-import { UpNextCard } from "./UpNextCard.tsx";
-import { useTickets } from "./useTickets.ts";
+import { useLinear } from "./useLinear.ts";
 
 export interface CardsInput {
   state: DashboardState;
@@ -21,16 +21,15 @@ export interface CardsInput {
   /** False until the server answers: every thread would look read, and "Settle all" could settle unread ones. */
   seenReady: boolean;
   onMarkRead: (id: string) => void;
-  /** Changes when the Linear settings change: the tickets then load again. */
+  /** Changes when the Linear settings change: the board then loads again. */
   linearVersion: number;
 }
 
 /** The thread cards of the Dashboard and the Notifications panel; Usage, Server and Activity need no thread. */
-export function useDashboardCards({ state, now, sessionIds, onOpen, onSettle, seen, seenReady, onMarkRead, linearVersion }: CardsInput, ticketsShown: boolean): Record<"notifications" | "running" | "up-next", ReactNode> {
+export function useDashboardCards({ state, now, sessionIds, onOpen, onSettle, seen, seenReady, onMarkRead, linearVersion }: CardsInput, linearEnabled: boolean): Record<"notifications" | "running" | "linear", ReactNode> {
   const threads = state.threads;
-  const tickets = useTickets(linearVersion, ticketsShown, threads, seen, now);
-  const { relaunch, upNext } = tickets.plan;
-  const sections = useMemo(() => threadSections(threads, seen, new Set(relaunch.map((r) => r.thread.id))), [threads, seen, relaunch]);
+  const linear = useLinear(linearVersion, linearEnabled);
+  const sections = useMemo(() => threadSections(threads, seen), [threads, seen]);
   const { recent, old } = useMemo(() => splitRead(sections.readIdle, now), [sections, now]);
   const projects = useMemo(() => new Map(state.projects.map((p) => [p.id, p])), [state.projects]);
   const modelNames = useMemo(() => modelNameMap(state.providers), [state.providers]);
@@ -63,22 +62,22 @@ export function useDashboardCards({ state, now, sessionIds, onOpen, onSettle, se
         {sections.running.map(threadRow)}
       </RunningCard>
     ),
-    "up-next": (
-      <UpNextCard
-        board={tickets.board}
-        now={now}
-        needsKey={tickets.needsKey}
-        loading={tickets.loading}
-        failed={tickets.failed}
-        tickets={upNext}
-        relaunch={relaunch.map(({ thread }) => threadRow(thread))}
-        onRefresh={() => void tickets.reload(true)}
-        projects={state.projects}
-        providers={state.providers}
-        modelDefaults={state.modelDefaults}
-        onOpen={onOpen}
-        onStarted={tickets.markStarted}
-      />
-    ),
+    // Null until Linear is known to be connected: the dashboard then leaves no slot for the card.
+    linear:
+      linear.board && linear.shown ? (
+        <LinearCard
+          board={linear.board}
+          now={now}
+          loading={linear.loading}
+          threads={threads}
+          started={linear.started}
+          onRefresh={() => void linear.reload(true)}
+          projects={state.projects}
+          providers={state.providers}
+          modelDefaults={state.modelDefaults}
+          onOpen={onOpen}
+          onStarted={linear.markStarted}
+        />
+      ) : null,
   };
 }

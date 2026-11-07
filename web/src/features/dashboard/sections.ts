@@ -22,8 +22,7 @@ export interface ThreadSections {
 const byPinThenRecent = (a: DashboardThread, b: DashboardThread) => Number(b.pinned) - Number(a.pinned) || b.lastActivityAt.localeCompare(a.lastActivityAt);
 
 // A thread that waits or runs is never hidden, even when settled, so it is never missed.
-// `relaunch`: threads shown under "To relaunch", so not listed again as read and idle.
-export function threadSections(threads: DashboardThread[], seen: SeenState, relaunch: ReadonlySet<string> = new Set()): ThreadSections {
+export function threadSections(threads: DashboardThread[], seen: SeenState): ThreadSections {
   const sections: ThreadSections = { needsYou: [], unread: [], readIdle: [], running: [] };
   for (const t of threads) {
     const state = threadState(t);
@@ -32,7 +31,7 @@ export function threadSections(threads: DashboardThread[], seen: SeenState, rela
     else if (t.settled) continue;
     else if (state === "error") sections.needsYou.push(t);
     else if (isUnseen(t, seen)) sections.unread.push(t);
-    else if (!relaunch.has(t.id)) sections.readIdle.push(t);
+    else sections.readIdle.push(t);
   }
   // Only Running shows this order: notificationList sorts the other lists itself.
   sections.running.sort(byPinThenRecent);

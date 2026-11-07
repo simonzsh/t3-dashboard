@@ -14,6 +14,23 @@ export interface LinearIssue {
   project: { id: string; name: string } | null;
   team: { key: string; name: string };
   updatedAt: string;
+  /** "YYYY-MM-DD" or null. */
+  dueDate: string | null;
+}
+
+export type LinearInboxKind = "mention" | "comment-mention" | "assigned";
+
+/** An unread, unarchived, not snoozed Linear inbox notification about an issue. */
+export interface LinearInboxItem {
+  id: string;
+  kind: LinearInboxKind;
+  /** ISO. */
+  createdAt: string;
+  /** User name, else bot name, else null. */
+  actor: string | null;
+  /** The comment for a comment mention, else the issue. */
+  url: string;
+  issue: { id: string; identifier: string; title: string; url: string; priority: number };
 }
 
 export interface BoardResult {
@@ -25,6 +42,10 @@ export interface BoardResult {
   issues: LinearIssue[];
   /** When the issues were read from Linear (ISO). A cached board keeps its time. */
   readAt: string;
+  /** Newest first. Empty when not configured, when the issues failed, or when the inbox failed. */
+  inbox: LinearInboxItem[];
+  /** Set when the issues loaded but the inbox did not. */
+  inboxError: string | null;
 }
 
 export interface AssignIssueBody {

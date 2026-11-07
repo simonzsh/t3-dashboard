@@ -3,6 +3,7 @@ import { test } from "bun:test";
 import { DemoPort, demoLinearFetch } from "../../src/app/demo/port.ts";
 import { DEMO_HOME, createDemoCacheCleanup, demoFixtures, demoServerStats, demoUsageBuckets } from "../../src/app/demo/fixtures.ts";
 import { issues } from "../../src/integrations/contract.ts";
+import { inboxItems } from "../../src/domain/linearBoard.ts";
 import { LinearClient } from "../../src/integrations/linear/client.ts";
 import { RawConfig, RawProjection, RawProject, RawThread, UsageSummaryResponse } from "../../src/integrations/t3/schemas.ts";
 import { ShellStore } from "../../src/domain/shellStore.ts";
@@ -101,7 +102,7 @@ test("demo thread details show messages, activity, subagents and requests", asyn
   const port = new DemoPort(() => NOW);
   const store = syncedStore(port);
   await Bun.sleep(0);
-  const actions = createActions({ port, store, board: { get: async () => ({ configured: true, ok: true, error: null, issues: [], readAt: NOW.toISOString() }) } });
+  const actions = createActions({ port, store, board: { get: async () => ({ configured: true, ok: true, error: null, issues: [], readAt: NOW.toISOString(), inbox: [], inboxError: null }) } });
   const details = await Promise.all(store.state({ t3: "live", serverVersion: null, protocolMismatch: false, error: null, setup: null }, []).threads.map((thread) => actions.threadDetail(thread.id)));
   assert.ok(details.every((detail) => detail.messages.length > 0));
   assert.ok(details.some((detail) => detail.steps.length > 0 && detail.subagents.length >= 2));
@@ -112,7 +113,7 @@ test("a message sent in the demo lands in its thread", async () => {
   const port = new DemoPort(() => NOW);
   const store = syncedStore(port);
   await Bun.sleep(0);
-  const actions = createActions({ port, store, board: { get: async () => ({ configured: true, ok: true, error: null, issues: [], readAt: NOW.toISOString() }) } });
+  const actions = createActions({ port, store, board: { get: async () => ({ configured: true, ok: true, error: null, issues: [], readAt: NOW.toISOString(), inbox: [], inboxError: null }) } });
   const threadId = await actions.createThread({ projectId: "", title: "Try the demo", text: "Hello", modelSelection: { instanceId: "claudeAgent", model: "claude-opus-5-5" } }, []);
   assert.equal(store.thread(threadId)?.title, "Try the demo");
   await actions.sendMessage(threadId, { text: "Second message" }, []);
@@ -174,7 +175,7 @@ async function runningDemo() {
   const port = new DemoPort(() => NOW);
   const store = syncedStore(port);
   await Bun.sleep(0);
-  const actions = createActions({ port, store, board: { get: async () => ({ configured: true, ok: true, error: null, issues: [], readAt: NOW.toISOString() }) } });
+  const actions = createActions({ port, store, board: { get: async () => ({ configured: true, ok: true, error: null, issues: [], readAt: NOW.toISOString(), inbox: [], inboxError: null }) } });
   const threadId = store.state({ t3: "live", serverVersion: null, protocolMismatch: false, error: null, setup: null }, []).threads.find((thread) => thread.title.includes("heckout"))!.id;
   return { actions, threadId, store };
 }
@@ -216,6 +217,15 @@ test("after a Stop the demo queue is held and Send now starts the message", asyn
 test("the demo Linear board and automations need no network", async () => {
   const issuesList = await new LinearClient(demoLinearFetch(NOW)).assignedIssues("demo");
   assert.ok(new Set(issuesList.map((issue) => issue.state.name)).size >= 4);
+  assert.ok(issuesList.some((issue) => issue.priority === 1));
+  // The two due dates sit 2 days before and 1 day after the local day.
+  const today = new Date(NOW.getFullYear(), NOW.getMonth(), NOW.getDate());
+  const day = (offset: number) => new Date(today.getFullYear(), today.getMonth(), today.getDate() + offset).toLocaleDateString("sv");
+  assert.deepEqual(issuesList.flatMap((issue) => (issue.dueDate ? [issue.dueDate] : [])).sort(), [day(-2), day(1)]);
+  const items = inboxItems(await new LinearClient(demoLinearFetch(NOW)).inbox("demo"), NOW);
+  assert.deepEqual(items.map((item) => item.kind).sort(), ["assigned", "assigned", "comment-mention", "mention"]);
+  assert.ok(new Set(items.filter((item) => item.kind !== "assigned").map((item) => item.actor)).size === 2);
+  assert.ok(items.every((item) => issuesList.some((issue) => issue.id === item.issue.id)));
   const port = new DemoPort(() => NOW);
   const store = syncedStore(port);
   await Bun.sleep(0);
@@ -325,7 +335,7 @@ test("stopping the running demo subagent turns it failed", async () => {
   const port = new DemoPort(() => NOW);
   const store = syncedStore(port);
   await Bun.sleep(0);
-  const actions = createActions({ port, store, board: { get: async () => ({ configured: true, ok: true, error: null, issues: [], readAt: NOW.toISOString() }) } });
+  const actions = createActions({ port, store, board: { get: async () => ({ configured: true, ok: true, error: null, issues: [], readAt: NOW.toISOString(), inbox: [], inboxError: null }) } });
   const threadId = store.state({ t3: "live", serverVersion: null, protocolMismatch: false, error: null, setup: null }, []).threads.find((thread) => thread.title.includes("heckout"))!.id;
   const before = (await actions.threadDetail(threadId)).subagents.find((s) => s.stop === "subagent")!;
   await actions.stopSubagent(threadId, before.id);
@@ -337,7 +347,7 @@ test("interrupting the idle demo thread stops its background task", async () => 
   const port = new DemoPort(() => NOW);
   const store = syncedStore(port);
   await Bun.sleep(0);
-  const actions = createActions({ port, store, board: { get: async () => ({ configured: true, ok: true, error: null, issues: [], readAt: NOW.toISOString() }) } });
+  const actions = createActions({ port, store, board: { get: async () => ({ configured: true, ok: true, error: null, issues: [], readAt: NOW.toISOString(), inbox: [], inboxError: null }) } });
   const threadId = "demo-dev-server";
   const before = (await actions.threadDetail(threadId)).subagents;
   assert.deepEqual(before.map((s) => [s.status, s.stop]), [["running", "thread"]]);
@@ -350,7 +360,7 @@ test("Edit from here in the demo removes the message and what followed", async (
   const port = new DemoPort(() => NOW);
   const store = syncedStore(port);
   await Bun.sleep(0);
-  const actions = createActions({ port, store, board: { get: async () => ({ configured: true, ok: true, error: null, issues: [], readAt: NOW.toISOString() }) } });
+  const actions = createActions({ port, store, board: { get: async () => ({ configured: true, ok: true, error: null, issues: [], readAt: NOW.toISOString(), inbox: [], inboxError: null }) } });
   const id = store.state({ t3: "live", serverVersion: null, protocolMismatch: false, error: null, setup: null }, []).threads.find((thread) => thread.title.includes("dark mode"))!.id;
   const before = await actions.threadDetail(id);
   const first = before.messages.find((message) => message.role === "user")!;
@@ -393,7 +403,7 @@ test("the demo edits and deletes a project with its threads", async () => {
   const port = new DemoPort(() => NOW);
   const store = syncedStore(port);
   store.apply([{ kind: "synchronized" }]);
-  const actions = createActions({ port, store, board: { get: async () => ({ configured: true, ok: true, error: null, issues: [], readAt: NOW.toISOString() }) }, home: DEMO_HOME });
+  const actions = createActions({ port, store, board: { get: async () => ({ configured: true, ok: true, error: null, issues: [], readAt: NOW.toISOString(), inbox: [], inboxError: null }) }, home: DEMO_HOME });
   await Promise.resolve();
   await actions.updateProject("demo-sandbox", { title: "Playground", path: "~/src/notes", icon: { kind: "emoji", emoji: "🧪" } });
   const edited = store.project("demo-sandbox");
@@ -416,7 +426,7 @@ test("the demo lists its folders and adds a created folder as a project", async 
   const port = new DemoPort(() => NOW);
   const store = syncedStore(port);
   store.apply([{ kind: "synchronized" }]);
-  const actions = createActions({ port, store, board: { get: async () => ({ configured: true, ok: true, error: null, issues: [], readAt: NOW.toISOString() }) }, home: DEMO_HOME });
+  const actions = createActions({ port, store, board: { get: async () => ({ configured: true, ok: true, error: null, issues: [], readAt: NOW.toISOString(), inbox: [], inboxError: null }) }, home: DEMO_HOME });
   const listed = await actions.browseFolders("~/src/");
   assert.deepEqual(listed.entries.map((entry) => entry.name), ["atlas-api", "atlas-web", "notes", "sandbox"]);
   assert.equal((await actions.browseFolders("~/src/new-thing")).kind, "missing");

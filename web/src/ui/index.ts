@@ -9,6 +9,7 @@ export { FileInput } from "./FileInput.tsx";
 export { Icon, type IconName } from "./Icon.tsx";
 export { IconButton, type IconButtonProps } from "./IconButton.tsx";
 export { Kbd } from "./Kbd.tsx";
+export { LinearMark } from "./LinearMark.tsx";
 export { Loader } from "./Loader.tsx";
 export { Logo, LOGO_TILES } from "./Logo.tsx";
 export { enter, fly, reducedMotion, useFlip } from "./motion.ts";
