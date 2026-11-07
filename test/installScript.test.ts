@@ -106,7 +106,7 @@ test("a missing t3 warns on stderr, still installs the service and exits 0", () 
   assert.equal(run.code, 0, run.err);
   assert.match(run.err, /T3 Code \(t3\) was not found/);
   assert.match(run.err, /https:\/\/t3\.codes/);
-  assert.match(run.err, /npm install -g t3/);
+  assert.match(run.err, /curl -fsSL https:\/\/t3\.codes\/install\.sh \| sh/);
   assert.match(run.out, /fake t3-dashboard install/);
   rmSync(run.root, { recursive: true });
 });

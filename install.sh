@@ -86,7 +86,7 @@ main() {
   if ! t3_found; then
     {
       echo "Warning: T3 Code (t3) was not found. The dashboard needs it on this computer."
-      echo "Install it: https://t3.codes  or  npm install -g t3"
+      echo "Install it: curl -fsSL https://t3.codes/install.sh | sh  (or the app from https://t3.codes)"
       echo "Then start it: t3 start"
     } >&2
   fi

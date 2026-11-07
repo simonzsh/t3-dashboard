@@ -84,7 +84,7 @@ Without a command, `t3-dashboard` runs `start`. `install` and `update` refuse to
 ## First start
 
 1. The dashboard looks for `t3`. It creates its own access token with `t3 auth session issue`. It keeps this token in `~/.config/t3-dashboard/auth.json` (mode 600). You do not have to do anything.
-2. If T3 Code is not installed, a full screen shows the install link (<https://t3.codes>) and the command `npm install -g t3`. If T3 Code is installed but stopped, the screen shows the command `t3 start`. Install or start T3 Code, then click "Retry". The dashboard appears without a page reload.
+2. If T3 Code is not installed, a full screen shows the install link (<https://t3.codes>) and the official install command: `curl -fsSL https://t3.codes/install.sh | sh` on macOS and Linux, `irm https://t3.codes/install.ps1 | iex` on Windows. The desktop app from t3.codes works too. If T3 Code is installed but stopped, the screen shows the command `t3 start`. Install or start T3 Code, then click "Retry". The dashboard appears without a page reload.
 3. If the token creation fails, the screen gives the exact command. Run it, then paste the token in the field.
 4. To use Linear, connect it in Settings (see [Linear](#linear)).
 

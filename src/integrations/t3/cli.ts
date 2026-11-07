@@ -5,7 +5,10 @@ import { t3Home } from "./runtime.ts";
 type Env = Record<string, string | undefined>;
 
 export const INSTALL_URL = "https://t3.codes";
-export const INSTALL_COMMAND = "npm install -g t3";
+// The official installers from t3.codes; npx t3 only runs it once.
+export const installCommand = (platform: NodeJS.Platform): string =>
+  platform === "win32" ? "irm https://t3.codes/install.ps1 | iex" : "curl -fsSL https://t3.codes/install.sh | sh";
+export const INSTALL_COMMAND = installCommand(process.platform);
 export const START_COMMAND = "t3 start";
 const ISSUE_ARGS = ["auth", "session", "issue", "--ttl", "3650d", "--label", "T3 Dashboard", "--token-only"];
 export const ISSUE_COMMAND = `t3 ${ISSUE_ARGS.map((arg) => (arg.includes(" ") ? `"${arg}"` : arg)).join(" ")}`;

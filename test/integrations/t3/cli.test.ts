@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { join } from "node:path";
 import { test } from "bun:test";
-import { ISSUE_COMMAND, issueToken, locateT3, runCommand } from "../../../src/integrations/t3/cli.ts";
+import { ISSUE_COMMAND, installCommand, issueToken, locateT3, runCommand } from "../../../src/integrations/t3/cli.ts";
 
 test("locateT3 prefers the variable, then PATH, then the usual folders", () => {
   const exists = (known: string[]) => (path: string) => known.includes(path);
@@ -48,4 +48,10 @@ test("issueToken runs the issue command and keeps a single line of output as the
   assert.deepEqual(await issueToken(run(null, ""), "/bin/t3", {}), { code: null, token: null });
   await issueToken(run(0, "tok\n"), "/bin/t3", { T3CODE_HOME: "/x/t3home" });
   assert.deepEqual(calls.at(-1)!.args.slice(-2), ["--base-dir", "/x/t3home"]);
+});
+
+test("the install command is the official installer of each platform", () => {
+  assert.equal(installCommand("linux"), "curl -fsSL https://t3.codes/install.sh | sh");
+  assert.equal(installCommand("darwin"), "curl -fsSL https://t3.codes/install.sh | sh");
+  assert.equal(installCommand("win32"), "irm https://t3.codes/install.ps1 | iex");
 });

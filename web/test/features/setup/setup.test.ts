@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import type { SetupInfo } from "../../../../shared/api.ts";
 import { setupCopy } from "../../../src/features/setup/setup.ts";
 
-const info = (reason: SetupInfo["reason"]): SetupInfo => ({ reason, detail: null, issueCommand: 't3 auth session issue --label "X" --token-only', installUrl: "https://t3.example", installCommand: "npm install -g t3", startCommand: "t3 start" });
+const info = (reason: SetupInfo["reason"]): SetupInfo => ({ reason, detail: null, issueCommand: 't3 auth session issue --label "X" --token-only', installUrl: "https://t3.example", installCommand: "curl -fsSL https://t3.codes/install.sh | sh", startCommand: "t3 start" });
 
 test("a stopped T3 Code shows the start command and an install link, with no paste field", () => {
   const copy = setupCopy(info("t3-stopped"));
@@ -16,7 +16,7 @@ test("a stopped T3 Code shows the start command and an install link, with no pas
 test("a missing t3 shows the install command and links to the install page", () => {
   const copy = setupCopy(info("t3-missing"));
   assert.equal(copy.title, "Install T3 Code");
-  assert.equal(copy.command, "npm install -g t3");
+  assert.equal(copy.command, "curl -fsSL https://t3.codes/install.sh | sh");
   assert.deepEqual(copy.link, { label: "Get T3 Code", url: "https://t3.example" });
   assert.equal(copy.showPaste, false);
 });
