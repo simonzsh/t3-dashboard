@@ -12,8 +12,6 @@ import { useTickets } from "./useTickets.ts";
 
 export interface CardsInput {
   state: DashboardState;
-  /** The threads the cards list. */
-  visible: DashboardThread[];
   now: Date;
   sessionIds: ReadonlySet<string>;
   // addOnly: put the agent on the Sessions page without leaving the Dashboard.
@@ -28,10 +26,11 @@ export interface CardsInput {
 }
 
 /** The thread cards of the Dashboard and the Notifications panel; Usage, Server and Activity need no thread. */
-export function useDashboardCards({ state, visible, now, sessionIds, onOpen, onSettle, seen, seenReady, onMarkRead, linearVersion }: CardsInput, ticketsShown: boolean): Record<"notifications" | "running" | "up-next", ReactNode> {
-  const tickets = useTickets(linearVersion, ticketsShown, visible, seen, now);
+export function useDashboardCards({ state, now, sessionIds, onOpen, onSettle, seen, seenReady, onMarkRead, linearVersion }: CardsInput, ticketsShown: boolean): Record<"notifications" | "running" | "up-next", ReactNode> {
+  const threads = state.threads;
+  const tickets = useTickets(linearVersion, ticketsShown, threads, seen, now);
   const { relaunch, upNext } = tickets.plan;
-  const sections = useMemo(() => threadSections(visible, seen, new Set(relaunch.map((r) => r.thread.id))), [visible, seen, relaunch]);
+  const sections = useMemo(() => threadSections(threads, seen, new Set(relaunch.map((r) => r.thread.id))), [threads, seen, relaunch]);
   const { recent, old } = useMemo(() => splitRead(sections.readIdle, now), [sections, now]);
   const projects = useMemo(() => new Map(state.projects.map((p) => [p.id, p])), [state.projects]);
   const modelNames = useMemo(() => modelNameMap(state.providers), [state.providers]);

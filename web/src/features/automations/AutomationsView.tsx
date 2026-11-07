@@ -2,7 +2,7 @@ import { Fragment, useCallback, useEffect, useMemo, useRef, useState, type React
 import type { Automation, AutomationsResult, DashboardProject, DashboardState, DashboardThread } from "../../../../shared/api.ts";
 import type { SeenState } from "../../../../shared/seen.ts";
 import { agentStatus } from "../../../../shared/status.ts";
-import { RunningBadge, StatusBadge } from "../../lib/StatusBadge.tsx";
+import { StatusBadge } from "../../lib/StatusBadge.tsx";
 import { ProjectTag } from "../../lib/ProjectTag.tsx";
 import { Badge, Button, Dropdown, Icon, type IconName, Pressable, Segmented, Sheet, Skeleton, SkeletonGroup, TextInput } from "../../ui/index.ts";
 import { NewAutomationDialog } from "../new-thread/NewAutomationDialog.tsx";

@@ -9,14 +9,13 @@ interface Props {
   onClose: () => void;
   /** `narrow` is 380 px, `wide` is 600 px; both fill a phone. */
   width?: "narrow" | "wide";
-  className?: string;
   children?: ReactNode;
 }
 
 const ignore = () => {};
 
 /** Side sheet under the header. It stays mounted: `open` drives the slide and the backdrop fade, both ways. */
-export function Sheet({ open, label, onClose, width = "narrow", className, children }: Props) {
+export function Sheet({ open, label, onClose, width = "narrow", children }: Props) {
   const sheet = useRef<HTMLElement>(null);
   useEscape(open ? onClose : ignore);
 
@@ -30,11 +29,10 @@ export function Sheet({ open, label, onClose, width = "narrow", className, child
     };
   }, [open]);
 
-  const classes = ["ui-sheet", width, open && "open", className].filter(Boolean).join(" ");
-  return (
+    return (
     <>
       <div className={`ui-sheet-backdrop${open ? " open" : ""}`} aria-hidden="true" onClick={onClose} />
-      <aside ref={sheet} tabIndex={-1} className={classes} role="dialog" aria-modal="true" aria-label={label} inert={!open} onKeyDown={trapTab}>
+      <aside ref={sheet} tabIndex={-1} className={`ui-sheet ${width}${open ? " open" : ""}`} role="dialog" aria-modal="true" aria-label={label} inert={!open} onKeyDown={trapTab}>
         {children}
       </aside>
     </>

@@ -193,15 +193,14 @@ export function App() {
 
   const live = !sseDown && state?.connection.t3 === "live";
   const sessionIds = useMemo(() => new Set(sessions.ids), [sessions.ids]);
-  const setup = useSetupRows(state?.threads ?? NO_THREADS, automations.result?.setupThreadIds, automations.reload);
-  // One list for the Dashboard cards and the badge, so they cannot drift apart.
-  const visible = state?.threads ?? NO_THREADS;
+  const threads = state?.threads ?? NO_THREADS;
+  const setup = useSetupRows(threads, automations.result?.setupThreadIds, automations.reload);
   const automationThreads = useMemo(() => new Set(automations.result?.automationThreadIds ?? NO_IDS), [automations.result?.automationThreadIds]);
-  const threadsById = useMemo(() => new Map(visible.map((t) => [t.id, t])), [visible]);
+  const threadsById = useMemo(() => new Map(threads.map((t) => [t.id, t])), [threads]);
   const automationsNav = useMemo(() => automationsBadge(automations.result?.automations ?? [], threadsById, notify.seen), [automations.result?.automations, threadsById, notify.seen]);
-  const unread = useMemo(() => attentionCount(threadSections(visible, notify.seen)), [visible, notify.seen]);
-  const agents = useMemo(() => agentCounts(visible), [visible]);
-  const sessionsBadge = useMemo(() => ({ count: sessionsBadgeCount(visible, notify.seen), waiting: agents.waiting > 0 }), [visible, notify.seen, agents.waiting]);
+  const unread = useMemo(() => attentionCount(threadSections(threads, notify.seen)), [threads, notify.seen]);
+  const agents = useMemo(() => agentCounts(threads), [threads]);
+  const sessionsBadge = useMemo(() => ({ count: sessionsBadgeCount(threads, notify.seen), waiting: agents.waiting > 0 }), [threads, notify.seen, agents.waiting]);
   const dashboardLayout = useDashboardLayout(tab === "dashboard");
   const notifPanel = useNotificationsPanel(sheetMode, tab === "dashboard");
   const dashboardOpen = tab === "dashboard" && state !== null;
@@ -288,7 +287,6 @@ export function App() {
                   limits={limits}
                   server={server}
                   activity={activity}
-                  visible={visible}
                   now={now}
                   sessionIds={sessionIds}
                   layout={dashboardLayout.layout}

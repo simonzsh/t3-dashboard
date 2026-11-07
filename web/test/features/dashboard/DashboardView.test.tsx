@@ -77,7 +77,6 @@ const render = (activity: ActivityState, { limits = limitsState(), threads = [th
       limits={limits}
       server={serverState()}
       activity={activity}
-      visible={threads}
       now={NOW}
       sessionIds={new Set()}
       layout={layout}
