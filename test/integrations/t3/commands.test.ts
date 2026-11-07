@@ -54,6 +54,12 @@ test("createThreadCommands builds thread.create then message.dispatch", () => {
   ]);
 });
 
+test("createThreadCommands asks T3 for a generated title only when told to", () => {
+  const body = { projectId: "project-1", title: "Fix the login", text: "Fix the login", modelSelection: model };
+  assert.equal(createThreadCommands("thread-1", body, plain, { generateTitle: true })[1]?.titleSeed, "Fix the login");
+  assert.ok(!("titleSeed" in createThreadCommands("thread-1", body, plain)[1]!));
+});
+
 test("messageCommand carries the dispatch mode", () => {
   assert.deepEqual(messageCommand("thread-1", "Hi", plain, { mode: { type: "queue_after_active" } }), {
     type: "message.dispatch",

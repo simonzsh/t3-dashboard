@@ -62,7 +62,7 @@ export function NewThreadDialog({ projects, providers, defaults, onClose, onCrea
       return onCreated(threadId);
     }
     const title = titleFromMessage(text);
-    if (title === "") throw new Error("Write a message: its first line becomes the title.");
+    if (title === "") throw new Error("Write a message.");
     const { threadId } = await api.createThread({ projectId, title, text, modelSelection: selection, ...extra });
     saveNewAgentProject(browserStorage(), projectId);
     onCreated(threadId);
@@ -121,7 +121,7 @@ export function NewThreadDialog({ projects, providers, defaults, onClose, onCrea
           onSend={send}
           onSettings={changeSettings}
           errorResetKey={projectId}
-          placeholder={issue ? "Add instructions for the agent (optional)…" : "Describe the task: the first line becomes the title…"}
+          placeholder={issue ? "Add instructions for the agent (optional)…" : "Describe the task…"}
           allowEmpty={issue !== undefined}
           focusKey={picks || undefined}
         />
