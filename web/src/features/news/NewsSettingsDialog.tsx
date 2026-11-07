@@ -14,7 +14,7 @@ interface Props {
 
 const modelId = (instanceId: string, slug: string) => `${instanceId}\u0000${slug}`;
 
-/** The brief's schedule, topics, language and model. Saving updates the T3 routine too. */
+/** The news schedule, topics, language and model. Saving updates the T3 routine too. */
 export function NewsSettingsDialog({ settings, providers, defaults, onSave, onClose }: Props) {
   const [form, setForm] = useState(() => formFromSettings(settings, pickModel(settings, providers, defaults.selection)));
   const [saving, setSaving] = useState(false);
@@ -38,12 +38,12 @@ export function NewsSettingsDialog({ settings, providers, defaults, onSave, onCl
   }
 
   return (
-    <Dialog title="Brief settings" className="news-settings" onClose={onClose} onCancel={onClose} primary={{ label: saving ? "Saving…" : "Save", onClick: () => void save(), disabled: saving }}>
+    <Dialog title="News settings" className="news-settings" onClose={onClose} onCancel={onClose} primary={{ label: saving ? "Saving…" : "Save", onClick: () => void save(), disabled: saving }}>
       <div className="auto-form">
         <div className="dialog-field">
           <span>Time of day</span>
           <TextInput aria-label="Time of day" type="time" value={form.timeOfDay} onChange={(e) => setForm({ ...form, timeOfDay: e.target.value })} />
-          <p className="hint">The brief runs every day. The time is read in the time zone of the machine that runs T3.</p>
+          <p className="hint">The news runs every day. The time is read in the time zone of the machine that runs T3.</p>
         </div>
         <div className="dialog-field">
           <span>Topics</span>

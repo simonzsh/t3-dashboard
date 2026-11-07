@@ -2,7 +2,7 @@
 
 [Back to the README](../README.md)
 
-The dashboard has four pages: Dashboard, Sessions, Automations and News. A sidebar on the left lists them, with a search button (`⌘` + `K`). Its last row shows the connection state, Settings and a button that collapses the sidebar to icons (`Ctrl` + `B`). The theme, the accent color and the interface tint are in Settings. The sidebar remembers its state. The page header is one line: the title and a short description. Its button depends on the page: Sessions has a list toggle (wide screen), a layout button and New Session (`Ctrl` + `N`), Automations has New Automation (`Ctrl` + `⇧` + `N`), News has Brief settings and Run now, and Dashboard has the Notifications bell, with the number of unread items, then Edit layout. The two shortcuts work on every page. On a phone, a bar at the bottom of the screen replaces the sidebar: Dashboard, Sessions, Automations and News. The header then shows the page buttons as icons (on Dashboard, the bell too), a search button and Settings. A dot on Settings shows that an update is ready.
+The dashboard has four pages: Dashboard, Sessions, Automations and News. A sidebar on the left lists them, with a search button (`⌘` + `K`). Its last row shows the connection state, Settings and a button that collapses the sidebar to icons (`Ctrl` + `B`). The theme, the accent color and the interface tint are in Settings. The sidebar remembers its state. The page header is one line: the title and a short description. Its button depends on the page: Sessions has a list toggle (wide screen), a layout button and New Session (`Ctrl` + `N`), Automations has New Automation (`Ctrl` + `⇧` + `N`), News has News settings and Run now, and Dashboard has the Notifications bell, with the number of unread items, then Edit layout. The two shortcuts work on every page. On a phone, a bar at the bottom of the screen replaces the sidebar: Dashboard, Sessions, Automations and News. The header then shows the page buttons as icons (on Dashboard, the bell too), a search button and Settings. A dot on Settings shows that an update is ready.
 
 ## Dashboard
 
@@ -229,15 +229,15 @@ A task without a linked thread creates a new thread at each run. These threads s
 
 ## News
 
-The News tab shows a daily brief of the news on your topics. A T3 routine, owned by the dashboard, asks an agent to search the web and write the brief. It needs T3 Code to be connected, and a model that can search the web.
+The News tab shows a daily article with the news on your topics. A T3 routine, owned by the dashboard, asks an agent to search the web and write the article. It needs T3 Code to be connected, and a model that can search the web.
 
-- On a wide screen, the list of briefs is on the left, newest first, and the open article is on the right. The newest brief opens first. The line above the list gives the next run and the result of the last run.
-- On a phone, the page shows the list. A tap opens the article, and the "Briefs" button at its top returns to the list.
-- Click "Brief settings" in the header to set the time of day, the topics (one per line, up to 10), the language and the model. The time is read in the time zone of the machine that runs T3. The first save creates the routine. Each later save updates it.
-- Click "Run now" to start a brief at once. A second brief on the same day replaces the first. The button is off until the first save.
+- On a wide screen, the list of articles is on the left, newest first, and the open article is on the right. The newest article opens first. The line above the list gives the next run and the result of the last run.
+- On a phone, the page shows the list. A tap opens the article, and the "News" button at its top returns to the list.
+- Click "News settings" in the header to set the time of day, the topics (one per line, up to 10), the language and the model. The default model is Codex `gpt-6-luna`, when T3 offers it; you can pick another one. The time is read in the time zone of the machine that runs T3. The first save creates the routine. Each later save updates it.
+- Click "Run now" to start an article at once. A second article on the same day replaces the first. The button is off until the first save.
 - The routine is a normal routine: it also shows in Automations, where you can pause or delete it. If you delete it, the next save creates it again.
-- The dashboard archives the run threads of the brief when the article is written. A failed run stays visible in Sessions.
-- Without a brief, the page says "No brief yet".
+- The dashboard archives the run threads of the news when the article is written. A failed run stays visible in Sessions.
+- Without an article, the page says "No news yet".
 
 ## Settings
 

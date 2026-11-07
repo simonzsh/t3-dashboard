@@ -133,9 +133,9 @@ test("on a phone the Settings button shows a dot when an update is ready", () =>
   assert.match(out, /class="[^"]*has-update[^"]*"[^>]*aria-label="Settings, an update is ready"|aria-label="Settings, an update is ready"[^>]*class="[^"]*has-update/);
 });
 
-test("News shows Brief settings, then the primary Run now", () => {
+test("News shows News settings, then the primary Run now", () => {
   const out = render("news");
-  assert.ok(out.indexOf("Brief settings") < out.indexOf("Run now"));
+  assert.ok(out.indexOf("News settings") < out.indexOf("Run now"));
   assert.match(out, /class="btn md primary"[^>]*><svg[^>]*>.*<\/svg> Run now/);
   assert.doesNotMatch(out, /New Session|New Automation|Edit layout/);
 });
@@ -148,7 +148,7 @@ test("Run now is disabled without a saved task and while a run starts", () => {
 
 test("on a phone News has icon buttons, and nothing before the state exists", () => {
   const out = render("news", { compact: true });
-  assert.match(out, /aria-label="Brief settings"/);
+  assert.match(out, /aria-label="News settings"/);
   assert.match(out, /aria-label="Run now"/);
   assert.equal(render("news", { ready: false }), "");
 });

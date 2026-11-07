@@ -8,13 +8,13 @@ import { usePoll } from "../../lib/usePoll.ts";
 
 const POLL_MS = 60_000;
 
-// Polls while active, so a new brief shows without a reload. Save throws: the dialog shows the error.
+// Polls while active, so a new article shows without a reload. Save throws: the dialog shows the error.
 export function useNews(active: boolean) {
   const api = useApi();
   const notify = useNotify();
   const [state, setState] = useState<NewsState | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const running = useAction("start the brief");
+  const running = useAction("start the news run");
 
   // A reload and a poll can overlap: only the latest request may set the state.
   const seq = useRef(0);

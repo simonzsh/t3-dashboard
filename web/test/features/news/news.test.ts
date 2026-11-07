@@ -38,10 +38,13 @@ test("an invalid form names the problem", () => {
   assert.equal(error({}), null);
 });
 
-test("the stored model wins; otherwise T3's default, then the first model", () => {
+test("the stored model wins; otherwise Codex gpt-6-luna, T3's default, then the first model", () => {
   assert.deepEqual(pickModel(settings, [provider], null), settings.modelSelection);
   const none = { ...settings, modelSelection: null };
   assert.deepEqual(pickModel(none, [provider], { instanceId: "provider-a", model: "model-y" }), { instanceId: "provider-a", model: "model-y" });
+  const codex: DashboardProvider = { instanceId: "codex", displayName: "Codex", models: [{ slug: "gpt-6-luna", name: "Luna" }] as never, runtimeModes: [] };
+  assert.deepEqual(pickModel(none, [provider, codex], { instanceId: "provider-a", model: "model-y" }), { instanceId: "codex", model: "gpt-6-luna" });
+  assert.deepEqual(pickModel(settings, [provider, codex], null), settings.modelSelection);
   assert.deepEqual(pickModel(none, [provider], null), { instanceId: "provider-a", model: "model-x" });
   assert.equal(pickModel(none, [], null), null);
 });
@@ -51,8 +54,8 @@ test("the status line asks for a first save when there is no task", () => {
 });
 
 test("the status line gives the next run and the last run", () => {
-  assert.equal(statusLine(task(), now), `Next brief ${formatMessageTime("2026-11-08T07:00:00.000Z")}`);
-  assert.equal(statusLine(task({ lastRunAt: "2026-11-07T09:00:00.000Z", lastRunStatus: "succeeded" }), now), `Next brief ${formatMessageTime("2026-11-08T07:00:00.000Z")} · Last run 3 h ago`);
+  assert.equal(statusLine(task(), now), `Next article ${formatMessageTime("2026-11-08T07:00:00.000Z")}`);
+  assert.equal(statusLine(task({ lastRunAt: "2026-11-07T09:00:00.000Z", lastRunStatus: "succeeded" }), now), `Next article ${formatMessageTime("2026-11-08T07:00:00.000Z")} · Last run 3 h ago`);
 });
 
 test("the status line says when the routine is paused or running, and shows a failure", () => {

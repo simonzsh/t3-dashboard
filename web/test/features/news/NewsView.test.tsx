@@ -16,22 +16,22 @@ const view = (news: NewsState) =>
     </ApiProvider>,
   );
 
-test("without a brief the page explains how one arrives", () => {
-  assert.match(view(state()), /No brief yet[\s\S]*Run now/);
-  assert.match(view(state({ task: null })), /Not scheduled[\s\S]*Open Brief settings/);
+test("without news the page explains how one arrives", () => {
+  assert.match(view(state()), /No news yet[\s\S]*Run now/);
+  assert.match(view(state({ task: null })), /Not scheduled[\s\S]*Open News settings/);
 });
 
-test("the list shows each brief newest first, and marks the newest open", () => {
-  const out = view(state({ articles: [{ date: "2026-11-07", title: "Brief 7 Nov", mtimeMs: 2 }, { date: "2026-11-06", title: "Brief 6 Nov", mtimeMs: 1 }] }));
+test("the list shows each article newest first, and marks the newest open", () => {
+  const out = view(state({ articles: [{ date: "2026-11-07", title: "News 7 Nov", mtimeMs: 2 }, { date: "2026-11-06", title: "News 6 Nov", mtimeMs: 1 }] }));
   assert.ok(out.indexOf("Sat 7 Nov") < out.indexOf("Fri 6 Nov"));
   assert.match(out, /news-item active"[^>]*aria-current="true"[^>]*><span[^>]*>Sat 7 Nov/);
   assert.equal(out.match(/aria-current="true"/g)?.length, 1);
 });
 
 test("the article pane has a back button for the phone, and starts on the list", () => {
-  const out = view(state({ articles: [{ date: "2026-11-07", title: "Brief 7 Nov", mtimeMs: 2 }] }));
+  const out = view(state({ articles: [{ date: "2026-11-07", title: "News 7 Nov", mtimeMs: 2 }] }));
   assert.match(out, /class="news-page"/);
-  assert.match(out, /news-back[^>]*>.*Briefs/);
+  assert.match(out, /news-back[^>]*>.*News/);
 });
 
 test("the settings dialog shows the saved values", () => {

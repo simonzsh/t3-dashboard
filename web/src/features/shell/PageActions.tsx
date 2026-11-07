@@ -75,7 +75,7 @@ function Action({ compact, label, icon, variant = "secondary", withIcon = false,
   );
 }
 
-/** The header buttons of a page: Sessions hides the list, picks its layout and starts a session, Automations a task, News edits its brief and runs it, Dashboard shows the Notifications bell and edits its layout. */
+/** The header buttons of a page: Sessions hides the list, picks its layout and starts a session, Automations a task, News edits its settings and runs it, Dashboard shows the Notifications bell and edits its layout. */
 export function PageActions({ tab, compact, ready, editingLayout, layoutIsDefault, layout, onLayoutChange, listHidden, onToggleList, onNewSession, onNewAutomation, newsCanRun, newsRunning, onNewsRun, onNewsSettings, onSearch, onSettings, updateReady, onEditLayout, onDoneLayout, onResetLayout, unread, notificationsOpen, onToggleNotifications }: Props) {
   let main = null;
   if (tab === "dashboard" && editingLayout) {
@@ -125,7 +125,7 @@ export function PageActions({ tab, compact, ready, editingLayout, layoutIsDefaul
   } else if (tab === "news" && ready) {
     main = (
       <>
-        <Action compact={compact} label="Brief settings" icon="pencil" onClick={onNewsSettings} />
+        <Action compact={compact} label="News settings" icon="pencil" onClick={onNewsSettings} />
         <Action compact={compact} label="Run now" icon="play" variant="primary" withIcon disabled={!newsCanRun || newsRunning} onClick={onNewsRun} />
       </>
     );

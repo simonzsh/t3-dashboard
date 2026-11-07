@@ -45,7 +45,7 @@ The screenshots come from the demo mode: the projects, agents and conversations 
 
 **News**
 
-- Get a daily brief of the news on your topics: a T3 routine asks an agent to search the web and write it. Read it as an article, on a computer or a phone. Pick the time, topics, language and model in Brief settings.
+- Get a daily article with the news on your topics: a T3 routine asks an agent to search the web and write it. Read it as an article, on a computer or a phone. Pick the time, topics, language and model in News settings.
 
 The New Session button (key `N`) starts a session in a T3 project, or in "No project". It uses the default model and the favorites of T3 Code. Each screen is described in [docs/usage.md](docs/usage.md).
 

@@ -11,7 +11,7 @@ interface Props {
   now: Date;
 }
 
-/** The brief list and the open article. On a phone they take turns: the list, then the article with a back button. */
+/** The article list and the open article. On a phone they take turns: the list, then the article with a back button. */
 export function NewsView({ news, now }: Props) {
   const api = useApi();
   const { articles, task } = news;
@@ -31,7 +31,7 @@ export function NewsView({ news, now }: Props) {
     setError(null);
     api.getNewsArticle(date).then(
       (a) => !stale && setArticle(a),
-      (e: unknown) => !stale && setError(failure("load the brief", e)),
+      (e: unknown) => !stale && setError(failure("load the article", e)),
     );
     return () => {
       stale = true;
@@ -47,12 +47,12 @@ export function NewsView({ news, now }: Props) {
   if (articles.length === 0) {
     return (
       <div className="news-page empty">
-        <section className="news-list" aria-label="Briefs">
+        <section className="news-list" aria-label="News">
           {status}
           <div className="empty-state">
             <Icon name="newspaper" />
-            <strong>No brief yet</strong>
-            <span>{task ? "Your first brief shows here after the next run. Use Run now to get one at once." : "Open Brief settings, pick your topics and save."}</span>
+            <strong>No news yet</strong>
+            <span>{task ? "Your first article shows here after the next run. Use Run now to get one at once." : "Open News settings, pick your topics and save."}</span>
           </div>
         </section>
       </div>
@@ -61,7 +61,7 @@ export function NewsView({ news, now }: Props) {
   const shown = article?.date === date ? article : null;
   return (
     <div className={`news-page${reading ? " reading" : ""}`}>
-      <section className="news-list" aria-label="Briefs">
+      <section className="news-list" aria-label="News">
         {status}
         <ul className="news-items">
           {articles.map((a) => (
@@ -81,9 +81,9 @@ export function NewsView({ news, now }: Props) {
           ))}
         </ul>
       </section>
-      <article ref={articleRef} className="news-article" aria-label={shown?.title ?? "Brief"}>
+      <article ref={articleRef} className="news-article" aria-label={shown?.title ?? "News"}>
         <Button variant="ghost" size="sm" className="news-back" onClick={() => setReading(false)}>
-          <Icon name="arrowLeft" /> Briefs
+          <Icon name="arrowLeft" /> News
         </Button>
         {error ? (
           <p className="auto-error" role="alert">{error}</p>
