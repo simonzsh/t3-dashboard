@@ -9,6 +9,7 @@ export interface StoredNews {
 }
 
 const TIME_OF_DAY = /^([01]\d|2[0-3]):[0-5]\d$/;
+export const isTimeOfDay = (value: unknown): value is string => typeof value === "string" && TIME_OF_DAY.test(value);
 const ARTICLE_NAME = /^\d{4}-\d{2}-\d{2}\.md$/;
 const fields = (value: unknown): Record<string, unknown> => (typeof value === "object" && value !== null ? (value as Record<string, unknown>) : {});
 const text = (value: unknown): string | null => (typeof value === "string" && value.trim() !== "" ? value : null);
@@ -31,7 +32,7 @@ export function readNews(file: string, readFile: ReadFile): StoredNews {
   const topics = Array.isArray(settings.topics) ? settings.topics.filter((topic): topic is string => typeof topic === "string" && topic.trim() !== "") : [];
   return {
     settings: {
-      timeOfDay: typeof settings.timeOfDay === "string" && TIME_OF_DAY.test(settings.timeOfDay) ? settings.timeOfDay : NEWS_DEFAULTS.timeOfDay,
+      timeOfDay: isTimeOfDay(settings.timeOfDay) ? settings.timeOfDay : NEWS_DEFAULTS.timeOfDay,
       topics: topics.length > 0 ? topics : [...NEWS_DEFAULTS.topics],
       language: text(settings.language) ?? NEWS_DEFAULTS.language,
       modelSelection: selectionOf(settings.modelSelection),

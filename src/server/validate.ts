@@ -2,6 +2,7 @@ import type { ApprovalDecision, AssignIssueBody, CreateAutomationBody, CreatePro
 import { PROJECT_COLOR_NAMES } from "../../shared/projectColors.ts";
 import { ACTIVITY_PERIODS, DEFAULT_ACTIVITY_PERIOD, type ActivityPeriod } from "../../shared/usage.ts";
 import { isObject } from "../../shared/guards.ts";
+import { isTimeOfDay } from "../config/newsFile.ts";
 import { normalizeSessions, type SessionsUpdate } from "../../shared/sessions.ts";
 import { IMAGE_TYPES, MAX_ATTACHMENTS, MAX_FILE_BYTES, MAX_IMAGE_BYTES, MAX_IMAGES, MAX_SECRET_CHARS, isRuntimeMode } from "../../shared/limits.ts";
 import { isSeenId, isSeenTime, type SeenChange } from "../../shared/seen.ts";
@@ -394,7 +395,6 @@ export function validEnabled(body: Record<string, unknown>): boolean {
   return body.enabled;
 }
 
-const NEWS_TIME = /^([01]\d|2[0-3]):[0-5]\d$/;
 const NEWS_TOPICS_MAX = 10;
 const NEWS_TOPIC_MAX = 60;
 const NEWS_LANGUAGE_MAX = 40;
@@ -404,9 +404,9 @@ const CONTROL = /\p{Cc}/u;
 export function validSaveNews(body: Record<string, unknown>): SaveNewsBody {
   const { timeOfDay, topics, language } = body;
   const modelSelection = validSelection(body.modelSelection);
-  if (typeof timeOfDay !== "string" || !NEWS_TIME.test(timeOfDay)) throw bad("timeOfDay must look like 07:00");
+  if (typeof timeOfDay !== "string" || !isTimeOfDay(timeOfDay)) throw bad("timeOfDay must look like 07:00");
   if (!Array.isArray(topics) || topics.some((topic) => typeof topic !== "string")) throw bad("topics must be a list of text");
-  const clean = (topics as string[]).map((topic) => topic.trim()).filter((topic, index, all) => topic !== "" && all.findIndex((other) => other.trim().toLowerCase() === topic.toLowerCase()) === index);
+  const clean = (topics as string[]).map((topic) => topic.trim()).filter((topic, index, all) => topic !== "" && all.findIndex((other) => other.toLowerCase() === topic.toLowerCase()) === index);
   if (clean.length === 0 || clean.length > NEWS_TOPICS_MAX) throw bad(`topics must list 1 to ${NEWS_TOPICS_MAX} topics`);
   if (clean.some((topic) => topic.length > NEWS_TOPIC_MAX || CONTROL.test(topic))) throw bad(`each topic must be text of at most ${NEWS_TOPIC_MAX} characters`);
   const name = typeof language === "string" ? language.trim() : "";

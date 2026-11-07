@@ -213,9 +213,9 @@ export async function start({ port, log, env }: StartOptions): Promise<void> {
   const handler = createDashboardServer({ actions, sessions, stash, seen, hub, board, usage, limits, serverStats, cacheCleanup, automations, news, getState, connection: () => live.connection(), site, settings, setup, updates, allowedHosts: envAllowedHosts(env) });
 
   const reclassifier = setInterval(() => store.reclassify(new Date()), RECLASSIFY_MS);
-  // A dev build has no version to compare, and its runs must not call GitHub.
   // It only touches the run threads of its own task, so it runs in dev builds too.
   const sweeper = setInterval(() => void news.sweep(), NEWS_SWEEP_MS);
+  // A dev build has no version to compare, and its runs must not call GitHub.
   const checker = VERSION === "dev" ? undefined : setInterval(() => void updates.check(), UPDATE_CHECK_MS);
   if (checker) void updates.check();
   // The compiled binary refreshes the rules at each start, so a self-update brings the new text.
