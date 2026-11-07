@@ -66,7 +66,7 @@ export function NewsSettingsDialog({ settings, providers, defaults, onSave, onCl
         <div className="dialog-field">
           <span>Model</span>
           <div className="news-model">
-            <ModelPanel providers={providers} selection={form.selection} onSelection={(selection) => setForm({ ...form, selection })} />
+            <ModelPanel inline providers={providers} selection={form.selection} onSelection={(selection) => setForm({ ...form, selection })} />
           </div>
           <p className="hint">The model needs web search. Saving updates the routine in Automations.</p>
         </div>

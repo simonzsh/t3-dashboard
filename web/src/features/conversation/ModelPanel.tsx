@@ -14,6 +14,8 @@ interface Props {
   modes?: RuntimeMode[];
   onSelection: (next: ModelSelection) => void;
   onMode?: (next: RuntimeMode) => void;
+  /** Opens in the page flow under the chip (in a form) instead of floating above it. */
+  inline?: boolean;
 }
 
 const sameRow = (row: PanelRow, selection: ModelSelection | null) => row.provider.instanceId === selection?.instanceId && row.model.slug === selection.model;
@@ -21,7 +23,7 @@ const sameRow = (row: PanelRow, selection: ModelSelection | null) => row.provide
 /** One chip for the model, its reasoning, speed and the access mode; its panel opens above, inside the composer card. */
 const touch = () => matchMedia("(pointer: coarse)").matches;
 
-export function ModelPanel({ providers, selection, mode = null, modes = [], onSelection, onMode }: Props) {
+export function ModelPanel({ providers, selection, mode = null, modes = [], onSelection, onMode, inline = false }: Props) {
   const [open, setOpen] = useState(false);
   const [rail, setRail] = useState<Rail>("favorites");
   const [query, setQuery] = useState("");
@@ -33,7 +35,7 @@ export function ModelPanel({ providers, selection, mode = null, modes = [], onSe
   useLayoutEffect(() => {
     const box = panel.current;
     const anchor = box?.offsetParent;
-    if (!box || !anchor) return;
+    if (!box || !anchor || inline) return;
     const top = anchor.getBoundingClientRect().top;
     // A dialog is fixed above the sessions: only the viewport bounds it.
     const frame = anchor.closest(".dialog") ? 0 : (anchor.closest(".session-window")?.getBoundingClientRect().top ?? 0);
@@ -131,7 +133,7 @@ export function ModelPanel({ providers, selection, mode = null, modes = [], onSe
   );
 
   return (
-    <div className="model-picker" ref={root}>
+    <div className={`model-picker${inline ? " inline" : ""}`} ref={root}>
       <Pressable ref={chip} className="model-chip" aria-label="Model, reasoning and access" aria-haspopup="dialog" aria-expanded={open} disabled={!selection} onClick={() => (open ? close(false) : show())}>
         {selection && <ProviderIcon provider={selection.instanceId} />}
         <span className="model-chip-name">{label.name}</span>
