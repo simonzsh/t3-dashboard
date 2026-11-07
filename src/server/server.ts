@@ -56,6 +56,8 @@ export interface DashboardServerOptions {
 const MAX_BODY_BYTES = 1024 * 1024;
 // The first usage read walks every recent thread: it can stay silent longer than Bun's 10 s idle default.
 const USAGE_IDLE_TIMEOUT_S = 60;
+// Scanning or removing GBs of small files takes longer than Bun's 10 s idle limit.
+const CACHE_CLEANUP_IDLE_TIMEOUT_S = 300;
 const LOCAL_HOSTS = new Set(["127.0.0.1", "localhost"]);
 
 const SECURITY_HEADERS = {
@@ -200,7 +202,14 @@ export function createDashboardServer(options: DashboardServerOptions): Dashboar
       },
     },
     { method: "GET", path: "/api/server-stats", handle: async () => json(200, await serverStats.get()) },
-    { method: "GET", path: "/api/cache-cleanup", handle: async () => json(200, await cacheCleanup.sizes()) },
+    {
+      method: "GET",
+      path: "/api/cache-cleanup",
+      handle: async ({ req, server }) => {
+        server?.timeout(req, CACHE_CLEANUP_IDLE_TIMEOUT_S);
+        return json(200, await cacheCleanup.sizes());
+      },
+    },
     { method: "GET", path: "/api/limits", handle: async ({ req }) => json(200, await limits.get(new URL(req.url).searchParams.get("refresh") === "1")) },
     { method: "GET", path: "/api/automations", handle: async () => json(200, await automations.list()) },
     { method: "GET", path: "/api/settings", handle: () => json(200, settings.get()) },
@@ -289,7 +298,14 @@ export function createDashboardServer(options: DashboardServerOptions): Dashboar
       },
     },
     // No body field is read: the server alone decides what is cleared.
-    { method: "POST", path: "/api/cache-cleanup", handle: async () => json(200, await cacheCleanup.clear()) },
+    {
+      method: "POST",
+      path: "/api/cache-cleanup",
+      handle: async ({ req, server }) => {
+        server?.timeout(req, CACHE_CLEANUP_IDLE_TIMEOUT_S);
+        return json(200, await cacheCleanup.clear());
+      },
+    },
     {
       method: "POST",
       path: "/api/stash",

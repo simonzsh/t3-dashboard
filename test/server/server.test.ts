@@ -1699,6 +1699,18 @@ test("GET /api/cache-cleanup lists the reclaimable size per target without clear
   assert.deepEqual(cleanupCalls, ["sizes"]);
 });
 
+// A real scan of several GB of small files outlasts Bun's 10 s idle limit, which cuts the connection.
+test("the cache-cleanup routes ask for a longer idle timeout than the default", async () => {
+  const { server } = await start();
+  const asked: number[] = [];
+  const fake = { timeout: (_req: Request, seconds: number) => void asked.push(seconds) } as never;
+  const headers = { host: "127.0.0.1", "content-type": "application/json" };
+  await server.fetch(new Request("http://127.0.0.1/api/cache-cleanup", { headers }), fake);
+  await server.fetch(new Request("http://127.0.0.1/api/cache-cleanup", { method: "POST", headers, body: "{}" }), fake);
+  assert.equal(asked.length, 2);
+  assert.ok(asked.every((seconds) => seconds >= 120));
+});
+
 test("POST /api/cache-cleanup clears and answers the freed bytes per target", async () => {
   const { server, cleanupCalls } = await start();
   const reply = await post(server, "/api/cache-cleanup", { path: "/home" });
