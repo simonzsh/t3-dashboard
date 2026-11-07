@@ -25,11 +25,10 @@ export function providerMeta(provider: string): ProviderMeta {
   return { kind: "other", label: provider, color: monogramColor(provider) };
 }
 
+const ORDER: ProviderKind[] = ["codex", "claude", "antigravity", "cursor", "grok", "opencode"];
+
 /** Codex, Claude, then the other known kinds by label, then the unknown ones. */
 export function providerRank(provider: string): number {
-  const { kind, label } = providerMeta(provider);
-  if (kind === "codex") return 0;
-  if (kind === "claude") return 1;
-  if (kind === "other") return KNOWN.length + 1;
-  return 2 + [...KNOWN.filter((k) => k.kind !== "codex" && k.kind !== "claude")].sort((a, b) => a.label.localeCompare(b.label)).findIndex((k) => k.label === label);
+  const at = ORDER.indexOf(providerMeta(provider).kind);
+  return at === -1 ? ORDER.length : at;
 }
