@@ -642,8 +642,10 @@ ol.install-steps { padding-left: 18px; }
 .run-text { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
 .run-list { display: flex; flex-direction: column; }
 /* Linear card: four small counters, then one line per signal. */
-.glance-counters { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); border-bottom: 1px solid var(--line); }
-.glance-counter { display: flex; flex-direction: column; gap: 2px; min-width: 0; padding: 12px 16px; }
+.glance-counters { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); grid-template-rows: auto auto auto; border-bottom: 1px solid var(--line); }
+/* Subgrid: a label that wraps on a narrow screen pushes every value down, so the figures stay on one line. */
+.glance-counter { display: grid; grid-row: span 3; grid-template-rows: subgrid; row-gap: 2px; min-width: 0; padding: 12px 16px; }
+.glance-counter .stat-label { align-self: end; }
 .glance-counter + .glance-counter { border-left: 1px solid var(--line); }
 .glance-value { font-size: 20px; font-weight: 600; line-height: 1.2; letter-spacing: -0.01em; font-variant-numeric: tabular-nums; }
 .glance-counter.danger .glance-value, .glance-counter.danger .stat-caption { color: var(--danger); }
