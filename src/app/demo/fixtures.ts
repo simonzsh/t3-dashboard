@@ -53,6 +53,8 @@ interface ThreadSpec {
   subagents?: Array<Omit<RawSubagent, "startedAt" | "completedAt"> & { at: number; done?: number }>;
   request?: { id: string; kind: string; at: number; item: RawTurnItem };
   thread?: Partial<RawThread>;
+  /** The task that started this thread: T3 writes it on the first message. */
+  scheduledTaskId?: string;
   /** Context size the provider reported for the last turn. */
   tokens?: number;
 }
@@ -61,6 +63,7 @@ const DAY = 1440;
 
 interface DemoRun {
   id: string;
+  taskId: string;
   title: string;
   projectId: string;
   prompt: string;
@@ -71,8 +74,9 @@ interface DemoRun {
 }
 
 // The run threads of the demo tasks: T3 ties each to its task by project, title and origin.
-const runSpec = ({ id, title, projectId, prompt, started, outcome, answer = "Done." }: DemoRun): ThreadSpec => ({
+const runSpec = ({ id, taskId, title, projectId, prompt, started, outcome, answer = "Done." }: DemoRun): ThreadSpec => ({
   id,
+  scheduledTaskId: taskId,
   projectId,
   title,
   model: SONNET,
@@ -82,9 +86,9 @@ const runSpec = ({ id, title, projectId, prompt, started, outcome, answer = "Don
   thread: { creationSource: "mcp", ...(outcome === "running" && { activeRunId: `run-${id}` }), ...(outcome === "failed" && { lastError: answer }) },
 });
 
-const INBOX = { title: "Morning inbox triage", projectId: "demo-assistant", prompt: "Triage the inbox and list what needs an answer today." };
-const DEPENDENCIES = { title: "Dependency update check", projectId: "demo-atlas-api", prompt: "Check for dependency updates and list the risky ones." };
-const REVIEWS = { title: "PR review requests", projectId: "demo-atlas-api", prompt: "Review the pull request and list the risky changes." };
+const INBOX = { taskId: "inbox-triage", title: "Morning inbox triage", projectId: "demo-assistant", prompt: "Triage the inbox and list what needs an answer today." };
+const DEPENDENCIES = { taskId: "dependency-check", title: "Dependency update check", projectId: "demo-atlas-api", prompt: "Check for dependency updates and list the risky ones." };
+const REVIEWS = { taskId: "pr-review", title: "PR review requests", projectId: "demo-atlas-api", prompt: "Review the pull request and list the risky changes." };
 
 const AUTOMATION_RUNS: ThreadSpec[] = [
   runSpec({ ...INBOX, id: "demo-run-inbox-1", started: 600, outcome: "completed", answer: "4 mails need an answer today: the vendor invoice, two customer questions and the offsite booking." }),
@@ -96,9 +100,9 @@ const AUTOMATION_RUNS: ThreadSpec[] = [
   runSpec({ ...DEPENDENCIES, id: "demo-run-deps-1", started: 540, outcome: "failed", answer: "Could not reach the package registry." }),
   runSpec({ ...REVIEWS, id: "demo-run-review-1", started: 300, outcome: "completed", answer: "2 risky changes: a schema migration and a new public endpoint." }),
   runSpec({ ...REVIEWS, id: "demo-run-review-2", started: DAY + 300, outcome: "completed", answer: "No risky change." }),
-  runSpec({ title: "Hourly metrics snapshot", projectId: "demo-atlas-api", prompt: "Snapshot the key metrics and flag any drop.", id: "demo-run-metrics-1", started: 64, outcome: "completed", answer: "All metrics are stable." }),
-  runSpec({ title: "Hourly metrics snapshot", projectId: "demo-atlas-api", prompt: "Snapshot the key metrics and flag any drop.", id: "demo-run-metrics-2", started: 4, outcome: "running" }),
-  runSpec({ title: "Reminder: Book the offsite room", projectId: "demo-assistant", prompt: "Remind me to book the offsite room.", id: "demo-run-offsite-1", started: 1200, outcome: "completed", answer: "Reminder: book the offsite room today." }),
+  runSpec({ taskId: "metrics-snapshot", title: "Hourly metrics snapshot", projectId: "demo-atlas-api", prompt: "Snapshot the key metrics and flag any drop.", id: "demo-run-metrics-1", started: 64, outcome: "completed", answer: "All metrics are stable." }),
+  runSpec({ taskId: "metrics-snapshot", title: "Hourly metrics snapshot", projectId: "demo-atlas-api", prompt: "Snapshot the key metrics and flag any drop.", id: "demo-run-metrics-2", started: 4, outcome: "running" }),
+  runSpec({ taskId: "offsite-reminder", title: "Reminder: Book the offsite room", projectId: "demo-assistant", prompt: "Remind me to book the offsite room.", id: "demo-run-offsite-1", started: 1200, outcome: "completed", answer: "Reminder: book the offsite room today." }),
 ];
 
 const SPECS: ThreadSpec[] = [
@@ -374,7 +378,7 @@ function childProjection(at: (minutes: number) => string): RawProjection {
 }
 
 function buildThread(spec: ThreadSpec, at: (minutes: number) => string): { thread: RawThread; projection: RawProjection } {
-  const messages = spec.messages.map(([role, minutes, text], index) => ({ id: `${spec.id}-m${index}`, role, text, createdAt: at(minutes) }));
+  const messages = spec.messages.map(([role, minutes, text], index) => ({ id: `${spec.id}-m${index}`, role, text, createdAt: at(minutes), ...(index === 0 && spec.scheduledTaskId && { scheduledTaskId: spec.scheduledTaskId }) }));
   const last = messages.at(-1)!;
   const lastUser = messages.findLast((message) => message.role === "user");
   const userMessages = messages.filter((message) => message.role === "user");

@@ -6,7 +6,7 @@ import { AutomationRunLog, type RunLog } from "../../src/domain/automationRuns.t
 import { DomainError } from "../../src/domain/errors.ts";
 import { RearmedStore } from "../../src/domain/rearmedStore.ts";
 import { IntegrationError } from "../../src/integrations/errors.ts";
-import type { RawScheduledTask, RawThread } from "../../src/integrations/t3/schemas.ts";
+import type { RawProjection, RawScheduledTask, RawThread } from "../../src/integrations/t3/schemas.ts";
 import { FakePort } from "../helpers/fakePort.ts";
 
 const task = (extra: Partial<RawScheduledTask> = {}): RawScheduledTask => ({
@@ -494,4 +494,86 @@ test("setEnabled and runNow reach T3, and an unknown automation is not found", a
   assert.equal(port.enabledCalls.length + port.runNowCalls.length, 2);
   port.runNowError = new Error("T3 is down");
   await assert.rejects(automations.runNow("task-1"), (error: IntegrationError) => error.kind === "unreachable");
+});
+
+const stamped = (taskId: string | null): RawProjection => ({ messages: [{ id: "m", role: "user", ...(taskId && { scheduledTaskId: taskId }) }] });
+const runIds = (result: Awaited<ReturnType<ReturnType<typeof harness>["automations"]["list"]>>, index = 0) => result.automations[index]!.runs.map((run) => run.threadId);
+
+test("list links a new run by the scheduledTaskId of its thread, even with another title", async () => {
+  const { automations, port } = harness([thread("run-1", { title: "Renamed by the user" }), thread("run-2")]);
+  port.scheduledTasks = [task(), task({ id: "task-2" })];
+  port.projections = { "run-1": stamped("task-1"), "run-2": stamped("task-2") };
+  const result = await automations.list();
+  assert.deepEqual([runIds(result, 0), runIds(result, 1)], [["run-1"], ["run-2"]]);
+  assert.deepEqual(result.automationThreadIds.filter((id) => id !== "t-dedicated").sort(), ["run-1", "run-2"]);
+});
+
+test("a thread linked to a task by id is not taken by another task with its title", async () => {
+  const { automations, port } = harness([thread("run-1")]);
+  port.scheduledTasks = [task({ id: "task-other", title: "Other" }), task()];
+  port.projections = { "run-1": stamped("task-other") };
+  const result = await automations.list();
+  assert.deepEqual([runIds(result, 0), runIds(result, 1)], [["run-1"], []]);
+});
+
+test("a renamed run thread and a renamed task keep their runs on the next lists", async () => {
+  const threads = [thread("run-1")];
+  const { automations, port } = harness(threads);
+  port.scheduledTasks = [task()];
+  port.projections = { "run-1": stamped("task-1") };
+  await automations.list();
+  threads[0] = thread("run-1", { title: "Renamed", status: "running", activeRunId: "r", latestRunCompletedAt: null });
+  threads.push(thread("run-2", { title: "New title", createdAt: "2026-03-21T10:00:00.000Z" }));
+  port.scheduledTasks = [task({ title: "New title" })];
+  port.projections["run-2"] = stamped("task-1");
+  const result = await automations.list();
+  assert.deepEqual(result.automations[0]!.runs.map((run) => [run.threadId, run.status]), [["run-2", "unknown"], ["run-1", "running"]]);
+  assert.equal(result.automations[0]!.threadId, "run-2");
+  assert.deepEqual(result.automationThreadIds.filter((id) => id !== "t-dedicated").sort(), ["run-1", "run-2"]);
+});
+
+test("a thread is probed once, and a probe that fails is tried again", async () => {
+  const { automations, port } = harness([thread("run-1"), thread("run-2", { title: "Renamed" })]);
+  port.scheduledTasks = [task()];
+  port.projections = { "run-2": stamped("task-1") };
+  port.projectionFailures.add("run-2");
+  await automations.list();
+  await automations.list();
+  assert.equal(port.projectionCalls, 3);
+  port.projectionFailures.clear();
+  const result = await automations.list();
+  assert.equal(port.projectionCalls, 4);
+  assert.deepEqual(runIds(result).sort(), ["run-1", "run-2"]);
+});
+
+test("a list is not broken by a probe error and falls back to the title", async () => {
+  const { automations, port } = harness([thread("run-1")]);
+  port.scheduledTasks = [task()];
+  port.projectionError = new Error("T3 is unreachable");
+  assert.deepEqual(runIds(await automations.list()), ["run-1"]);
+});
+
+test("a list probes at most 30 threads, 4 at a time, and the rest on the next call", async () => {
+  const threads = Array.from({ length: 35 }, (_, index) => thread(`run-${index}`, { createdAt: new Date(Date.parse("2026-03-21T00:00:00.000Z") + index * 60_000).toISOString() }));
+  const { automations, port } = harness(threads);
+  port.scheduledTasks = [task()];
+  port.projectionGate = () => new Promise((resolve) => setTimeout(resolve, 1));
+  await automations.list();
+  assert.equal(port.projectionCalls, 30);
+  assert.equal(port.peakProjectionsInFlight, 4);
+  await automations.list();
+  assert.equal(port.projectionCalls, 35);
+});
+
+test("only candidate threads are probed", async () => {
+  const { automations, port } = harness([
+    thread("old", { createdAt: "2026-03-01T00:00:00.000Z" }),
+    thread("archived", { archivedAt: "2026-03-21T00:00:00.000Z" }),
+    thread("web", { creationSource: "web" }),
+    thread("chat", {}),
+    thread("candidate"),
+  ]);
+  port.scheduledTasks = [task(), task({ id: "bound", threadId: "chat" })];
+  await automations.list();
+  assert.equal(port.projectionCalls, 1);
 });

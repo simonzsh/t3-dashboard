@@ -212,6 +212,7 @@ test("the demo Linear board and automations need no network", async () => {
   assert.ok(inbox.runs.length > 1 && inbox.runs.some((run) => run.status === "failed") && inbox.runs.some((run) => run.status === "succeeded"));
   assert.ok(automations.find((automation) => automation.id === "dependency-check")!.runs.some((run) => run.threadId === null && run.status === "failed"));
   assert.ok(automations.find((automation) => automation.id === "metrics-snapshot")!.runs.some((run) => run.status === "running"));
+  assert.equal((await port.threadProjection("demo-run-inbox-1")).messages?.[0]?.scheduledTaskId, "inbox-triage");
   assert.deepEqual(setupThreadIds, ["demo-setup"]);
   assert.equal(store.thread("demo-setup")?.status, "running");
   const reminder = automations.find((automation) => automation.kind === "reminder")!;

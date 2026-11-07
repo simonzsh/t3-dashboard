@@ -114,7 +114,7 @@ export class DemoPort implements T3Port {
       createdAt: at,
       updatedAt: at,
     };
-    this.projections.set(threadId, { thread, messages: [], visibleTurnItems: [], runs: [] });
+    this.projections.set(threadId, { thread, messages: [{ id: `${threadId}-m0`, role: "user", text: task.prompt ?? "", createdAt: at, scheduledTaskId: id }], visibleTurnItems: [], runs: [] });
     this.publish(thread);
   }
 

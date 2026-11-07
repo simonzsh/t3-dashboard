@@ -185,7 +185,7 @@ You can also ask for a task in a normal conversation. `t3-dashboard install` add
 
 ### Threads of tasks without a linked conversation
 
-A task without a linked thread creates a new thread at each run. The dashboard hides these threads from the Dashboard. It identifies them by the project, the title, the origin and the creation date of the task. You open the thread of the last run from the row of the task.
+A task without a linked thread creates a new thread at each run. The dashboard hides these threads from the Dashboard. It ties a thread to its task by the task id that T3 Code writes on the first message of the thread, and remembers the link. A thread that this id does not tie is matched by the project, the title, the origin and the creation date of the task. Renaming a task or a run thread does not break the link. You open the thread of the last run from the row of the task.
 
 ### T3 Code limits
 
