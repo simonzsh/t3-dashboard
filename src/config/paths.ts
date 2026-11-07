@@ -38,24 +38,26 @@ export const sessionsFile = (env: Env, homedir: string): string => join(configDi
 export const stashFile = (env: Env, homedir: string): string => join(configDir(env, homedir), "stash.json");
 
 export interface AgentRulesTarget {
-  agent: "claude" | "codex" | "antigravity" | "opencode";
+  agent: "claude" | "codex" | "opencode";
   /** The agent's config folder. */
   dir: string;
   /** The global instruction file inside `dir`. */
   file: string;
   /** False: write only when `dir` already exists, so an agent that is not installed gets no folder. */
   always: boolean;
+  /** True when the agent reads `@path` lines in this file as includes. */
+  imports: boolean;
 }
 
 // Cursor has no global rules file. Grok is left out until its file name is confirmed: add a row then.
+// Antigravity is left out: T3 Code runs it with a private GEMINI_HOME, so ~/.gemini/GEMINI.md never reaches it.
 // OpenCode: OPENCODE_CONFIG_DIR adds a folder and does not replace the global one, so only XDG applies.
 export function agentRulesTargets(env: Env, homedir: string): AgentRulesTarget[] {
-  const target = (agent: AgentRulesTarget["agent"], dir: string, file: string, always: boolean): AgentRulesTarget => ({ agent, dir, file: join(dir, file), always });
+  const target = (agent: AgentRulesTarget["agent"], dir: string, file: string, always: boolean, imports: boolean): AgentRulesTarget => ({ agent, dir, file: join(dir, file), always, imports });
   return [
-    target("claude", env.CLAUDE_CONFIG_DIR ?? join(homedir, ".claude"), "CLAUDE.md", true),
-    target("codex", env.CODEX_HOME ?? join(homedir, ".codex"), "AGENTS.md", true),
-    target("antigravity", env.GEMINI_HOME ?? join(homedir, ".gemini"), "GEMINI.md", false),
-    target("opencode", join(env.XDG_CONFIG_HOME ?? join(homedir, ".config"), "opencode"), "AGENTS.md", false),
+    target("claude", env.CLAUDE_CONFIG_DIR ?? join(homedir, ".claude"), "CLAUDE.md", true, true),
+    target("codex", env.CODEX_HOME ?? join(homedir, ".codex"), "AGENTS.md", true, false),
+    target("opencode", join(env.XDG_CONFIG_HOME ?? join(homedir, ".config"), "opencode"), "AGENTS.md", false, false),
   ];
 }
 

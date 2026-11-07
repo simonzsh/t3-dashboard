@@ -64,8 +64,8 @@ export interface AgentRulesDeps {
   log(message: string): void;
 }
 
-// An agent can load another file with an `@path` line. When its file loads another target's file,
-// a second block would give that agent the rules twice.
+// Claude loads another file with an `@path` line. When its file loads another target's file,
+// a second block would give it the rules twice. Other agents read `@path` as plain text.
 function includes(content: string, target: string, home: string): boolean {
   return content.split(/\r?\n/).some((line) => {
     const path = /^@(\S+)\s*$/.exec(line.trim())?.[1];
@@ -79,12 +79,12 @@ export function syncAgentRules(action: "write" | "remove", deps: AgentRulesDeps)
   const targets = agentRulesTargets(deps.env, deps.home);
   // An agent that is not installed has no folder: do not create one.
   const eligible = targets.filter((t) => t.always || deps.exists(t.dir));
-  for (const { file: path } of action === "write" ? eligible : targets) {
+  for (const { file: path, imports } of action === "write" ? eligible : targets) {
     try {
       const present = deps.exists(path);
       if (!present && action === "remove") continue;
       const current = present ? deps.readFile(path) : null;
-      const loadsOther = current !== null && eligible.some((t) => t.file !== path && includes(current, t.file, deps.home));
+      const loadsOther = imports && current !== null && eligible.some((t) => t.file !== path && includes(current, t.file, deps.home));
       const write = action === "write" && !loadsOther;
       const next = write ? withRules(current) : withoutRules(current!);
       if (next === current) continue;

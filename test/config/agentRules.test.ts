@@ -124,26 +124,30 @@ test("a write error is logged and never thrown", () => {
 });
 
 test("write skips an agent whose folder is missing and creates no folder", () => {
-  const { files, deps } = harness({ "/g": "", "/g/other": "" });
+  const { files, deps } = harness({ "/xdg/other": "" }, { XDG_CONFIG_HOME: "/xdg" });
   syncAgentRules("write", deps);
-  assert.equal("/g/GEMINI.md" in files, false);
   assert.equal("/xdg/opencode/AGENTS.md" in files, false);
-  const installed = harness({ "/g": "", "/xdg/opencode": "" }, { GEMINI_HOME: "/g", XDG_CONFIG_HOME: "/xdg" });
+  const installed = harness({ "/xdg/opencode": "" }, { XDG_CONFIG_HOME: "/xdg" });
   syncAgentRules("write", installed.deps);
-  assert.equal(installed.files["/g/GEMINI.md"], `${AGENT_RULES}\n`);
   assert.equal(installed.files["/xdg/opencode/AGENTS.md"], `${AGENT_RULES}\n`);
 });
 
 test("remove clears every target that has a file, even when its folder check would fail", () => {
-  const { files, deps } = harness({ "/g/GEMINI.md": `Mine\n\n${AGENT_RULES}\n`, "/xdg/opencode/AGENTS.md": `${AGENT_RULES}\n` }, { GEMINI_HOME: "/g", XDG_CONFIG_HOME: "/xdg" });
+  const { files, deps } = harness({ "/xdg/opencode/AGENTS.md": `Mine\n\n${AGENT_RULES}\n` }, { XDG_CONFIG_HOME: "/xdg" });
   syncAgentRules("remove", deps);
-  assert.equal(files["/g/GEMINI.md"], "Mine\n");
-  assert.equal("/xdg/opencode/AGENTS.md" in files, false);
+  assert.equal(files["/xdg/opencode/AGENTS.md"], "Mine\n");
 });
 
-test("any agent file that loads another target's file gets no second block", () => {
-  const { files, deps } = harness({ "/g": "", "/g/GEMINI.md": "@/x/AGENTS.md\n" }, { GEMINI_HOME: "/g" });
+test("an agent that reads @ lines as text still gets the block when its file names another target", () => {
+  const { files, deps } = harness({ "/x/AGENTS.md": "@/c/CLAUDE.md\n" });
   syncAgentRules("write", deps);
-  assert.equal(files["/g/GEMINI.md"], "@/x/AGENTS.md\n");
-  assert.equal(files["/x/AGENTS.md"], `${AGENT_RULES}\n`);
+  assert.equal(files["/x/AGENTS.md"], `@/c/CLAUDE.md\n\n${AGENT_RULES}\n`);
+  assert.equal(files["/c/CLAUDE.md"], `${AGENT_RULES}\n`);
+});
+
+test("two files that load each other keep the block in the one that cannot import", () => {
+  const { files, deps } = harness({ "/c/CLAUDE.md": "@/x/AGENTS.md\n", "/x/AGENTS.md": "@/c/CLAUDE.md\n" });
+  syncAgentRules("write", deps);
+  assert.equal(files["/c/CLAUDE.md"], "@/x/AGENTS.md\n");
+  assert.equal(files["/x/AGENTS.md"], `@/c/CLAUDE.md\n\n${AGENT_RULES}\n`);
 });
