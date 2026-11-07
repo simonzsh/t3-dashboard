@@ -4,17 +4,21 @@ t3-dashboard is a web dashboard on top of T3 Code. It shows all your Claude and 
 
 ## Screenshots
 
-| Dashboard | Sessions |
-| --- | --- |
-| <picture><source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/dashboard-dark.png"><img alt="Dashboard" src="docs/screenshots/dashboard.png"></picture> | <picture><source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/sessions-dark.png"><img alt="Sessions" src="docs/screenshots/sessions.png"></picture> |
+**Dashboard**
 
-| Automations | New Session |
-| --- | --- |
-| <picture><source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/automations-dark.png"><img alt="Automations" src="docs/screenshots/automations.png"></picture> | <picture><source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/new-session-dark.png"><img alt="New Session" src="docs/screenshots/new-session.png"></picture> |
+<picture><source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/dashboard-dark.png"><img alt="Dashboard" src="docs/screenshots/dashboard.png"></picture>
 
-| Jump to a conversation |
-| --- |
-| <picture><source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/search-dark.png"><img alt="Jump to" src="docs/screenshots/search.png"></picture> |
+**Sessions**: many conversations open side by side
+
+<picture><source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/sessions-dark.png"><img alt="Sessions" src="docs/screenshots/sessions.png"></picture>
+
+**Automations**
+
+<picture><source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/automations-dark.png"><img alt="Automations" src="docs/screenshots/automations.png"></picture>
+
+**Jump to a conversation**
+
+<picture><source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/search-dark.png"><img alt="Jump to" src="docs/screenshots/search.png"></picture>
 
 The screenshots come from the demo mode: the projects, agents and conversations are invented. GitHub shows the light or dark variant to match your color scheme.
 
