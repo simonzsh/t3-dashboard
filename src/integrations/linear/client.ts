@@ -5,7 +5,6 @@ import { AssignedIssuesPage, InboxPage, Viewer, type LinearInboxNode, type Linea
 const ENDPOINT = "https://api.linear.app/graphql";
 export const VIEWER_QUERY = "{ viewer { id } }";
 export const QUERY = `query($after: String) { viewer { assignedIssues(first: 100, after: $after, filter: { state: { type: { nin: ["completed", "canceled"] } } }) { nodes { id identifier title url priority priorityLabel updatedAt dueDate state { name type color } project { id name } team { key name } } pageInfo { hasNextPage endCursor } } } }`;
-export const INBOX_TYPES = ["issueMention", "issueCommentMention", "issueAssignedToYou"] as const;
 // One page of 50: the inbox is a glance, not a full list.
 export const INBOX_QUERY = `{ notifications(first: 50, filter: { type: { in: ["issueMention", "issueCommentMention", "issueAssignedToYou"] } }) { nodes { id type createdAt readAt archivedAt snoozedUntilAt actor { name } botActor { name } ... on IssueNotification { comment { url } issue { id identifier title url priority state { type } } } } } }`;
 // 20 pages of 100: a hard stop for a runaway cursor.
