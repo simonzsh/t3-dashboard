@@ -1038,9 +1038,10 @@ ol.install-steps { padding-left: 18px; }
 .icon-choice .project-icon { width: 20px; height: 20px; }
 .icon-choice[aria-pressed="true"] { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 14%, transparent); }
 @media (hover: hover) { .icon-choice:hover { background: color-mix(in srgb, var(--text-primary) 6%, transparent); } }
-.swatches { display: flex; flex-wrap: wrap; gap: 6px; }
-.swatch { width: 20px; height: 20px; padding: 0; border: 2px solid transparent; border-radius: 50%; background-clip: padding-box; box-shadow: 0 0 0 1px var(--line); }
-.swatch[aria-pressed="true"] { box-shadow: 0 0 0 2px var(--accent); }
+/* Own names: ".swatch" is the accent picker of Settings. */
+.icon-swatches { display: flex; flex-wrap: wrap; gap: 6px; }
+.icon-swatch { width: 20px; height: 20px; padding: 0; border: 2px solid transparent; border-radius: 50%; background-clip: padding-box; box-shadow: 0 0 0 1px var(--line); }
+.icon-swatch[aria-pressed="true"] { box-shadow: 0 0 0 2px var(--accent); }
 .folder-list { display: flex; flex-direction: column; max-height: 180px; overflow-y: auto; padding: 2px; border: 1px solid var(--line); border-radius: var(--radius-md); }
 .folder-option { display: flex; align-items: center; gap: 8px; min-height: var(--control-sm); padding: 0 8px; border: 0; border-radius: var(--radius-sm); background: none; color: var(--text-primary); font-size: 13px; text-align: left; }
 .folder-option .icon { flex: none; width: 14px; height: 14px; color: var(--text-secondary); }

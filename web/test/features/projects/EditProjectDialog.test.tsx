@@ -29,7 +29,7 @@ test("the edit form is prefilled, has no folder field, and Save is disabled unti
 test("the icon picker has four types and the 18 colors; the current color is pressed", () => {
   const html = renderToStaticMarkup(<IconPicker title="Shop" value={project.iconSpec!} onChange={noop} />);
   for (const label of ["Icons", "Emoji", "Monogram", "Default"]) assert.match(html, new RegExp(`role="radio"[^>]*>${label}<`));
-  assert.equal(html.match(/class="swatch"/g)?.length, 18);
+  assert.equal(html.match(/class="icon-swatch"/g)?.length, 18);
   assert.match(html, /aria-label="teal" aria-pressed="true"/);
   assert.match(html, /aria-label="red" aria-pressed="false"/);
 });
@@ -38,7 +38,7 @@ test("with no icon the picker starts on Icons with the title's color and no icon
   const html = renderToStaticMarkup(<IconPicker title="Shop" value={null} onChange={noop} />);
   assert.match(html, /aria-checked="true"[^>]*>Icons</);
   assert.doesNotMatch(html, /icon-choice[^>]*aria-pressed="true"/);
-  assert.equal(html.match(/class="swatch"[^>]*aria-pressed="true"|aria-pressed="true"[^>]*class="swatch"/g)?.length ?? 0, 1);
+  assert.equal(html.match(/class="icon-swatch"[^>]*aria-pressed="true"|aria-pressed="true"[^>]*class="icon-swatch"/g)?.length ?? 0, 1);
 });
 
 test("a monogram icon opens the Monogram tab with its text", () => {
@@ -51,7 +51,7 @@ test("an emoji icon opens the Emoji tab with the 30 presets and no swatches", ()
   const html = renderToStaticMarkup(<IconPicker title="Shop" value={{ kind: "emoji", emoji: "🚀" }} onChange={noop} />);
   assert.match(html, /aria-label="Rocket" aria-pressed="true"/);
   assert.equal(html.match(/class="icon-choice"/g)?.length, 30);
-  assert.doesNotMatch(html, /class="swatch"/);
+  assert.doesNotMatch(html, /class="icon-swatch"/);
 });
 
 test("the delete dialog states the session count and that the folder stays", () => {
