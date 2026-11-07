@@ -1089,6 +1089,16 @@ main:has(> .auto-page) { padding-top: 8px; }
 @keyframes spin { to { transform: rotate(360deg); } }
 .key-mask { font: 12px/1 var(--font-mono); padding: 4px 7px; border-radius: 6px; border: 1px solid var(--line); color: var(--text-secondary); background: var(--surface-0); }
 /* After every animated rule, so it wins on equal specificity. */
+/* Phone: every Dialog is a bottom sheet. Its head (with a grip) and its actions stay in view while the body scrolls. */
+@media (max-width: 700px) {
+  .dialog-backdrop, .dialog-backdrop:has(.preview-dialog) { z-index: 30; place-items: end stretch; padding: 0; }
+  .dialog-backdrop > .dialog { --sheet-x: max(16px, env(safe-area-inset-left), env(safe-area-inset-right)); --sheet-bottom: calc(16px + env(safe-area-inset-bottom)); --sheet-max: calc(100dvh - max(24px, env(safe-area-inset-top))); width: 100%; height: auto; max-height: var(--sheet-max); box-sizing: border-box; border-width: 1px 0 0; border-radius: 16px 16px 0 0; padding: 0 var(--sheet-x) var(--sheet-bottom); overscroll-behavior: contain; }
+  .dialog-backdrop > .dialog.preview-dialog { height: var(--sheet-max); }
+  .dialog-backdrop > .dialog > .dialog-head { position: sticky; top: 0; z-index: 1; margin: 0 calc(-1 * var(--sheet-x)); padding: 20px var(--sheet-x) 6px; background: inherit; touch-action: none; }
+  .dialog-head::before { content: ""; position: absolute; top: 7px; left: calc(50% - 18px); width: 36px; height: 5px; border-radius: 3px; background: color-mix(in srgb, var(--text-primary) 22%, transparent); }
+  .dialog-backdrop > .dialog > .dialog-actions { position: sticky; bottom: 0; flex-wrap: nowrap; margin: 4px calc(-1 * var(--sheet-x)) calc(-1 * var(--sheet-bottom)); padding: 10px var(--sheet-x) var(--sheet-bottom); background: inherit; }
+  .dialog-actions > .btn { flex: 1; min-width: 0; height: 44px; }
+}
 @media (prefers-reduced-motion: reduce) {
   .pulse::after, .slist-mark.running::after { display: none; }
   .streaming, .step.running .icon, .todo.running .todo-mark, .spinning { animation: none; }

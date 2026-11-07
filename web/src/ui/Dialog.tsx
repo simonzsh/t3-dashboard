@@ -1,4 +1,4 @@
-import { useEffect, useId, useLayoutEffect, useRef, type KeyboardEvent, type ReactNode } from "react";
+import { useEffect, useId, useLayoutEffect, useRef, type KeyboardEvent, type PointerEvent, type ReactNode } from "react";
 import { Button } from "./Button.tsx";
 import { Icon } from "./Icon.tsx";
 import { IconButton } from "./IconButton.tsx";
@@ -33,6 +33,9 @@ interface Props {
 
 const ignore = () => {};
 
+// Same breakpoint as the bottom bar in styles.css: there the dialog is a bottom sheet.
+const isPhone = () => typeof matchMedia === "function" && matchMedia("(max-width: 700px)").matches;
+
 const FOCUSABLE = 'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
 
 /** Tab and Shift+Tab stay inside the element that has this handler (a modal). */
@@ -61,12 +64,44 @@ export function Dialog({ title, label, onClose, onCancel, cancelLabel = "Cancel"
   // Before the first paint, so the dialog never shows at full size first. On close, a copy fades out: React removes the real one at once.
   useLayoutEffect(() => {
     const root = backdrop.current;
-    const anims = [root && enter(root), box.current && enter(box.current, { y: 16, scale: 0.85, duration: 420, spring: true })];
+    const el = box.current;
+    const phone = isPhone();
+    const anims = [root && enter(root), el && (phone ? enter(el, { y: el.offsetHeight, duration: 320 }) : enter(el, { y: 16, scale: 0.85, duration: 420, spring: true }))];
     return () => {
       anims.forEach((anim) => anim?.cancel());
-      if (root) leaveCopy(root, ".dialog");
+      if (root) leaveCopy(root, ".dialog", phone ? { translate: "0 100%", scale: "1" } : undefined);
     };
   }, []);
+
+  // Phone sheet: drag the head down to close. A short or slow drag slides back.
+  const drag = useRef<{ id: number; y: number; t: number; dy: number } | null>(null);
+  const onDragStart = (e: PointerEvent<HTMLDivElement>) => {
+    if (e.button === 0 && isPhone()) drag.current = { id: e.pointerId, y: e.clientY, t: e.timeStamp, dy: 0 };
+  };
+  const onDragMove = (e: PointerEvent<HTMLDivElement>) => {
+    const d = drag.current;
+    if (!d || d.id !== e.pointerId || !box.current) return;
+    d.dy = Math.max(0, e.clientY - d.y);
+    // Capture only past a few pixels, so a tap on the close button stays a click.
+    if (d.dy > 6 && !e.currentTarget.hasPointerCapture(e.pointerId)) e.currentTarget.setPointerCapture(e.pointerId);
+    box.current.style.translate = `0 ${d.dy}px`;
+  };
+  const onDragEnd = (e: PointerEvent<HTMLDivElement>) => {
+    const d = drag.current;
+    const el = box.current;
+    if (!d || d.id !== e.pointerId) return;
+    drag.current = null;
+    if (!el || d.dy === 0) return;
+    const back = () => {
+      el.style.translate = "";
+      el.animate([{ translate: `0 ${d.dy}px` }, { translate: "0 0" }], { duration: 200, easing: "cubic-bezier(0.2, 0, 0, 1)" });
+    };
+    const flick = d.dy / Math.max(1, e.timeStamp - d.t) > 0.5;
+    if (e.type !== "pointerup" || (d.dy < 80 && !flick)) return back();
+    // The exit copy starts from the dragged spot; slide back only if the parent keeps the dialog open.
+    onClose();
+    setTimeout(() => el.isConnected && back(), 50);
+  };
 
   // Read before the children's effects: a menu that opens on mount takes the focus there.
   const previous = useRef<HTMLElement | null>(null);
@@ -94,7 +129,7 @@ export function Dialog({ title, label, onClose, onCancel, cancelLabel = "Cancel"
         onKeyDown={trapTab}
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="dialog-head">
+        <div className="dialog-head" onPointerDown={onDragStart} onPointerMove={onDragMove} onPointerUp={onDragEnd} onPointerCancel={onDragEnd}>
           <h2 id={titleId}>{title}</h2>
           <IconButton label="Close" variant="ghost" size="sm" className="dialog-close" onClick={onClose}>
             <Icon name="x" />

@@ -98,3 +98,12 @@ test("on a phone the sheet is full width and stops above the bottom bar", () => 
 const reduced = css.slice(css.indexOf("@media (prefers-reduced-motion: reduce)"));
   assert.match(reduced, /\.ui-sheet, \.ui-sheet-backdrop \{ transition: none; \}/);
 });
+
+test("on a phone a dialog is a bottom sheet that clears the home indicator", () => {
+  const phone = css.slice(css.indexOf("/* Phone: every Dialog is a bottom sheet."));
+  assert.match(phone, /\.dialog-backdrop[^{]*\{[^}]*place-items: end stretch/);
+  assert.match(phone, /\.dialog-backdrop > \.dialog \{[^}]*border-radius: 16px 16px 0 0/);
+  assert.match(phone, /--sheet-bottom: calc\(16px \+ env\(safe-area-inset-bottom\)\)/);
+  assert.match(phone, /\.dialog-head \{[^}]*position: sticky/);
+  assert.match(phone, /\.dialog-actions \{[^}]*position: sticky; bottom: 0/);
+});
