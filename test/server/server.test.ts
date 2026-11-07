@@ -1857,6 +1857,14 @@ test("GET /api/news/:date maps a bad date to 400 and a missing article to 404", 
   assert.equal((await call(server, "GET", "/api/news/..%2Fsecret")).status, 400);
 });
 
+test("POST /api/news/settings keeps the options of the model selection", async () => {
+  const saved: unknown[] = [];
+  const { server } = await start({ news: { save: async (body) => (saved.push(body), newsState) } });
+  const modelSelection = { ...model, options: [{ id: "reasoningEffort", value: "high" }] };
+  await post(server, "/api/news/settings", { ...newsBody, modelSelection });
+  assert.deepEqual((saved[0] as { modelSelection: unknown }).modelSelection, modelSelection);
+});
+
 test("POST /api/news/settings validates the body and saves the clean settings", async () => {
   const saved: unknown[] = [];
   const { server } = await start({ news: { save: async (body) => (saved.push(body), newsState) } });

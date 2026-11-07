@@ -66,6 +66,7 @@ const FEATURE_EDGES = new Map([
   ["features/dashboard -> features/settings", "the Linear setup card reuses the key form"],
   ["features/dashboard -> features/new-thread", "assigning a ticket opens the New Session dialog"],
   ["features/news -> features/new-thread", "the news settings preselect a model like the New Session dialog"],
+  ["features/news -> features/conversation", "the news settings reuse the model picker of the composer"],
   ["features/settings -> features/update", "the Updates tab shows the update status"],
 ]);
 

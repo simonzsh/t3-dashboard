@@ -9,10 +9,11 @@ import { Icon, Pressable, Segmented, TextInput } from "../../ui/index.ts";
 interface Props {
   providers: DashboardProvider[];
   selection: ModelSelection | null;
-  mode: RuntimeMode | null;
-  modes: RuntimeMode[];
+  mode?: RuntimeMode | null;
+  /** Empty hides the access control (a model-only picker). */
+  modes?: RuntimeMode[];
   onSelection: (next: ModelSelection) => void;
-  onMode: (next: RuntimeMode) => void;
+  onMode?: (next: RuntimeMode) => void;
 }
 
 const sameRow = (row: PanelRow, selection: ModelSelection | null) => row.provider.instanceId === selection?.instanceId && row.model.slug === selection.model;
@@ -20,7 +21,7 @@ const sameRow = (row: PanelRow, selection: ModelSelection | null) => row.provide
 /** One chip for the model, its reasoning, speed and the access mode; its panel opens above, inside the composer card. */
 const touch = () => matchMedia("(pointer: coarse)").matches;
 
-export function ModelPanel({ providers, selection, mode, modes, onSelection, onMode }: Props) {
+export function ModelPanel({ providers, selection, mode = null, modes = [], onSelection, onMode }: Props) {
   const [open, setOpen] = useState(false);
   const [rail, setRail] = useState<Rail>("favorites");
   const [query, setQuery] = useState("");
@@ -221,7 +222,7 @@ export function ModelPanel({ providers, selection, mode, modes, onSelection, onM
                 onChange={(id) => onSelection(selectSpeed(selection, found.model, id === "fast"))}
               />
             )}
-            <div className="model-access">
+            {modes.length > 0 && <div className="model-access">
               <Pressable className="model-access-button" aria-label="Access" aria-haspopup="listbox" aria-expanded={accessOpen} disabled={!mode} onClick={() => setAccessOpen((o) => !o)}>
                 <Icon name={mode === "full-access" ? "unlock" : "lock"} />
                 <span>{mode ? RUNTIME_MODE_LABELS[mode].label : "Access"}</span>
@@ -237,7 +238,7 @@ export function ModelPanel({ providers, selection, mode, modes, onSelection, onM
                       className="model-access-option"
                       onClick={() => {
                         setAccessOpen(false);
-                        if (m !== mode) onMode(m);
+                        if (m !== mode) onMode?.(m);
                       }}
                     >
                       <span className="model-access-text">
@@ -249,7 +250,7 @@ export function ModelPanel({ providers, selection, mode, modes, onSelection, onM
                   ))}
                 </div>
               )}
-            </div>
+            </div>}
           </div>
         </div>
       )}

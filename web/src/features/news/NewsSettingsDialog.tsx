@@ -1,7 +1,8 @@
 import { useState } from "react";
 import type { DashboardProvider, ModelDefaults, NewsSettings, SaveNewsBody } from "../../../../shared/api.ts";
 import { errorMessage } from "../../lib/format.ts";
-import { Dialog, Dropdown, TextArea, TextInput } from "../../ui/index.ts";
+import { ModelPanel } from "../conversation/ModelPanel.tsx";
+import { Dialog, TextArea, TextInput } from "../../ui/index.ts";
 import { formFromSettings, pickModel, toBody } from "./news.ts";
 
 interface Props {
@@ -12,16 +13,11 @@ interface Props {
   onClose: () => void;
 }
 
-const modelId = (instanceId: string, slug: string) => `${instanceId}\u0000${slug}`;
-
 /** The news schedule, topics, language and model. Saving updates the T3 routine too. */
 export function NewsSettingsDialog({ settings, providers, defaults, onSave, onClose }: Props) {
   const [form, setForm] = useState(() => formFromSettings(settings, pickModel(settings, providers, defaults.selection)));
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const choices = providers.flatMap((p) => p.models.map((m) => ({ id: modelId(p.instanceId, m.slug), label: m.name, group: p.displayName, selection: { instanceId: p.instanceId, model: m.slug } })));
-  const options = choices.map(({ id, label, group }) => ({ id, label, group }));
-  const value = form.selection ? modelId(form.selection.instanceId, form.selection.model) : null;
 
   async function save() {
     const built = toBody(form);
@@ -56,14 +52,9 @@ export function NewsSettingsDialog({ settings, providers, defaults, onSave, onCl
         </div>
         <div className="dialog-field">
           <span>Model</span>
-          <Dropdown
-            label="Model"
-            className="field"
-            value={value}
-            options={options}
-            placeholder="Pick a model"
-            onPick={(id) => setForm({ ...form, selection: choices.find((c) => c.id === id)?.selection ?? form.selection })}
-          />
+          <div className="news-model">
+            <ModelPanel providers={providers} selection={form.selection} onSelection={(selection) => setForm({ ...form, selection })} />
+          </div>
           <p className="hint">The model needs web search. Saving updates the routine in Automations.</p>
         </div>
       </div>

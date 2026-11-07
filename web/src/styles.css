@@ -1015,14 +1015,6 @@ main:has(> .auto-page) { padding-top: 8px; }
   /* The list runs down to the bottom bar, as the sessions list does. */
   main:has(> .auto-page) { padding-top: 0; padding-bottom: 0; }
   .auto-scroll { padding-bottom: 16px; }
-  /* The page scrolls; the list and the article take turns. */
-  main:has(> .news-page) { padding-top: 12px; }
-  .news-page { flex: none; display: block; }
-  .news-list, .news-article { overflow: visible; margin: 0; padding: 0; }
-  .news-page:not(.reading) .news-article, .news-page.reading .news-list { display: none; }
-  .news-item { padding: 12px 10px; }
-  .news-back { display: inline-flex; margin: 0 0 4px -8px; }
-  .news-body { font-size: 16px; }
   .notif-toasts { left: 12px; right: 12px; width: auto; }
   /* Three compact tiles in one row; the chart is lower (see ActivityChart). */
   .stat-tile { gap: 2px; padding: 12px; }
@@ -1130,12 +1122,24 @@ main:has(> .news-page) { padding-top: 8px; }
 .news-article { min-height: 0; overflow-y: auto; padding: 4px 4px 40px; }
 .news-article > * { max-width: 68ch; margin-inline: auto; }
 .news-back { display: none; }
+.news-model { container-type: inline-size; }
 .news-article-date { margin: 8px auto 0; font-size: 12px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-secondary); }
 /* Reading size: a 68-character line, taller leading and roomy blocks. */
 .news-body { font-size: 15.5px; line-height: 1.7; overflow-wrap: anywhere; }
 .news-body h1 { margin: 0.3em 0 0.6em; font-size: 1.75em; line-height: 1.2; letter-spacing: -0.02em; }
 .news-body h2 { margin: 1.8em 0 0.6em; padding-top: 1em; border-top: 1px solid var(--line); font-size: 1.25em; }
 .news-body p, .news-body ul, .news-body ol { margin-bottom: 1em; }
+/* After the base rules above: same specificity, so the later rule wins on a phone. */
+@media (max-width: 700px) {
+  /* The page scrolls; the list and the article take turns. */
+  main:has(> .news-page) { padding-top: 12px; }
+  .news-page { flex: none; display: block; }
+  .news-list, .news-article { overflow: visible; margin: 0; padding: 0; }
+  .news-page:not(.reading) .news-article, .news-page.reading .news-list { display: none; }
+  .news-item { padding: 12px 10px; }
+  .news-back { display: inline-flex; margin: 0 0 4px -8px; }
+  .news-body { font-size: 16px; }
+}
 .auto-result { display: flex; flex-direction: column; gap: 10px; }
 .auto-result dl { display: grid; grid-template-columns: max-content 1fr; gap: 6px 12px; margin: 0; }
 .auto-result dt { color: var(--text-secondary); }
