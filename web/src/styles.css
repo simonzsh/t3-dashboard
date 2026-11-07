@@ -765,7 +765,11 @@ ol.install-steps { padding-left: 18px; }
 .bottom-item.active .bottom-icon { background: color-mix(in srgb, var(--accent) 16%, transparent); }
 .bottom-glyph { width: 22px; height: 22px; }
 .bottom-icon .nav-badge { top: -3px; right: -2px; }
-.bottom-icon .nav-alert { position: absolute; top: 0; right: 14px; }
+.bottom-icon .nav-alert { position: absolute; top: -3px; right: -2px; }
+/* One mark per tab on a phone: with a count, the alert icon hides and the count takes its color. */
+.bottom-icon .nav-alert:has(+ .nav-badge) { display: none; }
+.bottom-icon .nav-alert + .nav-badge { background: var(--warn-bg); color: var(--warn-text); }
+.bottom-icon .nav-alert.err + .nav-badge { background: var(--err-bg); color: var(--err-text); }
 /* Page header: title, one-line description, actions on the right. */
 .page-header { position: relative; z-index: 5; flex: none; display: flex; align-items: center; gap: 12px; min-height: 48px; padding: 6px 20px; border-bottom: 1px solid var(--line); background: color-mix(in srgb, var(--header-bg) 97%, transparent); }
 .page-heading { flex: 1; min-width: 0; display: flex; align-items: baseline; gap: 10px; }
