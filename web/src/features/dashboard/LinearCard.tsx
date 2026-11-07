@@ -2,7 +2,7 @@ import { useState } from "react";
 import { createPortal } from "react-dom";
 import type { BoardResult, DashboardProject, DashboardProvider, DashboardThread, LinearIssue, ModelDefaults } from "../../../../shared/api.ts";
 import { relativeTime } from "../../lib/format.ts";
-import { Button, CardHead, Icon, IconButton, type IconName } from "../../ui/index.ts";
+import { Button, CardHead, Icon, IconButton, LinearMark, type IconName } from "../../ui/index.ts";
 import { NewThreadDialog } from "../new-thread/NewThreadDialog.tsx";
 import { daysUntilDue, glance, linkedIdentifiers, type GlanceCounts, type Signal, type SignalKind } from "./glance.ts";
 
@@ -107,7 +107,7 @@ export function LinearCard({ board, now, loading, threads, started, onRefresh, p
     <section className="dashboard-card" aria-labelledby="linear-head">
       <CardHead
         id="linear-head"
-        icon="ticket"
+        icon={<LinearMark />}
         title="Linear"
         actions={
           <>

@@ -3,7 +3,8 @@ import { Icon, type IconName } from "./Icon.tsx";
 
 interface Props {
   id: string;
-  icon: IconName;
+  /** An icon name, or a brand mark that is not in the icon set. */
+  icon: IconName | ReactNode;
   title: string;
   /** A muted word after the title, for what the whole card covers; a node (a menu) replaces the word and its tooltip. */
   note?: ReactNode;
@@ -15,7 +16,7 @@ interface Props {
 export function CardHead({ id, icon, title, note, count, actions }: Props) {
   return (
     <div className="card-head">
-      <Icon name={icon} />
+      {typeof icon === "string" ? <Icon name={icon as IconName} /> : icon}
       <h2 id={id}>{title}</h2>
       {typeof note === "string" ? <span className="card-note" data-tooltip={note} data-tooltip-clipped>{note}</span> : note && <span className="card-note-menu">{note}</span>}
       {count !== undefined && count > 0 && <span className="count">{count}</span>}
