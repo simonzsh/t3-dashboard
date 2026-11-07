@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
-import { existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { test } from "bun:test";
@@ -51,7 +51,7 @@ test("an unsupported OS or CPU fails with a message and no URL", () => {
 });
 
 // A fake curl copies from a local "release" folder, so the full flow runs without the network.
-function fullRun(options: { corrupt?: boolean; noService?: boolean }) {
+function fullRun(options: { corrupt?: boolean; noService?: boolean; fakeT3?: boolean }) {
   const root = mkdtempSync(join(tmpdir(), "t3d-sh-"));
   const bin = join(root, "bin");
   const release = join(root, "release");
@@ -62,9 +62,11 @@ function fullRun(options: { corrupt?: boolean; noService?: boolean }) {
   writeFileSync(join(release, asset), options.corrupt ? "tampered" : body);
   writeFileSync(join(release, "SHA256SUMS"), `${createHash("sha256").update(body).digest("hex")}  ${asset}\n`);
   writeFileSync(join(bin, "curl"), `#!/bin/sh\nwhile [ $# -gt 0 ]; do case "$1" in -o) out=$2; shift;; http*) url=$1;; esac; shift; done\ncp "${release}/$(basename "$url")" "$out"\n`, { mode: 0o755 });
+  if (options.fakeT3) writeFileSync(join(bin, "t3"), "#!/bin/sh\n", { mode: 0o755 });
   const result = Bun.spawnSync(["sh", script], {
     env: {
-      PATH: `${bin}:${process.env.PATH}`,
+      // A fixed PATH keeps a t3 installed on this machine out of the check.
+      PATH: `${bin}:/usr/bin:/bin`,
       HOME: root,
       T3_DASHBOARD_UNAME_S: "Linux",
       T3_DASHBOARD_UNAME_M: "x86_64",
@@ -97,4 +99,34 @@ test("a checksum mismatch installs nothing", () => {
   assert.match(run.err, /checksum mismatch/);
   assert.equal(existsSync(join(run.dest, "t3-dashboard")), false);
   rmSync(run.root, { recursive: true });
+});
+
+test("a missing t3 warns on stderr, still installs the service and exits 0", () => {
+  const run = fullRun({});
+  assert.equal(run.code, 0, run.err);
+  assert.match(run.err, /T3 Code \(t3\) was not found/);
+  assert.match(run.err, /https:\/\/t3\.codes/);
+  assert.match(run.err, /npm install -g t3/);
+  assert.match(run.out, /fake t3-dashboard install/);
+  rmSync(run.root, { recursive: true });
+});
+
+test("an installed t3 prints no warning", () => {
+  const run = fullRun({ fakeT3: true });
+  assert.equal(run.code, 0, run.err);
+  assert.doesNotMatch(run.err, /T3 Code/);
+  rmSync(run.root, { recursive: true });
+});
+
+test("a dry run prints only the URL, with no t3 check", () => {
+  const { out, err } = dryRun(["Linux", "x86_64"]);
+  assert.equal(out, `${LATEST}/t3-dashboard-linux-x64`);
+  assert.equal(err, "");
+});
+
+test("install.ps1 warns about a missing t3 and never throws for it", () => {
+  const ps1 = readFileSync(join(import.meta.dir, "..", "install.ps1"), "utf8");
+  assert.match(ps1, /Get-Command t3/);
+  assert.match(ps1, /Write-Warning "T3 Code \(t3\) was not found/);
+  assert.doesNotMatch(ps1, /throw[^\n]*T3 Code/);
 });

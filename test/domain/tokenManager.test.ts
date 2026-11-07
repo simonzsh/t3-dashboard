@@ -4,7 +4,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { test } from "bun:test";
 import { TokenManager } from "../../src/domain/tokenManager.ts";
-import { INSTALL_URL, ISSUE_COMMAND, type RunResult } from "../../src/integrations/t3/cli.ts";
+import { INSTALL_COMMAND, INSTALL_URL, ISSUE_COMMAND, START_COMMAND, type RunResult } from "../../src/integrations/t3/cli.ts";
 import type { Validation } from "../../src/integrations/t3/client.ts";
 import { writeSecret } from "../../src/config/secretFile.ts";
 
@@ -105,7 +105,7 @@ test("t3 missing and T3 unreachable asks to install T3 Code", async () => {
   const { manager, runs } = setup({ t3: null, validate: () => "unreachable" });
   await manager.refresh();
   assert.equal(manager.current(), null);
-  assert.deepEqual(manager.setup(), { reason: "t3-missing", detail: null, issueCommand: ISSUE_COMMAND, installUrl: INSTALL_URL });
+  assert.deepEqual(manager.setup(), { reason: "t3-missing", detail: null, issueCommand: ISSUE_COMMAND, installUrl: INSTALL_URL, installCommand: INSTALL_COMMAND, startCommand: START_COMMAND });
   assert.equal(runs.length, 0);
 });
 

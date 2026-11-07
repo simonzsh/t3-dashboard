@@ -51,7 +51,7 @@ The New Session button (key `N`) starts a session in a T3 project, or in "No pro
 
 ## Install
 
-Requirement: T3 Code installed on the same computer.
+Requirement: T3 Code installed on the same computer. The install script warns you if it is missing, then continues.
 
 macOS and Linux:
 
@@ -70,7 +70,7 @@ The script downloads the binary and checks its SHA-256 sum. Then it registers a 
 ### First start
 
 1. The dashboard creates its own access token for T3 Code. You do nothing.
-2. If T3 Code is not running, a screen tells you. Start T3 Code, then click "Retry".
+2. If T3 Code is not installed or not running, a screen shows how to install or start it. Do that, then click "Retry".
 3. If the token cannot be created, the screen gives a command. Run it, then paste the token.
 4. Optional: in Settings, paste a Linear API key to show the Linear card on the Dashboard.
 

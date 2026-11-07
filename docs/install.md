@@ -25,6 +25,7 @@ The script does these steps:
 3. It puts the binary in `~/.local/bin` (Windows: `%LOCALAPPDATA%\Programs\t3-dashboard`).
 4. It runs `t3-dashboard install`. This command registers the service, adds the [agent rules](#agent-rules), starts the service and opens `http://127.0.0.1:4300`.
 
+- The script looks for T3 Code (`t3`). If it is missing, the script prints a warning with the install link and command, then continues. The install does not fail.
 - On macOS and Linux, the script warns you if the folder is not in the `PATH`.
 - On Windows, the script adds the folder to the user `PATH`. Open a new terminal to use `t3-dashboard`.
 - On Windows ARM64, the x64 binary runs in emulation.
@@ -83,7 +84,7 @@ Without a command, `t3-dashboard` runs `start`. `install` and `update` refuse to
 ## First start
 
 1. The dashboard looks for `t3`. It creates its own access token with `t3 auth session issue`. It keeps this token in `~/.config/t3-dashboard/auth.json` (mode 600). You do not have to do anything.
-2. If T3 Code is stopped or not installed, a full screen tells you what to do. Start or install T3 Code, then click "Retry". The dashboard appears without a page reload.
+2. If T3 Code is not installed, a full screen shows the install link (<https://t3.codes>) and the command `npm install -g t3`. If T3 Code is installed but stopped, the screen shows the command `t3 start`. Install or start T3 Code, then click "Retry". The dashboard appears without a page reload.
 3. If the token creation fails, the screen gives the exact command. Run it, then paste the token in the field.
 4. To use Linear, connect it in Settings (see [Linear](#linear)).
 

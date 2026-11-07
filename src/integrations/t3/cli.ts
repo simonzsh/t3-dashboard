@@ -5,6 +5,8 @@ import { t3Home } from "./runtime.ts";
 type Env = Record<string, string | undefined>;
 
 export const INSTALL_URL = "https://t3.codes";
+export const INSTALL_COMMAND = "npm install -g t3";
+export const START_COMMAND = "t3 start";
 const ISSUE_ARGS = ["auth", "session", "issue", "--ttl", "3650d", "--label", "T3 Dashboard", "--token-only"];
 export const ISSUE_COMMAND = `t3 ${ISSUE_ARGS.map((arg) => (arg.includes(" ") ? `"${arg}"` : arg)).join(" ")}`;
 const ISSUE_TIMEOUT_MS = 20_000;

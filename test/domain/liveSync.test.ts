@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "bun:test";
 import type { ConnectionStatus, DashboardProvider, SetupInfo } from "../../shared/api.ts";
-import { INSTALL_URL, ISSUE_COMMAND } from "../../src/integrations/t3/cli.ts";
+import { INSTALL_COMMAND, INSTALL_URL, ISSUE_COMMAND, START_COMMAND } from "../../src/integrations/t3/cli.ts";
 import { LiveSync } from "../../src/domain/liveSync.ts";
 import { ShellStore } from "../../src/domain/shellStore.ts";
 import { IntegrationError } from "../../src/integrations/errors.ts";
@@ -18,7 +18,7 @@ async function until(condition: () => boolean) {
   assert.ok(condition(), "condition not reached");
 }
 
-const tokenSetup = { reason: "token-needed", detail: null, issueCommand: ISSUE_COMMAND, installUrl: INSTALL_URL } as const;
+const tokenSetup = { reason: "token-needed", detail: null, issueCommand: ISSUE_COMMAND, installUrl: INSTALL_URL, installCommand: INSTALL_COMMAND, startCommand: START_COMMAND } as const;
 
 class FakeAuth {
   token: string | null = "token-1";

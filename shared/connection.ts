@@ -8,6 +8,10 @@ export interface SetupInfo {
   detail: string | null;
   issueCommand: string;
   installUrl: string;
+  /** Shown with a copy button when T3 Code is not installed. */
+  installCommand: string;
+  /** Shown with a copy button when T3 Code is not running. */
+  startCommand: string;
 }
 
 export interface ConnectionStatus {

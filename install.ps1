@@ -1,5 +1,5 @@
 # Installs t3-dashboard for Windows: irm <url>/install.ps1 | iex
-# Env: T3_DASHBOARD_REPO, T3_DASHBOARD_VERSION, T3_DASHBOARD_NO_SERVICE=1.
+# Env: T3_DASHBOARD_REPO, T3_DASHBOARD_VERSION, T3_DASHBOARD_NO_SERVICE=1, T3_DASHBOARD_T3_BIN, T3CODE_HOME.
 function Install-T3Dashboard {
   $ErrorActionPreference = 'Stop'
   $ProgressPreference = 'SilentlyContinue'
@@ -43,6 +43,13 @@ function Install-T3Dashboard {
     Remove-Item $tmp -Recurse -Force -ErrorAction SilentlyContinue
   }
   Write-Host "Installed $exe"
+
+  $t3Home = if ($env:T3CODE_HOME) { $env:T3CODE_HOME } else { Join-Path $HOME '.t3' }
+  $t3Paths = @($env:T3_DASHBOARD_T3_BIN, (Join-Path $env:LOCALAPPDATA 'Programs\t3\t3.exe'), (Join-Path $env:LOCALAPPDATA 'Programs\t3-code\t3.exe')) | Where-Object { $_ }
+  $t3Found = (Get-Command t3 -ErrorAction SilentlyContinue) -or ($t3Paths | Where-Object { Test-Path $_ }) -or (Test-Path (Join-Path $t3Home 'runtime\versions\*\t3.exe'))
+  if (-not $t3Found) {
+    Write-Warning "T3 Code (t3) was not found. The dashboard needs it on this computer.`nInstall it: https://t3.codes  or  npm install -g t3`nThen start it: t3 start"
+  }
 
   # Read the raw value: expanding it would turn %VARS% entries into fixed text.
   $userPath = [string](Get-Item 'HKCU:\Environment').GetValue('Path', '', [Microsoft.Win32.RegistryValueOptions]::DoNotExpandEnvironmentNames)

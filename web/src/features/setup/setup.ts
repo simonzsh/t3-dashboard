@@ -14,16 +14,16 @@ export function setupCopy(setup: SetupInfo): SetupCopy {
     case "t3-stopped":
       return {
         title: "T3 Code is not running",
-        steps: ["Open the T3 Code app.", "Without the app, run t3 start in a terminal.", "Press Retry."],
-        command: null,
+        steps: ["Open the T3 Code app, or run this command in a terminal.", "Press Retry."],
+        command: setup.startCommand,
         showPaste: false,
-        link: null,
+        link: { label: "Not installed? Get T3 Code", url: setup.installUrl },
       };
     case "t3-missing":
       return {
         title: "Install T3 Code",
-        steps: ["The dashboard works with T3 Code on this computer.", "Install T3 Code and open it.", "Press Retry."],
-        command: null,
+        steps: ["The dashboard needs T3 Code on this computer.", "Install the T3 Code app from t3.codes, or run this command.", "Start T3 Code, then press Retry."],
+        command: setup.installCommand,
         showPaste: false,
         link: { label: "Get T3 Code", url: setup.installUrl },
       };
