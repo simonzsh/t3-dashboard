@@ -55,12 +55,6 @@ export function DashboardView({ limits, server, activity, running, layout, editi
     const next = resolveDrop(layout, dragged, t);
     setTarget((prev) => (prev && JSON.stringify(prev) === JSON.stringify(next) ? prev : next));
   };
-  // Counts the children of the element whose middle is above the pointer: the slot or row the pointer is past.
-  const passed = (e: DragEvent<HTMLElement>, selector: string) =>
-    [...e.currentTarget.querySelectorAll(selector)].filter((el) => {
-      const box = el.getBoundingClientRect();
-      return box.top + box.height / 2 < e.clientY;
-    }).length;
   const drop = (e: DragEvent) => {
     e.preventDefault();
     if (dragged && target) onLayout(dropCard(layout, dragged, target));
@@ -110,20 +104,8 @@ export function DashboardView({ limits, server, activity, running, layout, editi
       </div>
     </div>
   );
-  // A half card aims at the column under the pointer; the other cases fall through to the row logic of the container.
   const column = (row: number, side: CardColumn, stack: DashboardCard[]) => (
-    <div
-      className={`dashboard-col ${side}`}
-      onDragOver={
-        editing
-          ? (e) => {
-              if (!dragged || draggedWidth !== "half") return;
-              e.stopPropagation();
-              aim(e, { kind: "column", row, column: side, index: passed(e, ":scope > .dashboard-slot") });
-            }
-          : undefined
-      }
-    >
+    <div className={`dashboard-col ${side}`}>
       {stack.map((card, index) => (
         <Fragment key={card}>
           {columnDrop(row, side, index)}
@@ -134,6 +116,48 @@ export function DashboardView({ limits, server, activity, running, layout, editi
     </div>
   );
   const rows = layoutRows(layout);
+  // One handler for the whole grid: the pointer is matched against the real rows and slots, so gaps and placeholders never make the target jump.
+  const aimAt = (e: DragEvent<HTMLElement>) => {
+    if (!dragged) return;
+    const grid = e.currentTarget;
+    const y = e.clientY;
+    const half = draggedWidth === "half";
+    const mid = (el: Element | null) => {
+      const box = el?.getBoundingClientRect();
+      return box ? box.top + box.height / 2 : Infinity;
+    };
+    const slotOf = (card: DashboardCard) => grid.querySelector(`[data-dash-item="${card}"]`);
+    const els = [...grid.querySelectorAll(":scope > [data-dash-row]")];
+    // Below 900 px a band has no box (display: contents): the cards read band by band, left stack then right.
+    if (els.some((el) => getComputedStyle(el).display === "contents")) {
+      for (const [r, row] of rows.entries()) {
+        if (row.kind === "full") {
+          if (mid(slotOf(row.card)) > y) return aim(e, { kind: "gap", row: r, column: "right" });
+          continue;
+        }
+        for (const [side, stack] of [["left", row.left], ["right", row.right]] as const) {
+          const i = stack.findIndex((card) => mid(slotOf(card)) > y);
+          if (i === -1) continue;
+          if (half) return aim(e, { kind: "column", row: r, column: side, index: i });
+          return aim(e, { kind: "gap", row: side === "left" && i === 0 ? r : r + 1, column: "right" });
+        }
+      }
+      return aim(e, { kind: "gap", row: rows.length, column: "right" });
+    }
+    const box = grid.getBoundingClientRect();
+    const gapColumn: CardColumn = e.clientX < box.left + box.width / 2 ? "left" : "right";
+    for (const [r, el] of els.entries()) {
+      const row = rows[r];
+      const band = el.getBoundingClientRect();
+      if (row?.kind === "band" && half && y >= band.top && y <= band.bottom) {
+        const side: CardColumn = e.clientX < band.left + band.width / 2 ? "left" : "right";
+        const stack = side === "left" ? row.left : row.right;
+        return aim(e, { kind: "column", row: r, column: side, index: stack.filter((card) => mid(slotOf(card)) < y).length });
+      }
+      if (y < band.top + band.height / 2) return aim(e, { kind: "gap", row: r, column: gapColumn });
+    }
+    aim(e, { kind: "gap", row: rows.length, column: gapColumn });
+  };
   return (
     <div ref={root} className={`dashboard${inline ? " with-panel" : ""}`}>
       <div className="dashboard-main">
@@ -149,11 +173,11 @@ export function DashboardView({ limits, server, activity, running, layout, editi
         )}
         <div
           className={`dashboard-cards${editing ? " editing" : ""}`}
-          onDragOver={editing ? (e) => aim(e, { kind: "gap", row: passed(e, ":scope > [data-dash-row]"), column: e.clientX < e.currentTarget.getBoundingClientRect().left + e.currentTarget.clientWidth / 2 ? "left" : "right" }) : undefined}
+          onDragOver={editing ? aimAt : undefined}
           onDrop={editing ? drop : undefined}
         >
           {rows.map((row, r) => (
-            <Fragment key={row.kind === "full" ? row.card : `band:${row.left[0] ?? row.right[0]}`}>
+            <Fragment key={row.kind === "full" ? row.card : `band:${r}`}>
               {gapDrop(r)}
               {row.kind === "full" ? (
                 slot(row.card, true)
