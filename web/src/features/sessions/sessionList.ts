@@ -31,12 +31,15 @@ export function statusMark(t: DashboardThread, seen: SeenState): StatusMark {
   return attentionState(t) ?? (isUnseen(t, seen) ? "unread" : null);
 }
 
-/** The Sessions nav badge: the rows of the list with a running or an unread mark. */
+/** A row the Sessions badges count: a running or an unread mark. */
+function inBadge(t: DashboardThread, seen: SeenState): boolean {
+  const mark = statusMark(t, seen);
+  return mark === "running" || mark === "unread";
+}
+
+/** The Sessions nav badge: the sum of the project badges of the list. */
 export function sessionsBadgeCount(threads: readonly DashboardThread[], seen: SeenState): number {
-  return listableThreads(threads).filter((t) => {
-    const mark = statusMark(t, seen);
-    return mark === "running" || mark === "unread";
-  }).length;
+  return listableThreads(threads).filter((t) => inBadge(t, seen)).length;
 }
 
 /** Settled threads leave the list, except one that runs or waits: like on the Dashboard, it is never missed. */
@@ -55,24 +58,24 @@ interface ProjectGroup {
   project: DashboardProject | null;
   title: string;
   threads: DashboardThread[];
-  /** The project row shows only this count. */
-  running: number;
+  /** Running and unread threads: the project badge, with the rule of the Sessions nav badge. */
+  badge: number;
 }
 
 /**
  * Projects with a listed thread first, in T3's order; then "Unknown project" groups for orphan threads;
  * then the empty projects in T3's order. An archived project with no listed thread is left out.
  */
-export function groupByProject(threads: readonly DashboardThread[], projects: readonly DashboardProject[]): ProjectGroup[] {
-  const groups = new Map<string, ProjectGroup>(projects.map((p) => [p.id, { id: p.id, project: p, title: p.title, threads: [], running: 0 }]));
+export function groupByProject(threads: readonly DashboardThread[], projects: readonly DashboardProject[], seen: SeenState): ProjectGroup[] {
+  const groups = new Map<string, ProjectGroup>(projects.map((p) => [p.id, { id: p.id, project: p, title: p.title, threads: [], badge: 0 }]));
   for (const t of threads) {
     let group = groups.get(t.projectId);
     if (!group) {
-      group = { id: t.projectId, project: null, title: "Unknown project", threads: [], running: 0 };
+      group = { id: t.projectId, project: null, title: "Unknown project", threads: [], badge: 0 };
       groups.set(t.projectId, group);
     }
     group.threads.push(t);
-    if (threadState(t) === "running") group.running += 1;
+    if (inBadge(t, seen)) group.badge += 1;
   }
   const all = [...groups.values()];
   const known = all.filter((g) => g.project !== null);

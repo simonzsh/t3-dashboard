@@ -37,7 +37,7 @@ function SessionListView({ threads, projects, seen, modelNames, now, openIds, fo
   const shown = useMemo(() => listableThreads(threads), [threads]);
   const collapsed = new Set(prefs.collapsed);
   const grouped = prefs.mode === "grouped";
-  const projectGroups = useMemo(() => (grouped ? groupByProject(shown, projects) : []), [grouped, shown, projects]);
+  const projectGroups = useMemo(() => (grouped ? groupByProject(shown, projects, seen) : []), [grouped, shown, projects, seen]);
   // Empty projects have nothing to fold.
   const foldable = useMemo(() => projectGroups.filter((g) => g.threads.length > 0), [projectGroups]);
   const anyOpen = foldable.some((g) => !collapsed.has(g.id));
@@ -123,7 +123,7 @@ function SessionListView({ threads, projects, seen, modelNames, now, openIds, fo
                   <Icon name={open ? "chevron" : "chevronRight"} className="icon slist-chevron" />
                   <ProjectIcon icon={g.project?.icon ?? null} title={g.title} />
                   <span className="slist-project-title">{g.title}</span>
-                  {g.running > 0 && <span className="slist-count" aria-label={`${g.running} running`}>{g.running}</span>}
+                  {g.badge > 0 && <span className="slist-count" aria-label={`${g.badge} running or unread`}>{g.badge}</span>}
                   <span className="slist-total" aria-label={`${g.threads.length} ${g.threads.length === 1 ? "session" : "sessions"}`}>{g.threads.length}</span>
                 </Pressable>
                 {newSession}
