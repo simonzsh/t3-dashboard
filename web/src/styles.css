@@ -1070,14 +1070,23 @@ main:has(> .auto-page) { padding-top: 8px; }
   /* iOS zooms into any field under 16px on focus. */
   input, textarea { font-size: 16px; }
 }
-.setup { min-height: 100dvh; display: grid; place-items: center; padding: 24px; }
-.setup-card { width: min(520px, 100%); display: flex; flex-direction: column; gap: 12px; padding: 24px; background: var(--surface-1); border: 1px solid var(--line); border-radius: 14px; box-shadow: var(--shadow); }
-.setup-card h1 { margin: 0; font-size: 13px; color: var(--text-secondary); font-weight: 600; letter-spacing: 0.02em; }
-.setup-card h2 { margin: 0; font-size: 18px; letter-spacing: -0.01em; }
-.setup-detail { margin: 0; color: var(--text-secondary); font-size: 13px; }
-.setup-steps { margin: 0; padding-left: 20px; display: flex; flex-direction: column; gap: 4px; }
-.setup-command { display: flex; gap: 8px; align-items: flex-start; padding: 8px 10px; border-radius: 8px; background: var(--surface-0); border: 1px solid var(--line); }
+.setup { min-height: 100dvh; display: grid; place-items: center; padding: 24px 16px; background: var(--page-bg); }
+.setup-column { width: min(520px, 100%); display: flex; flex-direction: column; gap: 16px; }
+.setup-brand { display: flex; align-items: center; gap: 10px; padding-inline: 3px; font-weight: 600; font-size: 15px; }
+.setup-card .card-head h2 { flex: 1; min-width: 0; }
+.setup-body { display: flex; flex-direction: column; gap: 14px; padding: 16px; }
+.setup-lede { margin: 0; font-size: 14px; }
+.setup-detail { margin: 0; color: var(--text-secondary); font-size: 12px; }
+.setup-steps { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 12px; }
+.setup-steps li { display: flex; gap: 10px; align-items: flex-start; }
+.setup-step-number { flex: none; display: grid; place-items: center; width: 20px; height: 20px; margin-top: 1px; border-radius: 50%; background: var(--surface-0); border: 1px solid var(--line); color: var(--text-secondary); font-size: 11px; font-weight: 600; }
+.setup-step-body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 8px; font-size: 13px; line-height: 22px; }
+.setup-command { display: flex; align-items: center; gap: 8px; min-height: 40px; padding: 4px 4px 4px 12px; border-radius: var(--radius-md); background: var(--surface-0); border: 1px solid var(--line); }
 .setup-command code { flex: 1; min-width: 0; overflow-wrap: anywhere; font: 12px/1.5 var(--font-mono); }
+.setup-foot { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 12px 10px 16px; border-top: 1px solid var(--line); }
+.setup-link { display: inline-flex; align-items: center; gap: 4px; font-size: 13px; text-decoration: none; }
+.setup-link:hover { text-decoration: underline; }
+.setup-link .icon { width: 14px; height: 14px; }
 .setup-link, .key-box a { color: var(--accent); }
 .setup-paste, .key-row { display: flex; gap: 8px; }
 .setup-paste input, .key-row input { flex: 1; min-width: 0; }
