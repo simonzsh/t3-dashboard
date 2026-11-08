@@ -42,3 +42,11 @@ export function showDirtyWarning(draft: WorkspaceDraft, workspaceRoot: string, s
   const choice = toWorkspaceChoice(draft, workspaceRoot);
   return choice?.type === "root";
 }
+
+/** The branch button text. `status` is null while the status loads. */
+export function branchLabel(draft: WorkspaceDraft, status: Pick<ProjectVcsStatus, "branch"> | null): string {
+  if (!status) return "…";
+  if (draft.newBranch) return `New branch ${draft.newBranch}`;
+  if (draft.envMode === "worktree") return draft.ref ? `From ${draft.ref.name}${draft.ref.remote ? " (remote)" : ""}` : "Select a base branch";
+  return draft.ref?.name ?? status.branch ?? "Detached HEAD";
+}

@@ -1,7 +1,7 @@
 import { test } from "bun:test";
 import assert from "node:assert/strict";
 import type { ProjectRef } from "../../../../shared/api.ts";
-import { defaultBaseRef, initialDraft, initialEnvMode, sanitizeBranchName, showDirtyWarning, toWorkspaceChoice, type WorkspaceDraft } from "../../../src/features/new-thread/workspaceOptions.ts";
+import { branchLabel, defaultBaseRef, initialDraft, initialEnvMode, sanitizeBranchName, showDirtyWarning, toWorkspaceChoice, type WorkspaceDraft } from "../../../src/features/new-thread/workspaceOptions.ts";
 
 const ROOT = "/srv/app";
 const ref = (name: string, extra: Partial<ProjectRef> = {}): ProjectRef => ({ name, remote: false, current: false, isDefault: false, worktreePath: null, ...extra });
@@ -62,4 +62,16 @@ test("the dirty warning shows when the checkout would switch or create a branch"
   assert.equal(showDirtyWarning(draft(), ROOT, dirty), false);
   assert.equal(showDirtyWarning(draft({ ref: ref("dev", { worktreePath: "/srv/wt" }) }), ROOT, dirty), false);
   assert.equal(showDirtyWarning(draft({ envMode: "worktree", ref: ref("dev") }), ROOT, dirty), false);
+});
+
+test("branchLabel: ellipsis while loading, then the branch per mode", () => {
+  const status = { branch: "main" };
+  assert.equal(branchLabel(draft(), null), "…");
+  assert.equal(branchLabel(draft(), status), "main");
+  assert.equal(branchLabel(draft(), { branch: null }), "Detached HEAD");
+  assert.equal(branchLabel(draft({ ref: ref("dev") }), status), "dev");
+  assert.equal(branchLabel(draft({ newBranch: "fix-x" }), status), "New branch fix-x");
+  assert.equal(branchLabel(draft({ envMode: "worktree", ref: ref("main") }), status), "From main");
+  assert.equal(branchLabel(draft({ envMode: "worktree", ref: ref("main", { remote: true }) }), status), "From main (remote)");
+  assert.equal(branchLabel(draft({ envMode: "worktree" }), status), "Select a base branch");
 });

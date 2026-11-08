@@ -8,7 +8,7 @@ import { ProjectPicker } from "../../lib/ProjectPicker.tsx";
 import { loadNewAgentProject, presetSelection, saveNewAgentProject, titleFromMessage } from "./newAgent.ts";
 import { Composer } from "../conversation/Composer.tsx";
 import { AddProjectDialog } from "../projects/AddProjectDialog.tsx";
-import { Dialog, Icon, Switch } from "../../ui/index.ts";
+import { Dialog, Icon } from "../../ui/index.ts";
 import { WorkspaceOptions } from "./WorkspaceOptions.tsx";
 import { toWorkspaceChoice, type WorkspaceDraft } from "./workspaceOptions.ts";
 
@@ -119,11 +119,6 @@ export function NewThreadDialog({ projects, providers, defaults, onClose, onCrea
             }}
           />
         </div>
-        <WorkspaceOptions project={projects.find((p) => p.id === projectId)} draft={workspace} onDraft={setWorkspace} onBlocked={setBlocked} />
-        <label className="dialog-switch">
-          <Switch checked={plan} onChange={setPlan} label="Plan mode" />
-          <span>Plan mode: the agent proposes a plan before it changes anything</span>
-        </label>
         <Composer
           providers={providers}
           selection={selection}
@@ -138,6 +133,7 @@ export function NewThreadDialog({ projects, providers, defaults, onClose, onCrea
           allowEmpty={issue !== undefined}
           focusKey={picks || undefined}
         />
+        <WorkspaceOptions project={projects.find((p) => p.id === projectId)} draft={workspace} onDraft={setWorkspace} plan={plan} onPlan={setPlan} onBlocked={setBlocked} />
       </Dialog>
     </>
   );

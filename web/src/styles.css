@@ -1278,9 +1278,17 @@ main:has(> .news-page) { padding-top: 8px; }
 .stash-restore { display: flex; flex: 1; flex-direction: column; gap: 2px; min-width: 0; padding: 6px 8px; border: 0; background: none; font-size: 13px; text-align: left; }
 .stash-text, .stash-meta { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .stash-meta { color: var(--text-secondary); font-size: 11px; }
-.workspace-options { display: flex; flex-direction: column; gap: 8px; }
-.workspace-options .segmented { align-self: flex-start; max-width: 100%; }
-.workspace-options .segmented button { white-space: nowrap; }
-.workspace-from { flex: none; color: var(--text-secondary); }
-.dialog .workspace-origin, .dialog .dialog-switch { display: flex; flex-direction: row; align-items: center; gap: 8px; font-size: 13px; color: var(--text-secondary); }
+.workspace-options { display: flex; flex-direction: column; gap: 4px; }
+.workspace-bar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 4px 8px; }
+.workspace-group { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; min-width: 0; }
+.workspace-branch { min-width: 0; margin-left: auto; }
+.workspace-branch .dropdown-value { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.dropdown-trigger > .icon, .workspace-chip > .icon { flex: none; width: 14px; height: 14px; }
+.workspace-chip { display: inline-flex; align-items: center; gap: 6px; padding: 3px 8px; border: 1px solid transparent; border-radius: 999px; background: none; color: var(--text-secondary); font-size: 13px; }
+.workspace-chip:hover { color: var(--text-primary); background: var(--surface-0); }
+.workspace-chip[aria-pressed="true"] { color: var(--text-primary); background: color-mix(in srgb, var(--accent) 16%, transparent); border-color: color-mix(in srgb, var(--accent) 40%, transparent); }
+.workspace-item { width: 100%; border: 0; background: none; color: inherit; text-align: left; }
+.workspace-item:hover { background: var(--surface-0); }
+.workspace-item > .icon:first-child { flex: none; width: 14px; height: 14px; color: var(--text-secondary); }
+.workspace-origin { display: flex; align-items: center; gap: 8px; padding: 6px 8px; border-top: 1px solid var(--line); font-size: 13px; color: var(--text-secondary); }
 .workspace-warning { margin: 0; font-size: 12px; color: var(--text-secondary); }
