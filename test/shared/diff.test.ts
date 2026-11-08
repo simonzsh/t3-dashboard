@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "bun:test";
-import { diffTotals, parseDiff } from "../../shared/diff.ts";
+import { parseDiff } from "../../shared/diff.ts";
 
 const MODIFIED = ["diff --git a/src/a.ts b/src/a.ts", "index 1..2 100644", "--- a/src/a.ts", "+++ b/src/a.ts", "@@ -1,3 +1,3 @@ function f()", " keep", "-old", "+new", " end", "\\ No newline at end of file", ""].join("\n");
 
@@ -26,7 +26,6 @@ test("reads added, deleted, renamed and binary files", () => {
   assert.deepEqual(files.map((file) => [file.path, file.status, file.binary]), [["new.ts", "added", false], ["gone.ts", "deleted", false], ["moved.ts", "renamed", false], ["logo.png", "modified", true]]);
   assert.equal(files[2]!.oldPath, "old.ts");
   assert.equal(files[2]!.similarity, 90);
-  assert.deepEqual(diffTotals(files), { files: 4, additions: 1, deletions: 1 });
 });
 
 test("decodes a quoted path with UTF-8 octal escapes", () => {

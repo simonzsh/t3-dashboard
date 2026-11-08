@@ -6,21 +6,30 @@ import { highlightLines, languageOf } from "./highlight.tsx";
 
 const MARK = { add: "+", del: "-", context: " " } as const;
 
+// Highlighted rows per hunk, kept while the diff lives: collapsing and reopening a file does not highlight it again.
+const highlighted = new WeakMap<DiffHunk, ReactNode[]>();
+
 // Old side (context + del) and new side (context + add) are highlighted as two blocks, then mapped back per line.
+function highlightHunk(hunk: DiffHunk, lang: string | undefined): ReactNode[] {
+  const cached = highlighted.get(hunk);
+  if (cached) return cached;
+  const oldText: string[] = [];
+  const newText: string[] = [];
+  // Index of each line within the block of the side it is shown from.
+  const pos = hunk.lines.map((line) => {
+    if (line.kind !== "add") oldText.push(line.text);
+    if (line.kind !== "del") newText.push(line.text);
+    return (line.kind === "del" ? oldText : newText).length - 1;
+  });
+  const oldHl = highlightLines(oldText.join("\n"), lang);
+  const newHl = highlightLines(newText.join("\n"), lang);
+  const rows = hunk.lines.map((line, i) => (line.kind === "del" ? oldHl[pos[i]!] : newHl[pos[i]!]));
+  highlighted.set(hunk, rows);
+  return rows;
+}
+
 export function HunkRows({ hunk, lang }: { hunk: DiffHunk; lang: string | undefined }) {
-  const rows = useMemo(() => {
-    const oldText: string[] = [];
-    const newText: string[] = [];
-    // Index of each line within the block of the side it is shown from.
-    const pos = hunk.lines.map((line) => {
-      if (line.kind !== "add") oldText.push(line.text);
-      if (line.kind !== "del") newText.push(line.text);
-      return (line.kind === "del" ? oldText : newText).length - 1;
-    });
-    const oldHl = highlightLines(oldText.join("\n"), lang);
-    const newHl = highlightLines(newText.join("\n"), lang);
-    return hunk.lines.map((line, i) => (line.kind === "del" ? oldHl[pos[i]!] : newHl[pos[i]!]));
-  }, [hunk, lang]);
+  const rows = useMemo(() => highlightHunk(hunk, lang), [hunk, lang]);
   return (
     <>
       <tr className="pr-diff-hunk">
@@ -131,7 +140,7 @@ export function useDiffView(files: DiffFile[], headSha: string) {
   const update = useCallback((next: (o: Overrides) => Overrides) => setState((s) => ({ sha: headSha, overrides: next(s.sha === headSha ? s.overrides : {}) })), [headSha]);
   const defaults = useMemo(() => openByDefault(files), [files]);
   const open = useCallback((path: string) => isOpen(overrides, defaults, path), [overrides, defaults]);
-  const bar = toolbarOf(files, open);
+  const bar = useMemo(() => toolbarOf(files, open), [files, open]);
   return {
     open,
     ...bar,

@@ -45,7 +45,7 @@ This folder contains the base components of the dashboard. The screens in `web/s
 | `OptionList` | Listbox of option rows that never take the focus. The owner keeps the focus in a field and passes `active`, `itemId` and `onHover` from `useListNav`. `isSelected` marks the current value of a choice list. |
 | `useListNav` | Active row and keys of a list: arrows wrap, Home/End jump, Enter picks (Space too with `space`). `itemId` scrolls the active row into view. `nextActive` is the pure part. |
 | `onRadioKeyDown`, `rovingTabIndex` | Arrow keys and one tab stop for a `role="radiogroup"` built by hand. |
-| `PHONE`, `TOUCH`, `isPhone()`, `isTouch()` | The shared media queries. Use them in place of a `matchMedia("…")` string. For a hook, use `useMediaQuery(TOUCH)`. |
+| `PHONE`, `TOUCH`, `WIDE`, `isPhone()`, `isTouch()` | The shared media queries. Use them in place of a `matchMedia("…")` string. For a hook, use `useMediaQuery(TOUCH)`. |
 | `TooltipLayer` | Dashboard tooltip, mounted one time in `App`. It shows immediately on hover and on keyboard focus of an element with `data-tooltip` (and `data-shortcut` for the shortcut, in a frame). It closes when the pointer leaves, on click, on scroll and with Escape. It does not exist on a touch screen. `Button`, `IconButton` and `Pressable` set these attributes with `tooltip` and `shortcut`. On a different element, write `data-tooltip`. |
 | `PageHeader` | Top of a page: title, one-line description, at most three actions on the right. `leading` goes before the title (the logo on a phone). |
 | `Loader` | Loading state: the animated logo, centered in the area. Use it in place of a "Loading…" text. |

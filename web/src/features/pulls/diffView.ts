@@ -3,7 +3,7 @@ import { isTestFile } from "./testFiles.ts";
 
 // Like GitHub, a big file starts closed, and files stop opening once the diff passes a line budget.
 export const LARGE_FILE = 400;
-export const OPEN_BUDGET = 3000;
+const OPEN_BUDGET = 3000;
 
 export function openByDefault(files: DiffFile[]): Set<string> {
   const open = new Set<string>();

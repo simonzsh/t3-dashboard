@@ -2,15 +2,13 @@ import { useEffect, useRef, useState } from "react";
 import type { DashboardThread } from "../../../../shared/api.ts";
 import type { PrDetail as Detail, PrDiff, PrRef } from "../../../../shared/pulls.ts";
 import { useMediaQuery } from "../../lib/useMediaQuery.ts";
-import { Button, ListPage, Loader, PHONE, Sheet, SidePanel } from "../../ui/index.ts";
+import { Button, ListPage, Loader, PHONE, Sheet, SidePanel, WIDE } from "../../ui/index.ts";
 import { DiffFiles, useDiffView } from "./DiffFiles.tsx";
 import { currentIndex } from "./diffView.ts";
 import { FileNav } from "./FileNav.tsx";
 import { PrHeader, PrMeta } from "./PrHeader.tsx";
 import { usePullDetailPrefs } from "./prefs.ts";
 
-// Below this width the file tree leaves the side and opens in a sheet.
-const WIDE = "(min-width: 1100px)";
 // The reading line sits a little below the top of the scroll box, so a file counts once its head is reached.
 const READ_OFFSET = 12;
 
@@ -47,10 +45,11 @@ export function PrDetail({ pr, detail, detailError, diff, diffError, refreshing,
   useEffect(() => {
     const box = body.current;
     if (!box || files.length === 0) return;
+    // One section per file, kept for the life of this diff: read the list once, not on every frame.
+    const blocks = fileBlocks(box);
     let frame = 0;
     const update = () => {
       frame = 0;
-      const blocks = fileBlocks(box);
       const atEnd = box.scrollTop > 0 && box.scrollTop + box.clientHeight >= box.scrollHeight - 1;
       if (atEnd) return setActive(picked.current ?? blocks.length - 1);
       picked.current = null;

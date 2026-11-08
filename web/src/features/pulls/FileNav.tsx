@@ -16,6 +16,7 @@ interface Props {
 export function FileNav({ files, open, active, onPick }: Props) {
   const box = useRef<HTMLDivElement>(null);
   const nodes = useMemo(() => pathTree(files, (file) => file.path.split("/"), (file) => file.path), [files]);
+  const tests = useMemo(() => new Set(files.filter((file) => isTestFile(file.path)).map((file) => file.path)), [files]);
 
   // Keep the current row in view inside the tree only: scrollIntoView would also move the diff.
   useEffect(() => {
@@ -37,9 +38,9 @@ export function FileNav({ files, open, active, onPick }: Props) {
           nodes={nodes}
           active={active}
           onPick={(file) => onPick(file.path)}
-          icon={(file) => (isTestFile(file.path) ? "flaskConical" : "fileText")}
-          rowClass={(file) => (isTestFile(file.path) && !open(file.path) ? "dim" : "")}
-          rowLabel={(file) => `${file.path}${isTestFile(file.path) ? " (test)" : ""}`}
+          icon={(file) => (tests.has(file.path) ? "flaskConical" : "fileText")}
+          rowClass={(file) => (tests.has(file.path) && !open(file.path) ? "dim" : "")}
+          rowLabel={(file) => `${file.path}${tests.has(file.path) ? " (test)" : ""}`}
           extra={(node) => node.item && <Counts additions={node.item.additions} deletions={node.item.deletions} />}
         />
       </div>

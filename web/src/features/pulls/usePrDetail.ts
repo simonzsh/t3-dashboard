@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, type Dispatch, type SetStateAction } from 
 import type { PrDetail, PrDiff, PrRef } from "../../../../shared/pulls.ts";
 import { useApi } from "../../api/ApiContext.tsx";
 import { failure } from "../../lib/format.ts";
+import { useRefresh } from "../../lib/useRefresh.ts";
 
 interface Part<T> {
   value: T | null;
@@ -14,7 +15,6 @@ export function usePrDetail({ repository, number }: PrRef) {
   const api = useApi();
   const [detail, setDetail] = useState<Part<PrDetail>>(EMPTY);
   const [diff, setDiff] = useState<Part<PrDiff>>(EMPTY);
-  const [refreshing, setRefreshing] = useState(false);
   const seq = useRef(0);
 
   const load = async (refresh: boolean): Promise<void> => {
@@ -37,13 +37,6 @@ export function usePrDetail({ repository, number }: PrRef) {
     return () => void seq.current++;
   }, [repository, number]);
 
-  async function refresh(): Promise<void> {
-    setRefreshing(true);
-    try {
-      await load(true);
-    } finally {
-      setRefreshing(false);
-    }
-  }
+  const { refreshing, refresh } = useRefresh(() => load(true));
   return { detail: detail.value, detailError: detail.error, diff: diff.value, diffError: diff.error, refreshing, refresh };
 }

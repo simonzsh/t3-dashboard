@@ -214,13 +214,3 @@ export function parseDiff(text: string, opts: ParseOptions = {}): DiffFile[] {
   }
   return files;
 }
-
-export function diffTotals(files: DiffFile[]): { files: number; additions: number; deletions: number } {
-  let additions = 0;
-  let deletions = 0;
-  for (const f of files) {
-    additions += f.additions;
-    deletions += f.deletions;
-  }
-  return { files: files.length, additions, deletions };
-}
