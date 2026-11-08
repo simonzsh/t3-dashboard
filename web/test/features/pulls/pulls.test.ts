@@ -6,7 +6,7 @@ import { thread } from "../../fixtures.ts";
 
 const pr = (repository: string, number: number, roles: PrSummary["roles"]): PrSummary => ({
   repository, number, title: `PR ${number}`, url: `https://example.test/${repository}/pull/${number}`, author: "ada", draft: false, headRef: "b", baseRef: "main",
-  createdAt: "2026-01-01T00:00:00Z", updatedAt: "2026-01-01T00:00:00Z", additions: 1, deletions: 1, checks: "success", review: "none", roles,
+  createdAt: "2026-01-01T00:00:00Z", updatedAt: "2026-01-01T00:00:00Z", additions: 1, deletions: 1, checks: "success", review: "none", roles, headSha: "",
 });
 const prs = [pr("acme/storefront", 1, ["author"]), pr("acme/api", 2, ["reviewer"]), pr("acme/storefront", 3, ["author", "reviewer"])];
 

@@ -55,6 +55,14 @@ test("a node without createdAt maps to an empty string", async () => {
   assert.equal((await listPulls(run))[0]!.createdAt, "");
 });
 
+test("the list reads the head commit of each pull request", async () => {
+  const { run, calls } = fake(() => search(node(1, "acme/api", { headRefOid: "h1" }), node(2, "acme/api")));
+  const prs = await listPulls(run);
+  assert.equal(prs.find((pr) => pr.number === 1)!.headSha, "h1");
+  assert.equal(prs.find((pr) => pr.number === 2)!.headSha, "");
+  assert.ok(calls[0]!.some((arg) => /\bheadRefOid\b/.test(arg)));
+});
+
 test("listPulls maps the check rollup and skips nodes that are not usable pull requests", async () => {
   const rollup = (state: string | null) => ({ commits: { nodes: [{ commit: { statusCheckRollup: state === null ? null : { state } } }] } });
   const { run } = fake(() => search(node(1, "acme/api", rollup("FAILURE")), node(2, "acme/api", rollup("PENDING")), node(3, "acme/api", rollup(null)), {}, null, node(4, "-evil/api")));

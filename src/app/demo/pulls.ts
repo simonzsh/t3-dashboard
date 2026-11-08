@@ -65,6 +65,7 @@ const searchNode = (pr: DemoPr, now: Date, start: Date) => ({
   url: url(pr),
   isDraft: pr.draft,
   headRefName: pr.headRef,
+  headRefOid: `demo${pr.number}`.padEnd(40, "0"),
   baseRefName: pr.baseRef ?? "main",
   createdAt: new Date(start.getTime() - pr.created * 60_000).toISOString(),
   // Never before the creation time, even in the first minutes of the demo.
@@ -79,7 +80,6 @@ const searchNode = (pr: DemoPr, now: Date, start: Date) => ({
 const view = (pr: DemoPr, now: Date, start: Date) => ({
   ...searchNode(pr, now, start),
   state: "OPEN",
-  headRefOid: `demo${pr.number}`.padEnd(40, "0"),
   changedFiles: parseDiff(pr.diff).length,
   body: pr.body,
   reviews: pr.reviews.map(([author, state]) => ({ author: { login: author }, state, submittedAt: new Date(now.getTime() - (pr.updated + 5) * 60_000).toISOString() })),

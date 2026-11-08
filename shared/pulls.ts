@@ -25,11 +25,15 @@ export interface PrSummary extends PrRef {
   review: PrReview;
   /** Authored by you, and/or waiting for your review. */
   roles: Array<"author" | "reviewer">;
+  /** Head commit of the PR; "" when GitHub did not send it. */
+  headSha: string;
 }
 
 export interface PrList {
   prs: PrSummary[];
   fetchedAt: string;
+  /** Set when the list is older than a minute and a new read runs behind it: ask again in a moment. */
+  stale?: true;
 }
 
 export interface PrCheckRun {
@@ -46,7 +50,6 @@ export interface PrReviewEntry {
 
 export interface PrDetail extends PrSummary {
   state: "open" | "closed" | "merged";
-  headSha: string;
   body: string;
   checkRuns: PrCheckRun[];
   reviews: PrReviewEntry[];

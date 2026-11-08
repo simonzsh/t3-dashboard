@@ -15,7 +15,7 @@ const QUERY = `query($q: String!, $n: Int!) {
   search(query: $q, type: ISSUE, first: $n) {
     nodes {
       ... on PullRequest {
-        number title url isDraft headRefName baseRefName createdAt updatedAt additions deletions reviewDecision
+        number title url isDraft headRefName headRefOid baseRefName createdAt updatedAt additions deletions reviewDecision
         author { login }
         repository { nameWithOwner }
         commits(last: 1) { nodes { commit { statusCheckRollup { state } } } }
@@ -91,6 +91,7 @@ export function summaryOf(node: SearchNode | null, role: "author" | "reviewer"):
     checks: rollupOf(node.commits?.nodes?.[0]?.commit?.statusCheckRollup?.state),
     review: reviewOf(node.reviewDecision),
     roles: [role],
+    headSha: node.headRefOid ?? "",
   };
 }
 
