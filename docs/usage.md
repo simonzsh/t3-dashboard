@@ -2,7 +2,7 @@
 
 [Back to the README](../README.md)
 
-The dashboard has five pages: Dashboard, Sessions, Automations, News and Git. A sidebar on the left lists them, with a search button (`⌘` + `K`). Its last row shows the connection state, Settings and a button that collapses the sidebar to icons (`Ctrl` + `B`). The theme, the accent color and the interface tint are in Settings. The sidebar remembers its state. The page header is one line: the title and a short description. Its button depends on the page: Sessions has a list toggle (wide screen), a layout button and New Session (`Ctrl` + `N`), Automations has New Automation (`Ctrl` + `⇧` + `N`), News has News settings and Run now, and Dashboard has the Notifications bell, with the number of unread items, then Edit layout. The two shortcuts work on every page. On a phone, a bar at the bottom of the screen replaces the sidebar: Dashboard, Sessions, Automations, News and Git. The header then shows the page buttons as icons (on Dashboard, the bell too), a search button and Settings. A dot on Settings shows that an update is ready.
+The dashboard has five pages: Dashboard, Sessions, Git, Automations and News. A sidebar on the left lists them, with a search button (`⌘` + `K`). Its last row shows the connection state, Settings and a button that collapses the sidebar to icons (`Ctrl` + `B`). The theme, the accent color and the interface tint are in Settings. The sidebar remembers its state. The page header is one line: the title and a short description. Its button depends on the page: Sessions has a list toggle (wide screen), a layout button and New Session (`Ctrl` + `N`), Automations has New Automation (`Ctrl` + `⇧` + `N`), News has News settings and Run now, and Dashboard has the Notifications bell, with the number of unread items, then Edit layout. The two shortcuts work on every page. On a phone, a bar at the bottom of the screen replaces the sidebar: Dashboard, Sessions, Git, Automations and News. The header then shows the page buttons as icons (on Dashboard, the bell too), a search button and Settings. A dot on Settings shows that an update is ready.
 
 ## Dashboard
 
@@ -284,7 +284,7 @@ The shortcuts use `Ctrl`, also on a Mac, and they work while you type in a field
 
 | Key | Action |
 | --- | --- |
-| `Ctrl` + `1`, `2`, `3`, `4`, `5` | Opens Dashboard, Sessions, Automations, News or Git. |
+| `Ctrl` + `1`, `2`, `3`, `4`, `5` | Opens Dashboard, Sessions, Git, Automations or News. |
 | `Ctrl` + `K` or `⌘` + `K` | Opens or closes the "Jump to" switcher. It finds a conversation by title, project or message. Without text, it shows the agents that wait for an answer, then your recent conversations. `↑` `↓` select, `Enter` opens in Sessions. |
 | `Ctrl` + `S` | In the message field of a conversation: stashes the draft. |
 | `Ctrl` + `N` | Opens New Session. |

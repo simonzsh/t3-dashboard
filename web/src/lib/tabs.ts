@@ -2,14 +2,14 @@ import type { PrRef } from "../../../shared/git.ts";
 import { isRepository } from "../../../shared/git.ts";
 import type { IconName } from "../ui/index.ts";
 
-export type Tab = "dashboard" | "sessions" | "automations" | "news" | "git";
+export type Tab = "dashboard" | "sessions" | "git" | "automations" | "news";
 
 export const TABS: ReadonlyArray<{ id: Tab; label: string; icon: IconName; description: string }> = [
   { id: "dashboard", label: "Dashboard", icon: "layoutPanels", description: "Usage limits, activity, and every agent that needs you." },
   { id: "sessions", label: "Sessions", icon: "messagesSquare", description: "Your open conversations side by side, scrolling sideways." },
+  { id: "git", label: "Git", icon: "gitPullRequest", description: "Your open pull requests and the ones waiting for your review." },
   { id: "automations", label: "Automations", icon: "calendarClock", description: "Scheduled agents and their latest runs." },
   { id: "news", label: "News", icon: "newspaper", description: "AI-written articles on the latest tech news." },
-  { id: "git", label: "Git", icon: "gitPullRequest", description: "Your open pull requests and the ones waiting for your review." },
 ];
 
 // The nav entry, found by the animations that fly into it.

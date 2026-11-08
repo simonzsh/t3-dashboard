@@ -27,7 +27,7 @@ export interface KeyInfo {
 }
 
 // Ctrl+key works everywhere, fields included, like Ctrl+S for the stash. Cmd stays the browser's.
-const CTRL_KEYS: Record<string, ShortcutAction> = { "1": "dashboard", "2": "sessions", "3": "automations", "4": "news", "5": "git", n: "new-session", ",": "settings", b: "toggle-sidebar" };
+const CTRL_KEYS: Record<string, ShortcutAction> = { "1": "dashboard", "2": "sessions", "3": "git", "4": "automations", "5": "news", n: "new-session", ",": "settings", b: "toggle-sidebar" };
 const CTRL_SESSIONS_KEYS: Record<string, ShortcutAction> = { x: "close-window", f: "toggle-fullscreen" };
 // Plain keys that a field needs for itself: they act only outside fields.
 const PLAIN_SESSIONS_KEYS: Record<string, ShortcutAction> = {
