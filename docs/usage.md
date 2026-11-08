@@ -286,7 +286,7 @@ The Pull requests page lists your open pull requests and shows the diff of one p
 
 The Setup tab shows what your agents load: instruction files (`CLAUDE.md`, `AGENTS.md`), settings, MCP servers, hooks, skills and plugins, for Claude and Codex. It only reads: it never changes a file.
 
-- The scope menu picks "User" (files that apply to every project) or one T3 project. A project shows its own files and the ones its parent folders add: Claude reads `CLAUDE.md` files up to the root of the disk, Codex reads `AGENTS.md` files from the git root down to the project.
+- The scope menu picks "User" (files that apply to every project) or one T3 project. The browser keeps the scope and the "Files" / "Effective" view; a saved project that is gone shows "User". A project shows its own files and the ones its parent folders add: Claude reads `CLAUDE.md` files up to the root of the disk, Codex reads `AGENTS.md` files from the git root down to the project.
 - "Files" shows the files of the scope as a tree. Pick a file to read it on the right. Folders show the number of issues below them. A file that imports another one with `@path` lists it under "Imports"; click it to open it.
 - "Effective" (projects only) shows what Claude or Codex loads for the project, in load order. A row with a line through it is skipped by the tool, and says why (for example Claude does not read `AGENTS.md`). Below the list: the MCP servers that apply, the servers a same-name server hides (struck through), the hooks and the plugins.
 - A server shows a status when the dashboard knows it: reachable, needs auth, failing, configured or disabled. Without a status, the server is only listed.

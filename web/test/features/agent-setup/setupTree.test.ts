@@ -23,7 +23,7 @@ test("the tree groups files by folder and merges single-child folders", () => {
   const claude = tree[0]!;
   assert.deepEqual(claude.children.map((n) => n.name), ["CLAUDE.md", "rules"]);
   assert.deepEqual(claude.children[1]!.children.map((n) => n.name), ["style.md", "tests.md"]);
-  assert.equal(claude.children[0]!.file?.id, "/home/u/.claude/CLAUDE.md");
+  assert.equal(claude.children[0]!.item?.id, "/home/u/.claude/CLAUDE.md");
 });
 
 test("a folder counts the issues of its files and shows the worst severity", () => {

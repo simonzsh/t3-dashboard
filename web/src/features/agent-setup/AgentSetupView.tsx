@@ -9,10 +9,9 @@ import { FileDetail } from "./FileDetail.tsx";
 import { FileTree } from "./FileTree.tsx";
 import { buildTree, issueTotals, scopeFiles, statusByServer } from "./setupTree.ts";
 import { useAgentSetup, type AgentSetupState } from "./useAgentSetup.ts";
+import { USER_SCOPE, useSetupPrefs, type SetupView } from "./prefs.ts";
 
-type View = "files" | "effective";
 const VIEWS = [{ id: "files", label: "Files" }, { id: "effective", label: "Effective" }] as const;
-const USER_SCOPE = "user";
 const PROJECT_PREFIX = "project:";
 
 interface PageProps {
@@ -27,13 +26,12 @@ interface PageProps {
 /** The page without its data hook, so a test can give it any state. */
 export function AgentSetupPage({ state, projects, compact, now }: PageProps) {
   const { value: inv, error, loading, mcp, refresh } = state;
-  const [scope, setScope] = useState(USER_SCOPE);
-  const [view, setView] = useState<View>("files");
+  const [{ scope, view }, setPrefs] = useSetupPrefs();
   const [picked, setPicked] = useState<string | null>(null);
 
   const project = inv?.projects.find((p) => `${PROJECT_PREFIX}${p.projectId}` === scope) ?? null;
   const projectId = project?.projectId ?? null;
-  const shownView: View = projectId ? view : "files";
+  const shownView: SetupView = projectId ? view : "files";
   const files = inv ? scopeFiles(inv, projectId) : [];
   const file = (picked && inv?.files[picked]) || (!compact ? files[0] : undefined);
   const statuses = statusByServer(mcp);
@@ -51,7 +49,7 @@ export function AgentSetupPage({ state, projects, compact, now }: PageProps) {
   const issueCount = totals.error + totals.warning + totals.info;
 
   function choose(id: string) {
-    setScope(id);
+    setPrefs({ scope: id });
     setPicked(null);
   }
 
@@ -59,7 +57,7 @@ export function AgentSetupPage({ state, projects, compact, now }: PageProps) {
     <>
       <div className="as-bar">
         <Dropdown label="Scope" value={project ? scope : USER_SCOPE} options={options} onPick={choose} />
-        {projectId && <Tabs label="View" idPrefix="as-view" value={shownView} options={VIEWS} onChange={setView} />}
+        {projectId && <Tabs label="View" idPrefix="as-view" value={shownView} options={VIEWS} onChange={(view) => setPrefs({ view })} />}
         <span className="as-bar-end">
           {inv && (
             <Badge variant={issueCount === 0 ? "done" : totals.error > 0 ? "error" : "neutral"}>
