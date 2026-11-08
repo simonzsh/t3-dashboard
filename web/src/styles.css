@@ -178,7 +178,8 @@ main { flex: 1; min-height: 0; overflow: hidden; padding: var(--page-top) var(--
 /* Sessions is the one workspace page: its columns run edge to edge. */
 .app.sessions-mode main { padding: 0; gap: 0; }
 /* A page's scroll box: the ring room sits outside the content edge, and the bottom space scrolls with the content. */
-.page-scroll { flex: 1; min-height: 0; overflow-y: auto; padding: var(--page-ring) var(--page-ring) var(--page-bottom); margin: calc(-1 * var(--page-ring)) calc(-1 * var(--page-ring)) 0; }
+/* clip-path forces the clip: iOS Safari lets the content of a scroll box paint a few pixels past its edge. */
+.page-scroll { flex: 1; min-height: 0; overflow-y: auto; padding: var(--page-ring) var(--page-ring) var(--page-bottom); margin: calc(-1 * var(--page-ring)) calc(-1 * var(--page-ring)) 0; clip-path: inset(0); }
 /* List pages (ListPage): the head stays outside the scroll box, so it never moves while the list scrolls. */
 .list-page { flex: 1; min-height: 0; display: flex; flex-direction: column; gap: var(--page-gap); }
 .list-page-head { flex: none; background: var(--page-bg); }

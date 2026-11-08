@@ -1,4 +1,5 @@
 import { useEffect, useRef, type ReactNode } from "react";
+import { createPortal } from "react-dom";
 import { trapTab } from "./Dialog.tsx";
 import { lockScroll } from "./scrollLock.ts";
 import { useEscape } from "./useEscape.ts";
@@ -44,7 +45,7 @@ export function Sheet({ open, label, onClose, width = "narrow", children }: Prop
     };
   }, [open]);
 
-  return (
+  const sheetNodes = (
     <>
       <div ref={backdrop} className={`ui-sheet-backdrop${open ? " open" : ""}`} aria-hidden="true" onClick={onClose} />
       <aside ref={sheet} tabIndex={-1} className={`ui-sheet ${width}${open ? " open" : ""}`} role="dialog" aria-modal="true" aria-label={label} inert={!open} onKeyDown={trapTab}>
@@ -52,4 +53,6 @@ export function Sheet({ open, label, onClose, width = "narrow", children }: Prop
       </aside>
     </>
   );
+  // In document.body, so a clipping page scroll box cannot cut the fixed sheet. Static renders have no document.
+  return typeof document === "undefined" ? sheetNodes : createPortal(sheetNodes, document.body);
 }

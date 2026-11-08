@@ -200,3 +200,7 @@ test("a flush list page moves the head-to-body space into the body, so sticky ch
   assert.match(shell, /\.list-page\.flush > \.list-page-body \{ margin-top: 0; padding-top: 0; \}/);
   assert.match(shell, /\.list-page\.flush > \.list-page-body::before \{ content: ""; display: block; height: var\(--page-gap\); \}/);
 });
+
+test("every page scroll box forces its clip, so no content paints past its edge on iOS", () => {
+  assert.match(rule(".page-scroll"), /clip-path: inset\(0\);/);
+});
