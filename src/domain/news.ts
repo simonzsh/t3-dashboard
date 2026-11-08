@@ -33,8 +33,8 @@ export function newsPrompt(settings: NewsSettings, dir: string): string {
    - \`## Top stories\`: the 3 to 5 most important stories, each a \`### \` headline, then 2 or 3 paragraphs: what happened, the context, and why it matters to a developer, with a source link [name](https://...);
    - then up to 5 \`## \` sections named after the areas that had real news that ${weekly ? "week" : "day"} (skip an area with nothing worth reading), ${weekly ? "4 to 8" : "3 to 6"} items each: a bold headline and one paragraph of 3 to 5 sentences with a source link;
    - end with \`## Key takeaways\`: 3 to 5 bullet points.
-   The article is a 10-minute read: about 2,000 to 2,500 words. Every fact must come from a source you read; do not pad. No HTML, no images.
-4. Save it: create the folder ${dir} if missing, write the file ${dir}/DATE.md.tmp, then rename it to ${dir}/DATE.md (replace an older file of that name). Write nothing anywhere else.
+   The article is a 10-minute read: 2,000 to 2,500 words. Every fact must come from a source you read; do not pad. No HTML, no images.
+4. Save it: create the folder ${dir} if missing and write the file ${dir}/DATE.md.tmp. Run \`wc -w\` on it: under 2,000 words, search for more stories and context, rewrite the file, and check again. Then rename it to ${dir}/DATE.md (replace an older file of that name). Write nothing anywhere else.
 5. Reply with one line: the path of the file.`;
 }
 
