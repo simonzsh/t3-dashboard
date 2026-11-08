@@ -78,6 +78,12 @@ export function WorkspaceOptions({ project, draft, onDraft, onBlocked }: Props) 
       <div className="workspace-bar">
         <div className="workspace-group">
           {ready && <ModeMenu value={draft.envMode} onChange={setMode} />}
+          {ready && draft.envMode === "worktree" && status?.hasPrimaryRemote && (
+            <label className="workspace-origin">
+              <Switch checked={draft.startFromOrigin} onChange={(startFromOrigin) => change({ startFromOrigin })} label="Start from origin" />
+              <span>From origin</span>
+            </label>
+          )}
         </div>
         {ready && (
           <BranchPicker
@@ -86,9 +92,6 @@ export function WorkspaceOptions({ project, draft, onDraft, onBlocked }: Props) 
             value={draft.ref}
             label={branchLabel(draft, status)}
             loading={status === null}
-            canOrigin={draft.envMode === "worktree" && !!status?.hasPrimaryRemote}
-            startFromOrigin={draft.startFromOrigin}
-            onOrigin={(startFromOrigin) => change({ startFromOrigin })}
             onRef={(ref) => change({ ref, newBranch: null })}
             onCreate={(name) => change({ ref: null, newBranch: name })}
           />
@@ -111,9 +114,6 @@ interface PickerProps {
   value: ProjectRef | null;
   label: string;
   loading: boolean;
-  canOrigin: boolean;
-  startFromOrigin: boolean;
-  onOrigin: (on: boolean) => void;
   onRef: (ref: ProjectRef) => void;
   onCreate: (name: string) => void;
 }
@@ -121,7 +121,7 @@ interface PickerProps {
 const CREATE = "create:";
 const refId = (r: ProjectRef) => `${r.remote ? "remote" : "local"}:${r.name}`;
 
-function BranchPicker({ projectId, mode, value, label, loading, canOrigin, startFromOrigin, onOrigin, onRef, onCreate }: PickerProps) {
+function BranchPicker({ projectId, mode, value, label, loading, onRef, onCreate }: PickerProps) {
   const api = useApi();
   const [query, setQuery] = useState("");
   const search = useDebouncedValue(query.trim(), 200);
@@ -142,17 +142,6 @@ function BranchPicker({ projectId, mode, value, label, loading, canOrigin, start
     ...(canCreate ? [{ id: CREATE + name, label: `Create branch ${name}`, icon: <Icon name="plus" /> }] : []),
     ...refs.map((r) => ({ id: refId(r), label: r.name, ...(marks(r).length > 0 && { description: marks(r).join(" · ") }) })),
   ];
-  const footer = (
-    <>
-      {result && result.nextCursor !== null && <div className="dropdown-empty">Type to narrow the list.</div>}
-      {canOrigin && (
-        <label className="workspace-origin">
-          <Switch checked={startFromOrigin} onChange={onOrigin} label="Start from origin" />
-          <span>Start from origin</span>
-        </label>
-      )}
-    </>
-  );
 
   return (
     <Dropdown
@@ -166,7 +155,7 @@ function BranchPicker({ projectId, mode, value, label, loading, canOrigin, start
       filterable
       searchPlaceholder={mode === "local" ? "Search or create a branch…" : "Search branches…"}
       onQuery={setQuery}
-      footer={canOrigin || result?.nextCursor != null ? footer : undefined}
+      footer={result && result.nextCursor !== null ? <div className="dropdown-empty">Type to narrow the list.</div> : undefined}
       align="end"
       onPick={(id) => {
         if (id.startsWith(CREATE)) return onCreate(id.slice(CREATE.length));

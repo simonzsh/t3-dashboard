@@ -463,6 +463,7 @@ a.step-result-title { color: var(--accent); }
 .dropdown { position: relative; min-width: 0; }
 .dropdown-trigger { display: inline-flex; align-items: center; gap: 6px; max-width: 100%; padding: 4px 6px; border: 0; border-radius: 8px; background: none; color: var(--text-secondary); font-size: 13px; }
 .dropdown-trigger:hover:not(:disabled) { color: var(--text-primary); background: var(--surface-0); }
+.dropdown-trigger > .icon { flex: none; width: 14px; height: 14px; }
 .dropdown-value { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .dropdown-trigger .chevron-down, .model-access-button .chevron-down { width: 13px; height: 13px; opacity: 0.8; flex: none; }
 .dropdown.field .dropdown-trigger { display: flex; width: 100%; padding: 6px 10px; border: 1px solid var(--line); background: var(--surface-1); color: var(--text-primary); font-size: inherit; }
@@ -1284,6 +1285,5 @@ main:has(> .news-page) { padding-top: 8px; }
 .workspace-group { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; min-width: 0; }
 .workspace-branch { min-width: 0; margin-left: auto; }
 .workspace-branch .dropdown-value { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.dropdown-trigger > .icon { flex: none; width: 14px; height: 14px; }
-.workspace-origin { display: flex; align-items: center; gap: 8px; padding: 6px 8px; font-size: 13px; color: var(--text-secondary); }
+.workspace-origin { display: flex; align-items: center; gap: 6px; padding: 4px 6px; font-size: 13px; color: var(--text-secondary); }
 .workspace-warning { margin: 0; font-size: 12px; color: var(--text-secondary); }
