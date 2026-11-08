@@ -213,3 +213,8 @@ test("hovering an open file header keeps its separator gray", () => {
 test("the pull request head keeps room above the stuck file header and tree", () => {
   assert.match(rule(".pulls-head"), /padding-bottom: 10px;/);
 });
+
+test("a pull request row lights up as a whole on hover, Sessions button included", () => {
+  assert.match(css, /\.pulls-row:hover \{ background:/);
+  assert.doesNotMatch(css, /\.pulls-row-main:hover/);
+});
