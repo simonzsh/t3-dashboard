@@ -5,7 +5,7 @@ import { defaultBaseRef, initialDraft, initialEnvMode, sanitizeBranchName, showD
 
 const ROOT = "/srv/app";
 const ref = (name: string, extra: Partial<ProjectRef> = {}): ProjectRef => ({ name, remote: false, current: false, isDefault: false, worktreePath: null, ...extra });
-const draft = (extra: Partial<WorkspaceDraft> = {}): WorkspaceDraft => ({ envMode: "local", ref: null, newBranch: null, startFromOrigin: false, plan: false, ...extra });
+const draft = (extra: Partial<WorkspaceDraft> = {}): WorkspaceDraft => ({ envMode: "local", ref: null, newBranch: null, startFromOrigin: false, ...extra });
 
 test("initialEnvMode follows the project default, local when absent", () => {
   assert.equal(initialEnvMode({ defaultThreadEnvMode: "worktree" }), "worktree");

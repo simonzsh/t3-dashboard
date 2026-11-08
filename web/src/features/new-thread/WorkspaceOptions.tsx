@@ -128,15 +128,18 @@ function BranchPicker({ projectId, mode, value, label, onRef, onCreate }: Picker
               </div>
             )}
             {result?.refs.length === 0 && !canCreate && <div className="dropdown-empty">No match</div>}
-            {result?.refs.map((r) => (
+            {result?.refs.map((r) => {
+              const tags = marks(r);
+              return (
               <div key={`${r.remote}:${r.name}`} role="option" aria-selected={r.name === value?.name} className="dropdown-option" onMouseDown={(e) => e.preventDefault()} onClick={() => (onRef(r), close())}>
                 <span className="dropdown-text">
                   <span>{r.name}</span>
-                  {marks(r).length > 0 && <small>{marks(r).join(" · ")}</small>}
+                  {tags.length > 0 && <small>{tags.join(" · ")}</small>}
                 </span>
                 {r.name === value?.name && <Icon name="check" className="icon dropdown-check" />}
               </div>
-            ))}
+              );
+            })}
             {result && result.nextCursor !== null && <div className="dropdown-empty">Type to narrow the list.</div>}
           </div>
         </Popover>

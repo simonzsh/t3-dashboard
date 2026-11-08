@@ -9,7 +9,6 @@ export interface WorkspaceDraft {
   /** Local mode: a branch to create, already sanitized. */
   newBranch: string | null;
   startFromOrigin: boolean;
-  plan: boolean;
 }
 
 export const initialEnvMode = (project: Pick<DashboardProject, "defaultThreadEnvMode">): EnvMode => project.defaultThreadEnvMode ?? "local";
@@ -21,7 +20,7 @@ export const defaultBaseRef = (refs: ProjectRef[]): ProjectRef | null => refs.fi
 
 export function initialDraft(project: Pick<DashboardProject, "defaultThreadEnvMode">, refs: ProjectRef[]): WorkspaceDraft {
   const envMode = initialEnvMode(project);
-  return { envMode, ref: envMode === "worktree" ? defaultBaseRef(refs) : null, newBranch: null, startFromOrigin: false, plan: false };
+  return { envMode, ref: envMode === "worktree" ? defaultBaseRef(refs) : null, newBranch: null, startFromOrigin: false };
 }
 
 /** The `workspace` to send; undefined keeps the current checkout as it is. */
