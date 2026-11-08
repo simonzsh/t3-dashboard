@@ -33,6 +33,7 @@ export function WorkspaceOptions({ project, draft, onDraft, plan, onPlan, onBloc
 
   useEffect(() => {
     setStatus(null);
+    setCurrent(null);
     setFailure(null);
     // The row shows at once from the project's default mode; the branch fills in when loaded.
     onDraft(project && root ? initialDraft(project, []) : null);
