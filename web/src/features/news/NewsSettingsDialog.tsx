@@ -39,7 +39,6 @@ export function NewsSettingsDialog({ settings, providers, defaults, onSave, onCl
         <div className="dialog-field">
           <span>Automatic generation</span>
           <Switch label="Automatic generation" checked={form.enabled} onChange={(enabled) => setForm({ ...form, enabled })} />
-          <p className="hint">{form.enabled ? "The routine writes an article on its schedule." : "Off: the routine is paused. Run now still writes an article."}</p>
         </div>
         {/* A native disabled fieldset greys and locks every schedule control at once. */}
         <fieldset className="news-schedule" disabled={!form.enabled}>
