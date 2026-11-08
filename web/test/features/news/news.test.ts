@@ -145,4 +145,5 @@ test("the status line says when the article is being written", () => {
   assert.match(statusLine(task(), now, true), /Writing the article now/);
   assert.match(statusLine(task({ lastRunStatus: "running" }), now), /Writing the article now/);
   assert.doesNotMatch(statusLine(task(), now), /Writing/);
+  assert.equal(statusLine(task({ enabled: false }), now, true), "Writing the article now");
 });

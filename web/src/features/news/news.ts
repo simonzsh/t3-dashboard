@@ -72,7 +72,8 @@ export function isStarting(startedAt: number | null, now: number, newestMtimeMs:
 /** One line under the page title: when the next article comes and how the last run went. */
 export function statusLine(task: NewsTask | null, now: Date, writing = false): string {
   if (!task) return "Not scheduled yet. Open News settings and save to start the news.";
-  if (!task.enabled) return "Automatic generation is off. Use Run now to get an article.";
+  // A run in progress matters more than the schedule, even when the routine is paused.
+  if (!task.enabled) return writing || task.lastRunStatus === "running" ? "Writing the article now" : "Automatic generation is off. Use Run now to get an article.";
   const parts = [`Next article ${task.nextRunAt ? formatMessageTime(task.nextRunAt) : "not planned"}`];
   if (writing || task.lastRunStatus === "running") parts.push("Writing the article now");
   else if (task.lastRunAt) {
