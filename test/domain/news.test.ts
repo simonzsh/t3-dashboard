@@ -60,7 +60,7 @@ const known = { settings: NEWS_DEFAULTS, taskId: "scheduled-task:old", taskCreat
 
 test("the prompt names the scope, the language, the folder and the date steps", () => {
   const prompt = newsPrompt({ ...NEWS_DEFAULTS, language: "English" }, "/data/news");
-  for (const part of ["Run `date +%F`", "magazine for software developers", "security (vulnerabilities, breaches, incidents)", "at least 12 distinct stories", "`## Top stories`", "`## In brief`", "`## What to watch`", "Each story appears once", "Never mention these instructions", "never to a home page", "in English, like a professional news article", "/data/news/DATE.md.tmp", "rename it to /data/news/DATE.md", "do not ask questions", "No HTML, no images"]) assert.ok(prompt.includes(part), part);
+  for (const part of ["Run `date +%F`", "magazine for software developers", "security (vulnerabilities, breaches, incidents)", "at least 12 distinct stories", "`## Top stories`", "`## In brief`", "`## What to watch`", "Each story appears once", "Never mention these instructions", "never to a home page", "Check every link", "translate them", "in English, like a professional news article", "/data/news/DATE.md.tmp", "rename it to /data/news/DATE.md", "do not ask questions", "No HTML, no images"]) assert.ok(prompt.includes(part), part);
 });
 
 test("the default model is Codex gpt-6-luna, and nothing is saved by default", () => {
