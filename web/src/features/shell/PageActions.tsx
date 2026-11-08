@@ -47,13 +47,22 @@ interface ActionProps {
   variant?: ButtonVariant;
   /** Show the icon before the label on a wide screen. */
   withIcon?: boolean;
+  /** An icon with a tooltip on every screen, as on a phone. */
+  iconOnly?: boolean;
   kbd?: string;
   disabled?: boolean;
   onClick: () => void;
 }
 
 // An icon button on a phone, a text button on a wide screen.
-function Action({ compact, label, icon, variant = "secondary", withIcon = false, kbd, disabled, onClick }: ActionProps) {
+function Action({ compact, label, icon, variant = "secondary", withIcon = false, iconOnly = false, kbd, disabled, onClick }: ActionProps) {
+  if (iconOnly && !compact) {
+    return (
+      <IconButton variant={variant} label={label} tooltip={label} disabled={disabled} onClick={onClick}>
+        <Icon name={icon} />
+      </IconButton>
+    );
+  }
   if (compact) {
     const primary = variant === "primary";
     return (
@@ -121,11 +130,11 @@ export function PageActions({ tab, compact, ready, editingLayout, layoutIsDefaul
       </>
     );
   } else if (tab === "automations" && ready) {
-    main = <Action compact={compact} label="New Automation" icon="calendarClock" variant="primary" kbd={ctrlLabel("⇧N")} onClick={onNewAutomation} />;
+    main = <Action compact={compact} label="New Automation" icon="calendarClock" variant="primary" withIcon kbd={ctrlLabel("⇧N")} onClick={onNewAutomation} />;
   } else if (tab === "news" && ready) {
     main = (
       <>
-        <Action compact={compact} label="News settings" icon="pencil" onClick={onNewsSettings} />
+        <Action compact={compact} label="News settings" icon="pencil" iconOnly onClick={onNewsSettings} />
         <Action compact={compact} label="Run now" icon="play" variant="primary" withIcon disabled={!newsCanRun || newsRunning} onClick={onNewsRun} />
       </>
     );

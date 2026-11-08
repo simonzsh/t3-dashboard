@@ -53,6 +53,8 @@ test("the layout toggle is hidden when it is off, and on other pages", () => {
 test("Automations shows New Automation only", () => {
   const out = render("automations");
   assert.match(out, /New Automation/);
+  // The wide button carries the same icon as the phone one, before its label.
+  assert.match(out, /<svg[^>]*>.*<\/svg> New Automation/);
   assert.doesNotMatch(out, /New Session|Edit layout/);
 });
 
@@ -136,6 +138,9 @@ test("on a phone the Settings button shows a dot when an update is ready", () =>
 test("News shows News settings, then the primary Run now", () => {
   const out = render("news");
   assert.ok(out.indexOf("News settings") < out.indexOf("Run now"));
+  // News settings is an icon on every screen: a label only in its tooltip.
+  assert.match(out, /aria-label="News settings" data-tooltip="News settings"/);
+  assert.doesNotMatch(out, />News settings</);
   assert.match(out, /class="btn md primary"[^>]*><svg[^>]*>.*<\/svg> Run now/);
   assert.doesNotMatch(out, /New Session|New Automation|Edit layout/);
 });
