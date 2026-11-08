@@ -76,18 +76,23 @@ export function useNotifications({ threads, quiet, remote, connects }: Options) 
     setToasts((list) => list.filter((t) => t.thread.id !== id));
   }, []);
 
+  // Any id: a thread, or another kind of item such as a news article. Nothing happens without a baseline.
+  const markRead = useCallback(
+    (change: { id: string; at: string }) => {
+      const current = latest.current.seen;
+      if (!current || mergeSeen(current, change) === current) return;
+      setSeen((prev) => (prev ? mergeSeen(prev, change) : prev));
+      api.markSeen(change).then((reply) => reply.seen && setSeen((prev) => joinSeen(prev, reply.seen!)), () => {});
+    },
+    [api],
+  );
+
   const markSeen = useCallback(
     (id: string) => {
-      const { threads: live, seen: current } = latest.current;
-      const change = { id, at: live?.find((t) => t.id === id)?.lastActivityAt ?? new Date().toISOString() };
-      // Without a baseline every finished thread counts as seen already: nothing to mark.
-      if (current && mergeSeen(current, change) !== current) {
-        setSeen((prev) => (prev ? mergeSeen(prev, change) : prev));
-        api.markSeen(change).then((reply) => reply.seen && setSeen((prev) => joinSeen(prev, reply.seen!)), () => {});
-      }
+      markRead({ id, at: latest.current.threads?.find((t) => t.id === id)?.lastActivityAt ?? new Date().toISOString() });
       dismiss(id);
     },
-    [api, dismiss],
+    [markRead, dismiss],
   );
 
   useEffect(() => {
@@ -113,5 +118,5 @@ export function useNotifications({ threads, quiet, remote, connects }: Options) 
 
   // Until the server state is known, finished threads count as seen: no full badge on a first visit.
   const ready = useMemo(() => seen ?? { since: "9999", seen: {} }, [seen]);
-  return { seen: ready, seenReady: seen !== null, toasts, dismiss, markSeen };
+  return { seen: ready, seenReady: seen !== null, toasts, dismiss, markSeen, markRead };
 }

@@ -1,6 +1,11 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import type { DashboardThread } from "../../shared/api.ts";
 import { AutomationsView } from "./features/automations/AutomationsView.tsx";
+import { NewsSettingsDialog } from "./features/news/NewsSettingsDialog.tsx";
+import { NewsView } from "./features/news/NewsView.tsx";
+import { unreadNewsCount } from "./features/news/news.ts";
+import { useNewsListHidden } from "./features/news/prefs.ts";
+import { useNews } from "./features/news/useNews.ts";
 import { DashboardView } from "./features/dashboard/DashboardView.tsx";
 import { isDefaultLayout, type DashboardCard } from "./features/dashboard/layout.ts";
 import { useDashboardLayout } from "./features/dashboard/useDashboardLayout.ts";
@@ -63,10 +68,12 @@ export function App() {
   // Always loaded while live: it feeds the Automations badge and the automation icon, besides the page.
   const threadIds = useMemo(() => state?.threads.map((t) => t.id) ?? NO_IDS, [state?.threads]);
   const automations = useAutomations(state?.connection.t3 === "live", threadIds);
+  const news = useNews(tab === "news");
   const [sessions, dispatchSessions] = useSessions();
   const compact = useMediaQuery(PHONE);
   const sheetMode = useMediaQuery(SHEET);
   const [listPrefs, setListPrefs] = useListPrefs();
+  const [newsListHidden, toggleNewsList] = useNewsListHidden();
   // On a phone the Sessions tab is a list; an opened session covers it, with no header or bottom bar.
   const [phoneSession, setPhoneSession] = useState(false);
   const sessionShown = compact && tab === "sessions" && phoneSession && sessions.focusedId !== null;
@@ -97,6 +104,7 @@ export function App() {
   // null: closed; otherwise open, with the project to preselect, if any.
   const [creating, setCreating] = useState<{ projectId: string | null } | null>(null);
   const [creatingAutomation, setCreatingAutomation] = useState(false);
+  const [newsSettingsOpen, setNewsSettingsOpen] = useState(false);
   const [addingProject, setAddingProject] = useState(false);
   const [editingProject, setEditingProject] = useState<string | null>(null);
   const [deletingProject, setDeletingProject] = useState<string | null>(null);
@@ -168,10 +176,10 @@ export function App() {
 
   const editedProject = state?.projects.find((p) => p.id === editingProject);
   const deletedProject = state?.projects.find((p) => p.id === deletingProject);
-  const blocked = creating !== null || creatingAutomation || addingProject || editedProject !== undefined || deletedProject !== undefined || settingsOpen || confirmingUpdate || switcherQuery !== null;
+  const blocked = creating !== null || creatingAutomation || newsSettingsOpen || addingProject || editedProject !== undefined || deletedProject !== undefined || settingsOpen || confirmingUpdate || switcherQuery !== null;
   useShortcuts(
     (action) => {
-      if (action === "dashboard" || action === "sessions" || action === "automations") setTab(action);
+      if (action === "dashboard" || action === "sessions" || action === "automations" || action === "news") setTab(action);
       else if (action === "settings") setSettingsOpen(true);
       else if (action === "toggle-sidebar") {
         if (!compact) toggleSidebar();
@@ -206,6 +214,10 @@ export function App() {
   const automationsNav = useMemo(() => automationsBadge(automations.result?.automations ?? [], threadsById, notify.seen), [automations.result?.automations, threadsById, notify.seen]);
   const unread = useMemo(() => attentionCount(threadSections(threads, notify.seen)), [threads, notify.seen]);
   const agents = useMemo(() => agentCounts(threads), [threads]);
+  const newsUnread = useMemo(() => unreadNewsCount(news.state?.articles ?? [], notify.seen), [news.state?.articles, notify.seen]);
+  // A new identity once the seen state is known, so the page marks its open article again then.
+  const { markRead, seenReady: ready } = notify;
+  const readNews = useCallback((mark: { id: string; at: string }) => ready && markRead(mark), [ready, markRead]);
   const sessionsBadge = useMemo(() => ({ count: sessionsBadgeCount(threads, notify.seen), waiting: agents.waiting > 0 }), [threads, notify.seen, agents.waiting]);
   const dashboardLayout = useDashboardLayout(tab === "dashboard");
   const notifPanel = useNotificationsPanel(sheetMode, tab === "dashboard");
@@ -245,6 +257,7 @@ export function App() {
           unread={unread}
           sessions={sessionsBadge}
           automations={automationsNav}
+          news={newsUnread}
           live={live}
           update={updateNav}
           onTab={showTab}
@@ -262,15 +275,19 @@ export function App() {
               <PageActions
                 tab={tab}
                 compact={compact}
-                ready={state !== null}
+                ready={state !== null && (tab !== "news" || news.state !== null)}
                 editingLayout={dashboardLayout.editing}
                 layoutIsDefault={isDefaultLayout(dashboardLayout.layout)}
                 layout={layout}
                 onLayoutChange={setLayout}
-                listHidden={listPrefs.hidden}
-                onToggleList={() => setListPrefs({ hidden: !listPrefs.hidden })}
+                listHidden={tab === "news" ? newsListHidden : listPrefs.hidden}
+                onToggleList={tab === "news" ? toggleNewsList : () => setListPrefs({ hidden: !listPrefs.hidden })}
                 onNewSession={() => setCreating({ projectId: null })}
                 onNewAutomation={() => setCreatingAutomation(true)}
+                newsCanRun={news.state?.task != null}
+                newsRunning={news.starting || news.writing}
+                onNewsRun={() => void news.run()}
+                onNewsSettings={() => setNewsSettingsOpen(true)}
                 onSearch={openSearch}
                 onSettings={() => setSettingsOpen(true)}
                 updateReady={updateNav !== null}
@@ -323,6 +340,7 @@ export function App() {
                   setup={setup}
                 />
               ) : <Loader />)}
+            {tab === "news" && (news.state ? <NewsView news={news.state} writing={news.writing} now={now} compact={compact} listHidden={newsListHidden} seen={notify.seen} onRead={readNews} onOpenThread={onOpen} onDelete={news.remove} onDeleteAll={news.removeAll} /> : <Loader />)}
             {tab === "sessions" &&
               (state ? (
                 <SessionsView
@@ -375,6 +393,9 @@ export function App() {
             onClose={() => setCreatingAutomation(false)}
             onSaved={automations.reload}
           />
+        )}
+        {state && news.state && newsSettingsOpen && (
+          <NewsSettingsDialog settings={news.state.settings} providers={state.providers} defaults={state.modelDefaults} onSave={news.save} onClose={() => setNewsSettingsOpen(false)} />
         )}
         {state && switcherQuery !== null && (
           <Switcher

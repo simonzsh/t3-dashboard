@@ -1,7 +1,8 @@
-import type { ApprovalDecision, AssignIssueBody, CreateAutomationBody, CreateProjectBody, CreateThreadBody, ProjectIconSpec, RoutineSchedule, WebhookFilter, WebhookSignature, ModelSelection, RespondBody, RewindBody, SecretAnswerBody, SendMessageBody, ThreadSettingsBody, UpdateAutomationBody, UpdateProjectBody, UploadedAttachment, UserInputAnswers } from "../../shared/api.ts";
+import type { ApprovalDecision, AssignIssueBody, CreateAutomationBody, CreateProjectBody, CreateThreadBody, ProjectIconSpec, RoutineSchedule, WebhookFilter, WebhookSignature, ModelSelection, RespondBody, RewindBody, SaveNewsBody, SecretAnswerBody, SendMessageBody, ThreadSettingsBody, UpdateAutomationBody, UpdateProjectBody, UploadedAttachment, UserInputAnswers } from "../../shared/api.ts";
 import { PROJECT_COLOR_NAMES } from "../../shared/projectColors.ts";
 import { ACTIVITY_PERIODS, DEFAULT_ACTIVITY_PERIOD, type ActivityPeriod } from "../../shared/usage.ts";
 import { isObject } from "../../shared/guards.ts";
+import { NEWS_LANGUAGES, isTimeOfDay, isWeekday, type NewsLanguage } from "../../shared/news.ts";
 import { normalizeSessions, type SessionsUpdate } from "../../shared/sessions.ts";
 import { IMAGE_TYPES, MAX_ATTACHMENTS, MAX_FILE_BYTES, MAX_IMAGE_BYTES, MAX_IMAGES, MAX_SECRET_CHARS, isRuntimeMode } from "../../shared/limits.ts";
 import { isSeenId, isSeenTime, type SeenChange } from "../../shared/seen.ts";
@@ -392,4 +393,16 @@ export function validSeen(body: Record<string, unknown>): SeenChange {
 export function validEnabled(body: Record<string, unknown>): boolean {
   if (typeof body.enabled !== "boolean") throw new HttpError(400, "enabled (true or false) is required");
   return body.enabled;
+}
+
+export function validSaveNews(body: Record<string, unknown>): SaveNewsBody {
+  const { timeOfDay, language, enabled, frequency, weekday } = body;
+  const modelSelection = validSelection(body.modelSelection);
+  if (typeof enabled !== "boolean") throw bad("enabled must be true or false");
+  if (frequency !== "daily" && frequency !== "weekly") throw bad('frequency must be "daily" or "weekly"');
+  if (!isWeekday(weekday)) throw bad("weekday must be a whole number from 0 (Sunday) to 6");
+  if (typeof timeOfDay !== "string" || !isTimeOfDay(timeOfDay)) throw bad("timeOfDay must look like 07:00");
+  if (!NEWS_LANGUAGES.includes(language as NewsLanguage)) throw bad(`language must be one of: ${NEWS_LANGUAGES.join(", ")}`);
+  if (!modelSelection) throw bad("modelSelection (instanceId, model) is required");
+  return { enabled, frequency, weekday, timeOfDay, language: language as NewsLanguage, modelSelection };
 }

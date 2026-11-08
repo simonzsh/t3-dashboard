@@ -1,9 +1,10 @@
 import assert from "node:assert/strict";
 import { afterEach, test } from "bun:test";
-import type { CacheCleanupPreview, CacheCleanupResult, LimitsOverview, ServerStats, UsageOverview, Automation, AutomationsResult, ConnectionStatus, DashboardEvent, DashboardState } from "../../shared/api.ts";
+import type { CacheCleanupPreview, CacheCleanupResult, LimitsOverview, ServerStats, UsageOverview, Automation, AutomationsResult, ConnectionStatus, DashboardEvent, DashboardState, NewsState } from "../../shared/api.ts";
 import { LinearClient } from "../../src/integrations/linear/client.ts";
 import { createActions } from "../../src/domain/actions.ts";
 import type { Automations } from "../../src/domain/automations.ts";
+import type { News } from "../../src/domain/news.ts";
 import { IntegrationError } from "../../src/integrations/errors.ts";
 import { DomainError } from "../../src/domain/errors.ts";
 import { LinearBoard } from "../../src/domain/linearBoard.ts";
@@ -42,6 +43,7 @@ interface StartOptions {
   linearFetch?: (url: string, init: RequestInit) => Promise<Response>;
   // Notifications the fake Linear answers to the inbox query.
   inbox?: unknown[];
+  news?: Partial<Pick<News, "get" | "article" | "search" | "save" | "runNow" | "remove" | "removeAll">>;
   automations?: Pick<Automations, "list" | "create" | "remove" | "update"> & Partial<Pick<Automations, "setEnabled" | "runNow">>;
   // Content of the Linear file. Without it, `linearKey` feeds the board directly.
   linear?: unknown;
@@ -76,6 +78,8 @@ const usageOverview: UsageOverview = {
   cost: { status: "ok", detail: null, refreshing: false },
   readAt: now.toISOString(),
 };
+
+const newsState: NewsState = { settings: { enabled: true, frequency: "daily", weekday: 1, timeOfDay: "07:00", language: "English", modelSelection: null }, task: null, articles: [{ date: "2026-11-07", title: "News", mtimeMs: 1 }], running: null };
 
 const LINEAR_FILE = "/cfg/linear.json";
 
@@ -190,6 +194,7 @@ async function start(startOptions: StartOptions = {}) {
     serverStats,
     cacheCleanup,
     automations: { setEnabled: async () => {}, runNow: async () => {}, ...automations },
+    news: { get: async () => newsState, article: async (date) => ({ date, title: "T", markdown: "# T" }), search: async () => ({ dates: [] }), save: async () => newsState, runNow: async () => {}, remove: async () => {}, removeAll: async () => 0, ...startOptions.news },
     getState,
     connection: () => connection,
     site,
@@ -615,6 +620,10 @@ test("every POST route refuses a body that is not JSON", async () => {
     "/api/automations/task-1/update",
     "/api/automations/task-1/enabled",
     "/api/automations/task-1/run",
+    "/api/news/settings",
+    "/api/news/run",
+    "/api/news/delete-all",
+    "/api/news/2026-11-07/delete",
     "/api/threads/run-1/messages",
     "/api/threads/run-1/settings",
     "/api/threads/run-1/interrupt",
@@ -1830,4 +1839,115 @@ test("POST /api/projects answers 400, 409 and 502 for T3 refusals", async () => 
   port.mutateError = refuse();
   const other = await post(server, "/api/projects", { path: "/x" });
   assert.deepEqual([other.status, other.json.error], [502, "T3 says no"]);
+});
+
+const newsBody = { enabled: false, frequency: "weekly", weekday: 0, timeOfDay: "06:45", language: "French", modelSelection: model };
+
+test("GET /api/news returns the news state, and GET /api/news/:date one article", async () => {
+  const { server } = await start();
+  assert.deepEqual((await call(server, "GET", "/api/news")).json, newsState);
+  assert.deepEqual((await call(server, "GET", "/api/news/2026-11-07")).json, { date: "2026-11-07", title: "T", markdown: "# T" });
+});
+
+test("GET /api/news/search is not taken for a date, and maps a bad query to 400", async () => {
+  const queries: string[] = [];
+  const search = async (q: string) => {
+    queries.push(q);
+    if (!q.trim()) throw new DomainError("invalid", "The search must have 1 to 100 characters");
+    return { dates: ["2026-11-07"] };
+  };
+  const { server } = await start({ news: { search, article: async () => { throw new Error("taken for a date"); } } });
+  const reply = await call(server, "GET", "/api/news/search?q=caf%C3%A9");
+  assert.deepEqual([reply.status, reply.json], [200, { dates: ["2026-11-07"] }]);
+  assert.deepEqual(queries, ["café"]);
+  assert.equal((await call(server, "GET", "/api/news/search")).status, 400);
+});
+
+test("GET /api/news/:date maps a bad date to 400 and a missing article to 404", async () => {
+  const article = async (date: string) => {
+    if (date === "2026-11-01") throw new DomainError("not-found", "No article for this date");
+    throw new DomainError("invalid", "The date must look like 2026-11-07");
+  };
+  const { server } = await start({ news: { article } });
+  assert.equal((await call(server, "GET", "/api/news/2026-11-01")).status, 404);
+  assert.equal((await call(server, "GET", "/api/news/..%2Fsecret")).status, 400);
+});
+
+test("POST /api/news/:date/delete removes one article and maps errors", async () => {
+  const removed: string[] = [];
+  const remove = async (date: string) => {
+    if (date === "2026-11-01") throw new DomainError("not-found", "No article for this date");
+    if (date === "nope") throw new DomainError("invalid", "The date must look like 2026-11-07");
+    removed.push(date);
+  };
+  const { server } = await start({ news: { remove } });
+  const reply = await post(server, "/api/news/2026-11-07/delete", {});
+  assert.deepEqual([reply.status, reply.json], [200, { ok: true }]);
+  assert.deepEqual(removed, ["2026-11-07"]);
+  assert.equal((await post(server, "/api/news/2026-11-01/delete", {})).status, 404);
+  assert.equal((await post(server, "/api/news/nope/delete", {})).status, 400);
+});
+
+test("POST /api/news/delete-all is not taken for a date, and returns the count", async () => {
+  const removed: string[] = [];
+  const { server } = await start({ news: { remove: async (date) => void removed.push(date), removeAll: async () => 3 } });
+  const reply = await post(server, "/api/news/delete-all", {});
+  assert.deepEqual([reply.status, reply.json], [200, { ok: true, removed: 3 }]);
+  assert.deepEqual(removed, []);
+});
+
+test("POST /api/news/settings keeps the options of the model selection", async () => {
+  const saved: unknown[] = [];
+  const { server } = await start({ news: { save: async (body) => (saved.push(body), newsState) } });
+  const modelSelection = { ...model, options: [{ id: "reasoningEffort", value: "high" }] };
+  await post(server, "/api/news/settings", { ...newsBody, modelSelection });
+  assert.deepEqual((saved[0] as { modelSelection: unknown }).modelSelection, modelSelection);
+});
+
+test("POST /api/news/settings validates the body and saves the clean settings", async () => {
+  const saved: unknown[] = [];
+  const { server } = await start({ news: { save: async (body) => (saved.push(body), newsState) } });
+  const reply = await post(server, "/api/news/settings", newsBody);
+  assert.equal(reply.status, 200);
+  assert.deepEqual(reply.json, newsState);
+  assert.deepEqual(saved, [{ enabled: false, frequency: "weekly", weekday: 0, timeOfDay: "06:45", language: "French", modelSelection: model }]);
+  const bad: unknown[] = [
+    {},
+    { ...newsBody, timeOfDay: "7:00" },
+    { ...newsBody, timeOfDay: "24:00" },
+    { ...newsBody, language: "" },
+    { ...newsBody, language: "German" },
+    { ...newsBody, language: "french" },
+    { ...newsBody, language: undefined },
+    { ...newsBody, enabled: undefined },
+    { ...newsBody, enabled: "yes" },
+    { ...newsBody, frequency: "monthly" },
+    { ...newsBody, frequency: undefined },
+    { ...newsBody, weekday: 7 },
+    { ...newsBody, weekday: -1 },
+    { ...newsBody, weekday: 1.5 },
+    { ...newsBody, weekday: "1" },
+    { ...newsBody, modelSelection: null },
+    { ...newsBody, modelSelection: { instanceId: "a" } },
+  ];
+  for (const body of bad) assert.equal((await post(server, "/api/news/settings", body)).status, 400, JSON.stringify(body));
+  assert.equal(saved.length, 1);
+  // An old client may still send topics: they are ignored.
+  const old = await post(server, "/api/news/settings", { ...newsBody, topics: ["AI"] });
+  assert.equal(old.status, 200);
+  assert.ok(!("topics" in (saved[1] as object)));
+});
+
+test("POST /api/news/settings maps a T3 failure to 502", async () => {
+  const { server } = await start({ news: { save: async () => { throw new IntegrationError("T3 is down", { system: "t3", kind: "unreachable" }); } } });
+  assert.equal((await post(server, "/api/news/settings", newsBody)).status, 502);
+});
+
+test("POST /api/news/run starts the run, and says to save first when there is no task", async () => {
+  const { server } = await start();
+  assert.deepEqual((await post(server, "/api/news/run")).json, { ok: true });
+  const missing = await start({ news: { runNow: async () => { throw new DomainError("not-found", "Save the News settings first"); } } });
+  const reply = await post(missing.server, "/api/news/run");
+  assert.equal(reply.status, 404);
+  assert.match(reply.text, /Save the News settings first/);
 });

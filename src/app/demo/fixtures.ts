@@ -754,6 +754,20 @@ export function demoScheduledTasks(now: Date): RawScheduledTask[] {
     },
     {
       ...common,
+      id: "news",
+      title: "News",
+      prompt: "Write today's news article.",
+      schedule: { type: "fixed_time", timeOfDay: "07:00" },
+      projectId: SCRATCH_PROJECT_ID,
+      threadId: null,
+      creationSource: "web",
+      modelSelection: SONNET,
+      nextRunAt: hoursFrom(now, 20),
+      lastRunAt: hoursFrom(now, -4),
+      lastRunStatus: "succeeded",
+    },
+    {
+      ...common,
       id: "offsite-reminder",
       title: "Reminder: Book the offsite room",
       prompt: "Remind me to book the offsite room.",
@@ -827,4 +841,23 @@ export function demoUsageBuckets(sinceDay: string, untilDay: string): RawUsageSu
     }
   }
   return { buckets };
+}
+
+export const DEMO_NEWS_DIR = "/demo/news";
+
+const demoArticle = (date: string, title: string, sections: Array<[string, string, string]>) =>
+  `# ${title} (${date})\n\n${sections.map(([area, headline, text]) => `## ${area}\n\n**${headline}** ${text} [Source](https://news.example.invalid/${area.toLowerCase()})\n`).join("\n")}\n## Key takeaways\n\n1. Open tools keep getting faster.\n2. Teams ship smaller changes more often.\n3. Review output before you trust it.\n`;
+
+/** The news settings and three daily articles. The stored task id is the demo task `news`. */
+export function demoNews(now: Date) {
+  const day = (offset: number) => new Date(now.getTime() - offset * 86_400_000).toISOString().slice(0, 10);
+  const articles: Array<[number, string, Array<[string, string, string]>]> = [
+    [0, "Faster builds and smaller models", [["Tech", "A new laptop line ships", "Makers promise longer battery life."], ["AI", "Smaller models close the gap", "A compact model matches last year's large one on common tests."]]],
+    [1, "Editors learn to review code", [["Software", "A popular editor adds review hints", "The feature flags risky changes before a merge."], ["AI", "Agents get a shared test suite", "Vendors agree on one way to measure tool use."]]],
+    [2, "Quiet week for releases", [["Tech", "Chip makers share new roadmaps", "Volume shipments start next year."], ["Software", "A build tool reaches version 2", "Cold builds run twice as fast."]]],
+  ];
+  const entries = articles.map(([offset]) => ({ name: `${day(offset)}.md`, mtimeMs: now.getTime() - offset * 86_400_000, isFile: true }));
+  const contents = Object.fromEntries(articles.map(([offset, title, sections]) => [`${DEMO_NEWS_DIR}/${day(offset)}.md`, demoArticle(day(offset), title, sections)]));
+  const settings = JSON.stringify({ version: 1, settings: { enabled: true, frequency: "daily", weekday: 1, timeOfDay: "07:00", language: "English", modelSelection: SONNET }, taskId: "news", taskCreatedAt: hoursFrom(now, -72) });
+  return { settings, entries, contents };
 }

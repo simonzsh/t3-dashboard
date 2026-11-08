@@ -7,6 +7,7 @@ export type * from "./requests.ts";
 export type * from "./linear.ts";
 export type * from "./settings.ts";
 export type * from "./automations.ts";
+export type * from "./news.ts";
 export type * from "./search.ts";
 export type * from "./sessions.ts";
 export type * from "./stash.ts";

@@ -15,10 +15,10 @@ export const loadNewAgentProject = (storage: Store | null, projects: DashboardPr
 
 export const saveNewAgentProject = (storage: Store | null, projectId: string): void => saveProjectChoice(storage, KEY, projectId);
 
-/** The project's default, else T3's default, else the first model; a default no longer offered is skipped. */
-export function presetSelection(project: DashboardProject | undefined, providers: DashboardProvider[], fallback: ModelSelection | null = null): ModelSelection | null {
+/** The project's default, else each fallback in order (T3's default last), else the first model; a default no longer offered is skipped. */
+export function presetSelection(project: DashboardProject | undefined, providers: DashboardProvider[], ...fallbacks: Array<ModelSelection | null>): ModelSelection | null {
   const offered = (sel: ModelSelection | null | undefined): sel is ModelSelection => !!sel && providers.some((p) => p.instanceId === sel.instanceId && p.models.some((m) => m.slug === sel.model));
-  const sel = [project?.defaultModelSelection, fallback].find(offered);
+  const sel = [project?.defaultModelSelection, ...fallbacks].find(offered);
   if (sel) return sel;
   const first = providers.find((p) => p.models.length > 0);
   return first ? { instanceId: first.instanceId, model: first.models[0]!.slug } : null;

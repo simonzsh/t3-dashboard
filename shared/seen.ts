@@ -32,7 +32,8 @@ export const later = (a: string, b: string) => (a.localeCompare(b) >= 0 ? a : b)
 
 // A thread is unseen while its last activity is newer than the baseline and its read mark.
 // A read mark comes from opening the thread or from "Mark as read".
-export const isUnseen = (t: DashboardThread, seen: SeenState) => t.lastActivityAt.localeCompare(later(seen.since, seen.seen[t.id] ?? "")) > 0;
+export const isUnseenAt = (id: string, at: string, seen: SeenState) => at.localeCompare(later(seen.since, seen.seen[id] ?? "")) > 0;
+export const isUnseen = (t: DashboardThread, seen: SeenState) => isUnseenAt(t.id, t.lastActivityAt, seen);
 
 /** Drops marks the baseline hides and keeps the newest ones. Dropped marks move the baseline up, so they stay seen. */
 export function prune({ since, seen }: SeenState): SeenState {

@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "bun:test";
-import { authFile, automationThreadsFile, claudeRulesFile, codexRulesFile, configDir, linearFile, logFile, pidFile, stateDir } from "../../src/config/paths.ts";
+import { authFile, automationThreadsFile, claudeRulesFile, codexRulesFile, configDir, linearFile, logFile, newsDir, newsFile, pidFile, stateDir } from "../../src/config/paths.ts";
 
 test("files live in the config directory, under the home by default", () => {
   assert.equal(configDir({}, "/home/ann"), "/home/ann/.config/t3-dashboard");
@@ -31,4 +31,11 @@ test("the agent rules files follow the Claude and Codex homes", () => {
   assert.equal(codexRulesFile({}, "/home/ann"), "/home/ann/.codex/AGENTS.md");
   assert.equal(claudeRulesFile({ CLAUDE_CONFIG_DIR: "/c" }, "/h"), "/c/CLAUDE.md");
   assert.equal(codexRulesFile({ CODEX_HOME: "/x" }, "/h"), "/x/AGENTS.md");
+});
+
+test("the news settings and the article folder follow the config directory, as absolute paths", () => {
+  assert.equal(newsFile({}, "/home/ann"), "/home/ann/.config/t3-dashboard/news.json");
+  assert.equal(newsDir({}, "/home/ann"), "/home/ann/.config/t3-dashboard/news");
+  assert.equal(newsDir({ T3_DASHBOARD_CONFIG_DIR: "/x/cfg" }, "/h"), "/x/cfg/news");
+  assert.equal(newsDir({ T3_DASHBOARD_CONFIG_DIR: "rel/cfg" }, "/h").startsWith("/"), true);
 });

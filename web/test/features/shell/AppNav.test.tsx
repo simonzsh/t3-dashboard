@@ -8,6 +8,7 @@ const base = {
   unread: 0,
   sessions: { count: 0, waiting: false },
   automations: { count: 0, failed: false },
+  news: 0,
   live: true,
   update: null,
   collapsed: false,
@@ -20,10 +21,10 @@ const base = {
 const side = (over = {}) => renderToStaticMarkup(<AppNav layout="side" {...base} {...over} />);
 const bottom = (over = {}) => renderToStaticMarkup(<AppNav layout="bottom" {...base} {...over} />);
 
-test("the sidebar lists Dashboard, Sessions and Automations, with the open page marked current", () => {
+test("the sidebar lists Dashboard, Sessions, Automations and News, with the open page marked current", () => {
   const out = side();
   assert.match(out, /<nav class="sidebar/);
-  assert.deepEqual([...out.matchAll(/data-tab="(\w+)"/g)].map((m) => m[1]), ["dashboard", "sessions", "automations"]);
+  assert.deepEqual([...out.matchAll(/data-tab="(\w+)"/g)].map((m) => m[1]), ["dashboard", "sessions", "automations", "news"]);
   assert.match(out, /aria-current="page"[^>]*data-tab="sessions"|data-tab="sessions"[^>]*aria-current="page"/);
   assert.equal(out.match(/aria-current="page"/g)?.length, 1);
 });
@@ -50,11 +51,11 @@ test("the sidebar shows the update button only when an update is ready", () => {
   assert.match(side({ update: { label: "Update v1.2.3", busy: false } }), /update-pill[^>]*>[\s\S]*?Update v1\.2\.3/);
 });
 
-test("the bottom bar has the three pages only (Settings is in the phone header), and no sidebar", () => {
+test("the bottom bar has the four pages only (Settings is in the phone header), and no sidebar", () => {
   const out = bottom();
   assert.match(out, /<nav class="bottom-nav"/);
   assert.doesNotMatch(out, /sidebar|Search…/);
-  assert.deepEqual([...out.matchAll(/data-tab="(\w+)"/g)].map((m) => m[1]), ["dashboard", "sessions", "automations"]);
+  assert.deepEqual([...out.matchAll(/data-tab="(\w+)"/g)].map((m) => m[1]), ["dashboard", "sessions", "automations", "news"]);
   assert.doesNotMatch(out, /Settings/);
   assert.equal(out.match(/aria-current="page"/g)?.length, 1);
 });
@@ -80,4 +81,12 @@ test("the Automations entry shows the unread runs and a red dot when one failed,
 
 test("the Automations entry shows nothing when no run is unread", () => {
   assert.doesNotMatch(side(), /unread runs|automation run failed/);
+});
+
+test("News shows its unread articles like the other tabs, in the sidebar and the bottom bar", () => {
+  for (const out of [side({ news: 2 }), bottom({ news: 2 })]) assert.match(out, /aria-label="2 unread articles">2</);
+  assert.match(side({ news: 1 }), /aria-label="1 unread article">1</);
+  assert.match(side({ news: 14 }), /aria-label="14 unread articles">9\+</);
+  assert.doesNotMatch(side(), /nav-badge/);
+  assert.match(side({ news: 2 }), /data-tab="news"[\s\S]*nav-badge/);
 });

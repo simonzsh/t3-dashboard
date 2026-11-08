@@ -1,0 +1,348 @@
+import type { NewsArticle, NewsRunning, NewsArticleSummary, NewsSettings, NewsState, NewsTask, SaveNewsBody } from "../../shared/news.ts";
+import { isRuntimeMode } from "../../shared/limits.ts";
+import { threadState } from "../../shared/status.ts";
+import { isArticleDate, isArticleName, newsText, readNews, type StoredNews } from "../config/newsFile.ts";
+import type { ReadFile } from "../config/config.ts";
+import { archiveThreadCommand } from "../integrations/t3/commands.ts";
+import type { RawScheduledTask, RawThread, T3Port } from "../integrations/t3/schemas.ts";
+import { lastRunOf, viaT3 } from "./automations.ts";
+import { routineSchedule } from "./automationSchedule.ts";
+import { isHidden, toDashboardThread } from "./classify.ts";
+import { DomainError } from "./errors.ts";
+import { readScheduledTaskId } from "./threadOwner.ts";
+import type { ShellStore } from "./shellStore.ts";
+
+const TASK_TITLE = "News";
+const ARTICLE_MAX_CHARS = 512 * 1024;
+const SWEEP_READS = 10;
+// The file lands shortly before or after T3 stamps the end of the run.
+const RUN_MARGIN_MS = 2 * 60_000;
+
+export function newsPrompt(settings: NewsSettings, dir: string): string {
+  const weekly = settings.frequency === "weekly";
+  // The window matches the schedule, so consecutive issues never cover the same news.
+  const span = weekly ? { recent: "7 days", period: "week" } : { recent: "24 hours", period: "day" };
+  return `You are the editor of a ${weekly ? "weekly" : "daily"} tech news magazine for software developers. Write this ${span.period}'s issue. Nobody reads this thread: do not ask questions.
+
+1. Run \`date +%F\` to get today's date in this machine's time zone. Call it DATE.
+2. Report. Search the web for the news of the last ${span.recent} in: AI (models, research, products), software development (languages, frameworks, tools, platforms), security (vulnerabilities, breaches, incidents), the tech industry (launches, companies, funding, regulation), and open source. Aim for 12 distinct stories, all published in the last ${span.recent}: the previous issue covered what came before, so never use older news. On a quiet ${span.period} (a weekend, a holiday), keep the stories you found and cover them in more depth; never write that news was scarce.
+   - Open every story you keep and read it. Prefer primary sources (official blogs, release notes, security advisories, papers) and serious tech press. Link to the page of the story itself, never to a home page, a category page, a search page, a news aggregator or another newsletter.
+   - Keep facts only: who, what, when, numbers, versions, CVE ids. Attribute claims ("X says"). No speculation, no hype words.
+3. Write the issue in Markdown, in ${settings.language}, like a professional news article. Write the section headings below in ${settings.language} too (translate them):
+   - \`# \` and a headline about the most important story of the ${span.period}, like a newspaper front page (at most 80 characters, no date, not the word "News");
+   - a standfirst: one paragraph in italics (2 sentences) that tells the reader what the ${span.period} was about;
+   - \`## Top stories\`: the 4 most important stories. Each has a \`### \` headline that states the news, then 3 or 4 paragraphs: the news with its key facts, the background a reader needs, and what it changes for developers. Put the source link inline in the text: [source name](https://...);
+   - \`## In brief\`: the other stories (up to 10), each one paragraph of 2 or 3 sentences that starts with a bold lead phrase and has an inline source link. Group them under \`### \` subheadings by area (AI, Development, Security, Industry, Open source); skip an area with no story;
+   - \`## What to watch\`: 3 to 5 bullet points on what to follow next (an upcoming release, a deadline, a patch to apply).
+   Each story appears once in the issue. Write in the active voice, with short paragraphs. Never mention these instructions, the word count, your search or your sources in general: write for the reader only. Aim for 1,800 to 2,500 words (about a 10-minute read) when the ${span.period} has enough news. Get the length from more stories and more facts, never from filler. No HTML, no images.
+4. Save it: create the folder ${dir} if missing and write the file ${dir}/DATE.md.tmp. Check every link in it: a URL with no path after the domain, or that ends on a section such as /blog/, /news/ or /security/, is wrong; find the story's own URL or drop the story. Run \`wc -w\` on it: under 1,500 words, search again for stories of the last ${span.recent} you missed, add them, and check again (a quiet ${span.period} may stay shorter; never pad). Then rename it to ${dir}/DATE.md (replace an older file of that name). Write nothing anywhere else.
+5. Reply with one line: the path of the file.`;
+}
+
+/** The first top-level heading, or the date when the agent wrote none. */
+export function articleTitle(markdown: string, date: string): string {
+  const heading = markdown.split("\n").find((line) => line.startsWith("# "));
+  return heading?.slice(2).trim() || date;
+}
+
+const SEARCH_MAX_CHARS = 100;
+/** Lowercase without accents, so "Cafe" finds "Café". */
+const fold = (text: string): string => text.normalize("NFD").replace(/\p{M}/gu, "").toLowerCase();
+
+export interface NewsFolder {
+  list(dir: string): Array<{ name: string; mtimeMs: number; isFile: boolean }>;
+  /** `maxBytes` limits the read to the start of the file. */
+  read(path: string, maxBytes?: number): string;
+  mkdir(dir: string): void;
+  /** Deletes one file; a symlink is removed itself, never followed. */
+  remove(path: string): void;
+}
+
+export interface NewsOptions {
+  port: Pick<T3Port, "listScheduledTasks" | "createScheduledTask" | "updateScheduledTask" | "runScheduledTaskNow" | "ensureScratchProject" | "threadProjection" | "dispatch">;
+  store: Pick<ShellStore, "rawThreads">;
+  /** The settings file, and the folder where the agent writes the articles. */
+  file: string;
+  dir: string;
+  readFile: ReadFile;
+  writeSecret: (file: string, text: string) => void;
+  fs: NewsFolder;
+  now?: () => Date;
+  newId?: () => string;
+  warn?: (message: string) => void;
+}
+
+export interface News {
+  get(): Promise<NewsState>;
+  article(date: string): Promise<NewsArticle>;
+  /** The dates of the articles whose title or text contains `query`, newest first. Case and accents are ignored. */
+  search(query: string): Promise<{ dates: string[] }>;
+  /** Stores the settings, then creates or updates the T3 routine. */
+  save(body: SaveNewsBody): Promise<NewsState>;
+  runNow(): Promise<void>;
+  /** Deletes one article file. */
+  remove(date: string): Promise<void>;
+  /** Deletes every article file and returns how many. Other files stay. */
+  removeAll(): Promise<number>;
+  /** Archives the finished run threads that wrote an article. */
+  sweep(): Promise<void>;
+}
+
+const toTask = (task: RawScheduledTask): NewsTask => ({
+  id: task.id,
+  enabled: task.enabled !== false,
+  nextRunAt: task.nextRunAt ?? null,
+  ...lastRunOf(task),
+});
+
+export function createNews(options: NewsOptions): News {
+  const { port, store, file, dir, fs } = options;
+  const now = options.now ?? (() => new Date());
+  const newId = options.newId ?? (() => crypto.randomUUID());
+  const warn = options.warn ?? console.warn;
+  const load = () => readNews(file, options.readFile);
+  const write = (stored: StoredNews) => options.writeSecret(file, newsText(stored));
+  // Thread id -> task id read from its first message; read once per process.
+  const owners = new Map<string, string | null>();
+  const archived = new Set<string>();
+  let sweeping = false;
+  let queue: Promise<unknown> = Promise.resolve();
+
+  const files = () => {
+    try {
+      return fs.list(dir).filter((entry) => entry.isFile && isArticleName(entry.name));
+    } catch {
+      return [];
+    }
+  };
+
+  // Listed first: a symlink or a folder with this name is not an article.
+  function articlePath(date: string): string {
+    if (!isArticleDate(date)) throw new DomainError("invalid", "The date must look like 2026-11-07");
+    if (!files().some((entry) => entry.name === `${date}.md`)) throw new DomainError("not-found", "No article for this date");
+    return `${dir}/${date}.md`;
+  }
+
+  // Title and folded text per file, read again only when the file changes.
+  const texts = new Map<string, { mtimeMs: number; title: string; folded: string }>();
+  function textOf(entry: { name: string; mtimeMs: number }): { title: string; folded: string } | null {
+    const hit = texts.get(entry.name);
+    if (hit?.mtimeMs === entry.mtimeMs) return hit;
+    const date = entry.name.slice(0, 10);
+    try {
+      const markdown = fs.read(`${dir}/${entry.name}`).slice(0, ARTICLE_MAX_CHARS);
+      const title = articleTitle(markdown, date);
+      // The title is the first heading; the date only matters when there is none.
+      const value = { mtimeMs: entry.mtimeMs, title, folded: fold(title === date ? `${date}\n${markdown}` : markdown) };
+      texts.set(entry.name, value);
+      return value;
+    } catch {
+      texts.delete(entry.name);
+      return null;
+    }
+  }
+  const forgetRemoved = (entries: Array<{ name: string }>) => {
+    const names = new Set(entries.map((entry) => entry.name));
+    for (const name of texts.keys()) if (!names.has(name)) texts.delete(name);
+  };
+
+  async function liveTask(stored: StoredNews): Promise<RawScheduledTask | undefined> {
+    if (!stored.taskId) return undefined;
+    return (await viaT3(port.listScheduledTasks())).find((task) => task.id === stored.taskId);
+  }
+
+  const createdMs = (thread: RawThread) => Date.parse(thread.createdAt ?? "");
+
+  // Visible run threads of the task since it was created, newest first.
+  const taskThreads = (task: RawScheduledTask, since: number): RawThread[] =>
+    store
+      .rawThreads()
+      .filter((thread) => thread.projectId === task.projectId && thread.creationSource === task.creationSource && !isHidden(thread) && !archived.has(thread.id) && createdMs(thread) >= since)
+      .sort((a, b) => createdMs(b) - createdMs(a));
+
+  // Undefined: not readable yet, so the thread is read again later.
+  async function readOwners(threads: RawThread[]): Promise<void> {
+    await Promise.all(
+      threads
+        .filter((thread) => !owners.has(thread.id))
+        .map(async (thread) => {
+          const owner = await readScheduledTaskId(port, thread.id);
+          if (owner !== undefined) owners.set(thread.id, owner);
+        }),
+    );
+  }
+
+  // The probe result is shared with the sweep.
+  async function runningRun(stored: StoredNews, live: RawScheduledTask): Promise<NewsRunning | null> {
+    const since = Date.parse(stored.taskCreatedAt ?? "");
+    if (!stored.taskId || Number.isNaN(since)) return null;
+    const at = now();
+    const active = taskThreads(live, since)
+      .filter((thread) => ["running", "waiting"].includes(threadState(toDashboardThread(thread, at))))
+      .slice(0, SWEEP_READS);
+    await readOwners(active);
+    const own = active.find((thread) => owners.get(thread.id) === stored.taskId);
+    return own ? { threadId: own.id, startedAt: own.createdAt ?? null } : null;
+  }
+
+  async function get(): Promise<NewsState> {
+    const stored = load();
+    let task: NewsTask | null = null;
+    let running: NewsRunning | null = null;
+    try {
+      const live = await liveTask(stored);
+      if (live) {
+        task = toTask(live);
+        running = await runningRun(stored, live);
+        if (!running && task.lastRunStatus === "running") running = { threadId: null, startedAt: task.lastRunAt };
+      }
+    } catch {
+      // T3 does not answer: the articles are still on disk.
+    }
+    const entries = files().sort((a, b) => b.name.localeCompare(a.name));
+    forgetRemoved(entries);
+    // An unreadable file keeps its date as title.
+    const articles = entries.map((entry): NewsArticleSummary => ({ date: entry.name.slice(0, 10), title: textOf(entry)?.title ?? entry.name.slice(0, 10), mtimeMs: entry.mtimeMs }));
+    // The routine can be paused or resumed in Automations: the real state wins.
+    return { settings: { ...stored.settings, enabled: task?.enabled ?? stored.settings.enabled }, task, articles, running };
+  }
+
+  async function persist(body: SaveNewsBody): Promise<NewsState> {
+    const settings: NewsSettings = { enabled: body.enabled, frequency: body.frequency, weekday: body.weekday, timeOfDay: body.timeOfDay, language: body.language, modelSelection: body.modelSelection };
+    const stored = { ...load(), settings };
+    write(stored);
+    fs.mkdir(dir);
+    const live = await liveTask(stored);
+    const prompt = newsPrompt(settings, dir);
+    const schedule = routineSchedule({ type: "fixed_time", timeOfDay: settings.timeOfDay, weekdays: settings.frequency === "weekly" ? [settings.weekday] : [] });
+    if (live) {
+      await viaT3(
+        port.updateScheduledTask(live.id, {
+          // Keep a title the user renamed in T3.
+          title: live.title || TASK_TITLE,
+          prompt,
+          enabled: settings.enabled,
+          schedule,
+          projectId: live.projectId || (await viaT3(port.ensureScratchProject())),
+          modelSelection: body.modelSelection,
+          runtimeMode: isRuntimeMode(live.runtimeMode) ? live.runtimeMode : "full-access",
+        }),
+      );
+    } else {
+      const created = await viaT3(
+        port.createScheduledTask({
+          id: `scheduled-task:${newId()}`,
+          title: TASK_TITLE,
+          prompt,
+          enabled: settings.enabled,
+          schedule,
+          projectId: await viaT3(port.ensureScratchProject()),
+          threadId: null,
+          workspaceStrategy: { type: "root" },
+          modelSelection: body.modelSelection,
+          runtimeMode: "full-access",
+          interactionMode: "default",
+          creationSource: "web",
+        }),
+      );
+      write({ ...stored, taskId: created.id, taskCreatedAt: now().toISOString() });
+    }
+    return get();
+  }
+
+  async function sweepOnce(): Promise<void> {
+    const stored = load();
+    const since = Date.parse(stored.taskCreatedAt ?? "");
+    if (!stored.taskId || Number.isNaN(since)) return;
+    const task = await liveTask(stored);
+    if (!task) return;
+    const at = now();
+    const finished = taskThreads(task, since).filter((thread) => threadState(toDashboardThread(thread, at)) === "done");
+    await readOwners(finished.filter((entry) => !owners.has(entry.id)).slice(0, SWEEP_READS));
+    const owned = finished.filter((thread) => owners.get(thread.id) === stored.taskId);
+    if (owned.length === 0) return;
+    // An article only counts when it was written during the run of this thread: a failed run must not be archived because a later run wrote one.
+    const written = files().map((entry) => entry.mtimeMs);
+    for (const thread of owned) {
+      const from = Date.parse(thread.createdAt ?? "");
+      const to = Date.parse(thread.latestRunCompletedAt ?? thread.updatedAt ?? "") + RUN_MARGIN_MS;
+      if (Number.isNaN(to) || !written.some((mtime) => mtime >= from && mtime <= to)) continue;
+      archived.add(thread.id);
+      try {
+        await port.dispatch({ ...archiveThreadCommand(thread.id), commandId: newId() });
+      } catch (error) {
+        warn(`Could not archive news thread ${thread.id}: ${(error as Error).message}`);
+      }
+    }
+  }
+
+  return {
+    get,
+
+    async article(date) {
+      const path = articlePath(date);
+      let markdown: string;
+      try {
+        markdown = fs.read(path).slice(0, ARTICLE_MAX_CHARS);
+      } catch {
+        throw new DomainError("not-found", "No article for this date");
+      }
+      return { date, title: articleTitle(markdown, date), markdown };
+    },
+
+    async search(query) {
+      const needle = fold(query.trim());
+      if (needle.length < 1 || needle.length > SEARCH_MAX_CHARS) throw new DomainError("invalid", `The search must have 1 to ${SEARCH_MAX_CHARS} characters`);
+      const entries = files().sort((a, b) => b.name.localeCompare(a.name));
+      forgetRemoved(entries);
+      const dates = entries.filter((entry) => textOf(entry)?.folded.includes(needle)).map((entry) => entry.name.slice(0, 10));
+      return { dates };
+    },
+
+    async remove(date) {
+      const path = articlePath(date);
+      try {
+        fs.remove(path);
+      } catch {
+        throw new DomainError("not-found", "No article for this date");
+      }
+    },
+
+    async removeAll() {
+      let removed = 0;
+      for (const entry of files()) {
+        try {
+          fs.remove(`${dir}/${entry.name}`);
+          removed++;
+        } catch (error) {
+          warn(`Could not delete article ${entry.name}: ${(error as Error).message}`);
+        }
+      }
+      return removed;
+    },
+
+    save(body) {
+      const run = queue.then(() => persist(body));
+      queue = run.catch(() => {});
+      return run;
+    },
+
+    async runNow() {
+      const live = await liveTask(load());
+      if (!live) throw new DomainError("not-found", "Save the News settings first");
+      await viaT3(port.runScheduledTaskNow(live.id));
+    },
+
+    async sweep() {
+      if (sweeping) return;
+      sweeping = true;
+      try {
+        await sweepOnce();
+      } catch (error) {
+        warn(`News sweep failed: ${(error as Error).message}`);
+      } finally {
+        sweeping = false;
+      }
+    },
+  };
+}

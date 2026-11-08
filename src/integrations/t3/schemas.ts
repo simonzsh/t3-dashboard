@@ -466,7 +466,7 @@ export interface NewScheduledTask {
   id: string;
   title: string;
   prompt: string;
-  enabled: true;
+  enabled: boolean;
   schedule: ScheduleInput;
   projectId: string;
   threadId: null;

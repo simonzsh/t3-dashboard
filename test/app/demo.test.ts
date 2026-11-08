@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "bun:test";
 import { DemoPort, demoLinearFetch } from "../../src/app/demo/port.ts";
-import { DEMO_HOME, createDemoCacheCleanup, demoFixtures, demoServerStats, demoUsageBuckets } from "../../src/app/demo/fixtures.ts";
+import { DEMO_HOME, DEMO_NEWS_DIR, createDemoCacheCleanup, demoNews, demoFixtures, demoServerStats, demoUsageBuckets } from "../../src/app/demo/fixtures.ts";
 import { issues } from "../../src/integrations/contract.ts";
 import { inboxItems } from "../../src/domain/linearBoard.ts";
 import { LinearClient } from "../../src/integrations/linear/client.ts";
@@ -11,6 +11,8 @@ import { toLimitsOverview } from "../../src/domain/providerLimits.ts";
 import { toProviders } from "../../src/domain/providers.ts";
 import { createActions } from "../../src/domain/actions.ts";
 import { createAutomations } from "../../src/domain/automations.ts";
+import { createNews } from "../../src/domain/news.ts";
+import { isArticleName } from "../../src/config/newsFile.ts";
 import { agentStatus } from "../../shared/status.ts";
 
 const NOW = new Date("2026-10-26T10:00:00Z");
@@ -451,4 +453,29 @@ test("the demo cache cleanup lists sizes, frees them once and then has nothing l
   assert.equal(result.totalBytes, before.totalBytes);
   assert.deepEqual(result.targets.map((t) => t.id), before.targets.map((t) => t.id));
   assert.equal((await cleanup.sizes()).totalBytes, 0);
+});
+
+test("the demo news has a task and three English articles, and needs no file", async () => {
+  const port = new DemoPort(() => NOW);
+  const store = syncedStore(port);
+  const demo = demoNews(NOW);
+  const news = createNews({
+    port,
+    store,
+    file: "news.json",
+    dir: DEMO_NEWS_DIR,
+    readFile: (path) => (path === "news.json" ? demo.settings : ""),
+    writeSecret() {},
+    fs: { list: () => demo.entries, read: (path) => demo.contents[path] ?? "", mkdir() {}, remove() {} },
+    now: () => NOW,
+  });
+  const state = await news.get();
+  assert.equal(state.articles.length, 3);
+  assert.ok(demo.entries.every((entry) => isArticleName(entry.name)));
+  assert.deepEqual(state.articles.map((article) => article.date), [...state.articles.map((article) => article.date)].sort().reverse());
+  assert.equal(state.task?.id, "news");
+  assert.equal(state.task?.lastRunStatus, "succeeded");
+  const article = await news.article(state.articles[0]!.date);
+  assert.ok(article.markdown.startsWith("# ") && article.markdown.includes("## "));
+  assert.equal(article.title, state.articles[0]!.title);
 });

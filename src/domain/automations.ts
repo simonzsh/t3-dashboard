@@ -6,6 +6,7 @@ import { archiveThreadCommand, renameThreadCommand } from "../integrations/t3/co
 import { reminderSchedule, routineOf, routineSchedule, webhookFilters, webhookSchedule } from "./automationSchedule.ts";
 import { AutomationRunLog, recordRuns, runThreads, threadOwners, type RunLog, type ThreadLinks } from "./automationRuns.ts";
 import { isHidden } from "./classify.ts";
+import { readScheduledTaskId } from "./threadOwner.ts";
 import { DomainError } from "./errors.ts";
 import { RearmedStore } from "./rearmedStore.ts";
 import { scheduleLabel } from "./scheduleLabel.ts";
@@ -30,6 +31,13 @@ const TITLE_MAX = 60;
 const PROBES_PER_LIST = 30;
 const PROBE_CONCURRENCY = 4;
 const RUN_STATUSES = new Set<string>(["running", "succeeded", "failed"] satisfies AutomationRunStatus[]);
+
+/** The last-run fields of a T3 task, with an unknown status dropped. */
+export const lastRunOf = (task: RawScheduledTask) => ({
+  lastRunAt: task.lastRunAt ?? null,
+  lastRunStatus: task.lastRunStatus && RUN_STATUSES.has(task.lastRunStatus) ? (task.lastRunStatus as AutomationRunStatus) : null,
+  lastRunError: task.lastRunError ?? null,
+});
 
 /** The tasks of T3 as rows, plus the threads that belong to a task. */
 export function toAutomations(tasks: RawScheduledTask[], threads: RawThread[], dedicated: ReadonlySet<string>, projectTitle: (id: string) => string | null, runs: RunLog = {}, links: ThreadLinks = new Map()): AutomationsResult {
@@ -56,9 +64,7 @@ export function toAutomations(tasks: RawScheduledTask[], threads: RawThread[], d
       scheduleLabel: scheduleLabel(task.schedule),
       enabled: task.enabled !== false,
       nextRunAt: task.nextRunAt ?? null,
-      lastRunAt: task.lastRunAt ?? null,
-      lastRunStatus: task.lastRunStatus && RUN_STATUSES.has(task.lastRunStatus) ? (task.lastRunStatus as AutomationRunStatus) : null,
-      lastRunError: task.lastRunError ?? null,
+      ...lastRunOf(task),
       threadId,
       modelSelection: task.modelSelection ?? null,
       prompt: task.prompt ?? "",
@@ -106,7 +112,7 @@ export interface Automations {
   runNow(id: string): Promise<void>;
 }
 
-async function viaT3<T>(work: Promise<T>): Promise<T> {
+export async function viaT3<T>(work: Promise<T>): Promise<T> {
   try {
     return await work;
   } catch (error) {
@@ -141,11 +147,9 @@ export function createAutomations(options: AutomationsOptions): Automations {
       for (let thread = queue.shift(); thread; thread = queue.shift()) {
         reading.add(thread.id);
         try {
-          const users = ((await port.threadProjection(thread.id)).messages ?? []).filter((message) => message.role === "user");
-          // No user message yet: T3 has not written the first one, so the thread stays unread.
-          if (users.length > 0) links.set(thread.id, users.find((message) => message.scheduledTaskId)?.scheduledTaskId ?? null);
-        } catch {
-          // Left unread: the next list tries again.
+          // Undefined: T3 has not written the first message, or the read failed. The next list tries again.
+          const owner = await readScheduledTaskId(port, thread.id);
+          if (owner !== undefined) links.set(thread.id, owner);
         } finally {
           reading.delete(thread.id);
         }

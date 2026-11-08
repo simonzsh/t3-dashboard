@@ -7,7 +7,7 @@ import type { Tab } from "../../../src/lib/tabs.ts";
 const noop = () => {};
 const render = (tab: Tab, over: Partial<Parameters<typeof PageActions>[0]> = {}) =>
   renderToStaticMarkup(
-    <PageActions tab={tab} compact={false} ready editingLayout={false} layoutIsDefault={false} layout="columns" onLayoutChange={noop} listHidden={false} onToggleList={noop} onNewSession={noop} onNewAutomation={noop} onSearch={noop} onSettings={noop} updateReady={false} onEditLayout={noop} onDoneLayout={noop} onResetLayout={noop} unread={0} notificationsOpen={false} onToggleNotifications={noop} {...over} />,
+    <PageActions tab={tab} compact={false} ready editingLayout={false} layoutIsDefault={false} layout="columns" onLayoutChange={noop} listHidden={false} onToggleList={noop} onNewSession={noop} onNewAutomation={noop} newsCanRun newsRunning={false} onNewsRun={noop} onNewsSettings={noop} onSearch={noop} onSettings={noop} updateReady={false} onEditLayout={noop} onDoneLayout={noop} onResetLayout={noop} unread={0} notificationsOpen={false} onToggleNotifications={noop} {...over} />,
   );
 
 test("Sessions shows the list toggle, then the layout toggle, then New Session", () => {
@@ -53,6 +53,8 @@ test("the layout toggle is hidden when it is off, and on other pages", () => {
 test("Automations shows New Automation only", () => {
   const out = render("automations");
   assert.match(out, /New Automation/);
+  // The wide button carries the same icon as the phone one, before its label.
+  assert.match(out, /<svg[^>]*>.*<\/svg> New Automation/);
   assert.doesNotMatch(out, /New Session|Edit layout/);
 });
 
@@ -119,7 +121,7 @@ test("on a phone Dashboard has the bell, Edit layout as an icon, then Reset and 
 });
 
 test("on a phone every page header ends with Search and Settings", () => {
-  for (const tab of ["dashboard", "sessions", "automations"] as const) {
+  for (const tab of ["dashboard", "sessions", "automations", "news"] as const) {
     const out = render(tab, { compact: true });
     assert.ok(out.indexOf('aria-label="Search"') < out.indexOf('aria-label="Settings"'), tab);
   }
@@ -128,7 +130,45 @@ test("on a phone every page header ends with Search and Settings", () => {
 
 test("on a phone the Settings button shows a dot when an update is ready", () => {
   const out = renderToStaticMarkup(
-    <PageActions tab="sessions" compact ready editingLayout={false} layoutIsDefault={false} layout="columns" onLayoutChange={noop} listHidden={false} onToggleList={noop} onNewSession={noop} onNewAutomation={noop} onSearch={noop} onSettings={noop} updateReady onEditLayout={noop} onDoneLayout={noop} onResetLayout={noop} unread={0} notificationsOpen={false} onToggleNotifications={noop} />,
+    <PageActions tab="sessions" compact ready editingLayout={false} layoutIsDefault={false} layout="columns" onLayoutChange={noop} listHidden={false} onToggleList={noop} onNewSession={noop} onNewAutomation={noop} newsCanRun newsRunning={false} onNewsRun={noop} onNewsSettings={noop} onSearch={noop} onSettings={noop} updateReady onEditLayout={noop} onDoneLayout={noop} onResetLayout={noop} unread={0} notificationsOpen={false} onToggleNotifications={noop} />,
   );
   assert.match(out, /class="[^"]*has-update[^"]*"[^>]*aria-label="Settings, an update is ready"|aria-label="Settings, an update is ready"[^>]*class="[^"]*has-update/);
+});
+
+test("News shows News settings, then the primary Run now", () => {
+  const out = render("news");
+  assert.ok(out.indexOf("News settings") < out.indexOf("Run now"));
+  // News settings is an icon on every screen: a label only in its tooltip.
+  assert.match(out, /aria-label="News settings" data-tooltip="News settings"/);
+  assert.doesNotMatch(out, />News settings</);
+  assert.match(out, /class="btn md primary"[^>]*><svg[^>]*>.*<\/svg> Run now/);
+  assert.doesNotMatch(out, /New Session|New Automation|Edit layout/);
+});
+
+test("Run now is disabled without a saved task and while a run starts", () => {
+  assert.match(render("news", { newsCanRun: false }), /<button[^>]*disabled=""[^>]*>.*Run now/);
+  assert.match(render("news", { newsRunning: true }), /<button[^>]*disabled=""[^>]*>.*Run now/);
+  assert.doesNotMatch(render("news"), /disabled=""/);
+});
+
+test("on a phone News has icon buttons, and nothing before the state exists", () => {
+  const out = render("news", { compact: true });
+  assert.match(out, /aria-label="News settings"/);
+  assert.match(out, /aria-label="Run now"/);
+  assert.equal(render("news", { ready: false }), "");
+});
+
+test("News has the list toggle on a wide screen only, named after what it does", () => {
+  assert.match(render("news"), /aria-label="Hide the list"/);
+  assert.match(render("news", { listHidden: true }), /aria-label="Show the list"/);
+  assert.doesNotMatch(render("news", { compact: true }), /the list"/);
+});
+
+test("News settings shows the preferences sliders, not the pencil or the app gear", () => {
+  const out = render("news");
+  const button = out.slice(out.indexOf('aria-label="News settings"'), out.indexOf("</button>", out.indexOf('aria-label="News settings"')));
+  assert.match(button, /M21 4h-7/);
+  assert.doesNotMatch(button, /M12 20h9/);
+  // Ghost like the list toggle beside it: no background.
+  assert.match(out, /class="icon-button md ghost"[^>]*aria-label="News settings"|aria-label="News settings"[^>]*class="icon-button md ghost"/);
 });

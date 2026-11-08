@@ -15,11 +15,16 @@ interface Props {
   /** The Sessions layout toggle: shown only on a wide screen. */
   layout: SessionLayout;
   onLayoutChange: (layout: SessionLayout) => void;
-  /** The Sessions list toggle: wide screen only. */
+  /** The list toggle of Sessions and News: wide screen only. */
   listHidden: boolean;
   onToggleList: () => void;
   onNewSession: () => void;
   onNewAutomation: () => void;
+  /** News: Run now needs a saved task, and waits while a run starts. */
+  newsCanRun: boolean;
+  newsRunning: boolean;
+  onNewsRun: () => void;
+  onNewsSettings: () => void;
   onSearch: () => void;
   /** Phone only: Settings sits in the header, the bottom bar holds the pages. */
   onSettings: () => void;
@@ -70,8 +75,18 @@ function Action({ compact, label, icon, variant = "secondary", withIcon = false,
   );
 }
 
-/** The header buttons of a page: Sessions hides the list, picks its layout and starts a session, Automations a task, Dashboard shows the Notifications bell and edits its layout. */
-export function PageActions({ tab, compact, ready, editingLayout, layoutIsDefault, layout, onLayoutChange, listHidden, onToggleList, onNewSession, onNewAutomation, onSearch, onSettings, updateReady, onEditLayout, onDoneLayout, onResetLayout, unread, notificationsOpen, onToggleNotifications }: Props) {
+// Wide screen only: the caller hides it on a phone.
+function ListToggle({ hidden, onToggle }: { hidden: boolean; onToggle: () => void }) {
+  const label = hidden ? "Show the list" : "Hide the list";
+  return (
+    <IconButton variant="ghost" label={label} tooltip={label} onClick={onToggle}>
+      <Icon name="panelLeft" />
+    </IconButton>
+  );
+}
+
+/** The header buttons of a page: Sessions hides the list, picks its layout and starts a session, Automations a task, News edits its settings and runs it, Dashboard shows the Notifications bell and edits its layout. */
+export function PageActions({ tab, compact, ready, editingLayout, layoutIsDefault, layout, onLayoutChange, listHidden, onToggleList, onNewSession, onNewAutomation, newsCanRun, newsRunning, onNewsRun, onNewsSettings, onSearch, onSettings, updateReady, onEditLayout, onDoneLayout, onResetLayout, unread, notificationsOpen, onToggleNotifications }: Props) {
   let main = null;
   if (tab === "dashboard" && editingLayout) {
     main = (
@@ -99,14 +114,9 @@ export function PageActions({ tab, compact, ready, editingLayout, layoutIsDefaul
     // One button: its icon and label name the view it switches to.
     const toLayout = layout === "columns" ? "grid" : "columns";
     const toggle = layout === "columns" ? "Switch to grid view" : "Switch to column view";
-    const list = listHidden ? "Show the list" : "Hide the list";
     main = (
       <>
-        {!compact && (
-          <IconButton variant="ghost" label={list} tooltip={list} onClick={onToggleList}>
-            <Icon name="panelLeft" />
-          </IconButton>
-        )}
+        {!compact && <ListToggle hidden={listHidden} onToggle={onToggleList} />}
         {!compact && (
           <IconButton variant="ghost" className="layout-toggle" label={toggle} tooltip={toggle} onClick={() => onLayoutChange(toLayout)}>
             <Icon name={layout === "columns" ? "layoutGrid" : "columns"} />
@@ -116,7 +126,22 @@ export function PageActions({ tab, compact, ready, editingLayout, layoutIsDefaul
       </>
     );
   } else if (tab === "automations" && ready) {
-    main = <Action compact={compact} label="New Automation" icon="calendarClock" variant="primary" kbd={ctrlLabel("⇧N")} onClick={onNewAutomation} />;
+    main = <Action compact={compact} label="New Automation" icon="calendarClock" variant="primary" withIcon kbd={ctrlLabel("⇧N")} onClick={onNewAutomation} />;
+  } else if (tab === "news" && ready) {
+    main = (
+      <>
+        {!compact && <ListToggle hidden={listHidden} onToggle={onToggleList} />}
+        {compact ? (
+          <Action compact label="News settings" icon="slidersHorizontal" onClick={onNewsSettings} />
+        ) : (
+          // An icon on a wide screen too, with its label as the tooltip.
+          <IconButton variant="ghost" label="News settings" tooltip="News settings" onClick={onNewsSettings}>
+            <Icon name="slidersHorizontal" />
+          </IconButton>
+        )}
+        <Action compact={compact} label="Run now" icon="play" variant="primary" withIcon disabled={!newsCanRun || newsRunning} onClick={onNewsRun} />
+      </>
+    );
   }
   return (
     <>

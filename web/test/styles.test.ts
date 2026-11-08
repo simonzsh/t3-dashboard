@@ -131,3 +131,27 @@ test("automations: only the list scrolls, under a fixed toolbar, on a phone too"
   const phone = css.slice(css.indexOf("@media (max-width: 700px)"));
   assert.match(phone, /\.app:not\(\.sessions-mode, \.automations-mode\) \{ height: auto;/);
 });
+
+test("news: the article is a readable column, and on a phone the list and the article take turns", () => {
+  // A rem width, not ch: ch follows each child's font size, so the date line and the text would not share a left edge.
+  assert.match(css, /\.news-article > \* \{ max-width: 42rem;/);
+  assert.match(rule(".news-body"), /line-height: 1\.7/);
+  assert.match(rule(".news-back"), /display: none/);
+  const phone = css.slice(css.indexOf("@media (max-width: 700px)"));
+  assert.match(phone, /\.news-page:not\(\.reading\) \.news-article, \.news-page\.reading \.news-list \{ display: none; \}/);
+  // The 280px the list keeps for the wide-screen slide must not reach a phone.
+  assert.match(phone, /\.news-list-slot > \.news-list \{ width: auto; \}/);
+  assert.match(phone, /\.news-back \{ display: inline-flex;/);
+});
+
+test("news: the phone rules come after the base rules, so the article fills the width", () => {
+  const base = css.indexOf(".news-page { flex: 1;");
+  const phone = css.indexOf("@media (max-width: 700px) {\n  /* The page scrolls; the list and the article take turns. */");
+  assert.ok(base > 0 && phone > base, "the news phone block must follow the base rules");
+  const block = css.slice(phone, css.indexOf("\n}\n", phone));
+  assert.match(block, /\.news-page \{ flex: none; display: block; \}/);
+  assert.match(block, /\.news-back \{ display: inline-flex;/);
+  assert.match(block, /\.news-list, \.news-article \{ overflow: visible; margin: 0; padding: 0; \}/);
+  // No later base rule may undo the phone block.
+  assert.doesNotMatch(css.slice(css.indexOf("\n}\n", phone)), /^\.news-(page|back|list|article) \{/m);
+});

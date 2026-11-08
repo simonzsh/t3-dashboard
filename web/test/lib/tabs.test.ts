@@ -2,8 +2,8 @@ import { test } from "bun:test";
 import assert from "node:assert/strict";
 import { TABS, hashForTab, tabFromHash } from "../../src/lib/tabs.ts";
 
-test("the tabs are Dashboard, Sessions and Automations", () => {
-  assert.deepEqual(TABS.map((t) => [t.id, t.label]), [["dashboard", "Dashboard"], ["sessions", "Sessions"], ["automations", "Automations"]]);
+test("the tabs are Dashboard, Sessions, Automations and News", () => {
+  assert.deepEqual(TABS.map((t) => [t.id, t.label]), [["dashboard", "Dashboard"], ["sessions", "Sessions"], ["automations", "Automations"], ["news", "News"]]);
 });
 
 test("each tab has a one-line description", () => {
@@ -14,12 +14,14 @@ test("each tab has its own hash", () => {
   assert.equal(hashForTab("dashboard"), "#/dashboard");
   assert.equal(hashForTab("sessions"), "#/sessions");
   assert.equal(hashForTab("automations"), "#/automations");
+  assert.equal(hashForTab("news"), "#/news");
 });
 
 test("a tab hash reads back as its tab", () => {
   assert.equal(tabFromHash("#/dashboard"), "dashboard");
   assert.equal(tabFromHash("#/sessions"), "sessions");
   assert.equal(tabFromHash("#/automations"), "automations");
+  assert.equal(tabFromHash("#/news"), "news");
 });
 
 test("no hash opens Dashboard", () => {

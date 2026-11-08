@@ -9,10 +9,13 @@ import { Icon, Pressable, Segmented, TextInput } from "../../ui/index.ts";
 interface Props {
   providers: DashboardProvider[];
   selection: ModelSelection | null;
-  mode: RuntimeMode | null;
-  modes: RuntimeMode[];
+  mode?: RuntimeMode | null;
+  /** Empty hides the access control (a model-only picker). */
+  modes?: RuntimeMode[];
   onSelection: (next: ModelSelection) => void;
-  onMode: (next: RuntimeMode) => void;
+  onMode?: (next: RuntimeMode) => void;
+  /** Opens in the page flow under the chip (in a form) instead of floating above it. */
+  inline?: boolean;
 }
 
 const sameRow = (row: PanelRow, selection: ModelSelection | null) => row.provider.instanceId === selection?.instanceId && row.model.slug === selection.model;
@@ -20,7 +23,7 @@ const sameRow = (row: PanelRow, selection: ModelSelection | null) => row.provide
 /** One chip for the model, its reasoning, speed and the access mode; its panel opens above, inside the composer card. */
 const touch = () => matchMedia("(pointer: coarse)").matches;
 
-export function ModelPanel({ providers, selection, mode, modes, onSelection, onMode }: Props) {
+export function ModelPanel({ providers, selection, mode = null, modes = [], onSelection, onMode, inline = false }: Props) {
   const [open, setOpen] = useState(false);
   const [rail, setRail] = useState<Rail>("favorites");
   const [query, setQuery] = useState("");
@@ -32,13 +35,17 @@ export function ModelPanel({ providers, selection, mode, modes, onSelection, onM
   useLayoutEffect(() => {
     const box = panel.current;
     const anchor = box?.offsetParent;
-    if (!box || !anchor) return;
+    if (!box || !anchor || inline) return;
     const top = anchor.getBoundingClientRect().top;
     // A dialog is fixed above the sessions: only the viewport bounds it.
     const frame = anchor.closest(".dialog") ? 0 : (anchor.closest(".session-window")?.getBoundingClientRect().top ?? 0);
     box.style.maxHeight = `${Math.max(180, top - frame - 12)}px`;
   });
   const chip = useRef<HTMLButtonElement>(null);
+  // In a form the panel opens in the flow: scroll the form so all of it shows at once.
+  useEffect(() => {
+    if (open && inline) panel.current?.scrollIntoView({ block: "nearest" });
+  }, [open, inline]);
   const search = useRef<HTMLInputElement>(null);
 
   const found = findModel(providers, selection);
@@ -130,7 +137,7 @@ export function ModelPanel({ providers, selection, mode, modes, onSelection, onM
   );
 
   return (
-    <div className="model-picker" ref={root}>
+    <div className={`model-picker${inline ? " inline" : ""}`} ref={root}>
       <Pressable ref={chip} className="model-chip" aria-label="Model, reasoning and access" aria-haspopup="dialog" aria-expanded={open} disabled={!selection} onClick={() => (open ? close(false) : show())}>
         {selection && <ProviderIcon provider={selection.instanceId} />}
         <span className="model-chip-name">{label.name}</span>
@@ -221,7 +228,7 @@ export function ModelPanel({ providers, selection, mode, modes, onSelection, onM
                 onChange={(id) => onSelection(selectSpeed(selection, found.model, id === "fast"))}
               />
             )}
-            <div className="model-access">
+            {modes.length > 0 && <div className="model-access">
               <Pressable className="model-access-button" aria-label="Access" aria-haspopup="listbox" aria-expanded={accessOpen} disabled={!mode} onClick={() => setAccessOpen((o) => !o)}>
                 <Icon name={mode === "full-access" ? "unlock" : "lock"} />
                 <span>{mode ? RUNTIME_MODE_LABELS[mode].label : "Access"}</span>
@@ -237,7 +244,7 @@ export function ModelPanel({ providers, selection, mode, modes, onSelection, onM
                       className="model-access-option"
                       onClick={() => {
                         setAccessOpen(false);
-                        if (m !== mode) onMode(m);
+                        if (m !== mode) onMode?.(m);
                       }}
                     >
                       <span className="model-access-text">
@@ -249,7 +256,7 @@ export function ModelPanel({ providers, selection, mode, modes, onSelection, onM
                   ))}
                 </div>
               )}
-            </div>
+            </div>}
           </div>
         </div>
       )}

@@ -2,7 +2,7 @@
 
 [Back to the README](../README.md)
 
-The dashboard has three pages: Dashboard, Sessions and Automations. A sidebar on the left lists them, with a search button (`⌘` + `K`). Its last row shows the connection state, Settings and a button that collapses the sidebar to icons (`Ctrl` + `B`). The theme, the accent color and the interface tint are in Settings. The sidebar remembers its state. The page header is one line: the title and a short description. Its button depends on the page: Sessions has a list toggle (wide screen), a layout button and New Session (`Ctrl` + `N`), Automations has New Automation (`Ctrl` + `⇧` + `N`), and Dashboard has the Notifications bell, with the number of unread items, then Edit layout. The two shortcuts work on every page. On a phone, a bar at the bottom of the screen replaces the sidebar: Dashboard, Sessions and Automations. The header then shows the page buttons as icons (on Dashboard, the bell too), a search button and Settings. A dot on Settings shows that an update is ready.
+The dashboard has four pages: Dashboard, Sessions, Automations and News. A sidebar on the left lists them, with a search button (`⌘` + `K`). Its last row shows the connection state, Settings and a button that collapses the sidebar to icons (`Ctrl` + `B`). The theme, the accent color and the interface tint are in Settings. The sidebar remembers its state. The page header is one line: the title and a short description. Its button depends on the page: Sessions has a list toggle (wide screen), a layout button and New Session (`Ctrl` + `N`), Automations has New Automation (`Ctrl` + `⇧` + `N`), News has a list toggle (wide screen), News settings and Run now, and Dashboard has the Notifications bell, with the number of unread items, then Edit layout. The two shortcuts work on every page. On a phone, a bar at the bottom of the screen replaces the sidebar: Dashboard, Sessions, Automations and News. The header then shows the page buttons as icons (on Dashboard, the bell too), a search button and Settings. A dot on Settings shows that an update is ready.
 
 ## Dashboard
 
@@ -227,6 +227,22 @@ A task without a linked thread creates a new thread at each run. These threads s
 - The dashboard pauses a reminder only when its last change is the run itself. If you turn on a finished reminder again, the dashboard leaves it on until its next run ends.
 - Pausing does not stop a run that is under way: T3 Code marks a run as succeeded when it sends the prompt.
 
+## News
+
+The News tab shows a daily or weekly article with the latest tech news. A T3 routine, owned by the dashboard, asks an agent to search the web and write the article. The scope is fixed: AI, software development, security, the tech industry and open source. It needs T3 Code to be connected, and a model that can search the web.
+
+- On a wide screen, the list of articles is on the left, newest first, and the open article is on the right. The newest article opens first. The line above the list gives the next run and the result of the last run. It is empty while automatic generation is off.
+- On a phone, the page shows the list. A tap opens the article, and the "News" button at its top returns to the list.
+- Click "News settings" in the header to set automatic generation (on or off), the frequency (every day, or every week on a weekday you pick, Monday by default), the time of day, the language (English or French) and the model. The default model is Codex `gpt-6-luna`, when T3 offers it; you can pick another one. The time is read in the time zone of the machine that runs T3. A weekly article covers the last 7 days; a daily one covers the last 24 hours. The first save creates the routine. Each later save updates it. Turning "Automatic generation" off pauses the routine; "Run now" still works. If you pause or resume the routine in Automations, the setting follows it.
+- Click "Run now" to start an article at once. A second article on the same day replaces the first. The button is off until the first save.
+- While an article is being written (Run now or a scheduled run), the list starts with "Writing the article…" and a spinner, with an "Open session" link. Run now is off and the page reads every 5 seconds. The dashboard finds the run thread through the task id on its first message, like Automations.
+- The routine is a normal routine: it also shows in Automations, where you can pause or delete it. If you delete it, the next save creates it again.
+- The dashboard archives the run threads of the news when the article is written. A failed run stays visible in Sessions.
+- Hover over an article (or focus it with the keyboard) to show a trash button, "Delete article". On a touch screen the button is always visible. A dialog asks you to confirm, like for an automation, then the dashboard deletes the file. If you delete the open article, the newest one opens. "Delete all" above the list deletes every article after a confirmation. Only the article files (`YYYY-MM-DD.md`) are deleted: other files in the folder stay. A deleted article does not come back.
+- Above the list, one row holds a search box ("Search news…") and the "Delete all" button. The search looks in the title and in the text of every article, ignoring case and accents. The list shows only the matches (after a short pause while you type), or "No matching articles". Clear the box to see all articles again. The open article stays open, even when the search hides it. "Delete all" always deletes every article, not only the matches, and its dialog says so. The row is hidden when there is no article.
+- Without an article, the page says "No news yet".
+- The News tab (sidebar and phone bar) has a badge with the number of unread articles, like the other tabs. Opening an article marks it read: this includes the newest one, which the page opens by itself. On a phone, only the article view counts, not the list. A new run on the same day makes that article unread again. Articles that exist at the first visit count as read. The read marks use the same shared state as the Dashboard (`seen.json`), so they follow you across devices.
+
 ## Settings
 
 Open Settings with the header button or the `,` key. A sidebar on the left lists the tabs. Only one tab is visible at a time.
@@ -242,7 +258,7 @@ The shortcuts use `Ctrl`, also on a Mac, and they work while you type in a field
 
 | Key | Action |
 | --- | --- |
-| `Ctrl` + `1`, `2`, `3` | Opens Dashboard, Sessions or Automations. |
+| `Ctrl` + `1`, `2`, `3`, `4` | Opens Dashboard, Sessions, Automations or News. |
 | `Ctrl` + `K` or `⌘` + `K` | Opens or closes the "Jump to" switcher. It finds a conversation by title, project or message. Without text, it shows the agents that wait for an answer, then your recent conversations. `↑` `↓` select, `Enter` opens in Sessions. |
 | `Ctrl` + `S` | In the message field of a conversation: stashes the draft. |
 | `Ctrl` + `N` | Opens New Session. |

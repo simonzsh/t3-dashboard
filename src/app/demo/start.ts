@@ -3,6 +3,7 @@ import type { DashboardProvider } from "../../../shared/api.ts";
 import { createActions } from "../../domain/actions.ts";
 import { AutomationRunLog } from "../../domain/automationRuns.ts";
 import { createAutomations } from "../../domain/automations.ts";
+import { createNews } from "../../domain/news.ts";
 import { SessionsStore } from "../../domain/sessionsStore.ts";
 import { StashStore } from "../../domain/stashStore.ts";
 import { SeenStore } from "../../domain/seenStore.ts";
@@ -21,7 +22,7 @@ import { SseHub } from "../../server/sse.ts";
 import { envAllowedHosts } from "../../config/config.ts";
 import { readLinearKey } from "../../config/linearFile.ts";
 import { VERSION } from "../../config/version.ts";
-import { DEMO_ENVIRONMENT_ID, DEMO_HOME, createDemoCacheCleanup, demoServerStats } from "./fixtures.ts";
+import { DEMO_ENVIRONMENT_ID, DEMO_HOME, DEMO_NEWS_DIR, createDemoCacheCleanup, demoNews, demoServerStats } from "./fixtures.ts";
 import { DemoPort, demoLinearFetch } from "./port.ts";
 
 const DEMO_PORT = 3001;
@@ -77,6 +78,27 @@ export async function startDemo(env: Record<string, string | undefined>): Promis
   const archivedRun = { threadId: "demo-run-archived", startedAt: new Date(archivedAt).toISOString(), finishedAt: new Date(archivedAt + 180_000).toISOString(), status: "succeeded" as const, error: null };
   const runs = new AutomationRunLog({ "inbox-triage": [archivedRun] });
   const automations = createAutomations({ port, store, dedicated: { read: () => dedicated }, runs });
+  // The articles live in memory, like the Linear key: nothing is written to disk.
+  const demo = demoNews(new Date());
+  files.set("news.json", demo.settings);
+  const news = createNews({
+    port,
+    store,
+    file: "news.json",
+    dir: DEMO_NEWS_DIR,
+    readFile,
+    writeSecret: (path, text) => void files.set(path, text),
+    fs: {
+      list: () => demo.entries,
+      read: (path) => demo.contents[path] ?? "",
+      mkdir() {},
+      remove(path) {
+        delete demo.contents[path];
+        const at = demo.entries.findIndex((entry) => `${DEMO_NEWS_DIR}/${entry.name}` === path);
+        if (at >= 0) demo.entries.splice(at, 1);
+      },
+    },
+  });
   const handler = createDashboardServer({
     actions,
     sessions: new SessionsStore(null, () => {}),
@@ -89,6 +111,7 @@ export async function startDemo(env: Record<string, string | undefined>): Promis
     serverStats: { get: async () => demoServerStats(new Date()) },
     cacheCleanup: createDemoCacheCleanup(),
     automations,
+    news,
     getState,
     connection: () => live.connection(),
     site,
