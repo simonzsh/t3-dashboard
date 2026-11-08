@@ -139,13 +139,13 @@ test("news: the article is a readable column, and on a phone the list and the ar
   assert.match(rule(".news-back"), /display: none/);
   const phone = css.slice(css.indexOf("@media (max-width: 700px)"));
   assert.match(phone, /\.news-page:not\(\.reading\) \.news-article, \.news-page\.reading \.news-list \{ display: none; \}/);
-  // The 280px the list keeps for the wide-screen slide must not reach a phone.
+  // The fixed width the list keeps for the wide-screen slide must not reach a phone.
   assert.match(phone, /\.news-list-slot > \.news-list \{ width: auto; \}/);
   assert.match(phone, /\.news-back \{ display: inline-flex;/);
 });
 
 test("news: the phone rules come after the base rules, so the article fills the width", () => {
-  const base = css.indexOf(".news-page { flex: 1;");
+  const base = css.indexOf(".news-page { --news-list-w:");
   const phone = css.indexOf("@media (max-width: 700px) {\n  /* The page scrolls; the list and the article take turns. */");
   assert.ok(base > 0 && phone > base, "the news phone block must follow the base rules");
   const block = css.slice(phone, css.indexOf("\n}\n", phone));
