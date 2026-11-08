@@ -4,6 +4,8 @@
 
 The server is written in TypeScript for Bun. It talks to T3 Code and exposes a local API. It also serves the React interface, which is in `web/`.
 
+Coding agents (and people) follow the rules in [AGENTS.md](../AGENTS.md): reuse the kit and the shared helpers, no duplication, the conventions below.
+
 ## Bun
 
 You need Bun 1.4 or later. The CI uses Bun 1.4.2.
