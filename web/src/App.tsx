@@ -4,7 +4,6 @@ import { AutomationsView } from "./features/automations/AutomationsView.tsx";
 import { NewsSettingsDialog } from "./features/news/NewsSettingsDialog.tsx";
 import { NewsView } from "./features/news/NewsView.tsx";
 import { firstRunBody, unreadNewsCount } from "./features/news/news.ts";
-import { useNewsListHidden } from "./features/news/prefs.ts";
 import { useNews } from "./features/news/useNews.ts";
 import { DashboardView } from "./features/dashboard/DashboardView.tsx";
 import { isDefaultLayout, type DashboardCard } from "./features/dashboard/layout.ts";
@@ -73,7 +72,6 @@ export function App() {
   const compact = useMediaQuery(PHONE);
   const sheetMode = useMediaQuery(SHEET);
   const [listPrefs, setListPrefs] = useListPrefs();
-  const [newsListHidden, toggleNewsList] = useNewsListHidden();
   // On a phone the Sessions tab is a list; an opened session covers it, with no header or bottom bar.
   const [phoneSession, setPhoneSession] = useState(false);
   const sessionShown = compact && tab === "sessions" && phoneSession && sessions.focusedId !== null;
@@ -285,8 +283,8 @@ export function App() {
                 layoutIsDefault={isDefaultLayout(dashboardLayout.layout)}
                 layout={layout}
                 onLayoutChange={setLayout}
-                listHidden={tab === "news" ? newsListHidden : listPrefs.hidden}
-                onToggleList={tab === "news" ? toggleNewsList : () => setListPrefs({ hidden: !listPrefs.hidden })}
+                listHidden={listPrefs.hidden}
+                onToggleList={() => setListPrefs({ hidden: !listPrefs.hidden })}
                 onNewSession={() => setCreating({ projectId: null })}
                 onNewAutomation={() => setCreatingAutomation(true)}
                 newsCanRun={news.state !== null && (news.state.task !== null || newsFirstRun !== null)}
@@ -345,7 +343,7 @@ export function App() {
                   setup={setup}
                 />
               ) : <Loader />)}
-            {tab === "news" && (news.state ? <NewsView news={news.state} writing={news.writing} now={now} compact={compact} listHidden={newsListHidden} seen={notify.seen} onRead={readNews} onOpenThread={onOpen} onDelete={news.remove} onDeleteAll={news.removeAll} /> : <Loader />)}
+            {tab === "news" && (news.state ? <NewsView news={news.state} writing={news.writing} now={now} compact={compact} seen={notify.seen} onRead={readNews} onOpenThread={onOpen} onDelete={news.remove} onDeleteAll={news.removeAll} /> : <Loader />)}
             {tab === "sessions" &&
               (state ? (
                 <SessionsView

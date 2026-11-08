@@ -139,8 +139,8 @@ test("news: the article is a readable column, and on a phone the list and the ar
   assert.match(rule(".news-back"), /display: none/);
   const phone = css.slice(css.indexOf("@media (max-width: 700px)"));
   assert.match(phone, /\.news-page:not\(\.reading\) \.news-article, \.news-page\.reading \.news-list \{ display: none; \}/);
-  // The fixed width the list keeps for the wide-screen slide must not reach a phone.
-  assert.match(phone, /\.news-list-slot > \.news-list \{ width: auto; \}/);
+  // The list's wide-screen width must not reach a phone.
+  assert.match(phone, /\.news-page:not\(\.empty\) > \.news-list \{ width: auto; \}/);
   assert.match(phone, /\.news-back \{ display: inline-flex;/);
 });
 
@@ -158,11 +158,10 @@ test("news: the phone rules come after the base rules, so the article fills the 
   assert.doesNotMatch(css.slice(css.indexOf("\n}\n", phone)), /^\.news-(page|back|list|article) \{/m);
 });
 
-test("news: the article text keeps the page's centre whether the list shows or not", () => {
+test("news: the article text keeps the page's centre, the list in its left margin", () => {
   // List and article share one grid cell; the text only steps right when the page is too narrow for both.
-  assert.match(css, /\.news-page > :is\(\.news-list-slot, \.news-article\) \{ grid-area: 1 \/ 1; \}/);
+  assert.match(css, /\.news-page > \* \{[^}]*grid-area: 1 \/ 1; \}/);
   assert.match(css, /\.news-article > \* \{ max-width: 42rem; margin-inline: max\(var\(--news-list-space\), calc\(\(100% - 42rem\) \/ 2\)\) auto; \}/);
-  assert.match(css, /\.news-page\.list-hidden > \* \{ --news-list-space: 0px; \}/);
 });
 
 test("pages start their content the same distance below the header", () => {
