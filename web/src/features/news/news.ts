@@ -55,12 +55,26 @@ export function toBody(form: NewsForm): { body: SaveNewsBody } | { error: string
 export const pickModel = (settings: NewsSettings, providers: DashboardProvider[], fallback: ModelSelection | null): ModelSelection | null =>
   settings.modelSelection ?? presetSelection(undefined, providers, NEWS_DEFAULT_MODEL, fallback);
 
+export const POLL_MS = 60_000;
+export const POLL_RUNNING_MS = 5_000;
+/** A Run now that shows no thread within this time stops counting as starting. */
+export const STARTING_MS = 2 * 60_000;
+
+/** Poll fast while an article is being written. */
+export const pollInterval = (writing: boolean): number => (writing ? POLL_RUNNING_MS : POLL_MS);
+
+/** Whether a Run now started at `startedAt` (ms) still counts as starting. Done when the server shows the run or a newer article exists. */
+export function isStarting(startedAt: number | null, now: number, newestMtimeMs: number | null): boolean {
+  if (startedAt === null || now - startedAt >= STARTING_MS) return false;
+  return newestMtimeMs === null || newestMtimeMs < startedAt;
+}
+
 /** One line under the page title: when the next article comes and how the last run went. */
-export function statusLine(task: NewsTask | null, now: Date): string {
+export function statusLine(task: NewsTask | null, now: Date, writing = false): string {
   if (!task) return "Not scheduled yet. Open News settings and save to start the news.";
   if (!task.enabled) return "Automatic generation is off. Use Run now to get an article.";
   const parts = [`Next article ${task.nextRunAt ? formatMessageTime(task.nextRunAt) : "not planned"}`];
-  if (task.lastRunStatus === "running") parts.push("Running now");
+  if (writing || task.lastRunStatus === "running") parts.push("Writing the article now");
   else if (task.lastRunAt) {
     parts.push(task.lastRunStatus === "failed" ? `Last run failed: ${task.lastRunError ?? "unknown error"}` : `Last run ${relativeTime(task.lastRunAt, now)}`);
   }

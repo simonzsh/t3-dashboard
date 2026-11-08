@@ -5,8 +5,7 @@ import { failure } from "../../lib/format.ts";
 import { useNotify } from "../../lib/notices.tsx";
 import { useAction } from "../../lib/useAction.ts";
 import { usePoll } from "../../lib/usePoll.ts";
-
-const POLL_MS = 60_000;
+import { isStarting, pollInterval, STARTING_MS } from "./news.ts";
 
 // Polls all the time, so a new article shows and the tab badge counts without a reload. `active`: the News page is open.
 // Save throws: the dialog shows the error.
@@ -40,7 +39,21 @@ export function useNews(active: boolean) {
   useEffect(() => {
     if (error && active) notify(error);
   }, [error, active]);
-  usePoll(load, POLL_MS);
+  // Run now was just pressed: show the run before the server sees its thread. Ends when the server shows the run, a newer article exists or 2 minutes pass.
+  const [startedAt, setStartedAt] = useState<number | null>(null);
+  const serverRunning = state?.running != null;
+  const newest = state?.articles[0]?.mtimeMs ?? null;
+  useEffect(() => {
+    if (startedAt === null) return;
+    if (serverRunning || !isStarting(startedAt, Date.now(), newest)) {
+      setStartedAt(null);
+      return;
+    }
+    const timer = setTimeout(() => setStartedAt(null), Math.max(0, startedAt + STARTING_MS - Date.now()));
+    return () => clearTimeout(timer);
+  }, [startedAt, serverRunning, newest]);
+  const writing = serverRunning || startedAt !== null;
+  usePoll(load, pollInterval(writing));
 
   async function save(body: SaveNewsBody): Promise<void> {
     seq.current++;
@@ -49,8 +62,9 @@ export function useNews(active: boolean) {
 
   const run = () => running.run(async () => {
     await api.runNews();
+    setStartedAt(Date.now());
     await load();
   });
 
-  return { state, save, run, starting: running.busy };
+  return { state, save, run, starting: running.busy, writing };
 }

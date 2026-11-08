@@ -7,12 +7,12 @@ import { NewsView } from "../../../src/features/news/NewsView.tsx";
 import { NewsSettingsDialog } from "../../../src/features/news/NewsSettingsDialog.tsx";
 
 const task = { id: "t", enabled: true, nextRunAt: "2026-11-08T07:00:00.000Z", lastRunAt: null, lastRunStatus: null, lastRunError: null };
-const state = (over: Partial<NewsState> = {}): NewsState => ({ settings: { enabled: true, frequency: "daily", weekday: 1, timeOfDay: "07:00", language: "French", modelSelection: null }, task, articles: [], ...over });
+const state = (over: Partial<NewsState> = {}): NewsState => ({ settings: { enabled: true, frequency: "daily", weekday: 1, timeOfDay: "07:00", language: "French", modelSelection: null }, task, articles: [], running: null, ...over });
 const now = new Date("2026-11-07T12:00:00.000Z");
-const view = (news: NewsState) =>
+const view = (news: NewsState, writing = false) =>
   renderToStaticMarkup(
     <ApiProvider value={{} as never}>
-      <NewsView news={news} now={now} compact={false} onRead={() => {}} />
+      <NewsView news={news} writing={writing} now={now} compact={false} onRead={() => {}} onOpenThread={() => {}} />
     </ApiProvider>,
   );
 
@@ -63,3 +63,17 @@ test("the settings dialog shows the weekday of a weekly news and the off state",
   assert.match(out, /<fieldset class="news-schedule" disabled=""/);
 });
 
+
+test("a run in progress shows an item with a spinner and a link to the thread", () => {
+  const out = view(state({ articles: [{ date: "2026-11-07", title: "News 7 Nov", mtimeMs: 2 }], running: { threadId: "t-1", startedAt: null } }), true);
+  assert.ok(out.indexOf("Writing the article…") < out.indexOf("Sat 7 Nov"));
+  assert.match(out, /news-item writing[\s\S]*role="status"[\s\S]*Open session/);
+  assert.match(out, /Writing the article now/);
+  assert.doesNotMatch(view(state({ articles: [{ date: "2026-11-07", title: "N", mtimeMs: 2 }] })), /Writing the article/);
+});
+
+test("a run just started shows the item without a link, even with no article yet", () => {
+  const out = view(state(), true);
+  assert.match(out, /Writing the article…/);
+  assert.doesNotMatch(out, /Open session/);
+});

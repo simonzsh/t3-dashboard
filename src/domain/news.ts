@@ -1,4 +1,4 @@
-import type { NewsArticle, NewsArticleSummary, NewsSettings, NewsState, NewsTask, SaveNewsBody } from "../../shared/news.ts";
+import type { NewsArticle, NewsRunning, NewsArticleSummary, NewsSettings, NewsState, NewsTask, SaveNewsBody } from "../../shared/news.ts";
 import type { AutomationRunStatus } from "../../shared/automations.ts";
 import { isRuntimeMode } from "../../shared/limits.ts";
 import { threadState } from "../../shared/status.ts";
@@ -118,12 +118,45 @@ export function createNews(options: NewsOptions): News {
     return (await viaT3(port.listScheduledTasks())).find((task) => task.id === stored.taskId);
   }
 
+  // Run threads of the news task, newest first. The probe result is shared with the sweep.
+  async function runningRun(stored: StoredNews, live: RawScheduledTask): Promise<NewsRunning | null> {
+    const since = Date.parse(stored.taskCreatedAt ?? "");
+    if (!stored.taskId || Number.isNaN(since)) return null;
+    const at = now();
+    const active = store
+      .rawThreads()
+      .filter(
+        (thread) =>
+          thread.projectId === live.projectId &&
+          thread.creationSource === live.creationSource &&
+          !isHidden(thread) &&
+          !archived.has(thread.id) &&
+          Date.parse(thread.createdAt ?? "") >= since &&
+          ["running", "waiting"].includes(threadState(toDashboardThread(thread, at))),
+      )
+      .sort((a, b) => Date.parse(b.createdAt ?? "") - Date.parse(a.createdAt ?? ""))
+      .slice(0, SWEEP_READS);
+    for (const thread of active) {
+      if (!owners.has(thread.id)) {
+        const owner = await readScheduledTaskId(port, thread.id);
+        if (owner !== undefined) owners.set(thread.id, owner);
+      }
+      if (owners.get(thread.id) === stored.taskId) return { threadId: thread.id, startedAt: thread.createdAt ?? null };
+    }
+    return null;
+  }
+
   async function get(): Promise<NewsState> {
     const stored = load();
     let task: NewsTask | null = null;
+    let running: NewsRunning | null = null;
     try {
       const live = await liveTask(stored);
       task = live ? toTask(live) : null;
+      if (live) {
+        running = await runningRun(stored, live);
+        if (!running && task?.lastRunStatus === "running") running = { threadId: null, startedAt: task.lastRunAt };
+      }
     } catch {
       // T3 does not answer: the articles are still on disk.
     }
@@ -141,7 +174,7 @@ export function createNews(options: NewsOptions): News {
         return { date, title: articleTitle(markdown, date), mtimeMs: entry.mtimeMs };
       });
     // The routine can be paused or resumed in Automations: the real state wins.
-    return { settings: { ...stored.settings, enabled: task?.enabled ?? stored.settings.enabled }, task, articles };
+    return { settings: { ...stored.settings, enabled: task?.enabled ?? stored.settings.enabled }, task, articles, running };
   }
 
   async function persist(body: SaveNewsBody): Promise<NewsState> {

@@ -4,7 +4,7 @@ import type { DashboardProvider, NewsSettings, NewsTask } from "../../../../shar
 import type { SeenState } from "../../../../shared/seen.ts";
 import { prune } from "../../../../shared/seen.ts";
 import { formatMessageTime } from "../../../src/lib/format.ts";
-import { isUnreadArticle, newsMark, readTarget, unreadNewsCount, dateLabel, formFromSettings, pickModel, shortDate, statusLine, toBody, scheduleHint, WEEKDAYS, LANGUAGES } from "../../../src/features/news/news.ts";
+import { isUnreadArticle, newsMark, readTarget, unreadNewsCount, dateLabel, formFromSettings, pickModel, shortDate, statusLine, pollInterval, isStarting, STARTING_MS, toBody, scheduleHint, WEEKDAYS, LANGUAGES } from "../../../src/features/news/news.ts";
 
 const provider: DashboardProvider = { instanceId: "provider-a", displayName: "Provider A", models: [{ slug: "model-x", name: "Model X" }, { slug: "model-y", name: "Model Y" }] as never, runtimeModes: [] };
 const settings: NewsSettings = { enabled: true, frequency: "daily", weekday: 1, timeOfDay: "07:00", language: "French", modelSelection: { instanceId: "provider-a", model: "model-y" } };
@@ -77,7 +77,7 @@ test("the status line gives the next run and the last run", () => {
 });
 
 test("the status line says when the routine is paused or running, and shows a failure", () => {
-  assert.match(statusLine(task({ lastRunStatus: "running", lastRunAt: "2026-11-07T11:59:00.000Z" }), now), /Running now/);
+  assert.match(statusLine(task({ lastRunStatus: "running", lastRunAt: "2026-11-07T11:59:00.000Z" }), now), /Writing the article now/);
   assert.match(statusLine(task({ lastRunAt: "2026-11-07T09:00:00.000Z", lastRunStatus: "failed", lastRunError: "No model" }), now), /Last run failed: No model/);
 });
 
@@ -126,4 +126,23 @@ test("only an article in front of the user is marked: not the phone list", () =>
   assert.equal(readTarget([A7, A6], "2026-11-07", true), null);
   assert.equal(readTarget([], null, false), null);
   assert.equal(readTarget([A7], "2026-01-01", false), null);
+});
+
+test("the page polls every 5 seconds while an article is written, else every minute", () => {
+  assert.equal(pollInterval(true), 5_000);
+  assert.equal(pollInterval(false), 60_000);
+});
+
+test("a Run now counts as starting until a newer article or 2 minutes", () => {
+  assert.equal(isStarting(null, 1000, null), false);
+  assert.equal(isStarting(1000, 2000, 500), true);
+  assert.equal(isStarting(1000, 2000, null), true);
+  assert.equal(isStarting(1000, 2000, 1500), false);
+  assert.equal(isStarting(1000, 1000 + STARTING_MS, 500), false);
+});
+
+test("the status line says when the article is being written", () => {
+  assert.match(statusLine(task(), now, true), /Writing the article now/);
+  assert.match(statusLine(task({ lastRunStatus: "running" }), now), /Writing the article now/);
+  assert.doesNotMatch(statusLine(task(), now), /Writing/);
 });

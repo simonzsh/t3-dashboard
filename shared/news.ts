@@ -44,6 +44,13 @@ export interface NewsState {
   task: NewsTask | null;
   /** Newest first. */
   articles: NewsArticleSummary[];
+  /** The run in progress. `threadId` is null when only T3's task status says so. */
+  running: NewsRunning | null;
+}
+
+export interface NewsRunning {
+  threadId: string | null;
+  startedAt: string | null;
 }
 
 export interface NewsArticle {

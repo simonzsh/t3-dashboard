@@ -283,7 +283,7 @@ export function App() {
                 onNewSession={() => setCreating({ projectId: null })}
                 onNewAutomation={() => setCreatingAutomation(true)}
                 newsCanRun={news.state?.task != null}
-                newsRunning={news.starting}
+                newsRunning={news.starting || news.writing}
                 onNewsRun={() => void news.run()}
                 onNewsSettings={() => setNewsSettingsOpen(true)}
                 onSearch={openSearch}
@@ -338,7 +338,7 @@ export function App() {
                   setup={setup}
                 />
               ) : <Loader />)}
-            {tab === "news" && (news.state ? <NewsView news={news.state} now={now} compact={compact} onRead={readNews} /> : <Loader />)}
+            {tab === "news" && (news.state ? <NewsView news={news.state} writing={news.writing} now={now} compact={compact} onRead={readNews} onOpenThread={onOpen} /> : <Loader />)}
             {tab === "sessions" &&
               (state ? (
                 <SessionsView

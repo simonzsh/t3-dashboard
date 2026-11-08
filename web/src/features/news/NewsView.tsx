@@ -8,17 +8,21 @@ import { dateLabel, readTarget, shortDate, statusLine } from "./news.ts";
 
 interface Props {
   news: NewsState;
+  /** An article is being written, or Run now was just pressed. */
+  writing: boolean;
   now: Date;
   /** Phone layout: the list and the article take turns. */
   compact: boolean;
   /** Called when an article is in front of the user. */
   onRead: (mark: { id: string; at: string }) => void;
+  /** Opens a thread in Sessions; `addOnly` adds it next to the open ones. */
+  onOpenThread: (id: string, addOnly: boolean) => void;
 }
 
 /** The article list and the open article. On a phone they take turns: the list, then the article with a back button. */
-export function NewsView({ news, now, compact, onRead }: Props) {
+export function NewsView({ news, writing, now, compact, onRead, onOpenThread }: Props) {
   const api = useApi();
-  const { articles, task } = news;
+  const { articles, task, running } = news;
   const [picked, setPicked] = useState<string | null>(null);
   // Phone only: the article covers the list. A wide screen shows both and ignores it.
   const [reading, setReading] = useState(false);
@@ -53,12 +57,31 @@ export function NewsView({ news, now, compact, onRead }: Props) {
     if (reading) articleRef.current?.scrollIntoView({ block: "start" });
   }, [reading, picked]);
 
-  const status = <p className="news-status">{statusLine(task, now)}</p>;
+  // The new article is shown when the run ends, even if an older one was picked.
+  const wasWriting = useRef(false);
+  useEffect(() => {
+    if (wasWriting.current && !writing) setPicked(null);
+    wasWriting.current = writing;
+  }, [writing]);
+
+  const status = <p className="news-status">{statusLine(task, now, writing)}</p>;
+  const progress = writing && (
+    <li className="news-item writing">
+      <Loader inline label="Writing the article" />
+      <span className="news-item-title">Writing the article…</span>
+      {running?.threadId && (
+        <Button size="sm" variant="link" onClick={(e) => onOpenThread(running.threadId!, e.shiftKey)}>
+          Open session
+        </Button>
+      )}
+    </li>
+  );
   if (articles.length === 0) {
     return (
       <div className="news-page empty">
         <section className="news-list" aria-label="News">
           {status}
+          {progress && <ul className="news-items">{progress}</ul>}
           <div className="empty-state">
             <Icon name="newspaper" />
             <strong>No news yet</strong>
@@ -74,6 +97,7 @@ export function NewsView({ news, now, compact, onRead }: Props) {
       <section className="news-list" aria-label="News">
         {status}
         <ul className="news-items">
+          {progress}
           {articles.map((a) => (
             <li key={a.date}>
               <Pressable

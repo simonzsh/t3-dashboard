@@ -343,3 +343,32 @@ test("get reads only the head of each article and returns its mtime", async () =
   assert.equal((await news.get()).articles[0]!.mtimeMs, 42);
   assert.deepEqual(folder.reads, [{ path: `${DIR}/2026-11-07.md`, maxBytes: 4096 }]);
 });
+
+const live = (id: string, extra: Partial<RawThread> = {}) => run(id, { status: "running", activeRunId: "r", latestRunCompletedAt: undefined, ...extra });
+
+test("get reports the running thread of the news task", async () => {
+  const { news, port } = setup({ stored: known, threads: [live("t-1")] });
+  port.scheduledTasks = [liveTask()];
+  owned(port, "t-1");
+  assert.deepEqual((await news.get()).running, { threadId: "t-1", startedAt: "2026-11-07T06:45:00.000Z" });
+  await news.get();
+  assert.equal(port.projectionCalls, 1);
+});
+
+test("get reports no run for a done thread, another task or another project", async () => {
+  const { news, port } = setup({ stored: known, threads: [run("done"), live("other"), live("elsewhere", { projectId: "project-1" }), live("old", { createdAt: "2026-10-01T06:45:00.000Z" })] });
+  port.scheduledTasks = [liveTask()];
+  owned(port, "done");
+  owned(port, "other", "scheduled-task:else");
+  owned(port, "elsewhere");
+  owned(port, "old");
+  assert.equal((await news.get()).running, null);
+});
+
+test("get falls back to the task status when no thread is found", async () => {
+  const { news, port } = setup({ stored: known });
+  port.scheduledTasks = [liveTask({ lastRunStatus: "running", lastRunAt: "2026-11-07T06:45:00.000Z" })];
+  assert.deepEqual((await news.get()).running, { threadId: null, startedAt: "2026-11-07T06:45:00.000Z" });
+  port.scheduledTasks = [liveTask({ lastRunStatus: "succeeded" })];
+  assert.equal((await news.get()).running, null);
+});
