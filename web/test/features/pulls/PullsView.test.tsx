@@ -16,7 +16,7 @@ import { PULLS_LIST_KEY } from "../../../src/features/pulls/prefs.ts";
 const now = new Date("2026-01-02T00:00:00Z");
 const pr = (repository: string, number: number, over: Partial<PrSummary> = {}): PrSummary => ({
   repository, number, title: `Change ${number}`, url: `https://example.test/${repository}/pull/${number}`, author: "ada", draft: false, headRef: `feature-${number}`, baseRef: "main",
-  updatedAt: "2026-01-01T23:00:00Z", additions: 7, deletions: 2, checks: "success", review: "approved", roles: ["author"], ...over,
+  createdAt: "2026-01-01T20:00:00Z", updatedAt: "2026-01-01T23:00:00Z", additions: 7, deletions: 2, checks: "success", review: "approved", roles: ["author"], ...over,
 });
 const list = (prs: PrSummary[]): PrList => ({ prs, fetchedAt: now.toISOString() });
 const view = (value: PrList | null, threads = [thread("t1")], error: string | null = null) =>
