@@ -1,4 +1,4 @@
-import { closeSync, mkdirSync, openSync, readFileSync, readSync, readdirSync, lstatSync, unlinkSync } from "node:fs";
+import { closeSync, existsSync, mkdirSync, openSync, readFileSync, readSync, readdirSync, lstatSync, unlinkSync } from "node:fs";
 import { lstat, readdir, rm, statfs } from "node:fs/promises";
 import os, { homedir, tmpdir } from "node:os";
 import { join } from "node:path";
@@ -23,6 +23,11 @@ import { LinearBoard } from "../domain/linearBoard.ts";
 import { createProviderLimits } from "../domain/providerLimits.ts";
 import { createCacheCleanup } from "../domain/cacheCleanup.ts";
 import { createServerStats, vmStatAvailable } from "../domain/serverStats.ts";
+import { createAgentSetup } from "../domain/agentSetup.ts";
+import { createMcpStatus } from "../domain/mcpStatus.ts";
+import { claudeMcpList, findClaude } from "../integrations/mcp/claudeCli.ts";
+import { probeMcpHttp } from "../integrations/mcp/probe.ts";
+import { nodeSetupFs } from "../config/agentSetupFs.ts";
 import { createUsage } from "../domain/usage.ts";
 import { readSessions, sessionsText } from "../config/sessionsFile.ts";
 import { readStash, stashText } from "../config/stashFile.ts";
@@ -160,6 +165,14 @@ export async function start({ port, log, env }: StartOptions): Promise<void> {
   const usage = createUsage({ port: client, threads: () => getState().threads, now: () => new Date() });
   const limits = createProviderLimits({ port: client, now: () => new Date() });
   const serverStats = createServerStats({ os, statfs, diskPath: homedir(), now: () => new Date(), sleep, availableMemory: os.platform() === "darwin" ? darwinAvailableMemory : undefined });
+  const agentSetup = createAgentSetup({ fs: nodeSetupFs(), env, home, platform: os.platform(), projects: () => getState().projects, now: () => new Date() });
+  const claudeBin = findClaude(home, existsSync, (name) => Bun.which(name));
+  const mcpStatus = createMcpStatus({
+    inventory: agentSetup,
+    probe: (url) => probeMcpHttp(url, { fetch: (target, init) => fetch(target, init) }),
+    claudeList: claudeBin === null ? null : () => claudeMcpList(runCommand, claudeBin),
+    now: () => new Date(),
+  });
   const cacheCleanup = createCacheCleanup({
     fs: { readdir: (path) => readdir(path), lstat: (path) => lstat(path), rm: (path, options) => rm(path, options) },
     homedir,
@@ -225,7 +238,7 @@ export async function start({ port, log, env }: StartOptions): Promise<void> {
   const stash = new StashStore(readStash(stashFile, readText), (entries) => writeSecret(stashFile, stashText(entries)), { now: () => new Date(), newId: () => crypto.randomUUID() });
   const seenFile = seenPath(env, home);
   const seen = new SeenStore(readSeen(seenFile, readText), (value) => writeSecret(seenFile, seenText(value)));
-  const handler = createDashboardServer({ actions, sessions, stash, seen, hub, board, usage, limits, serverStats, cacheCleanup, automations, pulls, news, getState, connection: () => live.connection(), site, settings, setup, updates, allowedHosts: envAllowedHosts(env) });
+  const handler = createDashboardServer({ actions, sessions, stash, seen, hub, board, usage, limits, serverStats, agentSetup, mcpStatus, cacheCleanup, automations, pulls, news, getState, connection: () => live.connection(), site, settings, setup, updates, allowedHosts: envAllowedHosts(env) });
 
   const reclassifier = setInterval(() => store.reclassify(new Date()), RECLASSIFY_MS);
   // It only touches the run threads of its own task, so it runs in dev builds too.

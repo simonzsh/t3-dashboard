@@ -1,9 +1,10 @@
-import type { LimitsOverview, ServerStats, UsageOverview } from "../../../../shared/api.ts";
+import type { LimitsOverview, McpOverview, ServerStats, UsageOverview } from "../../../../shared/api.ts";
 import { Fragment, useRef, useState, type DragEvent, type ReactNode } from "react";
 import { CardEditBar } from "./CardEditBar.tsx";
 import { CARD_TITLES, dropCard, layoutRows, resolveDrop, omitCard, restoreCard, setHidden, shiftCard, toggleWidth, type CardColumn, type DashboardCard, type DashboardLayout, type DropTarget } from "./layout.ts";
 import { Button, Icon, Sheet, useFlip } from "../../ui/index.ts";
 import { ActivityCard } from "./ActivityCard.tsx";
+import { McpCard } from "./McpCard.tsx";
 import { ServerCard } from "./ServerCard.tsx";
 import { UsageCard } from "./UsageCard.tsx";
 import { useDashboardCards, type CardsInput } from "./useDashboardCards.tsx";
@@ -13,6 +14,7 @@ import type { ActivityState } from "./useActivity.ts";
 interface Props extends CardsInput {
   limits: ReadState<LimitsOverview>;
   server: ReadState<ServerStats>;
+  mcp: ReadState<McpOverview>;
   activity: ActivityState;
   /** Agents at work among the listed threads: the same count as the Sessions badge and the Running card. */
   layout: DashboardLayout;
@@ -26,7 +28,7 @@ interface Props extends CardsInput {
   onCloseSheet: () => void;
 }
 
-export function DashboardView({ limits, server, activity, layout: saved, editing, onLayout: save, panelOpen, sheet, onCloseSheet, ...input }: Props) {
+export function DashboardView({ limits, server, mcp, activity, layout: saved, editing, onLayout: save, panelOpen, sheet, onCloseSheet, ...input }: Props) {
   const [dragged, setDragged] = useState<DashboardCard | null>(null);
   // Where the dragged card would land, shown as a placeholder of its size.
   const [target, setTarget] = useState<DropTarget | null>(null);
@@ -37,7 +39,7 @@ export function DashboardView({ limits, server, activity, layout: saved, editing
   const absent = cards.linear === null;
   const layout = absent ? omitCard(saved, "linear") : saved;
   const onLayout = (next: DashboardLayout) => save(absent ? restoreCard(saved, next, "linear") : next);
-  const body: Record<DashboardCard, ReactNode> = { usage: <UsageCard state={limits} now={input.now} />, server: <ServerCard state={server} now={input.now} />, activity: <ActivityCard state={activity} now={input.now} />, ...cards };
+  const body: Record<DashboardCard, ReactNode> = { usage: <UsageCard state={limits} now={input.now} />, server: <ServerCard state={server} now={input.now} />, activity: <ActivityCard state={activity} now={input.now} />, mcp: <McpCard state={mcp} now={input.now} projects={input.state.projects} />, ...cards };
   const showPanel = panelOpen && !editing;
   // The sheet takes no room, so the cards do not move for it.
   const inline = showPanel && !sheet;
