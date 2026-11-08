@@ -52,3 +52,8 @@ export const REVIEWS: Record<PrReview, { label: string; variant: BadgeVariant } 
 export const isWebUrl = (url: string): boolean => /^https:\/\//i.test(url);
 
 export const shortRepository = (repository: string): string => repository.slice(repository.indexOf("/") + 1);
+
+// The server keeps the list for a minute. Off the page, the poll only feeds the badge and the session menus.
+export const pullsPollMs = (onPage: boolean): number => (onPage ? 120_000 : 300_000);
+/** Delay before the one read that follows a list the server flagged as stale. */
+export const STALE_RETRY_MS = 1_500;

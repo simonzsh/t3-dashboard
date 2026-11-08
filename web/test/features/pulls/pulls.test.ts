@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "bun:test";
 import type { PrSummary } from "../../../../shared/pulls.ts";
-import { filterPrs, groupByRepository, isWebUrl, repositoriesOf, sessionsOf, shortRepository } from "../../../src/features/pulls/pulls.ts";
+import { filterPrs, pullsPollMs, groupByRepository, isWebUrl, repositoriesOf, sessionsOf, shortRepository } from "../../../src/features/pulls/pulls.ts";
 import { thread } from "../../fixtures.ts";
 
 const pr = (repository: string, number: number, roles: PrSummary["roles"]): PrSummary => ({
@@ -49,4 +49,9 @@ test("only web addresses become links", () => {
   assert.equal(isWebUrl("javascript:alert(1)"), false);
   assert.equal(isWebUrl("//example.test"), false);
   assert.equal(shortRepository("acme/storefront"), "storefront");
+});
+
+test("the list is polled every 2 minutes on its page and every 5 minutes elsewhere", () => {
+  assert.equal(pullsPollMs(true), 120_000);
+  assert.equal(pullsPollMs(false), 300_000);
 });

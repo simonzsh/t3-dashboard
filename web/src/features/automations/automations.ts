@@ -192,3 +192,5 @@ export function reminderDate(iso: string): string {
   const at = new Date(iso);
   return `${MONTHS[at.getMonth()]} ${at.getDate()}, ${hm(at)}`;
 }
+
+export const automationsPollMs = (onPage: boolean): number => (onPage ? 30_000 : 120_000);

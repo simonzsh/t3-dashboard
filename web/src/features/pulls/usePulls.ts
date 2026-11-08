@@ -4,9 +4,8 @@ import { useApi } from "../../api/ApiContext.tsx";
 import { failure } from "../../lib/format.ts";
 import { usePoll } from "../../lib/usePoll.ts";
 import { useRefresh } from "../../lib/useRefresh.ts";
-
-// The server caches the list for a minute: a faster poll would read the same answer.
-export const POLL_MS = 120_000;
+import { useTurnOn } from "../../lib/useTurnOn.ts";
+import { pullsPollMs, STALE_RETRY_MS } from "./pulls.ts";
 
 /** The open pull requests: loaded and polled while `active`, and read again each time the user comes back to the list (`onPage`). */
 export function usePulls(active: boolean, onPage: boolean) {
@@ -15,13 +14,17 @@ export function usePulls(active: boolean, onPage: boolean) {
   const [error, setError] = useState<string | null>(null);
   // A poll and a refresh can overlap: only the latest request may set the state.
   const seq = useRef(0);
-  const load = (refresh = false): Promise<void> => {
+  const retry = useRef<ReturnType<typeof setTimeout>>(undefined);
+  // `followUp` is the one read after a stale answer: it does not schedule another.
+  const load = (refresh = false, followUp = false): Promise<void> => {
     const id = ++seq.current;
+    clearTimeout(retry.current);
     return api.getPrs(refresh).then(
       (result) => {
         if (id !== seq.current) return;
         setList(result);
         setError(null);
+        if (result.stale && !followUp) retry.current = setTimeout(() => void load(false, true), STALE_RETRY_MS);
       },
       (e: unknown) => {
         if (id === seq.current) setError(failure("load the pull requests", e));
@@ -31,12 +34,9 @@ export function usePulls(active: boolean, onPage: boolean) {
   useEffect(() => {
     if (active) void load();
   }, [active]);
-  const wasOnPage = useRef(onPage);
-  useEffect(() => {
-    if (onPage && !wasOnPage.current && active) void load();
-    wasOnPage.current = onPage;
-  }, [onPage]);
-  usePoll(() => load(), active ? POLL_MS : null);
+  useEffect(() => () => clearTimeout(retry.current), []);
+  useTurnOn(onPage, () => active && void load());
+  usePoll(() => load(), active ? pullsPollMs(onPage) : null);
 
   const { refreshing, refresh } = useRefresh(() => load(true));
   return { list, error, refreshing, refresh };
