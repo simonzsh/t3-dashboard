@@ -1,5 +1,5 @@
 import type { DashboardThread, PendingCategory } from "../../shared/api.ts";
-import { isRepository } from "../../shared/git.ts";
+import { isRepository } from "../../shared/pulls.ts";
 import type { RawThread } from "../integrations/t3/schemas.ts";
 
 const EPOCH = new Date(0).toISOString();

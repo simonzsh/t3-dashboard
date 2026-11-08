@@ -74,7 +74,7 @@ Sessions shows your open conversations side by side. Each session is a column at
 
 Each session contains a conversation.
 
-- When T3 Code links a pull request to the session, or finds an open pull request for its branch, the header shows a pull request button (a git icon, "Open pull request #12"). It opens the Pull requests page on the diff of that pull request.
+- When T3 Code links a pull request to the session, or finds an open pull request for its branch, the header shows a pull request button (a pull request icon, "Open pull request #12"). It opens the Pull requests page on the diff of that pull request.
 - Write a message and send it with `Enter`. During a run, the message waits in the "Up next" list (dashed border). T3 Code sends it when the turn ends.
 - Under each queued message, three icons: "Send now" (the same arrow as Send), edit, remove. During a run, "Send now" steers: the message goes into the current run now. After a Stop, T3 Code holds the queue, and "Send now" starts a turn with this message.
 - Attach files with the paperclip, by drag and drop anywhere on the conversation (a dashed frame shows the drop area; it does not work in a subagent thread), or by paste. A chip shows each upload ("uploading", ready or "failed" with a retry button). Send waits for all uploads. The limits are those of T3 Code: 100 files, 10 MB for each image (PNG, JPEG, GIF or WebP), 50 MB for each other file and 80 MB of images in all.

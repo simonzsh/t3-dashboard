@@ -1,11 +1,11 @@
 import assert from "node:assert/strict";
 import { test } from "bun:test";
 import { renderToStaticMarkup } from "react-dom/server";
-import type { PrDetail as Detail, PrList, PrSummary } from "../../../../shared/git.ts";
+import type { PrDetail as Detail, PrList, PrSummary } from "../../../../shared/pulls.ts";
 import type { DiffFile } from "../../../../shared/diff.ts";
-import { DiffFiles, HunkRows } from "../../../src/features/git/DiffFiles.tsx";
-import { PrListView } from "../../../src/features/git/GitView.tsx";
-import { PrDetail } from "../../../src/features/git/PrDetail.tsx";
+import { DiffFiles, HunkRows } from "../../../src/features/pulls/DiffFiles.tsx";
+import { PrListView } from "../../../src/features/pulls/PullsView.tsx";
+import { PrDetail } from "../../../src/features/pulls/PrDetail.tsx";
 import { thread } from "../../fixtures.ts";
 
 const now = new Date("2026-01-02T00:00:00Z");
@@ -31,8 +31,8 @@ test("the list groups pull requests by repository and links each one to its diff
 
 test("a pull request linked to a session shows a button to open it", () => {
   const linked = thread("t1", { pullRequest: { repository: "acme/storefront", number: 1, url: "https://example.test/x" } });
-  assert.equal(view(list([pr("acme/storefront", 1), pr("acme/storefront", 2)]), [linked]).match(/git-row-session/g)?.length, 1);
-  assert.doesNotMatch(view(list([pr("acme/storefront", 1)])), /git-row-session/);
+  assert.equal(view(list([pr("acme/storefront", 1), pr("acme/storefront", 2)]), [linked]).match(/pulls-row-session/g)?.length, 1);
+  assert.doesNotMatch(view(list([pr("acme/storefront", 1)])), /pulls-row-session/);
 });
 
 test("the list has filters, an empty state and an error", () => {

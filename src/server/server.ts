@@ -7,7 +7,7 @@ import type { StashStore } from "../domain/stashStore.ts";
 import type { SeenStore } from "../domain/seenStore.ts";
 import type { CacheCleanup } from "../domain/cacheCleanup.ts";
 import type { Automations } from "../domain/automations.ts";
-import type { GitReview } from "../domain/git.ts";
+import type { PullRequests } from "../domain/pulls.ts";
 import type { News } from "../domain/news.ts";
 import type { LinearBoard } from "../domain/linearBoard.ts";
 import type { ProviderLimitsReader } from "../domain/providerLimits.ts";
@@ -41,7 +41,7 @@ export interface DashboardServerOptions {
   serverStats: Pick<ServerStatsReader, "get">;
   cacheCleanup: Pick<CacheCleanup, "sizes" | "clear">;
   automations: Pick<Automations, "list" | "create" | "remove" | "update" | "setEnabled" | "runNow">;
-  git: Pick<GitReview, "prs" | "detail" | "diff">;
+  pulls: Pick<PullRequests, "prs" | "detail" | "diff">;
   news: Pick<News, "get" | "article" | "search" | "save" | "runNow" | "remove" | "removeAll">;
   sessions: Pick<SessionsStore, "get" | "set">;
   stash: Pick<StashStore, "list" | "add" | "remove">;
@@ -159,7 +159,7 @@ function matchRoute(pattern: string[], segments: string[]): Record<string, strin
 }
 
 export function createDashboardServer(options: DashboardServerOptions): DashboardHandler {
-  const { actions, sessions, stash, seen, hub, board, usage, limits, serverStats, cacheCleanup, automations, news, git, getState, connection, site, settings, setup, updates } = options;
+  const { actions, sessions, stash, seen, hub, board, usage, limits, serverStats, cacheCleanup, automations, news, pulls, getState, connection, site, settings, setup, updates } = options;
   const allowedHosts = new Set([...LOCAL_HOSTS, ...(options.allowedHosts ?? [])]);
   const ok = (extra: Record<string, unknown> = {}) => json(200, { ok: true, ...extra });
   const done = async (work: Promise<unknown>) => (await work, ok());
@@ -217,9 +217,9 @@ export function createDashboardServer(options: DashboardServerOptions): Dashboar
     // Before :date, which would take "search" for a date.
     { method: "GET", path: "/api/news/search", handle: async ({ req }) => json(200, await news.search(new URL(req.url).searchParams.get("q") ?? "")) },
     { method: "GET", path: "/api/news/:date", handle: async ({ params }) => json(200, await news.article(params.date!)) },
-    { method: "GET", path: "/api/git/prs", handle: async ({ req }) => json(200, await git.prs(refreshing(req))) },
-    { method: "GET", path: "/api/git/prs/:owner/:repo/:number", handle: async ({ req, params }) => json(200, await git.detail(...refOf(params), refreshing(req))) },
-    { method: "GET", path: "/api/git/prs/:owner/:repo/:number/diff", handle: async ({ req, params }) => json(200, await git.diff(...refOf(params))) },
+    { method: "GET", path: "/api/pulls", handle: async ({ req }) => json(200, await pulls.prs(refreshing(req))) },
+    { method: "GET", path: "/api/pulls/:owner/:repo/:number", handle: async ({ req, params }) => json(200, await pulls.detail(...refOf(params), refreshing(req))) },
+    { method: "GET", path: "/api/pulls/:owner/:repo/:number/diff", handle: async ({ req, params }) => json(200, await pulls.diff(...refOf(params))) },
     { method: "GET", path: "/api/settings", handle: () => json(200, settings.get()) },
     { method: "GET", path: "/api/sessions", handle: () => json(200, { sessions: sessions.get() }) },
     { method: "GET", path: "/api/stash", handle: () => json(200, { entries: stash.list() }) },

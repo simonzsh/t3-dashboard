@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "bun:test";
 import type { DiffFile } from "../../../../shared/diff.ts";
-import { isOpen, LARGE_FILE, openByDefault, setAll, setTests, toolbarOf } from "../../../src/features/git/diffView.ts";
+import { isOpen, LARGE_FILE, openByDefault, setAll, setTests, toolbarOf } from "../../../src/features/pulls/diffView.ts";
 
 const file = (path: string, additions: number, deletions = 0): DiffFile => ({ path, oldPath: path, newPath: path, status: "modified", binary: false, additions, deletions, hunks: [] });
 

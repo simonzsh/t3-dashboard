@@ -1,9 +1,9 @@
 import type { DashboardThread } from "../../../../shared/api.ts";
-import type { PrCheckRun, PrDetail as Detail, PrDiff, PrRef } from "../../../../shared/git.ts";
+import type { PrCheckRun, PrDetail as Detail, PrDiff, PrRef } from "../../../../shared/pulls.ts";
 import { relativeTime } from "../../lib/format.ts";
 import { Badge, Button, ButtonLink, Icon, Loader, type IconName } from "../../ui/index.ts";
 import { Counts, DiffFiles } from "./DiffFiles.tsx";
-import { CHECKS, isWebUrl, REVIEWS } from "./git.ts";
+import { CHECKS, isWebUrl, REVIEWS } from "./pulls.ts";
 
 const CHECK_ICONS: Record<PrCheckRun["state"], IconName> = { success: "circleCheck", failure: "alert", pending: "circle", skipped: "circle", neutral: "circle" };
 const STATE_LABELS = { open: "Open", closed: "Closed", merged: "Merged" } as const;
@@ -11,9 +11,9 @@ const STATE_LABELS = { open: "Open", closed: "Closed", merged: "Merged" } as con
 function CheckRuns({ runs }: { runs: PrCheckRun[] }) {
   if (runs.length === 0) return null;
   return (
-    <ul className="git-checks" aria-label="Checks">
+    <ul className="pulls-checks" aria-label="Checks">
       {runs.map((run, i) => (
-        <li key={i} className={`git-check ${run.state}`}>
+        <li key={i} className={`pulls-check ${run.state}`}>
           <Icon name={CHECK_ICONS[run.state]} />
           {run.url && isWebUrl(run.url) ? (
             <a href={run.url} target="_blank" rel="noreferrer noopener">
@@ -22,7 +22,7 @@ function CheckRuns({ runs }: { runs: PrCheckRun[] }) {
           ) : (
             <span>{run.name}</span>
           )}
-          <span className="git-check-state">{run.state}</span>
+          <span className="pulls-check-state">{run.state}</span>
         </li>
       ))}
     </ul>
@@ -48,27 +48,27 @@ export function PrDetail({ pr, detail, detailError, diff, diffError, refreshing,
   const checks = detail ? CHECKS[detail.checks] : null;
   const review = detail ? REVIEWS[detail.review] : null;
   return (
-    <div className="git-detail">
-      <header className="git-detail-head">
-        <ButtonLink variant="ghost" size="sm" href="#/pulls" className="git-back">
+    <div className="pulls-detail">
+      <header className="pulls-detail-head">
+        <ButtonLink variant="ghost" size="sm" href="#/pulls" className="pulls-back">
           <Icon name="arrowLeft" /> Pull requests
         </ButtonLink>
-        <h2 className="git-title">
-          {detail?.title ?? `${pr.repository}#${pr.number}`} {detail && <span className="git-num">#{detail.number}</span>}
+        <h2 className="pulls-title">
+          {detail?.title ?? `${pr.repository}#${pr.number}`} {detail && <span className="pulls-num">#{detail.number}</span>}
         </h2>
         {detail && (
           <>
-            <p className="git-meta">
+            <p className="pulls-meta">
               {detail.repository} · {detail.author} · <code>{detail.headRef}</code> → <code>{detail.baseRef}</code> · updated {relativeTime(detail.updatedAt, now)}
             </p>
-            <div className="git-badges">
+            <div className="pulls-badges">
               <Badge variant={detail.state === "merged" ? "done" : "neutral"}>{detail.draft ? "Draft" : STATE_LABELS[detail.state]}</Badge>
               {checks && <Badge variant={checks.variant}>{checks.label}</Badge>}
               {review && <Badge variant={review.variant}>{review.label}</Badge>}
               <Counts additions={detail.additions} deletions={detail.deletions} />
-              <span className="git-files">{detail.changedFiles} files</span>
+              <span className="pulls-files">{detail.changedFiles} files</span>
             </div>
-            <div className="git-detail-actions">
+            <div className="pulls-detail-actions">
               {isWebUrl(detail.url) && (
                 <ButtonLink size="sm" href={detail.url} target="_blank" rel="noreferrer noopener">
                   <Icon name="arrowUpRight" /> Open on GitHub
@@ -82,7 +82,7 @@ export function PrDetail({ pr, detail, detailError, diff, diffError, refreshing,
             </div>
             <CheckRuns runs={detail.checkRuns} />
             {detail.reviews.length > 0 && (
-              <ul className="git-reviews" aria-label="Reviews">
+              <ul className="pulls-reviews" aria-label="Reviews">
                 {detail.reviews.map((r, i) => (
                   <li key={i}>
                     <strong>{r.author}</strong> {r.state.toLowerCase().replace("_", " ")}
@@ -95,7 +95,7 @@ export function PrDetail({ pr, detail, detailError, diff, diffError, refreshing,
         {detailError && <p className="auto-error" role="alert">{detailError}</p>}
       </header>
       {diffError && (
-        <div className="git-diff-error">
+        <div className="pulls-diff-error">
           <p className="auto-error" role="alert">{diffError}</p>
           <Button size="sm" variant="secondary" disabled={refreshing} onClick={onRefresh}>Retry</Button>
         </div>

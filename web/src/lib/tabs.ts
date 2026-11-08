@@ -1,5 +1,5 @@
-import type { PrRef } from "../../../shared/git.ts";
-import { isRepository } from "../../../shared/git.ts";
+import type { PrRef } from "../../../shared/pulls.ts";
+import { isRepository } from "../../../shared/pulls.ts";
 import type { IconName } from "../ui/index.ts";
 
 export type Tab = "dashboard" | "sessions" | "pulls" | "automations" | "news";

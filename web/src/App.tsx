@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import type { DashboardThread } from "../../shared/api.ts";
 import { AutomationsView } from "./features/automations/AutomationsView.tsx";
-import { GitView } from "./features/git/GitView.tsx";
+import { PullsView } from "./features/pulls/PullsView.tsx";
 import { NewsSettingsDialog } from "./features/news/NewsSettingsDialog.tsx";
 import { NewsView } from "./features/news/NewsView.tsx";
 import { firstRunBody, unreadNewsCount } from "./features/news/news.ts";
@@ -345,7 +345,7 @@ export function App() {
                 />
               ) : <Loader />)}
             {tab === "news" && (news.state ? <NewsView news={news.state} writing={news.writing} now={now} compact={compact} seen={notify.seen} onRead={readNews} onOpenThread={onOpen} onDelete={news.remove} onDeleteAll={news.removeAll} /> : <Loader />)}
-            {tab === "pulls" && (state ? <GitView route={prRoute} threads={state.threads} now={now} onOpenThread={onOpen} /> : <Loader />)}
+            {tab === "pulls" && (state ? <PullsView route={prRoute} threads={state.threads} now={now} onOpenThread={onOpen} /> : <Loader />)}
             {tab === "sessions" &&
               (state ? (
                 <SessionsView

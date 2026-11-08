@@ -1,6 +1,6 @@
 import type { BadgeVariant } from "../../ui/index.ts";
 import type { DashboardThread } from "../../../../shared/api.ts";
-import type { PrChecks, PrRef, PrReview, PrSummary } from "../../../../shared/git.ts";
+import type { PrChecks, PrRef, PrReview, PrSummary } from "../../../../shared/pulls.ts";
 
 export type Scope = "all" | "author" | "reviewer";
 

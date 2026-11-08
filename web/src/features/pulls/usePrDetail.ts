@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type Dispatch, type SetStateAction } from "react";
-import type { PrDetail, PrDiff, PrRef } from "../../../../shared/git.ts";
+import type { PrDetail, PrDiff, PrRef } from "../../../../shared/pulls.ts";
 import { useApi } from "../../api/ApiContext.tsx";
 import { failure } from "../../lib/format.ts";
 

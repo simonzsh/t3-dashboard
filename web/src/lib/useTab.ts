@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useSyncExternalStore } from "react";
-import type { PrRef } from "../../../shared/git.ts";
+import type { PrRef } from "../../../shared/pulls.ts";
 import { hashForTab, prFromHash, tabFromHash, type Tab } from "./tabs.ts";
 
 const subscribe = (onChange: () => void) => {

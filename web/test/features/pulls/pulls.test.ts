@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "bun:test";
-import type { PrSummary } from "../../../../shared/git.ts";
-import { filterPrs, groupByRepository, isWebUrl, repositoriesOf, sessionOf, shortRepository } from "../../../src/features/git/git.ts";
+import type { PrSummary } from "../../../../shared/pulls.ts";
+import { filterPrs, groupByRepository, isWebUrl, repositoriesOf, sessionOf, shortRepository } from "../../../src/features/pulls/pulls.ts";
 import { thread } from "../../fixtures.ts";
 
 const pr = (repository: string, number: number, roles: PrSummary["roles"]): PrSummary => ({

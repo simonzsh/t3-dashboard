@@ -1,5 +1,5 @@
-import { isRepository } from "../../../shared/git.ts";
-import type { PrCheckRun, PrChecks, PrDetail, PrReview, PrSummary } from "../../../shared/git.ts";
+import { isRepository } from "../../../shared/pulls.ts";
+import type { PrCheckRun, PrChecks, PrDetail, PrReview, PrSummary } from "../../../shared/pulls.ts";
 import { parse } from "../contract.ts";
 import { IntegrationError } from "../errors.ts";
 import type { GhResult, GhRun } from "./gh.ts";

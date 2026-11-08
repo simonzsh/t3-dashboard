@@ -21,7 +21,7 @@ const base = {
 const side = (over = {}) => renderToStaticMarkup(<AppNav layout="side" {...base} {...over} />);
 const bottom = (over = {}) => renderToStaticMarkup(<AppNav layout="bottom" {...base} {...over} />);
 
-test("the sidebar lists Dashboard, Sessions, Automations, News and Git, with the open page marked current", () => {
+test("the sidebar lists Dashboard, Sessions, Pull requests, Automations and News, with the open page marked current", () => {
   const out = side();
   assert.match(out, /<nav class="sidebar/);
   assert.deepEqual([...out.matchAll(/data-tab="(\w+)"/g)].map((m) => m[1]), ["dashboard", "sessions", "pulls", "automations", "news"]);

@@ -3,7 +3,7 @@ import type { DashboardProvider } from "../../../shared/api.ts";
 import { createActions } from "../../domain/actions.ts";
 import { AutomationRunLog } from "../../domain/automationRuns.ts";
 import { createAutomations } from "../../domain/automations.ts";
-import { GitReview } from "../../domain/git.ts";
+import { PullRequests } from "../../domain/pulls.ts";
 import { createNews } from "../../domain/news.ts";
 import { SessionsStore } from "../../domain/sessionsStore.ts";
 import { StashStore } from "../../domain/stashStore.ts";
@@ -113,7 +113,7 @@ export async function startDemo(env: Record<string, string | undefined>): Promis
     serverStats: { get: async () => demoServerStats(new Date()) },
     cacheCleanup: createDemoCacheCleanup(),
     automations,
-    git: new GitReview({ run: demoGh(() => new Date()), now: () => new Date() }),
+    pulls: new PullRequests({ run: demoGh(() => new Date()), now: () => new Date() }),
     news,
     getState,
     connection: () => live.connection(),

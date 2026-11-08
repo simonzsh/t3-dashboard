@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "bun:test";
 import { DomainError } from "../../src/domain/errors.ts";
-import { GitReview } from "../../src/domain/git.ts";
+import { PullRequests } from "../../src/domain/pulls.ts";
 import type { GhRun } from "../../src/integrations/github/gh.ts";
 
 const DIFF = "diff --git a/a.ts b/a.ts\n--- a/a.ts\n+++ b/a.ts\n@@ -1 +1,2 @@\n one\n+two\n";
@@ -16,7 +16,7 @@ function setup() {
     if (args[1] === "diff") return { code: 0, stdout: DIFF, truncated: false };
     return { code: 0, stdout: JSON.stringify({ url: "https://example.test/p", headRefOid: sha, state: "OPEN" }), truncated: false };
   };
-  const review = new GitReview({ run, now: () => new Date(clock) });
+  const review = new PullRequests({ run, now: () => new Date(clock) });
   return { review, calls, tick: (ms: number) => (clock += ms), setSha: (next: string) => (sha = next) };
 }
 
@@ -83,7 +83,7 @@ test("the detail and the diff opened together share one pr view", async () => {
 
 test("an unknown pull request is not-found, not a GitHub failure", async () => {
   const run: GhRun = async () => ({ code: 1, stdout: "", truncated: false, notFound: true });
-  const review = new GitReview({ run, now: () => new Date(0) });
+  const review = new PullRequests({ run, now: () => new Date(0) });
   for (const read of [() => review.detail("acme/api", 9), () => review.diff("acme/api", 9)]) {
     await assert.rejects(read, (error: unknown) => error instanceof DomainError && error.code === "not-found");
   }

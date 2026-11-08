@@ -172,9 +172,9 @@ test("list pages: the head sits outside the scroll box, so it never moves, and n
   const phone = css.slice(css.indexOf("@media (max-width: 700px)"));
   assert.match(phone, /\.list-page-body \{ padding-bottom: 16px; \}/);
   // A sticky toolbar inside the scroll box slides by the box's padding as soon as the list scrolls.
-  for (const selector of [".list-page-head", ".auto-toolbar", ".news-list-head", ".git-tools"]) assert.doesNotMatch(rule(selector), /sticky|overflow/, selector);
+  for (const selector of [".list-page-head", ".auto-toolbar", ".news-list-head", ".pulls-tools"]) assert.doesNotMatch(rule(selector), /sticky|overflow/, selector);
   // Pages only add spacing: the scroll and the size come from the shared rules.
-  for (const selector of [".auto-scroll", ".news-list-head", ".git-tools"]) assert.doesNotMatch(rule(selector), /overflow-y|min-height/, selector);
+  for (const selector of [".auto-scroll", ".news-list-head", ".pulls-tools"]) assert.doesNotMatch(rule(selector), /overflow-y|min-height/, selector);
   assert.doesNotMatch(css, /\.auto-page \{[^}]*overflow-y/);
 });
 
@@ -183,10 +183,10 @@ test("one spin keyframe, and shared rows have one rule each", () => {
   for (const selector of [".row-icons", ".linear-status"]) assert.equal(css.split("\n").filter((line) => line.startsWith(`${selector} {`)).length, 1);
 });
 
-test("git: the diff bar and the file headers stick inside the page, and a dark theme recolours the tokens", () => {
+test("pull requests: the diff bar and the file headers stick inside the page, and a dark theme recolours the tokens", () => {
   assert.match(rule(".pr-diff-bar"), /position: sticky; top: -4px/);
-  assert.match(rule(".pr-diff-file-head"), /position: sticky; top: calc\(var\(--git-bar\) - 4px\)/);
+  assert.match(rule(".pr-diff-file-head"), /position: sticky; top: calc\(var\(--pulls-bar\) - 4px\)/);
   assert.match(rule(".pr-diff-file-head"), /border-radius: 0;/);
-  assert.match(rule(".git-detail-scroll"), /overflow-y: auto/);
+  assert.match(rule(".pulls-detail-scroll"), /overflow-y: auto/);
   assert.match(css, /:root\[data-theme="dark"\] :is\(\.hljs-keyword/);
 });

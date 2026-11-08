@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import type { PrList } from "../../../../shared/git.ts";
+import type { PrList } from "../../../../shared/pulls.ts";
 import { useApi } from "../../api/ApiContext.tsx";
 import { failure } from "../../lib/format.ts";
 import { usePoll } from "../../lib/usePoll.ts";
@@ -8,7 +8,7 @@ import { usePoll } from "../../lib/usePoll.ts";
 export const POLL_MS = 120_000;
 
 /** The open pull requests, loaded on mount and polled while the Pull requests page is mounted. */
-export function useGitPrs() {
+export function usePulls() {
   const api = useApi();
   const [list, setList] = useState<PrList | null>(null);
   const [error, setError] = useState<string | null>(null);

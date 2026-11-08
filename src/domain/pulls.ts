@@ -1,5 +1,5 @@
 import { parseDiff } from "../../shared/diff.ts";
-import type { PrDetail, PrDiff, PrList } from "../../shared/git.ts";
+import type { PrDetail, PrDiff, PrList } from "../../shared/pulls.ts";
 import { IntegrationError } from "../integrations/errors.ts";
 import type { GhRun } from "../integrations/github/gh.ts";
 import { getDiff, getPull, listPulls } from "../integrations/github/pulls.ts";
@@ -9,7 +9,7 @@ const CACHE_MS = 60_000;
 const MAX_DETAILS = 50;
 const MAX_DIFFS = 20;
 
-export interface GitReviewOptions {
+export interface PullRequestsOptions {
   run: GhRun;
   now: () => Date;
 }
@@ -28,15 +28,15 @@ function remember<V>(cache: Map<string, V>, key: string, value: V, max: number):
 }
 
 /** Open pull requests, their detail and their diff, read through gh and cached so a poll costs no call. */
-export class GitReview {
-  private readonly options: GitReviewOptions;
+export class PullRequests {
+  private readonly options: PullRequestsOptions;
   private list: { at: number; value: PrList } | null = null;
   private listing: Promise<PrList> | null = null;
   private readonly details = new Map<string, { at: number; value: PrDetail }>();
   private readonly reading = new Map<string, Promise<PrDetail>>();
   private readonly diffs = new Map<string, PrDiff>();
 
-  constructor(options: GitReviewOptions) {
+  constructor(options: PullRequestsOptions) {
     this.options = options;
   }
 

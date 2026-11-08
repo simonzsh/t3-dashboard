@@ -2,7 +2,7 @@ import { test } from "bun:test";
 import assert from "node:assert/strict";
 import { TABS, hashForPr, hashForTab, prFromHash, tabFromHash } from "../../src/lib/tabs.ts";
 
-test("the tabs are Dashboard, Sessions, Automations, News and Git", () => {
+test("the tabs are Dashboard, Sessions, Pull requests, Automations and News", () => {
   assert.deepEqual(TABS.map((t) => [t.id, t.label]), [["dashboard", "Dashboard"], ["sessions", "Sessions"], ["pulls", "Pull requests"], ["automations", "Automations"], ["news", "News"]]);
 });
 

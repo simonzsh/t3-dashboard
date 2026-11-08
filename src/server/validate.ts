@@ -1,7 +1,7 @@
 import type { ApprovalDecision, AssignIssueBody, CreateAutomationBody, CreateProjectBody, CreateThreadBody, ProjectIconSpec, RoutineSchedule, WebhookFilter, WebhookSignature, ModelSelection, RespondBody, RewindBody, SaveNewsBody, SecretAnswerBody, SendMessageBody, ThreadSettingsBody, UpdateAutomationBody, UpdateProjectBody, UploadedAttachment, UserInputAnswers, WorkspaceChoice } from "../../shared/api.ts";
 import { PROJECT_COLOR_NAMES } from "../../shared/projectColors.ts";
 import { ACTIVITY_PERIODS, DEFAULT_ACTIVITY_PERIOD, type ActivityPeriod } from "../../shared/usage.ts";
-import { isRepository, type PrRef } from "../../shared/git.ts";
+import { isRepository, type PrRef } from "../../shared/pulls.ts";
 import { isObject } from "../../shared/guards.ts";
 import { NEWS_LANGUAGES, isTimeOfDay, isWeekday, type NewsLanguage } from "../../shared/news.ts";
 import { normalizeSessions, type SessionsUpdate } from "../../shared/sessions.ts";
