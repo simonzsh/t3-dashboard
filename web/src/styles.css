@@ -1139,7 +1139,8 @@ main:has(> .news-page) { padding-top: 8px; }
 /* Kept mounted and slid to zero, as the Sessions list does; the list keeps its width inside so nothing reflows. */
 .news-list-slot { z-index: 1; justify-self: start; width: var(--news-list-w); min-width: 0; min-height: 0; display: flex; overflow: hidden; background: var(--page-bg); transition: width 160ms ease; }
 .news-page.list-hidden .news-list-slot { width: 0; }
-.news-list-slot > .news-list { flex: none; width: var(--news-list-w); }
+/* The slot clips while it slides: the list keeps its 4px inner room for focus rings instead of bleeding past the slot edge. */
+.news-list-slot > .news-list { flex: none; width: var(--news-list-w); margin: 0; }
 .news-list { min-height: 0; overflow-y: auto; display: flex; flex-direction: column; gap: 12px; padding: 4px; margin: -4px; }
 .news-status { margin: 0; padding: 0 10px; font-size: 12px; color: var(--text-secondary); }
 .news-tools { display: flex; align-items: center; gap: 8px; }
