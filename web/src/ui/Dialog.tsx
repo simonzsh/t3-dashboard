@@ -81,14 +81,16 @@ export function Dialog({ title, label, onClose, onCancel, cancelLabel = "Cancel"
     return root && el ? lockScroll(root, el) : undefined;
   }, []);
 
-  // iOS leaves fixed elements under the keyboard: on a phone, fit the backdrop to the visible part of the page.
+  // iOS leaves fixed elements under the keyboard, and Safari floats its address bar over the page above
+  // it. On a phone the sheet reaches the bottom of the screen, but keeps its content in the visible part.
   useEffect(() => {
     const root = backdrop.current;
     const vv = window.visualViewport;
     if (!root || !vv || !isPhone()) return;
     const fit = () => {
-      root.style.top = `${vv.offsetTop}px`;
+      const hidden = document.documentElement.clientHeight - vv.offsetTop - vv.height;
       root.style.setProperty("--visible-h", `${vv.height}px`);
+      root.style.setProperty("--kb-inset", `${Math.max(0, hidden)}px`);
     };
     // The sheet just got shorter: keep the field being typed in on screen.
     const resized = () => {
