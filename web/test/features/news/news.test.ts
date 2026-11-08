@@ -77,7 +77,7 @@ test("the status line gives the next run and the last run", () => {
 });
 
 test("the status line says when the routine is paused or running, and shows a failure", () => {
-  assert.match(statusLine(task({ lastRunStatus: "running", lastRunAt: "2026-11-07T11:59:00.000Z" }), now), /Writing the article now/);
+  assert.equal(statusLine(task({ lastRunStatus: "running", lastRunAt: "2026-11-07T11:59:00.000Z" }), now), `Next article ${formatMessageTime("2026-11-08T07:00:00.000Z")}`);
   assert.match(statusLine(task({ lastRunAt: "2026-11-07T09:00:00.000Z", lastRunStatus: "failed", lastRunError: "No model" }), now), /Last run failed: No model/);
 });
 
@@ -141,9 +141,9 @@ test("a Run now counts as starting until a newer article or 2 minutes", () => {
   assert.equal(isStarting(1000, 1000 + STARTING_MS, 500), false);
 });
 
-test("the status line says when the article is being written", () => {
-  assert.match(statusLine(task(), now, true), /Writing the article now/);
-  assert.match(statusLine(task({ lastRunStatus: "running" }), now), /Writing the article now/);
+test("the status line never repeats the run shown in the list", () => {
+  // The run shows in the list with its loader: the status line never repeats it.
+  assert.doesNotMatch(statusLine(task({ lastRunStatus: "running" }), now), /Writing/);
   assert.doesNotMatch(statusLine(task(), now), /Writing/);
-  assert.equal(statusLine(task({ enabled: false }), now, true), "Writing the article now");
+  assert.equal(statusLine(task({ enabled: false, lastRunStatus: "running" }), now), "");
 });

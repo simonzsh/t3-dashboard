@@ -70,14 +70,11 @@ export function isStarting(startedAt: number | null, now: number, newestMtimeMs:
 }
 
 /** One line under the page title: when the next article comes and how the last run went. */
-export function statusLine(task: NewsTask | null, now: Date, writing = false): string {
-  if (!task) return writing ? "Writing the article now" : "";
-  // A run in progress matters more than the schedule, even when the routine is paused.
-  // Paused: no schedule to show, so the line stays empty unless a run is going.
-  if (!task.enabled) return writing || task.lastRunStatus === "running" ? "Writing the article now" : "";
+/** The line above the list: the next run and how the last one went. Empty when there is no schedule; a run in progress shows in the list. */
+export function statusLine(task: NewsTask | null, now: Date): string {
+  if (!task || !task.enabled) return "";
   const parts = [`Next article ${task.nextRunAt ? formatMessageTime(task.nextRunAt) : "not planned"}`];
-  if (writing || task.lastRunStatus === "running") parts.push("Writing the article now");
-  else if (task.lastRunAt) {
+  if (task.lastRunAt && task.lastRunStatus !== "running") {
     parts.push(task.lastRunStatus === "failed" ? `Last run failed: ${task.lastRunError ?? "unknown error"}` : `Last run ${relativeTime(task.lastRunAt, now)}`);
   }
   return parts.join(" · ");
