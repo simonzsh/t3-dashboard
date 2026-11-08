@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "bun:test";
 import { DemoPort, demoLinearFetch } from "../../src/app/demo/port.ts";
-import { DEMO_CLAUDE_MCP_LIST, DEMO_HOME, DEMO_NEWS_DIR, DEMO_SETUP_FILES, DEMO_SETUP_LINKS, createDemoCacheCleanup, demoMcpProbe, demoNews, demoFixtures, demoServerStats, demoUsageBuckets } from "../../src/app/demo/fixtures.ts";
+import { DEMO_HOME, DEMO_NEWS_DIR, createDemoCacheCleanup, demoNews, demoFixtures, demoServerStats, demoUsageBuckets } from "../../src/app/demo/fixtures.ts";
 import { issues } from "../../src/integrations/contract.ts";
 import { inboxItems } from "../../src/domain/linearBoard.ts";
 import { LinearClient } from "../../src/integrations/linear/client.ts";
@@ -13,10 +13,6 @@ import { createActions } from "../../src/domain/actions.ts";
 import { createAutomations } from "../../src/domain/automations.ts";
 import { PullRequests } from "../../src/domain/pulls.ts";
 import { demoGh } from "../../src/app/demo/pulls.ts";
-import { createAgentSetup } from "../../src/domain/agentSetup.ts";
-import { createMcpStatus } from "../../src/domain/mcpStatus.ts";
-import { parseClaudeMcpList } from "../../src/integrations/mcp/claudeCli.ts";
-import { memorySetupFs } from "../../src/config/agentSetupFs.ts";
 import { createNews } from "../../src/domain/news.ts";
 import { isArticleName } from "../../src/config/newsFile.ts";
 import { agentStatus } from "../../shared/status.ts";
@@ -537,44 +533,4 @@ test("the demo threads that carry pull requests point at demo pull requests, one
   assert.deepEqual(checkout.pullRequests.map((pr) => [pr.number, pr.title]), [[142, "ATL-142 Redesign the checkout summary"], [143, "ATL-143 Tests for the checkout fees row"]]);
   // One pull request in two sessions, so the list shows a session count.
   assert.equal(linked.filter((thread) => thread.pullRequests.some((pr) => pr.number === 138)).length, 2);
-});
-
-test("the demo setup inventory reads memory only, shows each issue kind and leaks no secret", async () => {
-  const { projects } = demoFixtures(NOW);
-  const setup = createAgentSetup({
-    fs: memorySetupFs(DEMO_SETUP_FILES, DEMO_SETUP_LINKS),
-    env: {},
-    home: DEMO_HOME,
-    platform: "linux",
-    projects: () => projects.map((p) => ({ id: p.id, title: p.title ?? p.id, defaultModelSelection: null, icon: null, ...(p.workspaceRoot ? { workspaceRoot: p.workspaceRoot } : {}) })),
-    now: () => NOW,
-  });
-  const inv = await setup.get();
-  const codes = new Set([...Object.values(inv.files).flatMap((f) => f.issues), ...inv.mcpServers.flatMap((s) => s.issues)].map((i) => i.code));
-  for (const code of ["broken-import", "broken-symlink", "url-without-type"] as const) assert.ok(codes.has(code), code);
-  assert.deepEqual(inv.projects.map((p) => p.title), ["Atlas Web", "Atlas API", "Sandbox"]);
-  assert.ok(inv.mcpServers.some((s) => s.tool === "claude" && s.scope === "local") && inv.mcpServers.some((s) => s.tool === "codex"));
-  assert.ok(inv.mcpServers.some((s) => s.masked));
-  const text = JSON.stringify(inv);
-  for (const secret of ["sk-demo", "demo-password", "demo@example.com"]) assert.equal(text.includes(secret), false, secret);
-});
-
-test("the demo MCP status shows each status without a network call or a process", async () => {
-  const { projects } = demoFixtures(NOW);
-  const inventory = createAgentSetup({
-    fs: memorySetupFs(DEMO_SETUP_FILES, DEMO_SETUP_LINKS),
-    env: {},
-    home: DEMO_HOME,
-    platform: "linux",
-    projects: () => projects.map((p) => ({ id: p.id, title: p.title ?? p.id, defaultModelSelection: null, icon: null, ...(p.workspaceRoot ? { workspaceRoot: p.workspaceRoot } : {}) })),
-    now: () => NOW,
-  });
-  const status = createMcpStatus({
-    inventory,
-    probe: async (url) => demoMcpProbe(url),
-    claudeList: async () => ({ ok: true, statuses: parseClaudeMcpList(DEMO_CLAUDE_MCP_LIST), error: null }),
-    now: () => NOW,
-  });
-  const found = new Set((await status.get(true)).servers.map((s) => s.status));
-  for (const wanted of ["reachable", "needs-auth", "failing", "configured"] as const) assert.ok(found.has(wanted), wanted);
 });

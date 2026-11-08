@@ -12,8 +12,6 @@ import type { News } from "../domain/news.ts";
 import type { LinearBoard } from "../domain/linearBoard.ts";
 import type { ProviderLimitsReader } from "../domain/providerLimits.ts";
 import type { ServerStatsReader } from "../domain/serverStats.ts";
-import type { AgentSetupReader } from "../domain/agentSetup.ts";
-import type { McpStatusReader } from "../domain/mcpStatus.ts";
 import type { Usage } from "../domain/usage.ts";
 import type { Settings } from "../domain/settings.ts";
 import type { UpdateManager } from "../domain/updates.ts";
@@ -41,8 +39,6 @@ export interface DashboardServerOptions {
   usage: Pick<Usage, "get">;
   limits: Pick<ProviderLimitsReader, "get">;
   serverStats: Pick<ServerStatsReader, "get">;
-  agentSetup: Pick<AgentSetupReader, "get">;
-  mcpStatus: Pick<McpStatusReader, "get">;
   cacheCleanup: Pick<CacheCleanup, "sizes" | "clear">;
   automations: Pick<Automations, "list" | "create" | "remove" | "update" | "setEnabled" | "runNow">;
   pulls: Pick<PullRequests, "prs" | "detail" | "diff">;
@@ -92,14 +88,6 @@ function checkOrigin(req: Request, allowed: ReadonlySet<string>): void {
   const hostOk = host !== null && allowed.has(hostnameOf(host) ?? "");
   const originOk = origin === null || allowed.has(hostnameOf(origin) ?? "");
   if (!hostOk || !originOk) throw new HttpError(403, "Forbidden host or origin");
-}
-
-// A forced refresh runs `claude mcp list`: refuse a request that another site can trigger.
-function checkRefresh(req: Request): boolean {
-  const refresh = new URL(req.url).searchParams.get("refresh") === "1";
-  const site = req.headers.get("sec-fetch-site");
-  if (refresh && site !== null && site !== "same-origin" && site !== "none") throw new HttpError(403, "Cross-site refresh refused");
-  return refresh;
 }
 
 async function readJson(req: Request, maxBytes = MAX_BODY_BYTES): Promise<Record<string, unknown>> {
@@ -171,7 +159,7 @@ function matchRoute(pattern: string[], segments: string[]): Record<string, strin
 }
 
 export function createDashboardServer(options: DashboardServerOptions): DashboardHandler {
-  const { actions, sessions, stash, seen, hub, board, usage, limits, serverStats, agentSetup, mcpStatus, cacheCleanup, automations, news, pulls, getState, connection, site, settings, setup, updates } = options;
+  const { actions, sessions, stash, seen, hub, board, usage, limits, serverStats, cacheCleanup, automations, news, pulls, getState, connection, site, settings, setup, updates } = options;
   const allowedHosts = new Set([...LOCAL_HOSTS, ...(options.allowedHosts ?? [])]);
   const ok = (extra: Record<string, unknown> = {}) => json(200, { ok: true, ...extra });
   const done = async (work: Promise<unknown>) => (await work, ok());
@@ -222,8 +210,6 @@ export function createDashboardServer(options: DashboardServerOptions): Dashboar
       },
     },
     { method: "GET", path: "/api/server-stats", handle: async () => json(200, await serverStats.get()) },
-    { method: "GET", path: "/api/agent-setup", handle: async ({ req }) => json(200, await agentSetup.get(checkRefresh(req))) },
-    { method: "GET", path: "/api/agent-setup/mcp", handle: async ({ req }) => json(200, await mcpStatus.get(checkRefresh(req))) },
     { method: "GET", path: "/api/cache-cleanup", handle: async () => json(200, await cacheCleanup.sizes()) },
     { method: "GET", path: "/api/limits", handle: async ({ req }) => json(200, await limits.get(new URL(req.url).searchParams.get("refresh") === "1")) },
     { method: "GET", path: "/api/automations", handle: async () => json(200, await automations.list()) },

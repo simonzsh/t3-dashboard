@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "bun:test";
-import { authFile, automationThreadsFile, agentRulesTargets, agentsSkillsDir, claudeConfigDir, claudeStateFile, codexHome, managedClaudeMd, configDir, linearFile, logFile, newsDir, newsFile, pidFile, stateDir } from "../../src/config/paths.ts";
+import { authFile, automationThreadsFile, agentRulesTargets, configDir, linearFile, logFile, newsDir, newsFile, pidFile, stateDir } from "../../src/config/paths.ts";
 
 test("files live in the config directory, under the home by default", () => {
   assert.equal(configDir({}, "/home/ann"), "/home/ann/.config/t3-dashboard");
@@ -42,20 +42,4 @@ test("the news settings and the article folder follow the config directory, as a
   assert.equal(newsDir({}, "/home/ann"), "/home/ann/.config/t3-dashboard/news");
   assert.equal(newsDir({ T3_DASHBOARD_CONFIG_DIR: "/x/cfg" }, "/h"), "/x/cfg/news");
   assert.equal(newsDir({ T3_DASHBOARD_CONFIG_DIR: "rel/cfg" }, "/h").startsWith("/"), true);
-});
-
-test("the Claude and Codex folders follow their variables; the state file moves inside CLAUDE_CONFIG_DIR", () => {
-  assert.equal(claudeConfigDir({}, "/h"), "/h/.claude");
-  assert.equal(claudeConfigDir({ CLAUDE_CONFIG_DIR: "/c" }, "/h"), "/c");
-  assert.equal(claudeStateFile({}, "/h"), "/h/.claude.json");
-  assert.equal(claudeStateFile({ CLAUDE_CONFIG_DIR: "/c" }, "/h"), "/c/.claude.json");
-  assert.equal(codexHome({}, "/h"), "/h/.codex");
-  assert.equal(codexHome({ CODEX_HOME: "/x" }, "/h"), "/x");
-  assert.equal(agentsSkillsDir("/h"), "/h/.agents/skills");
-});
-
-test("the managed CLAUDE.md sits in the system folder of each OS", () => {
-  assert.equal(managedClaudeMd("linux"), "/etc/claude-code/CLAUDE.md");
-  assert.equal(managedClaudeMd("darwin"), "/Library/Application Support/ClaudeCode/CLAUDE.md");
-  assert.equal(managedClaudeMd("win32"), "C:\\Program Files\\ClaudeCode\\CLAUDE.md");
 });

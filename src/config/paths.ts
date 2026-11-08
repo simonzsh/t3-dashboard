@@ -49,31 +49,14 @@ export interface AgentRulesTarget {
   imports: boolean;
 }
 
-export const claudeConfigDir = (env: Env, homedir: string): string => env.CLAUDE_CONFIG_DIR ?? join(homedir, ".claude");
-
-/** Claude's state file (user MCP servers, per-project state): inside CLAUDE_CONFIG_DIR when it is set. */
-export const claudeStateFile = (env: Env, homedir: string): string => (env.CLAUDE_CONFIG_DIR ? join(env.CLAUDE_CONFIG_DIR, ".claude.json") : join(homedir, ".claude.json"));
-
-export const codexHome = (env: Env, homedir: string): string => env.CODEX_HOME ?? join(homedir, ".codex");
-
-/** The system-wide Claude CLAUDE.md that an administrator manages. */
-export function managedClaudeMd(platform: Platform): string {
-  if (platform === "darwin") return "/Library/Application Support/ClaudeCode/CLAUDE.md";
-  if (platform === "win32") return "C:\\Program Files\\ClaudeCode\\CLAUDE.md";
-  return "/etc/claude-code/CLAUDE.md";
-}
-
-/** Where Codex reads the user's skills. */
-export const agentsSkillsDir = (homedir: string): string => join(homedir, ".agents", "skills");
-
 // Cursor keeps global rules in the account, not in a file. Grok reads AGENTS.md in ~/.grok (docs.x.ai).
 // Antigravity is left out: T3 Code runs it with a private GEMINI_HOME, so ~/.gemini/GEMINI.md never reaches it.
 // OpenCode: OPENCODE_CONFIG_DIR adds a folder and does not replace the global one, so only XDG applies.
 export function agentRulesTargets(env: Env, homedir: string): AgentRulesTarget[] {
   const target = (agent: AgentRulesTarget["agent"], dir: string, file: string, always: boolean, imports: boolean): AgentRulesTarget => ({ agent, dir, file: join(dir, file), always, imports });
   return [
-    target("claude", claudeConfigDir(env, homedir), "CLAUDE.md", true, true),
-    target("codex", codexHome(env, homedir), "AGENTS.md", true, false),
+    target("claude", env.CLAUDE_CONFIG_DIR ?? join(homedir, ".claude"), "CLAUDE.md", true, true),
+    target("codex", env.CODEX_HOME ?? join(homedir, ".codex"), "AGENTS.md", true, false),
     target("opencode", join(env.XDG_CONFIG_HOME ?? join(homedir, ".config"), "opencode"), "AGENTS.md", false, false),
     target("grok", join(homedir, ".grok"), "AGENTS.md", false, false),
   ];

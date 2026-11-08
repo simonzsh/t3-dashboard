@@ -91,9 +91,9 @@ The code has three parts: the server (`src/`), the interface (`web/src/`) and th
 | `main.ts` | Entry point. It reads the arguments and starts the correct command. |
 | `app/` | Composition root. `start.ts` creates the real clients and connects them. `deps.ts` gives the real access to the disk and to processes. |
 | `cli/` | Commands that run one time: arguments, installation, service, binary update. |
-| `config/` | Environment variables, paths, version, dashboard files (Linear key, token, PID, automation threads, news settings), the agent rules block, and the read-only file access and parsers of the agent setup (`agentSetupFs.ts`, `agentConfigFiles.ts`). |
+| `config/` | Environment variables, paths, version, dashboard files (Linear key, token, PID, automation threads, news settings) and the agent rules block. |
 | `server/` | HTTP, SSE and static site. The router reads and validates the requests (`validate.ts`), then calls the domain. `htmlRender.ts` applies the theme to the `html_render` pages. |
-| `domain/` | Rules and state: sync with T3, thread sorting, thread detail, actions, token, Linear board, settings, updates, automations (and the guard that moves tasks out of worktrees and pauses reminders), the news, the Pull requests page (pull requests read through `gh`, cached), project icons, models, usage, provider limits, server stats, the agent setup inventory and its secret masking. |
+| `domain/` | Rules and state: sync with T3, thread sorting, thread detail, actions, token, Linear board, settings, updates, automations (and the guard that moves tasks out of worktrees and pauses reminders), the news, the Pull requests page (pull requests read through `gh`, cached), project icons, models, usage, provider limits, server stats. |
 | `integrations/` | All calls to another system: T3 Code, Linear and GitHub (releases by HTTP, pull requests through the `gh` program). Each response goes through a schema. |
 
 ### Interface (`web/src/`)
@@ -113,7 +113,7 @@ Every page uses the page shell: the block between `page-shell:start` and `page-s
 
 ### Contract (`shared/`)
 
-`shared/api.ts` re-exports the types of each topic: `threads`, `connection`, `events`, `requests`, `linear`, `settings`, `automations`, `usage`, `providerLimits`, `serverStats`, `news`, `agentSetup`. `limits.ts` contains the shared limits (images, message size, runtime modes). `status.ts` contains the thread status model. `guards.ts` contains the checks for untrusted values (request bodies, files, browser storage). `events.ts` gives the list of event types: the interface subscribes to this list.
+`shared/api.ts` re-exports the types of each topic: `threads`, `connection`, `events`, `requests`, `linear`, `settings`, `automations`, `usage`, `providerLimits`, `serverStats`, `news`. `limits.ts` contains the shared limits (images, message size, runtime modes). `status.ts` contains the thread status model. `guards.ts` contains the checks for untrusted values (request bodies, files, browser storage). `events.ts` gives the list of event types: the interface subscribes to this list.
 
 ### Import rules
 
@@ -143,14 +143,6 @@ The agent writes one Markdown file for each day, `news/YYYY-MM-DD.md`, in the co
 
 Every 60 seconds `news.sweep()` archives the finished run threads of this task, when an article was written during that run. A failed or empty run stays visible. Demo mode keeps the articles in memory and does not sweep.
 
-### Agent setup
-
-`domain/agentSetup.ts` reads the files that Claude and Codex load, for the user and for each T3 project, and builds one inventory: the files, the load order of each tool (`ToolChain`), the MCP servers, the hooks and the plugins. `GET /api/agent-setup` returns it (`?refresh=1` skips the 30 second cache). `resolveChain()` in `shared/agentSetup.ts` turns one project and one tool into a self-contained chain. The domain reads the disk only through the `SetupFs` interface (`config/agentSetupFs.ts`): the real one is built in `app/start.ts`, the demo and the tests use `memorySetupFs`. The paths follow `CLAUDE_CONFIG_DIR` and `CODEX_HOME`; `config/paths.ts` holds them.
-
-`domain/mcpStatus.ts` adds a status to each server for `GET /api/agent-setup/mcp` (10 minute cache). `integrations/mcp/` holds the two outside calls: `probeMcpHttp` (one plain `GET`, injected `fetch`) and `claudeMcpList` (`claude mcp list`, run only on `?refresh=1`, injected runner). Tests pass fakes for both.
-
-The tools do not document two rules, so the code assumes them (see the comments): Claude finds `.mcp.json` by walking up to the filesystem root, and Codex loads a project config only when `config.toml` lists the project (or its git root) as trusted.
-
 ### Errors
 
 - An integration throws an `IntegrationError`: system, type (`unreachable`, `refused`, `protocol`, `not-authenticated`) and message.
@@ -169,5 +161,4 @@ The tools do not document two rules, so the code assumes them (see the comments)
 - The server serves only the thread attachments and the files that an agent message cites. It shows images and videos. With `?inline=1` it also frames a PDF and a text file (served as plain text, in a sandbox). It serves other file types as downloads and never shows them.
 - The server serves an `html_render` page with `Content-Security-Policy: sandbox`. Its scripts have an opaque origin and cannot call `/api`.
 - The interface does not offer "Always accept": only `accept`, `acceptForSession` and `decline` go through.
-- The agent setup sends no raw config text. The server parses each settings, MCP, config and hooks file, then `domain/secretMask.ts` replaces secret values with a fixed mask (it shows no part and no length of the value). A value is secret by its key (`token`, `key`, `password`, `Authorization`, ...), by a known prefix (`sk-`, `ghp_`, JWT) or by its entropy; `${VAR}` references and env var names stay visible. Markdown instruction files go as text, up to 64 KiB each and 2 MiB in total: only the high-confidence token shapes in them (known prefixes such as `sk-` and `ghp_`, JWT) are masked. An `@import` sends text only for `.md`, `.markdown` and `.txt` files (and extensionless files that are not dotfiles); any other imported file (`.env`, JSON, TOML, ...) is listed with its content omitted. A file that is both imported and a config (for example `.mcp.json`) is still parsed and masked as a config. Skills, agents and commands send only their frontmatter. `.claude.json` holds account data: the server reads only its MCP servers and never sends its content. The server returns no per-file route, so the browser cannot ask for a path.
 29. New Session workspace. With a project that is a git repository, open New Session: make sure that "Current checkout" and "New worktree" show, with a branch picker. Pick another branch, type a new name and choose "Create branch", and send: make sure that the thread runs on that branch. With uncommitted changes, make sure that the warning shows before the send. Choose "New worktree", pick a base and send: make sure that T3 Code shows a new worktree thread. Make sure that "No project" and a folder without git show no workspace options.
