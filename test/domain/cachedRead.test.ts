@@ -38,10 +38,24 @@ test("a value is kept for the TTL, then read again", async () => {
 test("concurrent gets share one read", async () => {
   const { cell, calls, hold, release } = setup();
   hold(true);
-  const all = Promise.all([cell.get(), cell.get(), cell.get(true)]);
+  const all = Promise.all([cell.get(), cell.get()]);
   release();
-  assert.deepEqual(await all, [1, 1, 1]);
+  assert.deepEqual(await all, [1, 1]);
   assert.equal(calls(), 1);
+});
+
+test("a fresh get does not join a read started before it, and keeps its own value", async () => {
+  const { cell, calls, hold, release } = setup();
+  hold(true);
+  const old = cell.get();
+  const fresh = cell.get(true);
+  const joined = cell.get();
+  release();
+  assert.deepEqual(await Promise.all([old, fresh, joined]), [1, 2, 2]);
+  assert.equal(calls(), 2);
+  hold(false);
+  assert.equal(await cell.get(), 2);
+  assert.equal(calls(), 2);
 });
 
 test("a fresh get skips the kept value", async () => {

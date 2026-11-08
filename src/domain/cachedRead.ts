@@ -1,5 +1,5 @@
 /** One value read through `read`: kept `ttlMs` after it arrives, one read shared by concurrent callers.
- *  invalidate() drops the value and detaches a read in flight, so the next get reads again. */
+ *  get(true) and invalidate() detach a read in flight: it may predate the change the caller wants to see. */
 export function cachedRead<T>(read: () => Promise<T>, options: { ttlMs: number; now: () => number }): { get(fresh?: boolean): Promise<T>; invalidate(): void } {
   let kept: { at: number; value: T } | null = null;
   let flight: Promise<T> | null = null;
@@ -9,7 +9,8 @@ export function cachedRead<T>(read: () => Promise<T>, options: { ttlMs: number; 
   return {
     get(fresh = false) {
       if (!fresh && kept && options.now() - kept.at < options.ttlMs) return Promise.resolve(kept.value);
-      if (flight) return flight;
+      if (fresh) generation++;
+      else if (flight) return flight;
       const mine = generation;
       const current: Promise<T> = read()
         .then((value) => {

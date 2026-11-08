@@ -114,7 +114,7 @@ test("invalidate drops the cache", async () => {
 
 test("two reads at once share one Linear call", async () => {
   const { board, calls } = setup("k", () => linearPage([linearNode(1)]));
-  await Promise.all([board.get(), board.get(true)]);
+  await Promise.all([board.get(), board.get()]);
   assert.equal(calls.length, 2);
 });
 
