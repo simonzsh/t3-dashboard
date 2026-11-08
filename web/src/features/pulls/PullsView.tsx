@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import type { DashboardThread } from "../../../../shared/api.ts";
 import type { PrList, PrRef, PrSummary } from "../../../../shared/pulls.ts";
 import { relativeTime } from "../../lib/format.ts";
-import { prMark, prMarkId } from "../../lib/prSeen.ts";
+import { prMark, prMarkId, unreadPrCount, type OpenPrs } from "../../lib/prSeen.ts";
 import { hashForPr } from "../../lib/tabs.ts";
 import { Badge, Dropdown, Icon, IconButton, ListPage, Loader, SearchField, Segmented } from "../../ui/index.ts";
 import { ALL_REPOSITORIES, CHECKS, filterPrs, groupByRepository, repositoriesOf, REVIEWS, SCOPES, sessionsOf, shortRepository } from "./pulls.ts";
@@ -24,15 +24,20 @@ interface Props {
   pulls: PullsState;
   /** Marks a pull request as read in the shared seen state. */
   onRead: (mark: { id: string; at: string }) => void;
+  /** The open pull requests by `prMarkId`, with their unread state. */
+  openPrs: OpenPrs;
 }
 
-function Row({ pr, sessions, now, onOpenThread }: { pr: PrSummary; sessions: DashboardThread[]; now: Date; onOpenThread: Props["onOpenThread"] }) {
+function Row({ pr, unread, sessions, now, onOpenThread }: { pr: PrSummary; unread: boolean; sessions: DashboardThread[]; now: Date; onOpenThread: Props["onOpenThread"] }) {
   const checks = CHECKS[pr.checks];
   const review = REVIEWS[pr.review];
   return (
     <li className="pulls-row">
       <a className="pulls-row-main" href={hashForPr(pr)}>
-        <span className="pulls-row-title">{pr.title}</span>
+        <span className="pulls-row-line">
+          <span className="pulls-row-title">{pr.title}</span>
+          {unread && <span className="notif-dot" role="img" aria-label="Unread" />}
+        </span>
         <span className="pulls-row-meta">
           #{pr.number} · {pr.author} · {pr.headRef} · {relativeTime(pr.updatedAt, now)}
         </span>
@@ -55,13 +60,15 @@ interface ListProps extends Omit<Props, "route" | "pulls" | "onRead"> {
   onRefresh: () => void;
 }
 
-export function PrListView({ list, error, refreshing, onRefresh, threads, now, onOpenThread }: ListProps) {
+export function PrListView({ list, error, refreshing, onRefresh, threads, now, onOpenThread, openPrs }: ListProps) {
   const [{ scope, repository }, setPrefs] = usePullsPrefs();
   const [query, setQuery] = useState("");
   const repositories = useMemo(() => repositoriesOf(list?.prs ?? []), [list]);
   // A repository that left the list (its last PR merged) must not leave an empty view behind.
   const repo = repositories.includes(repository) ? repository : ALL_REPOSITORIES;
-  const groups = useMemo(() => groupByRepository(filterPrs(list?.prs ?? [], scope, repo, query)), [list, scope, repo, query]);
+  const isUnread = (pr: PrSummary) => openPrs.get(prMarkId(pr))?.unread ?? false;
+  const groups = useMemo(() => groupByRepository(filterPrs(list?.prs ?? [], scope, repo, query, isUnread)), [list, scope, repo, query, openPrs]);
+  const unread = unreadPrCount(openPrs);
 
   if (!list) return error ? <p className="auto-error" role="alert">{error}</p> : <Loader />;
   return (
@@ -71,7 +78,7 @@ export function PrListView({ list, error, refreshing, onRefresh, threads, now, o
       head={
         <div className="auto-toolbar">
           <SearchField className="auto-search" aria-label="Search pull requests" placeholder="Search pull requests…" value={query} onChange={(e) => setQuery(e.target.value)} />
-          <Segmented label="Show" value={scope} options={SCOPES} onChange={(scope) => setPrefs({ scope })} />
+          <Segmented label="Show" value={scope} options={SCOPES.map((s) => (s.id === "unread" && unread > 0 ? { ...s, label: `Unread ${unread}` } : s))} onChange={(scope) => setPrefs({ scope })} />
           <Dropdown
             label="Repository"
             value={repo}
@@ -88,8 +95,8 @@ export function PrListView({ list, error, refreshing, onRefresh, threads, now, o
       {groups.length === 0 ? (
         <div className="empty-state">
           <Icon name="gitPullRequest" />
-          <strong>No open pull requests</strong>
-          <span>{list.prs.length === 0 ? "Pull requests you open, or that wait for your review, show here." : "None matches this search or these filters."}</span>
+          <strong>{scope === "unread" && query === "" ? "All caught up" : "No open pull requests"}</strong>
+          <span>{list.prs.length === 0 ? "Pull requests you open, or that wait for your review, show here." : scope === "unread" && query === "" ? "New pull requests you have not opened show here." : "None matches this search or these filters."}</span>
         </div>
       ) : (
         groups.map((group) => (
@@ -99,7 +106,7 @@ export function PrListView({ list, error, refreshing, onRefresh, threads, now, o
             </h2>
             <ul className="pulls-rows">
               {group.prs.map((pr) => (
-                <Row key={pr.number} pr={pr} sessions={sessionsOf(threads, pr)} now={now} onOpenThread={onOpenThread} />
+                <Row key={pr.number} pr={pr} unread={isUnread(pr)} sessions={sessionsOf(threads, pr)} now={now} onOpenThread={onOpenThread} />
               ))}
             </ul>
           </div>
@@ -109,9 +116,9 @@ export function PrListView({ list, error, refreshing, onRefresh, threads, now, o
   );
 }
 
-function List({ pulls, threads, now, onOpenThread }: Omit<Props, "route" | "onRead">) {
+function List({ pulls, threads, now, onOpenThread, openPrs }: Omit<Props, "route" | "onRead">) {
   const { refresh, ...state } = pulls;
-  return <PrListView {...state} threads={threads} now={now} onOpenThread={onOpenThread} onRefresh={() => void refresh()} />;
+  return <PrListView {...state} threads={threads} now={now} onOpenThread={onOpenThread} openPrs={openPrs} onRefresh={() => void refresh()} />;
 }
 
 function Detail({ route, threads, now, onOpenThread, pulls, onRead }: Props & { route: PrRef }) {

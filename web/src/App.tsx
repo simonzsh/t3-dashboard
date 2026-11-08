@@ -354,7 +354,7 @@ export function App() {
                 />
               ) : <Loader />)}
             {tab === "news" && (news.state ? <NewsView news={news.state} writing={news.writing} now={now} compact={compact} seen={notify.seen} onRead={readMark} onOpenThread={onOpen} onDelete={news.remove} onDeleteAll={news.removeAll} /> : <Loader />)}
-            {tab === "pulls" && (state ? <PullsView route={prRoute} threads={state.threads} now={now} onOpenThread={onOpen} pulls={pulls} onRead={readMark} /> : <Loader />)}
+            {tab === "pulls" && (state ? <PullsView route={prRoute} threads={state.threads} now={now} onOpenThread={onOpen} pulls={pulls} onRead={readMark} openPrs={openPrs} /> : <Loader />)}
             {tab === "sessions" &&
               (state ? (
                 <SessionsView

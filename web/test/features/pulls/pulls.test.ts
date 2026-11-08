@@ -14,6 +14,8 @@ test("the scope keeps authored, review-requested or every pull request", () => {
   assert.deepEqual(filterPrs(prs, "all", "all").map((p) => p.number), [1, 2, 3]);
   assert.deepEqual(filterPrs(prs, "author", "all").map((p) => p.number), [1, 3]);
   assert.deepEqual(filterPrs(prs, "reviewer", "all").map((p) => p.number), [2, 3]);
+  assert.deepEqual(filterPrs(prs, "unread", "all", "", (p) => p.number !== 2).map((p) => p.number), [1, 3]);
+  assert.deepEqual(filterPrs(prs, "unread", "all").map((p) => p.number), []);
 });
 
 test("the repository filter narrows the list", () => {

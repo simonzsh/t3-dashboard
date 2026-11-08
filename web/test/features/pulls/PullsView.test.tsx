@@ -12,6 +12,7 @@ import { PrListView } from "../../../src/features/pulls/PullsView.tsx";
 import { PrDetail, tabsOf } from "../../../src/features/pulls/PrDetail.tsx";
 import { memoryStore, thread } from "../../fixtures.ts";
 import { PULLS_LIST_KEY } from "../../../src/features/pulls/prefs.ts";
+import type { OpenPrs } from "../../../src/lib/prSeen.ts";
 
 const now = new Date("2026-01-02T00:00:00Z");
 const pr = (repository: string, number: number, over: Partial<PrSummary> = {}): PrSummary => ({
@@ -19,8 +20,8 @@ const pr = (repository: string, number: number, over: Partial<PrSummary> = {}): 
   createdAt: "2026-01-01T20:00:00Z", updatedAt: "2026-01-01T23:00:00Z", additions: 7, deletions: 2, checks: "success", review: "approved", roles: ["author"], ...over,
 });
 const list = (prs: PrSummary[]): PrList => ({ prs, fetchedAt: now.toISOString() });
-const view = (value: PrList | null, threads = [thread("t1")], error: string | null = null) =>
-  renderToStaticMarkup(<PrListView list={value} error={error} refreshing={false} onRefresh={() => {}} threads={threads} now={now} onOpenThread={() => {}} />);
+const view = (value: PrList | null, threads = [thread("t1")], error: string | null = null, openPrs: OpenPrs = new Map()) =>
+  renderToStaticMarkup(<PrListView list={value} error={error} refreshing={false} onRefresh={() => {}} threads={threads} now={now} onOpenThread={() => {}} openPrs={openPrs} />);
 
 test("the list groups pull requests by repository and links each one to its diff", () => {
   const html = view(list([pr("acme/storefront", 1), pr("acme/api", 2, { draft: true, checks: "failure", review: "changes_requested" })]));
@@ -55,6 +56,21 @@ test("the list starts with the saved filters, and a saved repository that left t
   const gone = withStorage({ [PULLS_LIST_KEY]: JSON.stringify({ scope: "all", repository: "acme/gone" }) }, () => view(prs));
   assert.match(gone, /Change 1[\s\S]*Change 2|Change 2[\s\S]*Change 1/);
   assert.match(gone, /All repositories/);
+});
+
+test("an unread row shows the unread ring, and the Unread filter shows its count and keeps only unread rows", () => {
+  const prs = list([pr("acme/storefront", 1), pr("acme/storefront", 2)]);
+  const open: OpenPrs = new Map([["pr:acme/storefront#1", { createdAt: "2026-01-01T20:00:00.000Z", unread: true }], ["pr:acme/storefront#2", { createdAt: "2026-01-01T20:00:00.000Z", unread: false }]]);
+  const all = view(prs, undefined, null, open);
+  assert.equal(all.match(/class="notif-dot"/g)?.length, 1);
+  assert.match(all, /Change 1<\/span><span class="notif-dot" role="img" aria-label="Unread">/);
+  assert.match(all, />Unread 1</);
+  const unread = withStorage({ [PULLS_LIST_KEY]: JSON.stringify({ scope: "unread", repository: "all" }) }, () => view(prs, undefined, null, open));
+  assert.match(unread, /Change 1/);
+  assert.doesNotMatch(unread, /Change 2/);
+  const none = withStorage({ [PULLS_LIST_KEY]: JSON.stringify({ scope: "unread", repository: "all" }) }, () => view(prs));
+  assert.match(none, /All caught up/);
+  assert.match(none, />Unread</);
 });
 
 const linkTo = (number: number) => ({ pullRequests: [{ repository: "acme/storefront", number, url: "https://example.test/x", title: null }] });
