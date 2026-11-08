@@ -1,7 +1,6 @@
 import { test } from "bun:test";
 import assert from "node:assert/strict";
 import { matchShortcut, startsTyping, type KeyInfo } from "../../src/lib/shortcuts.ts";
-import { TABS } from "../../src/lib/tabs.ts";
 
 const press = (key: string, over: Partial<KeyInfo> = {}): KeyInfo => ({ key, ctrlKey: false, metaKey: false, altKey: false, target: null, ...over });
 const ctrl = (key: string, over: Partial<KeyInfo> = {}) => press(key, { ctrlKey: true, ...over });
@@ -10,9 +9,8 @@ const typing = { tagName: "TEXTAREA", isContentEditable: false };
 test("Ctrl+key maps to the actions", () => {
   assert.equal(matchShortcut(ctrl("1"), false), "dashboard");
   assert.equal(matchShortcut(ctrl("2"), false), "sessions");
-  assert.equal(matchShortcut(ctrl("3"), false), "pulls");
-  assert.equal(matchShortcut(ctrl("4"), false), "automations");
-  assert.equal(matchShortcut(ctrl("5"), false), "news");
+  assert.equal(matchShortcut(ctrl("3"), false), "automations");
+  assert.equal(matchShortcut(ctrl("4"), false), "news");
   assert.equal(matchShortcut(ctrl("n"), false), "new-session");
   assert.equal(matchShortcut(ctrl("N"), false), "new-session");
   assert.equal(matchShortcut(ctrl(","), false), "settings");
@@ -27,7 +25,7 @@ test("Ctrl shortcuts work while typing in a field", () => {
 });
 
 test("plain keys and Cmd do not trigger the shortcuts", () => {
-  for (const key of ["1", "2", "3", "4", "5", "n", ","]) assert.equal(matchShortcut(press(key), false), null, key);
+  for (const key of ["1", "2", "3", "4", "n", ","]) assert.equal(matchShortcut(press(key), false), null, key);
   assert.equal(matchShortcut(press("N", { shiftKey: true }), false), null);
   assert.equal(matchShortcut(press("n", { metaKey: true }), false), null);
   assert.equal(matchShortcut(press("1", { metaKey: true }), false), null);
@@ -87,9 +85,4 @@ test("startsTyping: a plain character outside a field, not a shortcut, space or 
   assert.equal(startsTyping(press("a", { altKey: true })), false);
   assert.equal(startsTyping(press("a", { target: field })), false);
   assert.equal(startsTyping(press("a", { target: { tagName: "DIV", isContentEditable: true } })), false);
-});
-
-test("Ctrl+digit follows the order of the tabs", () => {
-  TABS.forEach((tab, i) => assert.equal(matchShortcut(ctrl(String(i + 1)), false), tab.id));
-  assert.equal(matchShortcut(ctrl(String(TABS.length + 1)), false), null);
 });

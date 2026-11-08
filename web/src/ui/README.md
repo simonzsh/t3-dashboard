@@ -26,7 +26,7 @@ This folder contains the base components of the dashboard. The screens in `web/s
 | `FileInput` | Hidden file field. A button opens it with `ref.current.click()`. |
 | `Dialog` | Modal window: title, close cross at the top right, Escape and outside click to close. `onCancel`, `secondary` and `primary` add the action row. It renders itself in `document.body`: do not wrap it in a portal. On a phone (700 px or less) it is a bottom sheet: full width, a grip, the head and the actions stay in view, and a drag down on the head closes it. |
 | `Sheet` | Side sheet under the header, always mounted. `open` slides it in and out and fades the backdrop. `width`: `narrow` (380 px) or `wide` (600 px). Backdrop click and Escape call `onClose`; the focus goes in and comes back; Tab stays inside. |
-| `ActionMenu` | The "…" button of a row and its menu. `items` are `{ label, icon, onSelect, danger?, disabled?, tooltip? }`. The arrows move between items; Escape gives the focus back. Use it for every row menu, with no separator. | `icon` changes the trigger icon. `count` puts a count badge on the icon's corner and keeps the exact size of the icon buttons beside it. `text` makes it a text button, with `variant` as for a `Button`. Use these for a menu that lists links rather than row actions.
+| `ActionMenu` | The "…" button of a row and its menu. `items` are `{ label, icon, onSelect, danger?, disabled?, tooltip? }`. The arrows move between items; Escape gives the focus back. Use it for every row menu, with no separator. |
 | `CardHead` | Header of a card: icon, title, a note (a muted word or a menu), count and icon buttons on the right. |
 | `Badge` | Status label: `waiting`, `running`, `done`, `error`, `neutral`. |
 | `Dropdown` | Choice menu. Use it in place of `<select>`. A filter field appears for long lists. |
@@ -38,7 +38,6 @@ This folder contains the base components of the dashboard. The screens in `web/s
 | `ButtonLink`, `IconButtonLink` | Link (`<a href>`) with the look of `Button` or `IconButton`. Same variants and sizes. Use them in place of `<a className="btn">`. |
 | `CountBadge` | Count bubble: nothing at 0, `max+` above `max` (99 by default). `label` gives it `role="img"` and a name; `hidden` removes it from the accessibility tree. |
 | `SearchField` | Text field with a search icon. `className` goes on the wrapper, `ref` and the other props on the input. |
-| `ListPage` | Page with a fixed head (search, filters, actions) above a list that scrolls. `head` holds the toolbar, the children hold the list. `headClassName` and `bodyClassName` add the page spacing. Use it for every list page: a sticky toolbar inside the scroll box moves when the list scrolls. |
 | `Chevron` | Disclosure arrow: right when closed, down when open. `opensUp` is for a block that grows upward (down closed, up open). |
 | `OptionList` | Listbox of option rows that never take the focus. The owner keeps the focus in a field and passes `active`, `itemId` and `onHover` from `useListNav`. `isSelected` marks the current value of a choice list. |
 | `useListNav` | Active row and keys of a list: arrows wrap, Home/End jump, Enter picks (Space too with `space`). `itemId` scrolls the active row into view. `nextActive` is the pure part. |

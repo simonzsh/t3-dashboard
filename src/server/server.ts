@@ -7,7 +7,6 @@ import type { StashStore } from "../domain/stashStore.ts";
 import type { SeenStore } from "../domain/seenStore.ts";
 import type { CacheCleanup } from "../domain/cacheCleanup.ts";
 import type { Automations } from "../domain/automations.ts";
-import type { PullRequests } from "../domain/pulls.ts";
 import type { News } from "../domain/news.ts";
 import type { LinearBoard } from "../domain/linearBoard.ts";
 import type { ProviderLimitsReader } from "../domain/providerLimits.ts";
@@ -23,7 +22,7 @@ import { servePwa } from "./pwa.ts";
 import type { Site } from "./site.ts";
 import type { SseHub } from "./sse.ts";
 import { isObject } from "../../shared/guards.ts";
-import { isText, validActivityPeriod, validAssign, validAttachments, validCreateAutomation, validCreate, validCreateProject, validEnabled, validUpdateProject, validFolderPath, validFileSearch, validItemId, validMessage, validPrRef, validProvider, validRefsQuery, validQueuedEdit, validRespond, validRewind, validSearch, validSecretAnswer, validSeen, validSaveNews, validSessions, validSettings, validStash, validTimeZone, validUpdateAutomation, validUpload } from "./validate.ts";
+import { isText, validActivityPeriod, validAssign, validAttachments, validCreateAutomation, validCreate, validCreateProject, validEnabled, validUpdateProject, validFolderPath, validFileSearch, validItemId, validMessage, validProvider, validRefsQuery, validQueuedEdit, validRespond, validRewind, validSearch, validSecretAnswer, validSeen, validSaveNews, validSessions, validSettings, validStash, validTimeZone, validUpdateAutomation, validUpload } from "./validate.ts";
 
 export interface SetupControl {
   /** Resolves the token again. */
@@ -41,7 +40,6 @@ export interface DashboardServerOptions {
   serverStats: Pick<ServerStatsReader, "get">;
   cacheCleanup: Pick<CacheCleanup, "sizes" | "clear">;
   automations: Pick<Automations, "list" | "create" | "remove" | "update" | "setEnabled" | "runNow">;
-  pulls: Pick<PullRequests, "prs" | "detail" | "diff">;
   news: Pick<News, "get" | "article" | "search" | "save" | "runNow" | "remove" | "removeAll">;
   sessions: Pick<SessionsStore, "get" | "set">;
   stash: Pick<StashStore, "list" | "add" | "remove">;
@@ -159,7 +157,7 @@ function matchRoute(pattern: string[], segments: string[]): Record<string, strin
 }
 
 export function createDashboardServer(options: DashboardServerOptions): DashboardHandler {
-  const { actions, sessions, stash, seen, hub, board, usage, limits, serverStats, cacheCleanup, automations, news, pulls, getState, connection, site, settings, setup, updates } = options;
+  const { actions, sessions, stash, seen, hub, board, usage, limits, serverStats, cacheCleanup, automations, news, getState, connection, site, settings, setup, updates } = options;
   const allowedHosts = new Set([...LOCAL_HOSTS, ...(options.allowedHosts ?? [])]);
   const ok = (extra: Record<string, unknown> = {}) => json(200, { ok: true, ...extra });
   const done = async (work: Promise<unknown>) => (await work, ok());
@@ -191,12 +189,6 @@ export function createDashboardServer(options: DashboardServerOptions): Dashboar
     return new Response(themedPage(await response.text(), isPageTheme(theme) ? theme : "light"), { headers });
   }
 
-  const refreshing = (req: Request) => new URL(req.url).searchParams.get("refresh") === "1";
-  const refOf = (params: Record<string, string>): [string, number] => {
-    const { repository, number } = validPrRef(params);
-    return [repository, number];
-  };
-
   const routes: Route[] = [
     { method: "GET", path: "/api/health", handle: () => json(200, { ok: true, t3: connection().t3, version: VERSION }) },
     { method: "GET", path: "/api/board", handle: async ({ req }) => json(200, await board.get(new URL(req.url).searchParams.get("refresh") === "1")) },
@@ -217,9 +209,6 @@ export function createDashboardServer(options: DashboardServerOptions): Dashboar
     // Before :date, which would take "search" for a date.
     { method: "GET", path: "/api/news/search", handle: async ({ req }) => json(200, await news.search(new URL(req.url).searchParams.get("q") ?? "")) },
     { method: "GET", path: "/api/news/:date", handle: async ({ params }) => json(200, await news.article(params.date!)) },
-    { method: "GET", path: "/api/pulls", handle: async ({ req }) => json(200, await pulls.prs(refreshing(req))) },
-    { method: "GET", path: "/api/pulls/:owner/:repo/:number", handle: async ({ req, params }) => json(200, await pulls.detail(...refOf(params), refreshing(req))) },
-    { method: "GET", path: "/api/pulls/:owner/:repo/:number/diff", handle: async ({ req, params }) => json(200, await pulls.diff(...refOf(params))) },
     { method: "GET", path: "/api/settings", handle: () => json(200, settings.get()) },
     { method: "GET", path: "/api/sessions", handle: () => json(200, { sessions: sessions.get() }) },
     { method: "GET", path: "/api/stash", handle: () => json(200, { entries: stash.list() }) },

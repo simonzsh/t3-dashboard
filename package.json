@@ -14,7 +14,6 @@
     "contracts": "bun run scripts/contracts.ts"
   },
   "dependencies": {
-    "lowlight": "^3.3.0",
     "lucide": "^1.61.0",
     "marked": "^18.1.1",
     "react": "^19.3.1",

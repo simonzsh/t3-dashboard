@@ -1,7 +1,8 @@
-import { TABS, type Tab } from "./tabs.ts";
-
 export type ShortcutAction =
-  | Tab
+  | "dashboard"
+  | "sessions"
+  | "automations"
+  | "news"
   | "new-session"
   | "new-automation"
   | "settings"
@@ -25,14 +26,7 @@ export interface KeyInfo {
 }
 
 // Ctrl+key works everywhere, fields included, like Ctrl+S for the stash. Cmd stays the browser's.
-// Ctrl+1, Ctrl+2... follow the order of the tabs, so a new or moved tab needs no change here.
-const CTRL_KEYS: Record<string, ShortcutAction> = {
-  ...Object.fromEntries(TABS.map((tab, i) => [String(i + 1), tab.id])),
-  n: "new-session",
-  ",": "settings",
-  b: "toggle-sidebar",
-};
-export const isTabAction = (action: ShortcutAction): action is Tab => TABS.some((tab) => tab.id === action);
+const CTRL_KEYS: Record<string, ShortcutAction> = { "1": "dashboard", "2": "sessions", "3": "automations", "4": "news", n: "new-session", ",": "settings", b: "toggle-sidebar" };
 const CTRL_SESSIONS_KEYS: Record<string, ShortcutAction> = { x: "close-window", f: "toggle-fullscreen" };
 // Plain keys that a field needs for itself: they act only outside fields.
 const PLAIN_SESSIONS_KEYS: Record<string, ShortcutAction> = {
