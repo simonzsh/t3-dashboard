@@ -2,7 +2,7 @@ import type { PrRef } from "../../../shared/pulls.ts";
 import { isRepository } from "../../../shared/pulls.ts";
 import type { IconName } from "../ui/index.ts";
 
-export type Tab = "dashboard" | "sessions" | "pulls" | "automations" | "news";
+export type Tab = "dashboard" | "sessions" | "pulls" | "automations" | "news" | "setup";
 
 export const TABS: ReadonlyArray<{ id: Tab; label: string; icon: IconName; description: string; /** Bottom bar label, when the full one is too wide. */ short?: string }> = [
   { id: "dashboard", label: "Dashboard", icon: "layoutPanels", description: "Usage limits, activity, and every agent that needs you." },
@@ -10,6 +10,7 @@ export const TABS: ReadonlyArray<{ id: Tab; label: string; icon: IconName; descr
   { id: "pulls", label: "Pull requests", short: "PRs", icon: "gitPullRequest", description: "Your open pull requests and the ones waiting for your review." },
   { id: "automations", label: "Automations", icon: "calendarClock", description: "Scheduled agents and their latest runs." },
   { id: "news", label: "News", icon: "newspaper", description: "AI-written articles on the latest tech news." },
+  { id: "setup", label: "Setup", icon: "wrench", description: "The instructions, settings and MCP servers your agents load." },
 ];
 
 // The nav entry, found by the animations that fly into it.

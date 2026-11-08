@@ -2,7 +2,7 @@
 
 [Back to the README](../README.md)
 
-The dashboard has five pages: Dashboard, Sessions, Pull requests, Automations and News. A sidebar on the left lists them, with a search button (`⌘` + `K`). Its last row shows the connection state, Settings and a button that collapses the sidebar to icons (`Ctrl` + `B`). The theme, the accent color and the interface tint are in Settings. The sidebar remembers its state. The page header is one line: the title and a short description. Its button depends on the page: Sessions has a list toggle (wide screen), a layout button and New Session (`Ctrl` + `N`), Automations has New Automation (`Ctrl` + `⇧` + `N`), News has News settings and Run now, and Dashboard has the Notifications bell, with the number of unread items, then Edit layout. The two shortcuts work on every page. On a phone, a bar at the bottom of the screen replaces the sidebar: Dashboard, Sessions, Pull requests (shown as "PRs"), Automations and News. The header then shows the page buttons as icons (on Dashboard, the bell too), a search button and Settings. A dot on Settings shows that an update is ready.
+The dashboard has six pages: Dashboard, Sessions, Pull requests, Automations, News and Setup. A sidebar on the left lists them, with a search button (`⌘` + `K`). Its last row shows the connection state, Settings and a button that collapses the sidebar to icons (`Ctrl` + `B`). The theme, the accent color and the interface tint are in Settings. The sidebar remembers its state. The page header is one line: the title and a short description. Its button depends on the page: Sessions has a list toggle (wide screen), a layout button and New Session (`Ctrl` + `N`), Automations has New Automation (`Ctrl` + `⇧` + `N`), News has News settings and Run now, and Dashboard has the Notifications bell, with the number of unread items, then Edit layout. The two shortcuts work on every page. On a phone, a bar at the bottom of the screen replaces the sidebar: Dashboard, Sessions, Pull requests (shown as "PRs"), Automations, News and Setup. The header then shows the page buttons as icons (on Dashboard, the bell too), a search button and Settings. A dot on Settings shows that an update is ready.
 
 ## Dashboard
 
@@ -38,6 +38,18 @@ The server decides what to clear, from a fixed list per system. The request has 
 - Temp folders: `node-compile-cache` and `mongo-mem-*` in the system temp folder. Only entries that nobody changed for more than one hour are counted and removed.
 
 These limits hold: the server never follows a symbolic link out of a cache, and it never touches worktrees, repositories, outputs, `~/.t3` or any other path. A cache that fails (for example a locked file) shows its error and the other caches still clear. Two clears at the same time share one run. The routes are `GET /api/cache-cleanup` (sizes) and `POST /api/cache-cleanup` (clear).
+
+### MCP servers
+
+The MCP servers card lists the MCP servers that Claude and Codex are set up with, grouped by scope: User, Project and Local. A project row shows its project. Each row shows the tool, the name, the target (a masked URL, or the masked command) and a badge:
+
+- Reachable: the server answered an HTTP request.
+- Needs auth: the server answered 401 or 403.
+- Failing: the request failed. Point at the badge to see the error code.
+- Configured: the dashboard did not check it (a command server, or a URL that carries a credential).
+- Disabled: the config disables it.
+
+The dashboard probes only `http` and `sse` servers, with one plain `GET` and no header from your config. It never starts a command server. The result is cached for 10 minutes. A server with configured headers or a token variable shows Reachable when it answers 401 or 403: the probe sends no credential. `claude mcp list` runs only when you click the refresh button of this card (at most once every 30 seconds), never on a page load or a timer. It gets the status of your user-scope Claude servers, and it may start those stdio servers once. The server refuses a refresh that comes from another site. Connectors of claude.ai are not listed. "Open Setup" shows the config files behind the servers.
 
 ### Linear
 
@@ -270,6 +282,19 @@ The Pull requests page lists your open pull requests and shows the diff of one p
 - On a phone, the list and the pull request take the full width, and a long line of code scrolls sideways. The pull request header keeps the back arrow, the title and one "…" menu with every action (GitHub, sessions, changed files, collapse, refresh). The repository line and the badges scroll with the diff.
 - The dashboard reads GitHub through `gh` and keeps the answers for 60 seconds: the list, then each pull request. The page reads the list again every 2 minutes while it is open, and not when the page is hidden. A diff is kept by the head commit of the pull request, so a new push shows a new diff. A diff over 2 MB is cut, and the page says so.
 
+## Setup
+
+The Setup tab shows what your agents load: instruction files (`CLAUDE.md`, `AGENTS.md`), settings, MCP servers, hooks, skills and plugins, for Claude and Codex. It only reads: it never changes a file.
+
+- The scope menu picks "User" (files that apply to every project) or one T3 project. The browser keeps the scope and the "Files" / "Effective" view; a saved project that is gone shows "User". A project shows its own files and the ones its parent folders add: Claude reads `CLAUDE.md` files up to the root of the disk, Codex reads `AGENTS.md` files from the git root down to the project.
+- "Files" shows the files of the scope as a tree. Pick a file to read it on the right. Folders show the number of issues below them. A file that imports another one with `@path` lists it under "Imports"; click it to open it.
+- "Effective" (projects only) shows what Claude or Codex loads for the project, in load order. A row with a line through it is skipped by the tool, and says why (for example Claude does not read `AGENTS.md`). Below the list: the MCP servers that apply, the servers a same-name server hides (struck through), the hooks and the plugins.
+- A server shows a status when the dashboard knows it: reachable, needs auth, failing, configured or disabled. Without a status, the server is only listed.
+- A file with a problem (a broken import, a broken symbolic link, a file that cannot be read or parsed) shows an issue above its content. The summary above the list counts them.
+- Instruction files are shown as written, except well-known token shapes (API keys, JWTs), which are masked. Settings, MCP servers, hooks and frontmatter are parsed, and the dashboard replaces every secret (token, key, password, header value, URL credential) with `••••••` before it sends them. The private state file `~/.claude.json` is never shown: only its MCP servers are read. Large files are cut, and a size budget limits the total: the page says when contents are left out.
+- "Refresh setup" reads the files again. It does not force a new check of the MCP servers (that check may start them): the Dashboard refresh does it. Without it, the server keeps its last read for 30 seconds.
+- On a phone, the page shows the list. A tap opens the file in a sheet.
+
 ## Settings
 
 Open Settings with the header button or the `,` key. A sidebar on the left lists the tabs. Only one tab is visible at a time.
@@ -285,7 +310,7 @@ The shortcuts use `Ctrl`, also on a Mac, and they work while you type in a field
 
 | Key | Action |
 | --- | --- |
-| `Ctrl` + `1`, `2`, `3`, `4`, `5` | Opens the pages in the order of the sidebar: Dashboard, Sessions, Pull requests, Automations, News. |
+| `Ctrl` + `1` to `6` | Opens the pages in the order of the sidebar: Dashboard, Sessions, Pull requests, Automations, News, Setup. |
 | `Ctrl` + `K` or `⌘` + `K` | Opens or closes the "Jump to" switcher. It finds a conversation by title, project or message. Without text, it shows the agents that wait for an answer, then your recent conversations. `↑` `↓` select, `Enter` opens in Sessions. |
 | `Ctrl` + `S` | In the message field of a conversation: stashes the draft. |
 | `Ctrl` + `N` | Opens New Session. |
@@ -300,6 +325,6 @@ The shortcuts use `Ctrl`, also on a Mac, and they work while you type in a field
 
 In Sessions, typing a letter outside any field writes it in the message field of the active session: no click needed first.
 
-On Windows and Linux, the browser keeps `Ctrl` + `N`, `Ctrl` + `⇧` + `N` and `Ctrl` + `1` to `5` for itself: use the buttons there.
+On Windows and Linux, the browser keeps `Ctrl` + `N`, `Ctrl` + `⇧` + `N` and `Ctrl` + `1` to `6` for itself: use the buttons there.
 
 A tooltip gives the name of each button and its shortcut. The animations stop if the system asks for reduced motion (`prefers-reduced-motion`).
