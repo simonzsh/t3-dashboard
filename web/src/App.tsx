@@ -3,7 +3,7 @@ import type { DashboardThread } from "../../shared/api.ts";
 import { AutomationsView } from "./features/automations/AutomationsView.tsx";
 import { PullsView } from "./features/pulls/PullsView.tsx";
 import { usePulls } from "./features/pulls/usePulls.ts";
-import { unreadPrIds } from "./lib/prSeen.ts";
+import { openPrIndex, openPrKey, unreadPrCount } from "./lib/prSeen.ts";
 import { NewsSettingsDialog } from "./features/news/NewsSettingsDialog.tsx";
 import { NewsView } from "./features/news/NewsView.tsx";
 import { firstRunBody, unreadNewsCount } from "./features/news/news.ts";
@@ -226,10 +226,10 @@ export function App() {
   // A new identity once the seen state is known, so the page marks its open article again then.
   const { markRead, seenReady: ready } = notify;
   const readMark = useCallback((mark: { id: string; at: string }) => ready && markRead(mark), [ready, markRead]);
-  const unreadPrList = useMemo(() => unreadPrIds(pulls.list?.prs ?? [], notify.seen), [pulls.list?.prs, notify.seen]);
-  // The set changes only when a pull request is read or new: a thread read must not rerender every session window.
-  const unreadPrKey = unreadPrList.join(" ");
-  const unreadPrs = useMemo(() => new Set(unreadPrList), [unreadPrKey]);
+  const openPrNow = useMemo(() => openPrIndex(pulls.list?.prs ?? [], notify.seen), [pulls.list?.prs, notify.seen]);
+  // Keyed on its content: a thread read must not rerender every session window.
+  const openPrsKey = openPrKey(openPrNow);
+  const openPrs = useMemo(() => openPrNow, [openPrsKey]);
   const sessionsBadge = useMemo(() => ({ count: sessionsBadgeCount(threads, notify.seen), waiting: agents.waiting > 0 }), [threads, notify.seen, agents.waiting]);
   const dashboardLayout = useDashboardLayout(tab === "dashboard");
   const notifPanel = useNotificationsPanel(sheetMode, tab === "dashboard");
@@ -270,7 +270,7 @@ export function App() {
           sessions={sessionsBadge}
           automations={automationsNav}
           news={newsUnread}
-          pulls={unreadPrList.length}
+          pulls={unreadPrCount(openPrs)}
           live={live}
           update={updateNav}
           onTab={showTab}
@@ -363,7 +363,7 @@ export function App() {
                   threads={state.threads}
                   projects={state.projects}
                   seen={notify.seen}
-                  unreadPrs={unreadPrs}
+                  openPrs={openPrs}
                   now={now}
                   layout={layout}
                   prefs={listPrefs}

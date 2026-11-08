@@ -67,7 +67,8 @@ const searchNode = (pr: DemoPr, now: Date, start: Date) => ({
   headRefName: pr.headRef,
   baseRefName: pr.baseRef ?? "main",
   createdAt: new Date(start.getTime() - pr.created * 60_000).toISOString(),
-  updatedAt: new Date(now.getTime() - pr.updated * 60_000).toISOString(),
+  // Never before the creation time, even in the first minutes of the demo.
+  updatedAt: new Date(Math.max(now.getTime() - pr.updated * 60_000, start.getTime() - pr.created * 60_000)).toISOString(),
   ...totals(pr),
   reviewDecision: pr.decision,
   author: { login: pr.author },

@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "bun:test";
 import type { PrSummary } from "../../../shared/pulls.ts";
-import { isUnreadPr, prMark, prMarkId, unreadPrIds } from "../../src/lib/prSeen.ts";
+import { isUnreadPr, newestFirst, openPrIndex, openPrKey, prMark, prMarkId, unreadPrCount } from "../../src/lib/prSeen.ts";
 
 const pr = (repository: string, number: number, over: Partial<PrSummary> = {}): PrSummary => ({
   repository, number, title: "t", url: "u", author: "ada", draft: false, headRef: "h", baseRef: "main", createdAt: "2026-02-01T10:00:00Z", updatedAt: "2026-02-01T10:00:00Z",
@@ -36,7 +36,24 @@ test("a pull request without a creation time counts as read", () => {
   assert.equal(isUnreadPr(pr("acme/web", 4, { createdAt: "" }), seen("2026-01-01T00:00:00.000Z")), false);
 });
 
-test("the unread ids are sorted and leave out the read ones", () => {
+test("the open index gives each pull request its creation time and unread state, and the count of unread ones", () => {
   const prs = [pr("acme/web", 9), pr("acme/api", 2), pr("acme/web", 3, { createdAt: "2025-12-01T00:00:00Z" })];
-  assert.deepEqual(unreadPrIds(prs, seen("2026-01-01T00:00:00.000Z")), ["pr:acme/api#2", "pr:acme/web#9"]);
+  const open = openPrIndex(prs, seen("2026-01-01T00:00:00.000Z"));
+  assert.deepEqual(open.get("pr:acme/web#3"), { createdAt: "2025-12-01T00:00:00.000Z", unread: false });
+  assert.equal(open.get("pr:acme/web#9")?.unread, true);
+  assert.equal(unreadPrCount(open), 2);
+});
+
+test("the index key changes when a pull request is read, not when the list order changes", () => {
+  const prs = [pr("acme/web", 9), pr("acme/api", 2)];
+  const key = openPrKey(openPrIndex(prs, seen("2026-01-01T00:00:00.000Z")));
+  assert.equal(openPrKey(openPrIndex([...prs].reverse(), seen("2026-01-01T00:00:00.000Z"))), key);
+  assert.notEqual(openPrKey(openPrIndex(prs, seen("2026-01-01T00:00:00.000Z", { "pr:acme/web#9": "2026-02-01T10:00:00.000Z" }))), key);
+});
+
+test("newest first: open pull requests by creation time, then the others in reverse link order", () => {
+  const open = openPrIndex([pr("acme/web", 10, { createdAt: "2026-02-01T10:00:00Z" }), pr("acme/web", 12, { createdAt: "2026-02-03T10:00:00Z" }), pr("acme/web", 11, { createdAt: "2026-02-02T10:00:00Z" })], seen("2026-01-01T00:00:00.000Z"));
+  // T3 order: stacked links 11, 12, then the branch PR 10 (the oldest), then merged ones 7 and 8.
+  const links = [7, 8, 11, 12, 10].map((number) => ({ repository: "acme/web", number }));
+  assert.deepEqual(newestFirst(links, open).map((link) => link.number), [12, 11, 10, 8, 7]);
 });

@@ -517,7 +517,9 @@ test("the demo Pull requests page lists invented pull requests and a diff for ea
 test("the demo pull requests keep their creation time between calls", async () => {
   let clock = NOW;
   const pulls = new PullRequests({ run: demoGh(() => clock), now: () => clock });
-  const first = (await pulls.prs()).prs.map((pr) => pr.createdAt);
+  const start = (await pulls.prs()).prs;
+  assert.ok(start.every((pr) => Date.parse(pr.createdAt) <= Date.parse(pr.updatedAt)));
+  const first = start.map((pr) => pr.createdAt);
   clock = new Date(NOW.getTime() + 3_600_000);
   const second = (await pulls.prs(true)).prs.map((pr) => pr.createdAt);
   assert.ok(first.every((at) => at !== ""));

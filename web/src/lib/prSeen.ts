@@ -15,5 +15,22 @@ export function isUnreadPr(pr: PrSummary, seen: SeenState): boolean {
   return mark !== null && isUnseenAt(mark.id, mark.at, seen);
 }
 
-/** Sorted, so a caller can tell a change of the set from a change of the list. */
-export const unreadPrIds = (prs: readonly PrSummary[], seen: SeenState): string[] => prs.filter((pr) => isUnreadPr(pr, seen)).map(prMarkId).sort();
+/** The open pull requests by `prMarkId`: their creation time and whether they are unread. */
+export type OpenPrs = ReadonlyMap<string, { createdAt: string; unread: boolean }>;
+
+export function openPrIndex(prs: readonly PrSummary[], seen: SeenState): Map<string, { createdAt: string; unread: boolean }> {
+  return new Map(prs.map((pr) => [prMarkId(pr), { createdAt: prMark(pr)?.at ?? "", unread: isUnreadPr(pr, seen) }]));
+}
+
+/** Changes only when an open pull request is added, removed or read: App keys the index on it. */
+export const openPrKey = (open: OpenPrs): string => [...open].map(([id, pr]) => `${id}@${pr.createdAt}${pr.unread ? "*" : ""}`).sort().join(" ");
+
+export const unreadPrCount = (open: OpenPrs): number => [...open.values()].filter((pr) => pr.unread).length;
+
+/** Newest first: open pull requests by creation time, then the others (merged, closed) in reverse link order, as T3 lists links oldest first. */
+export function newestFirst<T extends PrRef>(links: readonly T[], open: OpenPrs): T[] {
+  const created = (pr: T) => open.get(prMarkId(pr))?.createdAt ?? "";
+  const reversed = [...links].reverse();
+  const dated = reversed.filter((pr) => created(pr)).sort((a, b) => created(b).localeCompare(created(a)));
+  return [...dated, ...reversed.filter((pr) => !created(pr))];
+}

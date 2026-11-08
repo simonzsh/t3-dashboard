@@ -120,8 +120,10 @@ input.field { height: var(--control-md); padding-block: 0; }
 .icon-button.md { min-width: var(--control-md); height: var(--control-md); }
 .icon-button.sm { min-width: var(--control-sm); height: var(--control-sm); }
 /* A count on the icon's corner (a menu of several links): the button keeps its size. */
-.icon-button:has(> .icon-button-count) { position: relative; }
+.icon-button:has(> .icon-button-count, > .icon-button-dot) { position: relative; }
 .icon-button .count-badge.icon-button-count { position: absolute; top: -4px; right: -4px; min-width: 14px; height: 14px; padding: 0 3px; font-size: 9px; }
+/* The unread ring on the corner of a lone link icon, as the count sits on a menu icon. */
+.icon-button > .notif-dot.icon-button-dot { position: absolute; top: 0; right: 0; margin: 0; }
 .notif-bell { position: relative; }
 /* Same look as the other count bubbles, pushed into the corner so it overlaps the edge and the bell stays visible. */
 .notif-bell .count-badge { position: absolute; top: -6px; right: -6px; min-width: 16px; height: 16px; padding: 0 4px; font-size: 10px; font-weight: 600; background: color-mix(in srgb, var(--accent) 18%, transparent); color: var(--accent); box-shadow: 0 0 0 2px var(--surface-0); }
