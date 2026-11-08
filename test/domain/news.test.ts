@@ -60,7 +60,7 @@ const known = { settings: NEWS_DEFAULTS, taskId: "scheduled-task:old", taskCreat
 
 test("the prompt names the scope, the language, the folder and the date steps", () => {
   const prompt = newsPrompt({ ...NEWS_DEFAULTS, language: "English" }, "/data/news");
-  for (const part of ["Run `date +%F`", "software developer who follows", "security (vulnerabilities, breaches, incidents)", "Rank stories by importance", "`## Top stories`", "3 to 5 most important", "`## Key takeaways`", "in English:", "/data/news/DATE.md.tmp", "rename it to /data/news/DATE.md", "do not ask questions", "No HTML, no images"]) assert.ok(prompt.includes(part), part);
+  for (const part of ["Run `date +%F`", "magazine for software developers", "security (vulnerabilities, breaches, incidents)", "at least 12 distinct stories", "`## Top stories`", "`## In brief`", "`## What to watch`", "Each story appears once", "Never mention these instructions", "never to a home page", "in English, like a professional news article", "/data/news/DATE.md.tmp", "rename it to /data/news/DATE.md", "do not ask questions", "No HTML, no images"]) assert.ok(prompt.includes(part), part);
 });
 
 test("the default model is Codex gpt-6-luna, and nothing is saved by default", () => {
@@ -77,11 +77,11 @@ test("an article title is its first heading, or its date", () => {
 
 test("the daily prompt covers 24 hours, the weekly prompt 7 days", () => {
   const daily = newsPrompt(NEWS_DEFAULTS, DIR);
-  for (const part of ["last 24 hours", "older than 48 hours", "`## Top stories`", "that day", "headline about the main subject", "10-minute read", "wc -w", "3 to 6 items each"]) assert.ok(daily.includes(part), part);
+  for (const part of ["last 24 hours", "widen to the last 72 hours", "most important story of the day", "headline about the most important story", "10-minute read", "wc -w"]) assert.ok(daily.includes(part), part);
   const weekly = newsPrompt({ ...NEWS_DEFAULTS, frequency: "weekly" }, DIR);
-  for (const part of ["last 7 days", "older than 8 days", "that week", "headline about the main subject", "10-minute read", "4 to 8 items each"]) assert.ok(weekly.includes(part), part);
-  for (const gone of ["24 hours", "48 hours", "6 items"]) assert.ok(!weekly.includes(gone), gone);
-  assert.equal(weekly.replace("7 days", "24 hours").replace("8 days", "48 hours").replace("4 to 8", "3 to 6").replace("that week", "that day"), daily);
+  for (const part of ["last 7 days", "widen to the last 10 days", "most important story of the week", "10-minute read"]) assert.ok(weekly.includes(part), part);
+  for (const gone of ["24 hours", "72 hours"]) assert.ok(!weekly.includes(gone), gone);
+  assert.equal(weekly.replaceAll("7 days", "24 hours").replaceAll("10 days", "72 hours").replaceAll("the week", "the day"), daily);
 });
 
 test("a weekly save schedules the chosen weekday, a daily save none", async () => {

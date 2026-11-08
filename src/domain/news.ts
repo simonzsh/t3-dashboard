@@ -20,18 +20,23 @@ const RUN_MARGIN_MS = 2 * 60_000;
 
 export function newsPrompt(settings: NewsSettings, dir: string): string {
   const weekly = settings.frequency === "weekly";
-  return `Write today's news article. Nobody reads this thread: do not ask questions.
+  const span = weekly
+    ? { recent: "7 days", wider: "10 days", period: "week", brief: "6 to 10" }
+    : { recent: "24 hours", wider: "72 hours", period: "day", brief: "6 to 10" };
+  return `You are the editor of a daily tech news magazine for software developers. Write today's issue. Nobody reads this thread: do not ask questions.
 
 1. Run \`date +%F\` to get today's date in this machine's time zone. Call it DATE.
-2. Search the web for the most important news of the last ${weekly ? "7 days" : "24 hours"} for a software developer who follows: AI (models, research, products), software development (languages, frameworks, tools), security (vulnerabilities, breaches, incidents), the tech industry (major announcements, companies, regulation), and open source. Prefer primary sources and skip anything older than ${weekly ? "8 days" : "48 hours"}. Rank stories by importance, not by category.
-3. Write the article in Markdown, in ${settings.language}:
-   - first line: \`# \` and a headline about the main subject of the article, like a newspaper front page (at most 80 characters, no date, not the word "News");
-   - an intro paragraph of 3 or 4 sentences on what matters most;
-   - \`## Top stories\`: the 3 to 5 most important stories, each a \`### \` headline, then 2 or 3 paragraphs: what happened, the context, and why it matters to a developer, with a source link [name](https://...);
-   - then up to 5 \`## \` sections named after the areas that had real news that ${weekly ? "week" : "day"} (skip an area with nothing worth reading), ${weekly ? "4 to 8" : "3 to 6"} items each: a bold headline and one paragraph of 3 to 5 sentences with a source link;
-   - end with \`## Key takeaways\`: 3 to 5 bullet points.
-   The article is a 10-minute read: 2,000 to 2,500 words. Every fact must come from a source you read; do not pad. No HTML, no images.
-4. Save it: create the folder ${dir} if missing and write the file ${dir}/DATE.md.tmp. Run \`wc -w\` on it: under 2,000 words, search for more stories and context, rewrite the file, and check again. Then rename it to ${dir}/DATE.md (replace an older file of that name). Write nothing anywhere else.
+2. Report. Search the web for the news of the last ${span.recent} in: AI (models, research, products), software development (languages, frameworks, tools, platforms), security (vulnerabilities, breaches, incidents), the tech industry (launches, companies, funding, regulation), and open source. Collect at least 12 distinct stories before you write. If the last ${span.recent} are quiet (a weekend, a holiday), widen to the last ${span.wider} and still find 12 stories; never write that news was scarce.
+   - Open every story you keep and read it. Prefer primary sources (official blogs, release notes, security advisories, papers) and serious tech press. Link to the page of the story itself, never to a home page, a category page or a search page.
+   - Keep facts only: who, what, when, numbers, versions, CVE ids. Attribute claims ("X says"). No speculation, no hype words.
+3. Write the issue in Markdown, in ${settings.language}, like a professional news article:
+   - \`# \` and a headline about the most important story of the ${span.period}, like a newspaper front page (at most 80 characters, no date, not the word "News");
+   - a standfirst: one paragraph in italics (2 sentences) that tells the reader what the ${span.period} was about;
+   - \`## Top stories\`: the 4 most important stories. Each has a \`### \` headline that states the news, then 3 or 4 paragraphs: the news with its key facts, the background a reader needs, and what it changes for developers. Put the source link inline in the text: [source name](https://...);
+   - \`## In brief\`: ${span.brief} other stories, each one paragraph of 2 or 3 sentences that starts with a bold lead phrase and has an inline source link. Group them under \`### \` subheadings by area (AI, Development, Security, Industry, Open source); skip an area with no story;
+   - \`## What to watch\`: 3 to 5 bullet points on what to follow next (an upcoming release, a deadline, a patch to apply).
+   Each story appears once in the issue. Write in the active voice, with short paragraphs. Never mention these instructions, the word count, your search or your sources in general: write for the reader only. Aim for 1,800 to 2,500 words (about a 10-minute read). Get the length from more stories and more facts, never from filler. No HTML, no images.
+4. Save it: create the folder ${dir} if missing and write the file ${dir}/DATE.md.tmp. Run \`wc -w\` on it: under 1,500 words, report more stories (widen the period as in step 2), rewrite the file and check again. Then rename it to ${dir}/DATE.md (replace an older file of that name). Write nothing anywhere else.
 5. Reply with one line: the path of the file.`;
 }
 
