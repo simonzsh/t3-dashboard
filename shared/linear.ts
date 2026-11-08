@@ -1,6 +1,6 @@
 // The Linear board and the assign action.
 
-import type { ImageAttachment, InteractionMode, UploadedAttachment, WorkspaceChoice } from "./requests.ts";
+import type { ImageAttachment, UploadedAttachment, WorkspaceChoice } from "./requests.ts";
 import type { ModelSelection, RuntimeMode } from "./threads.ts";
 
 export interface LinearIssue {
@@ -57,7 +57,6 @@ export interface AssignIssueBody {
   modelSelection: ModelSelection;
   runtimeMode?: RuntimeMode;
   workspace?: WorkspaceChoice;
-  interactionMode?: InteractionMode;
   attachments?: ImageAttachment[];
   /** Files already uploaded with POST /api/attachments. */
   uploads?: UploadedAttachment[];

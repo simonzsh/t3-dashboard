@@ -1283,10 +1283,7 @@ main:has(> .news-page) { padding-top: 8px; }
 .workspace-group { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; min-width: 0; }
 .workspace-branch { min-width: 0; margin-left: auto; }
 .workspace-branch .dropdown-value { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.dropdown-trigger > .icon, .workspace-chip > .icon { flex: none; width: 14px; height: 14px; }
-.workspace-chip { display: inline-flex; align-items: center; gap: 6px; padding: 3px 8px; border: 1px solid transparent; border-radius: 999px; background: none; color: var(--text-secondary); font-size: 13px; }
-.workspace-chip:hover { color: var(--text-primary); background: var(--surface-0); }
-.workspace-chip[aria-pressed="true"] { color: var(--text-primary); background: color-mix(in srgb, var(--accent) 16%, transparent); border-color: color-mix(in srgb, var(--accent) 40%, transparent); }
+.dropdown-trigger > .icon { flex: none; width: 14px; height: 14px; }
 .workspace-item { width: 100%; border: 0; background: none; color: inherit; text-align: left; }
 .workspace-item:hover { background: var(--surface-0); }
 .workspace-item > .icon:first-child { flex: none; width: 14px; height: 14px; color: var(--text-secondary); }

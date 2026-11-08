@@ -136,11 +136,10 @@ test("assign launches a thread named after the issue, without a generated title"
   assert.equal(launches[0]?.initialMessage.text, "Handle Linear issue TEAM-1: https://linear.example/TEAM-1");
 });
 
-test("assign passes the workspace and the interaction mode", async () => {
+test("assign passes the workspace", async () => {
   const { actions, launches } = harness();
-  await actions.assign({ issueId: "issue-1", projectId: "project-1", text: "", modelSelection: { instanceId: "i", model: "m" }, workspace: { type: "worktree", baseRef: "main" }, interactionMode: "plan" }, []);
+  await actions.assign({ issueId: "issue-1", projectId: "project-1", text: "", modelSelection: { instanceId: "i", model: "m" }, workspace: { type: "worktree", baseRef: "main" } }, []);
   assert.deepEqual(launches[0]?.workspaceStrategy, { type: "worktree", baseRef: "main" });
-  assert.equal(launches[0]?.interactionMode, "plan");
 });
 
 test("assign refuses an unknown issue and an unknown project", async () => {
@@ -492,10 +491,9 @@ test("createThread launches one thread in the current checkout with a generated 
   assert.deepEqual(port.switches.concat(port.creates), []);
 });
 
-test("createThread sends the plan mode and a new worktree strategy", async () => {
+test("createThread sends a new worktree strategy", async () => {
   const { actions, port } = fakeHarness();
-  await actions.createThread({ ...create, interactionMode: "plan", workspace: { type: "worktree", baseRef: "origin/dev", startFromOrigin: true } }, []);
-  assert.equal(port.launches[0]!.launch.interactionMode, "plan");
+  await actions.createThread({ ...create, workspace: { type: "worktree", baseRef: "origin/dev", startFromOrigin: true } }, []);
   assert.deepEqual(port.launches[0]!.launch.workspaceStrategy, { type: "worktree", baseRef: "origin/dev", startFromOrigin: true });
 });
 

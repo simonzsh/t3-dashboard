@@ -523,7 +523,7 @@ export interface LaunchThread {
   generateTitle: boolean;
   modelSelection: SharedModelSelection;
   runtimeMode: RuntimeMode;
-  interactionMode: "default" | "plan";
+  interactionMode: "default";
   workspaceStrategy: WorkspaceStrategy;
   initialMessage: { messageId: string; text: string; attachments: unknown[] };
 }

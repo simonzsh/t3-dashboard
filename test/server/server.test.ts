@@ -249,21 +249,19 @@ test("POST /api/threads launches the thread through T3", async () => {
   assert.equal(launch.initialMessage.text, "Hello");
 });
 
-test("POST /api/threads takes a workspace choice and the plan mode, and drops unknown keys", async () => {
+test("POST /api/threads takes a workspace choice and drops unknown keys", async () => {
   const { server, port } = await start();
-  const body = { projectId: "project-1", title: "t", text: "x", modelSelection: model, interactionMode: "plan" };
+  const body = { projectId: "project-1", title: "t", text: "x", modelSelection: model };
   assert.equal((await post(server, "/api/threads", { ...body, workspace: { type: "worktree", baseRef: "main", startFromOrigin: true, extra: 1 } })).status, 200);
   assert.equal((await post(server, "/api/threads", { ...body, workspace: { type: "root", branch: "dev", create: true } })).status, 200);
   assert.deepEqual(port.launches[0]!.launch.workspaceStrategy, { type: "worktree", baseRef: "main", startFromOrigin: true });
-  assert.equal(port.launches[0]!.launch.interactionMode, "plan");
   assert.deepEqual(port.creates, [{ cwd: "/work/root", refName: "dev" }]);
 });
 
-test("POST /api/threads refuses a bad workspace or interaction mode", async () => {
+test("POST /api/threads refuses a bad workspace", async () => {
   const { server, port } = await start();
   const base = { projectId: "project-1", title: "t", text: "x", modelSelection: model };
   const bad: Array<Record<string, unknown>> = [
-    { interactionMode: "auto" },
     { workspace: "root" },
     { workspace: { type: "tree" } },
     { workspace: { type: "worktree" } },
@@ -2016,12 +2014,11 @@ test("POST /api/news/run starts the run, and says to save first when there is no
   assert.match(reply.text, /Save the News settings first/);
 });
 
-test("POST /api/board/assign takes a workspace and the plan mode, and refuses a bad one", async () => {
+test("POST /api/board/assign takes a workspace and refuses a bad one", async () => {
   const { server, port } = await start({ linearKey: "key-1" });
-  const reply = await post(server, "/api/board/assign", { ...assignBody, workspace: { type: "worktree", baseRef: "main" }, interactionMode: "plan" });
+  const reply = await post(server, "/api/board/assign", { ...assignBody, workspace: { type: "worktree", baseRef: "main" } });
   assert.equal(reply.status, 200);
   assert.deepEqual(port.launches[0]!.launch.workspaceStrategy, { type: "worktree", baseRef: "main" });
-  assert.equal(port.launches[0]!.launch.interactionMode, "plan");
   assert.equal(port.launches[0]!.launch.generateTitle, false);
   assert.equal((await post(server, "/api/board/assign", { ...assignBody, workspace: { type: "worktree", baseRef: "-x" } })).status, 400);
   assert.equal((await post(server, "/api/board/assign", { ...assignBody, projectId: "", workspace: { type: "worktree", baseRef: "main" } })).status, 400);

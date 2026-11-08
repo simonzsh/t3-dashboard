@@ -15,16 +15,14 @@ interface Props {
   /** Null while the workspace part is hidden or failed to load. */
   draft: WorkspaceDraft | null;
   onDraft: Dispatch<SetStateAction<WorkspaceDraft | null>>;
-  plan: boolean;
-  onPlan: (plan: boolean) => void;
   /** Why sending must wait (options loading, or a worktree default that cannot load), or null. */
   onBlocked: (reason: string | null) => void;
 }
 
 const marks = (r: ProjectRef): string[] => [r.current && "current", r.isDefault && "default", r.remote && "remote", r.worktreePath && !r.current && "worktree"].filter((m): m is string => !!m);
 
-/** The row under the message: checkout, Plan mode, branch. Without a git folder only Plan mode shows. */
-export function WorkspaceOptions({ project, draft, onDraft, plan, onPlan, onBlocked }: Props) {
+/** The row under the message: checkout and branch. Without a git folder it shows nothing. */
+export function WorkspaceOptions({ project, draft, onDraft, onBlocked }: Props) {
   const api = useApi();
   const root = project?.workspaceRoot;
   const [status, setStatus] = useState<ProjectVcsStatus | null>(null);
@@ -73,16 +71,13 @@ export function WorkspaceOptions({ project, draft, onDraft, plan, onPlan, onBloc
   const setMode = (envMode: EnvMode) => change({ envMode, ref: envMode === "worktree" ? current : null, newBranch: null });
 
   const ready = project && root && draft;
+  if (!ready && !failure) return null;
 
   return (
     <div className="workspace-options">
       <div className="workspace-bar">
         <div className="workspace-group">
           {ready && <ModeMenu value={draft.envMode} onChange={setMode} />}
-          <Pressable className="workspace-chip" aria-pressed={plan} tooltip="The agent proposes a plan before it changes anything" onClick={() => onPlan(!plan)}>
-            <Icon name="list" />
-            <span>Plan</span>
-          </Pressable>
         </div>
         {ready && (
           <BranchPicker

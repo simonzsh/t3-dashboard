@@ -40,14 +40,14 @@ test("launchPayload builds the launchThread payload with defaults", () => {
   });
 });
 
-test("launchPayload carries the runtime and interaction modes, the strategy and the attachments", () => {
-  const body = { projectId: "p", title: "t", text: "x", modelSelection: model, runtimeMode: "approval-required" as const, interactionMode: "plan" as const };
+test("launchPayload carries the runtime mode, the strategy and the attachments", () => {
+  const body = { projectId: "p", title: "t", text: "x", modelSelection: model, runtimeMode: "approval-required" as const };
   const strategy = { type: "worktree" as const, baseRef: "main" };
   const message = { messageId: "msg-2", attachments: [{ id: "a" }] };
   const payload = launchPayload("thread-1", body, message, strategy, { generateTitle: false });
   assert.equal(payload.generateTitle, false);
   assert.equal(payload.runtimeMode, "approval-required");
-  assert.equal(payload.interactionMode, "plan");
+  assert.equal(payload.interactionMode, "default");
   assert.deepEqual(payload.workspaceStrategy, strategy);
   assert.deepEqual(payload.initialMessage.attachments, [{ id: "a" }]);
 });

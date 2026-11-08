@@ -6,7 +6,6 @@ import type { ModelSelection, ProjectIcon, ProjectIconSpec, RuntimeMode } from "
 export type ApprovalDecision = "accept" | "acceptForSession" | "decline";
 export type UserInputAnswers = Record<string, string | string[]>;
 
-export type InteractionMode = "default" | "plan";
 
 /** Where a new thread runs. Absent: the current checkout, as it is. */
 export type WorkspaceChoice =
@@ -27,8 +26,6 @@ export interface CreateThreadBody {
   runtimeMode?: RuntimeMode;
   /** Defaults to the current checkout. */
   workspace?: WorkspaceChoice;
-  /** Defaults to "default". */
-  interactionMode?: InteractionMode;
   attachments?: ImageAttachment[];
   uploads?: UploadedAttachment[];
 }

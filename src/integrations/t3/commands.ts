@@ -38,7 +38,7 @@ export function launchPayload(threadId: string, body: Omit<CreateThreadBody, "at
     generateTitle: options.generateTitle,
     modelSelection: body.modelSelection,
     runtimeMode: body.runtimeMode ?? "full-access",
-    interactionMode: body.interactionMode ?? "default",
+    interactionMode: "default",
     workspaceStrategy: strategy,
     initialMessage: { messageId: message.messageId, text: body.text, attachments: message.attachments },
   };

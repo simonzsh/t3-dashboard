@@ -1,4 +1,4 @@
-import type { ApprovalDecision, AssignIssueBody, CreateAutomationBody, CreateProjectBody, CreateThreadBody, InteractionMode, ProjectIconSpec, RoutineSchedule, WebhookFilter, WebhookSignature, ModelSelection, RespondBody, RewindBody, SaveNewsBody, SecretAnswerBody, SendMessageBody, ThreadSettingsBody, UpdateAutomationBody, UpdateProjectBody, UploadedAttachment, UserInputAnswers, WorkspaceChoice } from "../../shared/api.ts";
+import type { ApprovalDecision, AssignIssueBody, CreateAutomationBody, CreateProjectBody, CreateThreadBody, ProjectIconSpec, RoutineSchedule, WebhookFilter, WebhookSignature, ModelSelection, RespondBody, RewindBody, SaveNewsBody, SecretAnswerBody, SendMessageBody, ThreadSettingsBody, UpdateAutomationBody, UpdateProjectBody, UploadedAttachment, UserInputAnswers, WorkspaceChoice } from "../../shared/api.ts";
 import { PROJECT_COLOR_NAMES } from "../../shared/projectColors.ts";
 import { ACTIVITY_PERIODS, DEFAULT_ACTIVITY_PERIOD, type ActivityPeriod } from "../../shared/usage.ts";
 import { isObject } from "../../shared/guards.ts";
@@ -153,16 +153,10 @@ export function validWorkspace(value: unknown, projectId: string): WorkspaceChoi
   return choice;
 }
 
-export function validInteractionMode(value: unknown): InteractionMode | undefined {
-  if (value !== undefined && value !== "default" && value !== "plan") throw new HttpError(400, "interactionMode must be default or plan");
-  return value;
-}
-
-// The two optional fields every thread launch takes.
+// The optional field every thread launch takes.
 const launchOptions = (body: Record<string, unknown>, projectId: string) => {
   const workspace = validWorkspace(body.workspace, projectId);
-  const interactionMode = validInteractionMode(body.interactionMode);
-  return { ...(workspace && { workspace }), ...(interactionMode && { interactionMode }) };
+  return workspace ? { workspace } : {};
 };
 
 export function validCreate(body: Record<string, unknown>): CreateThreadBody {

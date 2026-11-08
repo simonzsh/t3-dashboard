@@ -920,7 +920,7 @@ test("pathKinds returns one kind per path and null for a missing path", async ()
   assert.deepEqual(await done, ["directory", null]);
 });
 
-const launch = { threadId: "t1", projectId: "p1", title: "T", generateTitle: true, modelSelection: { instanceId: "i", model: "m" }, runtimeMode: "full-access" as const, interactionMode: "plan" as const, workspaceStrategy: { type: "worktree" as const, baseRef: "main" }, initialMessage: { messageId: "m1", text: "Hi", attachments: [] } };
+const launch = { threadId: "t1", projectId: "p1", title: "T", generateTitle: true, modelSelection: { instanceId: "i", model: "m" }, runtimeMode: "full-access" as const, interactionMode: "default" as const, workspaceStrategy: { type: "worktree" as const, baseRef: "main" }, initialMessage: { messageId: "m1", text: "Hi", attachments: [] } };
 
 test("launchThread sends the payload with the command id and the server provenance, and reads the thread id", async () => {
   const { client } = setup();

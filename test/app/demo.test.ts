@@ -483,7 +483,7 @@ test("the demo news has a task and three English articles, and needs no file", a
 test("the demo launches a thread in a worktree and answers branch reads", async () => {
   const port = new DemoPort(() => NOW);
   const strategy = { type: "worktree" as const, baseRef: "main" };
-  await port.launchThread({ threadId: "wt-thread", projectId: "demo-atlas-api", title: "T", generateTitle: true, modelSelection: { instanceId: "i", model: "m" }, runtimeMode: "full-access", interactionMode: "plan", workspaceStrategy: strategy, initialMessage: { messageId: "m1", text: "Hi", attachments: [] } });
+  await port.launchThread({ threadId: "wt-thread", projectId: "demo-atlas-api", title: "T", generateTitle: true, modelSelection: { instanceId: "i", model: "m" }, runtimeMode: "full-access", interactionMode: "default", workspaceStrategy: strategy, initialMessage: { messageId: "m1", text: "Hi", attachments: [] } });
   const { thread, messages } = await port.threadProjection("wt-thread");
   assert.ok(thread?.worktreePath);
   assert.equal(messages?.[0]?.text, "Hi");

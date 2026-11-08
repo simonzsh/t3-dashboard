@@ -499,7 +499,6 @@ export function createActions(options: ActionsOptions): Actions {
         modelSelection: body.modelSelection,
         ...(body.runtimeMode && { runtimeMode: body.runtimeMode }),
         ...(body.workspace && { workspace: body.workspace }),
-        ...(body.interactionMode && { interactionMode: body.interactionMode }),
       };
       return launch(create, images, uploads, false);
     },

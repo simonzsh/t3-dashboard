@@ -336,10 +336,10 @@ test("projectRefs and projectVcsStatus use GET with encoded query", async () => 
   assert.equal(calls[2]?.url, "/api/projects/p%2F1/vcs");
 });
 
-test("createThread and assignIssue carry workspace and interactionMode", async () => {
+test("createThread and assignIssue carry the workspace", async () => {
   const { calls, api } = fake(200, { threadId: "t" });
   const workspace = { type: "worktree", baseRef: "main" } as const;
-  await api.createThread({ projectId: "p", title: "t", text: "x", modelSelection: { instanceId: "i", model: "m" }, workspace, interactionMode: "plan" });
-  await api.assignIssue({ issueId: "i", projectId: "p", text: "x", modelSelection: { instanceId: "i", model: "m" }, workspace, interactionMode: "plan" });
-  for (const c of calls) assert.deepEqual([JSON.parse(String(c.init?.body)).workspace, JSON.parse(String(c.init?.body)).interactionMode], [workspace, "plan"]);
+  await api.createThread({ projectId: "p", title: "t", text: "x", modelSelection: { instanceId: "i", model: "m" }, workspace });
+  await api.assignIssue({ issueId: "i", projectId: "p", text: "x", modelSelection: { instanceId: "i", model: "m" }, workspace });
+  for (const c of calls) assert.deepEqual(JSON.parse(String(c.init?.body)).workspace, workspace);
 });
