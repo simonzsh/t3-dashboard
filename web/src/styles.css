@@ -554,8 +554,8 @@ input.dropdown-search { position: absolute; inset: 0 auto 0 0; z-index: 1; width
 .dialog-actions, .request .buttons { justify-content: flex-end; }
 .dialog-backdrop { position: fixed; inset: 0; background: var(--backdrop); display: grid; place-items: start center; padding-top: 16vh; box-sizing: border-box; z-index: 20; }
 .dialog-backdrop[hidden] { display: none; }
-/* No page scroll behind an open dialog (keyboard and scrollbar too); scrollLock.ts stops wheel and touch. */
-html:has(.dialog-backdrop:not([hidden])) { overflow: hidden; }
+/* No page scroll behind an open dialog or sheet (keyboard and scrollbar too); scrollLock.ts stops wheel and touch. */
+html:has(.dialog-backdrop:not([hidden])), html:has(.ui-sheet.open) { overflow: hidden; }
 .dialog { width: min(480px, 94vw); background: var(--surface-1); border: 1px solid var(--line); border-radius: 14px; padding: 20px; box-shadow: var(--shadow); display: flex; flex-direction: column; gap: 10px; max-height: calc(84dvh - 24px); overflow-y: auto; }
 .dialog-backdrop:has(.preview-dialog) { padding-top: 4vh; }
 /* The floating model panel overflows the dialog upward: stop clipping while it is open. */
@@ -829,7 +829,6 @@ main:has(> .auto-page) { padding-top: calc(var(--page-top) - 8px); }
 @media (max-width: 1200px) {
   .ui-sheet .notifications-card { flex: 1; min-height: 0; max-height: none; border-radius: 0; border-width: 0; }
   .ui-sheet .notif-list { max-height: none; }
-  html:has(.app.sheet-shown) { overflow: hidden; }
 }
 /* Drop preview: the size of the dragged card, where it will land. */
 .dashboard-drop { min-height: 64px; border: 2px dashed color-mix(in srgb, var(--accent) 60%, transparent); border-radius: var(--radius-lg); background: color-mix(in srgb, var(--accent) 8%, transparent); }

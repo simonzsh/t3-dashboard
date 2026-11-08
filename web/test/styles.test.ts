@@ -86,7 +86,6 @@ test("at 1200 px and below the Notifications panel is a side sheet under the hea
   const start = css.indexOf("@media (max-width: 1200px)");
   const narrow = css.slice(start, css.indexOf("\n}\n", start));
   assert.match(narrow, /\.ui-sheet \.notifications-card \{/);
-  assert.match(narrow, /html:has\(\.app\.sheet-shown\) \{ overflow: hidden; \}/);
 });
 
 test("on a phone the sheet is full width and stops above the bottom bar", () => {
@@ -120,8 +119,8 @@ test("on a phone an open keyboard drops the bottom bar and the bottom inset", ()
   assert.match(phone, /\.keyboard-open \.app \.app-column \{ padding-bottom: 0; \}/);
 });
 
-test("an open dialog locks the page scroll", () => {
-  assert.match(css, /html:has\(\.dialog-backdrop:not\(\[hidden\]\)\) \{ overflow: hidden; \}/);
+test("an open dialog or sheet locks the page scroll", () => {
+  assert.match(css, /html:has\(\.dialog-backdrop:not\(\[hidden\]\)\), html:has\(\.ui-sheet\.open\) \{ overflow: hidden; \}/);
 });
 
 test("automations: only the list scrolls, under a fixed toolbar, on a phone too", () => {
