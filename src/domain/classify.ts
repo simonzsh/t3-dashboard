@@ -44,7 +44,7 @@ function categoryOf(kind: string): PendingCategory {
 // A pull request without a usable repository, number or URL is dropped: the link would be dead.
 function pullRequestOf(raw: RawThread): DashboardThread["pullRequest"] {
   for (const pr of [raw.linkedPullRequest, raw.branchPullRequest]) {
-    if (pr?.repository && isRepository(pr.repository) && pr.number && pr.url) return { repository: pr.repository, number: pr.number, url: pr.url };
+    if (pr?.repository && isRepository(pr.repository) && typeof pr.number === "number" && Number.isInteger(pr.number) && pr.number > 0 && pr.url) return { repository: pr.repository, number: pr.number, url: pr.url };
   }
   return null;
 }

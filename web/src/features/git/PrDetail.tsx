@@ -94,7 +94,12 @@ export function PrDetail({ pr, detail, detailError, diff, diffError, refreshing,
         )}
         {detailError && <p className="auto-error" role="alert">{detailError}</p>}
       </header>
-      {diffError && <p className="auto-error" role="alert">{diffError}</p>}
+      {diffError && (
+        <div className="git-diff-error">
+          <p className="auto-error" role="alert">{diffError}</p>
+          <Button size="sm" variant="secondary" disabled={refreshing} onClick={onRefresh}>Retry</Button>
+        </div>
+      )}
       {diff ? <DiffFiles key={diff.headSha} files={diff.files} truncated={diff.truncated} refreshing={refreshing} onRefresh={onRefresh} /> : !diffError && <Loader />}
     </div>
   );

@@ -25,6 +25,7 @@ export class GitReview {
   private list: { at: number; value: PrList } | null = null;
   private listing: Promise<PrList> | null = null;
   private readonly details = new Map<string, { at: number; value: PrDetail }>();
+  private readonly reading = new Map<string, Promise<PrDetail>>();
   private readonly diffs = new Map<string, PrDiff>();
 
   constructor(options: GitReviewOptions) {
@@ -52,9 +53,18 @@ export class GitReview {
     const now = this.options.now().getTime();
     const known = this.details.get(key);
     if (!refresh && known && now - known.at < CACHE_MS) return known.value;
-    const value = await getPull(this.options.run, repository, number);
-    remember(this.details, key, { at: now, value }, MAX_DETAILS);
-    return value;
+    // The page asks for the detail and the diff at once: both share one gh call.
+    let pending = this.reading.get(key);
+    if (!pending) {
+      pending = getPull(this.options.run, repository, number)
+        .then((value) => {
+          remember(this.details, key, { at: now, value }, MAX_DETAILS);
+          return value;
+        })
+        .finally(() => this.reading.delete(key));
+      this.reading.set(key, pending);
+    }
+    return pending;
   }
 
   /** A diff never changes for one head commit, so the head SHA is the cache key. */
@@ -64,7 +74,10 @@ export class GitReview {
     const known = this.diffs.get(key);
     if (known) return known;
     const { text, truncated } = await getDiff(this.options.run, repository, number);
-    const value = { headSha, files: parseDiff(text), truncated };
+    const files = parseDiff(text);
+    // The cut falls inside the last file: drop it rather than show part of it.
+    if (truncated) files.pop();
+    const value = { headSha, files, truncated };
     remember(this.diffs, key, value, MAX_DIFFS);
     return value;
   }

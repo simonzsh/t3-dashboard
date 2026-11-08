@@ -69,3 +69,12 @@ test("a diff is parsed once per head commit", async () => {
   assert.equal(next.headSha, "sha2");
   assert.deepEqual(calls, ["pr view", "pr diff", "pr view", "pr diff"]);
 });
+
+test("the detail and the diff opened together share one pr view", async () => {
+  const { review, calls } = setup();
+  await Promise.all([review.detail("acme/api", 1), review.diff("acme/api", 1)]);
+  assert.deepEqual(calls, ["pr view", "pr diff"]);
+  calls.length = 0;
+  await Promise.all([review.detail("acme/api", 1, true), review.diff("acme/api", 1, true)]);
+  assert.deepEqual(calls, ["pr view"]);
+});

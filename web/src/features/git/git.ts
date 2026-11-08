@@ -42,6 +42,6 @@ export const REVIEWS: Record<PrReview, { label: string; variant: BadgeVariant } 
 };
 
 /** Only a web address becomes a link: the page never puts another scheme in an href. */
-export const isWebUrl = (url: string): boolean => /^https?:\/\//i.test(url);
+export const isWebUrl = (url: string): boolean => /^https:\/\//i.test(url);
 
 export const shortRepository = (repository: string): string => repository.slice(repository.indexOf("/") + 1);
