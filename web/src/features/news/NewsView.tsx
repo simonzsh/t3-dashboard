@@ -102,24 +102,28 @@ export function NewsView({ news, writing, now, compact, seen, onRead, onOpenThre
         {status}
         <ul className="news-items">
           {progress}
-          {articles.map((a) => (
-            <li key={a.date}>
-              <Pressable
-                className={`news-item${a.date === date ? " active" : ""}`}
-                aria-current={a.date === date ? "true" : undefined}
-                onClick={() => {
-                  setPicked(a.date);
-                  setReading(true);
-                }}
-              >
-                <span className="news-item-body">
-                  <span className="news-item-date">{shortDate(a.date)}</span>
-                  <span className="news-item-title">{a.title}</span>
-                </span>
-                {seen && isUnreadArticle(a, seen) && <span className="notif-dot" aria-label="Unread" role="img" />}
-              </Pressable>
-            </li>
-          ))}
+          {articles.map((a) => {
+            // On a phone the list and the article take turns: no item is "open" while the list shows.
+            const open = a.date === date && !compact;
+            return (
+              <li key={a.date}>
+                <Pressable
+                  className={`news-item${open ? " active" : ""}`}
+                  aria-current={open ? "true" : undefined}
+                  onClick={() => {
+                    setPicked(a.date);
+                    setReading(true);
+                  }}
+                >
+                  <span className="news-item-body">
+                    <span className="news-item-date">{shortDate(a.date)}</span>
+                    <span className="news-item-title">{a.title}</span>
+                  </span>
+                  {seen && isUnreadArticle(a, seen) && <span className="notif-dot" aria-label="Unread" role="img" />}
+                </Pressable>
+              </li>
+            );
+          })}
         </ul>
       </section>
       <article ref={articleRef} className="news-article" aria-label={shown?.title ?? "News"}>

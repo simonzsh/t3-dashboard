@@ -9,10 +9,10 @@ import { NewsSettingsDialog } from "../../../src/features/news/NewsSettingsDialo
 const task = { id: "t", enabled: true, nextRunAt: "2026-11-08T07:00:00.000Z", lastRunAt: null, lastRunStatus: null, lastRunError: null };
 const state = (over: Partial<NewsState> = {}): NewsState => ({ settings: { enabled: true, frequency: "daily", weekday: 1, timeOfDay: "07:00", language: "French", modelSelection: null }, task, articles: [], running: null, ...over });
 const now = new Date("2026-11-07T12:00:00.000Z");
-const view = (news: NewsState, writing = false) =>
+const view = (news: NewsState, writing = false, compact = false) =>
   renderToStaticMarkup(
     <ApiProvider value={{} as never}>
-      <NewsView news={news} writing={writing} now={now} compact={false} seen={null} onRead={() => {}} onOpenThread={() => {}} />
+      <NewsView news={news} writing={writing} now={now} compact={compact} seen={null} onRead={() => {}} onOpenThread={() => {}} />
     </ApiProvider>,
   );
 
@@ -90,4 +90,10 @@ test("an unread article shows the notification dot; a read one does not", () => 
     </ApiProvider>,
   );
   assert.equal(out.match(/class="notif-dot"/g)?.length, 1);
+});
+
+test("on a phone the list marks no article open: the article is not on screen", () => {
+  const out = view(state({ articles: [{ date: "2026-11-07", title: "News 7 Nov", mtimeMs: 2 }] }), false, true);
+  assert.doesNotMatch(out, /news-item active/);
+  assert.doesNotMatch(out, /aria-current="true"/);
 });
