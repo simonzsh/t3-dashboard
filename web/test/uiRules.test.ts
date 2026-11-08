@@ -1,5 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "bun:test";
+import { readdirSync, readFileSync } from "node:fs";
+import { join } from "node:path";
 import { tsxSources } from "./fixtures.ts";
 
 const sources = tsxSources();
@@ -43,6 +45,8 @@ function buttonGroups(text: string): Button[][] {
     if (name === "button" || name === "Button") {
       const close = `</${name}>`;
       const end = text.indexOf(close, tag.lastIndex);
+      // "<button>" in a comment has no closing tag: stop here instead of scanning the file again forever.
+      if (end < 0) break;
       stack.at(-1)!.push({ tag: open, text: text.slice(tag.lastIndex, end).replace(/<[^>]*>/g, " ") });
       tag.lastIndex = end + close.length;
       continue;
@@ -71,6 +75,10 @@ test("the guard sees a Cancel after a primary button", () => {
   const groups = buttonGroups(`<div className="buttons"><button className="primary" onClick={() => go(a > b)}>Create</button><button type="button">Cancel</button></div>`);
   assert.equal(groups.length, 1);
   assert.deepEqual(groups[0]!.map((b) => [isPrimary(b), isCancel(b)]), [[true, false], [false, true]]);
+});
+
+test("the button guard ends on a button tag with no closing tag", () => {
+  assert.deepEqual(buttonGroups("// a sticky <button> in a comment"), []);
 });
 
 test("the guard sees a kit Button row", () => {
@@ -154,4 +162,161 @@ test("no effect returns the result of a scroll call", () => {
 test("menus come from the kit, so hover and keys behave the same everywhere", () => {
   const wrong = sources.filter(({ file, text }) => !file.startsWith("ui/") && /\bdropdown-(option|list)\b/.test(text)).map(({ file }) => file);
   assert.deepEqual(wrong, [], "use Dropdown or ActionMenu instead of hand-made menu rows");
+});
+
+// --- Page shell: one block in styles.css spaces every page (docs/development.md). ---
+const css = await Bun.file(new URL("../src/styles.css", import.meta.url)).text();
+const SHELL_START = "/* page-shell:start";
+const SHELL_END = "/* page-shell:end */";
+const PAGE_ROOTS = [".dashboard", ".auto-page", ".news-page", ".pulls-page", ".sessions"];
+const SPACING = /(^|;)\s*(padding|margin|max-width)(-[a-z-]+)?\s*:/;
+
+// Flat rules, media queries opened: [selector list, declarations].
+const rulesOf = (text: string): Array<[string, string]> =>
+  [...text.replace(/\/\*[\s\S]*?\*\//g, "").replace(/@media[^{]*\{/g, "").matchAll(/([^{}]+)\{([^{}]*)\}/g)].map((m) => [m[1]!.trim(), m[2]!]);
+
+// The classes a page passes to its ListPage, or puts on its scroll box: they belong to the shell too.
+function shellClasses(): string[] {
+  const out = new Set<string>();
+  for (const { text } of sources) {
+    for (const m of text.matchAll(/<ListPage\b[^>]*?\b(?:className|headClassName|bodyClassName)="([^"]+)"/g)) for (const c of m[1]!.split(/\s+/)) out.add(`.${c}`);
+    for (const m of text.matchAll(/className="([^"]*\bpage-scroll\b[^"]*)"/g)) for (const c of m[1]!.split(/\s+/)) out.add(`.${c}`);
+  }
+  out.delete(".page-scroll");
+  return [...out];
+}
+
+// The element a selector styles: its last compound, pseudo-classes (and what they hold) dropped.
+const subjectOf = (selector: string): string =>
+  selector.replace(/:{1,2}[\w-]+(\([^)]*\))?/g, "").split(/[\s>+~]+/).filter(Boolean).pop() ?? "";
+
+function shellViolations(text: string): string[] {
+  const start = text.indexOf(SHELL_START);
+  const end = text.indexOf(SHELL_END);
+  const outside = start < 0 || end < 0 ? text : text.slice(0, start) + text.slice(end + SHELL_END.length);
+  const guarded = [...PAGE_ROOTS, ...shellClasses(), ".list-page", ".list-page-head", ".list-page-body", ".page-scroll"];
+  const hits: string[] = [];
+  for (const [selectors, body] of rulesOf(outside)) {
+    if (!SPACING.test(body)) continue;
+    for (const selector of selectors.split(",").map((part) => part.trim())) {
+      const subject = subjectOf(selector);
+      const classes = subject.match(/\.[\w-]+/g) ?? [];
+      if (/^main\b/.test(subject) || classes.some((cls) => guarded.includes(cls))) hits.push(selector);
+    }
+  }
+  return hits;
+}
+
+test("only the page-shell block spaces a page: no padding, margin or max-width on main, a page root or a list page outside it", () => {
+  assert.ok(css.includes(SHELL_START) && css.includes(SHELL_END), "styles.css keeps its page-shell markers");
+  assert.ok(shellClasses().length > 0, "the guard finds the classes pages pass to the shell");
+  for (const root of PAGE_ROOTS) assert.ok(css.includes(`${root} {`), `${root} is still a page root`);
+  assert.deepEqual(shellViolations(css), []);
+});
+
+test("the page-shell guard sees page-level spacing outside the block", () => {
+  const add = (rule: string) => shellViolations(`${css}\n${rule}\n`);
+  assert.deepEqual(add("main:has(> .x-page) { padding-top: 8px; }"), ["main:has(> .x-page)"]);
+  assert.deepEqual(add("@media (max-width: 700px) { .auto-page { padding-inline: 12px; } }"), [".auto-page"]);
+  assert.deepEqual(add(".news-list { margin: -4px; }"), [".news-list"]);
+  assert.deepEqual(add(".pulls-list .list-page-body { max-width: 960px; }"), [".pulls-list .list-page-body"]);
+  assert.deepEqual(add(".pulls-row { padding: 4px; }"), []);
+});
+
+test("every control in the session header is a kit icon button, so all share one size", () => {
+  const window = sources.find(({ file }) => file.endsWith("features/sessions/SessionWindow.tsx"))!.text;
+  const start = window.indexOf('<span className="session-window-buttons">');
+  const block = window.slice(start, window.indexOf("</span>", start));
+  // Text buttons (Button, or an ActionMenu with text) are taller or wider than the icon buttons beside them.
+  assert.doesNotMatch(block, /<Button\b|\btext=/);
+  const menu = window.slice(window.indexOf("function PullRequestsButton"), window.indexOf("export const SessionWindow"));
+  assert.doesNotMatch(menu, /<Button\b|\btext=/);
+});
+
+// --- Toolbars: one control height, so a segmented control or a menu never moves a page's list down. ---
+const TOOLBAR_CONTROLS = [".segmented", ".search-field .field", ".dropdown-trigger", ".tabs button", ".btn.md", ".icon-button.md"];
+const SIZING = /(^|;)\s*(height|min-height|max-height|padding(-top|-bottom|-block)?|border(-width|-top|-bottom)?)\s*:/;
+const TOKEN_RULE = /\.list-page-head :is\(([^)]*)\) \{ height: var\(--toolbar-control\); \}/;
+
+// Classes of the pages built on ListPage: a sizing rule under one of them could size a toolbar control apart.
+function pageClasses(): string[] {
+  const out = new Set<string>([".list-page-head"]);
+  for (const { text } of sources) {
+    if (!/<ListPage\b/.test(text)) continue;
+    for (const m of text.matchAll(/className="([^"]+)"/g)) for (const c of m[1]!.split(/\s+/)) if (c) out.add(`.${c}`);
+  }
+  return [...out];
+}
+
+function toolbarViolations(text: string): string[] {
+  const start = text.indexOf(SHELL_START);
+  const end = text.indexOf(SHELL_END);
+  const outside = text.slice(0, start) + text.slice(end + SHELL_END.length);
+  const pages = pageClasses();
+  const hits: string[] = [];
+  for (const [selectors, body] of rulesOf(outside)) {
+    if (!SIZING.test(body)) continue;
+    for (const selector of selectors.split(",").map((part) => part.trim())) {
+      const parts = selector.split(/\s+/);
+      const ancestors = parts.slice(0, -1).join(" ");
+      if (!pages.some((cls) => new RegExp(`${cls.replace(".", "\\.")}(?![\\w-])`).test(ancestors))) continue;
+      if (TOOLBAR_CONTROLS.some((control) => selector.endsWith(control.split(" ").pop()!) || selector.includes(control))) hits.push(selector);
+    }
+  }
+  return hits;
+}
+
+test("every toolbar control kind takes the one toolbar height token, set in the page-shell block", () => {
+  const shell = css.slice(css.indexOf(SHELL_START), css.indexOf(SHELL_END));
+  assert.match(shell, /--toolbar-control: var\(--control-md\);/);
+  const covered = shell.match(TOKEN_RULE)?.[1]?.split(",").map((s) => s.trim()) ?? [];
+  assert.deepEqual([...covered].sort(), [...TOOLBAR_CONTROLS].sort());
+  // The md buttons already have this height: the token must stay equal to it.
+  assert.match(css, /\.btn\.md \{ height: var\(--control-md\);/);
+  assert.match(css, /\.icon-button\.md \{ min-width: var\(--control-md\); height: var\(--control-md\);/);
+});
+
+test("no page sizes a toolbar control on its own", () => {
+  assert.deepEqual(toolbarViolations(css), []);
+});
+
+test("the toolbar guard sees a page that sizes one of its toolbar controls", () => {
+  assert.deepEqual(toolbarViolations(`${css}\n.auto-toolbar .segmented { padding: 3px; }\n`), [".auto-toolbar .segmented"]);
+  assert.deepEqual(toolbarViolations(`${css}\n.pulls-list .dropdown-trigger { height: 26px; }\n`), [".pulls-list .dropdown-trigger"]);
+  assert.deepEqual(toolbarViolations(`${css}\n.model-footer .segmented { padding: 2px; }\n`), []);
+});
+
+// --- Page choices: filters, sorts and views persist through one helper (lib/storage.ts). ---
+const FILTER_CONTROL = /<(Segmented|Dropdown|Tabs|ToggleGroup)\b[^>]*?\bvalue=\{([^}]*)\}/g;
+
+function unsavedFilters(text: string): string[] {
+  if (!/<ListPage\b/.test(text)) return [];
+  const local = new Set([...text.matchAll(/const \[(\w+), \w+\] = useState\b/g)].map((m) => m[1]!));
+  return [...text.matchAll(FILTER_CONTROL)].filter((m) => (m[2]!.match(/\w+/g) ?? []).some((name) => local.has(name))).map((m) => `${m[1]} value={${m[2]}}`);
+}
+
+test("the filters of a list page are kept with usePrefs, not in local state", () => {
+  const found = sources.flatMap(({ file, text }) => unsavedFilters(text).map((hit) => `${file}: ${hit}`));
+  assert.deepEqual(found, []);
+});
+
+test("the filter guard sees a list filter held in useState", () => {
+  const page = `const [scope, setScope] = useState("all");\nreturn <ListPage head={<Segmented label="Show" value={scope} options={SCOPES} onChange={setScope} />} />;`;
+  assert.deepEqual(unsavedFilters(page), ["Segmented value={scope}"]);
+  assert.deepEqual(unsavedFilters(page.replace("<ListPage", "<div")), []);
+});
+
+const allSources = (() => {
+  const root = join(import.meta.dir, "../src");
+  return readdirSync(root, { recursive: true })
+    .map(String)
+    .filter((file) => /\.tsx?$/.test(file))
+    .map((file) => ({ file, text: readFileSync(join(root, file), "utf8").replace(/\/\*[\s\S]*?\*\/|\/\/.*$/gm, "") }));
+})();
+
+test("only lib/storage.ts touches browser storage, and every prefs hook goes through usePrefs", () => {
+  assert.deepEqual(allSources.filter(({ file, text }) => file !== "lib/storage.ts" && /\b(localStorage|sessionStorage)\b/.test(text)).map(({ file }) => file), []);
+  const hooks = allSources.filter(({ file, text }) => file !== "lib/storage.ts" && /export (const|function) use\w*Prefs\b/.test(text));
+  assert.ok(hooks.length >= 3, "the guard finds the prefs hooks");
+  assert.deepEqual(hooks.filter(({ text }) => !/\busePrefs\(/.test(text)).map(({ file }) => file), []);
 });

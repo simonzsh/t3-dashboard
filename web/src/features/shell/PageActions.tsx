@@ -1,7 +1,7 @@
 import type { Tab } from "../../lib/tabs.ts";
 import type { SessionLayout } from "../../lib/sessionLayout.ts";
 import { ctrlLabel } from "../../lib/shortcuts.ts";
-import { Button, CountBadge, Icon, IconButton, type ButtonVariant, type IconName } from "../../ui/index.ts";
+import { Button, CountBadge, Icon, IconButton, SidePanelToggle, type ButtonVariant, type IconName } from "../../ui/index.ts";
 
 interface Props {
   tab: Tab;
@@ -74,16 +74,6 @@ function Action({ compact, label, icon, variant = "secondary", withIcon = false,
   );
 }
 
-// Wide screen only: the caller hides it on a phone.
-function ListToggle({ hidden, onToggle }: { hidden: boolean; onToggle: () => void }) {
-  const label = hidden ? "Show the list" : "Hide the list";
-  return (
-    <IconButton variant="ghost" label={label} tooltip={label} onClick={onToggle}>
-      <Icon name="panelLeft" />
-    </IconButton>
-  );
-}
-
 /** The header buttons of a page: Sessions hides the list, picks its layout and starts a session, Automations a task, News edits its settings and runs it, Dashboard shows the Notifications bell and edits its layout. */
 export function PageActions({ tab, compact, ready, editingLayout, layoutIsDefault, layout, onLayoutChange, listHidden, onToggleList, onNewSession, onNewAutomation, newsCanRun, newsRunning, onNewsRun, onNewsSettings, onSearch, onSettings, updateReady, onEditLayout, onDoneLayout, onResetLayout, unread, notificationsOpen, onToggleNotifications }: Props) {
   let main = null;
@@ -111,7 +101,7 @@ export function PageActions({ tab, compact, ready, editingLayout, layoutIsDefaul
     const toggle = layout === "columns" ? "Switch to grid view" : "Switch to column view";
     main = (
       <>
-        {!compact && <ListToggle hidden={listHidden} onToggle={onToggleList} />}
+        {!compact && <SidePanelToggle hidden={listHidden} show="Show the list" hide="Hide the list" onToggle={onToggleList} />}
         {!compact && (
           <IconButton variant="ghost" className="layout-toggle" label={toggle} tooltip={toggle} onClick={() => onLayoutChange(toLayout)}>
             <Icon name={layout === "columns" ? "layoutGrid" : "columns"} />

@@ -3,7 +3,8 @@ import { test } from "bun:test";
 import { renderToStaticMarkup } from "react-dom/server";
 import { nextRadioIndex, rovingTabIndex } from "../../src/ui/radioKeys.ts";
 import { isPhone, isTouch, PHONE, TOUCH } from "../../src/ui/media.ts";
-import { ActionMenu, Badge, Button, ButtonLink, Chevron, Choice, CountBadge, Dialog, IconButtonLink, Kbd, OptionList, SearchField, Segmented, FileInput, Icon, IconButton, PageHeader, Pressable, SecretInput, Sheet, Skeleton, SkeletonGroup, Switch, Tabs, TextArea, TextInput } from "../../src/ui/index.ts";
+import { ActionMenu, Badge, Button, ButtonLink, Chevron, Choice, CountBadge, Dialog, IconButtonLink, Kbd, ListPage, OptionList, SearchField, Segmented, FileInput, Icon, IconButton, PageHeader, Pressable, SecretInput, Sheet, Skeleton, SkeletonGroup, Switch, Tabs, TextArea, TextInput, Tree, SidePanel, SidePanelToggle } from "../../src/ui/index.ts";
+import { pathTree } from "../../src/ui/pathTree.ts";
 
 const html = renderToStaticMarkup;
 
@@ -315,4 +316,49 @@ test("media checks are false without matchMedia and name the shared queries", ()
   assert.equal(isTouch(), false);
   assert.equal(PHONE, "(max-width: 700px)");
   assert.equal(TOUCH, "(pointer: coarse)");
+});
+
+test("a flush ListPage marks itself, so its head-to-body space scrolls with the body", () => {
+  assert.match(html(<ListPage head="h" flush><ul /></ListPage>), /^<section class="list-page flush">/);
+});
+
+test("a bleed ListPage marks its body, so it runs edge to edge on a phone", () => {
+  assert.match(html(<ListPage head="h" bleed><ul /></ListPage>), /<div class="list-page-body page-scroll bleed"><ul><\/ul><\/div>/);
+});
+
+test("a ListPage with a body ref renders the same markup", () => {
+  assert.equal(html(<ListPage head="h" bodyRef={{ current: null }}><ul /></ListPage>), '<section class="list-page"><div class="list-page-head">h</div><div class="list-page-body page-scroll"><ul></ul></div></section>');
+});
+
+test("a ListPage puts its head before, and outside, the scrolling body", () => {
+  assert.equal(
+    html(
+      <ListPage className="x-page" aria-label="Things" headClassName="x-head" bodyClassName="x-body" head={<span>tools</span>}>
+        <ul />
+      </ListPage>,
+    ),
+    '<section class="list-page x-page" aria-label="Things"><div class="list-page-head x-head"><span>tools</span></div><div class="list-page-body page-scroll x-body"><ul></ul></div></section>',
+  );
+});
+
+test("an IconButtonLink has no text padding, so it keeps the size of an IconButton", async () => {
+  const css = await Bun.file(new URL("../../src/styles.css", import.meta.url)).text();
+  assert.match(css, /^\.icon-button, a\.icon-button \{ padding: 0;/m);
+});
+
+test("a Tree shows open folders with a chevron, files with an icon, and marks the current file", () => {
+  const nodes = pathTree(["src/a.ts", "src/b.ts", "README.md"], (p) => p.split("/"), (p) => p);
+  const out = html(<Tree<string, (typeof nodes)[number]> nodes={nodes} active="src/b.ts" onPick={() => {}} icon={(p) => (p.endsWith(".md") ? "info" : "fileText")} rowClass={(p) => (p === "src/a.ts" ? "dim" : "")} rowLabel={(p) => `file ${p}`} extra={(node) => node.item && <i>x</i>} />);
+  assert.match(out, /^<ul class="ui-tree"><li><button type="button" class="ui-tree-row" style="padding-left:8px" aria-expanded="true">/);
+  assert.match(out, /<span class="ui-tree-name" data-tooltip="src" data-tooltip-clipped="true">src<\/span><\/button><ul class="ui-tree">/);
+  assert.match(out, /class="ui-tree-row dim" style="padding-left:22px" aria-label="file src\/a.ts"/);
+  assert.match(out, /class="ui-tree-row active" style="padding-left:22px" aria-current="true" aria-label="file src\/b.ts"/);
+  assert.equal(out.match(/<i>x<\/i>/g)?.length, 3);
+});
+
+test("a SidePanel stays mounted when hidden, inert, and its toggle names the next action", () => {
+  assert.equal(html(<SidePanel hidden={false} className="x"><i /></SidePanel>), '<div class="side-panel x"><i></i></div>');
+  assert.match(html(<SidePanel hidden><i /></SidePanel>), /^<div class="side-panel hidden" inert=""><i><\/i><\/div>$/);
+  assert.match(html(<SidePanelToggle hidden show="Show files" hide="Hide files" size="sm" onToggle={() => {}} />), /aria-label="Show files" data-tooltip="Show files" class="icon-button sm ghost"/);
+  assert.match(html(<SidePanelToggle hidden={false} show="Show files" hide="Hide files" onToggle={() => {}} />), /aria-label="Hide files"/);
 });

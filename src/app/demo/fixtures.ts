@@ -74,6 +74,20 @@ interface ThreadSpec {
 
 const DAY = 1440;
 
+// The demo pull requests of src/app/demo/pulls.ts: a thread points at the same repository and number.
+const demoPullRequest = (repository: string, number: number) => ({ repository, number, url: `https://example.test/${repository}/pull/${number}` });
+// One entry of T3's per-thread list, with its snapshot; `stack` names the stack it belongs to.
+const demoLink = (repository: string, number: number, title: string, stack: { id: string; layers: number[] } | null = null) => ({
+  host: "example.test",
+  ...demoPullRequest(repository, number),
+  source: "agent",
+  linkedAt: "2026-11-01T09:00:00.000Z",
+  snapshot: { title, state: "open" },
+  stack: stack && { kind: "native", id: stack.id, number: stack.layers[0], url: demoPullRequest(repository, stack.layers[0]!).url, base: "main", layers: stack.layers.map((n) => ({ number: n })) },
+});
+const CHECKOUT_STACK = { id: "checkout", layers: [142, 143] };
+const CHART_PR = demoLink("acme/atlas-web", 138, "Dark mode contrast on charts");
+
 interface DemoRun {
   id: string;
   taskId: string;
@@ -164,7 +178,11 @@ const SPECS: ThreadSpec[] = [
       { id: "sub-format", runId: "run-checkout-2", title: "Audit price formatting helpers", status: "completed", result: "Two helpers format prices: `formatPrice` and `toCurrency`. Only `formatPrice` handles locales; the summary now uses it everywhere.", at: 5, done: 3 },
       { id: "sub-mobile", runId: "run-checkout-2", childThreadId: CHILD_ID, title: "Check mobile breakpoints", status: "running", progress: "Testing 375 px and 768 px widths", at: 4 },
     ],
-    thread: { activeRunId: "run-checkout-2", runtimeMode: "full-access", pinnedAt: LAST },
+    thread: { activeRunId: "run-checkout-2", runtimeMode: "full-access", pinnedAt: LAST, branch: "checkout-summary",
+      // A stack of two: the summary and its tests. The legacy field still names the first one, as T3 0.1.6 keeps it.
+      linkedPullRequest: demoPullRequest("acme/atlas-web", 142),
+      pullRequests: [demoLink("acme/atlas-web", 142, "ATL-142 Redesign the checkout summary", CHECKOUT_STACK), demoLink("acme/atlas-web", 143, "ATL-143 Tests for the checkout fees row", CHECKOUT_STACK)],
+    },
   },
   {
     id: "demo-rate-limit",
@@ -192,7 +210,7 @@ const SPECS: ThreadSpec[] = [
       { id: "b3c", type: "system_notice", runId: "run-rate-1", message: "Switched to the fallback model.", at: 2, done: 2 },
       { id: "b4", type: "command_execution", runId: "run-rate-1", input: "bun test src/middleware", status: "running", at: 1 },
     ],
-    thread: { activeRunId: "run-rate-1", runtimeMode: "auto-accept-edits" },
+    thread: { activeRunId: "run-rate-1", runtimeMode: "auto-accept-edits", branch: "rate-limit", branchPullRequest: demoPullRequest("acme/atlas-api", 149) },
   },
   {
     id: "demo-migration",
@@ -275,6 +293,7 @@ const SPECS: ThreadSpec[] = [
       ],
     ],
     runs: [...earlier("dark", [150, 120, 70, 41, 33, 19]), { id: "run-dark-1", status: "completed", started: 47, completed: 25 }],
+    thread: { branch: "chart-contrast", pullRequests: [CHART_PR] },
   },
   {
     id: "demo-release-notes",
@@ -327,6 +346,7 @@ const SPECS: ThreadSpec[] = [
       ],
     ],
     runs: [...earlier("charts", [112, 77, 45, 29, 17]), { id: "run-charts-old0", status: "completed", started: 2899, completed: 2880 }, { id: "run-charts-1", status: "completed", started: 139, completed: 128 }],
+    thread: { pullRequests: [CHART_PR] },
   },
   {
     id: "demo-digest",
