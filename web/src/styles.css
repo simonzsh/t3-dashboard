@@ -513,6 +513,7 @@ input.dropdown-search { position: absolute; inset: 0 auto 0 0; z-index: 1; width
 /* Action menus (ActionMenu) reuse the Dropdown rows: an icon, a label, and a red Delete. */
 .dropdown-option[role="menuitem"] > .icon { flex: none; width: 14px; height: 14px; color: var(--text-secondary); }
 .dropdown-option[role="menuitem"].danger, .dropdown-option[role="menuitem"].danger > .icon { color: var(--danger); }
+.dropdown-option[role="menuitem"] > .notif-dot { margin: 0; }
 .dropdown-option[role="menuitem"].disabled { opacity: 0.5; cursor: default; }
 .dropdown-option[role="menuitem"].disabled.active { background: none; }
 .composer-actions { display: flex; align-items: center; gap: 6px; flex: none; margin-left: auto; }

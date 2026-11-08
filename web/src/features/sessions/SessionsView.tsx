@@ -19,6 +19,8 @@ interface Props {
   threads: DashboardThread[];
   projects: DashboardProject[];
   seen: SeenState;
+  /** Ids of the open pull requests not opened yet, for the pull request menu of each session. */
+  unreadPrs: ReadonlySet<string>;
   now: Date;
   layout: SessionLayout;
   prefs: ListPrefs;
@@ -216,7 +218,7 @@ function useWindowDrag(enabled: boolean, dispatch: Dispatch<SessionsAction>) {
   };
 }
 
-export function SessionsView({ sessions, dispatch, threads, projects, seen, now, layout, prefs, onPrefs, t3EnvironmentId, providers, phone, sessionShown, onBack, onOpen, onNewSession, onAddProject, onEditProject, onDeleteProject }: Props) {
+export function SessionsView({ sessions, dispatch, threads, projects, seen, unreadPrs, now, layout, prefs, onPrefs, t3EnvironmentId, providers, phone, sessionShown, onBack, onOpen, onNewSession, onAddProject, onEditProject, onDeleteProject }: Props) {
   const modelNames = useMemo(() => modelNameMap(providers), [providers]);
   const openIds = useMemo(() => new Set(sessions.ids), [sessions.ids]);
   // On a phone, closing the open session goes back to the list.
@@ -328,6 +330,7 @@ export function SessionsView({ sessions, dispatch, threads, projects, seen, now,
         live={live}
         t3EnvironmentId={t3EnvironmentId}
         providers={providers}
+        unreadPrs={unreadPrs}
         onTitle={setChildTitle}
         onBack={phone ? onBack : undefined}
         dispatch={phone ? phoneDispatch : dispatch}

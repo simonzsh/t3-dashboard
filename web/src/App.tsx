@@ -2,6 +2,8 @@ import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } fr
 import type { DashboardThread } from "../../shared/api.ts";
 import { AutomationsView } from "./features/automations/AutomationsView.tsx";
 import { PullsView } from "./features/pulls/PullsView.tsx";
+import { usePulls } from "./features/pulls/usePulls.ts";
+import { unreadPrIds } from "./lib/prSeen.ts";
 import { NewsSettingsDialog } from "./features/news/NewsSettingsDialog.tsx";
 import { NewsView } from "./features/news/NewsView.tsx";
 import { firstRunBody, unreadNewsCount } from "./features/news/news.ts";
@@ -69,6 +71,8 @@ export function App() {
   const threadIds = useMemo(() => state?.threads.map((t) => t.id) ?? NO_IDS, [state?.threads]);
   const automations = useAutomations(state?.connection.t3 === "live", threadIds);
   const news = useNews(tab === "news");
+  // Always loaded once the state is known: it feeds the Pull requests badge and the session menus, besides the page.
+  const pulls = usePulls(state !== null, tab === "pulls" && prRoute === null);
   const [sessions, dispatchSessions] = useSessions();
   const compact = useMediaQuery(PHONE);
   const sheetMode = useMediaQuery(SHEET);
@@ -221,7 +225,11 @@ export function App() {
   const newsUnread = useMemo(() => unreadNewsCount(news.state?.articles ?? [], notify.seen), [news.state?.articles, notify.seen]);
   // A new identity once the seen state is known, so the page marks its open article again then.
   const { markRead, seenReady: ready } = notify;
-  const readNews = useCallback((mark: { id: string; at: string }) => ready && markRead(mark), [ready, markRead]);
+  const readMark = useCallback((mark: { id: string; at: string }) => ready && markRead(mark), [ready, markRead]);
+  const unreadPrList = useMemo(() => unreadPrIds(pulls.list?.prs ?? [], notify.seen), [pulls.list?.prs, notify.seen]);
+  // The set changes only when a pull request is read or new: a thread read must not rerender every session window.
+  const unreadPrKey = unreadPrList.join(" ");
+  const unreadPrs = useMemo(() => new Set(unreadPrList), [unreadPrKey]);
   const sessionsBadge = useMemo(() => ({ count: sessionsBadgeCount(threads, notify.seen), waiting: agents.waiting > 0 }), [threads, notify.seen, agents.waiting]);
   const dashboardLayout = useDashboardLayout(tab === "dashboard");
   const notifPanel = useNotificationsPanel(sheetMode, tab === "dashboard");
@@ -262,6 +270,7 @@ export function App() {
           sessions={sessionsBadge}
           automations={automationsNav}
           news={newsUnread}
+          pulls={unreadPrList.length}
           live={live}
           update={updateNav}
           onTab={showTab}
@@ -344,8 +353,8 @@ export function App() {
                   setup={setup}
                 />
               ) : <Loader />)}
-            {tab === "news" && (news.state ? <NewsView news={news.state} writing={news.writing} now={now} compact={compact} seen={notify.seen} onRead={readNews} onOpenThread={onOpen} onDelete={news.remove} onDeleteAll={news.removeAll} /> : <Loader />)}
-            {tab === "pulls" && (state ? <PullsView route={prRoute} threads={state.threads} now={now} onOpenThread={onOpen} /> : <Loader />)}
+            {tab === "news" && (news.state ? <NewsView news={news.state} writing={news.writing} now={now} compact={compact} seen={notify.seen} onRead={readMark} onOpenThread={onOpen} onDelete={news.remove} onDeleteAll={news.removeAll} /> : <Loader />)}
+            {tab === "pulls" && (state ? <PullsView route={prRoute} threads={state.threads} now={now} onOpenThread={onOpen} pulls={pulls} onRead={readMark} /> : <Loader />)}
             {tab === "sessions" &&
               (state ? (
                 <SessionsView
@@ -354,6 +363,7 @@ export function App() {
                   threads={state.threads}
                   projects={state.projects}
                   seen={notify.seen}
+                  unreadPrs={unreadPrs}
                   now={now}
                   layout={layout}
                   prefs={listPrefs}

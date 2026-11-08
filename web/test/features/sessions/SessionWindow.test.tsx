@@ -4,7 +4,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { PullRequestsButton, SessionWindow } from "../../../src/features/sessions/SessionWindow.tsx";
 import { thread } from "../../fixtures.ts";
 
-const base = { id: "t1", thread: null, title: "Fix login", projectTitle: null, projectIcon: null, focused: true, maximized: false, compact: false, live: true, t3EnvironmentId: null, providers: [], dispatch: () => {} };
+const base = { id: "t1", thread: null, title: "Fix login", projectTitle: null, projectIcon: null, focused: true, maximized: false, compact: false, live: true, t3EnvironmentId: null, providers: [], unreadPrs: new Set<string>(), dispatch: () => {} };
 
 test("a missing window keeps its classes and shows the message with a close button", () => {
   const html = renderToStaticMarkup(<SessionWindow {...base} missing />);
@@ -69,8 +69,8 @@ test("every control in the session header has the icon button classes, so they s
 });
 test("the pull request menu items open each diff, with the title when T3 knows it", () => {
   const opened: string[] = [];
-  const items = PullRequestsButton({ pullRequests: [linked(12, "Summary"), linked(13)] })!.props.items as Array<{ label: string; onSelect: () => void }>;
-  assert.deepEqual(items.map((item) => item.label), ["#12 acme/storefront – Summary", "#13 acme/storefront"]);
+  const items = PullRequestsButton({ pullRequests: [linked(12, "Summary"), linked(13)], unread: new Set() })!.props.items as Array<{ label: string; onSelect: () => void }>;
+  assert.deepEqual(items.map((item) => item.label), ["#13 acme/storefront", "#12 acme/storefront – Summary"]);
   const location = { hash: "" };
   const saved = Object.getOwnPropertyDescriptor(globalThis, "window");
   Object.defineProperty(globalThis, "window", { value: { location }, configurable: true });
@@ -83,5 +83,17 @@ test("the pull request menu items open each diff, with the title when T3 knows i
     if (saved) Object.defineProperty(globalThis, "window", saved);
     else delete (globalThis as { window?: unknown }).window;
   }
-  assert.deepEqual(opened, ["#/pulls/acme/storefront/12", "#/pulls/acme/storefront/13"]);
+  assert.deepEqual(opened, ["#/pulls/acme/storefront/13", "#/pulls/acme/storefront/12"]);
+});
+
+test("the menu marks only the pull requests in the unread set, whatever the case of the repository", () => {
+  const items = PullRequestsButton({ pullRequests: [linked(12), linked(13), linked(14)], unread: new Set(["pr:acme/storefront#13"]) })!.props.items as Array<{ label: string; unread: boolean }>;
+  assert.deepEqual(items.map((item) => [item.label, item.unread]), [["#14 acme/storefront", false], ["#13 acme/storefront", true], ["#12 acme/storefront", false]]);
+  const upper = PullRequestsButton({ pullRequests: [{ ...linked(12), repository: "Acme/Storefront" }, linked(13)], unread: new Set(["pr:acme/storefront#12"]) })!.props.items as Array<{ unread: boolean }>;
+  assert.deepEqual(upper.map((item) => item.unread), [false, true]);
+});
+
+test("a session with one pull request shows no unread ring in its header", () => {
+  const html = renderToStaticMarkup(<SessionWindow {...base} unreadPrs={new Set(["pr:acme/storefront#12"])} live={false} missing={false} thread={thread("t1", { pullRequests: [linked(12)] })} />);
+  assert.doesNotMatch(html, /notif-dot/);
 });

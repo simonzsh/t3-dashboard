@@ -1,7 +1,8 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type { DashboardThread } from "../../../../shared/api.ts";
 import type { PrList, PrRef, PrSummary } from "../../../../shared/pulls.ts";
 import { relativeTime } from "../../lib/format.ts";
+import { prMark, prMarkId } from "../../lib/prSeen.ts";
 import { hashForPr } from "../../lib/tabs.ts";
 import { Badge, Dropdown, Icon, IconButton, ListPage, Loader, SearchField, Segmented } from "../../ui/index.ts";
 import { ALL_REPOSITORIES, CHECKS, filterPrs, groupByRepository, repositoriesOf, REVIEWS, SCOPES, sessionsOf, shortRepository } from "./pulls.ts";
@@ -9,7 +10,7 @@ import { usePullsPrefs } from "./prefs.ts";
 import { Counts } from "./DiffFiles.tsx";
 import { PrDetail } from "./PrDetail.tsx";
 import { SessionsButton } from "./SessionsButton.tsx";
-import { usePulls } from "./usePulls.ts";
+import type { PullsState } from "./usePulls.ts";
 import { usePrDetail } from "./usePrDetail.ts";
 
 interface Props {
@@ -19,6 +20,10 @@ interface Props {
   now: Date;
   /** Opens a thread in Sessions; `addOnly` adds it next to the open ones. */
   onOpenThread: (id: string, addOnly: boolean) => void;
+  /** The list lives in App: it also feeds the unread badge and the session menus. */
+  pulls: PullsState;
+  /** Marks a pull request as read in the shared seen state. */
+  onRead: (mark: { id: string; at: string }) => void;
 }
 
 function Row({ pr, sessions, now, onOpenThread }: { pr: PrSummary; sessions: DashboardThread[]; now: Date; onOpenThread: Props["onOpenThread"] }) {
@@ -43,7 +48,7 @@ function Row({ pr, sessions, now, onOpenThread }: { pr: PrSummary; sessions: Das
   );
 }
 
-interface ListProps extends Omit<Props, "route"> {
+interface ListProps extends Omit<Props, "route" | "pulls" | "onRead"> {
   list: PrList | null;
   error: string | null;
   refreshing: boolean;
@@ -104,13 +109,19 @@ export function PrListView({ list, error, refreshing, onRefresh, threads, now, o
   );
 }
 
-function List(props: Omit<Props, "route">) {
-  const { refresh, ...state } = usePulls();
-  return <PrListView {...state} {...props} onRefresh={() => void refresh()} />;
+function List({ pulls, threads, now, onOpenThread }: Omit<Props, "route" | "onRead">) {
+  const { refresh, ...state } = pulls;
+  return <PrListView {...state} threads={threads} now={now} onOpenThread={onOpenThread} onRefresh={() => void refresh()} />;
 }
 
-function Detail({ route, threads, now, onOpenThread }: Props & { route: PrRef }) {
+function Detail({ route, threads, now, onOpenThread, pulls, onRead }: Props & { route: PrRef }) {
   const { refresh, ...state } = usePrDetail(route);
+  // The detail may come before the list (a shared link): the list has the time when it loaded first.
+  const known = state.detail ?? pulls.list?.prs.find((pr) => prMarkId(pr) === prMarkId(route));
+  const mark = known ? prMark(known) : null;
+  useEffect(() => {
+    if (mark) onRead(mark);
+  }, [mark?.id, mark?.at, onRead]);
   return <PrDetail pr={route} {...state} onRefresh={() => void refresh()} now={now} sessions={sessionsOf(threads, route)} onOpenSession={onOpenThread} />;
 }
 
