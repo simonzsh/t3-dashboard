@@ -6,7 +6,7 @@ import { RUNTIME_MODE_LABELS, acceptFiles, applyTrigger, attachmentType, compose
 import { PreviewDialog } from "./AttachmentPreview.tsx";
 import type { PreviewTarget } from "./attachmentPreview.ts";
 import { useApi } from "../../api/ApiContext.tsx";
-import { setStash, useStash } from "../../api/stashStore.ts";
+import { ensureStash, setStash, useStash } from "../../api/stashStore.ts";
 import { Button, FileInput, Icon, IconButton, Loader, OptionList, Popover, Pressable, TextArea, TOUCH, useListNav } from "../../ui/index.ts";
 import { errorMessage, formatTokens } from "../../lib/format.ts";
 import { useAction } from "../../lib/useAction.ts";
@@ -251,7 +251,7 @@ export function Composer({ providers, selection, runtimeMode, running, stoppable
 
   const reloadStash = () => api.getStash().then((r) => setStash(r.entries), () => {});
   useEffect(() => {
-    if (stash) void reloadStash();
+    if (stash) void ensureStash(() => api.getStash().then((r) => r.entries));
   }, [stash === undefined]);
 
   useEffect(() => {

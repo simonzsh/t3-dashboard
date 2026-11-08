@@ -1,7 +1,7 @@
 import { useEffect, useReducer, useState } from "react";
 import type { AlertsState, DashboardEvent, DashboardState, Diff, SeenState, SessionsUpdate } from "../../../shared/api.ts";
 import { DASHBOARD_EVENT_TYPES } from "../../../shared/events.ts";
-import { setStash } from "./stashStore.ts";
+import { setStash, staleStash } from "./stashStore.ts";
 
 function applyDiff<T extends { id: string }>(list: T[], diff: Diff<T>): T[] {
   const byId = new Map(list.map((x) => [x.id, x]));
@@ -56,7 +56,10 @@ export function useDashboard(): { state: DashboardState | null; sseDown: boolean
       });
     }
     // EventSource reconnects by itself and the server resends `state`.
-    es.onopen = () => setConnects((n) => n + 1);
+    es.onopen = () => {
+      staleStash();
+      setConnects((n) => n + 1);
+    };
     es.onerror = () => setSseDown(true);
     return () => es.close();
   }, []);
