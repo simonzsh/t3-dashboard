@@ -45,6 +45,12 @@ export function toBody(form: NewsForm): { body: SaveNewsBody } | { error: string
 export const pickModel = (settings: NewsSettings, providers: DashboardProvider[], fallback: ModelSelection | null): ModelSelection | null =>
   settings.modelSelection ?? presetSelection(undefined, providers, NEWS_DEFAULT_MODEL, fallback);
 
+/** What a first Run now saves when no routine exists yet: the shown settings and the model the dialog would pick. */
+export function firstRunBody(settings: NewsSettings, providers: DashboardProvider[], fallback: ModelSelection | null): SaveNewsBody | null {
+  const result = toBody(formFromSettings(settings, pickModel(settings, providers, fallback)));
+  return "body" in result ? result.body : null;
+}
+
 export const POLL_MS = 60_000;
 export const POLL_RUNNING_MS = 5_000;
 /** A Run now that shows no thread within this time stops counting as starting. */

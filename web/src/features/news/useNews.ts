@@ -63,7 +63,12 @@ export function useNews(active: boolean) {
     setState(await api.saveNews(body));
   }
 
-  const run = () => running.run(async () => {
+  // `first`: the settings to save when no routine exists yet, so the first Run now needs no trip to the settings.
+  const run = (first: SaveNewsBody | null) => running.run(async () => {
+    if (!state?.task) {
+      if (!first) throw new Error("No model is available: open News settings and pick one.");
+      await save(first);
+    }
     await api.runNews();
     setStartedAt(Date.now());
     await load();

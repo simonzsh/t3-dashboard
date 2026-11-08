@@ -20,7 +20,7 @@ test("without news the page explains how one arrives", () => {
   assert.match(view(state()), /No news yet[\s\S]*Run now/);
   const empty = view(state({ task: null }));
   assert.doesNotMatch(empty, /Not scheduled/);
-  assert.match(empty, /No news yet[\s\S]*Open News settings/);
+  assert.match(empty, /No news yet[\s\S]*Use Run now to get the first article/);
 });
 
 test("the list shows each article newest first, and marks the newest open", () => {

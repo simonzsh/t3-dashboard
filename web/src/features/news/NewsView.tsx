@@ -141,7 +141,7 @@ export function NewsView({ news, writing, now, compact, listHidden = false, seen
           <div className="empty-state">
             <Icon name="newspaper" />
             <strong>No news yet</strong>
-            <span>{task ? "Your first article shows here after the next run. Use Run now to get one at once." : "Open News settings, review the settings and save."}</span>
+            <span>{task ? "Your first article shows here after the next run. Use Run now to get one at once." : "Use Run now to get the first article. News settings sets when the next ones come."}</span>
           </div>
         </section>
       </div>
