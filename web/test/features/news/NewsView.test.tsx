@@ -12,7 +12,7 @@ const now = new Date("2026-11-07T12:00:00.000Z");
 const view = (news: NewsState, writing = false) =>
   renderToStaticMarkup(
     <ApiProvider value={{} as never}>
-      <NewsView news={news} writing={writing} now={now} compact={false} onRead={() => {}} onOpenThread={() => {}} />
+      <NewsView news={news} writing={writing} now={now} compact={false} seen={null} onRead={() => {}} onOpenThread={() => {}} />
     </ApiProvider>,
   );
 
@@ -24,7 +24,7 @@ test("without news the page explains how one arrives", () => {
 test("the list shows each article newest first, and marks the newest open", () => {
   const out = view(state({ articles: [{ date: "2026-11-07", title: "News 7 Nov", mtimeMs: 2 }, { date: "2026-11-06", title: "News 6 Nov", mtimeMs: 1 }] }));
   assert.ok(out.indexOf("Sat 7 Nov") < out.indexOf("Fri 6 Nov"));
-  assert.match(out, /news-item active"[^>]*aria-current="true"[^>]*><span[^>]*>Sat 7 Nov/);
+  assert.match(out, /news-item active"[^>]*aria-current="true"[^>]*>(<span[^>]*>)+Sat 7 Nov/);
   assert.equal(out.match(/aria-current="true"/g)?.length, 1);
 });
 
@@ -76,4 +76,18 @@ test("a run just started shows the item without a link, even with no article yet
   const out = view(state(), true);
   assert.match(out, /Writing the article…/);
   assert.doesNotMatch(out, /Open session/);
+});
+
+test("an unread article shows the notification dot; a read one does not", () => {
+  const articles = [
+    { date: "2026-11-08", title: "News — 2026-11-08", mtimeMs: Date.parse("2026-11-08T07:05:00.000Z") },
+    { date: "2026-11-07", title: "News — 2026-11-07", mtimeMs: Date.parse("2026-11-07T07:05:00.000Z") },
+  ];
+  const seen = { since: "2026-11-01T00:00:00.000Z", seen: { "news:2026-11-07": "2026-11-07T07:05:00.000Z" } };
+  const out = renderToStaticMarkup(
+    <ApiProvider value={{} as never}>
+      <NewsView news={state({ articles })} writing={false} now={now} compact={false} seen={seen} onRead={() => {}} onOpenThread={() => {}} />
+    </ApiProvider>,
+  );
+  assert.equal(out.match(/class="notif-dot"/g)?.length, 1);
 });

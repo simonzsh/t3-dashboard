@@ -1,10 +1,11 @@
 import { useEffect, useRef, useState } from "react";
 import type { NewsArticle, NewsState } from "../../../../shared/api.ts";
+import type { SeenState } from "../../../../shared/seen.ts";
 import { useApi } from "../../api/ApiContext.tsx";
 import { failure } from "../../lib/format.ts";
 import { renderMarkdown } from "../../lib/markdown.tsx";
 import { Button, Icon, Loader, Pressable } from "../../ui/index.ts";
-import { dateLabel, readTarget, shortDate, statusLine } from "./news.ts";
+import { dateLabel, isUnreadArticle, readTarget, shortDate, statusLine } from "./news.ts";
 
 interface Props {
   news: NewsState;
@@ -13,6 +14,8 @@ interface Props {
   now: Date;
   /** Phone layout: the list and the article take turns. */
   compact: boolean;
+  /** Read marks shared with the notifications; null until loaded (then no dot shows). */
+  seen: SeenState | null;
   /** Called when an article is in front of the user. */
   onRead: (mark: { id: string; at: string }) => void;
   /** Opens a thread in Sessions; `addOnly` adds it next to the open ones. */
@@ -20,7 +23,7 @@ interface Props {
 }
 
 /** The article list and the open article. On a phone they take turns: the list, then the article with a back button. */
-export function NewsView({ news, writing, now, compact, onRead, onOpenThread }: Props) {
+export function NewsView({ news, writing, now, compact, seen, onRead, onOpenThread }: Props) {
   const api = useApi();
   const { articles, task, running } = news;
   const [picked, setPicked] = useState<string | null>(null);
@@ -109,8 +112,11 @@ export function NewsView({ news, writing, now, compact, onRead, onOpenThread }: 
                   setReading(true);
                 }}
               >
-                <span className="news-item-date">{shortDate(a.date)}</span>
-                <span className="news-item-title">{a.title}</span>
+                <span className="news-item-body">
+                  <span className="news-item-date">{shortDate(a.date)}</span>
+                  <span className="news-item-title">{a.title}</span>
+                </span>
+                {seen && isUnreadArticle(a, seen) && <span className="notif-dot" aria-label="Unread" role="img" />}
               </Pressable>
             </li>
           ))}
