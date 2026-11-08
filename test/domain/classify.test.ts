@@ -101,3 +101,21 @@ test("toDashboardThread carries the settled state", () => {
   assert.equal(toDashboardThread(thread({ settledOverride: "settled" }), now).settled, true);
   assert.equal(toDashboardThread(thread(), now).settled, false);
 });
+
+test("the branch and the pull request come from the shell thread, the linked one first", () => {
+  const linked = { projectId: "project-1", repository: "acme/storefront", number: 12, url: "https://example.test/acme/storefront/pull/12" };
+  const found = { projectId: "project-1", repository: "acme/storefront", number: 9, url: "https://example.test/acme/storefront/pull/9" };
+  const dashboard = (extra: Partial<RawThread>) => toDashboardThread(thread({ branch: "cart", ...extra }), now);
+  assert.deepEqual(dashboard({ linkedPullRequest: linked, branchPullRequest: found }).pullRequest, { repository: "acme/storefront", number: 12, url: linked.url });
+  assert.equal(dashboard({ linkedPullRequest: null, branchPullRequest: found }).pullRequest?.number, 9);
+  assert.equal(dashboard({}).pullRequest, null);
+  assert.equal(dashboard({}).branch, "cart");
+  assert.equal(toDashboardThread(thread(), now).branch, null);
+});
+
+test("a pull request that cannot make a safe link is ignored", () => {
+  const bad = (extra: object) => toDashboardThread(thread({ linkedPullRequest: { repository: "acme/storefront", number: 1, url: "https://example.test/p", ...extra } }), now).pullRequest;
+  assert.equal(bad({ repository: "--repo=x/y" }), null);
+  assert.equal(bad({ number: null }), null);
+  assert.equal(bad({ url: null }), null);
+});

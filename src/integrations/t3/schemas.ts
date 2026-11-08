@@ -20,12 +20,17 @@ export const RawBackgroundTask = s.object({
 });
 export type RawBackgroundTask = Infer<typeof RawBackgroundTask>;
 
+// A pull request T3 tied to a thread: set by hand (linked) or found from the branch.
+const ThreadPullRequest = s.object({ repository: text(), number: s.optional(s.nullable(s.number())), url: text() });
+
 export const RawThread = s.object({
   id: s.string(),
   projectId: s.optional(s.string()),
   title: text(),
   worktreePath: text(),
   branch: text(),
+  linkedPullRequest: s.optional(s.nullable(ThreadPullRequest)),
+  branchPullRequest: s.optional(s.nullable(ThreadPullRequest)),
   providerInstanceId: text(),
   activeProviderThreadId: text(),
   modelSelection: s.optional(s.nullable(ModelSelection)),

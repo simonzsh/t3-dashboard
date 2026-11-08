@@ -3,6 +3,7 @@ import type { DashboardProvider } from "../../../shared/api.ts";
 import { createActions } from "../../domain/actions.ts";
 import { AutomationRunLog } from "../../domain/automationRuns.ts";
 import { createAutomations } from "../../domain/automations.ts";
+import { GitReview } from "../../domain/git.ts";
 import { createNews } from "../../domain/news.ts";
 import { SessionsStore } from "../../domain/sessionsStore.ts";
 import { StashStore } from "../../domain/stashStore.ts";
@@ -24,6 +25,7 @@ import { readLinearKey } from "../../config/linearFile.ts";
 import { VERSION } from "../../config/version.ts";
 import { DEMO_ENVIRONMENT_ID, DEMO_HOME, DEMO_NEWS_DIR, createDemoCacheCleanup, demoNews, demoServerStats } from "./fixtures.ts";
 import { DemoPort, demoLinearFetch } from "./port.ts";
+import { demoGh } from "./pulls.ts";
 
 const DEMO_PORT = 3001;
 const RECLASSIFY_MS = 60_000;
@@ -111,6 +113,7 @@ export async function startDemo(env: Record<string, string | undefined>): Promis
     serverStats: { get: async () => demoServerStats(new Date()) },
     cacheCleanup: createDemoCacheCleanup(),
     automations,
+    git: new GitReview({ run: demoGh(() => new Date()), now: () => new Date() }),
     news,
     getState,
     connection: () => live.connection(),

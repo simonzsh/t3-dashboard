@@ -4,6 +4,7 @@ import type { CacheCleanupPreview, CacheCleanupResult, LimitsOverview, ServerSta
 import { LinearClient } from "../../src/integrations/linear/client.ts";
 import { createActions } from "../../src/domain/actions.ts";
 import type { Automations } from "../../src/domain/automations.ts";
+import type { GitReview } from "../../src/domain/git.ts";
 import type { News } from "../../src/domain/news.ts";
 import { IntegrationError } from "../../src/integrations/errors.ts";
 import { DomainError } from "../../src/domain/errors.ts";
@@ -43,6 +44,7 @@ interface StartOptions {
   linearFetch?: (url: string, init: RequestInit) => Promise<Response>;
   // Notifications the fake Linear answers to the inbox query.
   inbox?: unknown[];
+  git?: Partial<Pick<GitReview, "prs" | "detail" | "diff">>;
   news?: Partial<Pick<News, "get" | "article" | "search" | "save" | "runNow" | "remove" | "removeAll">>;
   automations?: Pick<Automations, "list" | "create" | "remove" | "update"> & Partial<Pick<Automations, "setEnabled" | "runNow">>;
   // Content of the Linear file. Without it, `linearKey` feeds the board directly.
@@ -194,6 +196,7 @@ async function start(startOptions: StartOptions = {}) {
     serverStats,
     cacheCleanup,
     automations: { setEnabled: async () => {}, runNow: async () => {}, ...automations },
+    git: { prs: async () => ({ prs: [], fetchedAt: "2026-11-07T10:00:00.000Z" }), detail: async () => { throw new Error("no detail"); }, diff: async () => { throw new Error("no diff"); }, ...startOptions.git },
     news: { get: async () => newsState, article: async (date) => ({ date, title: "T", markdown: "# T" }), search: async () => ({ dates: [] }), save: async () => newsState, runNow: async () => {}, remove: async () => {}, removeAll: async () => 0, ...startOptions.news },
     getState,
     connection: () => connection,
@@ -2023,4 +2026,46 @@ test("POST /api/board/assign takes a workspace and refuses a bad one", async () 
   assert.equal((await post(server, "/api/board/assign", { ...assignBody, workspace: { type: "worktree", baseRef: "-x" } })).status, 400);
   assert.equal((await post(server, "/api/board/assign", { ...assignBody, projectId: "", workspace: { type: "worktree", baseRef: "main" } })).status, 400);
   assert.equal(port.launches.length, 1);
+});
+
+test("GET /api/git/prs reads the list and honours ?refresh=1", async () => {
+  const seen: boolean[] = [];
+  const list = { prs: [], fetchedAt: "2026-11-07T10:00:00.000Z" };
+  const { server } = await start({ git: { prs: async (refresh) => (seen.push(refresh ?? false), list) } });
+  assert.deepEqual((await call(server, "GET", "/api/git/prs")).json, list);
+  await call(server, "GET", "/api/git/prs?refresh=1");
+  assert.deepEqual(seen, [false, true]);
+});
+
+test("GET /api/git/prs/:owner/:repo/:number reads the detail and the diff of a validated reference", async () => {
+  const asked: unknown[] = [];
+  const diff = { headSha: "abc", files: [], truncated: false };
+  const { server } = await start({
+    git: {
+      detail: async (repository, number, refresh) => (asked.push(["detail", repository, number, refresh]), { title: "T" } as never),
+      diff: async (repository, number) => (asked.push(["diff", repository, number]), diff),
+    },
+  });
+  assert.deepEqual((await call(server, "GET", "/api/git/prs/acme/storefront/12?refresh=1")).json, { title: "T" });
+  assert.deepEqual((await call(server, "GET", "/api/git/prs/acme/storefront/12/diff")).json, diff);
+  assert.deepEqual(asked, [["detail", "acme/storefront", 12, true], ["diff", "acme/storefront", 12]]);
+});
+
+test("the pull request routes refuse a bad owner, repository or number with 400 and never ask gh", async () => {
+  const { server } = await start({ git: { detail: async () => { throw new Error("asked"); }, diff: async () => { throw new Error("asked"); } } });
+  for (const path of ["/api/git/prs/-flag/api/1", "/api/git/prs/acme/--repo/1", "/api/git/prs/acme/api/0", "/api/git/prs/acme/api/1x", "/api/git/prs/acme/api/-1", "/api/git/prs/a%2Fb/api/1/diff", "/api/git/prs/acme/api/01"]) {
+    assert.equal((await call(server, "GET", path)).status, 400, path);
+  }
+});
+
+test("a gh failure on the pull request routes becomes a 502 without gh's output", async () => {
+  const fail = async () => {
+    throw new IntegrationError("GitHub CLI is not signed in: run gh auth login on the server", { system: "github", kind: "not-authenticated" });
+  };
+  const { server } = await start({ git: { prs: fail, detail: fail, diff: fail } });
+  for (const path of ["/api/git/prs", "/api/git/prs/acme/api/1", "/api/git/prs/acme/api/1/diff"]) {
+    const reply = await call(server, "GET", path);
+    assert.equal(reply.status, 502, path);
+    assert.equal((reply.json as { error: string }).error, "GitHub CLI is not signed in: run gh auth login on the server");
+  }
 });

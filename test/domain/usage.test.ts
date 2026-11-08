@@ -13,7 +13,7 @@ const MINUTE = 60_000;
 const totalOf = (overview: UsageOverview, key: keyof UsageTotals) => overview.days.reduce((n, day) => n + day[key], 0);
 
 function thread(id: string, lastActivityAt: string): DashboardThread {
-  return { id, projectId: "p", title: id, provider: "claude", model: null, status: "idle", settled: false, pending: null, activeRunId: null, backgroundWork: false, pendingTasks: false, lastError: null, pinned: false, lastActivityAt };
+  return { id, projectId: "p", title: id, provider: "claude", model: null, status: "idle", settled: false, pending: null, activeRunId: null, backgroundWork: false, pendingTasks: false, lastError: null, pinned: false, lastActivityAt, branch: null, pullRequest: null };
 }
 
 const runs = (...startedAt: string[]): RawProjection => ({ runs: startedAt.map((at, index) => ({ id: `r${index}`, startedAt: at })) });

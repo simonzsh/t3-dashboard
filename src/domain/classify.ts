@@ -1,4 +1,5 @@
 import type { DashboardThread, PendingCategory } from "../../shared/api.ts";
+import { isRepository } from "../../shared/git.ts";
 import type { RawThread } from "../integrations/t3/schemas.ts";
 
 const EPOCH = new Date(0).toISOString();
@@ -40,6 +41,14 @@ function categoryOf(kind: string): PendingCategory {
   return kind === "user_input" ? "user-input" : "other";
 }
 
+// A pull request without a usable repository, number or URL is dropped: the link would be dead.
+function pullRequestOf(raw: RawThread): DashboardThread["pullRequest"] {
+  for (const pr of [raw.linkedPullRequest, raw.branchPullRequest]) {
+    if (pr?.repository && isRepository(pr.repository) && pr.number && pr.url) return { repository: pr.repository, number: pr.number, url: pr.url };
+  }
+  return null;
+}
+
 export function toDashboardThread(raw: RawThread, now: Date): DashboardThread {
   const pending = raw.pendingRuntimeRequest;
   return {
@@ -57,5 +66,7 @@ export function toDashboardThread(raw: RawThread, now: Date): DashboardThread {
     lastError: raw.lastError ?? null,
     pinned: raw.pinnedAt != null,
     lastActivityAt: lastActivityOf(raw),
+    branch: raw.branch ?? null,
+    pullRequest: pullRequestOf(raw),
   };
 }

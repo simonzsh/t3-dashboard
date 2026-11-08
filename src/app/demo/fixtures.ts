@@ -74,6 +74,9 @@ interface ThreadSpec {
 
 const DAY = 1440;
 
+// The demo pull requests of src/app/demo/pulls.ts: a thread points at the same repository and number.
+const demoPullRequest = (repository: string, number: number) => ({ repository, number, url: `https://example.test/${repository}/pull/${number}` });
+
 interface DemoRun {
   id: string;
   taskId: string;
@@ -164,7 +167,7 @@ const SPECS: ThreadSpec[] = [
       { id: "sub-format", runId: "run-checkout-2", title: "Audit price formatting helpers", status: "completed", result: "Two helpers format prices: `formatPrice` and `toCurrency`. Only `formatPrice` handles locales; the summary now uses it everywhere.", at: 5, done: 3 },
       { id: "sub-mobile", runId: "run-checkout-2", childThreadId: CHILD_ID, title: "Check mobile breakpoints", status: "running", progress: "Testing 375 px and 768 px widths", at: 4 },
     ],
-    thread: { activeRunId: "run-checkout-2", runtimeMode: "full-access", pinnedAt: LAST },
+    thread: { activeRunId: "run-checkout-2", runtimeMode: "full-access", pinnedAt: LAST, branch: "checkout-summary", linkedPullRequest: demoPullRequest("acme/atlas-web", 142) },
   },
   {
     id: "demo-rate-limit",
@@ -192,7 +195,7 @@ const SPECS: ThreadSpec[] = [
       { id: "b3c", type: "system_notice", runId: "run-rate-1", message: "Switched to the fallback model.", at: 2, done: 2 },
       { id: "b4", type: "command_execution", runId: "run-rate-1", input: "bun test src/middleware", status: "running", at: 1 },
     ],
-    thread: { activeRunId: "run-rate-1", runtimeMode: "auto-accept-edits" },
+    thread: { activeRunId: "run-rate-1", runtimeMode: "auto-accept-edits", branch: "rate-limit", branchPullRequest: demoPullRequest("acme/atlas-api", 149) },
   },
   {
     id: "demo-migration",
