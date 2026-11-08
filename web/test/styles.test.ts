@@ -204,3 +204,8 @@ test("a flush list page moves the head-to-body space into the body, so sticky ch
 test("every page scroll box forces its clip, so no content paints past its edge on iOS", () => {
   assert.match(rule(".page-scroll"), /clip-path: inset\(0\);/);
 });
+
+test("hovering an open file header keeps its separator gray", () => {
+  assert.match(rule(".pr-diff-file-head.open"), /box-shadow: inset 0 -1px var\(--line\);/);
+  assert.doesNotMatch(rule(".pr-diff-file-head.open"), /border/);
+});
