@@ -114,12 +114,7 @@ export function AlertsSettings() {
         .
       </p>
       <span className="linear-controls">
-        <Button
-          loading={test.busy && "Sending…"}
-          onClick={() =>
-            void test.run(async () => setTested((await api.testAlerts()).result))
-          }
-        >
+        <Button loading={test.busy && "Sending…"} onClick={() => void test.run(async () => setTested((await api.testAlerts()).result))}>
           Send test alert
         </Button>
         {tested && <small className="muted">{testMessage(tested)}</small>}
