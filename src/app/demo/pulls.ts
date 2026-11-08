@@ -27,7 +27,7 @@ const PRS: DemoPr[] = [
   {
     repository: "acme/atlas-web", number: 142, title: "ATL-142 Redesign the checkout summary", author: "ada", draft: false, headRef: "checkout-summary", updated: 6, decision: "APPROVED",
     checks: [["build", "SUCCESS"], ["unit tests", "SUCCESS"], ["lint", "SUCCESS"]], reviews: [["grace", "APPROVED"]], scope: "author",
-    body: "Totals now come first, and shipping, taxes and fees sit under one row that opens on demand.", diff: CHECKOUT_DIFF,
+    body: "Totals now come first, and shipping, taxes and fees sit under one row that opens on demand.\n\n## Changes\n\n- `OrderSummary` shows the total first.\n- New `Fees` row, closed by default.\n- `formatPrice` moves to `lib/`.\n\n## Test\n\nOpen the cart with a shipping fee and check the Fees row.", diff: CHECKOUT_DIFF,
   },
   {
     repository: "acme/atlas-web", number: 143, title: "ATL-143 Tests for the checkout fees row", author: "ada", draft: false, headRef: "checkout-fees-tests", baseRef: "checkout-summary", updated: 4,

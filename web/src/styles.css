@@ -602,6 +602,15 @@ html:has(.dialog-backdrop:not([hidden])), html:has(.ui-sheet.open) { overflow: h
 .tabs button { border: 0; background: none; padding: 6px 12px; border-radius: 8px; color: var(--text-secondary); font-weight: 500; text-align: left; white-space: nowrap; }
 .tabs button:hover { background: var(--surface-0); color: var(--text-primary); }
 .tabs button.active { background: var(--surface-0); color: var(--accent); }
+/* Underline tabs (page tabs, as on GitHub): a full-width bar; the current tab is bold and underlined in the accent. */
+.tabs.underline { gap: 4px; border-bottom: 1px solid var(--line); }
+.tabs.underline button { display: inline-flex; align-items: center; gap: 6px; margin-bottom: -1px; border-radius: var(--radius-sm) var(--radius-sm) 0 0; color: var(--text-secondary); }
+.tabs.underline button .icon { flex: none; width: 15px; height: 15px; }
+.tabs.underline button:hover { background: var(--surface-0); color: var(--text-primary); }
+/* A hovered tab sits over the bar line (margin -1px): it draws the line again. */
+.tabs.underline button:not(.active):hover { box-shadow: inset 0 -1px var(--line); }
+.tabs.underline button.active { background: none; color: var(--text-primary); font-weight: 600; box-shadow: inset 0 -2px var(--accent); }
+.tabs-count { display: inline-grid; place-items: center; min-width: 20px; height: 18px; padding: 0 6px; border-radius: 999px; background: color-mix(in srgb, var(--text-primary) 10%, transparent); color: var(--text-primary); font-size: 12px; font-weight: 500; }
 .settings-tabs { flex: none; flex-direction: column; width: 120px; }
 @media (max-width: 560px) {
   .settings-layout { flex-direction: column; gap: 12px; min-height: 0; }
@@ -1247,6 +1256,8 @@ ol.install-steps { padding-left: 18px; }
 .pulls-detail .list-page-body { container-type: size; }
 .pulls-detail-grid { display: flex; align-items: flex-start; }
 .pulls-detail-main { flex: 1; display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+.pulls-description { max-width: 860px; }
+.pulls-tabs { margin-top: 4px; }
 /* The kit SidePanel, as on Sessions: the tree and its gap slide shut together. */
 .pulls-detail-side { position: sticky; top: 0; --side-panel-w: 296px; max-height: calc(100cqh + var(--page-bottom)); }
 .pulls-detail-tree { flex: none; width: 280px; margin-right: 16px; display: flex; flex-direction: column; min-height: 0; }
@@ -1317,7 +1328,8 @@ ol.install-steps { padding-left: 18px; }
   .pr-diff-no { width: 36px; min-width: 36px; padding: 0 4px; }
   .pr-diff-file-head { padding: 10px; }
   /* The detail body bleeds to the screen edges: the diff uses the full width, the rest keeps the page edge. */
-  .pulls-detail-main > :not(.pr-diff), .pr-diff > :not(.pr-diff-files) { margin-inline: var(--page-x); }
+  .pulls-detail-main > :not(.pulls-changes), .pulls-changes > :not(.pr-diff), .pr-diff > :not(.pr-diff-files) { margin-inline: var(--page-x); }
+  .pulls-phone-top { display: flex; flex-direction: column; gap: 12px; margin: 0 var(--page-x) 12px; }
   .pr-diff-file { border-inline: 0; border-radius: 0; }
   .pulls-title { white-space: normal; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; line-height: 1.3; font-size: 16px; }
   .pulls-meta { white-space: normal; overflow-wrap: anywhere; }

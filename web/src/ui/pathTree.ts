@@ -34,3 +34,8 @@ function compact<T>(node: PathNode<T>): PathNode<T> {
   }
   return current;
 }
+
+/** The items in the order the tree shows them, top to bottom. */
+export function leavesOf<T>(nodes: readonly PathNode<T>[]): T[] {
+  return nodes.flatMap((node) => (node.item ? [node.item] : leavesOf(node.children)));
+}

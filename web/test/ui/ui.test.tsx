@@ -362,3 +362,11 @@ test("a SidePanel stays mounted when hidden, inert, and its toggle names the nex
   assert.match(html(<SidePanelToggle hidden show="Show files" hide="Hide files" size="sm" onToggle={() => {}} />), /aria-label="Show files" data-tooltip="Show files" class="icon-button sm ghost"/);
   assert.match(html(<SidePanelToggle hidden={false} show="Show files" hide="Hide files" onToggle={() => {}} />), /aria-label="Hide files"/);
 });
+
+test("underline Tabs mark the bar, and an option can carry an icon and a count", () => {
+  const out = html(<Tabs label="Page" idPrefix="t" value="b" variant="underline" options={[{ id: "a", label: "A", icon: "fileText" }, { id: "b", label: "B", count: 8 }]} onChange={() => {}} />);
+  assert.match(out, /^<div class="tabs underline" role="tablist" aria-label="Page">/);
+  assert.match(out, /id="t-a" aria-selected="false"[^>]*><svg class="icon"[^>]*>.*?<\/svg>A<\/button>/);
+  assert.match(out, /id="t-b" aria-selected="true"[^>]*class="active">B<span class="tabs-count">8<\/span><\/button>/);
+  assert.match(html(<Tabs label="P" idPrefix="p" value="a" options={[{ id: "a", label: "A" }]} onChange={() => {}} />), /^<div class="tabs" role="tablist"/);
+});

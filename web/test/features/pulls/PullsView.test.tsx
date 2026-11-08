@@ -9,7 +9,7 @@ import { FileNav } from "../../../src/features/pulls/FileNav.tsx";
 import { ChecksPanel, StatusButton } from "../../../src/features/pulls/PrChecks.tsx";
 import { PrHeader, type DiffControls } from "../../../src/features/pulls/PrHeader.tsx";
 import { PrListView } from "../../../src/features/pulls/PullsView.tsx";
-import { PrDetail } from "../../../src/features/pulls/PrDetail.tsx";
+import { PrDetail, tabsOf } from "../../../src/features/pulls/PrDetail.tsx";
 import { memoryStore, thread } from "../../fixtures.ts";
 import { PULLS_LIST_KEY } from "../../../src/features/pulls/prefs.ts";
 
@@ -201,6 +201,33 @@ test("the detail is a list page: the header above the scroll box, the diff insid
   // A static render is narrow: the file list waits in a sheet behind the header button.
   assert.match(html, /aria-label="Changed files"/);
   assert.match(html, /role="dialog" aria-modal="true" aria-label="Changed files"/);
+});
+
+test("the detail has Description and Changes tabs, and opens on the changes", () => {
+  const html = page();
+  assert.match(html, /class="tabs underline pulls-tabs" role="tablist" aria-label="Pull request"/);
+  assert.match(html, /id="pr-tab-description" aria-selected="false"[^>]*><svg[^>]*>.*?<\/svg>Description<\/button>/);
+  assert.match(html, /id="pr-tab-changes" aria-selected="true"[^>]*class="active"><svg[^>]*>.*?<\/svg>Changes<span class="tabs-count">1<\/span><\/button>/);
+  assert.doesNotMatch(html, /id="pr-tab-files"/);
+  assert.match(html, /role="tabpanel" id="pr-tab-panel" aria-labelledby="pr-tab-changes"/);
+  // The description is rendered but hidden; the diff is shown.
+  assert.match(html, /<div class="pulls-description" hidden="">.*No description\./);
+  assert.match(html, /<div class="pulls-changes">.*data-pr-diff-file="src\/a.ts"/);
+  const withBody = page({ detail: { ...detail, body: "Fixes **the totals**." } });
+  assert.match(withBody, /<div class="md"><p>Fixes <strong>the totals<\/strong>\.<\/p><\/div>/);
+});
+
+test("the diff lists the files in the order of the file tree", () => {
+  const files = [file("web/src/a.ts"), file("README.md"), file("web/lib/b.ts"), file("web/src/c.ts")];
+  const html = page({ diff: { headSha: "abc", files, truncated: false } });
+  const order = [...html.matchAll(/data-pr-diff-file="([^"]+)"/g)].map((m) => m[1]);
+  assert.deepEqual(order, ["web/src/a.ts", "web/src/c.ts", "web/lib/b.ts", "README.md"]);
+});
+
+test("a phone adds a Files tab; the Changes tab counts the files", () => {
+  assert.deepEqual(tabsOf(false, 3).map((t) => [t.label, t.count]), [["Description", undefined], ["Changes", 3]]);
+  assert.deepEqual(tabsOf(true, 3).map((t) => t.id), ["description", "changes", "files"]);
+  assert.equal(tabsOf(true, 0)[1]!.count, undefined);
 });
 
 test("the detail shows a loader before the data and keeps errors apart", () => {
