@@ -102,20 +102,34 @@ test("toDashboardThread carries the settled state", () => {
   assert.equal(toDashboardThread(thread(), now).settled, false);
 });
 
-test("the branch and the pull request come from the shell thread, the linked one first", () => {
-  const linked = { projectId: "project-1", repository: "acme/storefront", number: 12, url: "https://example.test/acme/storefront/pull/12" };
-  const found = { projectId: "project-1", repository: "acme/storefront", number: 9, url: "https://example.test/acme/storefront/pull/9" };
-  const dashboard = (extra: Partial<RawThread>) => toDashboardThread(thread({ branch: "cart", ...extra }), now);
-  assert.deepEqual(dashboard({ linkedPullRequest: linked, branchPullRequest: found }).pullRequest, { repository: "acme/storefront", number: 12, url: linked.url });
-  assert.equal(dashboard({ linkedPullRequest: null, branchPullRequest: found }).pullRequest?.number, 9);
-  assert.equal(dashboard({}).pullRequest, null);
-  assert.equal(dashboard({}).branch, "cart");
+const pr = (number: number, extra: object = {}) => ({ host: "example.test", repository: "acme/storefront", number, url: `https://example.test/acme/storefront/pull/${number}`, ...extra });
+const link = (number: number, extra: object = {}) => pr(number, { source: "manual", linkedAt: "2026-11-01T00:00:00.000Z", snapshot: null, stack: null, ...extra });
+const prsOf = (extra: Partial<RawThread>) => toDashboardThread(thread({ branch: "cart", ...extra }), now).pullRequests;
+const numbers = (extra: Partial<RawThread>) => prsOf(extra).map((p) => p.number);
+
+test("the pull requests come from T3's list in its order, with the branch one last", () => {
+  assert.deepEqual(numbers({ pullRequests: [link(12), link(14)], branchPullRequest: pr(9) }), [12, 14, 9]);
+  assert.deepEqual(prsOf({ pullRequests: [link(12, { snapshot: { title: "Cart", state: "open" } })] }), [{ repository: "acme/storefront", number: 12, url: "https://example.test/acme/storefront/pull/12", title: "Cart" }]);
+  assert.equal(toDashboardThread(thread({ branch: "cart" }), now).branch, "cart");
   assert.equal(toDashboardThread(thread(), now).branch, null);
 });
 
-test("a pull request that cannot make a safe link is ignored", () => {
-  const bad = (extra: object) => toDashboardThread(thread({ linkedPullRequest: { repository: "acme/storefront", number: 1, url: "https://example.test/p", ...extra } }), now).pullRequest;
-  assert.equal(bad({ repository: "--repo=x/y" }), null);
-  assert.equal(bad({ number: null }), null);
-  assert.equal(bad({ url: null }), null);
+test("like T3, the list wins over the legacy linked pull request, which only counts when there is no list", () => {
+  assert.deepEqual(numbers({ linkedPullRequest: pr(12), branchPullRequest: pr(9) }), [12, 9]);
+  assert.deepEqual(numbers({ pullRequests: [link(14)], linkedPullRequest: pr(12) }), [14]);
+  // An empty list is still a list: T3 shows no pull request then, the legacy field included.
+  assert.deepEqual(numbers({ pullRequests: [], linkedPullRequest: pr(12) }), []);
+  assert.deepEqual(numbers({}), []);
+});
+
+test("dismissed stack layers are hidden, and a pull request shows once (repository case ignored)", () => {
+  assert.deepEqual(numbers({ pullRequests: [link(12), link(13, { source: "stack-dismissed" })] }), [12]);
+  assert.deepEqual(numbers({ pullRequests: [link(12), link(12, { repository: "Acme/Storefront" })], branchPullRequest: pr(12) }), [12]);
+});
+
+test("a pull request that cannot make a safe link is dropped, the others stay", () => {
+  for (const bad of [{ repository: "--repo=x/y" }, { number: null }, { number: 0 }, { number: 1.5 }, { url: null }, { repository: null }]) {
+    assert.deepEqual(numbers({ pullRequests: [link(1, bad), link(2)] }), [2], JSON.stringify(bad));
+    assert.deepEqual(numbers({ linkedPullRequest: pr(1, bad) }), [], JSON.stringify(bad));
+  }
 });

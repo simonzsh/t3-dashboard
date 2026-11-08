@@ -3,10 +3,11 @@ import type { DashboardThread } from "../../../../shared/api.ts";
 import type { PrList, PrRef, PrSummary } from "../../../../shared/pulls.ts";
 import { relativeTime } from "../../lib/format.ts";
 import { hashForPr } from "../../lib/tabs.ts";
-import { Badge, Button, Dropdown, Icon, IconButton, ListPage, Loader, SearchField, Segmented } from "../../ui/index.ts";
-import { ALL_REPOSITORIES, CHECKS, filterPrs, groupByRepository, repositoriesOf, REVIEWS, SCOPES, sessionOf, shortRepository, type Scope } from "./pulls.ts";
+import { Badge, Dropdown, Icon, IconButton, ListPage, Loader, SearchField, Segmented } from "../../ui/index.ts";
+import { ALL_REPOSITORIES, CHECKS, filterPrs, groupByRepository, repositoriesOf, REVIEWS, SCOPES, sessionsOf, shortRepository, type Scope } from "./pulls.ts";
 import { Counts } from "./DiffFiles.tsx";
 import { PrDetail } from "./PrDetail.tsx";
+import { SessionsButton } from "./SessionsButton.tsx";
 import { usePulls } from "./usePulls.ts";
 import { usePrDetail } from "./usePrDetail.ts";
 
@@ -19,7 +20,7 @@ interface Props {
   onOpenThread: (id: string, addOnly: boolean) => void;
 }
 
-function Row({ pr, session, now, onOpenThread }: { pr: PrSummary; session: DashboardThread | null; now: Date; onOpenThread: Props["onOpenThread"] }) {
+function Row({ pr, sessions, now, onOpenThread }: { pr: PrSummary; sessions: DashboardThread[]; now: Date; onOpenThread: Props["onOpenThread"] }) {
   const checks = CHECKS[pr.checks];
   const review = REVIEWS[pr.review];
   return (
@@ -36,11 +37,7 @@ function Row({ pr, session, now, onOpenThread }: { pr: PrSummary; session: Dashb
           <Counts additions={pr.additions} deletions={pr.deletions} />
         </span>
       </a>
-      {session && (
-        <Button size="sm" variant="ghost" className="pulls-row-session" onClick={(e) => onOpenThread(session.id, e.shiftKey)}>
-          <Icon name="messagesSquare" /> Session
-        </Button>
-      )}
+      <SessionsButton sessions={sessions} text="Session" className="pulls-row-session" onOpenThread={onOpenThread} />
     </li>
   );
 }
@@ -101,7 +98,7 @@ export function PrListView({ list, error, refreshing, onRefresh, threads, now, o
             </h2>
             <ul className="pulls-rows">
               {group.prs.map((pr) => (
-                <Row key={pr.number} pr={pr} session={sessionOf(threads, pr)} now={now} onOpenThread={onOpenThread} />
+                <Row key={pr.number} pr={pr} sessions={sessionsOf(threads, pr)} now={now} onOpenThread={onOpenThread} />
               ))}
             </ul>
           </div>
@@ -120,7 +117,7 @@ function Detail({ route, threads, now, onOpenThread }: Props & { route: PrRef })
   const { refresh, ...state } = usePrDetail(route);
   return (
     <div className="pulls-detail-scroll">
-      <PrDetail pr={route} {...state} onRefresh={() => void refresh()} now={now} session={sessionOf(threads, route)} onOpenSession={onOpenThread} />
+      <PrDetail pr={route} {...state} onRefresh={() => void refresh()} now={now} sessions={sessionsOf(threads, route)} onOpenSession={onOpenThread} />
     </div>
   );
 }

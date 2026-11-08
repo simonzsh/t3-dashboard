@@ -31,8 +31,16 @@ export interface DashboardThread {
   lastActivityAt: string;
   /** The thread's git branch, when T3 knows it. */
   branch: string | null;
-  /** The pull request linked to the thread, else the one open for its branch. */
-  pullRequest: { repository: string; number: number; url: string } | null;
+  /** T3's pull requests of the thread, in T3's order, then the one open for its branch. */
+  pullRequests: ThreadPullRequest[];
+}
+
+export interface ThreadPullRequest {
+  repository: string;
+  number: number;
+  url: string;
+  /** From T3's last snapshot of the pull request, when it has one. */
+  title: string | null;
 }
 
 /** The project's icon in T3 Code: Lucide shapes (24×24 grid, stroked), a monogram or an emoji. */

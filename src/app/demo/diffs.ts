@@ -215,3 +215,25 @@ export const AUDIT_DIFF = lines(
   "+  console.log(actor, action);",
   "+}",
 );
+
+// Stacked on the checkout summary: only the tests of the new Fees row.
+export const FEES_TESTS_DIFF = lines(
+  "diff --git a/web/src/checkout/Fees.test.tsx b/web/src/checkout/Fees.test.tsx",
+  "new file mode 100644",
+  "index 0000000..4c5d6e7",
+  "--- /dev/null",
+  "+++ b/web/src/checkout/Fees.test.tsx",
+  "@@ -0,0 +1,12 @@",
+  '+import { render, screen } from "@testing-library/react";',
+  '+import { Fees } from "./Fees";',
+  "+",
+  "+const order = { subtotal: 4200, shipping: 500, taxes: 840, total: 5540 };",
+  "+",
+  '+test("the fees row sums shipping and taxes", () => {',
+  "+  render(<Fees order={order} />);",
+  '+  expect(screen.getByRole("button")).toHaveTextContent("Fees: $13.40");',
+  "+});",
+  "+",
+  '+test("the row opens on demand", () => {',
+  "+});",
+);

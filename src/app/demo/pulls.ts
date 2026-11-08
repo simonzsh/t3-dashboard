@@ -1,6 +1,6 @@
 import { parseDiff } from "../../../shared/diff.ts";
 import type { GhRun } from "../../integrations/github/gh.ts";
-import { AUDIT_DIFF, CHARTS_DIFF, CHECKOUT_DIFF, ONBOARDING_DIFF, RATE_LIMIT_DIFF } from "./diffs.ts";
+import { AUDIT_DIFF, CHARTS_DIFF, CHECKOUT_DIFF, FEES_TESTS_DIFF, ONBOARDING_DIFF, RATE_LIMIT_DIFF } from "./diffs.ts";
 
 type Conclusion = "SUCCESS" | "FAILURE" | "PENDING";
 
@@ -11,6 +11,8 @@ interface DemoPr {
   author: string;
   draft: boolean;
   headRef: string;
+  /** The branch it merges into; a stacked pull request targets the one below it. */
+  baseRef?: string;
   /** Minutes before now. */
   updated: number;
   decision: string | null;
@@ -26,6 +28,10 @@ const PRS: DemoPr[] = [
     repository: "acme/atlas-web", number: 142, title: "ATL-142 Redesign the checkout summary", author: "ada", draft: false, headRef: "checkout-summary", updated: 6, decision: "APPROVED",
     checks: [["build", "SUCCESS"], ["unit tests", "SUCCESS"], ["lint", "SUCCESS"]], reviews: [["grace", "APPROVED"]], scope: "author",
     body: "Totals now come first, and shipping, taxes and fees sit under one row that opens on demand.", diff: CHECKOUT_DIFF,
+  },
+  {
+    repository: "acme/atlas-web", number: 143, title: "ATL-143 Tests for the checkout fees row", author: "ada", draft: false, headRef: "checkout-fees-tests", baseRef: "checkout-summary", updated: 4,
+    decision: "REVIEW_REQUIRED", checks: [["build", "SUCCESS"], ["unit tests", "PENDING"]], reviews: [], scope: "author", body: "Stacked on #142.", diff: FEES_TESTS_DIFF,
   },
   {
     repository: "acme/atlas-api", number: 149, title: "ATL-149 Add rate limiting to public endpoints", author: "ada", draft: false, headRef: "rate-limit", updated: 35, decision: "REVIEW_REQUIRED",
@@ -57,7 +63,7 @@ const searchNode = (pr: DemoPr, now: Date) => ({
   url: url(pr),
   isDraft: pr.draft,
   headRefName: pr.headRef,
-  baseRefName: "main",
+  baseRefName: pr.baseRef ?? "main",
   updatedAt: new Date(now.getTime() - pr.updated * 60_000).toISOString(),
   ...totals(pr),
   reviewDecision: pr.decision,

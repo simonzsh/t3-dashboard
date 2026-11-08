@@ -1,7 +1,7 @@
 import { test } from "bun:test";
 import assert from "node:assert/strict";
 import { renderToStaticMarkup } from "react-dom/server";
-import { SessionWindow } from "../../../src/features/sessions/SessionWindow.tsx";
+import { PullRequestsButton, SessionWindow } from "../../../src/features/sessions/SessionWindow.tsx";
 import { thread } from "../../fixtures.ts";
 
 const base = { id: "t1", thread: null, title: "Fix login", projectTitle: null, projectIcon: null, focused: true, maximized: false, compact: false, live: true, t3EnvironmentId: null, providers: [], dispatch: () => {} };
@@ -45,9 +45,35 @@ test("a back arrow shows only when the window can go back to the list", () => {
   assert.doesNotMatch(renderToStaticMarkup(<SessionWindow {...base} compact missing />), /Back to the list/);
 });
 
-test("a session with a pull request gets a button that opens its diff on the Pull requests page", () => {
-  const pullRequest = { repository: "acme/storefront", number: 12, url: "https://example.test/acme/storefront/pull/12" };
-  const html = renderToStaticMarkup(<SessionWindow {...base} live={false} missing={false} thread={thread("t1", { pullRequest })} />);
-  assert.match(html, /<a [^>]*href="#\/pulls\/acme\/storefront\/12"[^>]*aria-label="Open pull request #12"/);
-  assert.doesNotMatch(renderToStaticMarkup(<SessionWindow {...base} live={false} missing={false} thread={thread("t1")} />), /pull request/);
+const linked = (number: number, title: string | null = null) => ({ repository: "acme/storefront", number, url: `https://example.test/acme/storefront/pull/${number}`, title });
+const header = (pullRequests: ReturnType<typeof linked>[]) => renderToStaticMarkup(<SessionWindow {...base} live={false} missing={false} thread={thread("t1", { pullRequests })} />);
+
+test("a session with one pull request gets a link to its diff on the Pull requests page", () => {
+  assert.match(header([linked(12)]), /<a [^>]*href="#\/pulls\/acme\/storefront\/12"[^>]*aria-label="Open pull request #12"/);
+  assert.doesNotMatch(header([]), /pull request/);
+});
+
+test("a session with several pull requests gets one menu button that counts them", () => {
+  const html = header([linked(12, "Summary"), linked(13)]);
+  assert.match(html, /<button [^>]*aria-label="2 pull requests"[^>]*aria-haspopup="menu"[^>]*>.*<\/svg> 2<\/button>/);
+  assert.doesNotMatch(html, /href="#\/pulls/);
+});
+
+test("the pull request menu items open each diff, with the title when T3 knows it", () => {
+  const opened: string[] = [];
+  const items = PullRequestsButton({ pullRequests: [linked(12, "Summary"), linked(13)] })!.props.items as Array<{ label: string; onSelect: () => void }>;
+  assert.deepEqual(items.map((item) => item.label), ["#12 acme/storefront – Summary", "#13 acme/storefront"]);
+  const location = { hash: "" };
+  const saved = Object.getOwnPropertyDescriptor(globalThis, "window");
+  Object.defineProperty(globalThis, "window", { value: { location }, configurable: true });
+  try {
+    for (const item of items) {
+      item.onSelect();
+      opened.push(location.hash);
+    }
+  } finally {
+    if (saved) Object.defineProperty(globalThis, "window", saved);
+    else delete (globalThis as { window?: unknown }).window;
+  }
+  assert.deepEqual(opened, ["#/pulls/acme/storefront/12", "#/pulls/acme/storefront/13"]);
 });

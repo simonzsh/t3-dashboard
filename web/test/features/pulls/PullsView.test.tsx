@@ -29,9 +29,15 @@ test("the list groups pull requests by repository and links each one to its diff
   assert.match(html, /1 h ago/);
 });
 
-test("a pull request linked to a session shows a button to open it", () => {
-  const linked = thread("t1", { pullRequest: { repository: "acme/storefront", number: 1, url: "https://example.test/x" } });
-  assert.equal(view(list([pr("acme/storefront", 1), pr("acme/storefront", 2)]), [linked]).match(/pulls-row-session/g)?.length, 1);
+const linkTo = (number: number) => ({ pullRequests: [{ repository: "acme/storefront", number, url: "https://example.test/x", title: null }] });
+
+test("a pull request with one session shows a button to open it, with several a menu that counts them", () => {
+  const one = view(list([pr("acme/storefront", 1), pr("acme/storefront", 2)]), [thread("t1", linkTo(1))]);
+  assert.equal(one.match(/pulls-row-session/g)?.length, 1);
+  assert.match(one, /<button [^>]*class="[^"]*pulls-row-session[^"]*"[^>]*>.*Session<\/button>/);
+  const two = view(list([pr("acme/storefront", 1)]), [thread("t1", linkTo(1)), thread("t2", linkTo(1))]);
+  assert.match(two, /aria-label="2 sessions"[^>]*aria-haspopup="menu"/);
+  assert.match(two, /Sessions 2/);
   assert.doesNotMatch(view(list([pr("acme/storefront", 1)])), /pulls-row-session/);
 });
 
@@ -92,7 +98,7 @@ const detail: Detail = {
 };
 const page = (over: Partial<Parameters<typeof PrDetail>[0]> = {}) =>
   renderToStaticMarkup(
-    <PrDetail pr={{ repository: "acme/storefront", number: 12 }} detail={detail} detailError={null} diff={{ headSha: "abc", files: [file("src/a.ts")], truncated: false }} diffError={null} refreshing={false} onRefresh={() => {}} now={now} session={null} onOpenSession={() => {}} {...over} />,
+    <PrDetail pr={{ repository: "acme/storefront", number: 12 }} detail={detail} detailError={null} diff={{ headSha: "abc", files: [file("src/a.ts")], truncated: false }} diffError={null} refreshing={false} onRefresh={() => {}} now={now} sessions={[]} onOpenSession={() => {}} {...over} />,
   );
 
 test("the detail shows the title, branches, checks, reviews and a link to GitHub", () => {
@@ -112,9 +118,10 @@ test("a check link that is not a web address is shown as text", () => {
   assert.doesNotMatch(html, /javascript:/);
 });
 
-test("the detail shows a session button only when a session is linked", () => {
-  assert.doesNotMatch(page(), /Open session/);
-  assert.match(page({ session: thread("t1") }), /Open session/);
+test("the detail opens its session, or lists them when there are several", () => {
+  assert.doesNotMatch(page(), /Open session|Sessions \d/);
+  assert.match(page({ sessions: [thread("t1")] }), /Open session/);
+  assert.match(page({ sessions: [thread("t1"), thread("t2")] }), /aria-label="2 sessions"[^>]*aria-haspopup="menu"[\s\S]*Sessions 2/);
 });
 
 test("the detail shows a loader before the data and keeps errors apart", () => {

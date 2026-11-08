@@ -29,9 +29,9 @@ export function groupByRepository(prs: PrSummary[]): Array<{ repository: string;
   return repositoriesOf(prs).map((repository) => ({ repository, prs: prs.filter((pr) => pr.repository === repository) }));
 }
 
-/** The session linked to a pull request: threads come newest first, so the most recent one wins. */
-export const sessionOf = (threads: DashboardThread[], ref: PrRef): DashboardThread | null =>
-  threads.find((thread) => thread.pullRequest?.repository === ref.repository && thread.pullRequest.number === ref.number) ?? null;
+/** The sessions tied to a pull request, newest first as threads come; T3 ignores the repository's case. */
+export const sessionsOf = (threads: DashboardThread[], ref: PrRef): DashboardThread[] =>
+  threads.filter((thread) => thread.pullRequests.some((pr) => pr.number === ref.number && pr.repository.toLowerCase() === ref.repository.toLowerCase()));
 
 export const CHECKS: Record<PrChecks, { label: string; variant: BadgeVariant } | null> = {
   success: { label: "Checks passed", variant: "done" },

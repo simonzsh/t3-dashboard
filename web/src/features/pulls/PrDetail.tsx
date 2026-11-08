@@ -3,6 +3,7 @@ import type { PrCheckRun, PrDetail as Detail, PrDiff, PrRef } from "../../../../
 import { relativeTime } from "../../lib/format.ts";
 import { Badge, Button, ButtonLink, Icon, Loader, type IconName } from "../../ui/index.ts";
 import { Counts, DiffFiles } from "./DiffFiles.tsx";
+import { SessionsButton } from "./SessionsButton.tsx";
 import { CHECKS, isWebUrl, REVIEWS } from "./pulls.ts";
 
 const CHECK_ICONS: Record<PrCheckRun["state"], IconName> = { success: "circleCheck", failure: "alert", pending: "circle", skipped: "circle", neutral: "circle" };
@@ -38,13 +39,13 @@ interface Props {
   refreshing: boolean;
   onRefresh: () => void;
   now: Date;
-  /** The session linked to this pull request, when there is one. */
-  session: DashboardThread | null;
+  /** The sessions tied to this pull request. */
+  sessions: DashboardThread[];
   onOpenSession: (id: string, addOnly: boolean) => void;
 }
 
 /** One pull request: its status, its checks and its diff file by file. */
-export function PrDetail({ pr, detail, detailError, diff, diffError, refreshing, onRefresh, now, session, onOpenSession }: Props) {
+export function PrDetail({ pr, detail, detailError, diff, diffError, refreshing, onRefresh, now, sessions, onOpenSession }: Props) {
   const checks = detail ? CHECKS[detail.checks] : null;
   const review = detail ? REVIEWS[detail.review] : null;
   return (
@@ -74,11 +75,7 @@ export function PrDetail({ pr, detail, detailError, diff, diffError, refreshing,
                   <Icon name="arrowUpRight" /> Open on GitHub
                 </ButtonLink>
               )}
-              {session && (
-                <Button size="sm" onClick={(e) => onOpenSession(session.id, e.shiftKey)}>
-                  <Icon name="messagesSquare" /> Open session
-                </Button>
-              )}
+              <SessionsButton sessions={sessions} text="Open session" variant="secondary" onOpenThread={onOpenSession} />
             </div>
             <CheckRuns runs={detail.checkRuns} />
             {detail.reviews.length > 0 && (

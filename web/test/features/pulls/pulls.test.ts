@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "bun:test";
 import type { PrSummary } from "../../../../shared/pulls.ts";
-import { filterPrs, groupByRepository, isWebUrl, repositoriesOf, sessionOf, shortRepository } from "../../../src/features/pulls/pulls.ts";
+import { filterPrs, groupByRepository, isWebUrl, repositoriesOf, sessionsOf, shortRepository } from "../../../src/features/pulls/pulls.ts";
 import { thread } from "../../fixtures.ts";
 
 const pr = (repository: string, number: number, roles: PrSummary["roles"]): PrSummary => ({
@@ -34,12 +34,12 @@ test("pull requests are grouped by repository in name order, keeping their order
   assert.deepEqual(groupByRepository(prs).map((g) => [g.repository, g.prs.map((p) => p.number)]), [["acme/api", [2]], ["acme/storefront", [1, 3]]]);
 });
 
-test("a pull request finds the most recent session linked to it", () => {
-  const link = (number: number) => ({ repository: "acme/storefront", number, url: "https://example.test/x" });
-  const threads = [thread("a", { pullRequest: link(2) }), thread("b", { pullRequest: link(1) }), thread("c", { pullRequest: link(1) }), thread("d")];
-  assert.equal(sessionOf(threads, { repository: "acme/storefront", number: 1 })?.id, "b");
-  assert.equal(sessionOf(threads, { repository: "acme/api", number: 1 }), null);
-  assert.equal(sessionOf(threads, { repository: "acme/storefront", number: 9 }), null);
+test("a pull request finds every session tied to it, newest first, whatever the repository's case", () => {
+  const link = (number: number, repository = "acme/storefront") => ({ repository, number, url: "https://example.test/x", title: null });
+  const threads = [thread("a", { pullRequests: [link(2)] }), thread("b", { pullRequests: [link(1), link(2)] }), thread("c", { pullRequests: [link(1, "Acme/Storefront")] }), thread("d")];
+  assert.deepEqual(sessionsOf(threads, { repository: "acme/storefront", number: 1 }).map((t) => t.id), ["b", "c"]);
+  assert.deepEqual(sessionsOf(threads, { repository: "acme/storefront", number: 2 }).map((t) => t.id), ["a", "b"]);
+  assert.deepEqual(sessionsOf(threads, { repository: "acme/api", number: 1 }), []);
 });
 
 test("only web addresses become links", () => {

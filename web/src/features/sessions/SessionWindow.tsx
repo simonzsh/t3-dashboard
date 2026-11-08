@@ -1,6 +1,6 @@
 import { memo, type Dispatch } from "react";
-import type { DashboardProvider, DashboardThread, ProjectIcon as ProjectIconData } from "../../../../shared/api.ts";
-import { Badge, Button, Icon, IconButton, IconButtonLink } from "../../ui/index.ts";
+import type { DashboardProvider, DashboardThread, ProjectIcon as ProjectIconData, ThreadPullRequest } from "../../../../shared/api.ts";
+import { ActionMenu, Badge, Button, Icon, IconButton, IconButtonLink } from "../../ui/index.ts";
 import { AutomationMark } from "../../lib/automationThreads.tsx";
 import { attentionState } from "./sessionList.ts";
 import type { SessionsAction } from "./sessions.ts";
@@ -74,11 +74,7 @@ function SessionWindowView({ id, thread, title, projectTitle, projectIcon, missi
             )
           )}
           <span className="session-window-buttons">
-            {thread?.pullRequest && (
-              <IconButtonLink variant="ghost" size="sm" href={hashForPr(thread.pullRequest)} label={`Open pull request #${thread.pullRequest.number}`} tooltip={`Open pull request #${thread.pullRequest.number}`}>
-                <Icon name="gitPullRequest" />
-              </IconButtonLink>
-            )}
+            {thread && <PullRequestsButton pullRequests={thread.pullRequests} />}
             <OpenInT3 environmentId={t3EnvironmentId} threadId={id} />
             {!compact && (
               <IconButton variant="ghost" size="sm" label={fullscreen} tooltip={fullscreen} shortcut={maximized ? `${ctrlLabel("F")} / Esc` : ctrlLabel("F")} onClick={onToggleMaximize}>
@@ -109,6 +105,27 @@ function SessionWindowView({ id, thread, title, projectTitle, projectIcon, missi
       )}
     </section>
   );
+}
+
+
+/** One pull request: a direct link to its diff. Several (a stack, say): a menu with one link each. */
+export function PullRequestsButton({ pullRequests }: { pullRequests: ThreadPullRequest[] }) {
+  const [first] = pullRequests;
+  if (!first) return null;
+  if (pullRequests.length === 1) {
+    const label = `Open pull request #${first.number}`;
+    return (
+      <IconButtonLink variant="ghost" size="sm" href={hashForPr(first)} label={label} tooltip={label}>
+        <Icon name="gitPullRequest" />
+      </IconButtonLink>
+    );
+  }
+  const items = pullRequests.map((pr) => ({
+    label: `#${pr.number} ${pr.repository}${pr.title ? ` – ${pr.title}` : ""}`,
+    icon: "gitPullRequest" as const,
+    onSelect: () => (window.location.hash = hashForPr(pr)),
+  }));
+  return <ActionMenu label={`${pullRequests.length} pull requests`} tooltip="Pull requests" icon="gitPullRequest" text={String(pullRequests.length)} items={items} />;
 }
 
 export const SessionWindow = memo(SessionWindowView);

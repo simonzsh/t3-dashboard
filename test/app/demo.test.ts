@@ -502,7 +502,7 @@ test("the demo launches a thread in a worktree and answers branch reads", async 
 test("the demo Pull requests page lists invented pull requests and a diff for each, through the real parsers", async () => {
   const pulls = new PullRequests({ run: demoGh(() => NOW), now: () => NOW });
   const { prs } = await pulls.prs();
-  assert.deepEqual(prs.map((pr) => `${pr.repository}#${pr.number}`).sort(), ["acme/atlas-api#149", "acme/atlas-api#151", "acme/atlas-mobile#57", "acme/atlas-web#138", "acme/atlas-web#142"]);
+  assert.deepEqual(prs.map((pr) => `${pr.repository}#${pr.number}`).sort(), ["acme/atlas-api#149", "acme/atlas-api#151", "acme/atlas-mobile#57", "acme/atlas-web#138", "acme/atlas-web#142", "acme/atlas-web#143"]);
   assert.deepEqual(new Set(prs.map((pr) => pr.checks)), new Set(["success", "failure", "pending", "none"]));
   assert.deepEqual(new Set(prs.map((pr) => pr.review)), new Set(["approved", "changes_requested", "review_required", "none"]));
   assert.equal(prs.filter((pr) => pr.draft).length, 1);
@@ -522,10 +522,15 @@ test("the demo checkout diff shows every kind of file", async () => {
   assert.ok(files.some((file) => file.additions > 400));
 });
 
-test("the demo threads that carry a pull request point at a demo pull request", async () => {
+test("the demo threads that carry pull requests point at demo pull requests, one with a stack of two", async () => {
   const store = syncedStore(new DemoPort(() => NOW));
   await Bun.sleep(0);
-  const linked = store.state({ t3: "live", serverVersion: null, protocolMismatch: false, error: null, setup: null }, []).threads.filter((thread) => thread.pullRequest);
-  assert.deepEqual(linked.map((thread) => thread.pullRequest!.number).sort(), [142, 149]);
-  assert.equal(linked.find((thread) => thread.pullRequest!.number === 142)!.branch, "checkout-summary");
+  const threads = store.state({ t3: "live", serverVersion: null, protocolMismatch: false, error: null, setup: null }, []).threads;
+  const linked = threads.filter((thread) => thread.pullRequests.length > 0);
+  const listed = new Set((await new PullRequests({ run: demoGh(() => NOW), now: () => NOW }).prs()).prs.map((pr) => `${pr.repository}#${pr.number}`));
+  for (const pr of linked.flatMap((thread) => thread.pullRequests)) assert.ok(listed.has(`${pr.repository}#${pr.number}`), `${pr.repository}#${pr.number}`);
+  const checkout = linked.find((thread) => thread.branch === "checkout-summary")!;
+  assert.deepEqual(checkout.pullRequests.map((pr) => [pr.number, pr.title]), [[142, "ATL-142 Redesign the checkout summary"], [143, "ATL-143 Tests for the checkout fees row"]]);
+  // One pull request in two sessions, so the list shows a session count.
+  assert.equal(linked.filter((thread) => thread.pullRequests.some((pr) => pr.number === 138)).length, 2);
 });
