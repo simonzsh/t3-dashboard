@@ -1,6 +1,7 @@
 import type { CacheCleanupPreview, CacheCleanupResult, ServerStats } from "../../../shared/api.ts";
 import type { LinearInboxNode, LinearIssueNode } from "../../integrations/linear/schemas.ts";
 import type { RawConfig, RawProject, RawProjection, RawScheduledTask, RawSubagent, RawThread, RawTurnItem, RawUsageLimits, RawUsageSummary } from "../../integrations/t3/schemas.ts";
+import type { ProbeResult } from "../../integrations/mcp/probe.ts";
 
 // Invented data for `bun run demo`: a small team building "Atlas", no real names.
 // Times are minutes before `now`, so the page always reads "2 min ago", "yesterday"...
@@ -912,3 +913,79 @@ export function demoNews(now: Date) {
   const settings = JSON.stringify({ version: 1, settings: { enabled: true, frequency: "daily", weekday: 1, timeOfDay: "07:00", language: "English", modelSelection: SONNET }, taskId: "news", taskCreatedAt: hoursFrom(now, -72) });
   return { settings, entries, contents };
 }
+
+const H = DEMO_HOME;
+const demoSkill = (name: string, description: string) => `---\nname: ${name}\ndescription: ${description}\n---\n\nSteps for the skill.\n`;
+
+/** The config files of the demo machine: fictional, and the setup page reads them from memory. */
+export const DEMO_SETUP_FILES: Record<string, string> = {
+  [`${H}/.claude/CLAUDE.md`]: "# Personal rules\n\nAnswer briefly and show the command you ran.\n\n@./style-guide.md\n@./retired-checklist.md\n",
+  [`${H}/.claude/style-guide.md`]: "# Style guide\n\n- Prefer small, pure functions.\n- Name things after what they mean.\n",
+  [`${H}/.claude/rules/style.md`]: "# Code style\n\nComments say why, not what.\n",
+  [`${H}/.claude/settings.json`]: JSON.stringify(
+    {
+      model: "opus",
+      env: { DEMO_API_TOKEN: "sk-demo-0000000000000000", LOG_LEVEL: "info" },
+      hooks: { PreToolUse: [{ matcher: "Bash", hooks: [{ type: "command", command: `${H}/.claude/hooks/check-command.sh --token sk-demo-1111111111111111`, timeout: 30 }] }] },
+      enabledPlugins: { "review-tools@demo-market": true, "old-helper@demo-market": false },
+    },
+    null,
+    2,
+  ),
+  [`${H}/.claude.json`]: JSON.stringify({
+    oauthAccount: { emailAddress: "demo@example.com", accessToken: "sk-demo-oauth-2222222222222222" },
+    mcpServers: {
+      "docs-search": { command: "npx", args: ["-y", "@example/docs-mcp", "--root", `${H}/docs`] },
+      "status-board": { type: "http", url: "https://mcp.example.com/mcp", headers: { Authorization: "Bearer sk-demo-3333333333333333" } },
+    },
+    projects: { [`${H}/src/atlas-web`]: { mcpServers: { "local-db": { command: "node", args: ["db-mcp.js"], env: { DB_PASSWORD: "demo-password" } } } } },
+  }),
+  [`${H}/.claude/skills/triage/SKILL.md`]: demoSkill("triage", "Sort new tickets by urgency."),
+  [`${H}/.codex/AGENTS.md`]: "# Global agent rules\n\nExplain a change before you make it.\n",
+  [`${H}/.codex/config.toml`]: [
+    'model = "gpt-5.5-codex"',
+    "",
+    "[mcp_servers.tickets]",
+    'url = "https://tickets.example.com/mcp"',
+    'bearer_token_env_var = "TICKETS_TOKEN"',
+    "",
+    "[mcp_servers.files]",
+    'command = "npx"',
+    'args = ["-y", "@example/files-mcp"]',
+    "enabled = false",
+    "",
+    `[projects."${H}/src/atlas-api"]`,
+    'trust_level = "trusted"',
+    "",
+  ].join("\n"),
+  [`${H}/src/atlas-web/.git`]: "gitdir: ../.git/modules/atlas-web",
+  [`${H}/src/atlas-web/CLAUDE.md`]: "# Atlas Web\n\n@AGENTS.md\n\nUse the design tokens, never raw colors.\n",
+  [`${H}/src/atlas-web/AGENTS.md`]: "# Atlas Web agents\n\nRun `bun test` before you finish.\n",
+  [`${H}/src/atlas-web/.mcp.json`]: JSON.stringify({
+    mcpServers: {
+      design: { type: "http", url: "https://design.example.com/mcp", headers: { "X-Api-Key": "sk-demo-4444444444444444" } },
+      "status-board": { type: "http", url: "https://mcp.example.com/mcp?channel=web" },
+      legacy: { url: "https://legacy.example.com/mcp" },
+    },
+  }),
+  [`${H}/src/atlas-web/.claude/settings.json`]: JSON.stringify({ permissions: { allow: ["Bash(bun test:*)"] }, enabledPlugins: { "review-tools@demo-market": true } }),
+  [`${H}/src/atlas-web/.claude/skills/release-notes/SKILL.md`]: demoSkill("release-notes", "Draft the release notes of a merged change."),
+  [`${H}/src/atlas-web/.claude/agents/reviewer.md`]: "---\nname: reviewer\ndescription: Reviews a diff for bugs.\nmodel: sonnet\ntools: Read, Grep\n---\n\nYou review code.\n",
+  [`${H}/src/atlas-api/.git`]: "gitdir: ../.git/modules/atlas-api",
+  [`${H}/src/atlas-api/AGENTS.md`]: "# Atlas API\n\nKeep handlers thin.\n",
+  [`${H}/src/atlas-api/.codex/config.toml`]: '[mcp_servers.tickets]\nurl = "https://tickets.example.com/mcp/atlas"\n',
+};
+
+/** A CLAUDE.md that points at a file which is gone. */
+export const DEMO_SETUP_LINKS: Record<string, string> = { [`${H}/src/sandbox/CLAUDE.md`]: `${H}/shared/team-rules.md` };
+
+/** Demo MCP probe answers by host; any other host is reachable. */
+export function demoMcpProbe(url: string): ProbeResult {
+  const host = new URL(url).hostname;
+  if (host === "mcp.example.com") return { kind: "http", status: 401 };
+  if (host === "tickets.example.com") return { kind: "error", code: "ECONNREFUSED" };
+  return { kind: "http", status: 200 };
+}
+
+/** What `claude mcp list` prints on the demo machine, for the user-scope Claude servers. */
+export const DEMO_CLAUDE_MCP_LIST = ["docs-search: npx -y @example/docs-mcp - ✔ Connected", "status-board: https://mcp.example.com/mcp (HTTP) - ! Needs authentication"].join("\n");

@@ -266,6 +266,15 @@ test("getServerStats reads /api/server-stats", async () => {
   assert.deepEqual(calls.map((c) => c.url), ["/api/server-stats"]);
 });
 
+test("getAgentSetup and getMcpServers read their routes and pass the refresh flag", async () => {
+  const { calls, api } = fake(200, {});
+  await api.getAgentSetup();
+  await api.getAgentSetup(true);
+  await api.getMcpServers();
+  await api.getMcpServers(true);
+  assert.deepEqual(calls.map((c) => c.url), ["/api/agent-setup", "/api/agent-setup?refresh=1", "/api/agent-setup/mcp", "/api/agent-setup/mcp?refresh=1"]);
+});
+
 test("getCacheCleanup reads the sizes and clearCaches posts an empty JSON body", async () => {
   const { calls, api } = fake(200, {});
   await api.getCacheCleanup();

@@ -18,3 +18,4 @@ export type * from "./providerLimits.ts";
 export type * from "./serverStats.ts";
 export type * from "./cacheCleanup.ts";
 export type * from "./pulls.ts";
+export type * from "./agentSetup.ts";

@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { afterEach, test } from "bun:test";
-import type { CacheCleanupPreview, CacheCleanupResult, LimitsOverview, ServerStats, UsageOverview, Automation, AutomationsResult, ConnectionStatus, DashboardEvent, DashboardState, NewsState } from "../../shared/api.ts";
+import type { CacheCleanupPreview, CacheCleanupResult, LimitsOverview, McpOverview, ServerStats, UsageOverview, Automation, AutomationsResult, ConnectionStatus, DashboardEvent, DashboardState, NewsState } from "../../shared/api.ts";
 import { LinearClient } from "../../src/integrations/linear/client.ts";
 import { createActions } from "../../src/domain/actions.ts";
 import type { Automations } from "../../src/domain/automations.ts";
@@ -17,6 +17,8 @@ import type { SharedSessions } from "../../shared/sessions.ts";
 import type { SeenState } from "../../shared/seen.ts";
 import { SeenStore } from "../../src/domain/seenStore.ts";
 import { createSettings } from "../../src/domain/settings.ts";
+import { createAgentSetup } from "../../src/domain/agentSetup.ts";
+import { memorySetupFs } from "../../src/config/agentSetupFs.ts";
 import { createDashboardServer } from "../../src/server/server.ts";
 import type { DashboardHandler } from "../../src/server/server.ts";
 import type { Site } from "../../src/server/site.ts";
@@ -29,6 +31,16 @@ import { linearInbox, linearInboxNode, linearNode, linearPage } from "../helpers
 import type { RawConfig, ShellItem } from "../../src/integrations/t3/schemas.ts";
 
 const now = new Date("2026-03-20T12:00:00.000Z");
+
+// One unique secret planted in every place the setup reads: none may reach the response.
+const PLANTED = "PLANTEDSECRET9f3a1c";
+const SETUP_FILES = {
+  "/home/x/.claude/CLAUDE.md": "Rules. @notes.md",
+  "/home/x/.claude/notes.md": "notes",
+  "/home/x/.claude/settings.json": JSON.stringify({ env: { SERVICE_TOKEN: PLANTED }, hooks: { PreToolUse: [{ matcher: "Bash", hooks: [{ type: "command", command: `run.sh --password ${PLANTED}` }] }] } }),
+  "/home/x/.claude.json": JSON.stringify({ oauthAccount: { accessToken: PLANTED }, mcpServers: { a: { type: "http", url: `https://h.example.com/mcp?api_key=${PLANTED}`, headers: { Authorization: `Bearer ${PLANTED}` } } }, projects: { "/home/x/app": { mcpServers: { b: { command: "npx", args: ["-y", "pkg", "--token", PLANTED], env: { API_KEY: PLANTED } } } } } }),
+  "/home/x/.codex/config.toml": `[mcp_servers.c]\nurl = "https://c.example.com/mcp"\nhttp_headers = { "X-Api-Key" = "${PLANTED}" }\n`,
+};
 const connection: ConnectionStatus = { t3: "live", serverVersion: "1.0.0", protocolMismatch: false, error: null, setup: null };
 
 const running = [] as Array<() => Promise<void>>;
@@ -140,6 +152,18 @@ async function start(startOptions: StartOptions = {}) {
     },
   };
   const serverStats = { get: async (): Promise<ServerStats> => SERVER_STATS };
+  const agentSetupCalls: boolean[] = [];
+  const setupReader = createAgentSetup({
+    fs: memorySetupFs(SETUP_FILES),
+    env: {},
+    home: "/home/x",
+    platform: "linux",
+    projects: () => [{ id: "p1", title: "P1", defaultModelSelection: null, icon: null, workspaceRoot: "/home/x/app" }],
+    now: () => now,
+  });
+  const agentSetup = { get: async (refresh?: boolean) => (agentSetupCalls.push(refresh === true), setupReader.get(refresh)) };
+  const mcpCalls: boolean[] = [];
+  const mcpStatus = { get: async (refresh?: boolean): Promise<McpOverview> => (mcpCalls.push(refresh === true), { servers: [], readAt: "2026-03-07T10:00:00.000Z", cli: { available: false, ranAt: null, error: null } }) };
   const cleanupCalls: string[] = [];
   const cacheCleanup = {
     sizes: async (): Promise<CacheCleanupPreview> => (cleanupCalls.push("sizes"), CACHE_PREVIEW),
@@ -194,6 +218,8 @@ async function start(startOptions: StartOptions = {}) {
     usage,
     limits,
     serverStats,
+    agentSetup,
+    mcpStatus,
     cacheCleanup,
     automations: { setEnabled: async () => {}, runNow: async () => {}, ...automations },
     pulls: { prs: async () => ({ prs: [], fetchedAt: "2026-11-07T10:00:00.000Z" }), detail: async () => { throw new Error("no detail"); }, diff: async () => { throw new Error("no diff"); }, ...startOptions.pulls },
@@ -207,7 +233,7 @@ async function start(startOptions: StartOptions = {}) {
     allowedHosts: startOptions.allowedHosts,
   });
   running.push(async () => hub.close());
-  return { port, store, hub, server, cleanupCalls, usageCalls, limitsCalls, savedSessions, savedStashes, savedSeen, events, linearCalls, files, setupCalls, updateRuns };
+  return { port, store, hub, server, cleanupCalls, usageCalls, limitsCalls, agentSetupCalls, mcpCalls, savedSessions, savedStashes, savedSeen, events, linearCalls, files, setupCalls, updateRuns };
 }
 
 interface Reply {
@@ -1763,6 +1789,39 @@ test("GET /api/server-stats returns the machine's stats", async () => {
   const reply = await call(server, "GET", "/api/server-stats");
   assert.equal(reply.status, 200);
   assert.deepEqual(reply.json, SERVER_STATS);
+});
+
+test("GET /api/agent-setup returns the inventory, passes the refresh flag and leaks no secret", async () => {
+  const { server, agentSetupCalls } = await start();
+  const reply = await call(server, "GET", "/api/agent-setup");
+  assert.equal(reply.status, 200);
+  assert.deepEqual(reply.json.projects.map((p: { projectId: string }) => p.projectId), ["p1"]);
+  assert.deepEqual(reply.json.mcpServers.map((m: { name: string }) => m.name).sort(), ["a", "b", "c"]);
+  assert.equal(reply.text.includes(PLANTED), false);
+  await call(server, "GET", "/api/agent-setup?refresh=1");
+  assert.deepEqual(agentSetupCalls, [false, true]);
+});
+
+test("GET /api/agent-setup/mcp returns the overview and passes the refresh flag", async () => {
+  const { server, mcpCalls } = await start();
+  const reply = await call(server, "GET", "/api/agent-setup/mcp");
+  assert.equal(reply.status, 200);
+  assert.deepEqual(reply.json.servers, []);
+  await call(server, "GET", "/api/agent-setup/mcp?refresh=1");
+  assert.deepEqual(mcpCalls, [false, true]);
+});
+
+test("refresh=1 on the setup routes refuses a cross-site or foreign-host request", async () => {
+  const { server, agentSetupCalls, mcpCalls } = await start();
+  for (const path of ["/api/agent-setup?refresh=1", "/api/agent-setup/mcp?refresh=1"]) {
+    for (const site of ["cross-site", "same-site"]) assert.equal((await call(server, "GET", path, { headers: { "sec-fetch-site": site } })).status, 403, `${path} ${site}`);
+    assert.equal((await call(server, "GET", path, { headers: { host: "evil.example.com" } })).status, 403, path);
+    for (const site of ["same-origin", "none"]) assert.equal((await call(server, "GET", path, { headers: { "sec-fetch-site": site } })).status, 200, `${path} ${site}`);
+  }
+  assert.deepEqual(agentSetupCalls, [true, true]);
+  assert.deepEqual(mcpCalls, [true, true]);
+  // A plain read stays open to any fetch site.
+  assert.equal((await call(server, "GET", "/api/agent-setup/mcp", { headers: { "sec-fetch-site": "cross-site" } })).status, 200);
 });
 
 test("GET /api/cache-cleanup lists the reclaimable size per target without clearing", async () => {
