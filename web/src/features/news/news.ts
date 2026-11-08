@@ -1,7 +1,6 @@
 import type { DashboardProvider, ModelSelection, SaveNewsBody } from "../../../../shared/api.ts";
 import { NEWS_DEFAULT_MODEL, NEWS_LANGUAGES, isTimeOfDay, type NewsArticleSummary, type NewsFrequency, type NewsLanguage, type NewsSettings, type NewsTask } from "../../../../shared/news.ts";
 import { isUnseenAt, type SeenState } from "../../../../shared/seen.ts";
-import { formatMessageTime, relativeTime } from "../../lib/format.ts";
 import { WEEKDAY_NAMES, WEEKDAY_ORDER } from "../new-thread/automationForm.ts";
 import { presetSelection } from "../new-thread/newAgent.ts";
 
@@ -66,13 +65,26 @@ export function isStarting(startedAt: number | null, now: number, newestMtimeMs:
 }
 
 /** The line above the list: the next run and how the last one went. Empty when there is no schedule; a run in progress shows in the list. */
+const TIME = new Intl.DateTimeFormat(undefined, { hour: "numeric", minute: "2-digit" });
+const WEEKDAY_SHORT = new Intl.DateTimeFormat(undefined, { weekday: "short" });
+const MONTH_DAY = new Intl.DateTimeFormat(undefined, { month: "short", day: "numeric" });
+
+/** When the next article comes, as short as the date allows: "today 7:00 AM", "tomorrow 7:00 AM", "Mon 7:00 AM", "Nov 20". */
+export function nextRunLabel(at: Date, now: Date): string {
+  const day = (d: Date) => new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
+  const days = Math.round((day(at) - day(now)) / 86_400_000);
+  if (days === 0) return `today ${TIME.format(at)}`;
+  if (days === 1) return `tomorrow ${TIME.format(at)}`;
+  if (days > 1 && days < 7) return `${WEEKDAY_SHORT.format(at)} ${TIME.format(at)}`;
+  return MONTH_DAY.format(at);
+}
+
+/** The line above the list: the next article, or a failed last run. Empty when there is no schedule; a run in progress shows in the list. */
 export function statusLine(task: NewsTask | null, now: Date): string {
   if (!task || !task.enabled) return "";
-  const parts = [`Next article ${task.nextRunAt ? formatMessageTime(task.nextRunAt) : "not planned"}`];
-  if (task.lastRunAt && task.lastRunStatus !== "running") {
-    parts.push(task.lastRunStatus === "failed" ? `Last run failed: ${task.lastRunError ?? "unknown error"}` : `Last run ${relativeTime(task.lastRunAt, now)}`);
-  }
-  return parts.join(" · ");
+  const next = task.nextRunAt ? `Next: ${nextRunLabel(new Date(task.nextRunAt), now)}` : "";
+  const failed = task.lastRunStatus === "failed" ? "Last run failed" : "";
+  return [next, failed].filter(Boolean).join(" · ");
 }
 
 // UTC on both sides: the date is a calendar day, not an instant, so the browser's zone must not shift it.

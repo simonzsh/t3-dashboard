@@ -1157,6 +1157,8 @@ main:has(> .news-page) { padding-top: 8px; }
 .news-article { min-height: 0; overflow-y: auto; padding: 4px 4px 40px; }
 /* One rem width for every child: in ch, the small date line got a narrower box than the text and sat off its left edge. */
 .news-article > * { max-width: 42rem; margin-inline: auto; }
+/* Beside the list the column starts right after it; centring it there left a wide empty band on large screens. */
+.news-page:not(.list-hidden) .news-article > * { margin-inline: 0; }
 .news-back { display: none; }
 .news-model { container-type: inline-size; }
 .news-schedule { display: contents; }
