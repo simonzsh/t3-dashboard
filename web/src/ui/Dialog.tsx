@@ -34,6 +34,9 @@ interface Props {
 
 const ignore = () => {};
 
+// Longer than the iOS keyboard animation.
+const SETTLE_MS = 1000;
+
 // Same breakpoint as the bottom bar in styles.css: there the dialog is a bottom sheet.
 const isPhone = () => typeof matchMedia === "function" && matchMedia("(max-width: 700px)").matches;
 
@@ -96,12 +99,32 @@ export function Dialog({ title, label, onClose, onCancel, cancelLabel = "Cancel"
       const active = document.activeElement;
       if (active instanceof HTMLElement && box.current?.contains(active)) active.scrollIntoView({ block: "nearest" });
     };
+    // A keyboard that opens with the dialog (autofocused field) can end its animation without a last
+    // resize or scroll event: keep fitting each frame for a while after any change.
+    let frame = 0;
+    let until = 0;
+    const tick = () => {
+      fit();
+      frame = performance.now() < until ? requestAnimationFrame(tick) : 0;
+    };
+    const settle = () => {
+      until = performance.now() + SETTLE_MS;
+      if (!frame) frame = requestAnimationFrame(tick);
+    };
+    const onResize = () => (resized(), settle());
+    const onScroll = () => (fit(), settle());
     fit();
-    vv.addEventListener("resize", resized);
-    vv.addEventListener("scroll", fit);
+    settle();
+    vv.addEventListener("resize", onResize);
+    vv.addEventListener("scroll", onScroll);
+    root.addEventListener("focusin", settle);
+    window.addEventListener("scroll", settle);
     return () => {
-      vv.removeEventListener("resize", resized);
-      vv.removeEventListener("scroll", fit);
+      window.removeEventListener("scroll", settle);
+      cancelAnimationFrame(frame);
+      vv.removeEventListener("resize", onResize);
+      vv.removeEventListener("scroll", onScroll);
+      root.removeEventListener("focusin", settle);
     };
   }, []);
 
