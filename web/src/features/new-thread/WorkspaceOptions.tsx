@@ -71,17 +71,19 @@ export function WorkspaceOptions({ project, draft, onDraft, plan, onPlan, onBloc
   const change = (patch: Partial<WorkspaceDraft>) => onDraft((d) => d && { ...d, ...patch });
   const setMode = (envMode: EnvMode) => change({ envMode, ref: envMode === "worktree" ? current : null, newBranch: null });
 
+  const ready = project && root && draft;
+
   return (
     <div className="workspace-options">
       <div className="workspace-bar">
         <div className="workspace-group">
-          {project && root && draft && <ModeMenu value={draft.envMode} onChange={setMode} />}
+          {ready && <ModeMenu value={draft.envMode} onChange={setMode} />}
           <Pressable className="workspace-chip" aria-pressed={plan} tooltip="The agent proposes a plan before it changes anything" onClick={() => onPlan(!plan)}>
             <Icon name="list" />
             <span>Plan</span>
           </Pressable>
         </div>
-        {project && root && draft && (
+        {ready && (
           <BranchPicker
             projectId={project.id}
             mode={draft.envMode}
@@ -97,7 +99,7 @@ export function WorkspaceOptions({ project, draft, onDraft, plan, onPlan, onBloc
         )}
       </div>
       {failure && <p className="workspace-warning">Could not read the branches: {failure}</p>}
-      {root && draft && status && showDirtyWarning(draft, root, status) && <p className="workspace-warning">This checkout has uncommitted changes. They move with the branch change.</p>}
+      {ready && status && showDirtyWarning(draft, root, status) && <p className="workspace-warning">This checkout has uncommitted changes. They move with the branch change.</p>}
     </div>
   );
 }
