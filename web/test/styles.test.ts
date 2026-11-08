@@ -130,8 +130,8 @@ test("automations: only the list scrolls, under a fixed toolbar, on a phone too"
   assert.doesNotMatch(css, /\.auto-page \{[^}]*overflow-y/);
   assert.doesNotMatch(css, /\.auto-toolbar \{[^}]*sticky/);
   const phone = css.slice(css.indexOf("@media (max-width: 700px)"));
-  // News holds the page still the same way: no page scroll, only its list or article scrolls.
-  assert.match(phone, /\.app:not\(\.sessions-mode, \.automations-mode, \.news-mode\) \{ height: auto;/);
+  // News and Git hold the page still the same way: no page scroll, only their list or article scrolls.
+  assert.match(phone, /\.app:not\(\.sessions-mode, \.automations-mode, \.news-mode, \.git-mode\) \{ height: auto;/);
 });
 
 test("news: the article is a readable column, and on a phone the list and the article take turns", () => {
@@ -185,4 +185,11 @@ test("news: the list head stays put while the articles scroll, as on Automations
 test("one spin keyframe, and shared rows have one rule each", () => {
   assert.equal(css.match(/@keyframes spin /g)?.length, 1);
   for (const selector of [".row-icons", ".linear-status"]) assert.equal(css.split("\n").filter((line) => line.startsWith(`${selector} {`)).length, 1);
+});
+
+test("git: the diff bar and the file headers stick inside the page, and a dark theme recolours the tokens", () => {
+  assert.match(rule(".diff-bar"), /position: sticky; top: 0/);
+  assert.match(rule(".diff-file-head"), /position: sticky; top: var\(--git-bar\)/);
+  assert.match(rule(".git-page"), /overflow-y: auto/);
+  assert.match(css, /:root\[data-theme="dark"\] :is\(\.hljs-keyword/);
 });

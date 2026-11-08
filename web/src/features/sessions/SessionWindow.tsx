@@ -1,6 +1,6 @@
 import { memo, type Dispatch } from "react";
 import type { DashboardProvider, DashboardThread, ProjectIcon as ProjectIconData } from "../../../../shared/api.ts";
-import { Badge, Button, Icon, IconButton } from "../../ui/index.ts";
+import { Badge, Button, Icon, IconButton, IconButtonLink } from "../../ui/index.ts";
 import { AutomationMark } from "../../lib/automationThreads.tsx";
 import { attentionState } from "./sessionList.ts";
 import type { SessionsAction } from "./sessions.ts";
@@ -9,6 +9,7 @@ import { OpenInT3 } from "../../lib/OpenInT3.tsx";
 import { ProjectIcon } from "../../lib/ProjectIcon.tsx";
 import { RunningBadge } from "../../lib/StatusBadge.tsx";
 import { ctrlLabel } from "../../lib/shortcuts.ts";
+import { hashForPr } from "../../lib/tabs.ts";
 
 // Only the states that ask for attention get a badge: a done or idle session shows none.
 const STATE_LABELS = { waiting: "Waiting", error: "Error" } as const;
@@ -73,6 +74,11 @@ function SessionWindowView({ id, thread, title, projectTitle, projectIcon, missi
             )
           )}
           <span className="session-window-buttons">
+            {thread?.pullRequest && (
+              <IconButtonLink variant="ghost" size="sm" href={hashForPr(thread.pullRequest)} label={`Open pull request #${thread.pullRequest.number}`} tooltip={`Open pull request #${thread.pullRequest.number}`}>
+                <Icon name="gitPullRequest" />
+              </IconButtonLink>
+            )}
             <OpenInT3 environmentId={t3EnvironmentId} threadId={id} />
             {!compact && (
               <IconButton variant="ghost" size="sm" label={fullscreen} tooltip={fullscreen} shortcut={maximized ? `${ctrlLabel("F")} / Esc` : ctrlLabel("F")} onClick={onToggleMaximize}>

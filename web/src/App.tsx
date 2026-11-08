@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import type { DashboardThread } from "../../shared/api.ts";
 import { AutomationsView } from "./features/automations/AutomationsView.tsx";
+import { GitView } from "./features/git/GitView.tsx";
 import { NewsSettingsDialog } from "./features/news/NewsSettingsDialog.tsx";
 import { NewsView } from "./features/news/NewsView.tsx";
 import { firstRunBody, unreadNewsCount } from "./features/news/news.ts";
@@ -46,7 +47,7 @@ import { useSessionLayout } from "./lib/sessionLayout.ts";
 import { useSidebarCollapsed } from "./lib/sidebar.ts";
 import { agentCounts } from "./lib/agents.ts";
 import { TABS } from "./lib/tabs.ts";
-import { useTab } from "./lib/useTab.ts";
+import { usePrRoute, useTab } from "./lib/useTab.ts";
 import { useTheme } from "./features/settings/useTheme.ts";
 import { useAccent } from "./features/settings/useAccent.ts";
 import { useTint } from "./features/settings/useTint.ts";
@@ -62,6 +63,7 @@ const SHEET = "(max-width: 1200px)";
 export function App() {
   const { state, sseDown, remoteSessions, remoteSeen, connects } = useDashboard();
   const [tab, setTab] = useTab();
+  const prRoute = usePrRoute();
   // Always loaded while live: it feeds the Automations badge and the automation icon, besides the page.
   const threadIds = useMemo(() => state?.threads.map((t) => t.id) ?? NO_IDS, [state?.threads]);
   const automations = useAutomations(state?.connection.t3 === "live", threadIds);
@@ -175,7 +177,7 @@ export function App() {
   const blocked = creating !== null || creatingAutomation || newsSettingsOpen || addingProject || editedProject !== undefined || deletedProject !== undefined || settingsOpen || confirmingUpdate || switcherQuery !== null;
   useShortcuts(
     (action) => {
-      if (action === "dashboard" || action === "sessions" || action === "automations" || action === "news") setTab(action);
+      if (action === "dashboard" || action === "sessions" || action === "automations" || action === "news" || action === "git") setTab(action);
       else if (action === "settings") setSettingsOpen(true);
       else if (action === "toggle-sidebar") {
         if (!compact) toggleSidebar();
@@ -248,7 +250,7 @@ export function App() {
 
   return (
     <AutomationThreadsContext.Provider value={automationThreads}>
-      <div className={`app${tab === "sessions" ? " sessions-mode" : ""}${tab === "automations" ? " automations-mode" : ""}${tab === "news" ? " news-mode" : ""}${sessionShown ? " session-shown" : ""}${sheetShown ? " sheet-shown" : ""}`}>
+      <div className={`app${tab === "sessions" ? " sessions-mode" : ""}${tab === "automations" ? " automations-mode" : ""}${tab === "news" ? " news-mode" : ""}${tab === "git" ? " git-mode" : ""}${sessionShown ? " session-shown" : ""}${sheetShown ? " sheet-shown" : ""}`}>
         <TooltipLayer />
         <AppNav
           layout={compact ? "bottom" : "side"}
@@ -342,6 +344,7 @@ export function App() {
                 />
               ) : <Loader />)}
             {tab === "news" && (news.state ? <NewsView news={news.state} writing={news.writing} now={now} compact={compact} seen={notify.seen} onRead={readNews} onOpenThread={onOpen} onDelete={news.remove} onDeleteAll={news.removeAll} /> : <Loader />)}
+            {tab === "git" && (state ? <GitView route={prRoute} threads={state.threads} now={now} onOpenThread={onOpen} /> : <Loader />)}
             {tab === "sessions" &&
               (state ? (
                 <SessionsView

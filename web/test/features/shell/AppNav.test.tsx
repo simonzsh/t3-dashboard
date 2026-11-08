@@ -21,10 +21,10 @@ const base = {
 const side = (over = {}) => renderToStaticMarkup(<AppNav layout="side" {...base} {...over} />);
 const bottom = (over = {}) => renderToStaticMarkup(<AppNav layout="bottom" {...base} {...over} />);
 
-test("the sidebar lists Dashboard, Sessions, Automations and News, with the open page marked current", () => {
+test("the sidebar lists Dashboard, Sessions, Automations, News and Git, with the open page marked current", () => {
   const out = side();
   assert.match(out, /<nav class="sidebar/);
-  assert.deepEqual([...out.matchAll(/data-tab="(\w+)"/g)].map((m) => m[1]), ["dashboard", "sessions", "automations", "news"]);
+  assert.deepEqual([...out.matchAll(/data-tab="(\w+)"/g)].map((m) => m[1]), ["dashboard", "sessions", "automations", "news", "git"]);
   assert.match(out, /aria-current="page"[^>]*data-tab="sessions"|data-tab="sessions"[^>]*aria-current="page"/);
   assert.equal(out.match(/aria-current="page"/g)?.length, 1);
 });
@@ -51,11 +51,11 @@ test("the sidebar shows the update button only when an update is ready", () => {
   assert.match(side({ update: { label: "Update v1.2.3", busy: false } }), /update-pill[^>]*>[\s\S]*?Update v1\.2\.3/);
 });
 
-test("the bottom bar has the four pages only (Settings is in the phone header), and no sidebar", () => {
+test("the bottom bar has the five pages only (Settings is in the phone header), and no sidebar", () => {
   const out = bottom();
   assert.match(out, /<nav class="bottom-nav"/);
   assert.doesNotMatch(out, /sidebar|Search…/);
-  assert.deepEqual([...out.matchAll(/data-tab="(\w+)"/g)].map((m) => m[1]), ["dashboard", "sessions", "automations", "news"]);
+  assert.deepEqual([...out.matchAll(/data-tab="(\w+)"/g)].map((m) => m[1]), ["dashboard", "sessions", "automations", "news", "git"]);
   assert.doesNotMatch(out, /Settings/);
   assert.equal(out.match(/aria-current="page"/g)?.length, 1);
 });

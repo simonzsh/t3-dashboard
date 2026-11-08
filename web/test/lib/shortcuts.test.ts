@@ -11,6 +11,7 @@ test("Ctrl+key maps to the actions", () => {
   assert.equal(matchShortcut(ctrl("2"), false), "sessions");
   assert.equal(matchShortcut(ctrl("3"), false), "automations");
   assert.equal(matchShortcut(ctrl("4"), false), "news");
+  assert.equal(matchShortcut(ctrl("5"), false), "git");
   assert.equal(matchShortcut(ctrl("n"), false), "new-session");
   assert.equal(matchShortcut(ctrl("N"), false), "new-session");
   assert.equal(matchShortcut(ctrl(","), false), "settings");
@@ -25,7 +26,7 @@ test("Ctrl shortcuts work while typing in a field", () => {
 });
 
 test("plain keys and Cmd do not trigger the shortcuts", () => {
-  for (const key of ["1", "2", "3", "4", "n", ","]) assert.equal(matchShortcut(press(key), false), null, key);
+  for (const key of ["1", "2", "3", "4", "5", "n", ","]) assert.equal(matchShortcut(press(key), false), null, key);
   assert.equal(matchShortcut(press("N", { shiftKey: true }), false), null);
   assert.equal(matchShortcut(press("n", { metaKey: true }), false), null);
   assert.equal(matchShortcut(press("1", { metaKey: true }), false), null);

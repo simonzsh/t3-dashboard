@@ -1,5 +1,6 @@
-import { useEffect, useSyncExternalStore } from "react";
-import { hashForTab, tabFromHash, type Tab } from "./tabs.ts";
+import { useEffect, useMemo, useSyncExternalStore } from "react";
+import type { PrRef } from "../../../shared/git.ts";
+import { hashForTab, prFromHash, tabFromHash, type Tab } from "./tabs.ts";
 
 const subscribe = (onChange: () => void) => {
   window.addEventListener("hashchange", onChange);
@@ -10,10 +11,17 @@ const subscribe = (onChange: () => void) => {
 export function useTab(): [Tab, (tab: Tab) => void] {
   const tab = useSyncExternalStore(subscribe, () => tabFromHash(location.hash));
   useEffect(() => {
-    if (location.hash !== hashForTab(tab)) history.replaceState(history.state, "", hashForTab(tab));
+    // A pull request hash is a valid address of the Git tab: keep it.
+    if (location.hash !== hashForTab(tab) && !prFromHash(location.hash)) history.replaceState(history.state, "", hashForTab(tab));
   }, [tab]);
   const setTab = (next: Tab) => {
     if (location.hash !== hashForTab(next)) location.hash = hashForTab(next);
   };
   return [tab, setTab];
+}
+
+/** The pull request the hash points at, or null on the Git list and on every other page. */
+export function usePrRoute(): PrRef | null {
+  const hash = useSyncExternalStore(subscribe, () => location.hash);
+  return useMemo(() => prFromHash(hash), [hash]);
 }
