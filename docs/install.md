@@ -25,6 +25,7 @@ The script does these steps:
 3. It puts the binary in `~/.local/bin` (Windows: `%LOCALAPPDATA%\Programs\t3-dashboard`).
 4. It runs `t3-dashboard install`. This command registers the service, adds the [agent rules](#agent-rules), starts the service and opens `http://127.0.0.1:4300`.
 
+- The script looks for T3 Code (`t3`). If it is missing, the script prints a warning with the install link and command, then continues. The install does not fail.
 - On macOS and Linux, the script warns you if the folder is not in the `PATH`.
 - On Windows, the script adds the folder to the user `PATH`. Open a new terminal to use `t3-dashboard`.
 - On Windows ARM64, the x64 binary runs in emulation.
@@ -47,7 +48,7 @@ Script options:
 | Windows | "T3 Dashboard" scheduled task at logon |
 
 - The service restarts automatically after a failure.
-- `install` copies these variables into the service, if they are set at installation time: `T3_DASHBOARD_TOKEN_FILE`, `T3_DASHBOARD_CONFIG_DIR`, `T3_DASHBOARD_LINEAR_FILE`, `T3_DASHBOARD_T3_BIN`, `T3_DASHBOARD_ALLOWED_HOSTS`, `T3_SERVER_RUNTIME`, `T3CODE_HOME`, `CLAUDE_CONFIG_DIR`, `CODEX_HOME` and `T3_DASHBOARD_AGENT_RULES`. To change a value, set the variable and run `install` again.
+- `install` copies these variables into the service, if they are set at installation time: `T3_DASHBOARD_TOKEN_FILE`, `T3_DASHBOARD_CONFIG_DIR`, `T3_DASHBOARD_LINEAR_FILE`, `T3_DASHBOARD_T3_BIN`, `T3_DASHBOARD_ALLOWED_HOSTS`, `T3_SERVER_RUNTIME`, `T3CODE_HOME`, `CLAUDE_CONFIG_DIR`, `CODEX_HOME`, `XDG_CONFIG_HOME` and `T3_DASHBOARD_AGENT_RULES`. To change a value, set the variable and run `install` again.
 - `install` and `update` wait at most 15 s for the new binary to answer on the port.
 - If a different program or an older dashboard uses the port, the command stops with this error: "Port 4300 is used by another program or an older dashboard." Stop this program, or install with `--port <n>`.
 - On Linux, `install` needs `systemctl`. Without `systemctl`, use `t3-dashboard start`.
@@ -57,15 +58,27 @@ Script options:
 
 ## Agent rules
 
-`install` adds a block of rules for automations to `~/.claude/CLAUDE.md` and `~/.codex/AGENTS.md`. The block tells the agent to create reminders, routines and webhooks with the `schedule_task` tool of T3 Code. A missing file is created.
+`install` adds a block of rules for automations to the global instruction file of each agent. The block tells the agent to create reminders, routines and webhooks with the `schedule_task` tool of T3 Code.
+
+| Agent | File | Written |
+| --- | --- | --- |
+| Claude Code | `~/.claude/CLAUDE.md` | Always. A missing file is created. |
+| Codex | `~/.codex/AGENTS.md` | Always. A missing file is created. |
+| OpenCode | `~/.config/opencode/AGENTS.md` | Only if `~/.config/opencode` exists. |
+| Grok | `~/.grok/AGENTS.md` | Only if `~/.grok` exists. |
+
+The dashboard never creates the folder of an agent that is not installed. Two agents get no block:
+
+- Cursor keeps its global rules in your Cursor account (Settings, Rules), not in a file. Paste the block there by hand if you use Cursor.
+- Antigravity: T3 Code starts it with a private profile, so it never reads `~/.gemini/GEMINI.md`.
 
 - The block sits between the lines `<!-- t3-dashboard:begin -->` and `<!-- t3-dashboard:end -->`. The dashboard changes only the text between them. Do not edit it: the next start replaces it.
 - The compiled binary refreshes the block at each start, so an update brings the new text.
 - If the markers are damaged (a begin without an end), the dashboard leaves the file as it is and logs the problem.
 - To stop this, set `T3_DASHBOARD_AGENT_RULES=off` before `install` and in the service. Remove the block by hand, or run `uninstall`.
-- `CLAUDE_CONFIG_DIR` and `CODEX_HOME` move the two files, as they do for Claude Code and Codex.
-- If `CLAUDE.md` already loads `AGENTS.md` with an `@` line (for example `@~/.codex/AGENTS.md`), the block goes only in `AGENTS.md`, so Claude does not read it twice.
-- `uninstall` removes the block. A file that holds nothing else is deleted.
+- `CLAUDE_CONFIG_DIR`, `CODEX_HOME` and `XDG_CONFIG_HOME` (for OpenCode) move the files, as they do for each agent.
+- If `CLAUDE.md` already loads another rules file with an `@` line (for example `@~/.codex/AGENTS.md`), the block goes only in the loaded file, so Claude does not read it twice. The other agents read `@` lines as text, so their file always gets the block.
+- `uninstall` removes the block from every file that has it. A file that holds nothing else is deleted.
 
 ## Commands
 
@@ -83,7 +96,7 @@ Without a command, `t3-dashboard` runs `start`. `install` and `update` refuse to
 ## First start
 
 1. The dashboard looks for `t3`. It creates its own access token with `t3 auth session issue`. It keeps this token in `~/.config/t3-dashboard/auth.json` (mode 600). You do not have to do anything.
-2. If T3 Code is stopped or not installed, a full screen tells you what to do. Start or install T3 Code, then click "Retry". The dashboard appears without a page reload.
+2. If T3 Code is not installed, a full screen shows the install link (<https://t3.codes>) and the official install command: `curl -fsSL https://t3.codes/install.sh | sh` on macOS and Linux, `irm https://t3.codes/install.ps1 | iex` on Windows. The desktop app from t3.codes works too. If T3 Code is installed but stopped, the screen shows the command `t3 start`. Install or start T3 Code, then click "Retry". The dashboard appears without a page reload.
 3. If the token creation fails, the screen gives the exact command. Run it, then paste the token in the field.
 4. To use Linear, connect it in Settings (see [Linear](#linear)).
 
@@ -174,6 +187,7 @@ The dashboard has no authentication. Each person who can reach the address can c
 | `T3CODE_HOME` | `~/.t3` | Base folder of T3 Code. The dashboard also gives it to `t3 auth session issue`. |
 | `CLAUDE_CONFIG_DIR` | `~/.claude` | Folder of the `CLAUDE.md` file that gets the agent rules. |
 | `CODEX_HOME` | `~/.codex` | Folder of the `AGENTS.md` file that gets the agent rules. |
+| `XDG_CONFIG_HOME` | `~/.config` | Base of the OpenCode folder (`opencode/AGENTS.md`) that gets the agent rules. |
 | `T3_DASHBOARD_AGENT_RULES` | on | `off` stops `install` and the start of the binary from writing the agent rules. `uninstall` still removes them. |
 | `T3_DASHBOARD_AUTOMATION_GUARD` | off in a dev build | `on` starts the automation guard in a version that Bun starts, for a test against the real T3 Code. The compiled binary always runs it. |
 | `T3_SERVER_RUNTIME` | `<T3CODE_HOME>/userdata/server-runtime.json` | JSON file with the `origin` field. The dashboard reads it again at each connection to T3. Fallback: `http://127.0.0.1:3773`. |

@@ -139,7 +139,7 @@ export function ModelPanel({ providers, selection, mode = null, modes = [], onSe
   return (
     <div className={`model-picker${inline ? " inline" : ""}`} ref={root}>
       <Pressable ref={chip} className="model-chip" aria-label="Model, reasoning and access" aria-haspopup="dialog" aria-expanded={open} disabled={!selection} onClick={() => (open ? close(false) : show())}>
-        {selection && <ProviderIcon provider={selection.instanceId} />}
+        {selection && <ProviderIcon provider={selection.instanceId} driver={found?.provider.driver} />}
         <span className="model-chip-name">{label.name}</span>
         {label.effort && <span className="model-chip-effort">{label.effort}</span>}
         {label.fast && <Icon name="bolt" className="icon model-chip-fast" />}
@@ -150,7 +150,7 @@ export function ModelPanel({ providers, selection, mode = null, modes = [], onSe
             <div className="model-rail">
               {railButton("favorites", "Favorites", <Icon name={rail === "favorites" ? "starFilled" : "star"} />)}
               <span className="model-rail-sep" aria-hidden="true" />
-              {providers.map((p) => railButton(p.instanceId, p.displayName, <ProviderIcon provider={p.instanceId} />))}
+              {providers.map((p) => railButton(p.instanceId, p.displayName, <ProviderIcon provider={p.instanceId} driver={p.driver} />))}
             </div>
             <div className="model-main">
               <div className="model-search">
@@ -188,7 +188,7 @@ export function ModelPanel({ providers, selection, mode = null, modes = [], onSe
                       }}
                       onClick={() => pickRow(row)}
                     >
-                      <ProviderIcon provider={row.provider.instanceId} />
+                      <ProviderIcon provider={row.provider.instanceId} driver={row.provider.driver} />
                       <span className="model-row-name">{row.model.name}</span>
                       {/* T3 Code owns the favorites: the star only shows them. */}
                       {row.model.favorite !== null && <Icon name="starFilled" className="icon model-row-star" label="Favorite" />}

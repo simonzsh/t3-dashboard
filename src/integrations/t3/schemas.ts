@@ -334,7 +334,7 @@ export type RawUsageLimits = Infer<typeof RawUsageLimits>;
 
 export const RawProvider = s.object({
   instanceId: s.string(),
-  // The provider kind, e.g. claudeAgent: an instance id can be anything.
+  // The provider kind, e.g. codex: an instance id can be anything.
   driver: s.optional(s.string()),
   displayName: text(),
   enabled: s.optional(s.boolean()),

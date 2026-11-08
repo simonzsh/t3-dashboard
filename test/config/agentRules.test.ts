@@ -122,3 +122,36 @@ test("a write error is logged and never thrown", () => {
   syncAgentRules("write", deps);
   assert.deepEqual(logs, ["Could not update /c/CLAUDE.md: read-only", "Could not update /x/AGENTS.md: read-only"]);
 });
+
+test("write skips an agent whose folder is missing and creates no folder", () => {
+  const { files, deps } = harness({ "/xdg/other": "" }, { XDG_CONFIG_HOME: "/xdg" });
+  syncAgentRules("write", deps);
+  assert.equal("/xdg/opencode/AGENTS.md" in files, false);
+  const installed = harness({ "/xdg/opencode": "" }, { XDG_CONFIG_HOME: "/xdg" });
+  syncAgentRules("write", installed.deps);
+  assert.equal(installed.files["/xdg/opencode/AGENTS.md"], `${AGENT_RULES}\n`);
+  assert.equal("/h/.grok/AGENTS.md" in installed.files, false);
+  const grok = harness({ "/h/.grok": "" });
+  syncAgentRules("write", grok.deps);
+  assert.equal(grok.files["/h/.grok/AGENTS.md"], `${AGENT_RULES}\n`);
+});
+
+test("remove clears every target that has a file, even when its folder check would fail", () => {
+  const { files, deps } = harness({ "/xdg/opencode/AGENTS.md": `Mine\n\n${AGENT_RULES}\n` }, { XDG_CONFIG_HOME: "/xdg" });
+  syncAgentRules("remove", deps);
+  assert.equal(files["/xdg/opencode/AGENTS.md"], "Mine\n");
+});
+
+test("an agent that reads @ lines as text still gets the block when its file names another target", () => {
+  const { files, deps } = harness({ "/x/AGENTS.md": "@/c/CLAUDE.md\n" });
+  syncAgentRules("write", deps);
+  assert.equal(files["/x/AGENTS.md"], `@/c/CLAUDE.md\n\n${AGENT_RULES}\n`);
+  assert.equal(files["/c/CLAUDE.md"], `${AGENT_RULES}\n`);
+});
+
+test("two files that load each other keep the block in the one that cannot import", () => {
+  const { files, deps } = harness({ "/c/CLAUDE.md": "@/x/AGENTS.md\n", "/x/AGENTS.md": "@/c/CLAUDE.md\n" });
+  syncAgentRules("write", deps);
+  assert.equal(files["/c/CLAUDE.md"], "@/x/AGENTS.md\n");
+  assert.equal(files["/x/AGENTS.md"], `@/c/CLAUDE.md\n\n${AGENT_RULES}\n`);
+});

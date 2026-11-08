@@ -40,6 +40,7 @@ export const SERVICE_ENV_KEYS = [
   "T3CODE_HOME",
   "CLAUDE_CONFIG_DIR",
   "CODEX_HOME",
+  "XDG_CONFIG_HOME",
   "T3_DASHBOARD_AGENT_RULES",
 ] as const;
 

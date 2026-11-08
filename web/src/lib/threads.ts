@@ -1,11 +1,5 @@
 import type { DashboardThread, PendingCategory } from "../../../shared/api.ts";
 
-export function providerKind(provider: string): "claude" | "codex" | "other" {
-  const p = provider.toLowerCase();
-  if (p.includes("claude")) return "claude";
-  return p.includes("codex") ? "codex" : "other";
-}
-
 export function pendingLabel(category: PendingCategory): string {
   if (category === "approval") return "Approval";
   return category === "user-input" ? "Question" : "Action required";

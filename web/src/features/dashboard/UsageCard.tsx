@@ -88,7 +88,7 @@ export function UsageCard({ state, now }: { state: ReadState<LimitsOverview>; no
           {!limits.supported ? (
             <p className="dashboard-note">This T3 Code version does not report usage limits.</p>
           ) : limits.providers.length === 0 ? (
-            <p className="dashboard-note">No provider reports usage limits. Sign in to Codex or Claude in T3 Code.</p>
+            <p className="dashboard-note">No provider reports usage limits. Sign in to an agent in T3 Code.</p>
           ) : (
             sortProviders(limits.providers).map((provider) => <Provider key={provider.instanceId} provider={provider} now={now} />)
           )}

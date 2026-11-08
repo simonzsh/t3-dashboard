@@ -1,6 +1,6 @@
 import type { SetupInfo, SetupReason } from "../../shared/api.ts";
 import type { ReadFile } from "../config/config.ts";
-import { INSTALL_URL, ISSUE_COMMAND, issueToken, type Run } from "../integrations/t3/cli.ts";
+import { INSTALL_COMMAND, INSTALL_URL, ISSUE_COMMAND, START_COMMAND, issueToken, type Run } from "../integrations/t3/cli.ts";
 import type { Validation } from "../integrations/t3/client.ts";
 import { authFile } from "../config/paths.ts";
 import { readStoredToken } from "../config/storedToken.ts";
@@ -62,7 +62,7 @@ export class TokenManager {
 
   private fail(reason: SetupReason, detail: string | null): void {
     this.token = null;
-    this.setupInfo = { reason, detail, issueCommand: ISSUE_COMMAND, installUrl: INSTALL_URL };
+    this.setupInfo = { reason, detail, issueCommand: ISSUE_COMMAND, installUrl: INSTALL_URL, installCommand: INSTALL_COMMAND, startCommand: START_COMMAND };
   }
 
   // A failed write is not fatal: the token still works until the next restart.

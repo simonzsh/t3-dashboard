@@ -1,6 +1,6 @@
 #!/bin/sh
 # Installs t3-dashboard for macOS and Linux: curl -fsSL <url>/install.sh | sh
-# Env: T3_DASHBOARD_REPO, T3_DASHBOARD_VERSION, T3_DASHBOARD_INSTALL_DIR, T3_DASHBOARD_NO_SERVICE=1.
+# Env: T3_DASHBOARD_REPO, T3_DASHBOARD_VERSION, T3_DASHBOARD_INSTALL_DIR, T3_DASHBOARD_NO_SERVICE=1, T3_DASHBOARD_T3_BIN, T3CODE_HOME.
 set -eu
 
 fail() {
@@ -34,6 +34,16 @@ sha256_of() {
   else
     shasum -a 256 "$1" | cut -d ' ' -f 1
   fi
+}
+
+# Same places the dashboard server looks for the t3 binary.
+t3_found() {
+  [ -n "${T3_DASHBOARD_T3_BIN:-}" ] && [ -x "$T3_DASHBOARD_T3_BIN" ] && return 0
+  command -v t3 >/dev/null 2>&1 && return 0
+  for candidate in "${T3CODE_INSTALL_BIN_DIR:-$HOME/.local/bin}/t3" "$HOME/.local/bin/t3" /opt/homebrew/bin/t3 /usr/local/bin/t3 "${T3CODE_HOME:-$HOME/.t3}"/runtime/versions/*/t3; do
+    [ -x "$candidate" ] && return 0
+  done
+  return 1
 }
 
 main() {
@@ -72,6 +82,14 @@ main() {
     *":$dir:"*) ;;
     *) echo "Warning: $dir is not in your PATH. Add it to run t3-dashboard from a terminal." ;;
   esac
+
+  if ! t3_found; then
+    {
+      echo "Warning: T3 Code (t3) was not found. The dashboard needs it on this computer."
+      echo "Install it: curl -fsSL https://t3.codes/install.sh | sh  (or the app from https://t3.codes)"
+      echo "Then start it: t3 start"
+    } >&2
+  fi
 
   if [ "${T3_DASHBOARD_NO_SERVICE:-}" != 1 ]; then
     "$dir/t3-dashboard" install

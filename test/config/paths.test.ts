@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "bun:test";
-import { authFile, automationThreadsFile, claudeRulesFile, codexRulesFile, configDir, linearFile, logFile, newsDir, newsFile, pidFile, stateDir } from "../../src/config/paths.ts";
+import { authFile, automationThreadsFile, agentRulesTargets, configDir, linearFile, logFile, newsDir, newsFile, pidFile, stateDir } from "../../src/config/paths.ts";
 
 test("files live in the config directory, under the home by default", () => {
   assert.equal(configDir({}, "/home/ann"), "/home/ann/.config/t3-dashboard");
@@ -26,11 +26,15 @@ test("state files follow each OS convention", () => {
   assert.equal(pidFile({}, "/home/ann", "linux"), "/home/ann/.local/state/t3-dashboard/dashboard.pid");
 });
 
-test("the agent rules files follow the Claude and Codex homes", () => {
-  assert.equal(claudeRulesFile({}, "/home/ann"), "/home/ann/.claude/CLAUDE.md");
-  assert.equal(codexRulesFile({}, "/home/ann"), "/home/ann/.codex/AGENTS.md");
-  assert.equal(claudeRulesFile({ CLAUDE_CONFIG_DIR: "/c" }, "/h"), "/c/CLAUDE.md");
-  assert.equal(codexRulesFile({ CODEX_HOME: "/x" }, "/h"), "/x/AGENTS.md");
+test("the agent rules targets follow each agent's home", () => {
+  assert.deepEqual(agentRulesTargets({}, "/home/ann"), [
+    { agent: "claude", dir: "/home/ann/.claude", file: "/home/ann/.claude/CLAUDE.md", always: true, imports: true },
+    { agent: "codex", dir: "/home/ann/.codex", file: "/home/ann/.codex/AGENTS.md", always: true, imports: false },
+    { agent: "opencode", dir: "/home/ann/.config/opencode", file: "/home/ann/.config/opencode/AGENTS.md", always: false, imports: false },
+    { agent: "grok", dir: "/home/ann/.grok", file: "/home/ann/.grok/AGENTS.md", always: false, imports: false },
+  ]);
+  const custom = agentRulesTargets({ CLAUDE_CONFIG_DIR: "/c", CODEX_HOME: "/x", XDG_CONFIG_HOME: "/xdg", OPENCODE_CONFIG_DIR: "/ignored" }, "/h");
+  assert.deepEqual(custom.map((t) => t.file), ["/c/CLAUDE.md", "/x/AGENTS.md", "/xdg/opencode/AGENTS.md", "/h/.grok/AGENTS.md"]);
 });
 
 test("the news settings and the article folder follow the config directory, as absolute paths", () => {

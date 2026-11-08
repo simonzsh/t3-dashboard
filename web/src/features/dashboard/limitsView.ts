@@ -1,6 +1,6 @@
 import type { LimitsOverview, LimitWindow, LimitWindowKind, ProviderLimits } from "../../../../shared/api.ts";
 import { relativeTime } from "../../lib/format.ts";
-import { providerKind } from "../../lib/threads.ts";
+import { providerRank } from "../../lib/providers.ts";
 
 /** Within this many points of the elapsed share, the pace counts as even. */
 const PACE_BAND = 5;
@@ -61,8 +61,7 @@ export function caption(w: LimitWindow, now: Date): string {
 const KIND_RANK: Record<LimitWindowKind, number> = { session: 0, weekly: 1, monthly: 2, other: 3 };
 export const sortWindows = (windows: LimitWindow[]): LimitWindow[] => [...windows].sort((a, b) => KIND_RANK[a.kind] - KIND_RANK[b.kind]);
 
-const PROVIDER_RANK = { codex: 0, claude: 1, other: 2 };
-export const sortProviders = (providers: ProviderLimits[]): ProviderLimits[] => [...providers].sort((a, b) => PROVIDER_RANK[providerKind(a.driver)] - PROVIDER_RANK[providerKind(b.driver)]);
+export const sortProviders = (providers: ProviderLimits[]): ProviderLimits[] => [...providers].sort((a, b) => providerRank(a.driver) - providerRank(b.driver) || a.name.localeCompare(b.name));
 
 /** "Updated 2 min ago", from the oldest provider check. */
 export function oldestCheck(overview: LimitsOverview, now: Date): string {

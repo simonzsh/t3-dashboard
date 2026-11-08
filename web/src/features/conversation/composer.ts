@@ -148,7 +148,10 @@ const COMPACT_MIN_TOKENS = 200_000;
 /** T3 Code's default prompt cache lifetime: 70 minutes. */
 const PROMPT_CACHE_TTL_MS = 4_200_000;
 
-/** Like T3 Code: a Claude context of 200k tokens or more whose prompt cache has expired. */
+/**
+ * Claude only, like T3 Code: the 70-minute rule follows Claude's prompt cache.
+ * Other agents compact with /compact or /compress from the / menu.
+ */
 export function suggestsCompact(driver: string | undefined, usage: ContextUsage | null, now: number): boolean {
   if (driver !== "claudeAgent" || !usage || usage.usedTokens < COMPACT_MIN_TOKENS) return false;
   const at = Date.parse(usage.updatedAt ?? "");

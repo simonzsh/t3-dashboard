@@ -2,7 +2,7 @@ import { setTimeout as delay } from "node:timers/promises";
 import type { ConnectionStatus, DashboardProvider, ModelDefaults, SetupInfo } from "../../shared/api.ts";
 import type { TokenManager } from "./tokenManager.ts";
 import { IntegrationError } from "../integrations/errors.ts";
-import { INSTALL_URL, ISSUE_COMMAND } from "../integrations/t3/cli.ts";
+import { INSTALL_COMMAND, INSTALL_URL, ISSUE_COMMAND, START_COMMAND } from "../integrations/t3/cli.ts";
 import type { ShellStore } from "./shellStore.ts";
 import type { T3Port } from "../integrations/t3/schemas.ts";
 import { toModelDefaults, toProviders } from "./providers.ts";
@@ -20,7 +20,7 @@ export interface LiveSyncOptions {
   sleep?: (ms: number) => Promise<void>;
 }
 
-const FALLBACK_SETUP = { issueCommand: ISSUE_COMMAND, installUrl: INSTALL_URL };
+const FALLBACK_SETUP = { issueCommand: ISSUE_COMMAND, installUrl: INSTALL_URL, installCommand: INSTALL_COMMAND, startCommand: START_COMMAND };
 
 // Anything but an answer from T3 or a missing token: T3 did not answer at all.
 const isNetworkError = (error: Error | undefined): boolean => !(error instanceof IntegrationError) || error.kind === "unreachable";
@@ -102,8 +102,7 @@ export class LiveSync {
   }
 
   private stoppedSetup(): SetupInfo {
-    const { issueCommand, installUrl } = this.options.auth.setup() ?? FALLBACK_SETUP;
-    return { reason: "t3-stopped", detail: null, issueCommand, installUrl };
+    return { ...(this.options.auth.setup() ?? FALLBACK_SETUP), reason: "t3-stopped", detail: null };
   }
 
   // T3 refuses a token it no longer knows: ask the manager for a new one, once per cycle.

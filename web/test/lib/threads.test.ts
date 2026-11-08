@@ -1,6 +1,6 @@
 import { test } from "bun:test";
 import assert from "node:assert/strict";
-import { pendingLabel, providerKind, threadTitle } from "../../src/lib/threads.ts";
+import { pendingLabel, threadTitle } from "../../src/lib/threads.ts";
 import { agentStatus, runActive, threadState } from "../../../shared/status.ts";
 import { thread } from "../fixtures.ts";
 
@@ -27,13 +27,6 @@ test("agentStatus: finished threads stay, whatever their age", () => {
 
 test("agentStatus: other threads are idle", () => {
   assert.equal(agentStatus(thread("1", { status: "idle", lastActivityAt: hoursAgo(1) })), "idle");
-});
-
-test("providerKind recognises the two providers and falls back", () => {
-  assert.equal(providerKind("claudeAgent"), "claude");
-  assert.equal(providerKind("codex"), "codex");
-  assert.equal(providerKind("codex_work"), "codex");
-  assert.equal(providerKind("other"), "other");
 });
 
 test("pendingLabel names the kind of request", () => {

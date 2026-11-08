@@ -48,6 +48,7 @@ const SUMMARY_DIFF = [
 const CLAUDE = { instanceId: "claudeAgent", model: "claude-opus-5-5" };
 const SONNET = { instanceId: "claudeAgent", model: "claude-sonnet-5" };
 const CODEX = { instanceId: "codex", model: "gpt-5.5-codex" };
+const CURSOR = { instanceId: "cursor", model: "composer-2" };
 
 type Role = "user" | "assistant";
 const LAST = "@last-message";
@@ -374,6 +375,18 @@ const SPECS: ThreadSpec[] = [
     runs: [...earlier("dev-server", [172, 91, 55, 43, 27, 18]), { id: "run-dev-server-old0", status: "completed", started: 3999, completed: 3990 }, { id: "run-profile-1", status: "completed", started: 29, completed: 25 }],
     thread: { pendingBackgroundTasks: [{ taskId: "bg-dev-server", kind: "shell", description: "bun run dev (port 5173)" }] },
   },
+  {
+    id: "demo-lint-rules",
+    projectId: "demo-atlas-web",
+    title: "Tidy the lint rules",
+    model: CURSOR,
+    status: "completed",
+    messages: [
+      ["user", 320, "Remove the lint rules that no file triggers any more."],
+      ["assistant", 305, "Removed 6 unused rules from `eslint.config.js`. Lint still passes on all 412 files."],
+    ],
+    runs: [...earlier("lint-rules", [210, 140, 96, 61, 33]), { id: "run-lint-1", status: "completed", started: 319, completed: 305 }],
+  },
 ];
 
 // What the "Check mobile breakpoints" subagent did in its own thread.
@@ -490,6 +503,19 @@ const CONFIG: RawConfig = {
         { slug: "gpt-5.5", name: "GPT-5.5", ...effort("reasoningEffort", ["minimal", "low", "medium", "high"], "medium") },
       ],
     },
+    {
+      instanceId: "cursor",
+      driver: "cursor",
+      displayName: "Cursor",
+      enabled: true,
+      status: "ready",
+      slashCommands: [],
+      skills: [],
+      models: [
+        { slug: "auto", name: "Auto" },
+        { slug: "composer-2", name: "Composer 2" },
+      ],
+    },
   ],
   settings: {
     defaultModelSelection: { ...CLAUDE, options: [{ id: "effort", value: "high" }] },
@@ -505,6 +531,7 @@ const CONFIG: RawConfig = {
 const MIN = 60_000;
 const SESSION_MINUTES = 300;
 const WEEK_MINUTES = 10_080;
+const MONTH_MINUTES = 43_200;
 
 /** Limit windows by instance id, timed from `now`: one under, two on and two ahead of the pace. */
 export function demoUsageLimits(now: Date): Record<string, RawUsageLimits> {
@@ -530,6 +557,10 @@ export function demoUsageLimits(now: Date): Record<string, RawUsageLimits> {
       checkedAt,
       windows: [window("primary", "session", "Session", 91, SESSION_MINUTES, 150), window("secondary", "weekly", "Weekly", 23, WEEK_MINUTES, 5 * 1440 + 6 * 60)],
       resetCredits: { availableCount: 2 },
+    },
+    cursor: {
+      checkedAt,
+      windows: [window("monthly", "monthly", "Monthly", 34, MONTH_MINUTES, 19 * 1440)],
     },
   };
 }

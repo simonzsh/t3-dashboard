@@ -1,10 +1,16 @@
 import type { SetupInfo } from "../../../../shared/api.ts";
 
+export interface SetupStep {
+  text: string;
+  /** Shown under the step, with a copy button. */
+  command?: string;
+}
+
 export interface SetupCopy {
   title: string;
-  steps: string[];
-  /** Shown with a copy button. */
-  command: string | null;
+  /** One sentence under the title: what is wrong. */
+  lede: string;
+  steps: SetupStep[];
   showPaste: boolean;
   link: { label: string; url: string } | null;
 }
@@ -14,24 +20,24 @@ export function setupCopy(setup: SetupInfo): SetupCopy {
     case "t3-stopped":
       return {
         title: "T3 Code is not running",
-        steps: ["Open the T3 Code app.", "Without the app, run t3 start in a terminal.", "Press Retry."],
-        command: null,
+        lede: "The dashboard cannot reach T3 Code on this computer.",
+        steps: [{ text: "Open the T3 Code app, or start it in a terminal.", command: setup.startCommand }, { text: "Press Retry." }],
         showPaste: false,
-        link: null,
+        link: { label: "Not installed? Get T3 Code", url: setup.installUrl },
       };
     case "t3-missing":
       return {
         title: "Install T3 Code",
-        steps: ["The dashboard works with T3 Code on this computer.", "Install T3 Code and open it.", "Press Retry."],
-        command: null,
+        lede: "The dashboard runs on top of T3 Code, on this computer.",
+        steps: [{ text: "Install T3 Code in a terminal, or get the app.", command: setup.installCommand }, { text: "Start T3 Code, then press Retry." }],
         showPaste: false,
-        link: { label: "Get T3 Code", url: setup.installUrl },
+        link: { label: "Get the T3 Code app", url: setup.installUrl },
       };
     case "token-needed":
       return {
-        title: "Paste a T3 Code token",
-        steps: ["The dashboard could not create a token on its own.", "Run this command in a terminal.", "Paste its output below."],
-        command: setup.issueCommand,
+        title: "Connect to T3 Code",
+        lede: "The dashboard could not create its access token by itself.",
+        steps: [{ text: "Run this command in a terminal.", command: setup.issueCommand }, { text: "Paste its output below." }],
         showPaste: true,
         link: null,
       };

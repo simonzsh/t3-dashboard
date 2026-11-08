@@ -162,9 +162,10 @@ test("linux: the set override variables go into the unit, quoted, and nothing el
 });
 
 test("linux: the agent rules variables pass into the unit", () => {
-  const unit = servicePlan("linux", { ...base, env: { CLAUDE_CONFIG_DIR: "/c", CODEX_HOME: "/x", T3_DASHBOARD_AGENT_RULES: "off" } }).files[0]!.content;
+  const unit = servicePlan("linux", { ...base, env: { CLAUDE_CONFIG_DIR: "/c", CODEX_HOME: "/x", XDG_CONFIG_HOME: "/xdg", T3_DASHBOARD_AGENT_RULES: "off" } }).files[0]!.content;
   assert.match(unit, /^Environment="CLAUDE_CONFIG_DIR=\/c"$/m);
   assert.match(unit, /^Environment="CODEX_HOME=\/x"$/m);
+  assert.match(unit, /^Environment="XDG_CONFIG_HOME=\/xdg"$/m);
   assert.match(unit, /^Environment="T3_DASHBOARD_AGENT_RULES=off"$/m);
 });
 

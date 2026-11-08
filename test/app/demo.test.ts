@@ -30,7 +30,7 @@ test("the demo fixtures match the T3 schemas", () => {
   for (const thread of threads) assert.deepEqual(issues(RawThread, thread), [], thread.id);
   for (const [id, projection] of Object.entries(projections)) assert.deepEqual(issues(RawProjection, projection), [], id);
   assert.deepEqual(issues(RawConfig, config), []);
-  assert.deepEqual(toProviders(config).map((provider) => provider.displayName), ["Claude", "Codex"]);
+  assert.deepEqual(toProviders(config).map((provider) => provider.displayName), ["Claude", "Codex", "Cursor"]);
 });
 
 test("refreshProviders moves the demo check time to now", async () => {
@@ -49,6 +49,7 @@ test("the demo config carries usage limits that show every pace", async () => {
   const byId = Object.fromEntries(providers.map((p) => [p.instanceId, p]));
   assert.deepEqual([byId.codex!.windows.length, byId.codex!.resetCredits], [2, 2]);
   assert.deepEqual([byId.claudeAgent!.windows.length, byId.claudeAgent!.resetCredits], [3, 0]);
+  assert.deepEqual(byId.cursor!.windows.map((w) => w.kind), ["monthly"]);
   const share = (id: string, provider: string) => {
     const w = byId[provider]!.windows.find((window) => window.id === id)!;
     const total = w.windowMinutes! * 60_000;

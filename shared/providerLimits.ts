@@ -14,7 +14,7 @@ export interface LimitWindow {
 
 export interface ProviderLimits {
   instanceId: string;
-  /** T3 driver, e.g. "codex", "claudeAgent": picks the icon and colour. */
+  /** T3 driver slug, e.g. "codex" or "cursor": picks the icon and the sort order. */
   driver: string;
   name: string;
   windows: LimitWindow[];
