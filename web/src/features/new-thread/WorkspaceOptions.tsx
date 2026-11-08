@@ -15,33 +15,45 @@ interface Props {
   /** Null while the options are hidden or loading. */
   draft: WorkspaceDraft | null;
   onDraft: (draft: WorkspaceDraft | null) => void;
+  /** Why sending must wait (options loading, or a worktree default that cannot load), or null. */
+  onBlocked: (reason: string | null) => void;
 }
 
 const marks = (r: ProjectRef): string[] => [r.current && "current", r.isDefault && "default", r.remote && "remote", r.worktreePath && !r.current && "worktree"].filter((m): m is string => !!m);
 
 /** Where the new thread runs. Renders nothing for a folder that is not a git repository. */
-export function WorkspaceOptions({ project, draft, onDraft }: Props) {
+export function WorkspaceOptions({ project, draft, onDraft, onBlocked }: Props) {
   const api = useApi();
   const root = project?.workspaceRoot;
   const [status, setStatus] = useState<ProjectVcsStatus | null>(null);
   const [current, setCurrent] = useState<ProjectRef | null>(null);
+  const [failure, setFailure] = useState<string | null>(null);
 
   useEffect(() => {
     onDraft(null);
     setStatus(null);
+    setFailure(null);
+    onBlocked(null);
     if (!project || !root) return;
     let live = true;
+    onBlocked("The branches are still loading. Send again in a moment.");
     void (async () => {
       try {
         const vcs = await api.projectVcsStatus(project.id);
-        if (!live || !vcs.isRepo) return;
+        if (!live) return;
+        if (!vcs.isRepo) return onBlocked(null);
         const refs = await api.projectRefs(project.id, {});
         if (!live) return;
         setStatus(vcs);
         setCurrent(defaultBaseRef(refs.refs));
         onDraft(initialDraft(project, refs.refs));
-      } catch {
-        // The options are optional: the thread then starts in the current checkout.
+        onBlocked(null);
+      } catch (e) {
+        if (!live) return;
+        const message = e instanceof Error ? e.message : String(e);
+        setFailure(message);
+        // A worktree default must not silently fall back to the shared checkout.
+        onBlocked(project.defaultThreadEnvMode === "worktree" ? `Cannot start a new worktree: ${message}` : null);
       }
     })();
     return () => {
@@ -49,6 +61,7 @@ export function WorkspaceOptions({ project, draft, onDraft }: Props) {
     };
   }, [project?.id, root]);
 
+  if (failure) return <p className="workspace-warning">Could not read the branches: {failure}</p>;
   if (!project || !root || !draft || !status) return null;
   const change = (patch: Partial<WorkspaceDraft>) => onDraft({ ...draft, ...patch });
   const setMode = (envMode: EnvMode) => change({ envMode, ref: envMode === "worktree" ? current : null, newBranch: null });
@@ -104,7 +117,7 @@ function BranchPicker({ projectId, mode, value, label, onRef, onCreate }: Picker
   }, [open, projectId, search]);
 
   const name = sanitizeBranchName(query);
-  const canCreate = mode === "local" && name !== "" && !result?.refs.some((r) => !r.remote && r.name === name);
+  const canCreate = mode === "local" && name !== "" && result !== null && !result.refs.some((r) => !r.remote && r.name === name);
   const close = () => {
     setOpen(false);
     setQuery("");

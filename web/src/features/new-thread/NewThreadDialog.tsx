@@ -37,6 +37,7 @@ export function NewThreadDialog({ projects, providers, defaults, onClose, onCrea
   const [draft, setDraft] = useState("");
   const [workspace, setWorkspace] = useState<WorkspaceDraft | null>(null);
   const [plan, setPlan] = useState(false);
+  const [blocked, setBlocked] = useState<string | null>(null);
   // Each project pick moves the focus to the message.
   // A preset project needs no pick: the field gets the focus at once (focusKey 1).
   const [picks, setPicks] = useState(preset ? 1 : 0);
@@ -59,6 +60,7 @@ export function NewThreadDialog({ projects, providers, defaults, onClose, onCrea
 
   async function send(text: string, uploads: UploadedAttachment[]): Promise<void> {
     if (!selection) throw new Error("No model is available.");
+    if (blocked) throw new Error(blocked);
     const root = projects.find((p) => p.id === projectId)?.workspaceRoot;
     const choice = workspace && root ? toWorkspaceChoice(workspace, root) : undefined;
     const extra = { runtimeMode: mode, ...(uploads.length > 0 && { uploads }), ...(choice && { workspace: choice }), ...(plan && { interactionMode: "plan" as const }) };
@@ -117,8 +119,8 @@ export function NewThreadDialog({ projects, providers, defaults, onClose, onCrea
             }}
           />
         </div>
-        <WorkspaceOptions project={projects.find((p) => p.id === projectId)} draft={workspace} onDraft={setWorkspace} />
-        <label className="workspace-origin">
+        <WorkspaceOptions project={projects.find((p) => p.id === projectId)} draft={workspace} onDraft={setWorkspace} onBlocked={setBlocked} />
+        <label className="dialog-switch">
           <Switch checked={plan} onChange={setPlan} label="Plan mode" />
           <span>Plan mode: the agent proposes a plan before it changes anything</span>
         </label>
