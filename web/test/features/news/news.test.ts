@@ -68,7 +68,7 @@ test("the stored model wins; otherwise Codex gpt-6-luna, T3's default, then the 
 });
 
 test("the status line asks for a first save when there is no task", () => {
-  assert.match(statusLine(null, now), /Not scheduled/);
+  assert.equal(statusLine(null, now), "");
 });
 
 test("the status line gives the next run and the last run", () => {

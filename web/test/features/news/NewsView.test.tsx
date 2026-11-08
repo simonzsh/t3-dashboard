@@ -18,7 +18,9 @@ const view = (news: NewsState, writing = false, compact = false) =>
 
 test("without news the page explains how one arrives", () => {
   assert.match(view(state()), /No news yet[\s\S]*Run now/);
-  assert.match(view(state({ task: null })), /Not scheduled[\s\S]*Open News settings/);
+  const empty = view(state({ task: null }));
+  assert.doesNotMatch(empty, /Not scheduled/);
+  assert.match(empty, /No news yet[\s\S]*Open News settings/);
 });
 
 test("the list shows each article newest first, and marks the newest open", () => {

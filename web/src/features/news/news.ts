@@ -71,7 +71,7 @@ export function isStarting(startedAt: number | null, now: number, newestMtimeMs:
 
 /** One line under the page title: when the next article comes and how the last run went. */
 export function statusLine(task: NewsTask | null, now: Date, writing = false): string {
-  if (!task) return "Not scheduled yet. Open News settings and save to start the news.";
+  if (!task) return writing ? "Writing the article now" : "";
   // A run in progress matters more than the schedule, even when the routine is paused.
   // Paused: no schedule to show, so the line stays empty unless a run is going.
   if (!task.enabled) return writing || task.lastRunStatus === "running" ? "Writing the article now" : "";
