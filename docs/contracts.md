@@ -24,11 +24,11 @@ The schemas are in `src/integrations/*/schemas.ts`. The script uses the same sch
 
 ### T3 write commands
 
-The script never runs a write command: `thread.create`, `message.dispatch`, `run.interrupt`, `subagent.stop`, `thread.stop`, `queued-message.promote-to-steer`, `queued-run.start`, `queued-run.edit`, `queued-run.cancel`, `runtime-request.respond`, `thread.user-input.dismiss`, `thread.model-selection.set`, `thread.runtime-mode.set`, `secrets.answerRequest`, `scheduledTasks.upsert` (the creation and the edit of a scheduled task) and image upload. It does a static comparison:
+The script never runs a write command: `orchestration.launchThread` (a new thread), `vcs.switchRef` and `vcs.createRef` (a branch checkout or creation), `message.dispatch`, `run.interrupt`, `subagent.stop`, `thread.stop`, `queued-message.promote-to-steer`, `queued-run.start`, `queued-run.edit`, `queued-run.cancel`, `runtime-request.respond`, `thread.user-input.dismiss`, `thread.model-selection.set`, `thread.runtime-mode.set`, `secrets.answerRequest`, `scheduledTasks.upsert` (the creation and the edit of a scheduled task) and image upload. It does a static comparison:
 
 1. It reads the T3 version in `server-runtime.json`.
 2. It reads the `~/.t3/runtime/versions/<version>/client/assets/*.js` files as text. It does not import or run this code.
-3. It finds the structure of each command from its `type` literal. It marks each key `required` or `optional`, and gives the list of accepted values if there is one.
+3. It finds the structure of each command from its `type` literal. The three `workspaceStrategy` variants of `orchestration.launchThread` (`root`, `existing_worktree`, `worktree`) are found the same way. The read calls `vcs.listRefs` and `vcs.refreshStatus` are checked for their RPC tag only. It marks each key `required` or `optional`, and gives the list of accepted values if there is one.
 4. It builds the commands with the real builders in `src/integrations/t3/commands.ts`.
 5. It compares the two results, then compares the structures with `contracts/t3-commands.snapshot.json`.
 

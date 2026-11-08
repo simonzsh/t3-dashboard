@@ -1,8 +1,8 @@
 import { describe, issues, parse, type Schema } from "../contract.ts";
 import { IntegrationError } from "../errors.ts";
 import { RpcConnection } from "./rpc.ts";
-import { AssetUrl, FolderBrowseResponse, PathMetadataResponse, RawProject, PersistedAttachments, ScratchProject, ProjectionResponse, RawConfig, SearchEntriesResponse, SearchThreadsResponse, UsageSummaryResponse, DeletedScheduledTask, ScheduledTasksResponse, UpsertedScheduledTask, ShellItem, TurnItemResponse, UploadUrl, WebSocketTicket } from "./schemas.ts";
-import type { AssetResource, AttachmentRef, Command, FileUpload, ImageUpload, ProjectMutation, RawProjection, RawScheduledTask, RawSearchMatch, RawUsageSummary, NewScheduledTask, RawTurnItem, ScheduledTaskChange, SecretAnswer, T3Port } from "./schemas.ts";
+import { AssetUrl, FolderBrowseResponse, LaunchResult, RawRefs, RawVcsStatus, RefResult, PathMetadataResponse, RawProject, PersistedAttachments, ScratchProject, ProjectionResponse, RawConfig, SearchEntriesResponse, SearchThreadsResponse, UsageSummaryResponse, DeletedScheduledTask, ScheduledTasksResponse, UpsertedScheduledTask, ShellItem, TurnItemResponse, UploadUrl, WebSocketTicket } from "./schemas.ts";
+import type { AssetResource, AttachmentRef, Command, FileUpload, ImageUpload, LaunchThread, ProjectMutation, RawProjection, RawScheduledTask, RawSearchMatch, RawUsageSummary, NewScheduledTask, RawTurnItem, ScheduledTaskChange, SecretAnswer, T3Port } from "./schemas.ts";
 
 export const ORCHESTRATION_PROTOCOL = "2";
 // Images go up as data URLs of up to 10 MB each: give T3 time to write them.
@@ -13,6 +13,8 @@ const FILE_UPLOAD_TIMEOUT_MS = 120_000;
 const USAGE_TIMEOUT_MS = 60_000;
 // T3 probes each provider in turn: about 4 s with three providers.
 const REFRESH_TIMEOUT_MS = 60_000;
+// T3 writes the thread before it prepares the workspace, but a slow disk can still delay the answer.
+const LAUNCH_TIMEOUT_MS = 60_000;
 
 /** The RPC tags the dashboard calls: the contract check looks for each one in the T3 client bundle. */
 export const RPC = {
@@ -38,6 +40,11 @@ export const RPC = {
   mutateProject: "projects.mutate",
   browseFolders: "filesystem.browse",
   pathMetadata: "filesystem.getMetadata",
+  launchThread: "orchestration.launchThread",
+  listRefs: "vcs.listRefs",
+  refreshVcsStatus: "vcs.refreshStatus",
+  switchRef: "vcs.switchRef",
+  createRef: "vcs.createRef",
 } as const;
 
 export type Validation = "ok" | "rejected" | "unreachable";
@@ -70,7 +77,7 @@ export interface T3ClientOptions {
 }
 
 // Safe to send twice: a retry after a lost connection cannot repeat a side effect.
-const IDEMPOTENT = new Set<string>([RPC.getConfig, RPC.refreshProviders, RPC.searchThreads, RPC.createAssetUrl, RPC.ensureScratch, RPC.getTurnItem, RPC.searchEntries, RPC.setEnabledScheduledTask, RPC.getUsageSummary, RPC.browseFolders, RPC.pathMetadata]);
+const IDEMPOTENT = new Set<string>([RPC.getConfig, RPC.refreshProviders, RPC.searchThreads, RPC.createAssetUrl, RPC.ensureScratch, RPC.getTurnItem, RPC.searchEntries, RPC.setEnabledScheduledTask, RPC.getUsageSummary, RPC.browseFolders, RPC.pathMetadata, RPC.listRefs, RPC.refreshVcsStatus]);
 
 const SECRET_REFUSALS: Record<string, string> = {
   not_found: "This secret request no longer exists.",
@@ -266,6 +273,30 @@ export class T3Client implements T3Port {
   async pathKinds(paths: string[]): Promise<Array<string | null>> {
     const { entries } = read(PathMetadataResponse, await this.call(RPC.pathMetadata, { paths }), RPC.pathMetadata);
     return paths.map((_, i) => entries[i]?.kind ?? null);
+  }
+
+  async launchThread(launch: LaunchThread, commandId: string): Promise<{ threadId: string }> {
+    const payload = { ...launch, commandId, creationSource: "server" };
+    const { threadId } = read(LaunchResult, await this.call(RPC.launchThread, payload, LAUNCH_TIMEOUT_MS), RPC.launchThread);
+    return { threadId };
+  }
+
+  async listRefs(cwd: string, { query, cursor, limit }: { query?: string; cursor?: number; limit: number }): Promise<RawRefs> {
+    const payload = { cwd, limit, ...(query && { query }), ...(cursor !== undefined && { cursor }) };
+    return read(RawRefs, await this.call(RPC.listRefs, payload), RPC.listRefs);
+  }
+
+  async vcsStatus(cwd: string): Promise<RawVcsStatus> {
+    return read(RawVcsStatus, await this.call(RPC.refreshVcsStatus, { cwd }), RPC.refreshVcsStatus);
+  }
+
+  async switchRef(cwd: string, refName: string): Promise<string | null> {
+    return read(RefResult, await this.call(RPC.switchRef, { cwd, refName }), RPC.switchRef).refName ?? null;
+  }
+
+  async createRef(cwd: string, refName: string): Promise<string> {
+    const created = read(RefResult, await this.call(RPC.createRef, { cwd, refName, switchRef: true }), RPC.createRef).refName;
+    return created ?? refName;
   }
 
   async fetchAsset(resource: AssetResource, range?: string): Promise<{ response: Response; fileName: string }> {

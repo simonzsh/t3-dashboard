@@ -6,6 +6,17 @@ import type { ModelSelection, ProjectIcon, ProjectIconSpec, RuntimeMode } from "
 export type ApprovalDecision = "accept" | "acceptForSession" | "decline";
 export type UserInputAnswers = Record<string, string | string[]>;
 
+export type InteractionMode = "default" | "plan";
+
+/** Where a new thread runs. Absent: the current checkout, as it is. */
+export type WorkspaceChoice =
+  /** Current checkout. `branch` is checked out first; with `create`, it is made first. */
+  | { type: "root"; branch?: string; create?: boolean }
+  /** Current checkout mode, with the branch already checked out in another worktree: that worktree is reused. */
+  | { type: "existing_worktree"; worktreePath: string; branch?: string }
+  /** A new worktree made by T3 from `baseRef`; T3 picks the new branch name. */
+  | { type: "worktree"; baseRef: string; startFromOrigin?: boolean };
+
 export interface CreateThreadBody {
   /** Empty: the thread goes to T3's "No project". */
   projectId: string;
@@ -14,6 +25,10 @@ export interface CreateThreadBody {
   modelSelection: ModelSelection;
   /** Defaults to full access. */
   runtimeMode?: RuntimeMode;
+  /** Defaults to the current checkout. */
+  workspace?: WorkspaceChoice;
+  /** Defaults to "default". */
+  interactionMode?: InteractionMode;
   attachments?: ImageAttachment[];
   uploads?: UploadedAttachment[];
 }

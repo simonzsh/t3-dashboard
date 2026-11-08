@@ -1,13 +1,12 @@
 import { homedir } from "node:os";
 import { posix } from "node:path";
 import { marked } from "marked";
-import type { AssignIssueBody, ComposerCommands, CreateProjectBody, CreateThreadBody, FileSearchResult, FolderBrowseResult, LinearIssue, ModelSelection, ProjectIconChoices, RespondBody, SecretAnswerBody, SendMessageBody, StepDetail, ThreadDetail, ThreadSearchResult, ThreadSettingsBody, UpdateProjectBody, UploadedAttachment } from "../../shared/api.ts";
+import type { AssignIssueBody, ComposerCommands, CreateProjectBody, CreateThreadBody, FileSearchResult, FolderBrowseResult, LinearIssue, ModelSelection, ProjectIconChoices, ProjectRefs, ProjectVcsStatus, RespondBody, SecretAnswerBody, SendMessageBody, StepDetail, ThreadDetail, ThreadSearchResult, ThreadSettingsBody, UpdateProjectBody, UploadedAttachment } from "../../shared/api.ts";
 import { ACTIVE_STATUSES, RUNNING_RUN_STATUSES } from "../../shared/status.ts";
 import { IntegrationError } from "../integrations/errors.ts";
 import {
   approvalCommand,
   cancelQueuedCommand,
-  createThreadCommands,
   dismissCommand,
   editQueuedCommand,
   promoteQueuedCommand,
@@ -16,12 +15,14 @@ import {
   rollbackCommand,
   unsettleCommand,
   interruptCommand,
+  launchPayload,
   messageCommand,
   modelSelectionCommand,
   runtimeModeCommand,
   subagentStopCommand,
   threadStopCommand,
   userInputCommand,
+  workspaceStrategy,
   type DispatchMode,
   type OutgoingMessage,
   type UnsentCommand,
@@ -70,6 +71,9 @@ export interface Actions {
   projectIcons(): ProjectIconChoices;
   /** Folder suggestions for a typed path, and what is at that path. */
   browseFolders(path: string): Promise<FolderBrowseResult>;
+  /** Branches of the project's folder, for the new-thread branch picker; empty when the folder is not a git repository. */
+  projectRefs(projectId: string, options: { query?: string; cursor?: number }): Promise<ProjectRefs>;
+  projectVcsStatus(projectId: string): Promise<ProjectVcsStatus>;
   createThread(create: CreateThreadBody, images: ImageUpload[], uploads?: UploadedAttachment[]): Promise<string>;
   sendMessage(threadId: string, body: Omit<SendMessageBody, "attachments" | "uploads">, images: ImageUpload[], uploads?: UploadedAttachment[]): Promise<void>;
   changeSettings(threadId: string, settings: ThreadSettingsBody): Promise<void>;
@@ -96,6 +100,8 @@ export interface Actions {
 export type AssetRequest = { attachmentId: string } | { path: string };
 
 const MAX_FOLDERS = 100;
+// Same page size as the T3 branch picker.
+const REFS_PAGE = 100;
 const MEDIA_FILE = /\.(png|jpe?g|gif|webp|avif|mp4|m4v|webm|mov)$/i;
 const ATTACHMENT_ID = /^[\w-]+$/;
 
@@ -138,6 +144,34 @@ export function createActions(options: ActionsOptions): Actions {
     const messageId = newId();
     return { messageId, attachments: [...(images.length ? await t3(port.persistAttachments(threadId, messageId, images)) : []), ...uploads] };
   };
+
+  // T3 0.0 has no launchThread: say so, rather than let the call fail with a protocol error.
+  const requireLaunchSupport = async () => {
+    const version = (await t3(port.getConfig())).environment?.serverVersion?.match(/^(\d+)\.(\d+)\./);
+    if (version && Number(version[1]) === 0 && Number(version[2]) < 1) throw new DomainError("conflict", "Starting a session needs T3 Code 0.1 or newer: update T3 Code.");
+  };
+  // The project's folder, which T3 runs git in.
+  const folderOf = (project: { workspaceRoot?: string }): string => {
+    if (!project.workspaceRoot) throw new DomainError("conflict", "This project has no folder");
+    return project.workspaceRoot;
+  };
+  // The branch is checked out or created before the launch: a failure there starts no thread.
+  async function launch(create: Omit<CreateThreadBody, "attachments" | "uploads">, images: ImageUpload[], uploads: UploadedAttachment[] | undefined, generateTitle: boolean): Promise<string> {
+    await requireLaunchSupport();
+    const choice = create.workspace;
+    const touchesGit = choice !== undefined && !(choice.type === "root" && choice.branch === undefined);
+    const project = touchesGit ? store.project(create.projectId) : undefined;
+    if (touchesGit && project?.id !== create.projectId) throw new DomainError("conflict", "T3 project not found");
+    const root = project && folderOf(project);
+    let branch: string | null = null;
+    if (root !== undefined && choice?.type === "root" && choice.branch !== undefined) {
+      branch = choice.create ? await t3(port.createRef(root, choice.branch)) : await t3(port.switchRef(root, choice.branch));
+    }
+    const threadId = newId();
+    const message = await outgoing(threadId, images, uploads);
+    await t3(port.launchThread(launchPayload(threadId, create, message, workspaceStrategy(choice, branch, root), { generateTitle }), newId()));
+    return threadId;
+  }
 
   const cited = new Map<string, { at: number; paths: Promise<Set<string>> }>();
 
@@ -327,11 +361,30 @@ export function createActions(options: ActionsOptions): Actions {
       return { path: root, kind: kind === "directory" ? "directory" : kind === null ? "missing" : "file", entries };
     },
 
+    async projectRefs(projectId, { query, cursor }) {
+      const cwd = folderOf(knownProject(projectId));
+      const raw = await t3(port.listRefs(cwd, { limit: REFS_PAGE, ...(query && { query }), ...(cursor !== undefined && { cursor }) }));
+      if (!raw.isRepo) return { isRepo: false, hasPrimaryRemote: false, refs: [], nextCursor: null, totalCount: 0 };
+      const refs = raw.refs.map((ref) => ({
+        name: ref.name,
+        remote: ref.isRemote === true,
+        ...(ref.remoteName ? { remoteName: ref.remoteName } : {}),
+        current: ref.current === true,
+        isDefault: ref.isDefault === true,
+        worktreePath: ref.worktreePath ?? null,
+      }));
+      return { isRepo: true, hasPrimaryRemote: raw.hasPrimaryRemote === true, refs, nextCursor: raw.nextCursor ?? null, totalCount: raw.totalCount ?? refs.length };
+    },
+
+    async projectVcsStatus(projectId) {
+      const raw = await t3(port.vcsStatus(folderOf(knownProject(projectId))));
+      if (!raw.isRepo) return { isRepo: false, hasPrimaryRemote: false, branch: null, hasChanges: false };
+      return { isRepo: true, hasPrimaryRemote: raw.hasPrimaryRemote === true, branch: raw.refName ?? null, hasChanges: raw.hasWorkingTreeChanges === true };
+    },
+
     async createThread(create, images, uploads) {
-      const threadId = newId();
       const projectId = create.projectId || (await t3(port.ensureScratchProject()));
-      await send(...createThreadCommands(threadId, { ...create, projectId }, await outgoing(threadId, images, uploads), { generateTitle: true }));
-      return threadId;
+      return launch({ ...create, projectId }, images, uploads, true);
     },
 
     async sendMessage(threadId, body, images, uploads) {
@@ -437,10 +490,16 @@ export function createActions(options: ActionsOptions): Actions {
       const reference = `Linear issue ${issue.identifier}: ${issue.url}`;
       const instructions = body.text.trim();
       const text = instructions ? `${instructions}\n\n${reference}` : `Handle Linear issue ${issue.identifier}: ${issue.url}`;
-      const create = { projectId, title: `${issue.identifier} ${issue.title}`, text, modelSelection: body.modelSelection, ...(body.runtimeMode && { runtimeMode: body.runtimeMode }) };
-      const threadId = newId();
-      await send(...createThreadCommands(threadId, create, await outgoing(threadId, images, uploads)));
-      return threadId;
+      const create = {
+        projectId,
+        title: `${issue.identifier} ${issue.title}`,
+        text,
+        modelSelection: body.modelSelection,
+        ...(body.runtimeMode && { runtimeMode: body.runtimeMode }),
+        ...(body.workspace && { workspace: body.workspace }),
+        ...(body.interactionMode && { interactionMode: body.interactionMode }),
+      };
+      return launch(create, images, uploads, false);
     },
   };
 }

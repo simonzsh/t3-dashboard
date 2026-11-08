@@ -100,6 +100,8 @@ export const RawProject = s.object({
   archivedAt: text(),
   deletedAt: text(),
   defaultModelSelection: s.optional(s.nullable(ModelSelection)),
+  // A string, not a literal union: a value the dashboard does not know must not hide the project.
+  defaultThreadEnvMode: text(),
   projectIcon: s.optional(s.nullable(s.object({ kind: text(), name: s.optional(text()), color: s.optional(text()), text: s.optional(text()), emoji: s.optional(text()), monogramText: s.optional(text()), monogram: s.optional(text()) }))),
 });
 export type RawProject = Infer<typeof RawProject>;
@@ -375,6 +377,36 @@ export type RawConfig = Infer<typeof RawConfig>;
 export const RuntimeOrigin = s.object({ origin: s.string() });
 export const RuntimeVersion = s.object({ serverVersion: s.string() });
 
+export const LaunchResult = s.object({ threadId: s.string() });
+
+export const RawRefs = s.object({
+  refs: s.array(
+    s.object({
+      name: s.string(),
+      isRemote: s.optional(s.nullable(s.boolean())),
+      remoteName: text(),
+      current: s.optional(s.nullable(s.boolean())),
+      isDefault: s.optional(s.nullable(s.boolean())),
+      worktreePath: text(),
+    }),
+  ),
+  isRepo: s.boolean(),
+  hasPrimaryRemote: s.optional(s.nullable(s.boolean())),
+  nextCursor: s.optional(s.nullable(s.number())),
+  totalCount: s.optional(s.nullable(s.number())),
+});
+export type RawRefs = Infer<typeof RawRefs>;
+
+export const RawVcsStatus = s.object({
+  isRepo: s.boolean(),
+  hasPrimaryRemote: s.optional(s.nullable(s.boolean())),
+  refName: text(),
+  hasWorkingTreeChanges: s.optional(s.nullable(s.boolean())),
+});
+export type RawVcsStatus = Infer<typeof RawVcsStatus>;
+
+export const RefResult = s.object({ refName: text() });
+
 export const WebSocketTicket = s.object({ ticket: s.string() });
 
 // What T3 stores: message.dispatch references it by id.
@@ -477,6 +509,25 @@ export interface NewScheduledTask {
   creationSource: "web";
 }
 
+export type WorkspaceStrategy =
+  | { type: "root"; branch?: string }
+  | { type: "existing_worktree"; worktreePath: string; branch?: string }
+  | { type: "worktree"; baseRef: string; branch?: string; startFromOrigin?: boolean };
+
+/** orchestration.launchThread: T3 creates the thread, prepares its workspace and starts the first run. */
+export interface LaunchThread {
+  threadId: string;
+  projectId: string;
+  title: string;
+  /** T3 then asks the model for a title and keeps `title` as the seed. */
+  generateTitle: boolean;
+  modelSelection: SharedModelSelection;
+  runtimeMode: RuntimeMode;
+  interactionMode: "default" | "plan";
+  workspaceStrategy: WorkspaceStrategy;
+  initialMessage: { messageId: string; text: string; attachments: unknown[] };
+}
+
 export interface T3Port {
   threadProjection(threadId: string): Promise<RawProjection>;
   /** Cost and tokens per day, from T3's scan of the provider session files on this machine. */
@@ -521,4 +572,12 @@ export interface T3Port {
   /** Fetches an asset through a short-lived signed URL; the file name ends the URL. */
   fetchAsset(resource: AssetResource, range?: string): Promise<{ response: Response; fileName: string }>;
   subscribeShell(onItems: (items: ShellItem[]) => void, onEnd: (error?: Error) => void): { cancel(): void };
+  /** orchestration.launchThread; the commandId is the idempotency key. Never retried. */
+  launchThread(launch: LaunchThread, commandId: string): Promise<{ threadId: string }>;
+  listRefs(cwd: string, options: { query?: string; cursor?: number; limit: number }): Promise<RawRefs>;
+  vcsStatus(cwd: string): Promise<RawVcsStatus>;
+  /** Never retried. Returns the local branch name: a remote ref becomes a tracking branch. */
+  switchRef(cwd: string, refName: string): Promise<string | null>;
+  /** Makes the branch and checks it out. Never retried. */
+  createRef(cwd: string, refName: string): Promise<string>;
 }

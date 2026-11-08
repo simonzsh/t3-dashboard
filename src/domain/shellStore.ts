@@ -34,6 +34,7 @@ const toProject = (raw: RawProject): DashboardProject => {
     ...(raw.archivedAt ? { archived: true } : {}),
     ...(raw.workspaceRoot ? { workspaceRoot: raw.workspaceRoot } : {}),
     ...(iconSpec ? { iconSpec } : {}),
+    ...(raw.defaultThreadEnvMode === "local" || raw.defaultThreadEnvMode === "worktree" ? { defaultThreadEnvMode: raw.defaultThreadEnvMode } : {}),
   };
 };
 

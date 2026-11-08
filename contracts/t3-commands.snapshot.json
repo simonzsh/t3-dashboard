@@ -89,22 +89,6 @@
     "commandId": "required",
     "threadId": "required"
   },
-  "thread.create": {
-    "branch": "required",
-    "commandId": "required",
-    "createdBy": "required: agent | system | user",
-    "creationSource": "required: mcp | mobile | provider | server | web",
-    "delegatedFrom": "optional",
-    "importedNativeThread": "optional: strong",
-    "interactionMode": "required: default | plan",
-    "linkOrigin": "optional",
-    "modelSelection": "required",
-    "projectId": "required",
-    "runtimeMode": "required: approval-required | auto | auto-accept-edits | full-access",
-    "threadId": "required",
-    "title": "required",
-    "worktreePath": "required"
-  },
   "thread.metadata.update": {
     "branch": "optional",
     "commandId": "required",
@@ -148,5 +132,17 @@
     "commandId": "required",
     "requestId": "required",
     "threadId": "required"
+  },
+  "workspaceStrategy existing_worktree": {
+    "branch": "optional",
+    "worktreePath": "required"
+  },
+  "workspaceStrategy root": {
+    "branch": "optional"
+  },
+  "workspaceStrategy worktree": {
+    "baseRef": "required",
+    "branch": "optional",
+    "startFromOrigin": "optional"
   }
 }

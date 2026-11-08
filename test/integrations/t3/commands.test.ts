@@ -6,12 +6,12 @@ import {
   editQueuedCommand,
   promoteQueuedCommand,
   startQueuedCommand,
-  createThreadCommands,
   dismissCommand,
   settleCommand,
   unsettleCommand,
   rollbackCommand,
   interruptCommand,
+  launchPayload,
   messageCommand,
   modelSelectionCommand,
   renameThreadCommand,
@@ -19,45 +19,55 @@ import {
   subagentStopCommand,
   threadStopCommand,
   userInputCommand,
+  workspaceStrategy,
 } from "../../../src/integrations/t3/commands.ts";
 
 const model = { instanceId: "provider-a", model: "model-x" };
 const plain = { messageId: "msg-1", attachments: [] };
 
-test("createThreadCommands builds thread.create then message.dispatch", () => {
-  const commands = createThreadCommands("thread-1", { projectId: "project-1", title: "Thread 1", text: "Hello", modelSelection: model }, plain);
-  assert.deepEqual(commands, [
-    {
-      type: "thread.create",
-      threadId: "thread-1",
-      projectId: "project-1",
-      title: "Thread 1",
-      modelSelection: model,
-      runtimeMode: "full-access",
-      interactionMode: "default",
-      branch: null,
-      worktreePath: null,
-      createdBy: "user",
-      creationSource: "server",
-    },
-    {
-      type: "message.dispatch",
-      threadId: "thread-1",
-      messageId: "msg-1",
-      text: "Hello",
-      attachments: [],
-      modelSelection: model,
-      dispatchMode: { type: "start_immediately" },
-      createdBy: "user",
-      creationSource: "server",
-    },
-  ]);
+test("launchPayload builds the launchThread payload with defaults", () => {
+  const body = { projectId: "project-1", title: "Thread 1", text: "Hello", modelSelection: model };
+  assert.deepEqual(launchPayload("thread-1", body, plain, { type: "root" }, { generateTitle: true }), {
+    threadId: "thread-1",
+    projectId: "project-1",
+    title: "Thread 1",
+    generateTitle: true,
+    modelSelection: model,
+    runtimeMode: "full-access",
+    interactionMode: "default",
+    workspaceStrategy: { type: "root" },
+    initialMessage: { messageId: "msg-1", text: "Hello", attachments: [] },
+  });
 });
 
-test("createThreadCommands asks T3 for a generated title only when told to", () => {
-  const body = { projectId: "project-1", title: "Fix the login", text: "Fix the login", modelSelection: model };
-  assert.equal(createThreadCommands("thread-1", body, plain, { generateTitle: true })[1]?.titleSeed, "Fix the login");
-  assert.ok(!("titleSeed" in createThreadCommands("thread-1", body, plain)[1]!));
+test("launchPayload carries the runtime and interaction modes, the strategy and the attachments", () => {
+  const body = { projectId: "p", title: "t", text: "x", modelSelection: model, runtimeMode: "approval-required" as const, interactionMode: "plan" as const };
+  const strategy = { type: "worktree" as const, baseRef: "main" };
+  const message = { messageId: "msg-2", attachments: [{ id: "a" }] };
+  const payload = launchPayload("thread-1", body, message, strategy, { generateTitle: false });
+  assert.equal(payload.generateTitle, false);
+  assert.equal(payload.runtimeMode, "approval-required");
+  assert.equal(payload.interactionMode, "plan");
+  assert.deepEqual(payload.workspaceStrategy, strategy);
+  assert.deepEqual(payload.initialMessage.attachments, [{ id: "a" }]);
+});
+
+test("workspaceStrategy defaults to the root and keeps a resolved branch", () => {
+  assert.deepEqual(workspaceStrategy(undefined, null, "/repo"), { type: "root" });
+  assert.deepEqual(workspaceStrategy({ type: "root" }, null, "/repo"), { type: "root" });
+  assert.deepEqual(workspaceStrategy({ type: "root", branch: "feature x" }, "feature-x", "/repo"), { type: "root", branch: "feature-x" });
+  assert.deepEqual(workspaceStrategy({ type: "root", branch: "feature", create: true }, "feature", "/repo"), { type: "root", branch: "feature" });
+});
+
+test("workspaceStrategy reuses another worktree, but the project folder itself is the root", () => {
+  assert.deepEqual(workspaceStrategy({ type: "existing_worktree", worktreePath: "/wt/a", branch: "a" }, null, "/repo"), { type: "existing_worktree", worktreePath: "/wt/a", branch: "a" });
+  assert.deepEqual(workspaceStrategy({ type: "existing_worktree", worktreePath: "/repo", branch: "main" }, null, "/repo"), { type: "root", branch: "main" });
+  assert.deepEqual(workspaceStrategy({ type: "existing_worktree", worktreePath: "/repo/", branch: "main" }, null, "/repo"), { type: "root", branch: "main" });
+});
+
+test("workspaceStrategy sends a worktree choice as T3 expects", () => {
+  assert.deepEqual(workspaceStrategy({ type: "worktree", baseRef: "main" }, null, "/repo"), { type: "worktree", baseRef: "main" });
+  assert.deepEqual(workspaceStrategy({ type: "worktree", baseRef: "origin/main", startFromOrigin: true }, null, "/repo"), { type: "worktree", baseRef: "origin/main", startFromOrigin: true });
 });
 
 test("messageCommand carries the dispatch mode", () => {
@@ -141,7 +151,6 @@ test("renameThreadCommand sets the thread title only", () => {
 
 test("no builder produces acceptAlways", () => {
   const all = [
-    ...createThreadCommands("t", { projectId: "p", title: "t", text: "x", modelSelection: model }, plain),
     approvalCommand("t", "r", "accept"),
     userInputCommand("t", "r", {}),
     dismissCommand("t", "r"),

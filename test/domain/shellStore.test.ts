@@ -181,6 +181,18 @@ test("project.updated and project.removed", () => {
   assert.deepEqual(store.state(connection, []).projects.map((project) => project.id), ["project-2"]);
 });
 
+test("a project carries the default thread mode of T3 when it is a known one", () => {
+  const { store } = live();
+  const modeOf = (defaultThreadEnvMode: string | null | undefined) => {
+    store.apply([{ kind: "project.updated", project: { id: "p", title: "P", defaultThreadEnvMode } }]);
+    return store.state(connection, []).projects.find((project) => project.id === "p")!.defaultThreadEnvMode;
+  };
+  assert.equal(modeOf("worktree"), "worktree");
+  assert.equal(modeOf("local"), "local");
+  assert.equal(modeOf("cloud"), undefined);
+  assert.equal(modeOf(null), undefined);
+});
+
 test("a project carries its folder and the icon as T3 stores it", () => {
   const { store } = live();
   const icon = (projectIcon: NonNullable<RawProject["projectIcon"]>) => {

@@ -10,7 +10,6 @@ import { ORCHESTRATION_PROTOCOL, RPC, T3Client } from "./client.ts";
 import {
   approvalCommand,
   cancelQueuedCommand,
-  createThreadCommands,
   dismissCommand,
   editQueuedCommand,
   promoteQueuedCommand,
@@ -27,6 +26,7 @@ import {
   subagentStopCommand,
   threadStopCommand,
   userInputCommand,
+  workspaceStrategy,
   type UnsentCommand,
 } from "./commands.ts";
 import type { RpcConnection } from "./rpc.ts";
@@ -56,7 +56,6 @@ export function samplePayloads(): Record<string, Record<string, unknown>[]> {
   const selection: ModelSelection = { instanceId: "i", model: "m" };
   const message = { messageId: "m", attachments: [] };
   const commands: UnsentCommand[] = [
-    ...createThreadCommands("t", { projectId: "p", title: "x", text: "x", modelSelection: selection }, message, { generateTitle: true }),
     messageCommand("t", "x", message, { mode: { type: "queue_after_active" }, steer: true }),
     modelSelectionCommand("t", selection),
     renameThreadCommand("t", "x"),
@@ -78,13 +77,23 @@ export function samplePayloads(): Record<string, Record<string, unknown>[]> {
   ];
   const payloads: Record<string, Record<string, unknown>[]> = {};
   for (const command of commands) (payloads[String(command.type)] ??= []).push({ ...command, commandId: "c" });
+  // The launchThread strategies: T3 names each variant by its `type`, so they are checked like commands.
+  payloads["workspaceStrategy root"] = [workspaceStrategy({ type: "root", branch: "b" }, "b", "/r")];
+  payloads["workspaceStrategy existing_worktree"] = [workspaceStrategy({ type: "existing_worktree", worktreePath: "/w", branch: "b" }, null, "/r")];
+  payloads["workspaceStrategy worktree"] = [workspaceStrategy({ type: "worktree", baseRef: "main", startFromOrigin: true }, null, "/r")];
   const upload: Required<ImageUpload> = { type: "image", name: "a.png", mimeType: "image/png", sizeBytes: 1, dataUrl: "data:" };
   payloads[IMAGE_UPLOAD] = [{ ...upload }];
   return payloads;
 }
 
+const STRATEGY_SPECS: StructSpec[] = [
+  { name: "workspaceStrategy root", type: "root", marker: "branch" },
+  { name: "workspaceStrategy existing_worktree", type: "existing_worktree", marker: "worktreePath" },
+  { name: "workspaceStrategy worktree", type: "worktree", marker: "baseRef" },
+];
+
 const specsFor = (payloads: Record<string, unknown>): StructSpec[] =>
-  Object.keys(payloads).map((name) => (name === IMAGE_UPLOAD ? { name, type: "image", marker: "dataUrl" } : { name, type: name, marker: "commandId" }));
+  Object.keys(payloads).map((name) => STRATEGY_SPECS.find((spec) => spec.name === name) ?? (name === IMAGE_UPLOAD ? { name, type: "image", marker: "dataUrl" } : { name, type: name, marker: "commandId" }));
 
 const sortedShapes = (shapes: Record<string, Shape>): Record<string, Shape> =>
   Object.fromEntries(Object.keys(shapes).sort().map((name) => [name, Object.fromEntries(Object.entries(shapes[name]!).sort(([a], [b]) => a.localeCompare(b)))]));
