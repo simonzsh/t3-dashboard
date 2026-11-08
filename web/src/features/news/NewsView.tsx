@@ -123,7 +123,9 @@ export function NewsView({ news, writing, now, compact, seen, onRead, onOpenThre
     if (!list || compact) return setHighlight(null);
     const measure = () => {
       const item = list.querySelector<HTMLElement>(".news-item.active");
-      setHighlight(item ? { top: item.offsetTop, height: item.offsetHeight } : null);
+      // Measure against the list, not offsetTop: each row is its own positioned box (for its hover actions).
+      const box = item?.getBoundingClientRect();
+      setHighlight(box ? { top: box.top - list.getBoundingClientRect().top, height: box.height } : null);
     };
     measure();
     const observer = new ResizeObserver(measure);
