@@ -64,22 +64,18 @@ export function PrListView({ list, error, refreshing, onRefresh, threads, now, o
       className="pulls-list"
       aria-label="Pull requests"
       head={
-        <div className="pulls-tools">
-          <div className="pulls-search-row">
-            <SearchField className="pulls-search" aria-label="Search pull requests" placeholder="Search pull requests…" value={query} onChange={(e) => setQuery(e.target.value)} />
-            <IconButton variant="ghost" label="Refresh the list" tooltip="Refresh the list" disabled={refreshing} onClick={onRefresh}>
-              <Icon name="refresh" />
-            </IconButton>
-          </div>
-          <div className="pulls-filters">
-            <Segmented label="Show" value={scope} options={SCOPES} onChange={(scope) => setPrefs({ scope })} />
-            <Dropdown
-              label="Repository"
-              value={repo}
-              options={[{ id: ALL_REPOSITORIES, label: "All repositories" }, ...repositories.map((r) => ({ id: r, label: r }))]}
-              onPick={(repository) => setPrefs({ repository })}
-            />
-          </div>
+        <div className="auto-toolbar">
+          <SearchField className="auto-search" aria-label="Search pull requests" placeholder="Search pull requests…" value={query} onChange={(e) => setQuery(e.target.value)} />
+          <Segmented label="Show" value={scope} options={SCOPES} onChange={(scope) => setPrefs({ scope })} />
+          <Dropdown
+            label="Repository"
+            value={repo}
+            options={[{ id: ALL_REPOSITORIES, label: "All repositories" }, ...repositories.map((r) => ({ id: r, label: r }))]}
+            onPick={(repository) => setPrefs({ repository })}
+          />
+          <IconButton variant="ghost" className="pulls-refresh" label="Refresh the list" tooltip="Refresh the list" disabled={refreshing} onClick={onRefresh}>
+            <Icon name="refresh" />
+          </IconButton>
         </div>
       }
     >

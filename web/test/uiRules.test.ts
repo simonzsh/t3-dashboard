@@ -282,7 +282,7 @@ test("no page sizes a toolbar control on its own", () => {
 
 test("the toolbar guard sees a page that sizes one of its toolbar controls", () => {
   assert.deepEqual(toolbarViolations(`${css}\n.auto-toolbar .segmented { padding: 3px; }\n`), [".auto-toolbar .segmented"]);
-  assert.deepEqual(toolbarViolations(`${css}\n.pulls-filters .dropdown-trigger { height: 26px; }\n`), [".pulls-filters .dropdown-trigger"]);
+  assert.deepEqual(toolbarViolations(`${css}\n.pulls-list .dropdown-trigger { height: 26px; }\n`), [".pulls-list .dropdown-trigger"]);
   assert.deepEqual(toolbarViolations(`${css}\n.model-footer .segmented { padding: 2px; }\n`), []);
 });
 
