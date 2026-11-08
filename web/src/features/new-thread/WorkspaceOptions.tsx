@@ -1,8 +1,8 @@
-import { useEffect, useRef, useState, type Dispatch, type SetStateAction } from "react";
+import { useEffect, useState, type Dispatch, type SetStateAction } from "react";
 import type { DashboardProject, ProjectRef, ProjectRefs, ProjectVcsStatus } from "../../../../shared/api.ts";
 import { useApi } from "../../api/ApiContext.tsx";
 import { useDebouncedValue } from "../../lib/useDebouncedValue.ts";
-import { Icon, Popover, Pressable, Switch, TextInput } from "../../ui/index.ts";
+import { Dropdown, Icon, Switch } from "../../ui/index.ts";
 import { branchLabel, defaultBaseRef, initialDraft, sanitizeBranchName, showDirtyWarning, type EnvMode, type WorkspaceDraft } from "./workspaceOptions.ts";
 
 const MODES = [
@@ -101,31 +101,8 @@ export function WorkspaceOptions({ project, draft, onDraft, onBlocked }: Props) 
 }
 
 function ModeMenu({ value, onChange }: { value: EnvMode; onChange: (mode: EnvMode) => void }) {
-  const anchor = useRef<HTMLButtonElement>(null);
-  const [open, setOpen] = useState(false);
-  const selected = MODES.find((m) => m.id === value) ?? MODES[0];
-  return (
-    <>
-      <Pressable ref={anchor} className="dropdown-trigger" aria-label="Workspace" aria-haspopup="menu" aria-expanded={open} onClick={() => setOpen((o) => !o)}>
-        <Icon name={selected.icon} />
-        <span>{selected.label}</span>
-        <Icon name="chevron" className="icon chevron-down" />
-      </Pressable>
-      {open && (
-        <Popover anchor={anchor} className="dropdown-menu" minWidth={170} onClose={() => setOpen(false)}>
-          <div className="dropdown-list" role="menu" aria-label="Workspace">
-            {MODES.map((m) => (
-              <Pressable key={m.id} role="menuitemradio" aria-checked={m.id === value} className="dropdown-option workspace-item" onClick={() => (setOpen(false), onChange(m.id))}>
-                <Icon name={m.icon} />
-                <span className="dropdown-text">{m.label}</span>
-                {m.id === value && <Icon name="check" className="icon dropdown-check" />}
-              </Pressable>
-            ))}
-          </div>
-        </Popover>
-      )}
-    </>
-  );
+  const options = MODES.map((m) => ({ id: m.id, label: m.label, icon: <Icon name={m.icon} /> }));
+  return <Dropdown label="Workspace" value={value} options={options} onPick={(id) => onChange(id as EnvMode)} />;
 }
 
 interface PickerProps {
@@ -141,70 +118,61 @@ interface PickerProps {
   onCreate: (name: string) => void;
 }
 
+const CREATE = "create:";
+const refId = (r: ProjectRef) => `${r.remote ? "remote" : "local"}:${r.name}`;
+
 function BranchPicker({ projectId, mode, value, label, loading, canOrigin, startFromOrigin, onOrigin, onRef, onCreate }: PickerProps) {
   const api = useApi();
-  const trigger = useRef<HTMLButtonElement>(null);
-  const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
   const search = useDebouncedValue(query.trim(), 200);
   const [result, setResult] = useState<ProjectRefs | null>(null);
 
   useEffect(() => {
-    if (!open) return;
     let live = true;
     api.projectRefs(projectId, { query: search }).then((r) => live && setResult(r), () => live && setResult(null));
     return () => {
       live = false;
     };
-  }, [open, projectId, search]);
+  }, [projectId, search]);
 
   const name = sanitizeBranchName(query);
   const canCreate = mode === "local" && name !== "" && result !== null && !result.refs.some((r) => !r.remote && r.name === name);
-  const close = () => {
-    setOpen(false);
-    setQuery("");
-  };
+  const refs = result?.refs ?? [];
+  const options = [
+    ...(canCreate ? [{ id: CREATE + name, label: `Create branch ${name}`, icon: <Icon name="plus" /> }] : []),
+    ...refs.map((r) => ({ id: refId(r), label: r.name, ...(marks(r).length > 0 && { description: marks(r).join(" · ") }) })),
+  ];
+  const footer = (
+    <>
+      {result && result.nextCursor !== null && <div className="dropdown-empty">Type to narrow the list.</div>}
+      {canOrigin && (
+        <label className="workspace-origin">
+          <Switch checked={startFromOrigin} onChange={onOrigin} label="Start from origin" />
+          <span>Start from origin</span>
+        </label>
+      )}
+    </>
+  );
 
   return (
-    <div className="workspace-branch">
-      <Pressable ref={trigger} className="dropdown-trigger" disabled={loading} aria-label={mode === "worktree" ? "Base branch" : "Branch"} aria-haspopup="listbox" aria-expanded={open} onClick={() => (open ? close() : setOpen(true))}>
-        <Icon name="gitBranch" />
-        <span className="dropdown-value">{label}</span>
-        <Icon name="chevron" className="icon chevron-down" />
-      </Pressable>
-      {open && (
-        <Popover anchor={trigger} align="end" className="dropdown-menu" minWidth={240} onClose={close}>
-          <TextInput className="dropdown-filter" placeholder={mode === "local" ? "Search or create a branch…" : "Search branches…"} aria-label="Search branches" autoFocus value={query} onChange={(e) => setQuery(e.target.value)} />
-          <div className="dropdown-list" role="listbox" aria-label="Branches">
-            {canCreate && (
-              <div role="option" aria-selected={false} className="dropdown-option" onMouseDown={(e) => e.preventDefault()} onClick={() => (onCreate(name), close())}>
-                <Icon name="plus" className="icon" />
-                <span className="dropdown-text">Create branch {name}</span>
-              </div>
-            )}
-            {result?.refs.length === 0 && !canCreate && <div className="dropdown-empty">No match</div>}
-            {result?.refs.map((r) => {
-              const tags = marks(r);
-              return (
-              <div key={`${r.remote}:${r.name}`} role="option" aria-selected={r.name === value?.name} className="dropdown-option" onMouseDown={(e) => e.preventDefault()} onClick={() => (onRef(r), close())}>
-                <span className="dropdown-text">
-                  <span>{r.name}</span>
-                  {tags.length > 0 && <small>{tags.join(" · ")}</small>}
-                </span>
-                {r.name === value?.name && <Icon name="check" className="icon dropdown-check" />}
-              </div>
-              );
-            })}
-            {result && result.nextCursor !== null && <div className="dropdown-empty">Type to narrow the list.</div>}
-          </div>
-          {canOrigin && (
-            <label className="workspace-origin">
-              <Switch checked={startFromOrigin} onChange={onOrigin} label="Start from origin" />
-              <span>Start from origin</span>
-            </label>
-          )}
-        </Popover>
-      )}
-    </div>
+    <Dropdown
+      className="workspace-branch"
+      label={mode === "worktree" ? "Base branch" : "Branch"}
+      value={value ? refId(value) : null}
+      valueLabel={label}
+      icon={<Icon name="gitBranch" />}
+      options={options}
+      disabled={loading}
+      filterable
+      searchPlaceholder={mode === "local" ? "Search or create a branch…" : "Search branches…"}
+      onQuery={setQuery}
+      footer={canOrigin || result?.nextCursor != null ? footer : undefined}
+      align="end"
+      onPick={(id) => {
+        if (id.startsWith(CREATE)) return onCreate(id.slice(CREATE.length));
+        const ref = refs.find((r) => refId(r) === id);
+        if (ref) onRef(ref);
+      }}
+    />
   );
 }

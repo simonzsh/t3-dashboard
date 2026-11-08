@@ -135,3 +135,8 @@ test("no effect returns the result of a scroll call", () => {
   );
   assert.deepEqual(bad, []);
 });
+
+test("menus come from the kit, so hover and keys behave the same everywhere", () => {
+  const wrong = sources.filter(({ file, text }) => !file.startsWith("ui/") && /\bdropdown-(option|list)\b/.test(text)).map(({ file }) => file);
+  assert.deepEqual(wrong, [], "use Dropdown or ActionMenu instead of hand-made menu rows");
+});

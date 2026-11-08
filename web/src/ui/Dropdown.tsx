@@ -22,9 +22,16 @@ interface Props {
   defaultOpen?: boolean;
   /** Called after every pick, the current option too; the owner then moves the focus. */
   onPicked?: () => void;
+  /** The owner filters, e.g. on the server: options are shown as given, and each search change is reported. */
+  onQuery?: (query: string) => void;
+  /** Trigger text instead of the current option's label. */
+  valueLabel?: string;
+  /** Shown under the list, e.g. a setting of the menu. */
+  footer?: ReactNode;
+  align?: "start" | "end";
 }
 
-export function Dropdown({ label, value, options, onPick, icon, placeholder, disabled = false, filterable, searchPlaceholder = "Search…", className = "", defaultOpen = false, onPicked }: Props) {
+export function Dropdown({ label, value, options, onPick, icon, placeholder, disabled = false, filterable, searchPlaceholder = "Search…", className = "", defaultOpen = false, onPicked, onQuery, valueLabel, footer, align }: Props) {
   const [open, setOpen] = useState(defaultOpen);
   const [query, setQuery] = useState("");
   const [active, setActive] = useState(() => (defaultOpen ? options.findIndex((o) => o.id === value) : -1));
@@ -37,7 +44,7 @@ export function Dropdown({ label, value, options, onPick, icon, placeholder, dis
   const searching = open && withFilter;
   // A form field shows the search in its own place; a compact picker keeps it in the menu.
   const inPlace = className.includes("field");
-  const shown = filterOptions(options, query);
+  const shown = onQuery ? options : filterOptions(options, query);
 
   useEffect(() => {
     if (!open) return;
@@ -52,6 +59,7 @@ export function Dropdown({ label, value, options, onPick, icon, placeholder, dis
 
   function show() {
     setQuery("");
+    onQuery?.("");
     setActive(options.findIndex((o) => o.id === value));
     setOpen(true);
   }
@@ -104,7 +112,8 @@ export function Dropdown({ label, value, options, onPick, icon, placeholder, dis
       value={query}
       onChange={(e) => {
         setQuery(e.target.value);
-        setActive(filterOptions(options, e.target.value).length > 0 ? 0 : -1);
+        onQuery?.(e.target.value);
+        setActive(onQuery || filterOptions(options, e.target.value).length > 0 ? 0 : -1);
       }}
     />
   );
@@ -123,7 +132,7 @@ export function Dropdown({ label, value, options, onPick, icon, placeholder, dis
         onClick={() => (open ? close(false) : show())}
       >
         {icon ?? current?.icon}
-        <span className={`dropdown-value${current ? "" : " placeholder"}`}>{current?.label ?? value ?? placeholder ?? label}</span>
+        <span className={`dropdown-value${current || valueLabel ? "" : " placeholder"}`}>{valueLabel ?? current?.label ?? value ?? placeholder ?? label}</span>
         <Icon name="chevron" className="icon chevron-down" />
       </button>
       {searching && inPlace && search}
@@ -131,6 +140,7 @@ export function Dropdown({ label, value, options, onPick, icon, placeholder, dis
         <Popover
           anchor={searching && inPlace ? filter : trigger}
           className="dropdown-menu"
+          align={align}
           minWidth={inPlace ? 0 : 210}
           matchWidth
           onClose={(reason) => close(reason === "escape")}
@@ -168,6 +178,8 @@ export function Dropdown({ label, value, options, onPick, icon, placeholder, dis
               </div>
             ))}
           </div>
+          {/* Its own keys (a switch) must not pick the active option. */}
+          {footer && <div className="dropdown-footer" onKeyDown={(e) => e.stopPropagation()}>{footer}</div>}
         </Popover>
       )}
     </div>

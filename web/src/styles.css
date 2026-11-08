@@ -481,6 +481,7 @@ input.dropdown-search { position: absolute; inset: 0 auto 0 0; z-index: 1; width
 .dropdown-text { display: flex; flex-direction: column; flex: 1; min-width: 0; }
 .dropdown-text small { color: var(--text-secondary); font-size: 11px; }
 .dropdown-check { width: 14px; height: 14px; color: var(--accent); flex: none; }
+.dropdown-footer { border-top: 1px solid var(--line); }
 .dropdown-empty { padding: 6px 8px; font-size: 13px; color: var(--text-secondary); }
 /* Action menus (ActionMenu) reuse the Dropdown rows: an icon, a label, and a red Delete. */
 .dropdown-option[role="menuitem"] > .icon { flex: none; width: 14px; height: 14px; color: var(--text-secondary); }
@@ -1284,8 +1285,5 @@ main:has(> .news-page) { padding-top: 8px; }
 .workspace-branch { min-width: 0; margin-left: auto; }
 .workspace-branch .dropdown-value { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .dropdown-trigger > .icon { flex: none; width: 14px; height: 14px; }
-.workspace-item { width: 100%; border: 0; background: none; color: inherit; text-align: left; }
-.workspace-item:hover { background: var(--surface-0); }
-.workspace-item > .icon:first-child { flex: none; width: 14px; height: 14px; color: var(--text-secondary); }
-.workspace-origin { display: flex; align-items: center; gap: 8px; padding: 6px 8px; border-top: 1px solid var(--line); font-size: 13px; color: var(--text-secondary); }
+.workspace-origin { display: flex; align-items: center; gap: 8px; padding: 6px 8px; font-size: 13px; color: var(--text-secondary); }
 .workspace-warning { margin: 0; font-size: 12px; color: var(--text-secondary); }
