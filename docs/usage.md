@@ -284,7 +284,7 @@ The shortcuts use `Ctrl`, also on a Mac, and they work while you type in a field
 
 | Key | Action |
 | --- | --- |
-| `Ctrl` + `1`, `2`, `3`, `4`, `5` | Opens Dashboard, Sessions, Git, Automations or News. |
+| `Ctrl` + `1`, `2`, `3`, `4`, `5` | Opens the pages in the order of the sidebar: Dashboard, Sessions, Git, Automations, News. |
 | `Ctrl` + `K` or `⌘` + `K` | Opens or closes the "Jump to" switcher. It finds a conversation by title, project or message. Without text, it shows the agents that wait for an answer, then your recent conversations. `↑` `↓` select, `Enter` opens in Sessions. |
 | `Ctrl` + `S` | In the message field of a conversation: stashes the draft. |
 | `Ctrl` + `N` | Opens New Session. |

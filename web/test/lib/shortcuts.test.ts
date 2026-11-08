@@ -1,6 +1,7 @@
 import { test } from "bun:test";
 import assert from "node:assert/strict";
 import { matchShortcut, startsTyping, type KeyInfo } from "../../src/lib/shortcuts.ts";
+import { TABS } from "../../src/lib/tabs.ts";
 
 const press = (key: string, over: Partial<KeyInfo> = {}): KeyInfo => ({ key, ctrlKey: false, metaKey: false, altKey: false, target: null, ...over });
 const ctrl = (key: string, over: Partial<KeyInfo> = {}) => press(key, { ctrlKey: true, ...over });
@@ -86,4 +87,9 @@ test("startsTyping: a plain character outside a field, not a shortcut, space or 
   assert.equal(startsTyping(press("a", { altKey: true })), false);
   assert.equal(startsTyping(press("a", { target: field })), false);
   assert.equal(startsTyping(press("a", { target: { tagName: "DIV", isContentEditable: true } })), false);
+});
+
+test("Ctrl+digit follows the order of the tabs", () => {
+  TABS.forEach((tab, i) => assert.equal(matchShortcut(ctrl(String(i + 1)), false), tab.id));
+  assert.equal(matchShortcut(ctrl(String(TABS.length + 1)), false), null);
 });

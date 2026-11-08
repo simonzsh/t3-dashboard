@@ -42,6 +42,7 @@ import { useSessions } from "./features/sessions/useSessions.ts";
 import { sessionsBadgeCount, useListPrefs } from "./features/sessions/sessionList.ts";
 import { useSessionsSync } from "./features/sessions/useSessionsSync.ts";
 import { useMediaQuery } from "./lib/useMediaQuery.ts";
+import { isTabAction } from "./lib/shortcuts.ts";
 import { useShortcuts } from "./lib/useShortcuts.ts";
 import { useSessionLayout } from "./lib/sessionLayout.ts";
 import { useSidebarCollapsed } from "./lib/sidebar.ts";
@@ -177,7 +178,7 @@ export function App() {
   const blocked = creating !== null || creatingAutomation || newsSettingsOpen || addingProject || editedProject !== undefined || deletedProject !== undefined || settingsOpen || confirmingUpdate || switcherQuery !== null;
   useShortcuts(
     (action) => {
-      if (action === "dashboard" || action === "sessions" || action === "automations" || action === "news" || action === "git") setTab(action);
+      if (isTabAction(action)) setTab(action);
       else if (action === "settings") setSettingsOpen(true);
       else if (action === "toggle-sidebar") {
         if (!compact) toggleSidebar();
