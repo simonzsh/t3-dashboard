@@ -16,6 +16,7 @@ import { demoGh } from "../../src/app/demo/pulls.ts";
 import { createNews } from "../../src/domain/news.ts";
 import { isArticleName } from "../../src/config/newsFile.ts";
 import { agentStatus } from "../../shared/status.ts";
+import { createAlerts } from "../../src/domain/alerts.ts";
 
 const NOW = new Date("2026-10-26T10:00:00Z");
 
@@ -546,4 +547,33 @@ test("the demo threads that carry pull requests point at demo pull requests, one
   assert.deepEqual(checkout.pullRequests.map((pr) => [pr.number, pr.title]), [[142, "ATL-142 Redesign the checkout summary"], [143, "ATL-143 Tests for the checkout fees row"]]);
   // One pull request in two sessions, so the list shows a session count.
   assert.equal(linked.filter((thread) => thread.pullRequests.some((pr) => pr.number === 138)).length, 2);
+});
+
+test("interrupting an armed demo thread sends one alert, through the fake sender only", async () => {
+  const port = new DemoPort(() => NOW);
+  const sent: string[] = [];
+  const alerts = createAlerts({
+    initial: { server: "https://ntfy.example", topic: "demo-topic", armed: [] },
+    persist: () => {},
+    send: async (_target, message) => void sent.push(`${message.message}|${message.click}`),
+    check: async () => "ok",
+    newTopic: () => "demo-topic",
+    threads: () => store.threads(),
+    projectTitle: () => undefined,
+    now: () => NOW,
+    onChange: () => {},
+    warn: () => {},
+  });
+  const store = new ShellStore({ now: () => NOW, onState: () => alerts.observe(store.threads()), onThreads: () => alerts.observe(store.threads()), onProjects() {} });
+  store.beginSync();
+  port.subscribeShell((items) => store.apply(items));
+  await Bun.sleep(0);
+  const actions = createActions({ port, store, board: { get: async () => ({ configured: true, ok: true, error: null, issues: [], readAt: NOW.toISOString(), inbox: [], inboxError: null }) } });
+  const working = store.threads().find((thread) => agentStatus(thread) === "working")!;
+  const click = `https://demo.example/#/sessions/${working.id}`;
+  alerts.arm(working.id, click);
+  await actions.interrupt(working.id);
+  await Bun.sleep(0);
+  assert.deepEqual(sent, [`Cancelled|${click}`]);
+  assert.deepEqual(alerts.state().armed, []);
 });

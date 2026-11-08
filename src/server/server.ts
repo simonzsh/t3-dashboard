@@ -4,6 +4,7 @@ import { MAX_MESSAGE_BODY_BYTES, MAX_UPLOAD_BODY_BYTES } from "../../shared/limi
 import type { Actions, AssetRequest } from "../domain/actions.ts";
 import type { SessionsStore } from "../domain/sessionsStore.ts";
 import type { StashStore } from "../domain/stashStore.ts";
+import type { Alerts } from "../domain/alerts.ts";
 import type { SeenStore } from "../domain/seenStore.ts";
 import type { CacheCleanup } from "../domain/cacheCleanup.ts";
 import type { Automations } from "../domain/automations.ts";
@@ -23,7 +24,7 @@ import { servePwa } from "./pwa.ts";
 import type { Site } from "./site.ts";
 import type { SseHub } from "./sse.ts";
 import { isObject } from "../../shared/guards.ts";
-import { isText, validActivityPeriod, validAssign, validAttachments, validCreateAutomation, validCreate, validCreateProject, validEnabled, validUpdateProject, validFolderPath, validFileSearch, validItemId, validMessage, validPrRef, validProvider, validRefsQuery, validQueuedEdit, validRespond, validRewind, validSearch, validSecretAnswer, validSeen, validSaveNews, validSessions, validSettings, validStash, validTimeZone, validUpdateAutomation, validUpload } from "./validate.ts";
+import { isText, validActivityPeriod, validAlertsSetup, validAlertsTopic, validArm, validAssign, validAttachments, validCreateAutomation, validCreate, validCreateProject, validEnabled, validUpdateProject, validFolderPath, validFileSearch, validItemId, validMessage, validPrRef, validProvider, validRefsQuery, validQueuedEdit, validRespond, validRewind, validSearch, validSecretAnswer, validSeen, validSaveNews, validSessions, validSettings, validStash, validTimeZone, validUpdateAutomation, validUpload } from "./validate.ts";
 
 export interface SetupControl {
   /** Resolves the token again. */
@@ -46,6 +47,7 @@ export interface DashboardServerOptions {
   sessions: Pick<SessionsStore, "get" | "set">;
   stash: Pick<StashStore, "list" | "add" | "remove">;
   seen: Pick<SeenStore, "get" | "apply">;
+  alerts: Alerts;
   hub: SseHub;
   getState: () => DashboardState;
   connection: () => ConnectionStatus;
@@ -159,7 +161,7 @@ function matchRoute(pattern: string[], segments: string[]): Record<string, strin
 }
 
 export function createDashboardServer(options: DashboardServerOptions): DashboardHandler {
-  const { actions, sessions, stash, seen, hub, board, usage, limits, serverStats, cacheCleanup, automations, news, pulls, getState, connection, site, settings, setup, updates } = options;
+  const { actions, sessions, stash, seen, alerts, hub, board, usage, limits, serverStats, cacheCleanup, automations, news, pulls, getState, connection, site, settings, setup, updates } = options;
   const allowedHosts = new Set([...LOCAL_HOSTS, ...(options.allowedHosts ?? [])]);
   const ok = (extra: Record<string, unknown> = {}) => json(200, { ok: true, ...extra });
   const done = async (work: Promise<unknown>) => (await work, ok());
@@ -224,6 +226,8 @@ export function createDashboardServer(options: DashboardServerOptions): Dashboar
     { method: "GET", path: "/api/sessions", handle: () => json(200, { sessions: sessions.get() }) },
     { method: "GET", path: "/api/stash", handle: () => json(200, { entries: stash.list() }) },
     { method: "GET", path: "/api/seen", handle: () => json(200, { seen: seen.get() }) },
+    { method: "GET", path: "/api/alerts", handle: () => json(200, alerts.state()) },
+    { method: "GET", path: "/api/settings/alerts", handle: () => json(200, alerts.settings()) },
     { method: "GET", path: "/api/update", handle: () => json(200, updates.status()) },
     {
       method: "GET",
@@ -336,6 +340,19 @@ export function createDashboardServer(options: DashboardServerOptions): Dashboar
         return ok({ seen: seen.get() });
       },
     },
+    { method: "POST", path: "/api/alerts/threads/:id/arm", handle: ({ params, body }) => json(200, alerts.arm(params.id!, validArm(body).clickUrl)) },
+    { method: "POST", path: "/api/alerts/threads/:id/disarm", handle: ({ params }) => json(200, alerts.disarm(params.id!)) },
+    { method: "POST", path: "/api/settings/alerts/setup", handle: ({ body }) => json(200, alerts.setup(validAlertsSetup(body).server)) },
+    {
+      method: "POST",
+      path: "/api/settings/alerts/topic",
+      handle: ({ body }) => {
+        const { topic, server } = validAlertsTopic(body);
+        return json(200, alerts.useTopic(topic, server));
+      },
+    },
+    { method: "POST", path: "/api/settings/alerts/test", handle: async () => json(200, await alerts.test()) },
+    { method: "POST", path: "/api/settings/alerts/disconnect", handle: () => json(200, alerts.disconnect()) },
     { method: "POST", path: "/api/update/check", handle: async () => json(200, await updates.check()) },
     {
       method: "POST",
