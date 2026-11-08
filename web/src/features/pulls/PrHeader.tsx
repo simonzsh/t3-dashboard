@@ -1,7 +1,7 @@
 import type { DashboardThread } from "../../../../shared/api.ts";
 import type { PrDetail, PrRef } from "../../../../shared/pulls.ts";
 import { relativeTime } from "../../lib/format.ts";
-import { ActionMenu, Badge, ButtonLink, Icon, IconButton, IconButtonLink, SidePanelToggle, type ActionMenuItem } from "../../ui/index.ts";
+import { ActionMenu, Badge, Icon, IconButton, IconButtonLink, SidePanelToggle, type ActionMenuItem } from "../../ui/index.ts";
 import { Counts } from "./DiffFiles.tsx";
 import { StatusButton } from "./PrChecks.tsx";
 import { SessionsButton } from "./SessionsButton.tsx";
@@ -55,7 +55,7 @@ export function PrMeta({ detail, now }: { detail: PrDetail; now: Date }) {
 
 function menuItems({ detail, sessions, onOpenSession, controls, refreshing, onRefresh, onShowFiles }: Props): ActionMenuItem[] {
   const items: ActionMenuItem[] = [];
-  if (detail && isWebUrl(detail.url)) items.push({ label: "Open on GitHub", icon: "arrowUpRight", onSelect: () => window.open(detail.url, "_blank", "noopener,noreferrer") });
+  if (detail && isWebUrl(detail.url)) items.push({ label: "Open on GitHub", icon: "github", onSelect: () => window.open(detail.url, "_blank", "noopener,noreferrer") });
   for (const thread of sessions) items.push({ label: sessions.length === 1 ? "Open session" : thread.title, icon: "messagesSquare", onSelect: () => onOpenSession(thread.id, false) });
   if (onShowFiles && controls.hasFiles) items.push({ label: "Changed files", icon: "listTree", onSelect: onShowFiles });
   if (controls.hasFiles) items.push({ label: controls.anyOpen ? "Collapse all" : "Expand all", icon: controls.anyOpen ? "chevronsDownUp" : "chevronsUpDown", onSelect: controls.toggleAll });
@@ -83,9 +83,9 @@ export function PrHeader(props: Props) {
           ) : (
             <>
               {detail && isWebUrl(detail.url) && (
-                <ButtonLink size="sm" href={detail.url} target="_blank" rel="noreferrer noopener">
-                  <Icon name="arrowUpRight" /> Open on GitHub
-                </ButtonLink>
+                <IconButtonLink size="sm" variant="ghost" href={detail.url} target="_blank" rel="noreferrer noopener" label="Open on GitHub" tooltip="Open on GitHub">
+                  <Icon name="github" />
+                </IconButtonLink>
               )}
               <SessionsButton sessions={sessions} text="Open session" variant="secondary" onOpenThread={onOpenSession} />
               {controls.hasFiles && (

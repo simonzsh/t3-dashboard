@@ -156,7 +156,7 @@ test("the header holds the title, the meta line, the badges and the actions on o
 
 test("the header opens no session, one session, or a menu of several", () => {
   const none = header();
-  assert.match(none, /Open on GitHub/);
+  assert.match(none, /<a href="https:\/\/example.test\/acme\/storefront\/pull\/12" target="_blank" rel="noreferrer noopener" aria-label="Open on GitHub" data-tooltip="Open on GitHub" class="icon-button sm ghost">/);
   assert.doesNotMatch(none, /Open session|Sessions \d/);
   assert.match(header({ sessions: [thread("t1")] }), /<button [^>]*>.*Open session<\/button>/);
   assert.match(header({ sessions: [thread("t1"), thread("t2")] }), /aria-label="2 sessions"[^>]*aria-haspopup="menu"[\s\S]*Sessions 2/);
@@ -197,7 +197,7 @@ test("the detail is a list page: the header above the scroll box, the diff insid
   const html = page();
   assert.match(html, /<section class="list-page flush pulls-detail" aria-label="Pull request"><div class="list-page-head"><header class="pulls-head">/);
   assert.match(html, /<div class="list-page-body page-scroll bleed"><div class="pulls-detail-grid">.*data-pr-diff-file="src\/a.ts"/);
-  assert.match(html, /<a [^>]*href="https:\/\/example.test\/acme\/storefront\/pull\/12"[^>]*>.*Open on GitHub/);
+  assert.match(html, /<a [^>]*href="https:\/\/example.test\/acme\/storefront\/pull\/12"[^>]*aria-label="Open on GitHub"/);
   // A static render is narrow: the file list waits in a sheet behind the header button.
   assert.match(html, /aria-label="Changed files"/);
   assert.match(html, /role="dialog" aria-modal="true" aria-label="Changed files"/);
