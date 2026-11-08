@@ -72,7 +72,8 @@ export class FakePort implements T3Port {
   statusError: Error | null = null;
   switches: Array<{ cwd: string; refName: string }> = [];
   /** What switchRef answers; null echoes the asked name. */
-  switchResult: string | null = null;
+  /** Undefined: echo the asked name. */
+  switchResult: string | null | undefined = undefined;
   switchError: Error | null = null;
   creates: Array<{ cwd: string; refName: string }> = [];
   createRefError: Error | null = null;
@@ -123,7 +124,7 @@ export class FakePort implements T3Port {
     this.log.push("switch");
     if (this.switchError) throw this.switchError;
     this.switches.push({ cwd, refName });
-    return this.switchResult ?? refName;
+    return this.switchResult === undefined ? refName : this.switchResult;
   }
 
   async createRef(cwd: string, refName: string) {

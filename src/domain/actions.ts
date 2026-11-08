@@ -163,12 +163,14 @@ export function createActions(options: ActionsOptions): Actions {
     const project = touchesGit ? store.project(create.projectId) : undefined;
     if (touchesGit && project?.id !== create.projectId) throw new DomainError("conflict", "T3 project not found");
     const root = project && folderOf(project);
+    const threadId = newId();
+    const message = await outgoing(threadId, images, uploads);
     let branch: string | null = null;
     if (root !== undefined && choice?.type === "root" && choice.branch !== undefined) {
       branch = choice.create ? await t3(port.createRef(root, choice.branch)) : await t3(port.switchRef(root, choice.branch));
+      // A remote ref becomes a local tracking branch: ask git its name rather than keep "origin/x".
+      branch ??= (await t3(port.vcsStatus(root))).refName ?? null;
     }
-    const threadId = newId();
-    const message = await outgoing(threadId, images, uploads);
     await t3(port.launchThread(launchPayload(threadId, create, message, workspaceStrategy(choice, branch, root), { generateTitle }), newId()));
     return threadId;
   }

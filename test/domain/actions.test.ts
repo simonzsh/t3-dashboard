@@ -499,13 +499,21 @@ test("createThread sends the plan mode and a new worktree strategy", async () =>
   assert.deepEqual(port.launches[0]!.launch.workspaceStrategy, { type: "worktree", baseRef: "origin/dev", startFromOrigin: true });
 });
 
-test("createThread checks the branch out, persists the images, then launches with the name T3 returned", async () => {
+test("createThread persists the images, checks the branch out, then launches with the name T3 returned", async () => {
   const { actions, port } = fakeHarness();
   port.switchResult = "dev";
   const image = { type: "image" as const, name: "a.png", mimeType: "image/png", sizeBytes: 4, dataUrl: "data:image/png;base64,iVBORw==" };
   await actions.createThread({ ...create, workspace: { type: "root", branch: "origin/dev" } }, [image]);
-  assert.deepEqual(port.log, ["switch", "persist", "launch"]);
+  assert.deepEqual(port.log, ["persist", "switch", "launch"]);
   assert.deepEqual(port.switches, [{ cwd: "/work/repo", refName: "origin/dev" }]);
+  assert.deepEqual(port.launches[0]!.launch.workspaceStrategy, { type: "root", branch: "dev" });
+});
+
+test("createThread asks git for the branch name when T3 returns none", async () => {
+  const { actions, port } = fakeHarness();
+  port.switchResult = null;
+  port.status = { ...port.status, refName: "dev" };
+  await actions.createThread({ ...create, workspace: { type: "root", branch: "origin/dev" } }, []);
   assert.deepEqual(port.launches[0]!.launch.workspaceStrategy, { type: "root", branch: "dev" });
 });
 
