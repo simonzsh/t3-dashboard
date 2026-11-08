@@ -3,8 +3,7 @@ import assert from "node:assert/strict";
 import type { DashboardProvider, NewsSettings, NewsTask } from "../../../../shared/api.ts";
 import type { SeenState } from "../../../../shared/seen.ts";
 import { prune } from "../../../../shared/seen.ts";
-import { formatMessageTime } from "../../../src/lib/format.ts";
-import { filterArticles, firstRunBody, isUnreadArticle, newsMark, readTarget, unreadNewsCount, dateLabel, formFromSettings, pickModel, shortDate, statusLine, pollInterval, isStarting, STARTING_MS, toBody, scheduleHint, WEEKDAYS, LANGUAGES } from "../../../src/features/news/news.ts";
+import { filterArticles, firstRunBody, isUnreadArticle, newsMark, readTarget, unreadNewsCount, dateLabel, formFromSettings, pickModel, shortDate, statusLine, nextRunLabel, pollInterval, isStarting, STARTING_MS, toBody, scheduleHint, WEEKDAYS, LANGUAGES } from "../../../src/features/news/news.ts";
 
 const provider: DashboardProvider = { instanceId: "provider-a", displayName: "Provider A", models: [{ slug: "model-x", name: "Model X" }, { slug: "model-y", name: "Model Y" }] as never, runtimeModes: [] };
 const settings: NewsSettings = { enabled: true, frequency: "daily", weekday: 1, timeOfDay: "07:00", language: "French", modelSelection: { instanceId: "provider-a", model: "model-y" } };
@@ -72,13 +71,14 @@ test("the status line asks for a first save when there is no task", () => {
 });
 
 test("the status line gives the next run and the last run", () => {
-  assert.equal(statusLine(task(), now), `Next article ${formatMessageTime("2026-11-08T07:00:00.000Z")}`);
-  assert.equal(statusLine(task({ lastRunAt: "2026-11-07T09:00:00.000Z", lastRunStatus: "succeeded" }), now), `Next article ${formatMessageTime("2026-11-08T07:00:00.000Z")} · Last run 3 h ago`);
+  assert.match(statusLine(task(), now), /^Next: tomorrow \S+/);
+  // A good last run adds nothing: the line stays short.
+  assert.equal(statusLine(task({ lastRunAt: "2026-11-07T09:00:00.000Z", lastRunStatus: "succeeded" }), now), statusLine(task(), now));
 });
 
 test("the status line says when the routine is paused or running, and shows a failure", () => {
-  assert.equal(statusLine(task({ lastRunStatus: "running", lastRunAt: "2026-11-07T11:59:00.000Z" }), now), `Next article ${formatMessageTime("2026-11-08T07:00:00.000Z")}`);
-  assert.match(statusLine(task({ lastRunAt: "2026-11-07T09:00:00.000Z", lastRunStatus: "failed", lastRunError: "No model" }), now), /Last run failed: No model/);
+  assert.equal(statusLine(task({ lastRunStatus: "running", lastRunAt: "2026-11-07T11:59:00.000Z" }), now), statusLine(task(), now));
+  assert.match(statusLine(task({ lastRunAt: "2026-11-07T09:00:00.000Z", lastRunStatus: "failed", lastRunError: "No model" }), now), /· Last run failed$/);
 });
 
 test("a date reads as a long English date, whatever the time zone", () => {
@@ -163,4 +163,12 @@ test("a first Run now saves the shown settings with the model the dialog would p
   assert.deepEqual(body, { enabled: settings.enabled, frequency: settings.frequency, weekday: settings.weekday, timeOfDay: settings.timeOfDay, language: settings.language, modelSelection: { instanceId: "provider-a", model: "model-x" } });
   // No model at all: nothing to save, so Run now stays off.
   assert.equal(firstRunBody(settingsNone, [], null), null);
+});
+
+test("the next run reads today, tomorrow, a weekday, then a date", () => {
+  const base = new Date(2026, 10, 7, 12, 0);
+  assert.match(nextRunLabel(new Date(2026, 10, 7, 19, 0), base), /^today /);
+  assert.match(nextRunLabel(new Date(2026, 10, 8, 7, 0), base), /^tomorrow /);
+  assert.doesNotMatch(nextRunLabel(new Date(2026, 10, 10, 7, 0), base), /today|tomorrow/);
+  assert.doesNotMatch(nextRunLabel(new Date(2026, 10, 20, 7, 0), base), /:/);
 });

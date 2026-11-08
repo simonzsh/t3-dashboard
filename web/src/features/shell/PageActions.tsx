@@ -15,7 +15,7 @@ interface Props {
   /** The Sessions layout toggle: shown only on a wide screen. */
   layout: SessionLayout;
   onLayoutChange: (layout: SessionLayout) => void;
-  /** The list toggle of Sessions and News: wide screen only. */
+  /** The Sessions list toggle: wide screen only. */
   listHidden: boolean;
   onToggleList: () => void;
   onNewSession: () => void;
@@ -130,7 +130,6 @@ export function PageActions({ tab, compact, ready, editingLayout, layoutIsDefaul
   } else if (tab === "news" && ready) {
     main = (
       <>
-        {!compact && <ListToggle hidden={listHidden} onToggle={onToggleList} />}
         {compact ? (
           <Action compact label="News settings" icon="slidersHorizontal" onClick={onNewsSettings} />
         ) : (

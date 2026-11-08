@@ -50,6 +50,13 @@ function runOf(thread: RawThread, startedAt: string, now: Date): AutomationRun {
   return { threadId: thread.id, startedAt, finishedAt: terminal ? (thread.latestRunCompletedAt ?? dashboard.lastActivityAt) : null, status, error: status === "failed" ? dashboard.lastError : null };
 }
 
+/** An unseen end filled in from T3's last-run status, when T3 knows it. */
+function endedAs(task: RawScheduledTask, run: AutomationRun): AutomationRun {
+  if (task.lastRunStatus === "succeeded") return { ...run, status: "succeeded" };
+  if (task.lastRunStatus === "failed") return { ...run, status: "failed", error: task.lastRunError ?? run.error };
+  return run;
+}
+
 function fromT3(task: RawScheduledTask, run: AutomationRun): AutomationRun {
   if (task.lastRunStatus !== "failed" || isOpen(run.status)) return run;
   return { ...run, status: "failed", error: task.lastRunError ?? run.error };
@@ -67,8 +74,13 @@ function taskRuns(task: RawScheduledTask, log: AutomationRun[], threads: RawThre
   const runs = new Map<string, AutomationRun>();
   const lastRunAt = stamp(task.lastRunAt);
 
-  // A stored run still working with nothing to follow it may have ended unseen.
-  for (const run of stored) runs.set(key(task, run), isOpen(run.status) ? { ...run, status: "unknown" } : run);
+  const isNear = (iso: string | null | undefined) => task.lastRunAt != null && Math.abs(stamp(iso) - lastRunAt) <= NEAR_MS;
+  // A stored run still working with nothing to follow it may have ended unseen (its thread archived meanwhile).
+  // When it is T3's last run, T3's own status says how it ended.
+  for (const run of stored) {
+    const settled: AutomationRun = isOpen(run.status) ? { ...run, status: "unknown" } : run;
+    runs.set(key(task, run), settled.status === "unknown" && isNear(run.startedAt) ? endedAs(task, settled) : settled);
+  }
 
   if (isBound(task)) {
     const chat = byId.get(task.threadId!);
@@ -79,7 +91,6 @@ function taskRuns(task: RawScheduledTask, log: AutomationRun[], threads: RawThre
       runs.set(`at:${startedAt}`, keepFailure(kept, fromT3(task, base)));
     }
   } else {
-    const isNear = (iso: string | null | undefined) => Math.abs(stamp(iso) - lastRunAt) <= NEAR_MS;
     // A run already logged near lastRunAt (its thread may be archived since) is the failed run, not a dispatch failure.
     let failedNear = stored.some((run) => run.threadId !== null && isNear(run.startedAt));
     for (const thread of runThreads(task, threads, owners)) {

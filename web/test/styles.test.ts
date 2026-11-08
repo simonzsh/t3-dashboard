@@ -129,7 +129,8 @@ test("automations: only the list scrolls, under a fixed toolbar, on a phone too"
   assert.doesNotMatch(css, /\.auto-page \{[^}]*overflow-y/);
   assert.doesNotMatch(css, /\.auto-toolbar \{[^}]*sticky/);
   const phone = css.slice(css.indexOf("@media (max-width: 700px)"));
-  assert.match(phone, /\.app:not\(\.sessions-mode, \.automations-mode\) \{ height: auto;/);
+  // News holds the page still the same way: no page scroll, only its list or article scrolls.
+  assert.match(phone, /\.app:not\(\.sessions-mode, \.automations-mode, \.news-mode\) \{ height: auto;/);
 });
 
 test("news: the article is a readable column, and on a phone the list and the article take turns", () => {
@@ -139,19 +140,43 @@ test("news: the article is a readable column, and on a phone the list and the ar
   assert.match(rule(".news-back"), /display: none/);
   const phone = css.slice(css.indexOf("@media (max-width: 700px)"));
   assert.match(phone, /\.news-page:not\(\.reading\) \.news-article, \.news-page\.reading \.news-list \{ display: none; \}/);
-  // The 280px the list keeps for the wide-screen slide must not reach a phone.
-  assert.match(phone, /\.news-list-slot > \.news-list \{ width: auto; \}/);
+  // The list's wide-screen width must not reach a phone.
+  assert.match(phone, /\.news-page:not\(\.empty\) > \.news-list \{ width: auto; \}/);
   assert.match(phone, /\.news-back \{ display: inline-flex;/);
 });
 
 test("news: the phone rules come after the base rules, so the article fills the width", () => {
-  const base = css.indexOf(".news-page { flex: 1;");
-  const phone = css.indexOf("@media (max-width: 700px) {\n  /* The page scrolls; the list and the article take turns. */");
+  const base = css.indexOf(".news-page { container-type: inline-size;");
+  const phone = css.indexOf("@media (max-width: 700px) {\n  /* Like Automations, the page holds still: only the article list, or the open article, scrolls under the bar. */");
   assert.ok(base > 0 && phone > base, "the news phone block must follow the base rules");
   const block = css.slice(phone, css.indexOf("\n}\n", phone));
-  assert.match(block, /\.news-page \{ flex: none; display: block; \}/);
+  // No list beside the article on a phone: nothing may push the text right.
+  assert.match(block, /\.news-page \{ display: flex; flex-direction: column; \}/);
+  assert.match(block, /\.news-page > \* \{ --news-list-space: 0px; \}/);
   assert.match(block, /\.news-back \{ display: inline-flex;/);
-  assert.match(block, /\.news-list, \.news-article \{ overflow: visible; margin: 0; padding: 0; \}/);
+  assert.match(block, /\.news-article \{ flex: 1; margin: 0; padding: 0 0 16px; \}/);
   // No later base rule may undo the phone block.
   assert.doesNotMatch(css.slice(css.indexOf("\n}\n", phone)), /^\.news-(page|back|list|article) \{/m);
+});
+
+test("news: the article text keeps the page's centre, the list in its left margin", () => {
+  // List and article share one grid cell; the text only steps right when the page is too narrow for both.
+  assert.match(css, /\.news-page > \* \{[^}]*grid-area: 1 \/ 1; \}/);
+  assert.match(css, /\.news-article > \* \{ max-width: 42rem; margin-inline: max\(var\(--news-list-space\), calc\(\(100% - 42rem\) \/ 2\)\) auto; \}/);
+});
+
+test("pages start their content the same distance below the header", () => {
+  assert.match(css, /:root \{ --page-top: 24px; \}/);
+  assert.match(css, /main \{[^}]*padding: var\(--page-top\) 24px 24px;/);
+  // Pages with inner padding subtract it, so the first visible content still sits at --page-top.
+  assert.match(css, /main:has\(> \.auto-page\) \{ padding-top: calc\(var\(--page-top\) - 8px\); \}/);
+  assert.match(css, /main:has\(> \.news-page\) \{ padding-top: calc\(var\(--page-top\) - 4px\); \}/);
+});
+
+test("news: the list head stays put while the articles scroll, as on Automations", () => {
+  assert.match(css, /\.news-list-head \{ flex: none;/);
+  assert.match(css, /\.news-list-scroll \{ flex: 1; min-height: 0; overflow-y: auto;/);
+  const phone = css.slice(css.indexOf("@media (max-width: 700px) {\n  /* Like Automations, the page holds still: only the article list, or the open article, scrolls under the bar. */"));
+  // No sticky trick on a phone either: the head simply sits above the scrolling list.
+  assert.doesNotMatch(phone.slice(0, phone.indexOf("\n}\n")), /news-list-head|sticky/);
 });

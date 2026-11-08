@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { NewsArticle, NewsArticleSummary, NewsState } from "../../../../shared/api.ts";
 import type { SeenState } from "../../../../shared/seen.ts";
 import { useApi } from "../../api/ApiContext.tsx";
@@ -14,8 +14,6 @@ interface Props {
   /** An article is being written, or Run now was just pressed. */
   writing: boolean;
   now: Date;
-  /** Wide screen: the article list is hidden from the header and the article takes the width. */
-  listHidden?: boolean;
   /** Phone layout: the list and the article take turns. */
   compact: boolean;
   /** Read marks shared with the notifications; null until loaded (then no dot shows). */
@@ -30,7 +28,7 @@ interface Props {
 }
 
 /** The article list and the open article. On a phone they take turns: the list, then the article with a back button. */
-export function NewsView({ news, writing, now, compact, listHidden = false, seen, onRead, onOpenThread, onDelete, onDeleteAll }: Props) {
+export function NewsView({ news, writing, now, compact, seen, onRead, onOpenThread, onDelete, onDeleteAll }: Props) {
   const api = useApi();
   const { articles, task, running } = news;
   const [picked, setPicked] = useState<string | null>(null);
@@ -38,9 +36,6 @@ export function NewsView({ news, writing, now, compact, listHidden = false, seen
   const [reading, setReading] = useState(false);
   const [article, setArticle] = useState<NewsArticle | null>(null);
   const articleRef = useRef<HTMLElement>(null);
-  // The open item's box, for the highlight that slides between items like the sidebar's.
-  const listRef = useRef<HTMLUListElement>(null);
-  const [highlight, setHighlight] = useState<{ top: number; height: number } | null>(null);
   const [error, setError] = useState<string | null>(null);
   // The delete dialog: one article, or "all".
   const [deleting, setDeleting] = useState<NewsArticleSummary | "all" | null>(null);
@@ -88,9 +83,9 @@ export function NewsView({ news, writing, now, compact, listHidden = false, seen
     if (mark) onRead(mark);
   }, [mark?.id, mark?.at, onRead]);
 
-  // Phone: the article is shown only now, so bring it to the top of the page.
+  // Phone: the article scrolls on its own, so a newly opened one starts at its top.
   useEffect(() => {
-    if (reading) articleRef.current?.scrollIntoView({ block: "start" });
+    if (reading && articleRef.current) articleRef.current.scrollTop = 0;
   }, [reading, picked]);
 
   // The new article is shown when the run ends, even if an older one was picked.
@@ -114,23 +109,6 @@ export function NewsView({ news, writing, now, compact, listHidden = false, seen
       )}
     </li>
   );
-  // Dates and file times, not the array: it is new on every render.
-  const visibleKey = visible.map((a) => a.date + a.mtimeMs).join();
-  // Before any early return: a hook skipped on some renders breaks React (empty list after Delete all).
-  useLayoutEffect(() => {
-    const list = listRef.current;
-    if (!list || compact) return setHighlight(null);
-    const measure = () => {
-      const item = list.querySelector<HTMLElement>(".news-item.active");
-      // Measure against the list, not offsetTop: each row is its own positioned box (for its hover actions).
-      const box = item?.getBoundingClientRect();
-      setHighlight(box ? { top: box.top - list.getBoundingClientRect().top, height: box.height } : null);
-    };
-    measure();
-    const observer = new ResizeObserver(measure);
-    observer.observe(list);
-    return () => observer.disconnect();
-  }, [date, compact, visibleKey, writing]);
 
   if (articles.length === 0) {
     return (
@@ -149,10 +127,10 @@ export function NewsView({ news, writing, now, compact, listHidden = false, seen
   }
   const shown = article?.date === date ? article : null;
   return (
-    <div className={`news-page${reading ? " reading" : ""}${listHidden && !compact ? " list-hidden" : ""}`}>
-      {/* Kept mounted so hiding slides like the Sessions list; inert while hidden. */}
-      <div className="news-list-slot" inert={listHidden && !compact}>
-        <section className="news-list" aria-label="News">
+    <div className={`news-page${reading ? " reading" : ""}`}>
+      <section className="news-list" aria-label="News">
+        {/* Stays in place while the articles scroll, as the Automations toolbar does. */}
+        <div className="news-list-head">
           {status}
           <div className="news-tools">
             <div className="auto-search">
@@ -163,11 +141,9 @@ export function NewsView({ news, writing, now, compact, listHidden = false, seen
               <Icon name="trash" /> Delete all
             </Button>
           </div>
-          <ul
-            ref={listRef}
-            className={`news-items${highlight ? " marked" : ""}`}
-            style={highlight ? ({ "--mark-top": `${highlight.top}px`, "--mark-height": `${highlight.height}px` } as CSSProperties) : undefined}
-          >
+        </div>
+        <div className="news-list-scroll">
+          <ul className="news-items">
             {progress}
             {searching && visible.length === 0 && <li className="news-none">No matching articles</li>}
             {visible.map((a) => {
@@ -198,8 +174,8 @@ export function NewsView({ news, writing, now, compact, listHidden = false, seen
               );
             })}
           </ul>
-        </section>
-      </div>
+        </div>
+      </section>
       <article ref={articleRef} className="news-article" aria-label={shown?.title ?? "News"}>
         <Button variant="ghost" size="sm" className="news-back" onClick={() => setReading(false)}>
           <Icon name="arrowLeft" /> News
