@@ -1127,6 +1127,8 @@ main:has(> .news-page) { padding-top: 8px; }
 .news-schedule:disabled .dialog-field { opacity: 0.5; }
 /* In a form the picker opens in place under its chip, and the dialog keeps scrolling. */
 .model-picker.inline .model-panel { position: static; width: 100%; margin-top: 8px; }
+/* Opening scrolls the panel into view; the margin keeps it clear of the sticky Save bar. */
+.model-picker.inline .model-panel { scroll-margin-bottom: 80px; }
 .dialog:has(.model-picker.inline .model-panel) { overflow-y: auto; }
 .news-article-date { margin: 8px auto 0; font-size: 12px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-secondary); }
 /* Reading size: a 68-character line, taller leading and roomy blocks. */

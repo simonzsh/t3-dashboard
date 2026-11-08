@@ -42,6 +42,10 @@ export function ModelPanel({ providers, selection, mode = null, modes = [], onSe
     box.style.maxHeight = `${Math.max(180, top - frame - 12)}px`;
   });
   const chip = useRef<HTMLButtonElement>(null);
+  // In a form the panel opens in the flow: scroll the form so all of it shows at once.
+  useEffect(() => {
+    if (open && inline) panel.current?.scrollIntoView({ block: "nearest" });
+  }, [open, inline]);
   const search = useRef<HTMLInputElement>(null);
 
   const found = findModel(providers, selection);
