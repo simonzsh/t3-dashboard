@@ -1250,6 +1250,14 @@ test("attachments: an image of the thread passes through with its type and the d
   assert.deepEqual(port.assets, [{ _tag: "attachment", attachmentId: "t1-img" }]);
 });
 
+test("attachments: a thread id with colons matches T3's safe id segment", async () => {
+  const { server, port } = await start();
+  const id = "delegated-task-command-mcp-7c77-del-973d7003-png";
+  const reply = await call(server, "GET", `/api/threads/${encodeURIComponent("delegated-task-command:mcp:7c77:del")}/attachments/${id}`);
+  assert.equal(reply.status, 200);
+  assert.deepEqual(port.assets, [{ _tag: "attachment", attachmentId: id }]);
+});
+
 test("attachments: an id of another thread is refused before any T3 call", async () => {
   const { server, port } = await start();
   assert.equal((await call(server, "GET", "/api/threads/t1/attachments/t2-img")).status, 404);
