@@ -602,6 +602,13 @@ html:has(.dialog-backdrop:not([hidden])), html:has(.ui-sheet.open) { overflow: h
 .tabs button { border: 0; background: none; padding: 6px 12px; border-radius: 8px; color: var(--text-secondary); font-weight: 500; text-align: left; white-space: nowrap; }
 .tabs button:hover { background: var(--surface-0); color: var(--text-primary); }
 .tabs button.active { background: var(--surface-0); color: var(--accent); }
+/* Underline tabs (page tabs, as on GitHub): a full-width bar; the current tab is bold and underlined in the accent. */
+.tabs.underline { gap: 4px; border-bottom: 1px solid var(--line); }
+.tabs.underline button { display: inline-flex; align-items: center; gap: 6px; margin-bottom: -1px; border-radius: var(--radius-sm) var(--radius-sm) 0 0; color: var(--text-secondary); }
+.tabs.underline button .icon { flex: none; width: 15px; height: 15px; }
+.tabs.underline button:hover { background: var(--surface-0); color: var(--text-primary); }
+.tabs.underline button.active { background: none; color: var(--text-primary); font-weight: 600; box-shadow: inset 0 -2px var(--accent); }
+.tabs-count { display: inline-grid; place-items: center; min-width: 20px; height: 18px; padding: 0 6px; border-radius: 999px; background: color-mix(in srgb, var(--text-primary) 10%, transparent); color: var(--text-primary); font-size: 12px; font-weight: 500; }
 .settings-tabs { flex: none; flex-direction: column; width: 120px; }
 @media (max-width: 560px) {
   .settings-layout { flex-direction: column; gap: 12px; min-height: 0; }

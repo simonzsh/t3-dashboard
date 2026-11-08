@@ -3,7 +3,7 @@ import type { DashboardThread } from "../../../../shared/api.ts";
 import type { PrDetail as Detail, PrDiff, PrRef } from "../../../../shared/pulls.ts";
 import { renderMarkdown } from "../../lib/markdown.tsx";
 import { useMediaQuery } from "../../lib/useMediaQuery.ts";
-import { Button, ListPage, Loader, PHONE, Sheet, SidePanel, Tabs, WIDE } from "../../ui/index.ts";
+import { Button, ListPage, Loader, PHONE, Sheet, SidePanel, Tabs, WIDE, type TabOption } from "../../ui/index.ts";
 import { DiffFiles, useDiffView } from "./DiffFiles.tsx";
 import { currentIndex } from "./diffView.ts";
 import { FileNav } from "./FileNav.tsx";
@@ -30,9 +30,12 @@ interface Props {
 /** Description and Changes everywhere; a phone adds Files, as the file tree has no side column there. */
 export type DetailTab = "description" | "changes" | "files";
 
-export function tabsOf(phone: boolean, files: number): Array<{ id: DetailTab; label: string }> {
-  const tabs: Array<{ id: DetailTab; label: string }> = [{ id: "description", label: "Description" }, { id: "changes", label: files > 0 ? `Changes ${files}` : "Changes" }];
-  return phone ? [...tabs, { id: "files", label: "Files" }] : tabs;
+export function tabsOf(phone: boolean, files: number): Array<TabOption<DetailTab>> {
+  const tabs: Array<TabOption<DetailTab>> = [
+    { id: "description", label: "Description", icon: "fileText" },
+    { id: "changes", label: "Changes", icon: "gitPullRequest", count: files > 0 ? files : undefined },
+  ];
+  return phone ? [...tabs, { id: "files", label: "Files", icon: "listTree" }] : tabs;
 }
 
 const fileBlocks = (box: HTMLElement) => [...box.querySelectorAll<HTMLElement>("[data-pr-diff-file]")];
@@ -115,7 +118,7 @@ export function PrDetail({ pr, detail, detailError, diff, diffError, refreshing,
   }
 
   const description = useMemo(() => (detail && detail.body.trim() !== "" ? renderMarkdown(detail.body) : null), [detail?.body]);
-  const tabs = <Tabs label="Pull request" idPrefix="pr-tab" value={shown} options={tabsOf(phone, files.length)} onChange={switchTab} className="pulls-tabs" />;
+  const tabs = <Tabs label="Pull request" idPrefix="pr-tab" value={shown} options={tabsOf(phone, files.length)} onChange={switchTab} variant="underline" className="pulls-tabs" />;
   const nav = <FileNav files={files} open={view.open} active={files[active]?.path ?? null} onPick={pick} />;
   // The diff actions only act on the Changes tab (and the Files tab, its list on a phone).
   const diffShown = shown !== "description";

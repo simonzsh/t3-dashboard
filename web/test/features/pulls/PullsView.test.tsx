@@ -205,9 +205,9 @@ test("the detail is a list page: the header above the scroll box, the diff insid
 
 test("the detail has Description and Changes tabs, and opens on the changes", () => {
   const html = page();
-  assert.match(html, /role="tablist" aria-label="Pull request"/);
-  assert.match(html, /id="pr-tab-description" aria-selected="false"[^>]*>Description<\/button>/);
-  assert.match(html, /id="pr-tab-changes" aria-selected="true"[^>]*>Changes 1<\/button>/);
+  assert.match(html, /class="tabs underline pulls-tabs" role="tablist" aria-label="Pull request"/);
+  assert.match(html, /id="pr-tab-description" aria-selected="false"[^>]*><svg[^>]*>.*?<\/svg>Description<\/button>/);
+  assert.match(html, /id="pr-tab-changes" aria-selected="true"[^>]*class="active"><svg[^>]*>.*?<\/svg>Changes<span class="tabs-count">1<\/span><\/button>/);
   assert.doesNotMatch(html, /id="pr-tab-files"/);
   assert.match(html, /role="tabpanel" id="pr-tab-panel" aria-labelledby="pr-tab-changes"/);
   // The description is rendered but hidden; the diff is shown.
@@ -218,9 +218,9 @@ test("the detail has Description and Changes tabs, and opens on the changes", ()
 });
 
 test("a phone adds a Files tab; the Changes tab counts the files", () => {
-  assert.deepEqual(tabsOf(false, 3).map((t) => t.label), ["Description", "Changes 3"]);
+  assert.deepEqual(tabsOf(false, 3).map((t) => [t.label, t.count]), [["Description", undefined], ["Changes", 3]]);
   assert.deepEqual(tabsOf(true, 3).map((t) => t.id), ["description", "changes", "files"]);
-  assert.deepEqual(tabsOf(true, 0).map((t) => t.label), ["Description", "Changes", "Files"]);
+  assert.equal(tabsOf(true, 0)[1]!.count, undefined);
 });
 
 test("the detail shows a loader before the data and keeps errors apart", () => {

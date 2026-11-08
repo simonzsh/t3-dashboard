@@ -33,7 +33,7 @@ export { Tree, type TreeProps } from "./Tree.tsx";
 export { pathTree, type PathNode } from "./pathTree.ts";
 export { Segmented } from "./Segmented.tsx";
 export { Switch } from "./Switch.tsx";
-export { Tabs } from "./Tabs.tsx";
+export { Tabs, type TabOption } from "./Tabs.tsx";
 export { ToggleGroup } from "./ToggleGroup.tsx";
 export { useEscape } from "./useEscape.ts";
 export { useListNav, type ListNav, type ListNavOptions } from "./useListNav.ts";
