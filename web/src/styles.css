@@ -1296,6 +1296,7 @@ ol.install-steps { padding-left: 18px; }
 .pr-diff-counts .del { color: var(--err-text); font-weight: 600; }
 .pulls-files { flex: none; font-size: 12px; color: var(--text-secondary); }
 .pr-diff-empty { margin: 0; padding: 8px 12px; font-size: 13px; color: var(--text-secondary); }
+.pr-diff-load { padding: 8px 12px; }
 .pr-diff-scroll { overflow-x: auto; }
 .pr-diff-table { width: max-content; min-width: 100%; border-collapse: collapse; font-family: var(--font-mono); font-size: 12px; line-height: 20px; }
 .pr-diff-hunk td { padding: 1px 12px; background: color-mix(in srgb, var(--accent) 10%, transparent); color: var(--work-text); user-select: none; }

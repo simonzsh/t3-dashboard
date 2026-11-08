@@ -1,7 +1,7 @@
 import { memo, useCallback, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import type { DiffFile, DiffHunk } from "../../../../shared/diff.ts";
-import { Chevron, Pressable } from "../../ui/index.ts";
-import { isOpen, openByDefault, setAll, setTests, toolbarOf, type Overrides } from "./diffView.ts";
+import { Button, Chevron, Pressable } from "../../ui/index.ts";
+import { canLoad, isLarge, isOpen, loadLabel, nearViewport, openByDefault, setAll, setTests, shouldHighlight, toolbarOf, type Overrides } from "./diffView.ts";
 import { highlightLines, languageOf } from "./highlight.tsx";
 
 const MARK = { add: "+", del: "-", context: " " } as const;
@@ -62,8 +62,7 @@ function WhenVisible({ lines, children }: { lines: number; children: ReactNode }
   useLayoutEffect(() => {
     const el = ref.current;
     if (!el) return;
-    const rect = el.getBoundingClientRect();
-    if (rect.top < innerHeight + MARGIN_PX && rect.bottom > -MARGIN_PX) return setSeen(true);
+    if (nearViewport(el.getClientRects().length > 0, el.getBoundingClientRect(), innerHeight, MARGIN_PX)) return setSeen(true);
     const observer = new IntersectionObserver(
       (entries) => {
         if (!entries.some((entry) => entry.isIntersecting)) return;
@@ -98,7 +97,7 @@ export function Counts({ additions, deletions }: { additions: number; deletions:
 }
 
 const FileDiff = memo(function FileDiff({ file, open, onToggle }: { file: DiffFile; open: boolean; onToggle: (path: string, open: boolean) => void }) {
-  const lang = useMemo(() => languageOf(file.path), [file.path]);
+  const lang = useMemo(() => (shouldHighlight(file) ? languageOf(file.path) : undefined), [file]);
   const renamed = file.oldPath !== "" && file.newPath !== "" && file.oldPath !== file.newPath;
   return (
     <section className="pr-diff-file" data-pr-diff-file={file.path}>
@@ -108,6 +107,13 @@ const FileDiff = memo(function FileDiff({ file, open, onToggle }: { file: DiffFi
         <span className={`pr-diff-status ${file.status}`}>{file.status}</span>
         <Counts additions={file.additions} deletions={file.deletions} />
       </Pressable>
+      {!open && isLarge(file) && canLoad(file) && (
+        <div className="pr-diff-load">
+          <Button size="sm" onClick={() => onToggle(file.path, false)}>
+            {loadLabel(file)}
+          </Button>
+        </div>
+      )}
       {open &&
         (file.binary ? (
           <p className="pr-diff-empty">Binary file</p>

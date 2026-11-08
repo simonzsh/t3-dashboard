@@ -126,6 +126,15 @@ test("a large file starts collapsed", () => {
   assert.match(diff([file("big.ts", { additions: 500 }), file("src/a.test.ts")]), /aria-expanded="false"/);
 });
 
+test("a large collapsed file offers a button instead of its lines", () => {
+  const big = diff([file("big.ts", { additions: 500 })]);
+  assert.match(big, /Load diff \(501 lines\)/);
+  assert.doesNotMatch(big, /pr-diff-line/);
+  assert.doesNotMatch(diff([file("small.ts")]), /Load diff/);
+  assert.doesNotMatch(diff([file("big.png", { additions: 500, binary: true, hunks: [] })]), /Load diff/);
+  assert.doesNotMatch(diff([file("big.json", { additions: 500, truncated: true, hunks: [] })]), /Load diff/);
+});
+
 test("binary, hidden and empty files explain themselves", () => {
   assert.match(diff([file("logo.png", { binary: true, hunks: [] })]), /Binary file/);
   assert.match(diff([file("big.json", { truncated: true, additions: 300, hunks: [] })]), /Large diff hidden \(301 changed lines\)/);
