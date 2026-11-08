@@ -21,8 +21,8 @@ interface Options {
   connects: number;
 }
 
-/** Keeps on the server which sessions are open, so every device shows the same conversations. */
-export function useSessionsSync({ sessions, dispatch, threads, remote, connects }: Options): void {
+/** Keeps on the server which sessions are open, so every device shows the same conversations. `loaded`: the saved sessions are in; an open before that is overwritten. */
+export function useSessionsSync({ sessions, dispatch, threads, remote, connects }: Options): { loaded: boolean } {
   const api = useApi();
   const [loaded, setLoaded] = useState(false);
   // The state the server holds as far as we know: what we load, receive or send.
@@ -83,4 +83,6 @@ export function useSessionsSync({ sessions, dispatch, threads, remote, connects 
       dispatch({ type: "prune", existing: new Set([...kept, ...opened]) });
     });
   }, [loaded, threads, dispatch]);
+
+  return { loaded };
 }

@@ -1,6 +1,8 @@
 import { test } from "bun:test";
 import assert from "node:assert/strict";
 import {
+  alertMode,
+  sessionLinkAction,
   SESSIONS_KEY,
   EMPTY_SESSIONS,
   cellOf,
@@ -205,4 +207,20 @@ test("sync moves focus and maximize off a window that is gone", () => {
   assert.equal(gone.maximized, false);
   assert.equal(gone.focusedId, "a");
   assert.deepEqual(sessionsReducer(s, { type: "sync", ids: [] }), EMPTY_SESSIONS);
+});
+
+test("a session link waits for the saved sessions and the live threads, then opens a known thread", () => {
+  const known = new Map([["t1", {}]]);
+  assert.equal(sessionLinkAction(null, { loaded: true, live: true }, known), "none");
+  assert.equal(sessionLinkAction("t1", { loaded: false, live: true }, known), "wait");
+  assert.equal(sessionLinkAction("t1", { loaded: true, live: false }, known), "wait");
+  assert.equal(sessionLinkAction("t1", { loaded: true, live: true }, known), "open");
+  assert.equal(sessionLinkAction("gone", { loaded: true, live: true }, known), "drop");
+});
+
+test("the bell is hidden until alerts are set up, then armed or off per session", () => {
+  const armed = new Set(["t1"]);
+  assert.equal(alertMode(false, armed, "t1"), null);
+  assert.equal(alertMode(true, armed, "t1"), "armed");
+  assert.equal(alertMode(true, armed, "t2"), "off");
 });

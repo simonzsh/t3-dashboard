@@ -3,7 +3,7 @@ import type { DashboardProvider, DashboardThread, ProjectIcon as ProjectIconData
 import { ActionMenu, Badge, Button, Icon, IconButton, IconButtonLink } from "../../ui/index.ts";
 import { AutomationMark } from "../../lib/automationThreads.tsx";
 import { attentionState } from "./sessionList.ts";
-import type { SessionsAction } from "./sessions.ts";
+import type { AlertMode, SessionsAction } from "./sessions.ts";
 import { ConversationPanel } from "../conversation/ConversationPanel.tsx";
 import { OpenInT3 } from "../../lib/OpenInT3.tsx";
 import { ProjectIcon } from "../../lib/ProjectIcon.tsx";
@@ -36,15 +36,19 @@ interface Props {
   onTitle?: (id: string, title: string) => void;
   /** On a phone: the arrow back to the list. */
   onBack?: () => void;
+  /** The phone alert bell: null when alerts are not set up. */
+  alert: AlertMode | null;
+  onToggleAlert: (id: string) => void;
   // Stable across renders, so a window rerenders only when its own props change.
   dispatch: Dispatch<SessionsAction>;
 }
 
-function SessionWindowView({ id, thread, title, projectTitle, projectIcon, missing, focused, maximized, compact, live, t3EnvironmentId, providers, openPrs, onTitle, onBack, dispatch }: Props) {
+function SessionWindowView({ id, thread, title, projectTitle, projectIcon, missing, focused, maximized, compact, live, t3EnvironmentId, providers, openPrs, onTitle, onBack, alert, onToggleAlert, dispatch }: Props) {
   const onFocus = () => dispatch({ type: "focus", id });
   const onClose = () => dispatch({ type: "close", id });
   const onToggleMaximize = () => dispatch({ type: "maximize", id });
   const fullscreen = maximized ? "Exit fullscreen" : "Fullscreen";
+  const alertLabel = alert === "armed" ? "Alert armed: click to cancel" : "Alert me on my phone";
   const badge = thread ? attentionState(thread) : null;
   return (
     <section
@@ -77,6 +81,11 @@ function SessionWindowView({ id, thread, title, projectTitle, projectIcon, missi
             )
           )}
           <span className="session-window-buttons">
+            {alert && (
+              <IconButton variant="ghost" size="sm" label={alertLabel} tooltip={alertLabel} aria-pressed={alert === "armed"} onClick={() => onToggleAlert(id)}>
+                <Icon name={alert === "armed" ? "bellRing" : "bell"} />
+              </IconButton>
+            )}
             {thread && <PullRequestsButton pullRequests={thread.pullRequests} open={openPrs} />}
             <OpenInT3 environmentId={t3EnvironmentId} threadId={id} />
             {!compact && (

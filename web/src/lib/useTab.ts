@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useSyncExternalStore } from "react";
 import type { PrRef } from "../../../shared/pulls.ts";
-import { hashForTab, prFromHash, tabFromHash, type Tab } from "./tabs.ts";
+import { hashForTab, prFromHash, sessionFromHash, tabFromHash, type Tab } from "./tabs.ts";
 
 const subscribe = (onChange: () => void) => {
   window.addEventListener("hashchange", onChange);
@@ -11,8 +11,8 @@ const subscribe = (onChange: () => void) => {
 export function useTab(): [Tab, (tab: Tab) => void] {
   const tab = useSyncExternalStore(subscribe, () => tabFromHash(location.hash));
   useEffect(() => {
-    // A pull request hash is a valid address of the Pull requests tab: keep it.
-    if (location.hash !== hashForTab(tab) && !prFromHash(location.hash)) history.replaceState(history.state, "", hashForTab(tab));
+    // A pull request or session hash is a valid address of its tab: keep it.
+    if (location.hash !== hashForTab(tab) && !prFromHash(location.hash) && !sessionFromHash(location.hash)) history.replaceState(history.state, "", hashForTab(tab));
   }, [tab]);
   const setTab = (next: Tab) => {
     if (location.hash !== hashForTab(next)) location.hash = hashForTab(next);
@@ -24,4 +24,10 @@ export function useTab(): [Tab, (tab: Tab) => void] {
 export function usePrRoute(): PrRef | null {
   const hash = useSyncExternalStore(subscribe, () => location.hash);
   return useMemo(() => prFromHash(hash), [hash]);
+}
+
+/** The thread a `#/sessions/<id>` link points at, or null on every other page. */
+export function useSessionRoute(): string | null {
+  const hash = useSyncExternalStore(subscribe, () => location.hash);
+  return useMemo(() => sessionFromHash(hash), [hash]);
 }

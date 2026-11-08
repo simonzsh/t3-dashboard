@@ -4,7 +4,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { PullRequestsButton, SessionWindow } from "../../../src/features/sessions/SessionWindow.tsx";
 import { thread } from "../../fixtures.ts";
 
-const base = { id: "t1", thread: null, title: "Fix login", projectTitle: null, projectIcon: null, focused: true, maximized: false, compact: false, live: true, t3EnvironmentId: null, providers: [], openPrs: new Map(), dispatch: () => {} };
+const base = { id: "t1", thread: null, title: "Fix login", projectTitle: null, projectIcon: null, focused: true, maximized: false, compact: false, live: true, t3EnvironmentId: null, providers: [], openPrs: new Map(), alert: null, onToggleAlert: () => {}, dispatch: () => {} };
 
 test("a missing window keeps its classes and shows the message with a close button", () => {
   const html = renderToStaticMarkup(<SessionWindow {...base} missing />);
@@ -105,4 +105,11 @@ test("a session with one unread pull request shows the unread ring on its link, 
   const html = (unread: boolean) => renderToStaticMarkup(<SessionWindow {...base} openPrs={openOf([[12, "2026-02-01T10:00:00.000Z", unread]])} live={false} missing={false} thread={thread("t1", { pullRequests: [linked(12)] })} />);
   assert.match(html(true), /aria-label="Open pull request #12 \(unread\)"[^>]*>.*<span class="notif-dot icon-button-dot" aria-hidden="true">/);
   assert.doesNotMatch(html(false), /notif-dot/);
+});
+
+test("the alert bell shows only when alerts are set up, and reports whether it is armed", () => {
+  const bell = (alert: "armed" | "off" | null) => renderToStaticMarkup(<SessionWindow {...base} alert={alert} missing />);
+  assert.doesNotMatch(bell(null), /Alert/);
+  assert.match(bell("off"), /aria-label="Alert me on my phone"[^>]*aria-pressed="false"|aria-pressed="false"[^>]*aria-label="Alert me on my phone"/);
+  assert.match(bell("armed"), /aria-label="Alert armed: click to cancel"[^>]*aria-pressed="true"|aria-pressed="true"[^>]*aria-label="Alert armed: click to cancel"/);
 });

@@ -111,3 +111,15 @@ export async function sessionsToKeep(sessionIds: readonly string[], liveIds: Rea
   const subagent = await Promise.all(missing.map((id) => isSubagentThread(id).catch(() => false)));
   return new Set([...sessionIds.filter((id) => liveIds.has(id)), ...missing.filter((_, i) => subagent[i])]);
 }
+
+/** What a `#/sessions/<id>` link does: wait for the saved sessions and the live threads, then open the thread or drop the link. */
+export function sessionLinkAction(route: string | null, ready: { loaded: boolean; live: boolean }, known: ReadonlyMap<string, unknown>): "none" | "wait" | "open" | "drop" {
+  if (!route) return "none";
+  if (!ready.loaded || !ready.live) return "wait";
+  return known.has(route) ? "open" : "drop";
+}
+
+export type AlertMode = "armed" | "off";
+
+/** null: alerts are not set up, so the window shows no bell. */
+export const alertMode = (configured: boolean, armed: ReadonlySet<string>, id: string): AlertMode | null => (!configured ? null : armed.has(id) ? "armed" : "off");
