@@ -182,7 +182,9 @@ test("one spin keyframe, and shared rows have one rule each", () => {
 
 test("pull requests: the file headers and the file list stick inside the page, and a dark theme recolours the tokens", () => {
   assert.match(rule(".pulls-detail-side"), /position: sticky; top: 0;/);
-  assert.match(rule(".pr-diff-file-head"), /position: sticky; top: calc\(-1 \* var\(--page-ring\)\)/);
+  assert.match(rule(".pr-diff-file-head"), /position: sticky; top: 0;/);
+  // Safari ignores a negative sticky top: no sticky rule may use one.
+  assert.doesNotMatch(css, /position: sticky; top: calc\(-/);
   assert.match(rule(".pr-diff-file-head"), /border-radius: 0;/);
   assert.match(css, /:root\[data-theme="dark"\] :is\(\.hljs-keyword/);
 });

@@ -183,6 +183,8 @@ main { flex: 1; min-height: 0; overflow: hidden; padding: var(--page-top) var(--
 .list-page { flex: 1; min-height: 0; display: flex; flex-direction: column; gap: var(--page-gap); }
 .list-page-head { flex: none; background: var(--page-bg); }
 /* A bleed body (a diff) uses the whole phone width: it drops the side edges of the page. */
+/* No ring room on top: its sticky children stick at top 0. Safari ignores a negative sticky top and shows a strip above them. */
+.list-page-body.bleed { margin-top: 0; padding-top: 0; }
 @media (width <= 700px) { .list-page-body.bleed { margin-inline: calc(-1 * var(--page-x)); padding-inline: 0; } }
 /* One height for each toolbar control: a segmented control or a menu must not make one page's list start lower. */
 .list-page-head :is(.segmented, .search-field .field, .dropdown-trigger, .tabs button, .btn.md, .icon-button.md) { height: var(--toolbar-control); }
@@ -1259,7 +1261,7 @@ ol.install-steps { padding-left: 18px; }
 .pr-diff-files { display: flex; flex-direction: column; gap: 12px; }
 .pr-diff-file { border: 1px solid var(--line); border-radius: var(--radius-lg); background: var(--surface-1); overflow: clip; }
 /* Opaque and square while stuck, so nothing shows through; the file clips its own corners. */
-.pr-diff-file-head { position: sticky; top: calc(-1 * var(--page-ring)); z-index: 2; display: flex; align-items: center; gap: 8px; width: 100%; padding: 8px 12px; border: 0; border-radius: 0; background: var(--surface-1); color: inherit; text-align: left; font: inherit; font-size: 13px; }
+.pr-diff-file-head { position: sticky; top: 0; z-index: 2; display: flex; align-items: center; gap: 8px; width: 100%; padding: 8px 12px; border: 0; border-radius: 0; background: var(--surface-1); color: inherit; text-align: left; font: inherit; font-size: 13px; }
 .pr-diff-file-head.open { border-bottom: 1px solid var(--line); }
 @media (hover: hover) { .pr-diff-file-head:hover { background: color-mix(in srgb, var(--surface-1), var(--text-primary) 5%); } }
 .pr-diff-file-head .disclosure { flex: none; color: var(--text-secondary); }
