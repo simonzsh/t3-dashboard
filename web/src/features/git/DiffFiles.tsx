@@ -80,7 +80,7 @@ function FilePath({ path }: { path: string }) {
   );
 }
 
-function Counts({ additions, deletions }: { additions: number; deletions: number }) {
+export function Counts({ additions, deletions }: { additions: number; deletions: number }) {
   return (
     <span className="diff-counts">
       <span className="add">+{additions}</span> <span className="del">-{deletions}</span>

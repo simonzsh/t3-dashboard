@@ -2,7 +2,7 @@ import type { DashboardThread } from "../../../../shared/api.ts";
 import type { PrCheckRun, PrDetail as Detail, PrDiff, PrRef } from "../../../../shared/git.ts";
 import { relativeTime } from "../../lib/format.ts";
 import { Badge, Button, ButtonLink, Icon, Loader, type IconName } from "../../ui/index.ts";
-import { DiffFiles } from "./DiffFiles.tsx";
+import { Counts, DiffFiles } from "./DiffFiles.tsx";
 import { CHECKS, isWebUrl, REVIEWS } from "./git.ts";
 
 const CHECK_ICONS: Record<PrCheckRun["state"], IconName> = { success: "circleCheck", failure: "alert", pending: "circle", skipped: "circle", neutral: "circle" };
@@ -65,9 +65,8 @@ export function PrDetail({ pr, detail, detailError, diff, diffError, refreshing,
               <Badge variant={detail.state === "merged" ? "done" : "neutral"}>{detail.draft ? "Draft" : STATE_LABELS[detail.state]}</Badge>
               {checks && <Badge variant={checks.variant}>{checks.label}</Badge>}
               {review && <Badge variant={review.variant}>{review.label}</Badge>}
-              <span className="diff-counts">
-                <span className="add">+{detail.additions}</span> <span className="del">-{detail.deletions}</span> · {detail.changedFiles} files
-              </span>
+              <Counts additions={detail.additions} deletions={detail.deletions} />
+              <span className="git-files">{detail.changedFiles} files</span>
             </div>
             <div className="git-detail-actions">
               {isWebUrl(detail.url) && (

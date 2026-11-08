@@ -1223,6 +1223,7 @@ main:has(> .git-page) { padding-top: calc(var(--page-top) - 8px); padding-bottom
 .diff-counts { flex: none; font-size: 12px; font-variant-numeric: tabular-nums; color: var(--text-secondary); }
 .diff-counts .add { color: var(--done-text); font-weight: 600; }
 .diff-counts .del { color: var(--err-text); font-weight: 600; }
+.git-files { flex: none; font-size: 12px; color: var(--text-secondary); }
 .diff-empty { margin: 0; padding: 8px 12px; font-size: 13px; color: var(--text-secondary); }
 .diff-scroll { overflow-x: auto; }
 .diff-table { width: max-content; min-width: 100%; border-collapse: collapse; font-family: var(--font-mono); font-size: 12px; line-height: 20px; }

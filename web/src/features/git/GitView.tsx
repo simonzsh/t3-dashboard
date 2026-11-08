@@ -5,6 +5,7 @@ import { relativeTime } from "../../lib/format.ts";
 import { hashForPr } from "../../lib/tabs.ts";
 import { Badge, Button, Dropdown, Icon, IconButton, Loader, Segmented } from "../../ui/index.ts";
 import { ALL_REPOSITORIES, CHECKS, filterPrs, groupByRepository, repositoriesOf, REVIEWS, SCOPES, sessionOf, shortRepository, type Scope } from "./git.ts";
+import { Counts } from "./DiffFiles.tsx";
 import { PrDetail } from "./PrDetail.tsx";
 import { useGitPrs } from "./useGitPrs.ts";
 import { usePrDetail } from "./usePrDetail.ts";
@@ -32,9 +33,7 @@ function Row({ pr, session, now, onOpenThread }: { pr: PrSummary; session: Dashb
           {pr.draft && <Badge>Draft</Badge>}
           {checks && <Badge variant={checks.variant}>{checks.label}</Badge>}
           {review && <Badge variant={review.variant}>{review.label}</Badge>}
-          <span className="diff-counts">
-            <span className="add">+{pr.additions}</span> <span className="del">-{pr.deletions}</span>
-          </span>
+          <Counts additions={pr.additions} deletions={pr.deletions} />
         </span>
       </a>
       {session && (
