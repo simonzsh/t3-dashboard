@@ -3,7 +3,7 @@ import { test } from "bun:test";
 import { renderToStaticMarkup } from "react-dom/server";
 import { nextRadioIndex, rovingTabIndex } from "../../src/ui/radioKeys.ts";
 import { isPhone, isTouch, PHONE, TOUCH } from "../../src/ui/media.ts";
-import { ActionMenu, Badge, Button, ButtonLink, Chevron, Choice, CountBadge, Dialog, IconButtonLink, Kbd, OptionList, SearchField, Segmented, FileInput, Icon, IconButton, PageHeader, Pressable, SecretInput, Sheet, Skeleton, SkeletonGroup, Switch, Tabs, TextArea, TextInput } from "../../src/ui/index.ts";
+import { ActionMenu, Badge, Button, ButtonLink, Chevron, Choice, CountBadge, Dialog, IconButtonLink, Kbd, ListPage, OptionList, SearchField, Segmented, FileInput, Icon, IconButton, PageHeader, Pressable, SecretInput, Sheet, Skeleton, SkeletonGroup, Switch, Tabs, TextArea, TextInput } from "../../src/ui/index.ts";
 
 const html = renderToStaticMarkup;
 
@@ -315,4 +315,15 @@ test("media checks are false without matchMedia and name the shared queries", ()
   assert.equal(isTouch(), false);
   assert.equal(PHONE, "(max-width: 700px)");
   assert.equal(TOUCH, "(pointer: coarse)");
+});
+
+test("a ListPage puts its head before, and outside, the scrolling body", () => {
+  assert.equal(
+    html(
+      <ListPage className="x-page" aria-label="Things" headClassName="x-head" bodyClassName="x-body" head={<span>tools</span>}>
+        <ul />
+      </ListPage>,
+    ),
+    '<section class="list-page x-page" aria-label="Things"><div class="list-page-head x-head"><span>tools</span></div><div class="list-page-body page-scroll x-body"><ul></ul></div></section>',
+  );
 });

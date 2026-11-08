@@ -11,6 +11,7 @@ export { Dropdown } from "./Dropdown.tsx";
 export { FileInput } from "./FileInput.tsx";
 export { Icon, type IconName } from "./Icon.tsx";
 export { IconButton, type IconButtonProps } from "./IconButton.tsx";
+export { ListPage } from "./ListPage.tsx";
 export { Kbd } from "./Kbd.tsx";
 export { LinearMark } from "./LinearMark.tsx";
 export { Loader } from "./Loader.tsx";

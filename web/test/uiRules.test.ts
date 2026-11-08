@@ -155,3 +155,72 @@ test("menus come from the kit, so hover and keys behave the same everywhere", ()
   const wrong = sources.filter(({ file, text }) => !file.startsWith("ui/") && /\bdropdown-(option|list)\b/.test(text)).map(({ file }) => file);
   assert.deepEqual(wrong, [], "use Dropdown or ActionMenu instead of hand-made menu rows");
 });
+
+// --- Page shell: one block in styles.css spaces every page (docs/development.md). ---
+const css = await Bun.file(new URL("../src/styles.css", import.meta.url)).text();
+const SHELL_START = "/* page-shell:start";
+const SHELL_END = "/* page-shell:end */";
+const PAGE_ROOTS = [".dashboard", ".auto-page", ".news-page", ".pulls-page", ".sessions"];
+const SPACING = /(^|;)\s*(padding|margin|max-width)(-[a-z-]+)?\s*:/;
+
+// Flat rules, media queries opened: [selector list, declarations].
+const rulesOf = (text: string): Array<[string, string]> =>
+  [...text.replace(/\/\*[\s\S]*?\*\//g, "").replace(/@media[^{]*\{/g, "").matchAll(/([^{}]+)\{([^{}]*)\}/g)].map((m) => [m[1]!.trim(), m[2]!]);
+
+// The classes a page passes to its ListPage, or puts on its scroll box: they belong to the shell too.
+function shellClasses(): string[] {
+  const out = new Set<string>();
+  for (const { text } of sources) {
+    for (const m of text.matchAll(/<ListPage\b[^>]*?\b(?:className|headClassName|bodyClassName)="([^"]+)"/g)) for (const c of m[1]!.split(/\s+/)) out.add(`.${c}`);
+    for (const m of text.matchAll(/className="([^"]*\bpage-scroll\b[^"]*)"/g)) for (const c of m[1]!.split(/\s+/)) out.add(`.${c}`);
+  }
+  out.delete(".page-scroll");
+  return [...out];
+}
+
+// The element a selector styles: its last compound, pseudo-classes (and what they hold) dropped.
+const subjectOf = (selector: string): string =>
+  selector.replace(/:{1,2}[\w-]+(\([^)]*\))?/g, "").split(/[\s>+~]+/).filter(Boolean).pop() ?? "";
+
+function shellViolations(text: string): string[] {
+  const start = text.indexOf(SHELL_START);
+  const end = text.indexOf(SHELL_END);
+  const outside = start < 0 || end < 0 ? text : text.slice(0, start) + text.slice(end + SHELL_END.length);
+  const guarded = [...PAGE_ROOTS, ...shellClasses(), ".list-page", ".list-page-head", ".list-page-body", ".page-scroll"];
+  const hits: string[] = [];
+  for (const [selectors, body] of rulesOf(outside)) {
+    if (!SPACING.test(body)) continue;
+    for (const selector of selectors.split(",").map((part) => part.trim())) {
+      const subject = subjectOf(selector);
+      const classes = subject.match(/\.[\w-]+/g) ?? [];
+      if (/^main\b/.test(subject) || classes.some((cls) => guarded.includes(cls))) hits.push(selector);
+    }
+  }
+  return hits;
+}
+
+test("only the page-shell block spaces a page: no padding, margin or max-width on main, a page root or a list page outside it", () => {
+  assert.ok(css.includes(SHELL_START) && css.includes(SHELL_END), "styles.css keeps its page-shell markers");
+  assert.ok(shellClasses().length > 0, "the guard finds the classes pages pass to the shell");
+  for (const root of PAGE_ROOTS) assert.ok(css.includes(`${root} {`), `${root} is still a page root`);
+  assert.deepEqual(shellViolations(css), []);
+});
+
+test("the page-shell guard sees page-level spacing outside the block", () => {
+  const add = (rule: string) => shellViolations(`${css}\n${rule}\n`);
+  assert.deepEqual(add("main:has(> .x-page) { padding-top: 8px; }"), ["main:has(> .x-page)"]);
+  assert.deepEqual(add("@media (max-width: 700px) { .auto-page { padding-inline: 12px; } }"), [".auto-page"]);
+  assert.deepEqual(add(".news-list { margin: -4px; }"), [".news-list"]);
+  assert.deepEqual(add(".pulls-list .list-page-body { max-width: 960px; }"), [".pulls-list .list-page-body"]);
+  assert.deepEqual(add(".pulls-row { padding: 4px; }"), []);
+});
+
+test("every control in the session header is a kit icon button, so all share one size", () => {
+  const window = sources.find(({ file }) => file.endsWith("features/sessions/SessionWindow.tsx"))!.text;
+  const start = window.indexOf('<span className="session-window-buttons">');
+  const block = window.slice(start, window.indexOf("</span>", start));
+  // Text buttons (Button, or an ActionMenu with text) are taller or wider than the icon buttons beside them.
+  assert.doesNotMatch(block, /<Button\b|\btext=/);
+  const menu = window.slice(window.indexOf("function PullRequestsButton"), window.indexOf("export const SessionWindow"));
+  assert.doesNotMatch(menu, /<Button\b|\btext=/);
+});

@@ -1,4 +1,6 @@
 import { useEffect, useId, useRef, useState, type KeyboardEvent } from "react";
+import { Button, type ButtonVariant } from "./Button.tsx";
+import { CountBadge } from "./CountBadge.tsx";
 import { Icon, type IconName } from "./Icon.tsx";
 import { IconButton } from "./IconButton.tsx";
 import { Popover } from "./Popover.tsx";
@@ -21,10 +23,18 @@ interface Props {
   items: ActionMenuItem[];
   /** Extra classes on the "…" button. */
   className?: string;
+  /** The trigger's icon, "…" by default. */
+  icon?: IconName;
+  /** A count badge on the icon's corner: the trigger keeps the exact size of the icon buttons beside it. */
+  count?: number;
+  /** Visible text after the icon: the trigger is then a text button. */
+  text?: string;
+  /** The text button's look, as a `Button` next to it. */
+  variant?: ButtonVariant;
 }
 
 /** The "…" button of a row, and its menu of actions. Same menu, rows and keys as the Dropdown. */
-export function ActionMenu({ label, tooltip, items, className }: Props) {
+export function ActionMenu({ label, tooltip, items, className, icon = "moreHorizontal", count, text, variant = "ghost" }: Props) {
   const [open, setOpen] = useState(false);
   const anchor = useRef<HTMLButtonElement>(null);
   const list = useRef<HTMLDivElement>(null);
@@ -63,9 +73,16 @@ export function ActionMenu({ label, tooltip, items, className }: Props) {
 
   return (
     <>
-      <IconButton ref={anchor} variant="ghost" size="sm" className={className} label={label} tooltip={tooltip} aria-haspopup="menu" aria-expanded={open} onClick={() => (open ? close(false) : show())}>
-        <Icon name="moreHorizontal" />
-      </IconButton>
+      {text === undefined ? (
+        <IconButton ref={anchor} variant="ghost" size="sm" className={className} label={label} tooltip={tooltip} aria-haspopup="menu" aria-expanded={open} onClick={() => (open ? close(false) : show())}>
+          <Icon name={icon} />
+          {count !== undefined && <CountBadge count={count} max={9} hidden className="icon-button-count" />}
+        </IconButton>
+      ) : (
+        <Button ref={anchor} variant={variant} size="sm" className={className} aria-label={label} aria-haspopup="menu" aria-expanded={open} onClick={() => (open ? close(false) : show())}>
+          <Icon name={icon} /> {text}
+        </Button>
+      )}
       {open && (
         <Popover anchor={anchor} align="end" minWidth={170} className="dropdown-menu" onClose={(reason) => close(reason === "escape")}>
           <div ref={list} className="dropdown-list" role="menu" aria-label={label} tabIndex={-1} aria-activedescendant={active >= 0 ? `${id}-${active}` : undefined} onKeyDown={onKeyDown}>

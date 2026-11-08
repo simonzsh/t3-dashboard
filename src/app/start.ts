@@ -8,9 +8,11 @@ import type { DashboardProvider } from "../../shared/api.ts";
 import { createActions } from "../domain/actions.ts";
 import { AutomationGuard } from "../domain/automationGuard.ts";
 import { createAutomations } from "../domain/automations.ts";
+import { PullRequests } from "../domain/pulls.ts";
 import { createNews } from "../domain/news.ts";
 import { TokenManager } from "../domain/tokenManager.ts";
 import { envAllowedHosts, envPort } from "../config/config.ts";
+import { ghRunner } from "../integrations/github/gh.ts";
 import { latestTag } from "../integrations/github/releases.ts";
 import { LinearClient } from "../integrations/linear/client.ts";
 import { findT3, runCommand } from "../integrations/t3/cli.ts";
@@ -216,13 +218,14 @@ export async function start({ port, log, env }: StartOptions): Promise<void> {
       remove: unlinkSync,
     },
   });
+  const pulls = new PullRequests({ run: ghRunner(env, home), now: () => new Date() });
   const sessionsFile = sessionsPath(env, home);
   const sessions = new SessionsStore(readSessions(sessionsFile, readText), (value) => writeSecret(sessionsFile, sessionsText(value)));
   const stashFile = stashPath(env, home);
   const stash = new StashStore(readStash(stashFile, readText), (entries) => writeSecret(stashFile, stashText(entries)), { now: () => new Date(), newId: () => crypto.randomUUID() });
   const seenFile = seenPath(env, home);
   const seen = new SeenStore(readSeen(seenFile, readText), (value) => writeSecret(seenFile, seenText(value)));
-  const handler = createDashboardServer({ actions, sessions, stash, seen, hub, board, usage, limits, serverStats, cacheCleanup, automations, news, getState, connection: () => live.connection(), site, settings, setup, updates, allowedHosts: envAllowedHosts(env) });
+  const handler = createDashboardServer({ actions, sessions, stash, seen, hub, board, usage, limits, serverStats, cacheCleanup, automations, pulls, news, getState, connection: () => live.connection(), site, settings, setup, updates, allowedHosts: envAllowedHosts(env) });
 
   const reclassifier = setInterval(() => store.reclassify(new Date()), RECLASSIFY_MS);
   // It only touches the run threads of its own task, so it runs in dev builds too.
