@@ -3,7 +3,7 @@ import type { DashboardThread } from "../../../../shared/api.ts";
 import type { PrList, PrRef, PrSummary } from "../../../../shared/git.ts";
 import { relativeTime } from "../../lib/format.ts";
 import { hashForPr } from "../../lib/tabs.ts";
-import { Badge, Button, Dropdown, Icon, IconButton, Loader, Segmented } from "../../ui/index.ts";
+import { Badge, Button, Dropdown, Icon, IconButton, Loader, SearchField, Segmented } from "../../ui/index.ts";
 import { ALL_REPOSITORIES, CHECKS, filterPrs, groupByRepository, repositoriesOf, REVIEWS, SCOPES, sessionOf, shortRepository, type Scope } from "./git.ts";
 import { Counts } from "./DiffFiles.tsx";
 import { PrDetail } from "./PrDetail.tsx";
@@ -55,32 +55,38 @@ interface ListProps extends Omit<Props, "route"> {
 export function PrListView({ list, error, refreshing, onRefresh, threads, now, onOpenThread }: ListProps) {
   const [scope, setScope] = useState<Scope>("all");
   const [repository, setRepository] = useState(ALL_REPOSITORIES);
+  const [query, setQuery] = useState("");
   const repositories = useMemo(() => repositoriesOf(list?.prs ?? []), [list]);
   // A repository that left the list (its last PR merged) must not leave an empty view behind.
   const repo = repositories.includes(repository) ? repository : ALL_REPOSITORIES;
-  const groups = useMemo(() => groupByRepository(filterPrs(list?.prs ?? [], scope, repo)), [list, scope, repo]);
+  const groups = useMemo(() => groupByRepository(filterPrs(list?.prs ?? [], scope, repo, query)), [list, scope, repo, query]);
 
   if (!list) return error ? <p className="auto-error" role="alert">{error}</p> : <Loader />;
   return (
     <section className="git-list" aria-label="Pull requests">
       <div className="git-tools">
-        <Segmented label="Show" value={scope} options={SCOPES} onChange={setScope} />
-        <Dropdown
-          label="Repository"
-          value={repo}
-          options={[{ id: ALL_REPOSITORIES, label: "All repositories" }, ...repositories.map((r) => ({ id: r, label: r }))]}
-          onPick={setRepository}
-        />
-        <IconButton variant="ghost" label="Refresh the list" tooltip="Refresh the list" disabled={refreshing} onClick={onRefresh}>
-          <Icon name="refresh" />
-        </IconButton>
+        <div className="git-search-row">
+          <SearchField className="git-search" aria-label="Search pull requests" placeholder="Search pull requests…" value={query} onChange={(e) => setQuery(e.target.value)} />
+          <IconButton variant="ghost" label="Refresh the list" tooltip="Refresh the list" disabled={refreshing} onClick={onRefresh}>
+            <Icon name="refresh" />
+          </IconButton>
+        </div>
+        <div className="git-filters">
+          <Segmented label="Show" value={scope} options={SCOPES} onChange={setScope} />
+          <Dropdown
+            label="Repository"
+            value={repo}
+            options={[{ id: ALL_REPOSITORIES, label: "All repositories" }, ...repositories.map((r) => ({ id: r, label: r }))]}
+            onPick={setRepository}
+          />
+        </div>
       </div>
       {error && <p className="auto-error" role="alert">{error}</p>}
       {groups.length === 0 ? (
         <div className="empty-state">
           <Icon name="gitPullRequest" />
           <strong>No open pull requests</strong>
-          <span>{list.prs.length === 0 ? "Pull requests you open, or that wait for your review, show here." : "None matches these filters."}</span>
+          <span>{list.prs.length === 0 ? "Pull requests you open, or that wait for your review, show here." : "None matches this search or these filters."}</span>
         </div>
       ) : (
         groups.map((group) => (

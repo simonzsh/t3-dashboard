@@ -12,8 +12,14 @@ export const SCOPES: ReadonlyArray<{ id: Scope; label: string }> = [
 
 export const ALL_REPOSITORIES = "all";
 
-export function filterPrs(prs: PrSummary[], scope: Scope, repository: string): PrSummary[] {
-  return prs.filter((pr) => (scope === "all" || pr.roles.includes(scope)) && (repository === ALL_REPOSITORIES || pr.repository === repository));
+export function filterPrs(prs: PrSummary[], scope: Scope, repository: string, query = ""): PrSummary[] {
+  const text = query.trim().toLowerCase().replace(/^#/, "");
+  return prs.filter(
+    (pr) =>
+      (scope === "all" || pr.roles.includes(scope)) &&
+      (repository === ALL_REPOSITORIES || pr.repository === repository) &&
+      (text === "" || [pr.title, pr.repository, String(pr.number), pr.author, pr.headRef].some((field) => field.toLowerCase().includes(text))),
+  );
 }
 
 export const repositoriesOf = (prs: PrSummary[]): string[] => [...new Set(prs.map((pr) => pr.repository))].sort();

@@ -21,6 +21,14 @@ test("the repository filter narrows the list", () => {
   assert.deepEqual(filterPrs(prs, "reviewer", "acme/storefront").map((p) => p.number), [3]);
 });
 
+test("the search matches the title, the number, the repository, the author and the branch", () => {
+  assert.deepEqual(filterPrs(prs, "all", "all", "pr 2").map((p) => p.number), [2]);
+  assert.deepEqual(filterPrs(prs, "all", "all", "#3").map((p) => p.number), [3]);
+  assert.deepEqual(filterPrs(prs, "all", "all", "API").map((p) => p.number), [2]);
+  assert.deepEqual(filterPrs(prs, "author", "all", "ada").map((p) => p.number), [1, 3]);
+  assert.deepEqual(filterPrs(prs, "all", "all", "nothing"), []);
+});
+
 test("pull requests are grouped by repository in name order, keeping their order inside a group", () => {
   assert.deepEqual(repositoriesOf(prs), ["acme/api", "acme/storefront"]);
   assert.deepEqual(groupByRepository(prs).map((g) => [g.repository, g.prs.map((p) => p.number)]), [["acme/api", [2]], ["acme/storefront", [1, 3]]]);
