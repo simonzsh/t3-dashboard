@@ -139,6 +139,8 @@ test("news: the article is a readable column, and on a phone the list and the ar
   assert.match(rule(".news-back"), /display: none/);
   const phone = css.slice(css.indexOf("@media (max-width: 700px)"));
   assert.match(phone, /\.news-page:not\(\.reading\) \.news-article, \.news-page\.reading \.news-list \{ display: none; \}/);
+  // The 280px the list keeps for the wide-screen slide must not reach a phone.
+  assert.match(phone, /\.news-list-slot > \.news-list \{ width: auto; \}/);
   assert.match(phone, /\.news-back \{ display: inline-flex;/);
 });
 

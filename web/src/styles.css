@@ -1164,7 +1164,9 @@ main:has(> .news-page) { padding-top: 8px; }
   /* The page scrolls; the list and the article take turns. */
   main:has(> .news-page) { padding-top: 12px; }
   .news-page { flex: none; display: block; }
+  /* No slide on a phone: the slot steps aside and the list takes the full width again. */
   .news-list-slot { display: contents; }
+  .news-list-slot > .news-list { width: auto; }
   .news-list, .news-article { overflow: visible; margin: 0; padding: 0; }
   /* The page scrolls under the fixed header: keep the back button in view. */
   .news-article { scroll-margin-top: 72px; }
