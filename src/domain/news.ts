@@ -29,10 +29,11 @@ export function newsPrompt(settings: NewsSettings, dir: string): string {
 2. Search the web for the most important news of the last ${weekly ? "7 days" : "24 hours"} for a software developer who follows: AI (models, research, products), software development (languages, frameworks, tools), security (vulnerabilities, breaches, incidents), the tech industry (major announcements, companies, regulation), and open source. Prefer primary sources and skip anything older than ${weekly ? "8 days" : "48 hours"}. Rank stories by importance, not by category.
 3. Write the article in Markdown, in ${settings.language}:
    - first line: \`# \` and a headline about the main subject of the article, like a newspaper front page (at most 80 characters, no date, not the word "News");
-   - \`## Top stories\`: the 3 to 5 most important stories, each a bold headline, two or three sentences and a source link [name](https://...);
-   - then up to 5 short \`## \` sections named after the areas that had real news that ${weekly ? "week" : "day"} (skip an area with nothing worth reading), ${weekly ? "3 to 8" : "3 to 6"} items each, same item format;
-   - end with \`## Key takeaways\`: 3 bullet points.
-   No HTML, no images.
+   - an intro paragraph of 3 or 4 sentences on what matters most;
+   - \`## Top stories\`: the 3 to 5 most important stories, each a \`### \` headline, then 2 or 3 paragraphs: what happened, the context, and why it matters to a developer, with a source link [name](https://...);
+   - then up to 5 \`## \` sections named after the areas that had real news that ${weekly ? "week" : "day"} (skip an area with nothing worth reading), ${weekly ? "4 to 8" : "3 to 6"} items each: a bold headline and one paragraph of 3 to 5 sentences with a source link;
+   - end with \`## Key takeaways\`: 3 to 5 bullet points.
+   The article is a 10-minute read: about 2,000 to 2,500 words. Every fact must come from a source you read; do not pad. No HTML, no images.
 4. Save it: create the folder ${dir} if missing, write the file ${dir}/DATE.md.tmp, then rename it to ${dir}/DATE.md (replace an older file of that name). Write nothing anywhere else.
 5. Reply with one line: the path of the file.`;
 }

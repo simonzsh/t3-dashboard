@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties } from "react";
 import type { NewsArticle, NewsState } from "../../../../shared/api.ts";
 import type { SeenState } from "../../../../shared/seen.ts";
 import { useApi } from "../../api/ApiContext.tsx";
@@ -31,6 +31,9 @@ export function NewsView({ news, writing, now, compact, seen, onRead, onOpenThre
   const [reading, setReading] = useState(false);
   const [article, setArticle] = useState<NewsArticle | null>(null);
   const articleRef = useRef<HTMLElement>(null);
+  // The open item's box, for the highlight that slides between items like the sidebar's.
+  const listRef = useRef<HTMLUListElement>(null);
+  const [highlight, setHighlight] = useState<{ top: number; height: number } | null>(null);
   const [error, setError] = useState<string | null>(null);
   const date = (articles.some((a) => a.date === picked) ? picked : articles[0]?.date) ?? null;
   // A second run on the same day rewrites that day's file: a new mtime reloads it.
@@ -96,11 +99,28 @@ export function NewsView({ news, writing, now, compact, seen, onRead, onOpenThre
     );
   }
   const shown = article?.date === date ? article : null;
+  useLayoutEffect(() => {
+    const list = listRef.current;
+    if (!list || compact) return setHighlight(null);
+    const measure = () => {
+      const item = list.querySelector<HTMLElement>(".news-item.active");
+      setHighlight(item ? { top: item.offsetTop, height: item.offsetHeight } : null);
+    };
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(list);
+    return () => observer.disconnect();
+  }, [date, compact, articles, writing]);
+
   return (
     <div className={`news-page${reading ? " reading" : ""}`}>
       <section className="news-list" aria-label="News">
         {status}
-        <ul className="news-items">
+        <ul
+          ref={listRef}
+          className={`news-items${highlight ? " marked" : ""}`}
+          style={highlight ? ({ "--mark-top": `${highlight.top}px`, "--mark-height": `${highlight.height}px` } as CSSProperties) : undefined}
+        >
           {progress}
           {articles.map((a) => {
             // On a phone the list and the article take turns: no item is "open" while the list shows.
