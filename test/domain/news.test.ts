@@ -359,10 +359,12 @@ test("the sweep never reads a thread of another project and reads the newest fir
   assert.deepEqual(read, Array.from({ length: 10 }, (_, index) => `t-${11 - index}`));
 });
 
-test("get reads only the head of each article and returns its mtime", async () => {
+test("get returns the mtime and reads a file only once while it does not change", async () => {
   const { news, folder } = setup({ entries: [{ name: "2026-11-07.md", mtimeMs: 42, isFile: true }], contents: { [`${DIR}/2026-11-07.md`]: "# A" } });
   assert.equal((await news.get()).articles[0]!.mtimeMs, 42);
-  assert.deepEqual(folder.reads, [{ path: `${DIR}/2026-11-07.md`, maxBytes: 4096 }]);
+  await news.get();
+  await news.search("a");
+  assert.deepEqual(folder.reads, [{ path: `${DIR}/2026-11-07.md`, maxBytes: undefined }]);
 });
 
 const live = (id: string, extra: Partial<RawThread> = {}) => run(id, { status: "running", activeRunId: "r", latestRunCompletedAt: undefined, ...extra });

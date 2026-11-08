@@ -4,7 +4,7 @@ import { threadState } from "../../shared/status.ts";
 import { isArticleDate, isArticleName, newsText, readNews, type StoredNews } from "../config/newsFile.ts";
 import type { ReadFile } from "../config/config.ts";
 import { archiveThreadCommand } from "../integrations/t3/commands.ts";
-import type { RawScheduledTask, T3Port } from "../integrations/t3/schemas.ts";
+import type { RawScheduledTask, RawThread, T3Port } from "../integrations/t3/schemas.ts";
 import { lastRunOf, viaT3 } from "./automations.ts";
 import { routineSchedule } from "./automationSchedule.ts";
 import { isHidden, toDashboardThread } from "./classify.ts";
@@ -15,7 +15,6 @@ import type { ShellStore } from "./shellStore.ts";
 const TASK_TITLE = "News";
 const ARTICLE_MAX_CHARS = 512 * 1024;
 const SWEEP_READS = 10;
-const TITLE_BYTES = 4096;
 // The file lands shortly before or after T3 stamps the end of the run.
 const RUN_MARGIN_MS = 2 * 60_000;
 
@@ -113,37 +112,73 @@ export function createNews(options: NewsOptions): News {
     }
   };
 
+  // Listed first: a symlink or a folder with this name is not an article.
+  function articlePath(date: string): string {
+    if (!isArticleDate(date)) throw new DomainError("invalid", "The date must look like 2026-11-07");
+    if (!files().some((entry) => entry.name === `${date}.md`)) throw new DomainError("not-found", "No article for this date");
+    return `${dir}/${date}.md`;
+  }
+
+  // Title and folded text per file, read again only when the file changes.
+  const texts = new Map<string, { mtimeMs: number; title: string; folded: string }>();
+  function textOf(entry: { name: string; mtimeMs: number }): { title: string; folded: string } | null {
+    const hit = texts.get(entry.name);
+    if (hit?.mtimeMs === entry.mtimeMs) return hit;
+    const date = entry.name.slice(0, 10);
+    try {
+      const markdown = fs.read(`${dir}/${entry.name}`).slice(0, ARTICLE_MAX_CHARS);
+      const title = articleTitle(markdown, date);
+      // The title is the first heading; the date only matters when there is none.
+      const value = { mtimeMs: entry.mtimeMs, title, folded: fold(title === date ? `${date}\n${markdown}` : markdown) };
+      texts.set(entry.name, value);
+      return value;
+    } catch {
+      texts.delete(entry.name);
+      return null;
+    }
+  }
+  const forgetRemoved = (entries: Array<{ name: string }>) => {
+    const names = new Set(entries.map((entry) => entry.name));
+    for (const name of texts.keys()) if (!names.has(name)) texts.delete(name);
+  };
+
   async function liveTask(stored: StoredNews): Promise<RawScheduledTask | undefined> {
     if (!stored.taskId) return undefined;
     return (await viaT3(port.listScheduledTasks())).find((task) => task.id === stored.taskId);
   }
 
-  // Run threads of the news task, newest first. The probe result is shared with the sweep.
+  const createdMs = (thread: RawThread) => Date.parse(thread.createdAt ?? "");
+
+  // Visible run threads of the task since it was created, newest first.
+  const taskThreads = (task: RawScheduledTask, since: number): RawThread[] =>
+    store
+      .rawThreads()
+      .filter((thread) => thread.projectId === task.projectId && thread.creationSource === task.creationSource && !isHidden(thread) && !archived.has(thread.id) && createdMs(thread) >= since)
+      .sort((a, b) => createdMs(b) - createdMs(a));
+
+  // Undefined: not readable yet, so the thread is read again later.
+  async function readOwners(threads: RawThread[]): Promise<void> {
+    await Promise.all(
+      threads
+        .filter((thread) => !owners.has(thread.id))
+        .map(async (thread) => {
+          const owner = await readScheduledTaskId(port, thread.id);
+          if (owner !== undefined) owners.set(thread.id, owner);
+        }),
+    );
+  }
+
+  // The probe result is shared with the sweep.
   async function runningRun(stored: StoredNews, live: RawScheduledTask): Promise<NewsRunning | null> {
     const since = Date.parse(stored.taskCreatedAt ?? "");
     if (!stored.taskId || Number.isNaN(since)) return null;
     const at = now();
-    const active = store
-      .rawThreads()
-      .filter(
-        (thread) =>
-          thread.projectId === live.projectId &&
-          thread.creationSource === live.creationSource &&
-          !isHidden(thread) &&
-          !archived.has(thread.id) &&
-          Date.parse(thread.createdAt ?? "") >= since &&
-          ["running", "waiting"].includes(threadState(toDashboardThread(thread, at))),
-      )
-      .sort((a, b) => Date.parse(b.createdAt ?? "") - Date.parse(a.createdAt ?? ""))
+    const active = taskThreads(live, since)
+      .filter((thread) => ["running", "waiting"].includes(threadState(toDashboardThread(thread, at))))
       .slice(0, SWEEP_READS);
-    for (const thread of active) {
-      if (!owners.has(thread.id)) {
-        const owner = await readScheduledTaskId(port, thread.id);
-        if (owner !== undefined) owners.set(thread.id, owner);
-      }
-      if (owners.get(thread.id) === stored.taskId) return { threadId: thread.id, startedAt: thread.createdAt ?? null };
-    }
-    return null;
+    await readOwners(active);
+    const own = active.find((thread) => owners.get(thread.id) === stored.taskId);
+    return own ? { threadId: own.id, startedAt: own.createdAt ?? null } : null;
   }
 
   async function get(): Promise<NewsState> {
@@ -152,27 +187,18 @@ export function createNews(options: NewsOptions): News {
     let running: NewsRunning | null = null;
     try {
       const live = await liveTask(stored);
-      task = live ? toTask(live) : null;
       if (live) {
+        task = toTask(live);
         running = await runningRun(stored, live);
-        if (!running && task?.lastRunStatus === "running") running = { threadId: null, startedAt: task.lastRunAt };
+        if (!running && task.lastRunStatus === "running") running = { threadId: null, startedAt: task.lastRunAt };
       }
     } catch {
       // T3 does not answer: the articles are still on disk.
     }
-    const articles = files()
-      .sort((a, b) => b.name.localeCompare(a.name))
-      .map((entry): NewsArticleSummary => {
-        const date = entry.name.slice(0, 10);
-        let markdown = "";
-        try {
-          // Only the head: the title is the first heading.
-          markdown = fs.read(`${dir}/${date}.md`, TITLE_BYTES);
-        } catch {
-          // An unreadable file keeps its date as title.
-        }
-        return { date, title: articleTitle(markdown, date), mtimeMs: entry.mtimeMs };
-      });
+    const entries = files().sort((a, b) => b.name.localeCompare(a.name));
+    forgetRemoved(entries);
+    // An unreadable file keeps its date as title.
+    const articles = entries.map((entry): NewsArticleSummary => ({ date: entry.name.slice(0, 10), title: textOf(entry)?.title ?? entry.name.slice(0, 10), mtimeMs: entry.mtimeMs }));
     // The routine can be paused or resumed in Automations: the real state wins.
     return { settings: { ...stored.settings, enabled: task?.enabled ?? stored.settings.enabled }, task, articles, running };
   }
@@ -227,27 +253,13 @@ export function createNews(options: NewsOptions): News {
     const task = await liveTask(stored);
     if (!task) return;
     const at = now();
-    const finished = store
-      .rawThreads()
-      .filter(
-        (thread) =>
-          thread.projectId === task.projectId &&
-          thread.creationSource === task.creationSource &&
-          !isHidden(thread) &&
-          !archived.has(thread.id) &&
-          Date.parse(thread.createdAt ?? "") >= since &&
-          threadState(toDashboardThread(thread, at)) === "done",
-      )
-      .sort((a, b) => Date.parse(b.createdAt ?? "") - Date.parse(a.createdAt ?? ""));
-    for (const thread of finished.filter((entry) => !owners.has(entry.id)).slice(0, SWEEP_READS)) {
-      // Undefined: not readable yet, so the thread is read again later.
-      const owner = await readScheduledTaskId(port, thread.id);
-      if (owner !== undefined) owners.set(thread.id, owner);
-    }
+    const finished = taskThreads(task, since).filter((thread) => threadState(toDashboardThread(thread, at)) === "done");
+    await readOwners(finished.filter((entry) => !owners.has(entry.id)).slice(0, SWEEP_READS));
+    const owned = finished.filter((thread) => owners.get(thread.id) === stored.taskId);
+    if (owned.length === 0) return;
     // An article only counts when it was written during the run of this thread: a failed run must not be archived because a later run wrote one.
     const written = files().map((entry) => entry.mtimeMs);
-    for (const thread of finished) {
-      if (owners.get(thread.id) !== stored.taskId) continue;
+    for (const thread of owned) {
       const from = Date.parse(thread.createdAt ?? "");
       const to = Date.parse(thread.latestRunCompletedAt ?? thread.updatedAt ?? "") + RUN_MARGIN_MS;
       if (Number.isNaN(to) || !written.some((mtime) => mtime >= from && mtime <= to)) continue;
@@ -264,12 +276,10 @@ export function createNews(options: NewsOptions): News {
     get,
 
     async article(date) {
-      if (!isArticleDate(date)) throw new DomainError("invalid", "The date must look like 2026-11-07");
-      // Listed first: a symlink or a folder with this name is not an article.
-      if (!files().some((entry) => entry.name === `${date}.md`)) throw new DomainError("not-found", "No article for this date");
+      const path = articlePath(date);
       let markdown: string;
       try {
-        markdown = fs.read(`${dir}/${date}.md`).slice(0, ARTICLE_MAX_CHARS);
+        markdown = fs.read(path).slice(0, ARTICLE_MAX_CHARS);
       } catch {
         throw new DomainError("not-found", "No article for this date");
       }
@@ -279,25 +289,16 @@ export function createNews(options: NewsOptions): News {
     async search(query) {
       const needle = fold(query.trim());
       if (needle.length < 1 || needle.length > SEARCH_MAX_CHARS) throw new DomainError("invalid", `The search must have 1 to ${SEARCH_MAX_CHARS} characters`);
-      const dates: string[] = [];
-      for (const entry of files().sort((a, b) => b.name.localeCompare(a.name))) {
-        const date = entry.name.slice(0, 10);
-        try {
-          const markdown = fs.read(`${dir}/${entry.name}`).slice(0, ARTICLE_MAX_CHARS);
-          if (fold(`${articleTitle(markdown, date)}\n${markdown}`).includes(needle)) dates.push(date);
-        } catch {
-          // An unreadable file does not match.
-        }
-      }
+      const entries = files().sort((a, b) => b.name.localeCompare(a.name));
+      forgetRemoved(entries);
+      const dates = entries.filter((entry) => textOf(entry)?.folded.includes(needle)).map((entry) => entry.name.slice(0, 10));
       return { dates };
     },
 
     async remove(date) {
-      if (!isArticleDate(date)) throw new DomainError("invalid", "The date must look like 2026-11-07");
-      // Listed first: only a regular file of this name is deleted.
-      if (!files().some((entry) => entry.name === `${date}.md`)) throw new DomainError("not-found", "No article for this date");
+      const path = articlePath(date);
       try {
-        fs.remove(`${dir}/${date}.md`);
+        fs.remove(path);
       } catch {
         throw new DomainError("not-found", "No article for this date");
       }
