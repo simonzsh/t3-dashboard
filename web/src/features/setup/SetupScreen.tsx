@@ -4,18 +4,14 @@ import { useApi } from "../../api/ApiContext.tsx";
 import { setupCopy } from "./setup.ts";
 import { Button, CardHead, Icon, IconButton, Logo, SecretInput } from "../../ui/index.ts";
 import { useAction } from "../../lib/useAction.ts";
+import { useCopy } from "../../lib/useCopy.ts";
 
 function CommandBox({ command }: { command: string }) {
-  const [copied, setCopied] = useState(false);
-  async function copy() {
-    await navigator.clipboard.writeText(command).catch(() => undefined);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 1500);
-  }
+  const { copied, copy } = useCopy("copy the command");
   return (
     <div className="setup-command">
       <code>{command}</code>
-      <IconButton variant="ghost" size="sm" label={copied ? "Copied" : "Copy command"} onClick={() => void copy()}>
+      <IconButton variant="ghost" size="sm" label={copied ? "Copied" : "Copy command"} onClick={() => copy(command)}>
         <Icon name={copied ? "check" : "copy"} />
       </IconButton>
     </div>

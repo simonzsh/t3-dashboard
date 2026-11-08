@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "bun:test";
 import type { DashboardProvider } from "../../../../shared/api.ts";
-import { loadNewAgentProject, presetSelection, saveNewAgentProject, titleFromMessage } from "../../../src/features/new-thread/newAgent.ts";
+import { DEFAULT_RUNTIME_MODE, loadNewAgentProject, presetSelection, saveNewAgentProject, titleFromMessage } from "../../../src/features/new-thread/newAgent.ts";
 import { memoryStore } from "../../fixtures.ts";
 
 const projects = [
@@ -46,4 +46,8 @@ test("presetSelection falls back on T3's default before the first model", () => 
   assert.deepEqual(presetSelection(undefined, providers, t3Default), t3Default);
   assert.deepEqual(presetSelection(projects[0], providers, { instanceId: "a", model: "a-1" }), { instanceId: "b", model: "b-2" });
   assert.deepEqual(presetSelection(undefined, providers, { instanceId: "gone", model: "x" }), { instanceId: "a", model: "a-1" });
+});
+
+test("a new session defaults to full access", () => {
+  assert.equal(DEFAULT_RUNTIME_MODE, "full-access");
 });

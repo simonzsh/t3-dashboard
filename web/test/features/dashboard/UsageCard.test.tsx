@@ -85,6 +85,11 @@ test("before the first answer there is a skeleton, and a failed first read shows
   assert.doesNotMatch(failed, /Loading usage limits/);
 });
 
+test("the refresh button is busy while it loads", () => {
+  assert.match(render([provider("codex", [win()])], { loading: true }), /<button[^>]*aria-busy="true"[^>]*aria-label="Refresh usage limits"/);
+  assert.match(render([provider("codex", [win()])]), /<button[^>]*aria-busy="false"/);
+});
+
 test("a failed refresh keeps the rows and adds the error", () => {
   const out = render([provider("codex", [win()])], { error: "Boom." });
   assert.match(out, /38%/);

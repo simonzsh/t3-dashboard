@@ -75,7 +75,7 @@ export function UsageCard({ state, now }: { state: ReadState<LimitsOverview>; no
         actions={
           <>
             {limits && <span className="card-updated">{oldestCheck(limits, now)}</span>}
-            <IconButton size="sm" variant="ghost" label="Refresh usage limits" tooltip="Refresh usage limits" disabled={loading} onClick={refresh}>
+            <IconButton size="sm" variant="ghost" label="Refresh usage limits" tooltip="Refresh usage limits" disabled={loading} aria-busy={loading} onClick={refresh}>
               <Icon name="refresh" className={loading ? "icon spinning" : "icon"} />
             </IconButton>
           </>

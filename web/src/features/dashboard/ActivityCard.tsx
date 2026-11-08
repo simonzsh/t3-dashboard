@@ -88,7 +88,7 @@ export function ActivityCard({ state, now }: { state: ActivityState; now: Date }
         actions={
           <>
             {usage && <span className="card-updated">Updated {relativeTime(usage.readAt, now)}</span>}
-            <IconButton size="sm" variant="ghost" label="Refresh activity" tooltip="Refresh activity" disabled={loading} onClick={refresh}>
+            <IconButton size="sm" variant="ghost" label="Refresh activity" tooltip="Refresh activity" disabled={loading} aria-busy={loading} onClick={refresh}>
               <Icon name="refresh" className={loading ? "icon spinning" : "icon"} />
             </IconButton>
           </>

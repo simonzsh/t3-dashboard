@@ -1,9 +1,9 @@
 import { useState, type KeyboardEvent, type ReactNode } from "react";
-import type { ApprovalDecision, PendingRequestDetail } from "../../../../shared/api.ts";
+import type { PendingRequestDetail } from "../../../../shared/api.ts";
 import { useApi } from "../../api/ApiContext.tsx";
 import { answerReady, buildAnswers, shortcutOption, toggleChoice, type Draft, type Drafts } from "./answers.ts";
-import { Button, Choice, Icon, IconButton } from "../../ui/index.ts";
-import { DECISIONS } from "./PendingRequestView.tsx";
+import { Chevron, Choice, Icon, IconButton, Kbd } from "../../ui/index.ts";
+import { ApprovalButtons } from "./ApprovalButtons.tsx";
 import { useAction } from "../../lib/useAction.ts";
 
 type UserInputRequest = Extract<PendingRequestDetail, { category: "user-input" }>;
@@ -54,7 +54,7 @@ export function useQuestionDock(threadId: string, request: UserInputRequest | nu
           </IconButton>
         )}
         <IconButton label={current.collapsed ? "Show the question" : "Hide the question"} variant="ghost" size="sm" aria-expanded={!current.collapsed} onClick={() => update({ collapsed: !current.collapsed })}>
-          <Icon name="chevron" className="icon question-dock-chevron" />
+          <Chevron open={!current.collapsed} opensUp />
         </IconButton>
       </header>
       {!current.collapsed && (
@@ -72,7 +72,7 @@ export function useQuestionDock(threadId: string, request: UserInputRequest | nu
                     <strong>{o.label}</strong>
                     {o.description && <small>{o.description}</small>}
                   </span>
-                  {i < 9 && <kbd className="question-dock-key">{i + 1}</kbd>}
+                  {i < 9 && <Kbd className="question-dock-key">{i + 1}</Kbd>}
                 </label>
               ))}
             </div>
@@ -120,16 +120,13 @@ export function dockedRequest(requests: PendingRequestDetail[]): UserInputReques
 
 // An approval sits on the Composer too; the field stays a normal message, queued for after the turn.
 export function ApprovalDock({ threadId, request, onAnswered }: { threadId: string; request: ApprovalRequest; onAnswered: () => Promise<unknown> }) {
-  const api = useApi();
-  const action = useAction("answer the agent");
   const [collapsed, setCollapsed] = useState(false);
-  const [busy, setBusy] = useState<ApprovalDecision | null>(null);
   return (
     <section className={`question-dock${collapsed ? " collapsed" : ""}`} aria-label="Approval requested by the agent">
       <header className="question-dock-head">
         <span className="question-dock-title">{`Approval requested · ${request.requestKind}`}</span>
         <IconButton label={collapsed ? "Show the request" : "Hide the request"} variant="ghost" size="sm" aria-expanded={!collapsed} onClick={() => setCollapsed(!collapsed)}>
-          <Icon name="chevron" className="icon question-dock-chevron" />
+          <Chevron open={!collapsed} opensUp />
         </IconButton>
       </header>
       {!collapsed && (
@@ -137,23 +134,7 @@ export function ApprovalDock({ threadId, request, onAnswered }: { threadId: stri
           {request.prompt && <pre className="question-dock-command">{request.prompt}</pre>}
           {request.reason && <p className="question-dock-reason">{request.reason}</p>}
           <div className="question-dock-actions">
-            {DECISIONS.map(([decision, label]) => (
-              <Button
-                key={decision}
-                size="sm"
-                variant={decision === "accept" ? "primary" : undefined}
-                loading={busy === decision}
-                disabled={busy !== null}
-                onClick={() =>
-                  void action.run(async () => {
-                    await api.respond(threadId, request.requestId, { decision });
-                    await onAnswered();
-                  }, (on) => setBusy(on ? decision : null))
-                }
-              >
-                {label}
-              </Button>
-            ))}
+            <ApprovalButtons threadId={threadId} requestId={request.requestId} size="sm" onAnswered={onAnswered} />
           </div>
         </div>
       )}

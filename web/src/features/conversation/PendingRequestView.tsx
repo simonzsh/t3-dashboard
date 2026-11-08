@@ -1,16 +1,10 @@
 import { useState } from "react";
-import type { ApprovalDecision, PendingRequestDetail } from "../../../../shared/api.ts";
+import type { PendingRequestDetail } from "../../../../shared/api.ts";
 import { useApi } from "../../api/ApiContext.tsx";
-import { buildAnswers, canSubmit, type Drafts } from "./answers.ts";
+import { ApprovalButtons } from "./ApprovalButtons.tsx";
+import { buildAnswers, canSubmit, toggleChoice, type Drafts } from "./answers.ts";
 import { Button, Choice, TextInput } from "../../ui/index.ts";
 import { useAction } from "../../lib/useAction.ts";
-
-// The primary action comes last, on the right, as in the dialogs.
-export const DECISIONS: Array<[ApprovalDecision, string]> = [
-  ["decline", "Decline"],
-  ["acceptForSession", "Accept for session"],
-  ["accept", "Accept"],
-];
 
 export function PendingRequestView({ threadId, request }: { threadId: string; request: PendingRequestDetail }) {
   const api = useApi();
@@ -30,11 +24,7 @@ export function PendingRequestView({ threadId, request }: { threadId: string; re
           {request.prompt && <div className="msg">{request.prompt}</div>}
           {request.reason && <small>{request.reason}</small>}
           <div className="buttons">
-            {DECISIONS.map(([decision, label]) => (
-              <Button key={decision} variant={decision === "accept" ? "primary" : undefined} disabled={locked || action.busy} onClick={() => void action.run(() => api.respond(threadId, request.requestId, { decision }))}>
-                {label}
-              </Button>
-            ))}
+            <ApprovalButtons threadId={threadId} requestId={request.requestId} disabled={locked || action.busy} />
           </div>
         </>
       )}
@@ -55,15 +45,7 @@ export function PendingRequestView({ threadId, request }: { threadId: string; re
                       type={q.multiSelect ? "checkbox" : "radio"}
                       name={`${request.requestId}-${q.id}`}
                       checked={d?.choices.includes(o.value) ?? false}
-                      onChange={(e) =>
-                        setDraft(q.id, {
-                          choices: q.multiSelect
-                            ? e.target.checked
-                              ? [...(d?.choices ?? []), o.value]
-                              : (d?.choices ?? []).filter((v) => v !== o.value)
-                            : [o.value],
-                        })
-                      }
+                      onChange={() => setDraft(q.id, { choices: toggleChoice(q, d, o.value) })}
                     />
                     <span>
                       {o.label}

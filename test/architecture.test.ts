@@ -74,7 +74,7 @@ const FEATURE_EDGES = new Map([
 const EXCEPTIONS = new Map([
   ["web/src/ui/Dropdown.tsx -> web/src/lib/dropdown.ts", "the dropdown menu logic is pure and tested in lib"],
   ["web/src/ui/Popover.tsx -> web/src/lib/dropdown.ts", "the popover uses the same menu placement"],
-  ["web/src/ui/ActionMenu.tsx -> web/src/lib/dropdown.ts", "the action menu moves its active row like the dropdown"],
+  ["web/src/ui/useListNav.ts -> web/src/lib/dropdown.ts", "the list keys wrap through the same pure moveActive"],
 ]);
 
 const SPECIFIER = /(?:^|\s)(?:import|export)\s[^"';]*?from\s*["']([^"']+)["']|import\(\s*["']([^"']+)["']\s*\)/g;

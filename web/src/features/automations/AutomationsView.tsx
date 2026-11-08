@@ -4,7 +4,7 @@ import type { SeenState } from "../../../../shared/seen.ts";
 import { agentStatus } from "../../../../shared/status.ts";
 import { StatusBadge } from "../../lib/StatusBadge.tsx";
 import { ProjectTag } from "../../lib/ProjectTag.tsx";
-import { Badge, Button, Dropdown, Icon, type IconName, Pressable, Segmented, Sheet, Skeleton, SkeletonGroup, TextInput } from "../../ui/index.ts";
+import { Badge, Button, Dropdown, Icon, type IconName, Pressable, SearchField, Segmented, Sheet, Skeleton, SkeletonGroup } from "../../ui/index.ts";
 import { NewAutomationDialog } from "../new-thread/NewAutomationDialog.tsx";
 import { AutomationRow } from "./AutomationRow.tsx";
 import { AutomationSheet } from "./AutomationSheet.tsx";
@@ -152,10 +152,7 @@ export function AutomationsView({ state, now, seen, onOpen, automations, automat
     <div className="auto-page">
       <section className="auto-section" aria-label="Automations">
         <div className="auto-toolbar">
-          <div className="auto-search">
-            <Icon name="search" />
-            <TextInput aria-label="Search automations" placeholder="Search automations…" value={query} onChange={(e) => setQuery(e.target.value)} />
-          </div>
+          <SearchField className="auto-search" aria-label="Search automations" placeholder="Search automations…" value={query} onChange={(e) => setQuery(e.target.value)} />
           <Segmented
             label="Filter automations"
             value={prefs.filter}

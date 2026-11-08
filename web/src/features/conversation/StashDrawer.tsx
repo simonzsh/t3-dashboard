@@ -1,8 +1,7 @@
-import { useEffect, useRef, useState, type RefObject } from "react";
+import { useEffect, useRef, type RefObject } from "react";
 import { stashPreview, type StashEntry } from "../../../../shared/stash.ts";
-import { moveActive } from "../../lib/dropdown.ts";
 import { relativeTime } from "../../lib/format.ts";
-import { Icon, IconButton, Popover, Pressable } from "../../ui/index.ts";
+import { Icon, IconButton, Popover, Pressable, useListNav } from "../../ui/index.ts";
 
 interface Props {
   entries: StashEntry[];
@@ -14,31 +13,17 @@ interface Props {
 
 /** The stashed prompts above the composer: arrows pick a row, Enter restores it, Escape closes. */
 export function StashDrawer({ entries, anchor, onRestore, onDelete, onClose }: Props) {
-  const [active, setActive] = useState(0);
-  const list = useRef<HTMLUListElement>(null);
-  const latest = useRef({ entries, active, onRestore });
-  latest.current = { entries, active, onRestore };
-
-  useEffect(() => setActive((i) => Math.min(i, Math.max(0, entries.length - 1))), [entries.length]);
-  // Braces: recent Chrome returns a Promise from scrollIntoView, which React would call as a cleanup.
-  useEffect(() => {
-    list.current?.children[active]?.scrollIntoView({ block: "nearest" });
-  }, [active]);
+  // Home and End stay with the caret of the composer field.
+  const nav = useListNav(entries.length, { initial: 0, homeEnd: false, onPick: (i) => onRestore(entries[i]!), itemId: (i) => `stash-row-${i}` });
+  const latest = useRef({ entries, nav });
+  latest.current = { entries, nav };
 
   // Capture phase: the composer field must not also send on this Enter.
   useEffect(() => {
     const key = (e: KeyboardEvent) => {
-      const { entries, active, onRestore } = latest.current;
-      if (e.isComposing || entries.length === 0) return;
-      if (e.key === "ArrowDown" || e.key === "ArrowUp") {
-        e.preventDefault();
-        setActive(moveActive(entries.length, active, e.key === "ArrowDown" ? 1 : -1));
-      } else if (e.key === "Enter" && !(e.target instanceof HTMLButtonElement)) {
-        e.preventDefault();
-        e.stopPropagation();
-        const entry = entries[active];
-        if (entry) onRestore(entry);
-      }
+      const { entries, nav } = latest.current;
+      if (e.isComposing || entries.length === 0 || (e.key === "Enter" && e.target instanceof HTMLButtonElement)) return;
+      if (nav.onKeyDown(e) && e.key === "Enter") e.stopPropagation();
     };
     window.addEventListener("keydown", key, true);
     return () => window.removeEventListener("keydown", key, true);
@@ -48,9 +33,9 @@ export function StashDrawer({ entries, anchor, onRestore, onDelete, onClose }: P
   return (
     <Popover anchor={anchor} className="stash-drawer" matchWidth fitWidth preferAbove onClose={onClose}>
       <h3 className="stash-title">Stashed prompts</h3>
-      <ul ref={list} className="stash-list" aria-label="Stashed prompts">
+      <ul className="stash-list" aria-label="Stashed prompts">
           {entries.map((entry, i) => (
-            <li key={entry.id} className={`stash-row${i === active ? " active" : ""}`} onMouseEnter={() => setActive(i)}>
+            <li key={entry.id} id={`stash-row-${i}`} className={`stash-row${i === nav.active ? " active" : ""}`} onMouseEnter={() => nav.hover(i)}>
               <Pressable className="stash-restore" aria-label={`Restore stashed prompt: ${stashPreview(entry)}`} onClick={() => onRestore(entry)}>
                 <span className="stash-text">{stashPreview(entry)}</span>
                 <small className="stash-meta">

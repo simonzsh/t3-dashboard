@@ -2,12 +2,9 @@ import { useState } from "react";
 import type { DashboardProject, ProjectIconSpec } from "../../../../shared/api.ts";
 import { useApi } from "../../api/ApiContext.tsx";
 import { errorMessage } from "../../lib/format.ts";
-import { Dialog, TextInput } from "../../ui/index.ts";
+import { Dialog, isTouch, TextInput } from "../../ui/index.ts";
 import { IconPicker } from "./IconPicker.tsx";
 import { editBody } from "./projectIcons.ts";
-
-// On a touch screen a focused field opens the keyboard over the form: focus nothing there.
-const touch = () => typeof matchMedia === "function" && matchMedia("(pointer: coarse)").matches;
 
 interface Props {
   project: DashboardProject;
@@ -48,7 +45,7 @@ export function EditProjectDialog({ project, onClose }: Props) {
     <Dialog title="Edit project" className="add-project" onClose={onClose} onCancel={onClose} primary={{ label: busy ? "Saving…" : "Save", onClick: () => void submit(), disabled: busy || !body || !valid }}>
       <label className="dialog-field">
         <span>Title</span>
-        <TextInput autoFocus={!touch()} value={title} onChange={(e) => setTitle(e.target.value)} onKeyDown={onEnter} />
+        <TextInput autoFocus={!isTouch()} value={title} onChange={(e) => setTitle(e.target.value)} onKeyDown={onEnter} />
       </label>
       <div className="dialog-field">
         <span>Icon</span>

@@ -51,13 +51,11 @@ import { useTheme } from "./features/settings/useTheme.ts";
 import { useAccent } from "./features/settings/useAccent.ts";
 import { useTint } from "./features/settings/useTint.ts";
 import { useUpdate } from "./features/update/useUpdate.ts";
-import { Loader, Logo, PageHeader, TooltipLayer } from "./ui/index.ts";
+import { Loader, Logo, PageHeader, PHONE, TooltipLayer } from "./ui/index.ts";
 import { updateLabel } from "./features/update/updateFlow.ts";
 
 const NO_THREADS: DashboardThread[] = [];
 const NO_IDS: string[] = [];
-// Same breakpoint as the bottom bar in styles.css.
-const PHONE = "(max-width: 700px)";
 // No room for the Notifications column: it becomes a side sheet.
 const SHEET = "(max-width: 1200px)";
 

@@ -38,7 +38,7 @@ test("the sidebar shows unread on Dashboard, running or unread on Sessions and a
   assert.match(out, /aria-label="12 unread">9\+</);
   assert.match(out, /aria-label="2 running or unread">2</);
   assert.match(out, /aria-label="An agent is waiting for your reply"/);
-  assert.doesNotMatch(side(), /nav-badge|An agent is waiting/);
+  assert.doesNotMatch(side(), /count-badge|An agent is waiting/);
 });
 
 test("the sidebar footer holds the connection, Settings and collapse on one row", () => {
@@ -87,6 +87,6 @@ test("News shows its unread articles like the other tabs, in the sidebar and the
   for (const out of [side({ news: 2 }), bottom({ news: 2 })]) assert.match(out, /aria-label="2 unread articles">2</);
   assert.match(side({ news: 1 }), /aria-label="1 unread article">1</);
   assert.match(side({ news: 14 }), /aria-label="14 unread articles">9\+</);
-  assert.doesNotMatch(side(), /nav-badge/);
-  assert.match(side({ news: 2 }), /data-tab="news"[\s\S]*nav-badge/);
+  assert.doesNotMatch(side(), /count-badge/);
+  assert.match(side({ news: 2 }), /data-tab="news"[\s\S]*count-badge/);
 });

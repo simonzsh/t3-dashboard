@@ -2,7 +2,7 @@ import { useEffect, useRef, useState, type KeyboardEvent } from "react";
 import type { FolderBrowseResult } from "../../../../shared/api.ts";
 import { useApi } from "../../api/ApiContext.tsx";
 import { useDebouncedValue } from "../../lib/useDebouncedValue.ts";
-import { Icon, Pressable, TextInput } from "../../ui/index.ts";
+import { Icon, OptionList, TextInput, useListNav } from "../../ui/index.ts";
 import { isFolderPath } from "./addProject.ts";
 
 const BROWSE_DELAY_MS = 150;
@@ -44,28 +44,44 @@ export function FolderField({ value, onChange, onKind, missingHint, onKeyDown, a
   const kind = known?.kind ?? null;
   useEffect(() => onKind(kind), [kind]);
 
+  const entries = known?.entries ?? [];
+  const pick = (path: string) => {
+    onChange(`${path}/`);
+    field.current?.focus();
+  };
+  const nav = useListNav(entries.length, { homeEnd: false, onPick: (i) => pick(entries[i]!.path), itemId: (i) => `folder-option-${i}` });
+  useEffect(() => nav.setActive(-1), [known]);
+
   return (
     <>
       <label className="dialog-field">
         <span>Folder</span>
-        <TextInput ref={field} autoFocus={autoFocus} value={value} onChange={(e) => onChange(e.target.value)} onKeyDown={onKeyDown} placeholder="~/src/my-project" spellCheck={false} />
+        <TextInput
+          ref={field}
+          autoFocus={autoFocus}
+          role="combobox"
+          aria-autocomplete="list"
+          aria-expanded={entries.length > 0}
+          aria-controls="folder-list"
+          aria-activedescendant={nav.active >= 0 ? `folder-option-${nav.active}` : undefined}
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          onKeyDown={(e) => {
+            if (!nav.onKeyDown(e)) onKeyDown?.(e);
+          }}
+          placeholder="~/src/my-project"
+          spellCheck={false}
+        />
       </label>
-      {known && known.entries.length > 0 && (
-        <div className="folder-list" aria-label="Folders">
-          {known.entries.map((entry) => (
-            <Pressable
-              key={entry.path}
-              className="folder-option"
-              onClick={() => {
-                onChange(`${entry.path}/`);
-                field.current?.focus();
-              }}
-            >
+      {entries.length > 0 && (
+        <OptionList id="folder-list" label="Folders" className="folder-list" items={entries} active={nav.active} itemId={(i) => `folder-option-${i}`} itemKey={(entry) => entry.path} onHover={nav.hover} onPick={(entry) => pick(entry.path)}>
+          {(entry) => (
+            <>
               <Icon name="folder" />
               <span>{entry.name}</span>
-            </Pressable>
-          ))}
-        </div>
+            </>
+          )}
+        </OptionList>
       )}
       {kind === "missing" && <p className="hint">{missingHint}</p>}
       {kind === "file" && <p className="hint">This path is a file, not a folder.</p>}

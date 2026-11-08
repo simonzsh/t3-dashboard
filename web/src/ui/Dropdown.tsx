@@ -1,8 +1,10 @@
 import { useEffect, useId, useRef, useState, type KeyboardEvent, type ReactNode } from "react";
-import { filterOptions, moveActive, showsFilter, type DropdownOption } from "../lib/dropdown.ts";
+import { filterOptions, showsFilter, type DropdownOption } from "../lib/dropdown.ts";
 import { Icon } from "./Icon.tsx";
+import { isTouch } from "./media.ts";
 import { Popover } from "./Popover.tsx";
 import { TextInput } from "./TextInput.tsx";
+import { useListNav } from "./useListNav.ts";
 
 interface Props {
   label: string;
@@ -34,7 +36,6 @@ interface Props {
 export function Dropdown({ label, value, options, onPick, icon, placeholder, disabled = false, filterable, searchPlaceholder = "Search…", className = "", defaultOpen = false, onPicked, onQuery, valueLabel, footer, align }: Props) {
   const [open, setOpen] = useState(defaultOpen);
   const [query, setQuery] = useState("");
-  const [active, setActive] = useState(() => (defaultOpen ? options.findIndex((o) => o.id === value) : -1));
   const trigger = useRef<HTMLButtonElement>(null);
   const list = useRef<HTMLDivElement>(null);
   const filter = useRef<HTMLInputElement>(null);
@@ -45,17 +46,18 @@ export function Dropdown({ label, value, options, onPick, icon, placeholder, dis
   // A form field shows the search in its own place; a compact picker keeps it in the menu.
   const inPlace = className.includes("field");
   const shown = onQuery ? options : filterOptions(options, query);
+  const { active, setActive, hover, onKeyDown: navKeyDown } = useListNav(shown.length, {
+    initial: defaultOpen ? options.findIndex((o) => o.id === value) : -1,
+    onPick: (i) => pick(shown[i]!),
+    itemId: (i) => `${id}-${i}`,
+  });
 
   useEffect(() => {
     if (!open) return;
     // On a touch screen, a compact menu does not focus its search: no keyboard pops up.
-    const focusSearch = withFilter && (inPlace || !matchMedia("(pointer: coarse)").matches);
+    const focusSearch = withFilter && (inPlace || !isTouch());
     (focusSearch ? filter.current : list.current)?.focus({ preventScroll: true });
   }, [open]);
-
-  useEffect(() => {
-    if (open && active >= 0) document.getElementById(`${id}-${active}`)?.scrollIntoView({ block: "nearest" });
-  }, [open, active]);
 
   function show() {
     setQuery("");
@@ -84,19 +86,9 @@ export function Dropdown({ label, value, options, onPick, icon, placeholder, dis
       }
       return;
     }
-    if (e.key === "ArrowDown" || e.key === "ArrowUp") {
-      e.preventDefault();
-      setActive(moveActive(shown.length, active, e.key === "ArrowDown" ? 1 : -1));
-    } else if (e.key === "Home" || e.key === "End") {
-      e.preventDefault();
-      setActive(e.key === "Home" ? 0 : shown.length - 1);
-    } else if (e.key === "Enter") {
-      e.preventDefault();
-      const option = shown[active];
-      if (option) pick(option);
-    } else if (e.key === "Tab") {
-      close(false);
-    }
+    if (navKeyDown(e)) return;
+    if (e.key === "Enter") e.preventDefault();
+    else if (e.key === "Tab") close(false);
   }
 
   const search = (
@@ -165,7 +157,7 @@ export function Dropdown({ label, value, options, onPick, icon, placeholder, dis
                   aria-selected={o.id === value}
                   className={`dropdown-option${i === active ? " active" : ""}`}
                   onMouseDown={(e) => e.preventDefault()}
-                  onMouseEnter={() => setActive(i)}
+                  onMouseEnter={() => hover(i)}
                   onClick={() => pick(o)}
                 >
                   {o.icon}

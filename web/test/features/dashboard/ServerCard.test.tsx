@@ -93,6 +93,8 @@ test("a refresh button reads again, and spins while it loads", () => {
   const busy = render({ loading: true });
   assert.match(busy, /<button[^>]*disabled=""[^>]*aria-label="Refresh server stats"/);
   assert.match(busy, /icon spinning/);
+  assert.match(busy, /<button[^>]*aria-busy="true"[^>]*aria-label="Refresh server stats"/);
+  assert.match(idle, /<button[^>]*aria-busy="false"[^>]*aria-label="Refresh server stats"/);
 });
 
 test("a Clear caches button sits in the head on Linux and macOS and is hidden on Windows", () => {

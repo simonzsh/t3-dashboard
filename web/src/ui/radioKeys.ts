@@ -18,3 +18,8 @@ export function onRadioKeyDown(e: KeyboardEvent<HTMLElement>): void {
   radios[next]?.focus();
   radios[next]?.click();
 }
+
+/** One tab stop per radio group: the checked radio, or the first when none is checked. */
+export function rovingTabIndex(checked: boolean, first: boolean, anyChecked: boolean): 0 | -1 {
+  return checked || (first && !anyChecked) ? 0 : -1;
+}

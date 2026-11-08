@@ -1,7 +1,7 @@
 import { test } from "bun:test";
 import assert from "node:assert/strict";
 import type { ThreadSearchMatch } from "../../../../shared/api.ts";
-import { highlightParts, mergeResults, moveSelection, shouldSearchContent, suggestThreads, titleMatches } from "../../../src/features/switcher/switcher.ts";
+import { highlightParts, mergeResults, shouldSearchContent, suggestThreads, titleMatches } from "../../../src/features/switcher/switcher.ts";
 import { thread } from "../../fixtures.ts";
 
 const projects = [
@@ -58,13 +58,6 @@ test("shouldSearchContent wants 2 to 200 characters once trimmed", () => {
   assert.equal(shouldSearchContent("a".repeat(200)), true);
   assert.equal(shouldSearchContent("a".repeat(201)), false);
   assert.equal(shouldSearchContent("  a  "), false);
-});
-
-test("moveSelection clamps at both ends and survives an empty list", () => {
-  assert.equal(moveSelection(0, -1, 3), 0);
-  assert.equal(moveSelection(1, 1, 3), 2);
-  assert.equal(moveSelection(2, 1, 3), 2);
-  assert.equal(moveSelection(0, 1, 0), 0);
 });
 
 const waiting = { pending: { kind: "approval" } } as unknown as Partial<ReturnType<typeof thread>>;

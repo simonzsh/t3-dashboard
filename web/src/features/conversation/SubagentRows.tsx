@@ -4,7 +4,7 @@ import { useApi } from "../../api/ApiContext.tsx";
 import { duration } from "../../lib/format.ts";
 import { ProviderIcon } from "../../lib/ProviderIcon.tsx";
 import { useAction } from "../../lib/useAction.ts";
-import { Icon, IconButton, Pressable } from "../../ui/index.ts";
+import { Chevron, Icon, IconButton, Pressable } from "../../ui/index.ts";
 import { useTicker } from "./Steps.tsx";
 import { MAX_AVATARS, SUBAGENT_LABELS, groupElapsedMs, groupStatus, isActive, subagentLine, subagentTone } from "./subagents.ts";
 
@@ -56,7 +56,7 @@ function SubagentGroup({ steps, ...rest }: RowsProps) {
           <span className={`subagent-group-status ${tone}`}>{text}</span>
         </span>
         {elapsed && <span className="subagent-time">{elapsed}</span>}
-        <span className={`chevron${open ? " open" : ""}`} aria-hidden="true" />
+        <Chevron open={open} opensUp />
       </Pressable>
       {open && (
         <div className="subagent-card">

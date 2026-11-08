@@ -1,3 +1,4 @@
+import { IconButtonLink } from "../ui/index.ts";
 import { t3CodeLink } from "./t3Link.ts";
 
 // T3 Code mark (MIT, pingdotgg/t3code).
@@ -13,10 +14,10 @@ export function OpenInT3({ environmentId, threadId }: Props) {
   const href = t3CodeLink(environmentId, threadId);
   if (!href) return null;
   return (
-    <a className="icon-button open-t3" href={href} aria-label="Open in T3 Code" data-tooltip="Open in T3 Code" onClick={(e) => e.stopPropagation()}>
+    <IconButtonLink variant="ghost" size="sm" href={href} label="Open in T3 Code" tooltip="Open in T3 Code" onClick={(e) => e.stopPropagation()}>
       <svg className="icon" viewBox="7 29 111 74" aria-hidden="true">
         <path d={T3_PATH} fill="currentColor" />
       </svg>
-    </a>
+    </IconButtonLink>
   );
 }

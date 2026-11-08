@@ -5,6 +5,7 @@ This folder contains the base components of the dashboard. The screens in `web/s
 ## Rules
 
 - Outside `ui/`, do not write raw `<button>`, `<input>`, `<textarea>` or `<select>` elements. A test (`web/test/uiRules.test.ts`) blocks these elements. `<a>` links are still permitted.
+- Menus and option lists come from the kit: `Dropdown`, `ActionMenu`, or `OptionList` with `useListNav`. A test blocks `role="listbox"`, `"menu"`, `"option"`, `"menuitem"` and `"menuitemradio"` outside `ui/`.
 - In a row of buttons, put Cancel on the left and the primary action on the right. The `Dialog` applies this order.
 - The accent color marks the primary action, the focus and the selection. Do not use a different color for these roles.
 - The component style comes from `styles.css`. The tokens are at the top of the file: `--focus-ring`, `--radius-*`, `--control-sm` (28 px) and `--control-md` (32 px).
@@ -23,7 +24,7 @@ This folder contains the base components of the dashboard. The screens in `web/s
 | `SecretInput` | Masked field for a key or a token. It is a text field, not a password field: password managers do not open. |
 | `Choice` | Checkbox or radio button (`type="checkbox"` or `type="radio"`). |
 | `FileInput` | Hidden file field. A button opens it with `ref.current.click()`. |
-| `Dialog` | Modal window: title, close cross at the top right, Escape and outside click to close. `onCancel`, `secondary` and `primary` add the action row. On a phone (700 px or less) it is a bottom sheet: full width, a grip, the head and the actions stay in view, and a drag down on the head closes it. |
+| `Dialog` | Modal window: title, close cross at the top right, Escape and outside click to close. `onCancel`, `secondary` and `primary` add the action row. It renders itself in `document.body`: do not wrap it in a portal. On a phone (700 px or less) it is a bottom sheet: full width, a grip, the head and the actions stay in view, and a drag down on the head closes it. |
 | `Sheet` | Side sheet under the header, always mounted. `open` slides it in and out and fades the backdrop. `width`: `narrow` (380 px) or `wide` (600 px). Backdrop click and Escape call `onClose`; the focus goes in and comes back; Tab stays inside. |
 | `ActionMenu` | The "…" button of a row and its menu. `items` are `{ label, icon, onSelect, danger?, disabled?, tooltip? }`. The arrows move between items; Escape gives the focus back. Use it for every row menu, with no separator. |
 | `CardHead` | Header of a card: icon, title, a note (a muted word or a menu), count and icon buttons on the right. |
@@ -33,7 +34,15 @@ This folder contains the base components of the dashboard. The screens in `web/s
 | `Segmented` | Single choice between some visible options (for example the theme). |
 | `Switch` | On/off setting that acts at once (pause an automation). `role="switch"`; `label` gives the accessible name. |
 | `ToggleGroup` | Several options that each turn on and off (for example the weekdays). The "on" look is the same gray as `Segmented`. |
-| `Kbd` | Keyboard shortcut. |
+| `Kbd` | Keyboard shortcut. `className` is optional. |
+| `ButtonLink`, `IconButtonLink` | Link (`<a href>`) with the look of `Button` or `IconButton`. Same variants and sizes. Use them in place of `<a className="btn">`. |
+| `CountBadge` | Count bubble: nothing at 0, `max+` above `max` (99 by default). `label` gives it `role="img"` and a name; `hidden` removes it from the accessibility tree. |
+| `SearchField` | Text field with a search icon. `className` goes on the wrapper, `ref` and the other props on the input. |
+| `Chevron` | Disclosure arrow: right when closed, down when open. `opensUp` is for a block that grows upward (down closed, up open). |
+| `OptionList` | Listbox of option rows that never take the focus. The owner keeps the focus in a field and passes `active`, `itemId` and `onHover` from `useListNav`. `isSelected` marks the current value of a choice list. |
+| `useListNav` | Active row and keys of a list: arrows wrap, Home/End jump, Enter picks (Space too with `space`). `itemId` scrolls the active row into view. `nextActive` is the pure part. |
+| `onRadioKeyDown`, `rovingTabIndex` | Arrow keys and one tab stop for a `role="radiogroup"` built by hand. |
+| `PHONE`, `TOUCH`, `isPhone()`, `isTouch()` | The shared media queries. Use them in place of a `matchMedia("…")` string. For a hook, use `useMediaQuery(TOUCH)`. |
 | `TooltipLayer` | Dashboard tooltip, mounted one time in `App`. It shows immediately on hover and on keyboard focus of an element with `data-tooltip` (and `data-shortcut` for the shortcut, in a frame). It closes when the pointer leaves, on click, on scroll and with Escape. It does not exist on a touch screen. `Button`, `IconButton` and `Pressable` set these attributes with `tooltip` and `shortcut`. On a different element, write `data-tooltip`. |
 | `PageHeader` | Top of a page: title, one-line description, at most three actions on the right. `leading` goes before the title (the logo on a phone). |
 | `Loader` | Loading state: the animated logo, centered in the area. Use it in place of a "Loading…" text. |

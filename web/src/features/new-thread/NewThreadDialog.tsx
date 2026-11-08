@@ -1,11 +1,12 @@
 import { useEffect, useState } from "react";
-import type { DashboardProject, DashboardProvider, LinearIssue, ModelDefaults, ModelSelection, RuntimeMode, ThreadSettingsBody, UploadedAttachment } from "../../../../shared/api.ts";
+import type { DashboardProject, DashboardProvider, LinearIssue, ModelDefaults, UploadedAttachment } from "../../../../shared/api.ts";
 import { useApi } from "../../api/ApiContext.tsx";
 import { browserStorage } from "../../lib/storage.ts";
 import { loadAssignProject, saveAssignProject } from "../../lib/assignProject.ts";
 import { findModel } from "../conversation/composer.ts";
 import { ProjectPicker } from "../../lib/ProjectPicker.tsx";
-import { loadNewAgentProject, presetSelection, saveNewAgentProject, titleFromMessage } from "./newAgent.ts";
+import { useAgentSettings } from "./useAgentSettings.ts";
+import { DEFAULT_RUNTIME_MODE, loadNewAgentProject, presetSelection, saveNewAgentProject, titleFromMessage } from "./newAgent.ts";
 import { Composer } from "../conversation/Composer.tsx";
 import { AddProjectDialog } from "../projects/AddProjectDialog.tsx";
 import { Dialog, Icon } from "../../ui/index.ts";
@@ -13,7 +14,6 @@ import { WorkspaceOptions } from "./WorkspaceOptions.tsx";
 import { toWorkspaceChoice, type WorkspaceDraft } from "./workspaceOptions.ts";
 
 // Same default as the server when no mode is sent, used when T3 has none.
-const DEFAULT_RUNTIME_MODE: RuntimeMode = "full-access";
 
 interface Props {
   projects: DashboardProject[];
@@ -32,8 +32,7 @@ export function NewThreadDialog({ projects, providers, defaults, onClose, onCrea
   const api = useApi();
   // A Linear issue preselects the last project chosen for its team.
   const [projectId, setProjectId] = useState(() => (issue ? loadAssignProject(browserStorage(), issue.team.key, projects) : (preset ?? loadNewAgentProject(browserStorage(), projects))));
-  const [selection, setSelection] = useState<ModelSelection | null>(() => presetSelection(projects.find((p) => p.id === projectId), providers, defaults.selection));
-  const [mode, setMode] = useState<RuntimeMode>(defaults.runtimeMode ?? DEFAULT_RUNTIME_MODE);
+  const { selection, setSelection, mode, changeSettings } = useAgentSettings(() => presetSelection(projects.find((p) => p.id === projectId), providers, defaults.selection), defaults.runtimeMode ?? DEFAULT_RUNTIME_MODE);
   const [draft, setDraft] = useState("");
   const [workspace, setWorkspace] = useState<WorkspaceDraft | null>(null);
   const [blocked, setBlocked] = useState<string | null>(null);
@@ -73,11 +72,6 @@ export function NewThreadDialog({ projects, providers, defaults, onClose, onCrea
     const { threadId } = await api.createThread({ projectId, title, text, modelSelection: selection, ...extra });
     saveNewAgentProject(browserStorage(), projectId);
     onCreated(threadId);
-  }
-
-  function changeSettings(change: ThreadSettingsBody) {
-    if (change.modelSelection) setSelection(change.modelSelection);
-    if (change.runtimeMode) setMode(change.runtimeMode);
   }
 
   return (

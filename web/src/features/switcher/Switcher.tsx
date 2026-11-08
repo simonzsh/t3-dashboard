@@ -1,7 +1,7 @@
-import { useEffect, useState, type KeyboardEvent } from "react";
+import { useEffect, useState } from "react";
 import type { DashboardProject, DashboardThread } from "../../../../shared/api.ts";
-import { Dialog, Icon, TextInput } from "../../ui/index.ts";
-import { mergeResults, moveSelection, suggestThreads, titleMatches } from "./switcher.ts";
+import { Dialog, SearchField, useListNav } from "../../ui/index.ts";
+import { mergeResults, suggestThreads, titleMatches } from "./switcher.ts";
 import { optionId, SwitcherResults } from "./SwitcherResults.tsx";
 import { useNotify } from "../../lib/notices.tsx";
 import { useThreadSearch } from "./useThreadSearch.ts";
@@ -20,7 +20,6 @@ interface Props {
 
 export function Switcher({ threads, projects, now, history, inSessions, initialQuery, onOpen, onClose }: Props) {
   const [query, setQuery] = useState(initialQuery);
-  const [index, setIndex] = useState(0);
   const content = useThreadSearch(query);
   const notify = useNotify();
   useEffect(() => {
@@ -28,53 +27,37 @@ export function Switcher({ threads, projects, now, history, inSessions, initialQ
   }, [content.error]);
   const suggesting = query.trim() === "";
   const rows = suggesting ? suggestThreads(threads, projects, history, inSessions) : mergeResults(titleMatches(threads, projects, query), content.matches, threads, projects);
-  const selectedIndex = Math.min(index, rows.length - 1);
-  const selected = rows[selectedIndex];
-
-  useEffect(() => {
-    if (selected) document.getElementById(optionId(selected.thread.id))?.scrollIntoView({ block: "nearest" });
-  }, [selected?.thread.id]);
-
-  function onKeyDown(e: KeyboardEvent) {
-    if (e.key === "ArrowDown" || e.key === "ArrowUp") {
-      e.preventDefault();
-      setIndex(moveSelection(selectedIndex, e.key === "ArrowDown" ? 1 : -1, rows.length));
-    } else if (e.key === "Enter" && selected) {
-      e.preventDefault();
-      onOpen(selected.thread.id);
-    }
-  }
+  const nav = useListNav(rows.length, { initial: 0, homeEnd: false, onPick: (i) => onOpen(rows[i]!.thread.id), itemId: (i) => optionId(rows[i]!.thread.id) });
+  const selected = rows[nav.active];
 
   return (
     <Dialog title="Jump to" label="Jump to a conversation" className="switcher" onClose={onClose}>
-      <div className="switcher-input">
-        <Icon name="search" />
-        <TextInput
-          autoFocus
-          role="combobox"
-          aria-expanded={rows.length > 0}
-          aria-controls="switcher-list"
-          aria-activedescendant={selected ? optionId(selected.thread.id) : undefined}
-          aria-label="Jump to a conversation"
-          placeholder="Jump to a conversation…"
-          value={query}
-          onChange={(e) => {
-            setQuery(e.target.value);
-            setIndex(0);
-          }}
-          onKeyDown={onKeyDown}
-        />
-      </div>
+      <SearchField
+        className="switcher-input"
+        autoFocus
+        role="combobox"
+        aria-expanded={rows.length > 0}
+        aria-controls="switcher-list"
+        aria-activedescendant={selected ? optionId(selected.thread.id) : undefined}
+        aria-label="Jump to a conversation"
+        placeholder="Jump to a conversation…"
+        value={query}
+        onChange={(e) => {
+          setQuery(e.target.value);
+          nav.setActive(0);
+        }}
+        onKeyDown={nav.onKeyDown}
+      />
       <SwitcherResults
         rows={rows}
-        selected={selectedIndex}
+        active={nav.active}
         now={now}
         loading={content.loading}
         error={content.error}
         label={suggesting ? "Suggested" : undefined}
         searched={!suggesting}
         query={query}
-        onSelect={setIndex}
+        onHover={nav.hover}
         onOpen={onOpen}
       />
     </Dialog>

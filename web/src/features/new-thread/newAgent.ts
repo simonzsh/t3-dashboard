@@ -1,7 +1,8 @@
-import type { DashboardProject, DashboardProvider, ModelSelection } from "../../../../shared/api.ts";
+import type { DashboardProject, DashboardProvider, ModelSelection, RuntimeMode } from "../../../../shared/api.ts";
 import { loadProjectChoice, saveProjectChoice } from "../../lib/projectChoice.ts";
 import type { Store } from "../../lib/storage.ts";
 
+export const DEFAULT_RUNTIME_MODE: RuntimeMode = "full-access";
 const TITLE_MAX = 60;
 const KEY = "t3-dashboard-new-agent-project";
 

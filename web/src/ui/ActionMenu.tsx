@@ -1,8 +1,8 @@
 import { useEffect, useId, useRef, useState, type KeyboardEvent } from "react";
-import { moveActive } from "../lib/dropdown.ts";
 import { Icon, type IconName } from "./Icon.tsx";
 import { IconButton } from "./IconButton.tsx";
 import { Popover } from "./Popover.tsx";
+import { useListNav } from "./useListNav.ts";
 
 export interface ActionMenuItem {
   label: string;
@@ -26,10 +26,14 @@ interface Props {
 /** The "…" button of a row, and its menu of actions. Same menu, rows and keys as the Dropdown. */
 export function ActionMenu({ label, tooltip, items, className }: Props) {
   const [open, setOpen] = useState(false);
-  const [active, setActive] = useState(-1);
   const anchor = useRef<HTMLButtonElement>(null);
   const list = useRef<HTMLDivElement>(null);
   const id = useId();
+  const { active, setActive, hover, onKeyDown: navKeyDown } = useListNav(items.length, {
+    space: true,
+    onPick: (i) => pick(items[i]!),
+    itemId: (i) => `${id}-${i}`,
+  });
 
   // The menu is a portal: the list takes the focus, and the active row moves with the arrows.
   useEffect(() => {
@@ -54,19 +58,7 @@ export function ActionMenu({ label, tooltip, items, className }: Props) {
 
   // Escape is handled by the Popover.
   function onKeyDown(e: KeyboardEvent) {
-    if (e.key === "ArrowDown" || e.key === "ArrowUp") {
-      e.preventDefault();
-      setActive(moveActive(items.length, active, e.key === "ArrowDown" ? 1 : -1));
-    } else if (e.key === "Home" || e.key === "End") {
-      e.preventDefault();
-      setActive(e.key === "Home" ? 0 : items.length - 1);
-    } else if (e.key === "Enter" || e.key === " ") {
-      e.preventDefault();
-      const item = items[active];
-      if (item) pick(item);
-    } else if (e.key === "Tab") {
-      close(false);
-    }
+    if (!navKeyDown(e) && e.key === "Tab") close(false);
   }
 
   return (
@@ -86,7 +78,7 @@ export function ActionMenu({ label, tooltip, items, className }: Props) {
                 data-tooltip={item.tooltip}
                 className={["dropdown-option", i === active && "active", item.danger && "danger", item.disabled && "disabled"].filter(Boolean).join(" ")}
                 onMouseDown={(e) => e.preventDefault()}
-                onMouseEnter={() => setActive(i)}
+                onMouseEnter={() => hover(i)}
                 onClick={() => pick(item)}
               >
                 <Icon name={item.icon} />

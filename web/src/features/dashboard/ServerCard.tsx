@@ -83,7 +83,7 @@ export function ServerCard({ state, now }: { state: ReadState<ServerStats>; now:
                 <Icon name="broom" />
               </IconButton>
             )}
-            <IconButton size="sm" variant="ghost" label="Refresh server stats" tooltip="Refresh server stats" disabled={loading} onClick={refresh}>
+            <IconButton size="sm" variant="ghost" label="Refresh server stats" tooltip="Refresh server stats" disabled={loading} aria-busy={loading} onClick={refresh}>
               <Icon name="refresh" className={loading ? "icon spinning" : "icon"} />
             </IconButton>
           </>

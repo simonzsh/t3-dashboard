@@ -24,14 +24,14 @@ export function UpdateSettings({ update, onUpdate }: Props) {
             label="Check for updates"
             tooltip="Check for updates"
             size="sm"
-            className={update.checking ? "spinning" : undefined}
+            aria-busy={update.checking}
             disabled={update.checking || update.updating}
             onClick={async () => {
               await update.check();
               setChecked(true);
             }}
           >
-            <Icon name="refresh" strokeWidth={1.8} />
+            <Icon name="refresh" strokeWidth={1.8} className={update.checking ? "icon spinning" : "icon"} />
           </IconButton>
           {canUpdate && (
             <Button variant="primary" size="sm" loading={update.updating && "Updating…"} onClick={onUpdate}>

@@ -76,11 +76,11 @@ test("the bell is pressed while the panel is open, and its tooltip names the nex
 test("the bell badge shows the unread count, 9+ above nine, and nothing at zero", () => {
   const some = render("dashboard", { unread: 3 });
   assert.match(some, /aria-label="Notifications, 3 unread"/);
-  assert.match(some, /class="nav-badge"[^>]*>3</);
+  assert.match(some, /class="count-badge"[^>]*>3</);
   const many = render("dashboard", { unread: 12 });
   assert.match(many, /aria-label="Notifications, 12 unread"/);
   assert.match(many, />9\+</);
-  assert.doesNotMatch(render("dashboard"), /nav-badge/);
+  assert.doesNotMatch(render("dashboard"), /count-badge/);
 });
 
 test("the bell shows only on Dashboard and not in edit mode", () => {

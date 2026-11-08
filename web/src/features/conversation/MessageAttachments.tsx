@@ -4,7 +4,7 @@ import { attachmentUrl, rawAttachmentUrl } from "../../api/client.ts";
 import { formatBytes } from "../../lib/format.ts";
 import { useDocumentTheme } from "../../lib/useDocumentTheme.ts";
 import { Icon, Pressable } from "../../ui/index.ts";
-import { AttachmentPreview } from "./AttachmentPreview.tsx";
+import { PreviewDialog } from "./AttachmentPreview.tsx";
 import { attachmentTarget, type PreviewTarget } from "./attachmentPreview.ts";
 
 /** The images and files of a message. A click opens the preview; a file with no preview downloads. */
@@ -48,7 +48,7 @@ export function MessageAttachments({ threadId, attachments }: { threadId: string
           })}
         </div>
       )}
-      {open && <AttachmentPreview target={open} onClose={() => setOpen(null)} />}
+      {open && <PreviewDialog target={open} onClose={() => setOpen(null)} />}
     </div>
   );
 }

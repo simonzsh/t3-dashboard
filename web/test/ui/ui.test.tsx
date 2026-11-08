@@ -1,8 +1,9 @@
 import assert from "node:assert/strict";
 import { test } from "bun:test";
 import { renderToStaticMarkup } from "react-dom/server";
-import { nextRadioIndex } from "../../src/ui/radioKeys.ts";
-import { ActionMenu, Badge, Button, Choice, Dialog, Segmented, FileInput, Icon, IconButton, PageHeader, Pressable, SecretInput, Sheet, Skeleton, SkeletonGroup, Switch, Tabs, TextArea, TextInput } from "../../src/ui/index.ts";
+import { nextRadioIndex, rovingTabIndex } from "../../src/ui/radioKeys.ts";
+import { isPhone, isTouch, PHONE, TOUCH } from "../../src/ui/media.ts";
+import { ActionMenu, Badge, Button, ButtonLink, Chevron, Choice, CountBadge, Dialog, IconButtonLink, Kbd, OptionList, SearchField, Segmented, FileInput, Icon, IconButton, PageHeader, Pressable, SecretInput, Sheet, Skeleton, SkeletonGroup, Switch, Tabs, TextArea, TextInput } from "../../src/ui/index.ts";
 
 const html = renderToStaticMarkup;
 
@@ -230,4 +231,88 @@ test("a waiting badge carries the person icon and an error badge the alert circl
   assert.match(html("waiting"), /badge-icon/);
   assert.match(html("error"), /badge-icon/);
   assert.doesNotMatch(html("done"), /badge-icon/);
+});
+
+const rows = ["Alpha", "Beta"];
+const list = (props: Partial<Parameters<typeof OptionList<string>>[0]> = {}) =>
+  html(
+    <OptionList id="l" label="Files" items={rows} active={1} itemId={(i) => `o-${i}`} itemKey={(r) => r} onHover={() => {}} onPick={() => {}} {...props}>
+      {(r) => <span>{r}</span>}
+    </OptionList>,
+  );
+
+test("an OptionList is a listbox of option rows with ids, and the active row is selected", () => {
+  const out = list();
+  assert.match(out, /^<div id="l" role="listbox" aria-label="Files" class="dropdown-list">/);
+  assert.match(out, /<div id="o-0" role="option" aria-selected="false" class="dropdown-option">/);
+  assert.match(out, /<div id="o-1" role="option" aria-selected="true" class="dropdown-option active">/);
+});
+
+test("an OptionList rows are plain divs: no button, no tab stop", () => {
+  assert.doesNotMatch(list(), /<button|tabindex/);
+});
+
+test("an OptionList takes isSelected, extra classes and an empty text", () => {
+  const out = list({ isSelected: (r) => r === "Alpha", className: "folder-list", optionClassName: "tall" });
+  assert.match(out, /class="dropdown-list folder-list"/);
+  assert.match(out, /id="o-0" role="option" aria-selected="true" class="dropdown-option tall"/);
+  assert.match(out, /id="o-1" role="option" aria-selected="false" class="dropdown-option active tall"/);
+  assert.match(list({ items: [], empty: <i>None</i> }), /<i>None<\/i>/);
+  assert.doesNotMatch(list({ items: [] }), /<i>/);
+});
+
+test("a CountBadge hides at zero and caps at max", () => {
+  assert.equal(html(<CountBadge count={0} />), "");
+  assert.equal(html(<CountBadge count={3} />), '<span class="count-badge">3</span>');
+  assert.match(html(<CountBadge count={10} max={9} />), />9\+</);
+  assert.match(html(<CountBadge count={100} />), />99\+</);
+  assert.match(html(<CountBadge count={99} />), />99</);
+});
+
+test("a CountBadge with a label is an image, and a hidden one is out of the accessibility tree", () => {
+  assert.match(html(<CountBadge count={2} label="2 unread" />), /role="img" aria-label="2 unread"/);
+  assert.match(html(<CountBadge count={2} hidden />), /aria-hidden="true"/);
+});
+
+test("a SearchField wraps an icon and a field; className is on the wrapper", () => {
+  const out = html(<SearchField className="auto-search" aria-label="Find" />);
+  assert.match(out, /^<div class="search-field auto-search"><svg/);
+  assert.match(out, /<input[^>]*aria-label="Find"[^>]*class="field"/);
+});
+
+test("a ButtonLink is an anchor with the Button classes", () => {
+  assert.equal(html(<ButtonLink href="/x" download="a">Get</ButtonLink>), '<a href="/x" download="a" class="btn md">Get</a>');
+  assert.match(html(<ButtonLink href="/x" variant="primary" size="sm" tooltip="Hi">Go</ButtonLink>), /data-tooltip="Hi" class="btn sm primary"/);
+});
+
+test("an IconButtonLink names itself with its label", () => {
+  const out = html(<IconButtonLink href="/x" label="Open" variant="ghost" size="sm"><Icon name="x" /></IconButtonLink>);
+  assert.match(out, /^<a href="\/x" aria-label="Open" class="icon-button sm ghost">/);
+});
+
+test("a Kbd has no class attribute unless asked", () => {
+  assert.equal(html(<Kbd>N</Kbd>), "<kbd>N</kbd>");
+  assert.equal(html(<Kbd className="key">N</Kbd>), '<kbd class="key">N</kbd>');
+});
+
+test("a Chevron points right when closed and down when open; opensUp flips it", () => {
+  assert.match(html(<Chevron open={false} />), /class="icon disclosure"/);
+  assert.match(html(<Chevron open />), /class="icon disclosure open"/);
+  assert.match(html(<Chevron open={false} opensUp />), /class="icon disclosure up"/);
+  assert.match(html(<Chevron open opensUp className="x" />), /class="icon disclosure up open x"/);
+});
+
+test("a radio group has one tab stop: the checked radio, or the first when none is checked", () => {
+  assert.equal(rovingTabIndex(true, false, true), 0);
+  assert.equal(rovingTabIndex(false, true, true), -1);
+  assert.equal(rovingTabIndex(false, false, true), -1);
+  assert.equal(rovingTabIndex(false, true, false), 0);
+  assert.equal(rovingTabIndex(false, false, false), -1);
+});
+
+test("media checks are false without matchMedia and name the shared queries", () => {
+  assert.equal(isPhone(), false);
+  assert.equal(isTouch(), false);
+  assert.equal(PHONE, "(max-width: 700px)");
+  assert.equal(TOUCH, "(pointer: coarse)");
 });
