@@ -32,6 +32,13 @@ const PROBES_PER_LIST = 30;
 const PROBE_CONCURRENCY = 4;
 const RUN_STATUSES = new Set<string>(["running", "succeeded", "failed"] satisfies AutomationRunStatus[]);
 
+/** The last-run fields of a T3 task, with an unknown status dropped. */
+export const lastRunOf = (task: RawScheduledTask) => ({
+  lastRunAt: task.lastRunAt ?? null,
+  lastRunStatus: task.lastRunStatus && RUN_STATUSES.has(task.lastRunStatus) ? (task.lastRunStatus as AutomationRunStatus) : null,
+  lastRunError: task.lastRunError ?? null,
+});
+
 /** The tasks of T3 as rows, plus the threads that belong to a task. */
 export function toAutomations(tasks: RawScheduledTask[], threads: RawThread[], dedicated: ReadonlySet<string>, projectTitle: (id: string) => string | null, runs: RunLog = {}, links: ThreadLinks = new Map()): AutomationsResult {
   const owners = threadOwners(tasks, runs, links);
@@ -57,9 +64,7 @@ export function toAutomations(tasks: RawScheduledTask[], threads: RawThread[], d
       scheduleLabel: scheduleLabel(task.schedule),
       enabled: task.enabled !== false,
       nextRunAt: task.nextRunAt ?? null,
-      lastRunAt: task.lastRunAt ?? null,
-      lastRunStatus: task.lastRunStatus && RUN_STATUSES.has(task.lastRunStatus) ? (task.lastRunStatus as AutomationRunStatus) : null,
-      lastRunError: task.lastRunError ?? null,
+      ...lastRunOf(task),
       threadId,
       modelSelection: task.modelSelection ?? null,
       prompt: task.prompt ?? "",
@@ -107,7 +112,7 @@ export interface Automations {
   runNow(id: string): Promise<void>;
 }
 
-async function viaT3<T>(work: Promise<T>): Promise<T> {
+export async function viaT3<T>(work: Promise<T>): Promise<T> {
   try {
     return await work;
   } catch (error) {

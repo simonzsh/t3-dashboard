@@ -1,12 +1,11 @@
 import type { NewsArticle, NewsRunning, NewsArticleSummary, NewsSettings, NewsState, NewsTask, SaveNewsBody } from "../../shared/news.ts";
-import type { AutomationRunStatus } from "../../shared/automations.ts";
 import { isRuntimeMode } from "../../shared/limits.ts";
 import { threadState } from "../../shared/status.ts";
 import { isArticleDate, isArticleName, newsText, readNews, type StoredNews } from "../config/newsFile.ts";
 import type { ReadFile } from "../config/config.ts";
-import { IntegrationError } from "../integrations/errors.ts";
 import { archiveThreadCommand } from "../integrations/t3/commands.ts";
 import type { RawScheduledTask, T3Port } from "../integrations/t3/schemas.ts";
+import { lastRunOf, viaT3 } from "./automations.ts";
 import { routineSchedule } from "./automationSchedule.ts";
 import { isHidden, toDashboardThread } from "./classify.ts";
 import { DomainError } from "./errors.ts";
@@ -19,7 +18,6 @@ const SWEEP_READS = 10;
 const TITLE_BYTES = 4096;
 // The file lands shortly before or after T3 stamps the end of the run.
 const RUN_MARGIN_MS = 2 * 60_000;
-const RUN_STATUSES = new Set<string>(["running", "succeeded", "failed"] satisfies AutomationRunStatus[]);
 
 export function newsPrompt(settings: NewsSettings, dir: string): string {
   const weekly = settings.frequency === "weekly";
@@ -87,22 +85,11 @@ export interface News {
   sweep(): Promise<void>;
 }
 
-async function viaT3<T>(work: Promise<T>): Promise<T> {
-  try {
-    return await work;
-  } catch (error) {
-    if (error instanceof IntegrationError) throw error;
-    throw new IntegrationError((error as Error).message, { system: "t3", kind: "unreachable" });
-  }
-}
-
 const toTask = (task: RawScheduledTask): NewsTask => ({
   id: task.id,
   enabled: task.enabled !== false,
   nextRunAt: task.nextRunAt ?? null,
-  lastRunAt: task.lastRunAt ?? null,
-  lastRunStatus: task.lastRunStatus && RUN_STATUSES.has(task.lastRunStatus) ? (task.lastRunStatus as AutomationRunStatus) : null,
-  lastRunError: task.lastRunError ?? null,
+  ...lastRunOf(task),
 });
 
 export function createNews(options: NewsOptions): News {
