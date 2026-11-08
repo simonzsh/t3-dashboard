@@ -64,7 +64,8 @@ export function NewsView({ news, writing, now, compact, onRead, onOpenThread }: 
     wasWriting.current = writing;
   }, [writing]);
 
-  const status = <p className="news-status">{statusLine(task, now, writing)}</p>;
+  const line = statusLine(task, now, writing);
+  const status = line ? <p className="news-status">{line}</p> : null;
   const progress = writing && (
     <li className="news-item writing">
       <Loader inline label="Writing the article" />

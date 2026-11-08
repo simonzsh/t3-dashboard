@@ -41,7 +41,7 @@ test("the schedule hint follows the frequency", () => {
 });
 
 test("the status line says when automatic generation is off", () => {
-  assert.equal(statusLine(task({ enabled: false }), now), "Automatic generation is off. Use Run now to get an article.");
+  assert.equal(statusLine(task({ enabled: false }), now), "");
 });
 
 test("the language choices are English and French", () => {
