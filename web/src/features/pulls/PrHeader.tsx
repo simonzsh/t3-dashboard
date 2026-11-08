@@ -1,7 +1,7 @@
 import type { DashboardThread } from "../../../../shared/api.ts";
 import type { PrDetail, PrRef } from "../../../../shared/pulls.ts";
 import { relativeTime } from "../../lib/format.ts";
-import { ActionMenu, Badge, Icon, IconButton, IconButtonLink, SidePanelToggle, type ActionMenuItem } from "../../ui/index.ts";
+import { ActionMenu, Badge, ButtonLink, Icon, IconButton, IconButtonLink, SidePanelToggle, type ActionMenuItem } from "../../ui/index.ts";
 import { Counts } from "./DiffFiles.tsx";
 import { StatusButton } from "./PrChecks.tsx";
 import { SessionsButton } from "./SessionsButton.tsx";
@@ -83,9 +83,9 @@ export function PrHeader(props: Props) {
           ) : (
             <>
               {detail && isWebUrl(detail.url) && (
-                <IconButtonLink size="sm" variant="ghost" href={detail.url} target="_blank" rel="noreferrer noopener" label="Open on GitHub" tooltip="Open on GitHub">
-                  <Icon name="github" />
-                </IconButtonLink>
+                <ButtonLink size="sm" href={detail.url} target="_blank" rel="noreferrer noopener">
+                  <Icon name="github" /> Open on GitHub
+                </ButtonLink>
               )}
               <SessionsButton sessions={sessions} text="Open session" variant="secondary" onOpenThread={onOpenSession} />
               {controls.hasFiles && (
