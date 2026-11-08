@@ -23,17 +23,17 @@ export function HunkRows({ hunk, lang }: { hunk: DiffHunk; lang: string | undefi
   }, [hunk, lang]);
   return (
     <>
-      <tr className="diff-hunk">
+      <tr className="pr-diff-hunk">
         <td colSpan={4}>{hunk.header}</td>
       </tr>
       {hunk.lines.map((line, i) => (
-        <tr key={i} className={`diff-line ${line.kind}`}>
-          <td className="diff-no">{line.oldNo ?? ""}</td>
-          <td className="diff-no">{line.newNo ?? ""}</td>
-          <td className="diff-mark">{MARK[line.kind]}</td>
-          <td className="diff-code">
+        <tr key={i} className={`pr-diff-line ${line.kind}`}>
+          <td className="pr-diff-no">{line.oldNo ?? ""}</td>
+          <td className="pr-diff-no">{line.newNo ?? ""}</td>
+          <td className="pr-diff-mark">{MARK[line.kind]}</td>
+          <td className="pr-diff-code">
             {rows[i]}
-            {line.noNewline && <span className="diff-note">No newline at end of file</span>}
+            {line.noNewline && <span className="pr-diff-note">No newline at end of file</span>}
           </td>
         </tr>
       ))}
@@ -73,7 +73,7 @@ function WhenVisible({ lines, children }: { lines: number; children: ReactNode }
 function FilePath({ path }: { path: string }) {
   const cut = path.lastIndexOf("/") + 1;
   return (
-    <span className="diff-path">
+    <span className="pr-diff-path">
       <span className="dir">{path.slice(0, cut)}</span>
       <span className="name">{path.slice(cut)}</span>
     </span>
@@ -82,7 +82,7 @@ function FilePath({ path }: { path: string }) {
 
 export function Counts({ additions, deletions }: { additions: number; deletions: number }) {
   return (
-    <span className="diff-counts">
+    <span className="pr-diff-counts">
       <span className="add">+{additions}</span> <span className="del">-{deletions}</span>
     </span>
   );
@@ -92,24 +92,24 @@ const FileDiff = memo(function FileDiff({ file, open, onToggle }: { file: DiffFi
   const lang = useMemo(() => languageOf(file.path), [file.path]);
   const renamed = file.oldPath !== "" && file.newPath !== "" && file.oldPath !== file.newPath;
   return (
-    <section className="diff-file" data-diff-file>
-      <Pressable className={`diff-file-head${open ? " open" : ""}`} aria-expanded={open} onClick={() => onToggle(file.path, open)}>
+    <section className="pr-diff-file" data-pr-diff-file>
+      <Pressable className={`pr-diff-file-head${open ? " open" : ""}`} aria-expanded={open} onClick={() => onToggle(file.path, open)}>
         <Chevron open={open} />
         <FilePath path={renamed ? `${file.oldPath} → ${file.newPath}` : file.path} />
-        <span className={`diff-status ${file.status}`}>{file.status}</span>
+        <span className={`pr-diff-status ${file.status}`}>{file.status}</span>
         <Counts additions={file.additions} deletions={file.deletions} />
       </Pressable>
       {open &&
         (file.binary ? (
-          <p className="diff-empty">Binary file</p>
+          <p className="pr-diff-empty">Binary file</p>
         ) : file.truncated ? (
-          <p className="diff-empty">Large diff hidden ({file.additions + file.deletions} changed lines)</p>
+          <p className="pr-diff-empty">Large diff hidden ({file.additions + file.deletions} changed lines)</p>
         ) : file.hunks.length === 0 ? (
-          <p className="diff-empty">{file.oldMode && file.newMode ? `Mode changed ${file.oldMode} → ${file.newMode}` : "No content changes"}</p>
+          <p className="pr-diff-empty">{file.oldMode && file.newMode ? `Mode changed ${file.oldMode} → ${file.newMode}` : "No content changes"}</p>
         ) : (
           <WhenVisible lines={file.hunks.reduce((n, hunk) => n + hunk.lines.length + 1, 0)}>
-            <div className="diff-scroll">
-              <table className="diff-table">
+            <div className="pr-diff-scroll">
+              <table className="pr-diff-table">
                 <tbody>
                   {file.hunks.map((hunk, i) => (
                     <HunkRows key={i} hunk={hunk} lang={lang} />
@@ -139,8 +139,8 @@ export function DiffFiles({ files, truncated, refreshing, onRefresh }: Props) {
   const toggle = useCallback((path: string, wasOpen: boolean) => setOverrides((o) => ({ ...o, [path]: !wasOpen })), []);
 
   return (
-    <div className="diff">
-      <div className="diff-bar">
+    <div className="pr-diff">
+      <div className="pr-diff-bar">
         {files.length > 0 && (
           <Button size="sm" onClick={() => setOverrides(setAll(files, !anyOpen))}>
             <Icon name={anyOpen ? "chevronsDownUp" : "chevronsUpDown"} /> {anyOpen ? "Collapse all" : "Expand all"}
@@ -155,9 +155,9 @@ export function DiffFiles({ files, truncated, refreshing, onRefresh }: Props) {
           <Icon name="refresh" />
         </IconButton>
       </div>
-      {truncated && <p className="diff-empty">The diff is too large: the last files are not shown.</p>}
-      {files.length === 0 && !truncated && <p className="diff-empty">No changes in this pull request.</p>}
-      <div className="diff-files">
+      {truncated && <p className="pr-diff-empty">The diff is too large: the last files are not shown.</p>}
+      {files.length === 0 && !truncated && <p className="pr-diff-empty">No changes in this pull request.</p>}
+      <div className="pr-diff-files">
         {files.map((file) => (
           <FileDiff key={file.path} file={file} open={open(file.path)} onToggle={toggle} />
         ))}

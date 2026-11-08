@@ -1204,40 +1204,41 @@ main:has(> .git-page) { padding-top: calc(var(--page-top) - 8px); padding-bottom
 .git-check.pending .icon { color: var(--warn); }
 .git-check.skipped, .git-check.neutral { color: var(--text-secondary); }
 .git-check-state { margin-left: auto; font-size: 12px; color: var(--text-secondary); }
-.diff { display: flex; flex-direction: column; gap: 12px; }
-.diff-bar { position: sticky; top: 0; z-index: 3; display: flex; align-items: center; gap: 8px; min-height: var(--git-bar); margin-inline: -4px; padding: 0 4px; background: var(--page-bg); border-bottom: 1px solid var(--line); overflow-x: auto; }
-.diff-bar > * { flex: none; }
-.diff-files { display: flex; flex-direction: column; gap: 12px; }
-.diff-file { border: 1px solid var(--line); border-radius: var(--radius-lg); background: var(--surface-1); overflow: clip; }
+.pr-diff { display: flex; flex-direction: column; gap: 12px; }
+/* -4px: the page pads its top, and the bar must cover that strip too. */
+.pr-diff-bar { position: sticky; top: -4px; z-index: 3; display: flex; align-items: center; gap: 8px; min-height: var(--git-bar); margin-inline: -4px; padding: 0 4px; background: var(--page-bg); border-bottom: 1px solid var(--line); overflow-x: auto; }
+.pr-diff-bar > * { flex: none; }
+.pr-diff-files { display: flex; flex-direction: column; gap: 12px; }
+.pr-diff-file { border: 1px solid var(--line); border-radius: var(--radius-lg); background: var(--surface-1); overflow: clip; }
 /* Opaque and square while stuck, so nothing shows through; the file clips its own corners. */
-.diff-file-head { position: sticky; top: var(--git-bar); z-index: 2; display: flex; align-items: center; gap: 8px; width: 100%; padding: 8px 12px; border: 0; background: var(--surface-1); color: inherit; text-align: left; font: inherit; font-size: 13px; }
-.diff-file-head.open { border-bottom: 1px solid var(--line); }
-@media (hover: hover) { .diff-file-head:hover { background: color-mix(in srgb, var(--surface-1), var(--text-primary) 5%); } }
-.diff-file-head .disclosure { flex: none; color: var(--text-secondary); }
-.diff-path { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-family: var(--font-mono); font-size: 12px; }
-.diff-path .dir { color: var(--text-secondary); }
-.diff-path .name { font-weight: 600; }
-.diff-status { flex: none; padding: 1px 6px; border-radius: 4px; font-size: 11px; font-weight: 500; background: var(--surface-0); color: var(--text-secondary); }
-.diff-status.added { background: var(--done-bg); color: var(--done-text); }
-.diff-status.deleted { background: var(--err-bg); color: var(--err-text); }
-.diff-status.renamed, .diff-status.copied { background: var(--warn-bg); color: var(--warn-text); }
-.diff-counts { flex: none; font-size: 12px; font-variant-numeric: tabular-nums; color: var(--text-secondary); }
-.diff-counts .add { color: var(--done-text); font-weight: 600; }
-.diff-counts .del { color: var(--err-text); font-weight: 600; }
+.pr-diff-file-head { position: sticky; top: calc(var(--git-bar) - 4px); z-index: 2; display: flex; align-items: center; gap: 8px; width: 100%; padding: 8px 12px; border: 0; background: var(--surface-1); color: inherit; text-align: left; font: inherit; font-size: 13px; }
+.pr-diff-file-head.open { border-bottom: 1px solid var(--line); }
+@media (hover: hover) { .pr-diff-file-head:hover { background: color-mix(in srgb, var(--surface-1), var(--text-primary) 5%); } }
+.pr-diff-file-head .disclosure { flex: none; color: var(--text-secondary); }
+.pr-diff-path { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-family: var(--font-mono); font-size: 12px; }
+.pr-diff-path .dir { color: var(--text-secondary); }
+.pr-diff-path .name { font-weight: 600; }
+.pr-diff-status { flex: none; padding: 1px 6px; border-radius: 4px; font-size: 11px; font-weight: 500; background: var(--surface-0); color: var(--text-secondary); }
+.pr-diff-status.added { background: var(--done-bg); color: var(--done-text); }
+.pr-diff-status.deleted { background: var(--err-bg); color: var(--err-text); }
+.pr-diff-status.renamed, .pr-diff-status.copied { background: var(--warn-bg); color: var(--warn-text); }
+.pr-diff-counts { flex: none; font-size: 12px; font-variant-numeric: tabular-nums; color: var(--text-secondary); }
+.pr-diff-counts .add { color: var(--done-text); font-weight: 600; }
+.pr-diff-counts .del { color: var(--err-text); font-weight: 600; }
 .git-files { flex: none; font-size: 12px; color: var(--text-secondary); }
-.diff-empty { margin: 0; padding: 8px 12px; font-size: 13px; color: var(--text-secondary); }
-.diff-scroll { overflow-x: auto; }
-.diff-table { width: max-content; min-width: 100%; border-collapse: collapse; font-family: var(--font-mono); font-size: 12px; line-height: 20px; }
-.diff-hunk td { padding: 1px 12px; background: color-mix(in srgb, var(--accent) 10%, transparent); color: var(--work-text); user-select: none; }
-.diff-no { width: 48px; min-width: 48px; padding: 0 8px; text-align: right; vertical-align: top; font-variant-numeric: tabular-nums; color: var(--text-secondary); user-select: none; }
-.diff-no + .diff-no { border-right: 1px solid var(--line); }
-.diff-mark { width: 16px; padding: 0 4px; text-align: center; vertical-align: top; color: var(--text-secondary); user-select: none; }
-.diff-code { padding-right: 16px; white-space: pre; }
-.diff-line.add { background: color-mix(in srgb, var(--ok) 14%, transparent); }
-.diff-line.del { background: color-mix(in srgb, var(--danger) 14%, transparent); }
-.diff-line.add .diff-no { background: color-mix(in srgb, var(--ok) 22%, transparent); }
-.diff-line.del .diff-no { background: color-mix(in srgb, var(--danger) 22%, transparent); }
-.diff-note { margin-left: 8px; font-style: italic; color: var(--text-secondary); user-select: none; }
+.pr-diff-empty { margin: 0; padding: 8px 12px; font-size: 13px; color: var(--text-secondary); }
+.pr-diff-scroll { overflow-x: auto; }
+.pr-diff-table { width: max-content; min-width: 100%; border-collapse: collapse; font-family: var(--font-mono); font-size: 12px; line-height: 20px; }
+.pr-diff-hunk td { padding: 1px 12px; background: color-mix(in srgb, var(--accent) 10%, transparent); color: var(--work-text); user-select: none; }
+.pr-diff-no { width: 48px; min-width: 48px; padding: 0 8px; text-align: right; vertical-align: top; font-variant-numeric: tabular-nums; color: var(--text-secondary); user-select: none; }
+.pr-diff-no + .pr-diff-no { border-right: 1px solid var(--line); }
+.pr-diff-mark { width: 16px; padding: 0 4px; text-align: center; vertical-align: top; color: var(--text-secondary); user-select: none; }
+.pr-diff-code { padding-right: 16px; white-space: pre; }
+.pr-diff-line.add { background: color-mix(in srgb, var(--ok) 14%, transparent); }
+.pr-diff-line.del { background: color-mix(in srgb, var(--danger) 14%, transparent); }
+.pr-diff-line.add .pr-diff-no { background: color-mix(in srgb, var(--ok) 22%, transparent); }
+.pr-diff-line.del .pr-diff-no { background: color-mix(in srgb, var(--danger) 22%, transparent); }
+.pr-diff-note { margin-left: 8px; font-style: italic; color: var(--text-secondary); user-select: none; }
 /* highlight.js tokens, GitHub palette. No background: the line owns it. */
 .hljs-comment, .hljs-quote { color: #6e7781; font-style: italic; }
 .hljs-keyword, .hljs-selector-tag, .hljs-doctag, .hljs-type { color: #cf222e; }
@@ -1262,8 +1263,8 @@ main:has(> .git-page) { padding-top: calc(var(--page-top) - 8px); padding-bottom
   .git-row { flex-wrap: wrap; padding-bottom: 6px; }
   .git-row-main { padding: 12px 10px; }
   .git-row-session { margin-left: 10px; }
-  .diff-no { width: 36px; min-width: 36px; padding: 0 4px; }
-  .diff-file-head { padding: 10px; }
+  .pr-diff-no { width: 36px; min-width: 36px; padding: 0 4px; }
+  .pr-diff-file-head { padding: 10px; }
 }
 .auto-result { display: flex; flex-direction: column; gap: 10px; }
 .auto-result dl { display: grid; grid-template-columns: max-content 1fr; gap: 6px 12px; margin: 0; }

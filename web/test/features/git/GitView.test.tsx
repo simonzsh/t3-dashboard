@@ -61,9 +61,9 @@ test("each file is a collapsible block with line numbers, counts and highlighted
 test("a hunk shows both line numbers, the marks, and the code highlighted on each side", () => {
   const [hunk] = file("src/a.ts").hunks;
   const html = renderToStaticMarkup(<table><tbody><HunkRows hunk={{ ...hunk!, lines: [...hunk!.lines, { kind: "context", text: "return a;", oldNo: 2, newNo: 2, noNewline: true }] }} lang="typescript" /></tbody></table>);
-  assert.match(html, /<tr class="diff-line del"><td class="diff-no">1<\/td><td class="diff-no"><\/td><td class="diff-mark">-<\/td>/);
-  assert.match(html, /<tr class="diff-line add"><td class="diff-no"><\/td><td class="diff-no">1<\/td><td class="diff-mark">\+<\/td>/);
-  assert.match(html, /<tr class="diff-line context"><td class="diff-no">2<\/td><td class="diff-no">2<\/td>/);
+  assert.match(html, /<tr class="pr-diff-line del"><td class="pr-diff-no">1<\/td><td class="pr-diff-no"><\/td><td class="pr-diff-mark">-<\/td>/);
+  assert.match(html, /<tr class="pr-diff-line add"><td class="pr-diff-no"><\/td><td class="pr-diff-no">1<\/td><td class="pr-diff-mark">\+<\/td>/);
+  assert.match(html, /<tr class="pr-diff-line context"><td class="pr-diff-no">2<\/td><td class="pr-diff-no">2<\/td>/);
   assert.match(html, /<span class="hljs-keyword">const<\/span> a = <span class="hljs-number">2<\/span>;/);
   assert.match(html, /@@ -1 \+1 @@/);
   assert.match(html, /No newline at end of file/);
