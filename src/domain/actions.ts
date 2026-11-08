@@ -31,6 +31,7 @@ import type { AssetResource, FileUpload, ImageUpload, RawProjection, T3Port } fr
 import { DomainError } from "./errors.ts";
 import { expandHome, normalizeFolder } from "./folders.ts";
 import { projectIconChoices } from "./projectIcon.ts";
+import { cachedRead } from "./cachedRead.ts";
 import { toComposerCommands } from "./providers.ts";
 import type { LinearBoard } from "./linearBoard.ts";
 import type { ShellStore } from "./shellStore.ts";
@@ -46,6 +47,7 @@ export interface ActionsOptions {
   newId?: () => string;
   /** What "~" means in a typed path; the demo has its own. */
   home?: string;
+  now?: () => Date;
 }
 
 /** What the user can do to T3 threads from the dashboard. */
@@ -121,11 +123,14 @@ function addImageTargets(text: string | undefined, into: Set<string>): void {
 
 // A page loads many images at once: they share one projection fetch.
 const CITED_TTL_MS = 10_000;
+// The menus read the T3 config on each open: one read serves them for this long.
+const CONFIG_TTL_MS = 10_000;
 
 export function createActions(options: ActionsOptions): Actions {
   const { port, store, board } = options;
   const newId = options.newId ?? (() => crypto.randomUUID());
   const home = options.home ?? homedir();
+  const now = options.now ?? (() => new Date());
 
   // Every T3 failure is a T3 error, even one a fake port throws as a plain Error.
   const t3 = async <T>(work: Promise<T>): Promise<T> => {
@@ -136,6 +141,9 @@ export function createActions(options: ActionsOptions): Actions {
       throw new IntegrationError((error as Error).message, { system: "t3", kind: "unreachable" });
     }
   };
+  const config = cachedRead(() => t3(port.getConfig()), { ttlMs: CONFIG_TTL_MS, now: () => now().getTime() });
+  // Reads at once share one projection while the thread's shell is the same object: the store replaces it on each change.
+  const detailReads = new Map<string, { shell: unknown; read: Promise<ThreadDetail> }>();
   // store.project also matches a title; an edit or delete must hit an id.
   const knownProject = (id: string) => {
     const project = store.project(id);
@@ -153,7 +161,7 @@ export function createActions(options: ActionsOptions): Actions {
 
   // T3 0.0 has no launchThread: say so, rather than let the call fail with a protocol error.
   const requireLaunchSupport = async () => {
-    const version = (await t3(port.getConfig())).environment?.serverVersion?.match(/^(\d+)\.(\d+)\./);
+    const version = (await config.get(true)).environment?.serverVersion?.match(/^(\d+)\.(\d+)\./);
     if (version && Number(version[1]) === 0 && Number(version[2]) < 1) throw new DomainError("conflict", "Starting a session needs T3 Code 0.1 or newer: update T3 Code.");
   };
   // The project's folder, which T3 runs git in.
@@ -226,7 +234,7 @@ export function createActions(options: ActionsOptions): Actions {
     return projection;
   }
 
-  const canStopThread = async () => (await t3(port.getConfig())).environment?.capabilities?.threadStop === true;
+  const canStopThread = async () => (await config.get(true)).environment?.capabilities?.threadStop === true;
 
   async function findIssue(issueId: string): Promise<LinearIssue> {
     let result = await board.get(false);
@@ -246,8 +254,17 @@ export function createActions(options: ActionsOptions): Actions {
       return { matches: matches.filter((match) => store.thread(match.threadId)) };
     },
 
-    async threadDetail(threadId) {
-      return toThreadDetail(threadId, await t3(port.threadProjection(threadId)), store.thread(threadId), store.backgroundTasks(threadId));
+    threadDetail(threadId) {
+      const shell = store.thread(threadId);
+      const open = detailReads.get(threadId);
+      if (open && open.shell === shell) return open.read;
+      const read = t3(port.threadProjection(threadId))
+        .then((projection) => toThreadDetail(threadId, projection, store.thread(threadId), store.backgroundTasks(threadId)))
+        .finally(() => {
+          if (detailReads.get(threadId)?.read === read) detailReads.delete(threadId);
+        });
+      detailReads.set(threadId, { shell, read });
+      return read;
     },
 
     async stepDetail(threadId, itemId) {
@@ -266,7 +283,7 @@ export function createActions(options: ActionsOptions): Actions {
     },
 
     async composerCommands(threadId, instanceId) {
-      return toComposerCommands(await t3(port.getConfig()), instanceId, store.workspaceOf(threadId));
+      return toComposerCommands(await config.get(), instanceId, store.workspaceOf(threadId));
     },
 
     async uploadAttachment({ type, name, mimeType, sizeBytes, bytes }) {
