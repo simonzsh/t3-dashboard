@@ -3,7 +3,7 @@ import { test } from "bun:test";
 import { renderToStaticMarkup } from "react-dom/server";
 import { nextRadioIndex, rovingTabIndex } from "../../src/ui/radioKeys.ts";
 import { isPhone, isTouch, PHONE, TOUCH } from "../../src/ui/media.ts";
-import { ActionMenu, Badge, Button, ButtonLink, Chevron, Choice, CountBadge, Dialog, IconButtonLink, Kbd, ListPage, OptionList, SearchField, Segmented, FileInput, Icon, IconButton, PageHeader, Pressable, SecretInput, Sheet, Skeleton, SkeletonGroup, Switch, Tabs, TextArea, TextInput, Tree } from "../../src/ui/index.ts";
+import { ActionMenu, Badge, Button, ButtonLink, Chevron, Choice, CountBadge, Dialog, IconButtonLink, Kbd, ListPage, OptionList, SearchField, Segmented, FileInput, Icon, IconButton, PageHeader, Pressable, SecretInput, Sheet, Skeleton, SkeletonGroup, Switch, Tabs, TextArea, TextInput, Tree, SidePanel, SidePanelToggle } from "../../src/ui/index.ts";
 import { pathTree } from "../../src/ui/pathTree.ts";
 
 const html = renderToStaticMarkup;
@@ -350,4 +350,11 @@ test("a Tree shows open folders with a chevron, files with an icon, and marks th
   assert.match(out, /class="ui-tree-row dim" style="padding-left:22px" aria-label="file src\/a.ts"/);
   assert.match(out, /class="ui-tree-row active" style="padding-left:22px" aria-current="true" aria-label="file src\/b.ts"/);
   assert.equal(out.match(/<i>x<\/i>/g)?.length, 3);
+});
+
+test("a SidePanel stays mounted when hidden, inert, and its toggle names the next action", () => {
+  assert.equal(html(<SidePanel hidden={false} className="x"><i /></SidePanel>), '<div class="side-panel x"><i></i></div>');
+  assert.match(html(<SidePanel hidden><i /></SidePanel>), /^<div class="side-panel hidden" inert=""><i><\/i><\/div>$/);
+  assert.match(html(<SidePanelToggle hidden show="Show files" hide="Hide files" size="sm" onToggle={() => {}} />), /aria-label="Show files" data-tooltip="Show files" class="icon-button sm ghost"/);
+  assert.match(html(<SidePanelToggle hidden={false} show="Show files" hide="Hide files" onToggle={() => {}} />), /aria-label="Hide files"/);
 });

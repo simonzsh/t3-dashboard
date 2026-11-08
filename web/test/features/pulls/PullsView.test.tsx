@@ -149,8 +149,9 @@ test("the header holds the title, the meta line, the badges and the actions on o
   assert.doesNotMatch(html, /Collapse tests|Changed files/);
   assert.match(header({ controls: controls({ hasTests: true, testsOpen: true }) }), /aria-label="Collapse tests"/);
   assert.match(header({ controls: controls({ anyOpen: false }) }), /aria-label="Expand all"/);
-  assert.match(header({ filesButton: { label: "Hide files", icon: "panelLeft", onClick: () => {} } }), /aria-label="Hide files"/);
-  assert.match(header({ phone: true, filesButton: { label: "Changed files", icon: "listTree", onClick: () => {} } }), /aria-label="Pull request actions"/);
+  assert.match(header({ filesPanel: { hidden: false, onToggle: () => {} } }), /aria-label="Hide files"/);
+  assert.match(header({ filesPanel: { hidden: true, onToggle: () => {} } }), /aria-label="Show files"/);
+  assert.match(header({ onShowFiles: () => {} }), /aria-label="Changed files"/);
 });
 
 test("the header opens no session, one session, or a menu of several", () => {

@@ -5,7 +5,7 @@ import { threadTitle } from "../../lib/threads.ts";
 import { modelNameMap } from "../../lib/models.ts";
 import { cellOf, neighborId, perColumn, spansRows, type SessionsAction, type SessionsState } from "./sessions.ts";
 import { focusSessionField, revealSessionWindow } from "./dom.ts";
-import { enter, Kbd, useFlip } from "../../ui/index.ts";
+import { enter, Kbd, SidePanel, useFlip } from "../../ui/index.ts";
 import type { SessionLayout } from "../../lib/sessionLayout.ts";
 import { ctrlLabel, startsTyping } from "../../lib/shortcuts.ts";
 import { swipeDirection } from "../../lib/swipe.ts";
@@ -359,10 +359,7 @@ export function SessionsView({ sessions, dispatch, threads, projects, seen, now,
 
   return (
     <div ref={root} className="sessions">
-      {/* Kept mounted so hiding slides like the app sidebar; inert while hidden. */}
-      <div className={`slist-slot${prefs.hidden ? " hidden" : ""}`} inert={prefs.hidden}>
-        {list()}
-      </div>
+      <SidePanel hidden={prefs.hidden}>{list()}</SidePanel>
       {sessions.ids.length === 0 ? (
         <div className="empty-state sessions-empty">
           <strong>No sessions open</strong>
