@@ -3,7 +3,7 @@ import type { DashboardThread } from "../../../../shared/api.ts";
 import type { PrDetail as Detail, PrDiff, PrRef } from "../../../../shared/pulls.ts";
 import { renderMarkdown } from "../../lib/markdown.tsx";
 import { useMediaQuery } from "../../lib/useMediaQuery.ts";
-import { Button, ListPage, Loader, PHONE, Sheet, SidePanel, Tabs, WIDE, type TabOption } from "../../ui/index.ts";
+import { Button, leavesOf, ListPage, Loader, pathTree, PHONE, Sheet, SidePanel, Tabs, WIDE, type TabOption } from "../../ui/index.ts";
 import { DiffFiles, useDiffView } from "./DiffFiles.tsx";
 import { currentIndex } from "./diffView.ts";
 import { FileNav } from "./FileNav.tsx";
@@ -42,7 +42,8 @@ const fileBlocks = (box: HTMLElement) => [...box.querySelectorAll<HTMLElement>("
 
 /** One pull request: a fixed header with its status and actions, its diff, and the list of its files. */
 export function PrDetail({ pr, detail, detailError, diff, diffError, refreshing, onRefresh, now, sessions, onOpenSession }: Props) {
-  const files = diff?.files ?? [];
+  // The diff follows the file tree, folder by folder: scrolling the diff walks down the tree.
+  const files = useMemo(() => (diff ? leavesOf(pathTree(diff.files, (file) => file.path.split("/"), (file) => file.path)) : []), [diff]);
   const view = useDiffView(files, diff?.headSha ?? "");
   const wide = useMediaQuery(WIDE);
   const phone = useMediaQuery(PHONE);
@@ -160,7 +161,7 @@ export function PrDetail({ pr, detail, detailError, diff, diffError, refreshing,
                 <Button size="sm" variant="secondary" disabled={refreshing} onClick={onRefresh}>Retry</Button>
               </div>
             )}
-            {diff ? <DiffFiles files={diff.files} truncated={diff.truncated} open={view.open} onToggle={view.toggle} /> : !diffError && <Loader />}
+            {diff ? <DiffFiles files={files} truncated={diff.truncated} open={view.open} onToggle={view.toggle} /> : !diffError && <Loader />}
           </div>
           {phone && shown === "files" && <div className="pulls-files-tab">{nav}</div>}
         </div>

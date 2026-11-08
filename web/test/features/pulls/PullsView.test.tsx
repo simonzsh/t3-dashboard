@@ -217,6 +217,13 @@ test("the detail has Description and Changes tabs, and opens on the changes", ()
   assert.match(withBody, /<div class="md"><p>Fixes <strong>the totals<\/strong>\.<\/p><\/div>/);
 });
 
+test("the diff lists the files in the order of the file tree", () => {
+  const files = [file("web/src/a.ts"), file("README.md"), file("web/lib/b.ts"), file("web/src/c.ts")];
+  const html = page({ diff: { headSha: "abc", files, truncated: false } });
+  const order = [...html.matchAll(/data-pr-diff-file="([^"]+)"/g)].map((m) => m[1]);
+  assert.deepEqual(order, ["web/src/a.ts", "web/src/c.ts", "web/lib/b.ts", "README.md"]);
+});
+
 test("a phone adds a Files tab; the Changes tab counts the files", () => {
   assert.deepEqual(tabsOf(false, 3).map((t) => [t.label, t.count]), [["Description", undefined], ["Changes", 3]]);
   assert.deepEqual(tabsOf(true, 3).map((t) => t.id), ["description", "changes", "files"]);

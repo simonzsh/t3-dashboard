@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "bun:test";
-import { pathTree, type PathNode } from "../../src/ui/pathTree.ts";
+import { leavesOf, pathTree, type PathNode } from "../../src/ui/pathTree.ts";
 
 const names = (nodes: PathNode<string>[]): unknown => nodes.map((n) => (n.item ? n.name : { [n.name]: names(n.children) }));
 
@@ -15,4 +15,9 @@ test("pathTree groups paths by folder in first-seen order and merges lone sub-fo
 test("a lone folder chain collapses into one row", () => {
   assert.deepEqual(names(pathTree(["a/b/c/d.ts"], (p) => p.split("/"), (p) => p)), [{ "a/b/c": ["d.ts"] }]);
   assert.deepEqual(pathTree([], (p: string) => p.split("/"), (p) => p), []);
+});
+
+test("leavesOf lists the items in the tree's order, folder by folder", () => {
+  const paths = ["web/src/a.ts", "README.md", "web/lib/b.ts", "web/src/c.ts"];
+  assert.deepEqual(leavesOf(pathTree(paths, (p) => p.split("/"), (p) => p)), ["web/src/a.ts", "web/src/c.ts", "web/lib/b.ts", "README.md"]);
 });
