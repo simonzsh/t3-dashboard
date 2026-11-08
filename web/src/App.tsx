@@ -3,7 +3,7 @@ import type { DashboardThread } from "../../shared/api.ts";
 import { AutomationsView } from "./features/automations/AutomationsView.tsx";
 import { NewsSettingsDialog } from "./features/news/NewsSettingsDialog.tsx";
 import { NewsView } from "./features/news/NewsView.tsx";
-import { unreadNewsCount } from "./features/news/news.ts";
+import { firstRunBody, unreadNewsCount } from "./features/news/news.ts";
 import { useNewsListHidden } from "./features/news/prefs.ts";
 import { useNews } from "./features/news/useNews.ts";
 import { DashboardView } from "./features/dashboard/DashboardView.tsx";
@@ -214,6 +214,11 @@ export function App() {
   const automationsNav = useMemo(() => automationsBadge(automations.result?.automations ?? [], threadsById, notify.seen), [automations.result?.automations, threadsById, notify.seen]);
   const unread = useMemo(() => attentionCount(threadSections(threads, notify.seen)), [threads, notify.seen]);
   const agents = useMemo(() => agentCounts(threads), [threads]);
+  // No routine yet: Run now first saves the settings the dialog would show, then runs.
+  const newsFirstRun = useMemo(
+    () => (news.state && !news.state.task && state ? firstRunBody(news.state.settings, state.providers, state.modelDefaults.selection) : null),
+    [news.state, state?.providers, state?.modelDefaults],
+  );
   const newsUnread = useMemo(() => unreadNewsCount(news.state?.articles ?? [], notify.seen), [news.state?.articles, notify.seen]);
   // A new identity once the seen state is known, so the page marks its open article again then.
   const { markRead, seenReady: ready } = notify;
@@ -284,9 +289,9 @@ export function App() {
                 onToggleList={tab === "news" ? toggleNewsList : () => setListPrefs({ hidden: !listPrefs.hidden })}
                 onNewSession={() => setCreating({ projectId: null })}
                 onNewAutomation={() => setCreatingAutomation(true)}
-                newsCanRun={news.state?.task != null}
+                newsCanRun={news.state !== null && (news.state.task !== null || newsFirstRun !== null)}
                 newsRunning={news.starting || news.writing}
-                onNewsRun={() => void news.run()}
+                onNewsRun={() => void news.run(newsFirstRun)}
                 onNewsSettings={() => setNewsSettingsOpen(true)}
                 onSearch={openSearch}
                 onSettings={() => setSettingsOpen(true)}
