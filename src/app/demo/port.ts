@@ -2,9 +2,9 @@ import { posix } from "node:path";
 import { RUNNING_RUN_STATUSES } from "../../../shared/status.ts";
 import { IntegrationError } from "../../integrations/errors.ts";
 import type { FetchLike } from "../../integrations/linear/client.ts";
-import type { AttachmentRef, Command, FileUpload, ImageUpload, NewScheduledTask, ProjectMutation, RawConfig, RawProject, RawProjection, RawScheduledTask, RawSearchMatch, RawThread, RawTurnItem, RawUsageSummary, SearchEntriesResponse, ScheduledTaskChange, ShellItem, T3Port } from "../../integrations/t3/schemas.ts";
+import type { AttachmentRef, Command, FileUpload, ImageUpload, LaunchThread, NewScheduledTask, ProjectMutation, RawConfig, RawProject, RawRefs, RawVcsStatus, RawProjection, RawScheduledTask, RawSearchMatch, RawThread, RawTurnItem, RawUsageSummary, SearchEntriesResponse, ScheduledTaskChange, ShellItem, T3Port } from "../../integrations/t3/schemas.ts";
 import { searchEntries, searchProjections } from "./search.ts";
-import { DEMO_CONTEXT_TOKENS, demoFixtures, demoInbox, demoIssues, demoScheduledTasks, demoUsageBuckets, demoUsageLimits, DEMO_FILES, DEMO_FOLDERS, SCRATCH_PROJECT_ID } from "./fixtures.ts";
+import { DEMO_CONTEXT_TOKENS, demoFixtures, demoInbox, demoIssues, demoScheduledTasks, demoUsageBuckets, demoUsageLimits, DEMO_FILES, DEMO_FOLDERS, DEMO_HOME, SCRATCH_PROJECT_ID } from "./fixtures.ts";
 
 const COMPACTED_TOKENS = 12_000;
 
@@ -189,25 +189,57 @@ export class DemoPort implements T3Port {
     return schedule.type === "fixed_time" ? new Date(this.now().getTime() + 86_400_000).toISOString() : null;
   }
 
+  async launchThread(launch: LaunchThread): Promise<{ threadId: string }> {
+    const at = this.now().toISOString();
+    const { threadId, workspaceStrategy: strategy } = launch;
+    const worktreePath = strategy.type === "root" ? null : strategy.type === "worktree" ? `${DEMO_HOME}/worktrees/${threadId}` : strategy.worktreePath;
+    const thread: RawThread = {
+      id: threadId,
+      projectId: launch.projectId,
+      title: launch.title,
+      modelSelection: launch.modelSelection as RawThread["modelSelection"],
+      providerInstanceId: launch.modelSelection.instanceId,
+      runtimeMode: launch.runtimeMode,
+      status: "idle",
+      worktreePath,
+      branch: strategy.type === "worktree" ? `t3code/${threadId.slice(0, 8)}` : (strategy.branch ?? null),
+      createdAt: at,
+      updatedAt: at,
+    };
+    this.projections.set(threadId, { thread, messages: [], visibleTurnItems: [], runs: [] });
+    this.publish(thread);
+    const { messageId, text, attachments } = launch.initialMessage;
+    await this.dispatch({ type: "message.dispatch", threadId, messageId, text, attachments, dispatchMode: { type: "start_immediately" } });
+    return { threadId };
+  }
+
+  async listRefs(cwd: string, { query }: { query?: string; cursor?: number; limit: number }): Promise<RawRefs> {
+    if (cwd.endsWith("/sandbox")) return { refs: [], isRepo: false, hasPrimaryRemote: false, nextCursor: null, totalCount: 0 };
+    const all = [
+      { name: "main", current: true, isDefault: true, worktreePath: cwd },
+      { name: "feature/search", current: false, isDefault: false, worktreePath: null },
+      { name: "fix/login", current: false, isDefault: false, worktreePath: `${DEMO_HOME}/worktrees/fix-login` },
+    ];
+    const refs = all.filter((ref) => ref.name.includes(query ?? ""));
+    return { refs, isRepo: true, hasPrimaryRemote: true, nextCursor: null, totalCount: refs.length };
+  }
+
+  async vcsStatus(cwd: string): Promise<RawVcsStatus> {
+    const isRepo = !cwd.endsWith("/sandbox");
+    return { isRepo, hasPrimaryRemote: isRepo, refName: isRepo ? "main" : null, hasWorkingTreeChanges: false };
+  }
+
+  async switchRef(_cwd: string, refName: string): Promise<string | null> {
+    return refName;
+  }
+
+  async createRef(_cwd: string, refName: string): Promise<string> {
+    return refName;
+  }
+
   async dispatch(command: Command): Promise<unknown> {
     const at = this.now().toISOString();
     const threadId = String(command.threadId);
-    if (command.type === "thread.create") {
-      const thread: RawThread = {
-        id: threadId,
-        projectId: String(command.projectId),
-        title: String(command.title),
-        modelSelection: command.modelSelection as RawThread["modelSelection"],
-        providerInstanceId: (command.modelSelection as { instanceId?: string } | undefined)?.instanceId ?? null,
-        runtimeMode: String(command.runtimeMode),
-        status: "idle",
-        createdAt: at,
-        updatedAt: at,
-      };
-      this.projections.set(threadId, { thread, messages: [], visibleTurnItems: [], runs: [] });
-      this.publish(thread);
-      return { sequence: ++this.sequence };
-    }
     const projection = await this.threadProjection(threadId);
     const thread = { ...projection.thread!, updatedAt: at };
     switch (command.type) {

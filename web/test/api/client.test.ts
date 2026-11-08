@@ -325,3 +325,21 @@ test("the news calls hit the news routes", async () => {
   assert.deepEqual(calls.map((c) => [c.url, c.init?.method ?? "GET"]), [["/api/news", "GET"], ["/api/news/2026-11-07", "GET"], ["/api/news/search?q=caf%C3%A9%20%26%20co", "GET"], ["/api/news/settings", "POST"], ["/api/news/run", "POST"], ["/api/news/2026-11-07/delete", "POST"], ["/api/news/delete-all", "POST"]]);
   assert.deepEqual(JSON.parse(calls[3]!.init!.body as string), body);
 });
+
+test("projectRefs and projectVcsStatus use GET with encoded query", async () => {
+  const { calls, api } = fake(200, {});
+  await api.projectRefs("p/1", {});
+  await api.projectRefs("p/1", { query: "feat/x y", cursor: 100 });
+  await api.projectVcsStatus("p/1");
+  assert.equal(calls[0]?.url, "/api/projects/p%2F1/refs");
+  assert.equal(calls[1]?.url, "/api/projects/p%2F1/refs?query=feat%2Fx+y&cursor=100");
+  assert.equal(calls[2]?.url, "/api/projects/p%2F1/vcs");
+});
+
+test("createThread and assignIssue carry the workspace", async () => {
+  const { calls, api } = fake(200, { threadId: "t" });
+  const workspace = { type: "worktree", baseRef: "main" } as const;
+  await api.createThread({ projectId: "p", title: "t", text: "x", modelSelection: { instanceId: "i", model: "m" }, workspace });
+  await api.assignIssue({ issueId: "i", projectId: "p", text: "x", modelSelection: { instanceId: "i", model: "m" }, workspace });
+  for (const c of calls) assert.deepEqual(JSON.parse(String(c.init?.body)).workspace, workspace);
+});

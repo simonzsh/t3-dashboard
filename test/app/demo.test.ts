@@ -326,8 +326,7 @@ test("demo search finds nothing for an unknown word and honours the limit", asyn
 test("demo search cuts long messages to 240 characters around the hit", async () => {
   const port = new DemoPort(() => NOW);
   const text = `${"a ".repeat(400)}needle${" b".repeat(400)}`;
-  await port.dispatch({ type: "thread.create", threadId: "long", projectId: "p", title: "Long", runtimeMode: "full-access" });
-  await port.dispatch({ type: "message.dispatch", threadId: "long", messageId: "m1", text });
+  await port.launchThread({ threadId: "long", projectId: "p", title: "Long", generateTitle: false, modelSelection: { instanceId: "i", model: "m" }, runtimeMode: "full-access", interactionMode: "default", workspaceStrategy: { type: "root" }, initialMessage: { messageId: "m1", text, attachments: [] } });
   const [match] = await port.searchThreads("needle");
   assert.ok(match!.snippet.length <= 240);
   assert.ok(match!.snippet.includes("needle"));
@@ -479,4 +478,21 @@ test("the demo news has a task and three English articles, and needs no file", a
   const article = await news.article(state.articles[0]!.date);
   assert.ok(article.markdown.startsWith("# ") && article.markdown.includes("## "));
   assert.equal(article.title, state.articles[0]!.title);
+});
+
+test("the demo launches a thread in a worktree and answers branch reads", async () => {
+  const port = new DemoPort(() => NOW);
+  const strategy = { type: "worktree" as const, baseRef: "main" };
+  await port.launchThread({ threadId: "wt-thread", projectId: "demo-atlas-api", title: "T", generateTitle: true, modelSelection: { instanceId: "i", model: "m" }, runtimeMode: "full-access", interactionMode: "default", workspaceStrategy: strategy, initialMessage: { messageId: "m1", text: "Hi", attachments: [] } });
+  const { thread, messages } = await port.threadProjection("wt-thread");
+  assert.ok(thread?.worktreePath);
+  assert.equal(messages?.[0]?.text, "Hi");
+
+  const git = await port.listRefs("/home/demo/src/atlas-api", { limit: 100 });
+  assert.equal(git.isRepo, true);
+  assert.ok(git.refs.some((ref) => ref.current && ref.isDefault) && git.refs.some((ref) => ref.worktreePath && !ref.current));
+  assert.deepEqual((await port.listRefs("/home/demo/src/atlas-api", { query: "fix", limit: 100 })).refs.map((ref) => ref.name), ["fix/login"]);
+  assert.equal((await port.listRefs("/home/demo/src/sandbox", { limit: 100 })).isRepo, false);
+  assert.equal((await port.vcsStatus("/home/demo/src/sandbox")).isRepo, false);
+  assert.equal((await port.vcsStatus("/home/demo/src/atlas-api")).refName, "main");
 });

@@ -1,12 +1,12 @@
 import assert from "node:assert/strict";
 import { test } from "bun:test";
-import type { BoardResult } from "../../shared/api.ts";
+import type { BoardResult, DashboardProject } from "../../shared/api.ts";
 import { createActions } from "../../src/domain/actions.ts";
 import { DomainError } from "../../src/domain/errors.ts";
 import type { ShellStore } from "../../src/domain/shellStore.ts";
 import { IntegrationError } from "../../src/integrations/errors.ts";
 import { FakePort } from "../helpers/fakePort.ts";
-import type { Command, RawBackgroundTask, RawConfig, RawProjection, T3Port } from "../../src/integrations/t3/schemas.ts";
+import type { Command, LaunchThread, RawBackgroundTask, RawConfig, RawProjection, T3Port } from "../../src/integrations/t3/schemas.ts";
 
 const issue = {
   id: "issue-1",
@@ -40,6 +40,7 @@ const delegated = { id: "sub-1", runId: "run-1", status: "running", origin: "app
 
 function harness({ searchResult = [] as ReturnType<typeof searchMatch>[], searchError = null as Error | null, board = { configured: true, ok: true, error: null, issues: [issue], readAt: "2026-11-06T12:00:00.000Z" } as BoardResult, dispatchError = null as Error | null } = {}) {
   const commands: Command[] = [];
+  const launches: LaunchThread[] = [];
   const port: T3Port = {
     threadProjection: async () => ({}),
     usageSummary: async () => ({ buckets: [] }),
@@ -73,17 +74,25 @@ function harness({ searchResult = [] as ReturnType<typeof searchMatch>[], search
     uploadAttachment: async () => "file-1",
     deleteAttachment: async () => {},
     subscribeShell: () => ({ cancel() {} }),
+    launchThread: async (launch) => {
+      launches.push(launch);
+      return { threadId: launch.threadId };
+    },
+    listRefs: async () => ({ refs: [], isRepo: true }),
+    vcsStatus: async () => ({ isRepo: true }),
+    switchRef: async (_cwd, refName) => refName,
+    createRef: async (_cwd, refName) => refName,
   };
   const store = {
     thread: (id: string) => (id.startsWith("known") ? ({ id } as ReturnType<ShellStore["thread"]>) : undefined),
-    project: (id: string) => (id === "project-1" ? { id, title: "Project", defaultModelSelection: null, icon: null } : undefined),
+    project: (id: string) => (id === "project-1" ? { id, title: "Project", defaultModelSelection: null, icon: null, workspaceRoot: "/work/project" } : undefined),
     backgroundTasks: () => [],
     workspaceOf: () => null,
     projectByRoot: () => undefined,
   };
   let counter = 0;
   const actions = createActions({ port, store, board: { get: async () => board }, newId: () => `id-${++counter}` });
-  return { actions, commands };
+  return { actions, commands, launches };
 }
 
 const rejectsWith = (code: string) => (error: unknown) => error instanceof DomainError && error.code === code;
@@ -117,14 +126,20 @@ test("a T3 failure of any kind comes back as a T3 integration error with its mes
   await assert.rejects(actions.dismiss("thread-1", "request-1"), (error: unknown) => error instanceof IntegrationError && error.system === "t3" && error.message === "T3 down");
 });
 
-test("assign names the thread after the issue and asks the agent to handle it", async () => {
-  const { actions, commands } = harness();
+test("assign launches a thread named after the issue, without a generated title", async () => {
+  const { actions, commands, launches } = harness();
   const threadId = await actions.assign({ issueId: "issue-1", projectId: "project-1", text: "", modelSelection: { instanceId: "i", model: "m" } }, []);
-  const create = commands.find((command) => command.type === "thread.create");
-  assert.equal(create?.threadId, threadId);
-  assert.equal(create?.title, "TEAM-1 Fix it");
-  const message = commands.find((command) => command.type === "message.dispatch");
-  assert.equal(message?.text, "Handle Linear issue TEAM-1: https://linear.example/TEAM-1");
+  assert.deepEqual(commands, []);
+  assert.equal(launches[0]?.threadId, threadId);
+  assert.equal(launches[0]?.title, "TEAM-1 Fix it");
+  assert.equal(launches[0]?.generateTitle, false);
+  assert.equal(launches[0]?.initialMessage.text, "Handle Linear issue TEAM-1: https://linear.example/TEAM-1");
+});
+
+test("assign passes the workspace", async () => {
+  const { actions, launches } = harness();
+  await actions.assign({ issueId: "issue-1", projectId: "project-1", text: "", modelSelection: { instanceId: "i", model: "m" }, workspace: { type: "worktree", baseRef: "main" } }, []);
+  assert.deepEqual(launches[0]?.workspaceStrategy, { type: "worktree", baseRef: "main" });
 });
 
 test("assign refuses an unknown issue and an unknown project", async () => {
@@ -218,9 +233,11 @@ test("editing and removing a queued message send one command each, without attac
   ]);
 });
 
-function fakeHarness(workspaces: Record<string, string | null> = {}) {
+const repoProject = { id: "repo", title: "Repo", defaultModelSelection: null, icon: null, workspaceRoot: "/work/repo" };
+
+function fakeHarness(workspaces: Record<string, string | null> = {}, projects: Record<string, DashboardProject> = { repo: repoProject, bare: { ...repoProject, id: "bare", workspaceRoot: undefined } }) {
   const port = new FakePort();
-  const store = { thread: () => undefined, project: () => undefined, backgroundTasks: () => [], workspaceOf: (id: string) => workspaces[id] ?? null, projectByRoot: () => undefined };
+  const store = { thread: () => undefined, project: (id: string) => projects[id], backgroundTasks: () => [], workspaceOf: (id: string) => workspaces[id] ?? null, projectByRoot: () => undefined };
   let counter = 0;
   const actions = createActions({ port, store, board: { get: async () => ({ configured: true, ok: true, error: null, issues: [], readAt: "2026-11-06T12:00:00.000Z", inbox: [], inboxError: null }) }, newId: () => `id-${++counter}` });
   return { actions, port };
@@ -270,7 +287,7 @@ test("a message dispatches the persisted images, then the uploads", async () => 
   await actions.sendMessage("t1", { text: "x" }, [image], [upload]);
   assert.deepEqual(port.commands[0]!.attachments, [{ type: "image", id: "stored-0", name: "a.png", mimeType: "image/png", sizeBytes: 4 }, upload]);
   await actions.createThread({ projectId: "p", title: "t", text: "x", modelSelection: { instanceId: "i", model: "m" } }, [], [upload]);
-  assert.deepEqual(port.commands[2]!.attachments, [upload]);
+  assert.deepEqual(port.launches[0]!.launch.initialMessage.attachments, [upload]);
   assert.deepEqual(port.uploads.length, 1);
 });
 
@@ -456,4 +473,157 @@ test("browseFolders answers no entries when the parent folder is missing, and fa
   assert.deepEqual(await actions.browseFolders("/nope/x"), { path: "/nope/x", kind: "missing", entries: [] });
   port.browseError = new IntegrationError("down", { system: "t3", kind: "unreachable" });
   await assert.rejects(actions.browseFolders("/nope/x"), /down/);
+});
+
+const create = { projectId: "repo", title: "Fix the login", text: "Fix it", modelSelection: { instanceId: "i", model: "m" } };
+
+test("createThread launches one thread in the current checkout with a generated title", async () => {
+  const { actions, port } = fakeHarness();
+  const threadId = await actions.createThread(create, []);
+  assert.deepEqual(port.commands, []);
+  assert.equal(port.launches.length, 1);
+  const { launch, commandId } = port.launches[0]!;
+  assert.equal(launch.threadId, threadId);
+  assert.notEqual(commandId, threadId);
+  assert.deepEqual(launch.workspaceStrategy, { type: "root" });
+  assert.equal(launch.generateTitle, true);
+  assert.equal(launch.interactionMode, "default");
+  assert.deepEqual(port.switches.concat(port.creates), []);
+});
+
+test("createThread sends a new worktree strategy", async () => {
+  const { actions, port } = fakeHarness();
+  await actions.createThread({ ...create, workspace: { type: "worktree", baseRef: "origin/dev", startFromOrigin: true } }, []);
+  assert.deepEqual(port.launches[0]!.launch.workspaceStrategy, { type: "worktree", baseRef: "origin/dev", startFromOrigin: true });
+});
+
+test("createThread persists the images, checks the branch out, then launches with the name T3 returned", async () => {
+  const { actions, port } = fakeHarness();
+  port.switchResult = "dev";
+  const image = { type: "image" as const, name: "a.png", mimeType: "image/png", sizeBytes: 4, dataUrl: "data:image/png;base64,iVBORw==" };
+  await actions.createThread({ ...create, workspace: { type: "root", branch: "origin/dev" } }, [image]);
+  assert.deepEqual(port.log, ["persist", "switch", "launch"]);
+  assert.deepEqual(port.switches, [{ cwd: "/work/repo", refName: "origin/dev" }]);
+  assert.deepEqual(port.launches[0]!.launch.workspaceStrategy, { type: "root", branch: "dev" });
+});
+
+test("createThread asks git for the branch name when T3 returns none", async () => {
+  const { actions, port } = fakeHarness();
+  port.switchResult = null;
+  port.status = { ...port.status, refName: "dev" };
+  await actions.createThread({ ...create, workspace: { type: "root", branch: "origin/dev" } }, []);
+  assert.deepEqual(port.launches[0]!.launch.workspaceStrategy, { type: "root", branch: "dev" });
+});
+
+test("createThread creates a new branch before the launch", async () => {
+  const { actions, port } = fakeHarness();
+  await actions.createThread({ ...create, workspace: { type: "root", branch: "feature-x", create: true } }, []);
+  assert.deepEqual(port.log, ["create", "launch"]);
+  assert.deepEqual(port.creates, [{ cwd: "/work/repo", refName: "feature-x" }]);
+  assert.deepEqual(port.launches[0]!.launch.workspaceStrategy, { type: "root", branch: "feature-x" });
+});
+
+test("createThread launches nothing when the checkout fails", async () => {
+  const { actions, port } = fakeHarness();
+  port.switchError = new IntegrationError("Your local changes would be overwritten", { system: "t3", kind: "refused" });
+  await assert.rejects(actions.createThread({ ...create, workspace: { type: "root", branch: "dev" } }, []), (error: unknown) => error instanceof IntegrationError && error.kind === "refused");
+  assert.deepEqual(port.launches, []);
+  assert.deepEqual(port.uploads, []);
+});
+
+test("createThread reuses the worktree of a branch, and treats the project folder as the current checkout", async () => {
+  const { actions, port } = fakeHarness();
+  await actions.createThread({ ...create, workspace: { type: "existing_worktree", worktreePath: "/work/wt", branch: "dev" } }, []);
+  await actions.createThread({ ...create, workspace: { type: "existing_worktree", worktreePath: "/work/repo", branch: "main" } }, []);
+  assert.deepEqual(port.launches.map((entry) => entry.launch.workspaceStrategy), [{ type: "existing_worktree", worktreePath: "/work/wt", branch: "dev" }, { type: "root", branch: "main" }]);
+  assert.deepEqual(port.switches, []);
+});
+
+test("createThread refuses a branch choice for an unknown project or a project without a folder", async () => {
+  const { actions, port } = fakeHarness();
+  const workspace = { type: "worktree" as const, baseRef: "main" };
+  await assert.rejects(actions.createThread({ ...create, projectId: "nope", workspace }, []), rejectsWith("conflict"));
+  await assert.rejects(actions.createThread({ ...create, projectId: "bare", workspace }, []), rejectsWith("conflict"));
+  assert.deepEqual(port.launches, []);
+});
+
+test("createThread without a project goes to the scratch project in the current checkout", async () => {
+  const { actions, port } = fakeHarness();
+  await actions.createThread({ ...create, projectId: "" }, []);
+  assert.equal(port.launches[0]!.launch.projectId, "scratch-project");
+  assert.deepEqual(port.launches[0]!.launch.workspaceStrategy, { type: "root" });
+});
+
+test("a T3 older than 0.1 gets a clear conflict and no call", async () => {
+  const { actions, port } = fakeHarness();
+  port.config = async () => ({ environment: { serverVersion: "0.0.44" } });
+  await assert.rejects(actions.createThread(create, []), (error: unknown) => error instanceof DomainError && error.code === "conflict" && /0\.1 or newer/.test(error.message));
+  assert.deepEqual(port.launches, []);
+  port.config = async () => ({ environment: { serverVersion: "0.1.6" } });
+  await actions.createThread(create, []);
+  port.config = async () => ({ environment: { serverVersion: "demo" } });
+  await actions.createThread(create, []);
+  assert.equal(port.launches.length, 2);
+});
+
+test("a T3 failure while launching is a T3 error", async () => {
+  const { actions, port } = fakeHarness();
+  port.launchError = new Error("T3 down");
+  await assert.rejects(actions.createThread(create, []), (error: unknown) => error instanceof IntegrationError && error.message === "T3 down");
+});
+
+test("projectRefs maps T3's refs, asks for a page of 100 and passes the query and cursor", async () => {
+  const { actions, port } = fakeHarness();
+  port.refs = {
+    refs: [
+      { name: "main", current: true, isDefault: true, worktreePath: "/work/repo" },
+      { name: "origin/dev", isRemote: true, remoteName: "origin", current: false, isDefault: false, worktreePath: null },
+      { name: "bare" },
+    ],
+    isRepo: true,
+    hasPrimaryRemote: true,
+    nextCursor: 100,
+    totalCount: 230,
+  };
+  assert.deepEqual(await actions.projectRefs("repo", { query: "d", cursor: 0 }), {
+    isRepo: true,
+    hasPrimaryRemote: true,
+    refs: [
+      { name: "main", remote: false, current: true, isDefault: true, worktreePath: "/work/repo" },
+      { name: "origin/dev", remote: true, remoteName: "origin", current: false, isDefault: false, worktreePath: null },
+      { name: "bare", remote: false, current: false, isDefault: false, worktreePath: null },
+    ],
+    nextCursor: 100,
+    totalCount: 230,
+  });
+  assert.deepEqual(port.refCalls, [{ cwd: "/work/repo", limit: 100, query: "d", cursor: 0 }]);
+});
+
+test("projectRefs and projectVcsStatus answer isRepo false for a folder that is not a repository", async () => {
+  const { actions, port } = fakeHarness();
+  port.refs = { refs: [], isRepo: false };
+  port.status = { isRepo: false };
+  assert.deepEqual(await actions.projectRefs("repo", {}), { isRepo: false, hasPrimaryRemote: false, refs: [], nextCursor: null, totalCount: 0 });
+  assert.deepEqual(await actions.projectVcsStatus("repo"), { isRepo: false, hasPrimaryRemote: false, branch: null, hasChanges: false });
+});
+
+test("projectRefs lets a T3 failure through", async () => {
+  const { actions, port } = fakeHarness();
+  port.refsError = new IntegrationError("down", { system: "t3", kind: "unreachable" });
+  await assert.rejects(actions.projectRefs("repo", {}), (error: unknown) => error instanceof IntegrationError && error.kind === "unreachable");
+});
+
+test("projectVcsStatus gives the branch and whether the tree is dirty", async () => {
+  const { actions, port } = fakeHarness();
+  port.status = { isRepo: true, hasPrimaryRemote: true, refName: "dev", hasWorkingTreeChanges: true };
+  assert.deepEqual(await actions.projectVcsStatus("repo"), { isRepo: true, hasPrimaryRemote: true, branch: "dev", hasChanges: true });
+  assert.deepEqual(port.statusCalls, ["/work/repo"]);
+});
+
+test("projectRefs and projectVcsStatus refuse an unknown project, and a project without a folder", async () => {
+  const { actions } = fakeHarness();
+  await assert.rejects(actions.projectRefs("nope", {}), rejectsWith("not-found"));
+  await assert.rejects(actions.projectVcsStatus("nope"), rejectsWith("not-found"));
+  await assert.rejects(actions.projectRefs("bare", {}), rejectsWith("conflict"));
+  await assert.rejects(actions.projectVcsStatus("bare"), rejectsWith("conflict"));
 });

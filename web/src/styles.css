@@ -465,6 +465,7 @@ a.step-result-title { color: var(--accent); }
 .dropdown { position: relative; min-width: 0; }
 .dropdown-trigger { display: inline-flex; align-items: center; gap: 6px; max-width: 100%; padding: 4px 6px; border: 0; border-radius: 8px; background: none; color: var(--text-secondary); font-size: 13px; }
 .dropdown-trigger:hover:not(:disabled) { color: var(--text-primary); background: var(--surface-0); }
+.dropdown-trigger > .icon { flex: none; width: 14px; height: 14px; }
 .dropdown-value { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .dropdown-trigger .chevron-down, .model-access-button .chevron-down { width: 13px; height: 13px; opacity: 0.8; flex: none; }
 .dropdown.field .dropdown-trigger { display: flex; width: 100%; padding: 6px 10px; border: 1px solid var(--line); background: var(--surface-1); color: var(--text-primary); font-size: inherit; }
@@ -483,6 +484,7 @@ input.dropdown-search { position: absolute; inset: 0 auto 0 0; z-index: 1; width
 .dropdown-text { display: flex; flex-direction: column; flex: 1; min-width: 0; }
 .dropdown-text small { color: var(--text-secondary); font-size: 11px; }
 .dropdown-check { width: 14px; height: 14px; color: var(--accent); flex: none; }
+.dropdown-footer { border-top: 1px solid var(--line); }
 .dropdown-empty { padding: 6px 8px; font-size: 13px; color: var(--text-secondary); }
 /* Action menus (ActionMenu) reuse the Dropdown rows: an icon, a label, and a red Delete. */
 .dropdown-option[role="menuitem"] > .icon { flex: none; width: 14px; height: 14px; color: var(--text-secondary); }
@@ -1279,3 +1281,10 @@ main:has(> .news-page) { padding-top: calc(var(--page-top) - 4px); }
 .stash-restore { display: flex; flex: 1; flex-direction: column; gap: 2px; min-width: 0; padding: 6px 8px; border: 0; background: none; font-size: 13px; text-align: left; }
 .stash-text, .stash-meta { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .stash-meta { color: var(--text-secondary); font-size: 11px; }
+.workspace-options { display: flex; flex-direction: column; gap: 4px; }
+.workspace-bar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 4px 8px; }
+.workspace-group { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; min-width: 0; }
+.workspace-branch { min-width: 0; margin-left: auto; }
+.workspace-branch .dropdown-value { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.workspace-origin { display: flex; align-items: center; gap: 6px; padding: 4px 6px; font-size: 13px; color: var(--text-secondary); }
+.workspace-warning { margin: 0; font-size: 12px; color: var(--text-secondary); }

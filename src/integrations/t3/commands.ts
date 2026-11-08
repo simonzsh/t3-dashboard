@@ -1,5 +1,5 @@
-import type { ApprovalDecision, CreateThreadBody, ModelSelection, RuntimeMode, UserInputAnswers } from "../../../shared/api.ts";
-import type { Command } from "./schemas.ts";
+import type { ApprovalDecision, CreateThreadBody, ModelSelection, RuntimeMode, UserInputAnswers, WorkspaceChoice } from "../../../shared/api.ts";
+import type { Command, LaunchThread, WorkspaceStrategy } from "./schemas.ts";
 
 export type DispatchMode = { type: "start_immediately" } | { type: "queue_after_active" };
 
@@ -14,26 +14,34 @@ export interface OutgoingMessage {
   attachments: unknown[];
 }
 
-// `generateTitle` sends the title as `titleSeed`: T3 then asks the model for a title, like its own client.
-export function createThreadCommands(threadId: string, body: Omit<CreateThreadBody, "attachments">, message: OutgoingMessage, options: { generateTitle?: boolean } = {}): UnsentCommand[] {
-  const create = {
-    type: "thread.create",
+// T3 treats a worktree equal to the project folder as the plain checkout.
+const sameFolder = (a: string, b: string) => a.replace(/\/+$/, "") === b.replace(/\/+$/, "");
+
+// `resolvedBranch` is the name T3 gave after a checkout or a branch creation: it replaces the typed one.
+export function workspaceStrategy(choice: WorkspaceChoice | undefined, resolvedBranch: string | null, workspaceRoot: string | undefined): WorkspaceStrategy {
+  if (!choice) return { type: "root" };
+  if (choice.type === "worktree") return { type: "worktree", baseRef: choice.baseRef, ...(choice.startFromOrigin && { startFromOrigin: true }) };
+  if (choice.type === "existing_worktree") {
+    const branch = choice.branch === undefined ? {} : { branch: choice.branch };
+    return workspaceRoot !== undefined && sameFolder(choice.worktreePath, workspaceRoot) ? { type: "root", ...branch } : { type: "existing_worktree", worktreePath: choice.worktreePath, ...branch };
+  }
+  const branch = resolvedBranch ?? choice.branch;
+  return branch === undefined ? { type: "root" } : { type: "root", branch };
+}
+
+// `generateTitle` makes T3 ask the model for a title, with `title` as the seed, like its own client.
+export function launchPayload(threadId: string, body: Omit<CreateThreadBody, "attachments" | "uploads" | "workspace">, message: OutgoingMessage, strategy: WorkspaceStrategy, options: { generateTitle: boolean }): LaunchThread {
+  return {
     threadId,
     projectId: body.projectId,
     title: body.title,
+    generateTitle: options.generateTitle,
     modelSelection: body.modelSelection,
     runtimeMode: body.runtimeMode ?? "full-access",
     interactionMode: "default",
-    branch: null,
-    worktreePath: null,
-    ...PROVENANCE,
+    workspaceStrategy: strategy,
+    initialMessage: { messageId: message.messageId, text: body.text, attachments: message.attachments },
   };
-  const dispatch = {
-    ...messageCommand(threadId, body.text, message, { mode: { type: "start_immediately" } }),
-    modelSelection: body.modelSelection,
-    ...(options.generateTitle && { titleSeed: body.title }),
-  };
-  return [create, dispatch];
 }
 
 // `steer` lets T3 pick the active run itself, so a run that starts or ends meanwhile cannot make it fail.

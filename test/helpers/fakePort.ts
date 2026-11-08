@@ -1,4 +1,4 @@
-import type { AssetResource, Command, FileUpload, ImageUpload, NewScheduledTask, ProjectMutation, RawConfig, RawProject, RawProjection, RawScheduledTask, RawSearchMatch, RawTurnItem, RawUsageSummary, SearchEntriesResponse, ScheduledTaskChange, SecretAnswer, ShellItem, T3Port } from "../../src/integrations/t3/schemas.ts";
+import type { AssetResource, Command, FileUpload, ImageUpload, LaunchThread, NewScheduledTask, ProjectMutation, RawConfig, RawRefs, RawVcsStatus, RawProject, RawProjection, RawScheduledTask, RawSearchMatch, RawTurnItem, RawUsageSummary, SearchEntriesResponse, ScheduledTaskChange, SecretAnswer, ShellItem, T3Port } from "../../src/integrations/t3/schemas.ts";
 
 /** In-memory T3: records commands, uploads and shell subscriptions; each answer can be swapped. */
 export class FakePort implements T3Port {
@@ -62,6 +62,23 @@ export class FakePort implements T3Port {
   refreshProviders: () => Promise<void> = async () => {
     this.refreshCalls++;
   };
+  launches: Array<{ launch: LaunchThread; commandId: string }> = [];
+  launchError: Error | null = null;
+  refCalls: Array<{ cwd: string; query?: string; cursor?: number; limit: number }> = [];
+  refs: RawRefs = { refs: [], isRepo: true, hasPrimaryRemote: false, nextCursor: null, totalCount: 0 };
+  refsError: Error | null = null;
+  statusCalls: string[] = [];
+  status: RawVcsStatus = { isRepo: true, hasPrimaryRemote: false, refName: "main", hasWorkingTreeChanges: false };
+  statusError: Error | null = null;
+  switches: Array<{ cwd: string; refName: string }> = [];
+  /** What switchRef answers; null echoes the asked name. */
+  /** Undefined: echo the asked name. */
+  switchResult: string | null | undefined = undefined;
+  switchError: Error | null = null;
+  creates: Array<{ cwd: string; refName: string }> = [];
+  createRefError: Error | null = null;
+  /** Every call that changes T3, in order: lets a test check the sequence. */
+  log: string[] = [];
   config: () => Promise<RawConfig> = async () => ({ providers: [], environment: { serverVersion: "1.0.0", orchestrationProtocolVersion: 2 } });
 
   async threadProjection(threadId?: string): Promise<RawProjection> {
@@ -82,6 +99,39 @@ export class FakePort implements T3Port {
     await this.usageGate?.();
     if (this.usageError) throw this.usageError;
     return this.usage;
+  }
+
+  async launchThread(launch: LaunchThread, commandId: string) {
+    this.log.push("launch");
+    if (this.launchError) throw this.launchError;
+    this.launches.push({ launch, commandId });
+    return { threadId: launch.threadId };
+  }
+
+  async listRefs(cwd: string, options: { query?: string; cursor?: number; limit: number }) {
+    this.refCalls.push({ cwd, ...options });
+    if (this.refsError) throw this.refsError;
+    return this.refs;
+  }
+
+  async vcsStatus(cwd: string) {
+    this.statusCalls.push(cwd);
+    if (this.statusError) throw this.statusError;
+    return this.status;
+  }
+
+  async switchRef(cwd: string, refName: string) {
+    this.log.push("switch");
+    if (this.switchError) throw this.switchError;
+    this.switches.push({ cwd, refName });
+    return this.switchResult === undefined ? refName : this.switchResult;
+  }
+
+  async createRef(cwd: string, refName: string) {
+    this.log.push("create");
+    if (this.createRefError) throw this.createRefError;
+    this.creates.push({ cwd, refName });
+    return refName;
   }
 
   async dispatch(command: Command) {
@@ -171,6 +221,7 @@ export class FakePort implements T3Port {
   }
 
   async persistAttachments(threadId: string, messageId: string, images: ImageUpload[]) {
+    this.log.push("persist");
     this.uploads.push({ threadId, messageId, images });
     return images.map((image, index) => ({ type: "image", id: `stored-${index}`, name: image.name, mimeType: image.mimeType, sizeBytes: image.sizeBytes }));
   }

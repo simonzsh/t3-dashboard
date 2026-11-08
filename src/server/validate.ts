@@ -1,4 +1,4 @@
-import type { ApprovalDecision, AssignIssueBody, CreateAutomationBody, CreateProjectBody, CreateThreadBody, ProjectIconSpec, RoutineSchedule, WebhookFilter, WebhookSignature, ModelSelection, RespondBody, RewindBody, SaveNewsBody, SecretAnswerBody, SendMessageBody, ThreadSettingsBody, UpdateAutomationBody, UpdateProjectBody, UploadedAttachment, UserInputAnswers } from "../../shared/api.ts";
+import type { ApprovalDecision, AssignIssueBody, CreateAutomationBody, CreateProjectBody, CreateThreadBody, ProjectIconSpec, RoutineSchedule, WebhookFilter, WebhookSignature, ModelSelection, RespondBody, RewindBody, SaveNewsBody, SecretAnswerBody, SendMessageBody, ThreadSettingsBody, UpdateAutomationBody, UpdateProjectBody, UploadedAttachment, UserInputAnswers, WorkspaceChoice } from "../../shared/api.ts";
 import { PROJECT_COLOR_NAMES } from "../../shared/projectColors.ts";
 import { ACTIVITY_PERIODS, DEFAULT_ACTIVITY_PERIOD, type ActivityPeriod } from "../../shared/usage.ts";
 import { isObject } from "../../shared/guards.ts";
@@ -114,6 +114,51 @@ export const validCreateAutomation = (body: Record<string, unknown>) => validAut
 /** Like a creation, except that a signed webhook may omit the secret: T3 keeps the stored one. */
 export const validUpdateAutomation = (body: Record<string, unknown>) => validAutomation(body, true) as UpdateAutomationBody;
 
+const REF_MAX = 256;
+const CONTROL = /[\u0000-\u001f\u007f]/;
+
+// A leading dash would read as a git option.
+const validRef = (value: unknown, name: string): string => {
+  if (typeof value !== "string" || value.length === 0 || value.length > REF_MAX || value.startsWith("-") || CONTROL.test(value)) {
+    throw new HttpError(400, `${name} must be a branch name of 1 to ${REF_MAX} characters, without control characters or a leading dash`);
+  }
+  return value;
+};
+
+const validFlag = (value: unknown, name: string): boolean | undefined => {
+  if (value !== undefined && typeof value !== "boolean") throw new HttpError(400, `${name} must be a boolean`);
+  return value;
+};
+
+/** Keeps the known keys of a workspace choice; the route refuses a branch choice without a project. */
+export function validWorkspace(value: unknown, projectId: string): WorkspaceChoice | undefined {
+  if (value === undefined) return undefined;
+  if (!isObject(value)) throw new HttpError(400, "workspace must be an object");
+  let choice: WorkspaceChoice;
+  if (value.type === "root") {
+    const create = validFlag(value.create, "workspace.create");
+    if (create && value.branch === undefined) throw new HttpError(400, "workspace.create needs a workspace.branch");
+    choice = { type: "root", ...(value.branch !== undefined && { branch: validRef(value.branch, "workspace.branch") }), ...(create && { create }) };
+  } else if (value.type === "existing_worktree") {
+    const path = value.worktreePath;
+    if (typeof path !== "string" || !path.startsWith("/") || path.length > FOLDER_PATH_MAX || CONTROL.test(path)) {
+      throw new HttpError(400, `workspace.worktreePath must be an absolute path of at most ${FOLDER_PATH_MAX} characters`);
+    }
+    choice = { type: "existing_worktree", worktreePath: path, ...(value.branch !== undefined && { branch: validRef(value.branch, "workspace.branch") }) };
+  } else if (value.type === "worktree") {
+    const startFromOrigin = validFlag(value.startFromOrigin, "workspace.startFromOrigin");
+    choice = { type: "worktree", baseRef: validRef(value.baseRef, "workspace.baseRef"), ...(startFromOrigin && { startFromOrigin }) };
+  } else throw new HttpError(400, "workspace.type must be root, existing_worktree or worktree");
+  if (projectId === "" && !(choice.type === "root" && choice.branch === undefined)) throw new HttpError(400, "branch options need a project");
+  return choice;
+}
+
+// The optional field every thread launch takes.
+const launchOptions = (body: Record<string, unknown>, projectId: string) => {
+  const workspace = validWorkspace(body.workspace, projectId);
+  return workspace ? { workspace } : {};
+};
+
 export function validCreate(body: Record<string, unknown>): CreateThreadBody {
   const modelSelection = validSelection(body.modelSelection);
   const projectId = body.projectId ?? "";
@@ -121,7 +166,8 @@ export function validCreate(body: Record<string, unknown>): CreateThreadBody {
     throw new HttpError(400, "title, text and modelSelection (instanceId, model) are required; projectId is a string");
   }
   if (body.runtimeMode !== undefined && !isRuntimeMode(body.runtimeMode)) throw new HttpError(400, "runtimeMode is not a known mode");
-  return { projectId: projectId.trim(), title: body.title.trim(), text: body.text, modelSelection, ...(isRuntimeMode(body.runtimeMode) && { runtimeMode: body.runtimeMode }) };
+  const id = projectId.trim();
+  return { projectId: id, title: body.title.trim(), text: body.text, modelSelection, ...(isRuntimeMode(body.runtimeMode) && { runtimeMode: body.runtimeMode }), ...launchOptions(body, id) };
 }
 
 const FOLDER_PATH = /^(\/|~$|~\/)/;
@@ -292,6 +338,15 @@ export function validFileSearch(params: URLSearchParams): { query: string; limit
   return { query, limit };
 }
 
+export function validRefsQuery(params: URLSearchParams): { query?: string; cursor?: number } {
+  const query = params.get("query") ?? "";
+  if (query.length > MAX_SEARCH_QUERY) throw new HttpError(400, `query must be at most ${MAX_SEARCH_QUERY} characters`);
+  const raw = params.get("cursor");
+  const cursor = raw === null ? undefined : Number(raw);
+  if (raw === "" || (cursor !== undefined && (!Number.isInteger(cursor) || cursor < 0))) throw new HttpError(400, "cursor must be an integer of 0 or more");
+  return { ...(query && { query }), ...(cursor !== undefined && { cursor }) };
+}
+
 export function validProvider(params: URLSearchParams): string {
   const instanceId = params.get("provider") ?? "";
   if (instanceId === "" || instanceId.length > 200) throw new HttpError(400, "provider must be a provider instance id of 1 to 200 characters");
@@ -311,7 +366,8 @@ export function validAssign(body: Record<string, unknown>): Omit<AssignIssueBody
     throw new HttpError(400, "issueId and modelSelection (instanceId, model) are required; projectId and text are strings");
   }
   if (body.runtimeMode !== undefined && !isRuntimeMode(body.runtimeMode)) throw new HttpError(400, "runtimeMode is not a known mode");
-  return { issueId: body.issueId, projectId: projectId.trim(), text, modelSelection, ...(isRuntimeMode(body.runtimeMode) && { runtimeMode: body.runtimeMode }) };
+  const id = projectId.trim();
+  return { issueId: body.issueId, projectId: id, text, modelSelection, ...(isRuntimeMode(body.runtimeMode) && { runtimeMode: body.runtimeMode }), ...launchOptions(body, id) };
 }
 
 export function validRespond(body: Record<string, unknown>): RespondBody {

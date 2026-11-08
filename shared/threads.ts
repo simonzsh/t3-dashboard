@@ -54,6 +54,8 @@ export interface DashboardProject {
   workspaceRoot?: string;
   /** The icon as T3 stores it, for the edit form; absent when T3 has none (or one the dashboard cannot read). */
   iconSpec?: ProjectIconSpec;
+  /** How T3 starts a new thread in this project; absent when T3 has no choice (the UI then uses "local"). */
+  defaultThreadEnvMode?: "local" | "worktree";
 }
 
 export interface ModelEffort {

@@ -5,6 +5,7 @@ export type * from "./connection.ts";
 export type * from "./events.ts";
 export type * from "./requests.ts";
 export type * from "./linear.ts";
+export type * from "./vcs.ts";
 export type * from "./settings.ts";
 export type * from "./automations.ts";
 export type * from "./news.ts";

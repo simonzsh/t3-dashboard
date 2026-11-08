@@ -919,3 +919,75 @@ test("pathKinds returns one kind per path and null for a missing path", async ()
   socket.receive(ok("1", { entries: [{ kind: "directory" }, null] }));
   assert.deepEqual(await done, ["directory", null]);
 });
+
+const launch = { threadId: "t1", projectId: "p1", title: "T", generateTitle: true, modelSelection: { instanceId: "i", model: "m" }, runtimeMode: "full-access" as const, interactionMode: "default" as const, workspaceStrategy: { type: "worktree" as const, baseRef: "main" }, initialMessage: { messageId: "m1", text: "Hi", attachments: [] } };
+
+test("launchThread sends the payload with the command id and the server provenance, and reads the thread id", async () => {
+  const { client } = setup();
+  const done = client.launchThread(launch, "c1");
+  const socket = await nextSocket();
+  assert.equal(socket.sent[0]!.tag, "orchestration.launchThread");
+  assert.deepEqual(socket.sent[0]!.payload, { ...launch, commandId: "c1", creationSource: "server" });
+  socket.receive(ok("1", { threadId: "t1", projection: {}, resumed: false }));
+  assert.deepEqual(await done, { threadId: "t1" });
+});
+
+test("launchThread, switchRef and createRef are never sent twice after a cut", async () => {
+  for (const send of [(c: T3Client) => c.launchThread(launch, "c1"), (c: T3Client) => c.switchRef("/repo", "dev"), (c: T3Client) => c.createRef("/repo", "dev")]) {
+    FakeSocket.reset();
+    const { client } = setup();
+    const done = send(client);
+    const socket = await nextSocket();
+    socket.close();
+    await assert.rejects(done, (error: Error) => error instanceof IntegrationError && error.kind === "unreachable");
+    for (let i = 0; i < 5; i++) await tick();
+    assert.equal(FakeSocket.instances.length, 1);
+  }
+});
+
+test("listRefs sends the limit and only the query and cursor that are set, and is retried after a cut", async () => {
+  const { client } = setup();
+  const first = client.listRefs("/repo", { limit: 100 });
+  const socket = await nextSocket();
+  assert.equal(socket.sent[0]!.tag, "vcs.listRefs");
+  assert.deepEqual(socket.sent[0]!.payload, { cwd: "/repo", limit: 100 });
+  const raw = { refs: [{ name: "main", current: true, isDefault: true, worktreePath: "/repo" }, { name: "origin/dev", isRemote: true, remoteName: "origin", current: false, isDefault: false, worktreePath: null }], isRepo: true, hasPrimaryRemote: true, nextCursor: null, totalCount: 2 };
+  socket.receive(ok("1", raw));
+  assert.deepEqual(await first, raw);
+
+  const second = client.listRefs("/repo", { query: "de", cursor: 0, limit: 100 });
+  await tick();
+  assert.deepEqual(socket.sent[1]!.payload, { cwd: "/repo", limit: 100, query: "de", cursor: 0 });
+  socket.close();
+  await waitFor(() => FakeSocket.instances.length === 2);
+  const retry = FakeSocket.instances[1]!;
+  retry.open();
+  retry.receive(ok("1", { refs: [], isRepo: true }));
+  assert.deepEqual((await second).refs, []);
+});
+
+test("vcsStatus reads the local branch and dirty flag, like the T3 branch picker", async () => {
+  const { client } = setup();
+  const done = client.vcsStatus("/repo");
+  const socket = await nextSocket();
+  assert.equal(socket.sent[0]!.tag, "vcs.refreshStatus");
+  assert.deepEqual(socket.sent[0]!.payload, { cwd: "/repo", localOnly: true });
+  socket.receive(ok("1", { isRepo: true, hasPrimaryRemote: false, refName: "main", hasWorkingTreeChanges: true, workingTree: { files: [] } }));
+  assert.deepEqual(await done, { isRepo: true, hasPrimaryRemote: false, refName: "main", hasWorkingTreeChanges: true, workingTree: { files: [] } });
+});
+
+test("switchRef returns the local branch name; createRef always switches to the new branch", async () => {
+  const { client } = setup();
+  const switched = client.switchRef("/repo", "origin/dev");
+  const socket = await nextSocket();
+  assert.equal(socket.sent[0]!.tag, "vcs.switchRef");
+  assert.deepEqual(socket.sent[0]!.payload, { cwd: "/repo", refName: "origin/dev" });
+  socket.receive(ok("1", { refName: "dev" }));
+  assert.equal(await switched, "dev");
+  const created = client.createRef("/repo", "feature");
+  await tick();
+  assert.equal(socket.sent[1]!.tag, "vcs.createRef");
+  assert.deepEqual(socket.sent[1]!.payload, { cwd: "/repo", refName: "feature", switchRef: true });
+  socket.receive(ok("2", { refName: "feature" }));
+  assert.equal(await created, "feature");
+});

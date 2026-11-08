@@ -133,6 +133,18 @@ The New Session button (key `N`) starts a new session.
 3. If necessary, change the model or the access mode, or attach files. `@` search does not work here: the thread does not exist yet.
 4. Send. The conversation opens in Sessions.
 
+- Every session starts with one T3 call, `orchestration.launchThread`, like the T3 Code client. T3 Code 0.1 or newer is needed; an older T3 Code gives the error "Starting a session needs T3 Code 0.1 or newer".
+- `POST /api/threads` and `POST /api/board/assign` take one optional field, `workspace`, which is one of:
+  - `{ "type": "root" }`: the current checkout, as it is (the default).
+  - `{ "type": "root", "branch": "dev" }`: check out `dev` first. With `"create": true`, create `dev` first. A remote branch becomes a local tracking branch.
+  - `{ "type": "existing_worktree", "worktreePath": "/…", "branch": "dev" }`: reuse the worktree where `dev` is already checked out.
+  - `{ "type": "worktree", "baseRef": "main", "startFromOrigin": true }`: T3 Code makes a new worktree and a new branch from `baseRef`.
+- A `workspace` other than `{ "type": "root" }` needs a project that has a folder. Without a project, the request gets `400`. An unknown project, or a project without a folder, gets `409`. A failed checkout starts no session.
+- `GET /api/projects/:id/refs?query=&cursor=` lists the branches of the project folder, 100 at a time: `name`, `remote`, `current`, `isDefault` and `worktreePath` (the worktree where the branch is checked out). `GET /api/projects/:id/vcs` gives the current `branch` and `hasChanges`. A folder that is not a git repository answers `isRepo: false`.
+- Under the project field, the window shows where the session runs. It shows only for a project that has a folder and is a git repository. It is hidden for "No project" and for a folder that is not a git repository.
+  - "Current checkout" runs in the project folder. The branch picker is on the current branch. Pick another branch to check it out first (a remote branch becomes a local tracking branch). Pick a branch that another worktree holds to reuse that worktree. Type a name and choose "Create branch" to create it.
+  - "New worktree" makes a new worktree and a new branch from the branch picked in "From". Turn on "From origin" next to the mode (shown when the project has a remote) to start from the remote branch. The choice of the project in T3 Code sets the mode that is first selected.
+  - A note warns you when the checkout has uncommitted changes and the session switches or creates a branch: the changes move with it.
 - The proposed model is the default model of the project. If there is none, it is the default model of T3 Code.
 - The favorite models of T3 Code are at the top of the list.
 - The browser keeps the last project that you selected.

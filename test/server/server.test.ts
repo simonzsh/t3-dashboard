@@ -234,20 +234,86 @@ test("GET /api/health", async () => {
   assert.equal(health.headers["access-control-allow-origin"], undefined);
 });
 
-test("POST /api/threads sends thread.create then message.dispatch", async () => {
+test("POST /api/threads launches the thread through T3", async () => {
   const { server, port } = await start();
   const reply = await post(server, "/api/threads", { projectId: " project-1 ", title: " Thread 4 ", text: "Hello", modelSelection: model });
   assert.equal(reply.status, 200);
   assert.deepEqual(reply.json, { ok: true, threadId: "id-1" });
-  assert.deepEqual(
-    port.commands.map((command) => command.type),
-    ["thread.create", "message.dispatch"],
-  );
-  assert.equal(port.commands[0]!.projectId, "project-1");
-  assert.equal(port.commands[0]!.title, "Thread 4");
-  assert.equal(port.commands[0]!.runtimeMode, "full-access");
-  assert.deepEqual(port.commands[1]!.dispatchMode, { type: "start_immediately" });
-  assert.equal(port.commands[1]!.text, "Hello");
+  assert.deepEqual(port.commands, []);
+  const { launch } = port.launches[0]!;
+  assert.equal(launch.projectId, "project-1");
+  assert.equal(launch.title, "Thread 4");
+  assert.equal(launch.runtimeMode, "full-access");
+  assert.equal(launch.interactionMode, "default");
+  assert.deepEqual(launch.workspaceStrategy, { type: "root" });
+  assert.equal(launch.initialMessage.text, "Hello");
+});
+
+test("POST /api/threads takes a workspace choice and drops unknown keys", async () => {
+  const { server, port } = await start();
+  const body = { projectId: "project-1", title: "t", text: "x", modelSelection: model };
+  assert.equal((await post(server, "/api/threads", { ...body, workspace: { type: "worktree", baseRef: "main", startFromOrigin: true, extra: 1 } })).status, 200);
+  assert.equal((await post(server, "/api/threads", { ...body, workspace: { type: "root", branch: "dev", create: true } })).status, 200);
+  assert.deepEqual(port.launches[0]!.launch.workspaceStrategy, { type: "worktree", baseRef: "main", startFromOrigin: true });
+  assert.deepEqual(port.creates, [{ cwd: "/work/root", refName: "dev" }]);
+});
+
+test("POST /api/threads refuses a bad workspace", async () => {
+  const { server, port } = await start();
+  const base = { projectId: "project-1", title: "t", text: "x", modelSelection: model };
+  const bad: Array<Record<string, unknown>> = [
+    { workspace: "root" },
+    { workspace: { type: "tree" } },
+    { workspace: { type: "worktree" } },
+    { workspace: { type: "worktree", baseRef: "" } },
+    { workspace: { type: "worktree", baseRef: "-x" } },
+    { workspace: { type: "worktree", baseRef: "a".repeat(257) } },
+    { workspace: { type: "worktree", baseRef: "a\nb" } },
+    { workspace: { type: "worktree", baseRef: "main", startFromOrigin: "yes" } },
+    { workspace: { type: "root", branch: 3 } },
+    { workspace: { type: "root", create: true } },
+    { workspace: { type: "root", branch: "dev", create: 1 } },
+    { workspace: { type: "existing_worktree", worktreePath: "relative/wt" } },
+    { workspace: { type: "existing_worktree", worktreePath: `/${"a".repeat(512)}` } },
+    { projectId: "", workspace: { type: "worktree", baseRef: "main" } },
+    { projectId: "", workspace: { type: "root", branch: "dev" } },
+  ];
+  for (const extra of bad) assert.equal((await post(server, "/api/threads", { ...base, ...extra })).status, 400, JSON.stringify(extra));
+  assert.deepEqual(port.launches, []);
+});
+
+test("POST /api/threads accepts a bare root workspace without a project", async () => {
+  const { server, port } = await start();
+  assert.equal((await post(server, "/api/threads", { title: "t", text: "x", modelSelection: model, workspace: { type: "root" } })).status, 200);
+  assert.equal(port.launches[0]!.launch.projectId, "scratch-project");
+});
+
+test("POST /api/threads answers 409 for a branch choice on an unknown project or a project without a folder", async () => {
+  const { server, port } = await start();
+  const body = { title: "t", text: "x", modelSelection: model, workspace: { type: "worktree", baseRef: "main" } };
+  assert.equal((await post(server, "/api/threads", { ...body, projectId: "nope" })).status, 409);
+  assert.equal((await post(server, "/api/threads", { ...body, projectId: "project-2" })).status, 409);
+  assert.deepEqual(port.launches, []);
+});
+
+test("GET /api/projects/:id/refs and /vcs answer for a git project, a plain folder and bad requests", async () => {
+  const { server, port } = await start();
+  port.refs = { refs: [{ name: "main", current: true, isDefault: true, worktreePath: "/work/root" }], isRepo: true, hasPrimaryRemote: false, nextCursor: null, totalCount: 1 };
+  const refs = await call(server, "GET", "/api/projects/project-1/refs?query=ma&cursor=0");
+  assert.equal(refs.status, 200);
+  assert.deepEqual(refs.json, { isRepo: true, hasPrimaryRemote: false, refs: [{ name: "main", remote: false, current: true, isDefault: true, worktreePath: "/work/root" }], nextCursor: null, totalCount: 1 });
+  assert.deepEqual(port.refCalls, [{ cwd: "/work/root", limit: 100, query: "ma", cursor: 0 }]);
+  port.status = { isRepo: true, hasPrimaryRemote: false, refName: "main", hasWorkingTreeChanges: true };
+  assert.deepEqual((await call(server, "GET", "/api/projects/project-1/vcs")).json, { isRepo: true, hasPrimaryRemote: false, branch: "main", hasChanges: true });
+  port.refs = { refs: [], isRepo: false };
+  port.status = { isRepo: false };
+  assert.equal((await call(server, "GET", "/api/projects/project-1/refs")).json.isRepo, false);
+  assert.equal((await call(server, "GET", "/api/projects/project-1/vcs")).json.isRepo, false);
+  for (const path of ["refs?cursor=-1", "refs?cursor=x", "refs?cursor=", `refs?query=${"a".repeat(257)}`]) assert.equal((await call(server, "GET", `/api/projects/project-1/${path}`)).status, 400, path);
+  for (const path of ["refs", "vcs"]) {
+    assert.equal((await call(server, "GET", `/api/projects/nope/${path}`)).status, 404);
+    assert.equal((await call(server, "GET", `/api/projects/project-2/${path}`)).status, 409);
+  }
 });
 
 test("POST /api/threads validates its body", async () => {
@@ -267,7 +333,7 @@ test("POST /api/threads validates its body", async () => {
 test("POST /api/threads without a project goes to T3's No project", async () => {
   const { server, port } = await start();
   assert.equal((await post(server, "/api/threads", { title: "t", text: "x", modelSelection: model })).status, 200);
-  assert.equal((port.commands[0] as { projectId?: string }).projectId, "scratch-project");
+  assert.equal(port.launches[0]!.launch.projectId, "scratch-project");
 });
 
 test("POST /api/threads takes a runtime mode and images in one call", async () => {
@@ -277,15 +343,13 @@ test("POST /api/threads takes a runtime mode and images in one call", async () =
   const reply = await post(server, "/api/threads", { projectId: "project-1", title: "Look", text: "Look at this", modelSelection: selection, runtimeMode: "auto", attachments: [image] });
   assert.deepEqual(reply.json, { ok: true, threadId: "id-1" });
   assert.deepEqual(port.uploads, [{ threadId: "id-1", messageId: "id-2", images: [{ type: "image", ...image, sizeBytes: 4 }] }]);
-  assert.deepEqual(
-    port.commands.map((command) => [command.type, command.threadId]),
-    [["thread.create", "id-1"], ["message.dispatch", "id-1"]],
-  );
-  assert.equal(port.commands[0]!.runtimeMode, "auto");
-  assert.deepEqual(port.commands[0]!.modelSelection, selection);
-  assert.equal(port.commands[1]!.messageId, "id-2");
-  assert.deepEqual(port.commands.map((command) => command.commandId), ["id-3", "id-4"]);
-  assert.deepEqual(port.commands[1]!.attachments, [{ type: "image", id: "stored-0", name: "shot.png", mimeType: "image/png", sizeBytes: 4 }]);
+  const { launch, commandId } = port.launches[0]!;
+  assert.equal(launch.threadId, "id-1");
+  assert.equal(commandId, "id-3");
+  assert.equal(launch.runtimeMode, "auto");
+  assert.deepEqual(launch.modelSelection, selection);
+  assert.equal(launch.initialMessage.messageId, "id-2");
+  assert.deepEqual(launch.initialMessage.attachments, [{ type: "image", id: "stored-0", name: "shot.png", mimeType: "image/png", sizeBytes: 4 }]);
 });
 
 test("POST /api/threads refuses a bad runtime mode or bad images before any T3 call", async () => {
@@ -762,33 +826,31 @@ test("POST /api/board/assign creates a thread on the issue with the chosen model
   const { server, port } = await start({ linearKey: "key-1" });
   const reply = await post(server, "/api/board/assign", { ...assignBody, runtimeMode: "auto" });
   assert.deepEqual(reply.json, { ok: true, threadId: "id-1" });
-  assert.deepEqual(
-    port.commands.map((command) => command.type),
-    ["thread.create", "message.dispatch"],
-  );
-  assert.equal(port.commands[0]!.projectId, "project-1");
-  assert.equal(port.commands[0]!.title, "TEAM-1 Issue 1");
-  assert.equal(port.commands[0]!.runtimeMode, "auto");
-  assert.equal(port.commands[1]!.text, "Handle Linear issue TEAM-1: https://linear.example/TEAM-1");
-  assert.deepEqual(port.commands[0]!.modelSelection, { instanceId: "claudeAgent", model: "claude-opus-5-5" });
+  const { launch } = port.launches[0]!;
+  assert.deepEqual(port.commands, []);
+  assert.equal(launch.projectId, "project-1");
+  assert.equal(launch.title, "TEAM-1 Issue 1");
+  assert.equal(launch.runtimeMode, "auto");
+  assert.equal(launch.initialMessage.text, "Handle Linear issue TEAM-1: https://linear.example/TEAM-1");
+  assert.deepEqual(launch.modelSelection, { instanceId: "claudeAgent", model: "claude-opus-5-5" });
 });
 
 test("assign puts the user's instructions first, then the issue link", async () => {
   const { server, port } = await start({ linearKey: "key-1" });
   await post(server, "/api/board/assign", { ...assignBody, text: "  Start with the tests.  " });
-  assert.equal(port.commands[1]!.text, "Start with the tests.\n\nLinear issue TEAM-1: https://linear.example/TEAM-1");
+  assert.equal(port.launches[0]!.launch.initialMessage.text, "Start with the tests.\n\nLinear issue TEAM-1: https://linear.example/TEAM-1");
 });
 
 test("assign without a project goes to T3's No project", async () => {
   const { server, port } = await start({ linearKey: "key-1" });
   assert.equal((await post(server, "/api/board/assign", { ...assignBody, projectId: "" })).status, 200);
-  assert.equal(port.commands[0]!.projectId, "scratch-project");
+  assert.equal(port.launches[0]!.launch.projectId, "scratch-project");
 });
 
 test("assign finds the project by title as well as by id", async () => {
   const { server, port } = await start({ linearKey: "key-1" });
   assert.equal((await post(server, "/api/board/assign", { ...assignBody, projectId: "Project B" })).status, 200);
-  assert.equal(port.commands[0]!.projectId, "project-2");
+  assert.equal(port.launches[0]!.launch.projectId, "project-2");
 });
 
 test("assign errors: 400 invalid body, 404 unknown issue, 409 unknown T3 project", async () => {
@@ -830,7 +892,7 @@ test("assign answers 502 when Linear fails and when T3 fails", async () => {
   assert.equal(linear.status, 502);
   assert.ok(!linear.text.includes("key-1"));
   const { server, port } = await start({ linearKey: "key-1" });
-  port.dispatchError = new Error("T3 down");
+  port.launchError = new Error("T3 down");
   assert.equal((await post(server, "/api/board/assign", assignBody)).status, 502);
 });
 
@@ -1511,14 +1573,14 @@ test("POST /api/threads takes uploads", async () => {
   const { server, port } = await start();
   const reply = await post(server, "/api/threads", { projectId: "project-1", title: "t", text: "x", modelSelection: model, uploads: [upload] });
   assert.equal(reply.status, 200);
-  assert.deepEqual(port.commands[1]!.attachments, [upload]);
+  assert.deepEqual(port.launches[0]!.launch.initialMessage.attachments, [upload]);
   assert.equal((await post(server, "/api/threads", { projectId: "project-1", title: "t", text: "x", modelSelection: model, uploads: [{ ...upload, id: "" }] })).status, 400);
 });
 
 test("POST /api/board/assign takes uploads", async () => {
   const { server, port } = await start({ linearKey: "key-1" });
   assert.equal((await post(server, "/api/board/assign", { ...assignBody, uploads: [upload] })).status, 200);
-  assert.deepEqual(port.commands[1]!.attachments, [upload]);
+  assert.deepEqual(port.launches[0]!.launch.initialMessage.attachments, [upload]);
   assert.equal((await post(server, "/api/board/assign", { ...assignBody, uploads: [{ ...upload, id: "" }] })).status, 400);
 });
 
@@ -1950,4 +2012,15 @@ test("POST /api/news/run starts the run, and says to save first when there is no
   const reply = await post(missing.server, "/api/news/run");
   assert.equal(reply.status, 404);
   assert.match(reply.text, /Save the News settings first/);
+});
+
+test("POST /api/board/assign takes a workspace and refuses a bad one", async () => {
+  const { server, port } = await start({ linearKey: "key-1" });
+  const reply = await post(server, "/api/board/assign", { ...assignBody, workspace: { type: "worktree", baseRef: "main" } });
+  assert.equal(reply.status, 200);
+  assert.deepEqual(port.launches[0]!.launch.workspaceStrategy, { type: "worktree", baseRef: "main" });
+  assert.equal(port.launches[0]!.launch.generateTitle, false);
+  assert.equal((await post(server, "/api/board/assign", { ...assignBody, workspace: { type: "worktree", baseRef: "-x" } })).status, 400);
+  assert.equal((await post(server, "/api/board/assign", { ...assignBody, projectId: "", workspace: { type: "worktree", baseRef: "main" } })).status, 400);
+  assert.equal(port.launches.length, 1);
 });
