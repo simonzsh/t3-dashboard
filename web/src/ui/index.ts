@@ -28,6 +28,8 @@ export { SearchField } from "./SearchField.tsx";
 export { TooltipLayer } from "./Tooltip.tsx";
 export { Skeleton, SkeletonGroup } from "./Skeleton.tsx";
 export { Sheet } from "./Sheet.tsx";
+export { Tree, type TreeProps } from "./Tree.tsx";
+export { pathTree, type PathNode } from "./pathTree.ts";
 export { Segmented } from "./Segmented.tsx";
 export { Switch } from "./Switch.tsx";
 export { Tabs } from "./Tabs.tsx";

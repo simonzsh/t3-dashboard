@@ -1,9 +1,8 @@
-import { useCallback } from "react";
 import type { DashboardProject, DashboardThread } from "../../../../shared/api.ts";
 import { isObject, uniqueStrings } from "../../../../shared/guards.ts";
 import { isUnseen, type SeenState } from "../../../../shared/seen.ts";
 import { threadState } from "../../../../shared/status.ts";
-import { readJson, usePersisted, writeKey, type Store } from "../../lib/storage.ts";
+import { jsonPrefs, usePrefs } from "../../lib/storage.ts";
 import { newestFirst } from "../../lib/threads.ts";
 
 type ListMode = "grouped" | "flat";
@@ -91,12 +90,8 @@ export function parseListPrefs(data: unknown): ListPrefs {
   return { hidden: data.hidden === true, mode: data.mode === "flat" ? "flat" : "grouped", collapsed: uniqueStrings(data.collapsed) };
 }
 
-export const loadListPrefs = (storage: Store | null): ListPrefs => parseListPrefs(readJson(storage, SESSION_LIST_KEY));
-
-export const saveListPrefs = (storage: Store | null, prefs: ListPrefs): void => writeKey(storage, SESSION_LIST_KEY, JSON.stringify(prefs));
+const PREFS = jsonPrefs(SESSION_LIST_KEY, parseListPrefs);
+export const { load: loadListPrefs, save: saveListPrefs } = PREFS;
 
 /** The list panel's choices, saved in this browser. */
-export function useListPrefs(): [ListPrefs, (change: Partial<ListPrefs>) => void] {
-  const [prefs, setPrefs] = usePersisted(loadListPrefs, saveListPrefs);
-  return [prefs, useCallback((change: Partial<ListPrefs>) => setPrefs((was) => ({ ...was, ...change })), [setPrefs])];
-}
+export const useListPrefs = () => usePrefs(PREFS);

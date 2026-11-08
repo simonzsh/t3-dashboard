@@ -54,3 +54,20 @@ export function usePersisted<T>(load: (storage: Store | null) => T, save: (stora
   );
   return [value, set];
 }
+
+export interface Prefs<T> {
+  key: string;
+  load: (storage: Store | null) => T;
+  save: (storage: Store | null, value: T) => void;
+}
+
+/** A page's choices as one JSON object under `key`. `parse` checks each field and falls back on its own. */
+export function jsonPrefs<T extends object>(key: string, parse: (data: unknown) => T): Prefs<T> {
+  return { key, load: (storage) => parse(readJson(storage, key)), save: (storage, value) => writeKey(storage, key, JSON.stringify(value)) };
+}
+
+/** The choices of a page (filters, sort, view), kept in this browser. The setter merges a partial change. */
+export function usePrefs<T extends object>(prefs: Prefs<T>): [T, (change: Partial<T>) => void] {
+  const [value, set] = usePersisted(prefs.load, prefs.save);
+  return [value, useCallback((change: Partial<T>) => set((was) => ({ ...was, ...change })), [set])];
+}

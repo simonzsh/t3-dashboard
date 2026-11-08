@@ -1,6 +1,5 @@
-import { useCallback } from "react";
 import { isObject } from "../../../../shared/guards.ts";
-import { readJson, usePersisted, writeKey, type Store } from "../../lib/storage.ts";
+import { jsonPrefs, usePrefs } from "../../lib/storage.ts";
 import type { AutomationFilter, AutomationSort } from "./automations.ts";
 
 export interface AutomationPrefs {
@@ -22,12 +21,8 @@ export function parseAutomationPrefs(data: unknown): AutomationPrefs {
   };
 }
 
-export const loadAutomationPrefs = (storage: Store | null): AutomationPrefs => parseAutomationPrefs(readJson(storage, AUTOMATIONS_LIST_KEY));
-
-export const saveAutomationPrefs = (storage: Store | null, prefs: AutomationPrefs): void => writeKey(storage, AUTOMATIONS_LIST_KEY, JSON.stringify(prefs));
+const PREFS = jsonPrefs(AUTOMATIONS_LIST_KEY, parseAutomationPrefs);
+export const { load: loadAutomationPrefs, save: saveAutomationPrefs } = PREFS;
 
 /** The filter and the sort of the list, saved in this browser. */
-export function useAutomationPrefs(): [AutomationPrefs, (change: Partial<AutomationPrefs>) => void] {
-  const [prefs, setPrefs] = usePersisted(loadAutomationPrefs, saveAutomationPrefs);
-  return [prefs, useCallback((change: Partial<AutomationPrefs>) => setPrefs((was) => ({ ...was, ...change })), [setPrefs])];
-}
+export const useAutomationPrefs = () => usePrefs(PREFS);

@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "bun:test";
 import type { DiffFile } from "../../../../shared/diff.ts";
-import { isOpen, LARGE_FILE, openByDefault, setAll, setTests, toolbarOf } from "../../../src/features/pulls/diffView.ts";
+import { isOpen, LARGE_FILE, openByDefault, setAll, setTests, toolbarOf, currentIndex } from "../../../src/features/pulls/diffView.ts";
 
 const file = (path: string, additions: number, deletions = 0): DiffFile => ({ path, oldPath: path, newPath: path, status: "modified", binary: false, additions, deletions, hunks: [] });
 
@@ -47,4 +47,11 @@ test("the toolbar offers Collapse while a file is open and shows the tests butto
   assert.deepEqual(toolbarOf(files, (path) => path === "a.ts"), { hasTests: true, anyOpen: true, testsOpen: false });
   assert.deepEqual(toolbarOf(files, () => false), { hasTests: true, anyOpen: false, testsOpen: false });
   assert.equal(toolbarOf([file("a.ts", 1)], () => true).hasTests, false);
+});
+
+test("the current file is the last one whose top reached the reading line", () => {
+  assert.equal(currentIndex([], 10), 0);
+  assert.equal(currentIndex([50, 300, 900], 10), 0);
+  assert.equal(currentIndex([-400, 8, 600], 10), 1);
+  assert.equal(currentIndex([-900, -500, -100], 10), 2);
 });

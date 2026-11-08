@@ -1,6 +1,6 @@
 import { memo, useCallback, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import type { DiffFile, DiffHunk } from "../../../../shared/diff.ts";
-import { Button, Chevron, Icon, IconButton, Pressable } from "../../ui/index.ts";
+import { Chevron, Pressable } from "../../ui/index.ts";
 import { isOpen, openByDefault, setAll, setTests, toolbarOf, type Overrides } from "./diffView.ts";
 import { highlightLines, languageOf } from "./highlight.tsx";
 
@@ -92,7 +92,7 @@ const FileDiff = memo(function FileDiff({ file, open, onToggle }: { file: DiffFi
   const lang = useMemo(() => languageOf(file.path), [file.path]);
   const renamed = file.oldPath !== "" && file.newPath !== "" && file.oldPath !== file.newPath;
   return (
-    <section className="pr-diff-file" data-pr-diff-file>
+    <section className="pr-diff-file" data-pr-diff-file={file.path}>
       <Pressable className={`pr-diff-file-head${open ? " open" : ""}`} aria-expanded={open} onClick={() => onToggle(file.path, open)}>
         <Chevron open={open} />
         <FilePath path={renamed ? `${file.oldPath} → ${file.newPath}` : file.path} />
@@ -123,43 +123,40 @@ const FileDiff = memo(function FileDiff({ file, open, onToggle }: { file: DiffFi
   );
 });
 
+/** Which files are open, and the actions of the header that collapse them. */
+export function useDiffView(files: DiffFile[], headSha: string) {
+  // Choices reset when a refresh brings a new head commit, without a remount that would lose the scroll.
+  const [state, setState] = useState<{ sha: string; overrides: Overrides }>({ sha: headSha, overrides: {} });
+  const overrides = state.sha === headSha ? state.overrides : {};
+  const update = useCallback((next: (o: Overrides) => Overrides) => setState((s) => ({ sha: headSha, overrides: next(s.sha === headSha ? s.overrides : {}) })), [headSha]);
+  const defaults = useMemo(() => openByDefault(files), [files]);
+  const open = useCallback((path: string) => isOpen(overrides, defaults, path), [overrides, defaults]);
+  const bar = toolbarOf(files, open);
+  return {
+    open,
+    ...bar,
+    toggle: useCallback((path: string, wasOpen: boolean) => update((o) => ({ ...o, [path]: !wasOpen })), [update]),
+    toggleAll: () => update(() => setAll(files, !bar.anyOpen)),
+    toggleTests: () => update((o) => setTests(o, files, !bar.testsOpen)),
+  };
+}
+
 interface Props {
   files: DiffFile[];
   truncated: boolean;
-  refreshing: boolean;
-  onRefresh: () => void;
+  open: (path: string) => boolean;
+  onToggle: (path: string, wasOpen: boolean) => void;
 }
 
-/** The changed files as collapsible blocks, with the controls to collapse all or the test files. */
-export function DiffFiles({ files, truncated, refreshing, onRefresh }: Props) {
-  const [overrides, setOverrides] = useState<Overrides>({});
-  const defaults = useMemo(() => openByDefault(files), [files]);
-  const open = (path: string) => isOpen(overrides, defaults, path);
-  const { hasTests, anyOpen, testsOpen } = toolbarOf(files, open);
-  const toggle = useCallback((path: string, wasOpen: boolean) => setOverrides((o) => ({ ...o, [path]: !wasOpen })), []);
-
+/** The changed files as collapsible blocks; the header holds the collapse controls. */
+export function DiffFiles({ files, truncated, open, onToggle }: Props) {
   return (
     <div className="pr-diff">
-      <div className="pr-diff-bar">
-        {files.length > 0 && (
-          <Button size="sm" onClick={() => setOverrides(setAll(files, !anyOpen))}>
-            <Icon name={anyOpen ? "chevronsDownUp" : "chevronsUpDown"} /> {anyOpen ? "Collapse all" : "Expand all"}
-          </Button>
-        )}
-        {hasTests && (
-          <Button size="sm" onClick={() => setOverrides((o) => setTests(o, files, !testsOpen))}>
-            <Icon name={testsOpen ? "flaskConicalOff" : "flaskConical"} /> {testsOpen ? "Collapse tests" : "Expand tests"}
-          </Button>
-        )}
-        <IconButton size="sm" variant="ghost" label="Refresh the diff" tooltip="Refresh the diff" disabled={refreshing} onClick={onRefresh}>
-          <Icon name="refresh" />
-        </IconButton>
-      </div>
       {truncated && <p className="pr-diff-empty">The diff is too large: the last files are not shown.</p>}
       {files.length === 0 && !truncated && <p className="pr-diff-empty">No changes in this pull request.</p>}
       <div className="pr-diff-files">
         {files.map((file) => (
-          <FileDiff key={file.path} file={file} open={open(file.path)} onToggle={toggle} />
+          <FileDiff key={file.path} file={file} open={open(file.path)} onToggle={onToggle} />
         ))}
       </div>
     </div>

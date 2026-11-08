@@ -8,5 +8,7 @@ export function useMediaQuery(query: string): boolean {
       return () => list.removeEventListener("change", onChange);
     },
     () => window.matchMedia(query).matches,
+    // A static render (tests) has no window: it renders the wide layout.
+    () => false,
   );
 }

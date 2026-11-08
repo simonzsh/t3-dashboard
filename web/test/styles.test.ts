@@ -180,9 +180,9 @@ test("one spin keyframe, and shared rows have one rule each", () => {
   for (const selector of [".row-icons", ".linear-status"]) assert.equal(css.split("\n").filter((line) => line.startsWith(`${selector} {`)).length, 1);
 });
 
-test("pull requests: the diff bar and the file headers stick inside the page, and a dark theme recolours the tokens", () => {
-  assert.match(rule(".pr-diff-bar"), /position: sticky; top: calc\(-1 \* var\(--page-ring\)\)/);
-  assert.match(rule(".pr-diff-file-head"), /position: sticky; top: calc\(var\(--pulls-bar\) - var\(--page-ring\)\)/);
+test("pull requests: the file headers and the file list stick inside the page, and a dark theme recolours the tokens", () => {
+  assert.match(rule(".pulls-detail-side"), /position: sticky; top: 0;/);
+  assert.match(rule(".pr-diff-file-head"), /position: sticky; top: calc\(-1 \* var\(--page-ring\)\)/);
   assert.match(rule(".pr-diff-file-head"), /border-radius: 0;/);
   assert.match(css, /:root\[data-theme="dark"\] :is\(\.hljs-keyword/);
 });

@@ -4,7 +4,8 @@ import type { PrList, PrRef, PrSummary } from "../../../../shared/pulls.ts";
 import { relativeTime } from "../../lib/format.ts";
 import { hashForPr } from "../../lib/tabs.ts";
 import { Badge, Dropdown, Icon, IconButton, ListPage, Loader, SearchField, Segmented } from "../../ui/index.ts";
-import { ALL_REPOSITORIES, CHECKS, filterPrs, groupByRepository, repositoriesOf, REVIEWS, SCOPES, sessionsOf, shortRepository, type Scope } from "./pulls.ts";
+import { ALL_REPOSITORIES, CHECKS, filterPrs, groupByRepository, repositoriesOf, REVIEWS, SCOPES, sessionsOf, shortRepository } from "./pulls.ts";
+import { usePullsPrefs } from "./prefs.ts";
 import { Counts } from "./DiffFiles.tsx";
 import { PrDetail } from "./PrDetail.tsx";
 import { SessionsButton } from "./SessionsButton.tsx";
@@ -50,8 +51,7 @@ interface ListProps extends Omit<Props, "route"> {
 }
 
 export function PrListView({ list, error, refreshing, onRefresh, threads, now, onOpenThread }: ListProps) {
-  const [scope, setScope] = useState<Scope>("all");
-  const [repository, setRepository] = useState(ALL_REPOSITORIES);
+  const [{ scope, repository }, setPrefs] = usePullsPrefs();
   const [query, setQuery] = useState("");
   const repositories = useMemo(() => repositoriesOf(list?.prs ?? []), [list]);
   // A repository that left the list (its last PR merged) must not leave an empty view behind.
@@ -72,12 +72,12 @@ export function PrListView({ list, error, refreshing, onRefresh, threads, now, o
             </IconButton>
           </div>
           <div className="pulls-filters">
-            <Segmented label="Show" value={scope} options={SCOPES} onChange={setScope} />
+            <Segmented label="Show" value={scope} options={SCOPES} onChange={(scope) => setPrefs({ scope })} />
             <Dropdown
               label="Repository"
               value={repo}
               options={[{ id: ALL_REPOSITORIES, label: "All repositories" }, ...repositories.map((r) => ({ id: r, label: r }))]}
-              onPick={setRepository}
+              onPick={(repository) => setPrefs({ repository })}
             />
           </div>
         </div>
@@ -115,11 +115,7 @@ function List(props: Omit<Props, "route">) {
 
 function Detail({ route, threads, now, onOpenThread }: Props & { route: PrRef }) {
   const { refresh, ...state } = usePrDetail(route);
-  return (
-    <div className="page-scroll">
-      <PrDetail pr={route} {...state} onRefresh={() => void refresh()} now={now} sessions={sessionsOf(threads, route)} onOpenSession={onOpenThread} />
-    </div>
-  );
+  return <PrDetail pr={route} {...state} onRefresh={() => void refresh()} now={now} sessions={sessionsOf(threads, route)} onOpenSession={onOpenThread} />;
 }
 
 /** The Pull requests page: your open pull requests, and one pull request's diff. */

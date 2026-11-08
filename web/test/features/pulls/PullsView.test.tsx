@@ -4,9 +4,14 @@ import { renderToStaticMarkup } from "react-dom/server";
 import type { PrDetail as Detail, PrList, PrSummary } from "../../../../shared/pulls.ts";
 import type { DiffFile } from "../../../../shared/diff.ts";
 import { DiffFiles, HunkRows } from "../../../src/features/pulls/DiffFiles.tsx";
+import { openByDefault } from "../../../src/features/pulls/diffView.ts";
+import { FileNav } from "../../../src/features/pulls/FileNav.tsx";
+import { ChecksPanel, StatusButton } from "../../../src/features/pulls/PrChecks.tsx";
+import { PrHeader, type DiffControls } from "../../../src/features/pulls/PrHeader.tsx";
 import { PrListView } from "../../../src/features/pulls/PullsView.tsx";
 import { PrDetail } from "../../../src/features/pulls/PrDetail.tsx";
-import { thread } from "../../fixtures.ts";
+import { memoryStore, thread } from "../../fixtures.ts";
+import { PULLS_LIST_KEY } from "../../../src/features/pulls/prefs.ts";
 
 const now = new Date("2026-01-02T00:00:00Z");
 const pr = (repository: string, number: number, over: Partial<PrSummary> = {}): PrSummary => ({
@@ -27,6 +32,29 @@ test("the list groups pull requests by repository and links each one to its diff
   assert.match(html, /Changes requested/);
   assert.match(html, /\+7/);
   assert.match(html, /1 h ago/);
+});
+
+// The list reads its filters from localStorage; a static render has none unless a test sets it.
+function withStorage<T>(data: Record<string, string>, run: () => T): T {
+  const had = Object.getOwnPropertyDescriptor(globalThis, "localStorage");
+  Object.defineProperty(globalThis, "localStorage", { value: memoryStore(data), configurable: true });
+  try {
+    return run();
+  } finally {
+    if (had) Object.defineProperty(globalThis, "localStorage", had);
+    else delete (globalThis as { localStorage?: unknown }).localStorage;
+  }
+}
+
+test("the list starts with the saved filters, and a saved repository that left the list falls back to all", () => {
+  const prs = list([pr("acme/storefront", 1, { roles: ["author"] }), pr("acme/api", 2, { roles: ["reviewer"] })]);
+  const mine = withStorage({ [PULLS_LIST_KEY]: JSON.stringify({ scope: "author", repository: "acme/storefront" }) }, () => view(prs));
+  assert.match(mine, /Change 1/);
+  assert.doesNotMatch(mine, /Change 2/);
+  assert.match(mine, /aria-checked="true"[^>]*>Mine</);
+  const gone = withStorage({ [PULLS_LIST_KEY]: JSON.stringify({ scope: "all", repository: "acme/gone" }) }, () => view(prs));
+  assert.match(gone, /Change 1[\s\S]*Change 2|Change 2[\s\S]*Change 1/);
+  assert.match(gone, /All repositories/);
 });
 
 const linkTo = (number: number) => ({ pullRequests: [{ repository: "acme/storefront", number, url: "https://example.test/x", title: null }] });
@@ -54,14 +82,17 @@ const file = (path: string, over: Partial<DiffFile> = {}): DiffFile => ({
   path, oldPath: path, newPath: path, status: "modified", binary: false, additions: 1, deletions: 1,
   hunks: [{ header: "@@ -1 +1 @@", oldStart: 1, oldLines: 1, newStart: 1, newLines: 1, lines: [{ kind: "del", text: "const a = 1;", oldNo: 1 }, { kind: "add", text: "const a = 2;", newNo: 1 }] }], ...over,
 });
-const diff = (files: DiffFile[], truncated = false) => renderToStaticMarkup(<DiffFiles files={files} truncated={truncated} refreshing={false} onRefresh={() => {}} />);
+const diff = (files: DiffFile[], truncated = false) => {
+  const open = openByDefault(files);
+  return renderToStaticMarkup(<DiffFiles files={files} truncated={truncated} open={(path) => open.has(path)} onToggle={() => {}} />);
+};
 
 test("each file is a collapsible block with line numbers, counts and highlighted code", () => {
   const html = diff([file("src/a.ts")]);
   assert.match(html, /aria-expanded="true"/);
   assert.match(html, /<span class="dir">src\/<\/span><span class="name">a.ts<\/span>/);
   assert.match(html, /<span class="add">\+1<\/span> <span class="del">-1<\/span>/);
-  assert.match(html, /Collapse all/);
+  assert.match(html, /data-pr-diff-file="src\/a.ts"/);
 });
 
 test("a hunk shows both line numbers, the marks, and the code highlighted on each side", () => {
@@ -75,12 +106,8 @@ test("a hunk shows both line numbers, the marks, and the code highlighted on eac
   assert.match(html, /No newline at end of file/);
 });
 
-test("a large file starts collapsed and the tests button shows only with a test file", () => {
-  const html = diff([file("big.ts", { additions: 500 }), file("src/a.test.ts")]);
-  assert.match(html, /aria-expanded="false"/);
-  assert.match(html, /Collapse tests/);
-  assert.doesNotMatch(diff([file("src/a.ts")]), /tests/);
-  assert.match(diff([file("big.ts", { additions: 500 })]), /Expand all/);
+test("a large file starts collapsed", () => {
+  assert.match(diff([file("big.ts", { additions: 500 }), file("src/a.test.ts")]), /aria-expanded="false"/);
 });
 
 test("binary, hidden and empty files explain themselves", () => {
@@ -101,27 +128,77 @@ const page = (over: Partial<Parameters<typeof PrDetail>[0]> = {}) =>
     <PrDetail pr={{ repository: "acme/storefront", number: 12 }} detail={detail} detailError={null} diff={{ headSha: "abc", files: [file("src/a.ts")], truncated: false }} diffError={null} refreshing={false} onRefresh={() => {}} now={now} sessions={[]} onOpenSession={() => {}} {...over} />,
   );
 
-test("the detail shows the title, branches, checks, reviews and a link to GitHub", () => {
-  const html = page();
-  assert.match(html, /Change 12/);
+const controls = (over: Partial<DiffControls> = {}): DiffControls => ({ hasFiles: true, hasTests: false, anyOpen: true, testsOpen: false, toggleAll: () => {}, toggleTests: () => {}, ...over });
+const header = (over: Partial<Parameters<typeof PrHeader>[0]> = {}) =>
+  renderToStaticMarkup(
+    <PrHeader pr={{ repository: "acme/storefront", number: 12 }} detail={detail} now={now} sessions={[]} onOpenSession={() => {}} controls={controls()} refreshing={false} onRefresh={() => {}} phone={false} {...over} />,
+  );
+
+test("the header holds the title, the meta line, the badges and the actions on one block", () => {
+  const html = header();
+  assert.match(html, /<header class="pulls-head">/);
+  assert.match(html, /<a [^>]*href="#\/pulls"[^>]*aria-label="Back to pull requests"/);
+  assert.match(html, /Change 12 <span class="pulls-num">#12<\/span>/);
   assert.match(html, /<code>feature-12<\/code> → <code>main<\/code>/);
-  assert.match(html, /Checks failed/);
-  assert.match(html, /Review required/);
-  assert.match(html, /<a [^>]*href="https:\/\/example.test\/acme\/storefront\/pull\/12"[^>]*>.*Open on GitHub/);
-  assert.match(html, /<strong>grace<\/strong> changes requested/);
-  assert.match(html, /href="#\/pulls"/);
+  assert.match(html, /aria-label="Checks and reviews"[^>]*aria-haspopup="dialog"[^>]*aria-expanded="false"/);
+  assert.match(html, /Checks failed[\s\S]*Review required/);
+  assert.match(html, /3 files/);
+  assert.match(html, /<h2 class="pulls-title">Change 12/);
+  assert.match(html, /aria-label="Collapse all"/);
+  assert.match(html, /aria-label="Refresh"/);
+  assert.doesNotMatch(html, /Collapse tests|Changed files/);
+  assert.match(header({ controls: controls({ hasTests: true, testsOpen: true }) }), /aria-label="Collapse tests"/);
+  assert.match(header({ controls: controls({ anyOpen: false }) }), /aria-label="Expand all"/);
+  assert.match(header({ onShowFiles: () => {} }), /aria-label="Changed files"/);
 });
 
-test("a check link that is not a web address is shown as text", () => {
-  const html = page();
+test("the header opens no session, one session, or a menu of several", () => {
+  const none = header();
+  assert.match(none, /Open on GitHub/);
+  assert.doesNotMatch(none, /Open session|Sessions \d/);
+  assert.match(header({ sessions: [thread("t1")] }), /<button [^>]*>.*Open session<\/button>/);
+  assert.match(header({ sessions: [thread("t1"), thread("t2")] }), /aria-label="2 sessions"[^>]*aria-haspopup="menu"[\s\S]*Sessions 2/);
+});
+
+test("on a phone the header keeps the title and one actions menu, without the meta line", () => {
+  const html = header({ phone: true, sessions: [thread("t1"), thread("t2")] });
+  assert.match(html, /Change 12/);
+  assert.match(html, /aria-haspopup="menu"[^>]*aria-label="Pull request actions"/);
+  assert.doesNotMatch(html, /Open on GitHub|Sessions 2|feature-12|aria-label="Refresh"/);
+});
+
+test("the checks panel lists each check with its result and link, then the reviews", () => {
+  const html = renderToStaticMarkup(<ChecksPanel detail={detail} />);
   assert.match(html, /<a href="https:\/\/example.test\/run\/1"[^>]*>build<\/a>/);
+  assert.match(html, /<li class="pulls-check failure">.*<span>lint<\/span><span class="pulls-check-state">failure<\/span>/);
   assert.doesNotMatch(html, /javascript:/);
+  assert.match(html, /<strong>grace<\/strong> changes requested/);
+  assert.match(renderToStaticMarkup(<ChecksPanel detail={{ ...detail, checkRuns: [], reviews: [] }} />), /No reviews yet/);
+  assert.equal(renderToStaticMarkup(<StatusButton detail={{ ...detail, checks: "none", review: "none", checkRuns: [], reviews: [] }} />), "");
 });
 
-test("the detail opens its session, or lists them when there are several", () => {
-  assert.doesNotMatch(page(), /Open session|Sessions \d/);
-  assert.match(page({ sessions: [thread("t1")] }), /Open session/);
-  assert.match(page({ sessions: [thread("t1"), thread("t2")] }), /aria-label="2 sessions"[^>]*aria-haspopup="menu"[\s\S]*Sessions 2/);
+test("the file tree groups the files by folder, marks the current one and dims a collapsed test file", () => {
+  const files = [file("web/src/a.ts", { additions: 4, deletions: 2 }), file("web/src/b.ts"), file("web/test/a.test.ts"), file("README.md")];
+  const html = renderToStaticMarkup(<FileNav files={files} open={(path) => path !== "web/test/a.test.ts"} active="web/src/a.ts" onPick={() => {}} />);
+  assert.match(html, /<nav class="pulls-file-nav" aria-label="Changed files">/);
+  assert.match(html, /Files <span class="pulls-file-count">4<\/span>/);
+  // "web" holds two folders, so it stays a folder; "src" and "test" are its children.
+  assert.match(html, /aria-expanded="true"[^>]*>.*<span class="ui-tree-name"[^>]*>web<\/span>/);
+  assert.match(html, /<span class="ui-tree-name"[^>]*>src<\/span>[\s\S]*<span class="ui-tree-name"[^>]*>test<\/span>/);
+  assert.match(html, /class="ui-tree-row active"[^>]*aria-current="true" aria-label="web\/src\/a.ts"[^>]*>.*a.ts<\/span><span class="pr-diff-counts"><span class="add">\+4<\/span> <span class="del">-2/);
+  assert.match(html, /class="ui-tree-row dim"[^>]*aria-label="web\/test\/a.test.ts \(test\)"/);
+  assert.match(html, /aria-label="README.md"/);
+  assert.doesNotMatch(renderToStaticMarkup(<FileNav files={files} open={() => true} active={null} onPick={() => {}} />), /dim|aria-current/);
+});
+
+test("the detail is a list page: the header above the scroll box, the diff inside it", () => {
+  const html = page();
+  assert.match(html, /<section class="list-page pulls-detail" aria-label="Pull request"><div class="list-page-head"><header class="pulls-head">/);
+  assert.match(html, /<div class="list-page-body page-scroll"><div class="pulls-detail-grid">.*data-pr-diff-file="src\/a.ts"/);
+  assert.match(html, /<a [^>]*href="https:\/\/example.test\/acme\/storefront\/pull\/12"[^>]*>.*Open on GitHub/);
+  // A static render is narrow: the file list waits in a sheet behind the header button.
+  assert.match(html, /aria-label="Changed files"/);
+  assert.match(html, /role="dialog" aria-modal="true" aria-label="Changed files"/);
 });
 
 test("the detail shows a loader before the data and keeps errors apart", () => {

@@ -113,7 +113,8 @@ input.field { height: var(--control-md); padding-block: 0; }
 .btn, .icon-button { display: inline-flex; align-items: center; justify-content: center; gap: 8px; flex: none; white-space: nowrap; }
 .btn.md { height: var(--control-md); padding: 0 12px; }
 .btn.sm { height: var(--control-sm); padding: 0 10px; font-size: 12px; }
-.icon-button { padding: 0; color: var(--text-secondary); }
+/* a.icon-button too: the base link rule above would give an IconButtonLink the padding of a text button. */
+.icon-button, a.icon-button { padding: 0; color: var(--text-secondary); }
 .icon-button.has-update { position: relative; }
 .icon-button.has-update::after { content: ""; position: absolute; top: 8px; right: 8px; width: 8px; height: 8px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 0 2px var(--surface-0); }
 .icon-button.md { min-width: var(--control-md); height: var(--control-md); }
@@ -170,6 +171,7 @@ kbd { font: 11px/1 system-ui, -apple-system, "Segoe UI", sans-serif; padding: 2p
   --page-bottom: 24px; /* space after the last content, inside the scroll box */
   --page-ring: 4px; /* room for focus rings around a scroll box's content */
   --page-gap: 16px; /* toolbar to list */
+  --toolbar-control: var(--control-md); /* the one height of every toolbar control */
 }
 /* The page never scrolls: main fills the window and each view scrolls its own areas. */
 main { flex: 1; min-height: 0; overflow: hidden; padding: var(--page-top) var(--page-x) 0; display: flex; flex-direction: column; gap: 28px; }
@@ -180,6 +182,10 @@ main { flex: 1; min-height: 0; overflow: hidden; padding: var(--page-top) var(--
 /* List pages (ListPage): the head stays outside the scroll box, so it never moves while the list scrolls. */
 .list-page { flex: 1; min-height: 0; display: flex; flex-direction: column; gap: var(--page-gap); }
 .list-page-head { flex: none; background: var(--page-bg); }
+/* One height for each toolbar control: a segmented control or a menu must not make one page's list start lower. */
+.list-page-head :is(.segmented, .search-field .field, .dropdown-trigger, .tabs button, .btn.md, .icon-button.md) { height: var(--toolbar-control); }
+.list-page-head .segmented { padding-block: 2px; }
+.list-page-head :is(.dropdown-trigger, .tabs button) { padding-block: 0; }
 /* page-shell:end */
 .project-icon { flex: none; width: 16px; height: 16px; }
 .provider-icon { flex: none; width: 20px; height: 20px; margin-top: 1px; }
@@ -735,6 +741,13 @@ ol.install-steps { padding-left: 18px; }
 .ui-sheet { position: fixed; z-index: 15; top: var(--header-h, 0px); right: 0; bottom: 0; width: min(380px, 100vw); display: flex; flex-direction: column; background: var(--page-bg); box-shadow: -8px 0 24px color-mix(in srgb, #000 28%, transparent); transform: translateX(100%); visibility: hidden; transition: transform 200ms cubic-bezier(0.2, 0, 0, 1), visibility 0s 200ms; }
 .ui-sheet.wide { width: min(600px, 100vw); }
 .ui-sheet.open { transform: none; visibility: visible; transition-delay: 0s; }
+/* Tree (kit): folders and files, one row look for every file tree. */
+.ui-tree { list-style: none; margin: 0; padding: 0; }
+.ui-tree-row { width: 100%; display: flex; align-items: center; gap: 6px; padding: 5px 8px; border: 0; border-radius: var(--radius-md); background: none; color: var(--text-primary); font: inherit; text-align: left; }
+.ui-tree-row > .icon { flex: none; width: 14px; height: 14px; color: var(--text-secondary); }
+.ui-tree-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ui-tree-row.active { background: var(--surface-0); }
+@media (hover: hover) { .ui-tree-row:not(.active):hover { background: color-mix(in srgb, var(--text-primary) 6%, transparent); } }
 .ui-sheet:focus { outline: none; }
 .auto-sheet-head { flex: none; display: flex; flex-direction: column; gap: 8px; padding: 16px 20px; border-bottom: 1px solid var(--line); }
 .auto-sheet-top { display: flex; align-items: center; gap: 8px; }
@@ -1175,11 +1188,10 @@ ol.install-steps { padding-left: 18px; }
   .news-body { font-size: 16px; }
 }
 /* Pull requests: the open pull requests and one pull request's diff. */
-.pulls-page { --pulls-bar: 44px; flex: 1; min-height: 0; display: flex; flex-direction: column; }
-/* The list is a ListPage; the detail is one page-scroll box, so its diff bar sticks under the PR header. */
+.pulls-page { flex: 1; min-height: 0; display: flex; flex-direction: column; }
+/* The list and the detail are ListPages: the detail's header stays above the scroll box, so it never moves. */
 .pulls-list .list-page-body { display: flex; flex-direction: column; gap: 16px; }
 .pulls-list .list-page-body > * { flex: none; }
-.pulls-detail { display: flex; flex-direction: column; gap: 16px; }
 .pulls-tools { display: flex; flex-direction: column; gap: 8px; }
 .pulls-search-row { display: flex; align-items: center; gap: 8px; }
 .pulls-search { flex: 1; min-width: 0; max-width: 360px; }
@@ -1197,13 +1209,24 @@ ol.install-steps { padding-left: 18px; }
 .pulls-row-meta { font-size: 12px; color: var(--text-secondary); overflow-wrap: anywhere; }
 .pulls-row-session { flex: none; }
 .pulls-badges { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
-.pulls-detail-head { display: flex; flex-direction: column; gap: 8px; align-items: flex-start; }
-.pulls-back { margin-left: -8px; }
-.pulls-title { margin: 0; font-size: 20px; line-height: 1.3; overflow-wrap: anywhere; }
+.pulls-head { display: flex; flex-direction: column; gap: 4px; }
+.pulls-head-row { display: flex; align-items: center; gap: 8px; min-width: 0; }
+/* The arrow icon lines up with the page edge, like the first content of the other pages. */
+.pulls-back { flex: none; margin-left: calc((var(--control-sm) - 16px) / -2); }
+.pulls-title { flex: 1; min-width: 0; margin: 0; font-size: 18px; line-height: var(--control-md); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .pulls-num { color: var(--text-secondary); font-weight: 400; }
-.pulls-meta { margin: 0; font-size: 13px; color: var(--text-secondary); overflow-wrap: anywhere; }
+.pulls-head-actions { flex: none; display: flex; align-items: center; gap: 6px; }
+.pulls-head-meta { display: flex; align-items: center; justify-content: space-between; gap: 6px 16px; flex-wrap: wrap; min-width: 0; }
+.pulls-head .pulls-head-meta { padding-left: calc(var(--control-sm) - (var(--control-sm) - 16px) / 2 + 8px); }
+.pulls-meta { flex: 1 1 320px; min-width: 0; margin: 0; font-size: 13px; color: var(--text-secondary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .pulls-meta code { font-family: var(--font-mono); font-size: 12px; }
-.pulls-detail-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+.pulls-status { display: inline-flex; align-items: center; gap: 4px; padding: 2px 4px 2px 2px; border: 0; border-radius: var(--radius-sm); background: none; color: var(--text-secondary); font: inherit; cursor: pointer; }
+@media (hover: hover) { .pulls-status:hover { background: var(--surface-0); } }
+.pulls-checks-pop { padding: 10px 12px; max-width: min(380px, calc(100vw - 16px)); }
+.pulls-checks-panel { display: flex; flex-direction: column; gap: 6px; }
+.pulls-panel-title { margin: 0; font-size: 12px; font-weight: 600; color: var(--text-secondary); }
+.pulls-checks-panel ul + .pulls-panel-title, .pulls-checks-panel p + .pulls-panel-title { margin-top: 6px; }
+.pulls-panel-empty { margin: 0; font-size: 13px; color: var(--text-secondary); }
 .pulls-checks, .pulls-reviews { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 4px; font-size: 13px; }
 .pulls-check { display: flex; align-items: center; gap: 8px; min-width: 0; }
 .pulls-check a, .pulls-check span:not(.pulls-check-state) { overflow-wrap: anywhere; color: inherit; }
@@ -1212,15 +1235,28 @@ ol.install-steps { padding-left: 18px; }
 .pulls-check.failure .icon { color: var(--danger); }
 .pulls-check.pending .icon { color: var(--warn); }
 .pulls-check.skipped, .pulls-check.neutral { color: var(--text-secondary); }
-.pulls-check-state { margin-left: auto; font-size: 12px; color: var(--text-secondary); }
+.pulls-check-state { margin-left: auto; padding-left: 12px; font-size: 12px; color: var(--text-secondary); }
+/* The scroll box is a size container: the sticky file list fits its height with cqh. */
+.pulls-detail .list-page-body { container-type: size; }
+.pulls-detail-grid { display: grid; grid-template-columns: minmax(0, 1fr); gap: 16px; align-items: start; }
+.pulls-detail-grid.with-files { grid-template-columns: 280px minmax(0, 1fr); }
+.pulls-detail-main { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+.pulls-detail-side { position: sticky; top: 0; display: flex; flex-direction: column; max-height: calc(100cqh + var(--page-bottom) - var(--page-ring)); }
+.pulls-file-nav { flex: 1; min-height: 0; display: flex; flex-direction: column; gap: 6px; }
+.ui-sheet .pulls-file-nav { padding: 16px 12px; }
+.pulls-file-nav .pulls-panel-title { padding-left: 8px; }
+.pulls-file-count { font-weight: 400; }
+.pulls-file-tree { flex: 1; min-height: 0; overflow-y: auto; font-size: 12px; }
+.pulls-file-tree .ui-tree-row { padding-block: 3px; }
+.pulls-file-tree .ui-tree-row.active { box-shadow: inset 2px 0 var(--accent); }
+.pulls-file-tree .ui-tree-row.active .ui-tree-name { font-weight: 600; }
+.pulls-file-tree .ui-tree-row.dim { opacity: 0.5; }
 .pr-diff { display: flex; flex-direction: column; gap: 12px; }
 /* Sticks at the scroll box's very top: it covers the ring room too. */
-.pr-diff-bar { position: sticky; top: calc(-1 * var(--page-ring)); z-index: 3; display: flex; align-items: center; gap: 8px; min-height: var(--pulls-bar); margin-inline: calc(-1 * var(--page-ring)); padding: 0 var(--page-ring); background: var(--page-bg); border-bottom: 1px solid var(--line); overflow-x: auto; }
-.pr-diff-bar > * { flex: none; }
 .pr-diff-files { display: flex; flex-direction: column; gap: 12px; }
 .pr-diff-file { border: 1px solid var(--line); border-radius: var(--radius-lg); background: var(--surface-1); overflow: clip; }
 /* Opaque and square while stuck, so nothing shows through; the file clips its own corners. */
-.pr-diff-file-head { position: sticky; top: calc(var(--pulls-bar) - var(--page-ring)); z-index: 2; display: flex; align-items: center; gap: 8px; width: 100%; padding: 8px 12px; border: 0; border-radius: 0; background: var(--surface-1); color: inherit; text-align: left; font: inherit; font-size: 13px; }
+.pr-diff-file-head { position: sticky; top: calc(-1 * var(--page-ring)); z-index: 2; display: flex; align-items: center; gap: 8px; width: 100%; padding: 8px 12px; border: 0; border-radius: 0; background: var(--surface-1); color: inherit; text-align: left; font: inherit; font-size: 13px; }
 .pr-diff-file-head.open { border-bottom: 1px solid var(--line); }
 @media (hover: hover) { .pr-diff-file-head:hover { background: color-mix(in srgb, var(--surface-1), var(--text-primary) 5%); } }
 .pr-diff-file-head .disclosure { flex: none; color: var(--text-secondary); }
@@ -1272,6 +1308,8 @@ ol.install-steps { padding-left: 18px; }
   .pulls-row-session { margin-left: 10px; }
   .pr-diff-no { width: 36px; min-width: 36px; padding: 0 4px; }
   .pr-diff-file-head { padding: 10px; }
+  .pulls-title { white-space: normal; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; line-height: 1.3; font-size: 16px; }
+  .pulls-meta { white-space: normal; overflow-wrap: anywhere; }
 }
 .auto-result { display: flex; flex-direction: column; gap: 10px; }
 .auto-result dl { display: grid; grid-template-columns: max-content 1fr; gap: 6px 12px; margin: 0; }

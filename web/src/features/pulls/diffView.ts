@@ -31,3 +31,12 @@ export function toolbarOf(files: DiffFile[], open: (path: string) => boolean): {
   const tests = files.filter((file) => isTestFile(file.path));
   return { hasTests: tests.length > 0, anyOpen: files.some((file) => open(file.path)), testsOpen: tests.some((file) => open(file.path)) };
 }
+
+/** The file under the reading line: the last one whose top is at or above it, else the first. */
+export function currentIndex(tops: number[], line: number): number {
+  let index = 0;
+  tops.forEach((top, i) => {
+    if (top <= line) index = i;
+  });
+  return index;
+}

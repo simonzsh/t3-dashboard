@@ -1,6 +1,6 @@
 import { afterEach, test } from "bun:test";
 import assert from "node:assert/strict";
-import { browserStorage, readJson, readKey, writeKey } from "../../src/lib/storage.ts";
+import { browserStorage, jsonPrefs, readJson, readKey, writeKey } from "../../src/lib/storage.ts";
 import { memoryStore } from "../fixtures.ts";
 
 const original = Object.getOwnPropertyDescriptor(globalThis, "localStorage");
@@ -40,4 +40,14 @@ test("readJson parses a key and gives null when it is missing or broken", () => 
   assert.equal(readJson(store, "broken"), null);
   assert.equal(readJson(store, "missing"), null);
   assert.equal(readJson(null, "ok"), null);
+});
+
+test("jsonPrefs reads and writes one JSON object under its key, through the parser", () => {
+  const prefs = jsonPrefs("k", (data) => ({ n: typeof (data as { n?: unknown } | null)?.n === "number" ? (data as { n: number }).n : 0 }));
+  const store = memoryStore();
+  assert.deepEqual(prefs.load(store), { n: 0 });
+  prefs.save(store, { n: 3 });
+  assert.equal(store.data.get("k"), '{"n":3}');
+  assert.deepEqual(prefs.load(store), { n: 3 });
+  assert.deepEqual(prefs.load(null), { n: 0 });
 });

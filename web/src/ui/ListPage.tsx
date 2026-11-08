@@ -1,21 +1,23 @@
-import type { HTMLAttributes, ReactNode } from "react";
+import type { HTMLAttributes, ReactNode, Ref } from "react";
 
 interface Props extends Omit<HTMLAttributes<HTMLElement>, "children"> {
   /** Search, filters and actions: they stay put while the body scrolls. */
   head: ReactNode;
   headClassName?: string;
   bodyClassName?: string;
+  /** The scroll box, for a view that follows or sets its scroll position. */
+  bodyRef?: Ref<HTMLDivElement>;
   children: ReactNode;
 }
 
 const join = (base: string, extra?: string) => (extra ? `${base} ${extra}` : base);
 
 // The head sits outside the scroll box, so it never moves. A sticky head inside the box shifts by its padding.
-export function ListPage({ head, headClassName, bodyClassName, className, children, ...rest }: Props) {
+export function ListPage({ head, headClassName, bodyClassName, bodyRef, className, children, ...rest }: Props) {
   return (
     <section className={join("list-page", className)} {...rest}>
       <div className={join("list-page-head", headClassName)}>{head}</div>
-      <div className={join("list-page-body page-scroll", bodyClassName)}>{children}</div>
+      <div ref={bodyRef} className={join("list-page-body page-scroll", bodyClassName)}>{children}</div>
     </section>
   );
 }

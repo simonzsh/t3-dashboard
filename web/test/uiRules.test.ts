@@ -1,5 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "bun:test";
+import { readdirSync, readFileSync } from "node:fs";
+import { join } from "node:path";
 import { tsxSources } from "./fixtures.ts";
 
 const sources = tsxSources();
@@ -223,4 +225,92 @@ test("every control in the session header is a kit icon button, so all share one
   assert.doesNotMatch(block, /<Button\b|\btext=/);
   const menu = window.slice(window.indexOf("function PullRequestsButton"), window.indexOf("export const SessionWindow"));
   assert.doesNotMatch(menu, /<Button\b|\btext=/);
+});
+
+// --- Toolbars: one control height, so a segmented control or a menu never moves a page's list down. ---
+const TOOLBAR_CONTROLS = [".segmented", ".search-field .field", ".dropdown-trigger", ".tabs button", ".btn.md", ".icon-button.md"];
+const SIZING = /(^|;)\s*(height|min-height|max-height|padding(-top|-bottom|-block)?|border(-width|-top|-bottom)?)\s*:/;
+const TOKEN_RULE = /\.list-page-head :is\(([^)]*)\) \{ height: var\(--toolbar-control\); \}/;
+
+// Classes of the pages built on ListPage: a sizing rule under one of them could size a toolbar control apart.
+function pageClasses(): string[] {
+  const out = new Set<string>([".list-page-head"]);
+  for (const { text } of sources) {
+    if (!/<ListPage\b/.test(text)) continue;
+    for (const m of text.matchAll(/className="([^"]+)"/g)) for (const c of m[1]!.split(/\s+/)) if (c) out.add(`.${c}`);
+  }
+  return [...out];
+}
+
+function toolbarViolations(text: string): string[] {
+  const start = text.indexOf(SHELL_START);
+  const end = text.indexOf(SHELL_END);
+  const outside = text.slice(0, start) + text.slice(end + SHELL_END.length);
+  const pages = pageClasses();
+  const hits: string[] = [];
+  for (const [selectors, body] of rulesOf(outside)) {
+    if (!SIZING.test(body)) continue;
+    for (const selector of selectors.split(",").map((part) => part.trim())) {
+      const parts = selector.split(/\s+/);
+      const ancestors = parts.slice(0, -1).join(" ");
+      if (!pages.some((cls) => new RegExp(`${cls.replace(".", "\\.")}(?![\\w-])`).test(ancestors))) continue;
+      if (TOOLBAR_CONTROLS.some((control) => selector.endsWith(control.split(" ").pop()!) || selector.includes(control))) hits.push(selector);
+    }
+  }
+  return hits;
+}
+
+test("every toolbar control kind takes the one toolbar height token, set in the page-shell block", () => {
+  const shell = css.slice(css.indexOf(SHELL_START), css.indexOf(SHELL_END));
+  assert.match(shell, /--toolbar-control: var\(--control-md\);/);
+  const covered = shell.match(TOKEN_RULE)?.[1]?.split(",").map((s) => s.trim()) ?? [];
+  assert.deepEqual([...covered].sort(), [...TOOLBAR_CONTROLS].sort());
+  // The md buttons already have this height: the token must stay equal to it.
+  assert.match(css, /\.btn\.md \{ height: var\(--control-md\);/);
+  assert.match(css, /\.icon-button\.md \{ min-width: var\(--control-md\); height: var\(--control-md\);/);
+});
+
+test("no page sizes a toolbar control on its own", () => {
+  assert.deepEqual(toolbarViolations(css), []);
+});
+
+test("the toolbar guard sees a page that sizes one of its toolbar controls", () => {
+  assert.deepEqual(toolbarViolations(`${css}\n.auto-toolbar .segmented { padding: 3px; }\n`), [".auto-toolbar .segmented"]);
+  assert.deepEqual(toolbarViolations(`${css}\n.pulls-filters .dropdown-trigger { height: 26px; }\n`), [".pulls-filters .dropdown-trigger"]);
+  assert.deepEqual(toolbarViolations(`${css}\n.model-footer .segmented { padding: 2px; }\n`), []);
+});
+
+// --- Page choices: filters, sorts and views persist through one helper (lib/storage.ts). ---
+const FILTER_CONTROL = /<(Segmented|Dropdown|Tabs|ToggleGroup)\b[^>]*?\bvalue=\{([^}]*)\}/g;
+
+function unsavedFilters(text: string): string[] {
+  if (!/<ListPage\b/.test(text)) return [];
+  const local = new Set([...text.matchAll(/const \[(\w+), \w+\] = useState\b/g)].map((m) => m[1]!));
+  return [...text.matchAll(FILTER_CONTROL)].filter((m) => (m[2]!.match(/\w+/g) ?? []).some((name) => local.has(name))).map((m) => `${m[1]} value={${m[2]}}`);
+}
+
+test("the filters of a list page are kept with usePrefs, not in local state", () => {
+  const found = sources.flatMap(({ file, text }) => unsavedFilters(text).map((hit) => `${file}: ${hit}`));
+  assert.deepEqual(found, []);
+});
+
+test("the filter guard sees a list filter held in useState", () => {
+  const page = `const [scope, setScope] = useState("all");\nreturn <ListPage head={<Segmented label="Show" value={scope} options={SCOPES} onChange={setScope} />} />;`;
+  assert.deepEqual(unsavedFilters(page), ["Segmented value={scope}"]);
+  assert.deepEqual(unsavedFilters(page.replace("<ListPage", "<div")), []);
+});
+
+const allSources = (() => {
+  const root = join(import.meta.dir, "../src");
+  return readdirSync(root, { recursive: true })
+    .map(String)
+    .filter((file) => /\.tsx?$/.test(file))
+    .map((file) => ({ file, text: readFileSync(join(root, file), "utf8").replace(/\/\*[\s\S]*?\*\/|\/\/.*$/gm, "") }));
+})();
+
+test("only lib/storage.ts touches browser storage, and every prefs hook goes through usePrefs", () => {
+  assert.deepEqual(allSources.filter(({ file, text }) => file !== "lib/storage.ts" && /\b(localStorage|sessionStorage)\b/.test(text)).map(({ file }) => file), []);
+  const hooks = allSources.filter(({ file, text }) => file !== "lib/storage.ts" && /export (const|function) use\w*Prefs\b/.test(text));
+  assert.ok(hooks.length >= 3, "the guard finds the prefs hooks");
+  assert.deepEqual(hooks.filter(({ text }) => !/\busePrefs\(/.test(text)).map(({ file }) => file), []);
 });
