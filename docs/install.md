@@ -121,6 +121,27 @@ File format:
 - An old file can contain `teams` and `unlisted`. The server ignores them and removes them at the next write.
 - The server still reads the old `{ "workspaces": [...] }` format. It uses the first key that is not empty and ignores the others. The first save from Settings writes the simple format.
 
+## Alerts
+
+Alerts are optional. They send a message to your phone when a session needs you or ends, even when no browser tab is open. The dashboard sends them through [ntfy](https://ntfy.sh), a free notification service.
+
+1. On your phone, install the ntfy app (App Store or Google Play).
+2. In Settings, open the Alerts section and click "Set up". The dashboard makes a private topic. To use a topic that you already have, paste it in "Use an existing topic" instead.
+3. In the ntfy app, subscribe to the topic that Settings shows.
+4. Click "Send test alert" to check the link.
+
+The topic name is the only secret. Anyone who knows it can read your alerts and send messages to it. The topic is long and random for this reason. Do not share it.
+
+To use your own ntfy server, enter its URL in the "Use an existing topic" form. The default server is `https://ntfy.sh`.
+
+The server keeps the settings in `~/.config/t3-dashboard/alerts.json` (mode 600): the server, the topic and the armed sessions. If the server is down when a session ends, the alert is lost.
+
+File format:
+
+```json
+{ "version": 1, "server": "https://ntfy.sh", "topic": "t3-dashboard-...", "armed": [{ "threadId": "...", "clickUrl": "...", "armedAt": "..." }] }
+```
+
 ## Updates
 
 ### From the dashboard
@@ -179,7 +200,7 @@ The dashboard has no authentication. Each person who can reach the address can c
 | Variable | Default | Purpose |
 | --- | --- | --- |
 | `PORT` | `4300` | Local port. The server still listens on `127.0.0.1`. `--port` has priority. An empty value, an invalid value or `0` gives `4300`. |
-| `T3_DASHBOARD_CONFIG_DIR` | `~/.config/t3-dashboard` | Folder of `auth.json`, `linear.json` and `automation-threads.json`. |
+| `T3_DASHBOARD_CONFIG_DIR` | `~/.config/t3-dashboard` | Folder of `auth.json`, `linear.json`, `alerts.json` and `automation-threads.json`. |
 | `T3_DASHBOARD_TOKEN_FILE` | none | JSON file with the `token` field. Without it, the dashboard keeps its own token. With it, the setup screen refuses a pasted token: put the token in this file. |
 | `T3_DASHBOARD_ALLOWED_HOSTS` | none | Comma-separated host names, without a port. They are added to `127.0.0.1` and `localhost` for the `Host` and `Origin` headers. See [Remote access](#remote-access). |
 | `T3_DASHBOARD_T3_BIN` | automatic search | Absolute path of `t3`. |
