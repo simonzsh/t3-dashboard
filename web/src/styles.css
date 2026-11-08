@@ -1056,9 +1056,9 @@ main:has(> .auto-page) { padding-top: calc(var(--page-top) - 8px); }
   .page-actions .header-new { border-radius: 12px; }
   .app-column { padding-bottom: calc(var(--bottom-bar) + env(safe-area-inset-bottom)); }
   /* The Dashboard scrolls the page itself, so Safari's floating address bar sits over the content instead of under a cut-off box. */
-  .app:not(.sessions-mode, .automations-mode) { height: auto; min-height: 100dvh; overflow: visible; }
-  .app:not(.sessions-mode, .automations-mode) :is(main, .dashboard) { flex: none; overflow: visible; }
-  .app:not(.sessions-mode, .automations-mode) main { padding-bottom: 24px; }
+  .app:not(.sessions-mode, .automations-mode, .news-mode) { height: auto; min-height: 100dvh; overflow: visible; }
+  .app:not(.sessions-mode, .automations-mode, .news-mode) :is(main, .dashboard) { flex: none; overflow: visible; }
+  .app:not(.sessions-mode, .automations-mode, .news-mode) main { padding-bottom: 24px; }
   /* The keyboard covers the bottom bar and the home indicator: the composer sits right on top of it. */
   .keyboard-open .bottom-nav { display: none; }
   .keyboard-open .app .app-column { padding-bottom: 0; }
@@ -1176,18 +1176,15 @@ main:has(> .news-page) { padding-top: calc(var(--page-top) - 4px); }
 .news-body p, .news-body ul, .news-body ol { margin-bottom: 1em; }
 /* After the base rules above: same specificity, so the later rule wins on a phone. */
 @media (max-width: 700px) {
-  /* The page scrolls; the list and the article take turns. */
-  main:has(> .news-page) { padding-top: var(--page-top); }
-  .news-page { flex: none; display: block; }
+  /* Like Automations, the page holds still: only the article list, or the open article, scrolls under the bar. */
+  main:has(> .news-page) { padding-bottom: 0; }
+  .news-page { display: flex; flex-direction: column; }
   /* No list beside the article on a phone: full width, nothing pushes the text right. */
   .news-page > * { --news-list-space: 0px; }
   .news-page:not(.empty) > .news-list { width: auto; }
-  .news-list, .news-article { overflow: visible; margin: 0; padding: 0; }
-  /* The page scrolls on a phone: the head sticks under the fixed header instead. */
-  .news-list-head { position: sticky; z-index: 2; top: var(--header-h, 64px); padding: 8px 0; margin-top: -8px; }
-  .news-list-scroll { overflow: visible; margin: 0; padding: 0; }
-  /* The page scrolls under the fixed header: keep the back button in view. */
-  .news-article { scroll-margin-top: calc(var(--header-h, 64px) + 8px); }
+  .news-list { flex: 1; margin: 0; }
+  .news-list-scroll { padding-bottom: 16px; }
+  .news-article { flex: 1; margin: 0; padding: 0 0 16px; }
   .news-page:not(.reading) .news-article, .news-page.reading .news-list { display: none; }
   .news-item { padding: 12px 10px; }
   .news-back { display: inline-flex; margin: 0 0 4px -8px; }

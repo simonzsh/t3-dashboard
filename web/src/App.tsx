@@ -250,7 +250,7 @@ export function App() {
 
   return (
     <AutomationThreadsContext.Provider value={automationThreads}>
-      <div className={`app${tab === "sessions" ? " sessions-mode" : ""}${tab === "automations" ? " automations-mode" : ""}${sessionShown ? " session-shown" : ""}${sheetShown ? " sheet-shown" : ""}`}>
+      <div className={`app${tab === "sessions" ? " sessions-mode" : ""}${tab === "automations" ? " automations-mode" : ""}${tab === "news" ? " news-mode" : ""}${sessionShown ? " session-shown" : ""}${sheetShown ? " sheet-shown" : ""}`}>
         <TooltipLayer />
         <AppNav
           layout={compact ? "bottom" : "side"}

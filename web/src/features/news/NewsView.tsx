@@ -86,9 +86,9 @@ export function NewsView({ news, writing, now, compact, seen, onRead, onOpenThre
     if (mark) onRead(mark);
   }, [mark?.id, mark?.at, onRead]);
 
-  // Phone: the article is shown only now, so bring it to the top of the page.
+  // Phone: the article scrolls on its own, so a newly opened one starts at its top.
   useEffect(() => {
-    if (reading) articleRef.current?.scrollIntoView({ block: "start" });
+    if (reading && articleRef.current) articleRef.current.scrollTop = 0;
   }, [reading, picked]);
 
   // The new article is shown when the run ends, even if an older one was picked.
