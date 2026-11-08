@@ -1,9 +1,10 @@
-import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import type { NewsArticle, NewsArticleSummary, NewsState } from "../../../../shared/api.ts";
 import type { SeenState } from "../../../../shared/seen.ts";
 import { useApi } from "../../api/ApiContext.tsx";
 import { failure } from "../../lib/format.ts";
 import { renderMarkdown } from "../../lib/markdown.tsx";
+import { useDebouncedValue } from "../../lib/useDebouncedValue.ts";
 import { Button, Icon, IconButton, Loader, Pressable, TextInput } from "../../ui/index.ts";
 import { DeleteNewsDialog } from "./DeleteNewsDialog.tsx";
 import { dateLabel, filterArticles, isUnreadArticle, readTarget, SEARCH_DEBOUNCE_MS, shortDate, statusLine } from "./news.ts";
@@ -26,13 +27,10 @@ interface Props {
   /** Delete one article, or all of them. They throw when the server refuses. */
   onDelete: (date: string) => Promise<void>;
   onDeleteAll: () => Promise<void>;
-  /** The search box text and its matching dates at the first render (tests). */
-  initialQuery?: string;
-  initialMatches?: string[];
 }
 
 /** The article list and the open article. On a phone they take turns: the list, then the article with a back button. */
-export function NewsView({ news, writing, now, compact, listHidden = false, seen, onRead, onOpenThread, onDelete, onDeleteAll, initialQuery = "", initialMatches }: Props) {
+export function NewsView({ news, writing, now, compact, listHidden = false, seen, onRead, onOpenThread, onDelete, onDeleteAll }: Props) {
   const api = useApi();
   const { articles, task, running } = news;
   const [picked, setPicked] = useState<string | null>(null);
@@ -47,9 +45,9 @@ export function NewsView({ news, writing, now, compact, listHidden = false, seen
   // The delete dialog: one article, or "all".
   const [deleting, setDeleting] = useState<NewsArticleSummary | "all" | null>(null);
   // The search box, its debounced text, and the dates the server found for the last answered text.
-  const [query, setQuery] = useState(initialQuery);
-  const [term, setTerm] = useState(initialQuery.trim());
-  const [matches, setMatches] = useState<string[] | null>(initialMatches ?? null);
+  const [query, setQuery] = useState("");
+  const term = useDebouncedValue(query.trim(), SEARCH_DEBOUNCE_MS);
+  const [matches, setMatches] = useState<string[] | null>(null);
   const date = (articles.some((a) => a.date === picked) ? picked : articles[0]?.date) ?? null;
   // A second run on the same day rewrites that day's file: a new mtime reloads it.
   const mtimeMs = articles.find((a) => a.date === date)?.mtimeMs ?? null;
@@ -67,10 +65,6 @@ export function NewsView({ news, writing, now, compact, listHidden = false, seen
     };
   }, [date, mtimeMs]);
 
-  useEffect(() => {
-    const timer = setTimeout(() => setTerm(query.trim()), SEARCH_DEBOUNCE_MS);
-    return () => clearTimeout(timer);
-  }, [query]);
   // A new run or a delete changes the files: search again.
   const files = articles.map((a) => `${a.date}:${a.mtimeMs}`).join();
   useEffect(() => {
@@ -106,6 +100,7 @@ export function NewsView({ news, writing, now, compact, listHidden = false, seen
     wasWriting.current = writing;
   }, [writing]);
 
+  const body = useMemo(() => (article ? renderMarkdown(article.markdown) : null), [article?.markdown]);
   const line = statusLine(task, now);
   const status = line ? <p className="news-status">{line}</p> : null;
   const progress = writing && (
@@ -119,6 +114,8 @@ export function NewsView({ news, writing, now, compact, listHidden = false, seen
       )}
     </li>
   );
+  // Dates and file times, not the array: it is new on every render.
+  const visibleKey = visible.map((a) => a.date + a.mtimeMs).join();
   // Before any early return: a hook skipped on some renders breaks React (empty list after Delete all).
   useLayoutEffect(() => {
     const list = listRef.current;
@@ -133,7 +130,7 @@ export function NewsView({ news, writing, now, compact, listHidden = false, seen
     const observer = new ResizeObserver(measure);
     observer.observe(list);
     return () => observer.disconnect();
-  }, [date, compact, visible, writing]);
+  }, [date, compact, visibleKey, writing]);
 
   if (articles.length === 0) {
     return (
@@ -158,7 +155,7 @@ export function NewsView({ news, writing, now, compact, listHidden = false, seen
         <section className="news-list" aria-label="News">
           {status}
           <div className="news-tools">
-            <div className="news-search">
+            <div className="auto-search">
               <Icon name="search" />
               <TextInput aria-label="Search news" placeholder="Search news…" value={query} onChange={(e) => setQuery(e.target.value)} />
             </div>
@@ -212,7 +209,7 @@ export function NewsView({ news, writing, now, compact, listHidden = false, seen
         ) : shown ? (
           <>
             <p className="news-article-date">{dateLabel(shown.date)}</p>
-            <div className="md news-body">{renderMarkdown(shown.markdown)}</div>
+            <div className="md news-body">{body}</div>
           </>
         ) : (
           <Loader />

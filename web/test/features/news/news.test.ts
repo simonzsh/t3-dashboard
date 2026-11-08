@@ -4,7 +4,7 @@ import type { DashboardProvider, NewsSettings, NewsTask } from "../../../../shar
 import type { SeenState } from "../../../../shared/seen.ts";
 import { prune } from "../../../../shared/seen.ts";
 import { formatMessageTime } from "../../../src/lib/format.ts";
-import { isUnreadArticle, newsMark, readTarget, unreadNewsCount, dateLabel, formFromSettings, pickModel, shortDate, statusLine, pollInterval, isStarting, STARTING_MS, toBody, scheduleHint, WEEKDAYS, LANGUAGES } from "../../../src/features/news/news.ts";
+import { filterArticles, isUnreadArticle, newsMark, readTarget, unreadNewsCount, dateLabel, formFromSettings, pickModel, shortDate, statusLine, pollInterval, isStarting, STARTING_MS, toBody, scheduleHint, WEEKDAYS, LANGUAGES } from "../../../src/features/news/news.ts";
 
 const provider: DashboardProvider = { instanceId: "provider-a", displayName: "Provider A", models: [{ slug: "model-x", name: "Model X" }, { slug: "model-y", name: "Model Y" }] as never, runtimeModes: [] };
 const settings: NewsSettings = { enabled: true, frequency: "daily", weekday: 1, timeOfDay: "07:00", language: "French", modelSelection: { instanceId: "provider-a", model: "model-y" } };
@@ -146,4 +146,11 @@ test("the status line never repeats the run shown in the list", () => {
   assert.doesNotMatch(statusLine(task({ lastRunStatus: "running" }), now), /Writing/);
   assert.doesNotMatch(statusLine(task(), now), /Writing/);
   assert.equal(statusLine(task({ enabled: false, lastRunStatus: "running" }), now), "");
+});
+
+test("filterArticles keeps the matching dates in list order, and everything without an answer", () => {
+  const list = [{ date: "2026-11-07", title: "A", mtimeMs: 2 }, { date: "2026-11-06", title: "B", mtimeMs: 1 }];
+  assert.deepEqual(filterArticles(list, ["2026-11-06"]).map((a) => a.date), ["2026-11-06"]);
+  assert.deepEqual(filterArticles(list, []), []);
+  assert.deepEqual(filterArticles(list, null).map((a) => a.date), ["2026-11-07", "2026-11-06"]);
 });

@@ -8,13 +8,13 @@ interface Props {
   article: { date: string; title: string } | null;
   count: number;
   /** A search is on: say that Delete all is not limited to the matches. */
-  filtered?: boolean;
+  filtered: boolean;
   /** Throws when the delete fails. */
   onConfirm: () => Promise<void>;
   onClose: () => void;
 }
 
-export function DeleteNewsDialog({ article, count, filtered = false, onConfirm, onClose }: Props) {
+export function DeleteNewsDialog({ article, count, filtered, onConfirm, onClose }: Props) {
   const [busy, setBusy] = useState(false);
   const notify = useNotify();
 
