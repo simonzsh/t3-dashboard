@@ -966,12 +966,12 @@ test("listRefs sends the limit and only the query and cursor that are set, and i
   assert.deepEqual((await second).refs, []);
 });
 
-test("vcsStatus reads the branch and the dirty flag", async () => {
+test("vcsStatus reads the local branch and dirty flag, like the T3 branch picker", async () => {
   const { client } = setup();
   const done = client.vcsStatus("/repo");
   const socket = await nextSocket();
   assert.equal(socket.sent[0]!.tag, "vcs.refreshStatus");
-  assert.deepEqual(socket.sent[0]!.payload, { cwd: "/repo" });
+  assert.deepEqual(socket.sent[0]!.payload, { cwd: "/repo", localOnly: true });
   socket.receive(ok("1", { isRepo: true, hasPrimaryRemote: false, refName: "main", hasWorkingTreeChanges: true, workingTree: { files: [] } }));
   assert.deepEqual(await done, { isRepo: true, hasPrimaryRemote: false, refName: "main", hasWorkingTreeChanges: true, workingTree: { files: [] } });
 });

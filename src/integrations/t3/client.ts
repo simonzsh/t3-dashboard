@@ -287,7 +287,7 @@ export class T3Client implements T3Port {
   }
 
   async vcsStatus(cwd: string): Promise<RawVcsStatus> {
-    return read(RawVcsStatus, await this.call(RPC.refreshVcsStatus, { cwd }), RPC.refreshVcsStatus);
+    return read(RawVcsStatus, await this.call(RPC.refreshVcsStatus, { cwd, localOnly: true }), RPC.refreshVcsStatus);
   }
 
   async switchRef(cwd: string, refName: string): Promise<string | null> {
