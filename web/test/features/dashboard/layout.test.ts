@@ -20,28 +20,30 @@ import {
 } from "../../../src/features/dashboard/layout.ts";
 import { memoryStore } from "../../fixtures.ts";
 
-const D = DEFAULT_LAYOUT;
+// The five-card layout the geometry tests were written for: the MCP card is hidden in it.
+const D = setHidden(DEFAULT_LAYOUT, "mcp", true);
 const ids = (l: DashboardLayout) => l.order.map((p) => p.id);
 const half = (id: string, column: string) => ({ id, width: "half", column });
 // Usage alone, Activity full, then Running and Up next left of Server.
-const Y = validateLayout({ order: [half("usage", "left"), { id: "activity", width: "full", column: "left" }, half("running", "left"), half("server", "right"), half("linear", "left")], hidden: [] });
+const Y = validateLayout({ order: [half("usage", "left"), { id: "activity", width: "full", column: "left" }, half("running", "left"), half("server", "right"), half("linear", "left")], hidden: ["mcp"] });
 const col = (row: number, column: "left" | "right", index: number) => ({ kind: "column", row, column, index }) as const;
 const gap = (row: number, column: "left" | "right" = "left") => ({ kind: "gap", row, column }) as const;
 
 test("the default layout has Activity full, then two stacks of half cards", () => {
-  assert.deepEqual(D, {
+  assert.deepEqual(DEFAULT_LAYOUT, {
     order: [
       { id: "activity", width: "full", column: "left" },
       { id: "usage", width: "half", column: "left" },
+      { id: "mcp", width: "half", column: "left" },
       { id: "running", width: "half", column: "right" },
       { id: "server", width: "half", column: "right" },
       { id: "linear", width: "half", column: "right" },
     ],
     hidden: [],
   });
-  assert.deepEqual(layoutRows(D), [
+  assert.deepEqual(layoutRows(DEFAULT_LAYOUT), [
     { kind: "full", card: "activity" },
-    { kind: "band", left: ["usage"], right: ["running", "server", "linear"] },
+    { kind: "band", left: ["usage", "mcp"], right: ["running", "server", "linear"] },
   ]);
   assert.equal(isDefaultLayout(validateLayout(null)), true);
 });
@@ -57,32 +59,32 @@ test("full cards side by side leave no empty band, and half cards alone make one
 });
 
 test("the cards have their titles, and Notifications is not a card", () => {
-  assert.deepEqual([CARD_TITLES.usage, CARD_TITLES.server, CARD_TITLES.activity, CARD_TITLES.running, CARD_TITLES.linear], ["Usage", "Server", "Activity", "Running", "Linear"]);
+  assert.deepEqual([CARD_TITLES.usage, CARD_TITLES.server, CARD_TITLES.activity, CARD_TITLES.running, CARD_TITLES.linear, CARD_TITLES.mcp], ["Usage", "Server", "Activity", "Running", "Linear", "MCP servers"]);
   assert.equal("notifications" in CARD_TITLES, false);
 });
 
 test("an unreadable or foreign layout gives the default", () => {
-  assert.deepEqual(validateLayout("junk"), D);
-  assert.deepEqual(validateLayout({ left: ["usage"] }), D);
-  assert.deepEqual(validateLayout({ order: "x" }), D);
+  assert.deepEqual(validateLayout("junk"), DEFAULT_LAYOUT);
+  assert.deepEqual(validateLayout({ left: ["usage"] }), DEFAULT_LAYOUT);
+  assert.deepEqual(validateLayout({ order: "x" }), DEFAULT_LAYOUT);
 });
 
 test("a layout saved before widths existed becomes the default, keeping its hidden cards", () => {
-  assert.deepEqual(validateLayout({ order: ["usage", "activity", "server", "running", "linear"], hidden: [] }), D);
+  assert.deepEqual(validateLayout({ order: ["usage", "activity", "server", "running", "linear"], hidden: [] }), DEFAULT_LAYOUT);
   const old = validateLayout({ order: ["usage", "activity", "server", "linear"], hidden: ["running"] });
-  assert.deepEqual(ids(old), ["activity", "usage", "server", "linear"]);
+  assert.deepEqual(ids(old), ["activity", "usage", "mcp", "server", "linear"]);
   assert.deepEqual(old.hidden, ["running"]);
 });
 
 test("an old custom order keeps its sequence with the default widths", () => {
-  const l = validateLayout({ order: ["running", "activity", "usage", "server"], hidden: ["linear"] });
+  const l = validateLayout({ order: ["running", "activity", "usage", "server"], hidden: ["linear", "mcp"] });
   assert.deepEqual(layoutRows(l), [
     { kind: "band", left: [], right: ["running"] },
     { kind: "full", card: "activity" },
     { kind: "band", left: ["usage"], right: ["server"] },
   ]);
   assert.deepEqual(ids(l), ["running", "activity", "usage", "server"]);
-  assert.deepEqual(l.hidden, ["linear"]);
+  assert.deepEqual(l.hidden, ["linear", "mcp"]);
 });
 
 test("a stored layout drops unknown cards, duplicates and bad values, and adds the missing cards", () => {
@@ -92,13 +94,14 @@ test("a stored layout drops unknown cards, duplicates and bad values, and adds t
     { id: "server", width: "half", column: "right" },
     { id: "running", width: "full", column: "left" },
     { id: "activity", width: "full", column: "left" },
+    { id: "mcp", width: "half", column: "left" },
   ]);
   assert.deepEqual(l.hidden, ["linear"]);
   assert.deepEqual(validateLayout({ order: [], hidden: "x" }).hidden, []);
 });
 
 test("a stored order is rebuilt band by band", () => {
-  const l = validateLayout({ order: [half("usage", "left"), half("running", "right"), half("linear", "left"), half("server", "right"), { id: "activity", width: "full" }] });
+  const l = validateLayout({ order: [half("usage", "left"), half("running", "right"), half("linear", "left"), half("server", "right"), { id: "activity", width: "full" }], hidden: ["mcp"] });
   assert.deepEqual(ids(l), ["usage", "linear", "running", "server", "activity"]);
 });
 
@@ -155,7 +158,7 @@ test("toggleWidth makes a half card full right after its band, and back", () => 
   ]);
   const back = toggleWidth(full, "linear");
   assert.deepEqual(back, D);
-  assert.equal(isDefaultLayout(back), true);
+  assert.equal(isDefaultLayout(toggleWidth(toggleWidth(DEFAULT_LAYOUT, "linear"), "linear")), true);
   // A card from the middle of a stack comes back at the bottom of its column.
   assert.deepEqual(ids(toggleWidth(toggleWidth(D, "server"), "server")), ["activity", "usage", "running", "linear", "server"]);
 });
@@ -208,7 +211,7 @@ test("resolveDrop turns a half card's gap next to a band into a column target", 
 test("hiding a card removes it from the order, and showing it puts it back at the end", () => {
   const hidden = setHidden(D, "linear", true);
   assert.deepEqual(ids(hidden), ["activity", "usage", "running", "server"]);
-  assert.deepEqual(hidden.hidden, ["linear"]);
+  assert.deepEqual(hidden.hidden, ["mcp", "linear"]);
   assert.deepEqual(setHidden(hidden, "linear", false), D);
   assert.deepEqual(ids(setHidden(setHidden(D, "running", true), "running", false)), ["activity", "usage", "server", "linear", "running"]);
   assert.deepEqual(ids(setHidden(setHidden(D, "activity", true), "activity", false)), ["usage", "running", "server", "linear", "activity"]);
@@ -222,12 +225,12 @@ test("the layout is saved and loaded, and a broken value gives the default", () 
   saveLayout(storage, moved);
   assert.deepEqual(loadLayout(storage), moved);
   storage.data.set(DASHBOARD_LAYOUT_KEY, "{not json");
-  assert.deepEqual(loadLayout(storage), D);
-  assert.deepEqual(loadLayout(null), D);
+  assert.deepEqual(loadLayout(storage), DEFAULT_LAYOUT);
+  assert.deepEqual(loadLayout(null), DEFAULT_LAYOUT);
 });
 
 test("a layout saved under the old card id keeps the place, width and column of the card", () => {
-  const l = validateLayout({ order: [{ id: "activity", width: "full", column: "left" }, { id: "usage", width: "half", column: "left" }, { id: "up-next", width: "full", column: "right" }, half("running", "right"), half("server", "right")], hidden: [] });
+  const l = validateLayout({ order: [{ id: "activity", width: "full", column: "left" }, { id: "usage", width: "half", column: "left" }, { id: "up-next", width: "full", column: "right" }, half("running", "right"), half("server", "right")], hidden: ["mcp"] });
   assert.deepEqual(ids(l), ["activity", "usage", "linear", "running", "server"]);
   assert.deepEqual(l.order.find((p) => p.id === "linear"), { id: "linear", width: "full", column: "right" });
 });
@@ -249,7 +252,7 @@ test("omitCard takes the card out of the order and leaves the hidden list alone"
   assert.deepEqual(ids(omitCard(D, "linear")), ["activity", "usage", "running", "server"]);
   const hidden = setHidden(D, "linear", true);
   assert.equal(omitCard(hidden, "linear"), hidden);
-  assert.deepEqual(omitCard(hidden, "running").hidden, ["linear"]);
+  assert.deepEqual(omitCard(hidden, "running").hidden, ["mcp", "linear"]);
 });
 
 test("restoreCard puts the omitted card back at its place after another change", () => {
@@ -264,7 +267,7 @@ test("restoreCard follows the card that preceded it, or comes first", () => {
   const view = omitCard(D, "linear");
   const withoutServer = setHidden(view, "server", true);
   assert.deepEqual(ids(restoreCard(D, withoutServer, "linear")), ["activity", "usage", "running", "linear"]);
-  const lead = validateLayout({ order: [{ id: "linear", width: "full", column: "left" }, half("usage", "left"), { id: "activity", width: "full" }, half("running", "right"), half("server", "right")] });
+  const lead = validateLayout({ order: [{ id: "linear", width: "full", column: "left" }, half("usage", "left"), { id: "activity", width: "full" }, half("running", "right"), half("server", "right")], hidden: ["mcp"] });
   assert.deepEqual(ids(restoreCard(lead, setHidden(omitCard(lead, "linear"), "running", true), "linear")), ["linear", "usage", "activity", "server"]);
 });
 

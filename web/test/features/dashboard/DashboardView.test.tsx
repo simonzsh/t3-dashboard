@@ -1,7 +1,7 @@
 import { test } from "bun:test";
 import assert from "node:assert/strict";
 import { renderToStaticMarkup } from "react-dom/server";
-import type { ActivityPeriod, DashboardState, LimitsOverview, ServerStats, UsageDay, UsageOverview, UsageTotals } from "../../../../shared/api.ts";
+import type { ActivityPeriod, DashboardState, LimitsOverview, McpOverview, ServerStats, UsageDay, UsageOverview, UsageTotals } from "../../../../shared/api.ts";
 import { DashboardView } from "../../../src/features/dashboard/DashboardView.tsx";
 import { DEFAULT_LAYOUT, setHidden, shiftCard, type DashboardLayout } from "../../../src/features/dashboard/layout.ts";
 import { AutomationThreadsContext } from "../../../src/lib/automationThreads.tsx";
@@ -58,6 +58,13 @@ const serverState = (over: Partial<ReadState<ServerStats>> = {}): ReadState<Serv
   ...over,
 });
 const fresh = { since: "2026-01-01T00:00:00.000Z", seen: {} as Record<string, string> };
+const mcpState = (over: Partial<ReadState<McpOverview>> = {}): ReadState<McpOverview> => ({
+  value: { servers: [], readAt: "2026-01-14T11:59:00.000Z", cli: { available: false, ranAt: null, error: null } },
+  error: null,
+  loading: false,
+  refresh: () => {},
+  ...over,
+});
 interface Options {
   limits?: ReadState<LimitsOverview>;
   threads?: ReturnType<typeof thread>[];
@@ -76,6 +83,7 @@ const render = (activity: ActivityState, { limits = limitsState(), threads = [th
       state={{ ...baseState(threads), providers }}
       limits={limits}
       server={serverState()}
+      mcp={mcpState()}
       activity={activity}
       now={NOW}
       sessionIds={new Set()}
@@ -231,18 +239,18 @@ test("without edit mode there is no edit bar", () => {
 
 test("edit mode shows a bar with a drag handle and the move buttons on every card, and locks the card", () => {
   const out = render(state(), { editing: true });
-  assert.equal(out.match(/class="card-edit-bar"/g)?.length, 4);
-  assert.equal(out.match(/class="card-edit-bar" draggable="true"/g)?.length, 4);
+  assert.equal(out.match(/class="card-edit-bar"/g)?.length, 5);
+  assert.equal(out.match(/class="card-edit-bar" draggable="true"/g)?.length, 5);
   assert.match(out, /aria-label="Make Activity half width"/);
   assert.match(out, /aria-label="Make Usage full width"/);
   assert.match(out, /aria-label="Hide Server"/);
-  assert.equal(out.match(/class="dashboard-slot-body" inert=""/g)?.length, 4);
+  assert.equal(out.match(/class="dashboard-slot-body" inert=""/g)?.length, 5);
 });
 
 test("a card that cannot move up or down has that button disabled", () => {
   const out = render(state(), { editing: true });
-  for (const label of ["Move Activity up", "Move Server down", "Move Usage down"]) assert.match(out, new RegExp(`<button disabled=""[^>]*aria-label="${label}"`));
-  for (const label of ["Move Usage up", "Move Running down", "Move Server up", "Move Activity down"]) assert.doesNotMatch(out, new RegExp(`<button disabled=""[^>]*aria-label="${label}"`));
+  for (const label of ["Move Activity up", "Move Server down", "Move MCP servers down"]) assert.match(out, new RegExp(`<button disabled=""[^>]*aria-label="${label}"`));
+  for (const label of ["Move Usage up", "Move Usage down", "Move Running down", "Move Server up", "Move Activity down"]) assert.doesNotMatch(out, new RegExp(`<button disabled=""[^>]*aria-label="${label}"`));
 });
 
 test("edit mode lists hidden cards so they can be shown again", () => {
@@ -355,6 +363,12 @@ test("the Server card sits in its slot, and its stats show", () => {
   const out = render(state());
   assert.match(out, /class="dashboard-slot server"/);
   assert.match(out, /devbox · Linux · up 1 h/);
+});
+
+test("the MCP servers card sits in its slot", () => {
+  const out = render(state());
+  assert.match(out, /class="dashboard-slot mcp"/);
+  assert.match(out, /<h2 id="dashboard-mcp-head">MCP servers<\/h2>/);
 });
 
 test("while the board is unknown the Linear card has no slot, in normal and edit mode", () => {

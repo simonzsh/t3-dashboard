@@ -9,6 +9,9 @@ import { SessionsStore } from "../../domain/sessionsStore.ts";
 import { StashStore } from "../../domain/stashStore.ts";
 import { SeenStore } from "../../domain/seenStore.ts";
 import { LinearBoard } from "../../domain/linearBoard.ts";
+import { createAgentSetup } from "../../domain/agentSetup.ts";
+import { createMcpStatus } from "../../domain/mcpStatus.ts";
+import { parseClaudeMcpList } from "../../integrations/mcp/claudeCli.ts";
 import { createProviderLimits } from "../../domain/providerLimits.ts";
 import { createUsage } from "../../domain/usage.ts";
 import { LiveSync } from "../../domain/liveSync.ts";
@@ -20,10 +23,11 @@ import { LinearClient } from "../../integrations/linear/client.ts";
 import { createDashboardServer } from "../../server/server.ts";
 import { siteFromBundle } from "../../server/site.ts";
 import { SseHub } from "../../server/sse.ts";
+import { memorySetupFs } from "../../config/agentSetupFs.ts";
 import { envAllowedHosts } from "../../config/config.ts";
 import { readLinearKey } from "../../config/linearFile.ts";
 import { VERSION } from "../../config/version.ts";
-import { DEMO_ENVIRONMENT_ID, DEMO_HOME, DEMO_NEWS_DIR, createDemoCacheCleanup, demoNews, demoServerStats } from "./fixtures.ts";
+import { DEMO_CLAUDE_MCP_LIST, DEMO_ENVIRONMENT_ID, DEMO_HOME, DEMO_NEWS_DIR, DEMO_SETUP_FILES, DEMO_SETUP_LINKS, createDemoCacheCleanup, demoMcpProbe, demoNews, demoServerStats } from "./fixtures.ts";
 import { DemoPort, demoLinearFetch } from "./port.ts";
 import { demoGh } from "./pulls.ts";
 
@@ -101,6 +105,14 @@ export async function startDemo(env: Record<string, string | undefined>): Promis
       },
     },
   });
+  // In-memory files: the demo never reads the config of the machine it runs on.
+  const agentSetup = createAgentSetup({ fs: memorySetupFs(DEMO_SETUP_FILES, DEMO_SETUP_LINKS), env: {}, home: DEMO_HOME, platform: "linux", projects: () => getState().projects, now: () => new Date() });
+  const mcpStatus = createMcpStatus({
+    inventory: agentSetup,
+    probe: async (url) => demoMcpProbe(url),
+    claudeList: async () => ({ ok: true, statuses: parseClaudeMcpList(DEMO_CLAUDE_MCP_LIST), error: null }),
+    now: () => new Date(),
+  });
   const handler = createDashboardServer({
     actions,
     sessions: new SessionsStore(null, () => {}),
@@ -111,6 +123,8 @@ export async function startDemo(env: Record<string, string | undefined>): Promis
     usage: createUsage({ port, threads: () => getState().threads, now: () => new Date() }),
     limits: createProviderLimits({ port, now: () => new Date() }),
     serverStats: { get: async () => demoServerStats(new Date()) },
+    agentSetup,
+    mcpStatus,
     cacheCleanup: createDemoCacheCleanup(),
     automations,
     pulls: new PullRequests({ run: demoGh(() => new Date()), now: () => new Date() }),
