@@ -135,7 +135,7 @@ export function PageActions({ tab, compact, ready, editingLayout, layoutIsDefaul
           <Action compact label="News settings" icon="slidersHorizontal" onClick={onNewsSettings} />
         ) : (
           // An icon on a wide screen too, with its label as the tooltip.
-          <IconButton variant="secondary" label="News settings" tooltip="News settings" onClick={onNewsSettings}>
+          <IconButton variant="ghost" label="News settings" tooltip="News settings" onClick={onNewsSettings}>
             <Icon name="slidersHorizontal" />
           </IconButton>
         )}
