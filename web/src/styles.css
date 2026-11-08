@@ -1268,8 +1268,6 @@ ol.install-steps { padding-left: 18px; }
 .pr-diff-file-head.open { border-bottom: 1px solid var(--line); }
 @media (hover: hover) { .pr-diff-file-head:hover { background: color-mix(in srgb, var(--surface-1), var(--text-primary) 5%); } }
 .pr-diff-file-head .disclosure { flex: none; color: var(--text-secondary); }
-.pulls-file-bar-toggle, .pulls-file-bar-path { display: flex; align-items: center; min-width: 0; padding: 0; border: 0; background: none; color: inherit; font: inherit; text-align: left; }
-.pulls-file-bar-path { flex: 1; }
 .pr-diff-path { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-family: var(--font-mono); font-size: 12px; }
 .pr-diff-path .dir { color: var(--text-secondary); }
 .pr-diff-path .name { font-weight: 600; }
@@ -1318,10 +1316,6 @@ ol.install-steps { padding-left: 18px; }
   .pulls-row-session { margin-left: 10px; }
   .pr-diff-no { width: 36px; min-width: 36px; padding: 0 4px; }
   .pr-diff-file-head { padding: 10px; }
-  /* No sticky child in the phone scroll box: iOS scrolls it natively and places sticky children off by a few pixels.
-     The fixed head shows the current file instead (CurrentFileBar). */
-  .pr-diff-file-head { position: static; }
-  .pulls-file-bar { margin: 4px calc(-1 * var(--page-x)) 0; border-block: 1px solid var(--line); }
   /* The detail body bleeds to the screen edges: the diff uses the full width, the rest keeps the page edge. */
   .pulls-detail-main > :not(.pr-diff), .pr-diff > :not(.pr-diff-files) { margin-inline: var(--page-x); }
   .pr-diff-file { border-inline: 0; border-radius: 0; }

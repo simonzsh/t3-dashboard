@@ -200,10 +200,3 @@ test("a flush list page moves the head-to-body space into the body, so sticky ch
   assert.match(shell, /\.list-page\.flush > \.list-page-body \{ margin-top: 0; padding-top: 0; \}/);
   assert.match(shell, /\.list-page\.flush > \.list-page-body::before \{ content: ""; display: block; height: var\(--page-gap\); \}/);
 });
-
-test("on a phone no file header is sticky: the fixed head shows the current file instead", () => {
-  const phoneRules = [...css.matchAll(/@media \(max-width: 700px\) \{([\s\S]*?)\n\}/g)].map((m) => m[1]!).join("\n");
-  assert.match(phoneRules, /\.pr-diff-file-head \{ position: static; \}/);
-  assert.doesNotMatch(phoneRules, /pr-diff-file-head[^{]*\{[^}]*position: sticky/);
-  assert.match(phoneRules, /\.pulls-file-bar \{/);
-});
