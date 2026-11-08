@@ -133,7 +133,8 @@ test("automations: only the list scrolls, under a fixed toolbar, on a phone too"
 });
 
 test("news: the article is a readable column, and on a phone the list and the article take turns", () => {
-  assert.match(css, /\.news-article > \* \{ max-width: 68ch;/);
+  // A rem width, not ch: ch follows each child's font size, so the date line and the text would not share a left edge.
+  assert.match(css, /\.news-article > \* \{ max-width: 42rem;/);
   assert.match(rule(".news-body"), /line-height: 1\.7/);
   assert.match(rule(".news-back"), /display: none/);
   const phone = css.slice(css.indexOf("@media (max-width: 700px)"));
