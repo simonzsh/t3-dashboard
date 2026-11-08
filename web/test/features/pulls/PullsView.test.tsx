@@ -203,16 +203,16 @@ test("the detail is a list page: the header above the scroll box, the diff insid
   assert.match(html, /role="dialog" aria-modal="true" aria-label="Changed files"/);
 });
 
-test("the detail has Description and Changes tabs, and opens on the changes", () => {
+test("the detail has Description and Changes tabs, and opens on the description", () => {
   const html = page();
   assert.match(html, /class="tabs underline pulls-tabs" role="tablist" aria-label="Pull request"/);
-  assert.match(html, /id="pr-tab-description" aria-selected="false"[^>]*><svg[^>]*>.*?<\/svg>Description<\/button>/);
-  assert.match(html, /id="pr-tab-changes" aria-selected="true"[^>]*class="active"><svg[^>]*>.*?<\/svg>Changes<span class="tabs-count">1<\/span><\/button>/);
+  assert.match(html, /id="pr-tab-description" aria-selected="true"[^>]*class="active"><svg[^>]*>.*?<\/svg>Description<\/button>/);
+  assert.match(html, /id="pr-tab-changes" aria-selected="false"[^>]*><svg[^>]*>.*?<\/svg>Changes<span class="tabs-count">1<\/span><\/button>/);
   assert.doesNotMatch(html, /id="pr-tab-files"/);
-  assert.match(html, /role="tabpanel" id="pr-tab-panel" aria-labelledby="pr-tab-changes"/);
-  // The description is rendered but hidden; the diff is shown.
-  assert.match(html, /<div class="pulls-description" hidden="">.*No description\./);
-  assert.match(html, /<div class="pulls-changes">.*data-pr-diff-file="src\/a.ts"/);
+  assert.match(html, /role="tabpanel" id="pr-tab-panel" aria-labelledby="pr-tab-description"/);
+  // The description is shown; the diff is already rendered behind it, hidden.
+  assert.match(html, /<div class="pulls-description">.*No description\./);
+  assert.match(html, /<div class="pulls-changes" hidden="">.*data-pr-diff-file="src\/a.ts"/);
   const withBody = page({ detail: { ...detail, body: "Fixes **the totals**." } });
   assert.match(withBody, /<div class="md"><p>Fixes <strong>the totals<\/strong>\.<\/p><\/div>/);
 });

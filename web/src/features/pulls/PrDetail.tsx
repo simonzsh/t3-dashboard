@@ -50,7 +50,8 @@ export function PrDetail({ pr, detail, detailError, diff, diffError, refreshing,
   const [sheet, setSheet] = useState(false);
   const [{ filesOpen }, setDetailPrefs] = usePullDetailPrefs();
   const [active, setActive] = useState(0);
-  const [tab, setTab] = useState<DetailTab>("changes");
+  // The page opens on the description, as GitHub does; the diff loads behind it.
+  const [tab, setTab] = useState<DetailTab>("description");
   // Files is a phone tab: on a wider screen the same choice shows the changes.
   const shown: DetailTab = tab === "files" && !phone ? "changes" : tab;
   const shownRef = useRef(shown);
