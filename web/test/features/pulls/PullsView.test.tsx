@@ -3,7 +3,7 @@ import { test } from "bun:test";
 import { renderToStaticMarkup } from "react-dom/server";
 import type { PrDetail as Detail, PrList, PrSummary } from "../../../../shared/pulls.ts";
 import type { DiffFile } from "../../../../shared/diff.ts";
-import { DiffFiles, HunkRows } from "../../../src/features/pulls/DiffFiles.tsx";
+import { CurrentFileBar, DiffFiles, HunkRows } from "../../../src/features/pulls/DiffFiles.tsx";
 import { openByDefault } from "../../../src/features/pulls/diffView.ts";
 import { FileNav } from "../../../src/features/pulls/FileNav.tsx";
 import { ChecksPanel, StatusButton } from "../../../src/features/pulls/PrChecks.tsx";
@@ -167,6 +167,18 @@ test("on a phone the header keeps the title and one actions menu, without the me
   assert.match(html, /Change 12/);
   assert.match(html, /aria-haspopup="menu"[^>]*aria-label="Pull request actions"/);
   assert.doesNotMatch(html, /Open on GitHub|Sessions 2|feature-12|aria-label="Refresh"/);
+});
+
+test("on a phone the head carries the current file bar, with the look of the inline file header", () => {
+  const bar = <CurrentFileBar file={file("web/src/a.ts", { additions: 4, deletions: 2, status: "added" })} open onToggle={() => {}} onOpenList={() => {}} />;
+  const html = header({ phone: true, fileBar: bar });
+  assert.match(html, /<header class="pulls-head">.*<div class="pr-diff-file-head pulls-file-bar open">/);
+  assert.match(html, /aria-expanded="true" aria-label="Collapse web\/src\/a.ts"/);
+  assert.match(html, /aria-label="web\/src\/a.ts, show changed files"><span class="pr-diff-path"><span class="dir">web\/src\/<\/span><span class="name">a.ts<\/span>/);
+  assert.match(html, /<span class="pr-diff-status added">added<\/span><span class="pr-diff-counts"><span class="add">\+4<\/span> <span class="del">-2<\/span>/);
+  const closed = renderToStaticMarkup(<CurrentFileBar file={file("x.ts")} open={false} onToggle={() => {}} onOpenList={() => {}} />);
+  assert.match(closed, /class="pr-diff-file-head pulls-file-bar"/);
+  assert.match(closed, /aria-expanded="false" aria-label="Expand x.ts"/);
 });
 
 test("the checks panel lists each check with its result and link, then the reviews", () => {

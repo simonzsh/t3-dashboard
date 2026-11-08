@@ -3,7 +3,7 @@ import type { DashboardThread } from "../../../../shared/api.ts";
 import type { PrDetail as Detail, PrDiff, PrRef } from "../../../../shared/pulls.ts";
 import { useMediaQuery } from "../../lib/useMediaQuery.ts";
 import { Button, ListPage, Loader, PHONE, Sheet, SidePanel } from "../../ui/index.ts";
-import { DiffFiles, useDiffView } from "./DiffFiles.tsx";
+import { CurrentFileBar, DiffFiles, useDiffView } from "./DiffFiles.tsx";
 import { currentIndex } from "./diffView.ts";
 import { FileNav } from "./FileNav.tsx";
 import { PrHeader, PrMeta } from "./PrHeader.tsx";
@@ -52,7 +52,7 @@ export function PrDetail({ pr, detail, detailError, diff, diffError, refreshing,
       frame = 0;
       const blocks = fileBlocks(box);
       const atEnd = box.scrollTop > 0 && box.scrollTop + box.clientHeight >= box.scrollHeight - 1;
-      if (atEnd) return setActive(picked.current ?? blocks.length - 1);
+      if (atEnd && picked.current !== null) return setActive(picked.current);
       picked.current = null;
       setActive(currentIndex(blocks.map((el) => el.getBoundingClientRect().top), box.getBoundingClientRect().top + READ_OFFSET));
     };
@@ -66,6 +66,12 @@ export function PrDetail({ pr, detail, detailError, diff, diffError, refreshing,
     };
   }, [files]);
 
+  // Collapsing from the bar keeps that file at the top: its rows above the top leave with it.
+  function toggleCurrent(path: string, wasOpen: boolean) {
+    view.toggle(path, wasOpen);
+    requestAnimationFrame(() => pick(path));
+  }
+
   function pick(path: string) {
     setSheet(false);
     const box = body.current;
@@ -77,6 +83,8 @@ export function PrDetail({ pr, detail, detailError, diff, diffError, refreshing,
     setActive(index);
   }
 
+  const current = files[active] ?? files[0];
+  const fileBar = phone && current ? <CurrentFileBar file={current} open={view.open(current.path)} onToggle={() => toggleCurrent(current.path, view.open(current.path))} onOpenList={() => setSheet(true)} /> : undefined;
   const nav = <FileNav files={files} open={view.open} active={files[active]?.path ?? null} onPick={pick} />;
   const controls = { ...view, hasFiles: files.length > 0 };
   return (
@@ -87,7 +95,7 @@ export function PrDetail({ pr, detail, detailError, diff, diffError, refreshing,
       bleed
       flush
       head={
-        <PrHeader pr={pr} detail={detail} now={now} sessions={sessions} onOpenSession={onOpenSession} controls={controls} refreshing={refreshing} onRefresh={onRefresh} filesPanel={wide ? { hidden: !filesOpen, onToggle: () => setDetailPrefs({ filesOpen: !filesOpen }) } : undefined} onShowFiles={wide ? undefined : () => setSheet(true)} phone={phone} />
+        <PrHeader pr={pr} detail={detail} now={now} sessions={sessions} onOpenSession={onOpenSession} controls={controls} refreshing={refreshing} onRefresh={onRefresh} filesPanel={wide ? { hidden: !filesOpen, onToggle: () => setDetailPrefs({ filesOpen: !filesOpen }) } : undefined} onShowFiles={wide ? undefined : () => setSheet(true)} phone={phone} fileBar={fileBar} />
       }
     >
       <div className="pulls-detail-grid">

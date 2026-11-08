@@ -2,6 +2,7 @@ import type { DashboardThread } from "../../../../shared/api.ts";
 import type { PrDetail, PrRef } from "../../../../shared/pulls.ts";
 import { relativeTime } from "../../lib/format.ts";
 import { ActionMenu, Badge, ButtonLink, Icon, IconButton, IconButtonLink, SidePanelToggle, type ActionMenuItem } from "../../ui/index.ts";
+import type { ReactNode } from "react";
 import { Counts } from "./DiffFiles.tsx";
 import { StatusButton } from "./PrChecks.tsx";
 import { SessionsButton } from "./SessionsButton.tsx";
@@ -34,6 +35,8 @@ interface Props {
   onShowFiles?: () => void;
   /** On a phone the actions go in one menu, and the meta line scrolls with the diff. */
   phone: boolean;
+  /** Phone: the bar of the file at the top of the diff, under the title row. */
+  fileBar?: ReactNode;
 }
 
 /** Repository, author, branches and age, then the state, checks, review and size. */
@@ -66,7 +69,7 @@ function menuItems({ detail, sessions, onOpenSession, controls, refreshing, onRe
 
 /** The pull request header: it sits above the scroll box, so the title and actions never leave the screen. */
 export function PrHeader(props: Props) {
-  const { pr, detail, now, sessions, onOpenSession, controls, refreshing, onRefresh, filesPanel, onShowFiles, phone } = props;
+  const { pr, detail, now, sessions, onOpenSession, controls, refreshing, onRefresh, filesPanel, onShowFiles, phone, fileBar } = props;
   const title = detail?.title ?? `${pr.repository}#${pr.number}`;
   return (
     <header className="pulls-head">
@@ -112,6 +115,7 @@ export function PrHeader(props: Props) {
         </div>
       </div>
       {detail && !phone && <PrMeta detail={detail} now={now} />}
+      {fileBar}
     </header>
   );
 }

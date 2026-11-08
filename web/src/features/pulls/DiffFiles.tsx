@@ -88,16 +88,40 @@ export function Counts({ additions, deletions }: { additions: number; deletions:
   );
 }
 
+const shownPath = (file: DiffFile) => (file.oldPath !== "" && file.newPath !== "" && file.oldPath !== file.newPath ? `${file.oldPath} → ${file.newPath}` : file.path);
+
+function FileStatus({ file }: { file: DiffFile }) {
+  return (
+    <>
+      <span className={`pr-diff-status ${file.status}`}>{file.status}</span>
+      <Counts additions={file.additions} deletions={file.deletions} />
+    </>
+  );
+}
+
+/** The file header of the fixed head on a phone: same row as the inline header, for the file at the top of the diff. */
+export function CurrentFileBar({ file, open, onToggle, onOpenList }: { file: DiffFile; open: boolean; onToggle: () => void; onOpenList: () => void }) {
+  return (
+    <div className={`pr-diff-file-head pulls-file-bar${open ? " open" : ""}`}>
+      <Pressable className="pulls-file-bar-toggle" aria-expanded={open} aria-label={open ? `Collapse ${file.path}` : `Expand ${file.path}`} onClick={onToggle}>
+        <Chevron open={open} />
+      </Pressable>
+      <Pressable className="pulls-file-bar-path" aria-label={`${file.path}, show changed files`} onClick={onOpenList}>
+        <FilePath path={shownPath(file)} />
+      </Pressable>
+      <FileStatus file={file} />
+    </div>
+  );
+}
+
 const FileDiff = memo(function FileDiff({ file, open, onToggle }: { file: DiffFile; open: boolean; onToggle: (path: string, open: boolean) => void }) {
   const lang = useMemo(() => languageOf(file.path), [file.path]);
-  const renamed = file.oldPath !== "" && file.newPath !== "" && file.oldPath !== file.newPath;
   return (
     <section className="pr-diff-file" data-pr-diff-file={file.path}>
       <Pressable className={`pr-diff-file-head${open ? " open" : ""}`} aria-expanded={open} onClick={() => onToggle(file.path, open)}>
         <Chevron open={open} />
-        <FilePath path={renamed ? `${file.oldPath} → ${file.newPath}` : file.path} />
-        <span className={`pr-diff-status ${file.status}`}>{file.status}</span>
-        <Counts additions={file.additions} deletions={file.deletions} />
+        <FilePath path={shownPath(file)} />
+        <FileStatus file={file} />
       </Pressable>
       {open &&
         (file.binary ? (
