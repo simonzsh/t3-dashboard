@@ -47,22 +47,13 @@ interface ActionProps {
   variant?: ButtonVariant;
   /** Show the icon before the label on a wide screen. */
   withIcon?: boolean;
-  /** An icon with a tooltip on every screen, as on a phone. */
-  iconOnly?: boolean;
   kbd?: string;
   disabled?: boolean;
   onClick: () => void;
 }
 
 // An icon button on a phone, a text button on a wide screen.
-function Action({ compact, label, icon, variant = "secondary", withIcon = false, iconOnly = false, kbd, disabled, onClick }: ActionProps) {
-  if (iconOnly && !compact) {
-    return (
-      <IconButton variant={variant} label={label} tooltip={label} disabled={disabled} onClick={onClick}>
-        <Icon name={icon} />
-      </IconButton>
-    );
-  }
+function Action({ compact, label, icon, variant = "secondary", withIcon = false, kbd, disabled, onClick }: ActionProps) {
   if (compact) {
     const primary = variant === "primary";
     return (
@@ -81,6 +72,16 @@ function Action({ compact, label, icon, variant = "secondary", withIcon = false,
         label
       )}
     </Button>
+  );
+}
+
+// Wide screen only: the caller hides it on a phone.
+function ListToggle({ hidden, onToggle }: { hidden: boolean; onToggle: () => void }) {
+  const label = hidden ? "Show the list" : "Hide the list";
+  return (
+    <IconButton variant="ghost" label={label} tooltip={label} onClick={onToggle}>
+      <Icon name="panelLeft" />
+    </IconButton>
   );
 }
 
@@ -113,14 +114,9 @@ export function PageActions({ tab, compact, ready, editingLayout, layoutIsDefaul
     // One button: its icon and label name the view it switches to.
     const toLayout = layout === "columns" ? "grid" : "columns";
     const toggle = layout === "columns" ? "Switch to grid view" : "Switch to column view";
-    const list = listHidden ? "Show the list" : "Hide the list";
     main = (
       <>
-        {!compact && (
-          <IconButton variant="ghost" label={list} tooltip={list} onClick={onToggleList}>
-            <Icon name="panelLeft" />
-          </IconButton>
-        )}
+        {!compact && <ListToggle hidden={listHidden} onToggle={onToggleList} />}
         {!compact && (
           <IconButton variant="ghost" className="layout-toggle" label={toggle} tooltip={toggle} onClick={() => onLayoutChange(toLayout)}>
             <Icon name={layout === "columns" ? "layoutGrid" : "columns"} />
@@ -134,12 +130,15 @@ export function PageActions({ tab, compact, ready, editingLayout, layoutIsDefaul
   } else if (tab === "news" && ready) {
     main = (
       <>
-        {!compact && (
-          <IconButton variant="ghost" label={listHidden ? "Show the list" : "Hide the list"} tooltip={listHidden ? "Show the list" : "Hide the list"} onClick={onToggleList}>
-            <Icon name="panelLeft" />
+        {!compact && <ListToggle hidden={listHidden} onToggle={onToggleList} />}
+        {compact ? (
+          <Action compact label="News settings" icon="pencil" onClick={onNewsSettings} />
+        ) : (
+          // An icon on a wide screen too, with its label as the tooltip.
+          <IconButton variant="secondary" label="News settings" tooltip="News settings" onClick={onNewsSettings}>
+            <Icon name="pencil" />
           </IconButton>
         )}
-        <Action compact={compact} label="News settings" icon="pencil" iconOnly onClick={onNewsSettings} />
         <Action compact={compact} label="Run now" icon="play" variant="primary" withIcon disabled={!newsCanRun || newsRunning} onClick={onNewsRun} />
       </>
     );
