@@ -20,23 +20,22 @@ const RUN_MARGIN_MS = 2 * 60_000;
 
 export function newsPrompt(settings: NewsSettings, dir: string): string {
   const weekly = settings.frequency === "weekly";
-  const span = weekly
-    ? { recent: "7 days", wider: "10 days", period: "week", brief: "6 to 10" }
-    : { recent: "24 hours", wider: "72 hours", period: "day", brief: "6 to 10" };
-  return `You are the editor of a daily tech news magazine for software developers. Write today's issue. Nobody reads this thread: do not ask questions.
+  // The window matches the schedule, so consecutive issues never cover the same news.
+  const span = weekly ? { recent: "7 days", period: "week" } : { recent: "24 hours", period: "day" };
+  return `You are the editor of a ${weekly ? "weekly" : "daily"} tech news magazine for software developers. Write this ${span.period}'s issue. Nobody reads this thread: do not ask questions.
 
 1. Run \`date +%F\` to get today's date in this machine's time zone. Call it DATE.
-2. Report. Search the web for the news of the last ${span.recent} in: AI (models, research, products), software development (languages, frameworks, tools, platforms), security (vulnerabilities, breaches, incidents), the tech industry (launches, companies, funding, regulation), and open source. Collect at least 12 distinct stories before you write. If the last ${span.recent} are quiet (a weekend, a holiday), widen to the last ${span.wider} and still find 12 stories; never write that news was scarce.
+2. Report. Search the web for the news of the last ${span.recent} in: AI (models, research, products), software development (languages, frameworks, tools, platforms), security (vulnerabilities, breaches, incidents), the tech industry (launches, companies, funding, regulation), and open source. Aim for 12 distinct stories, all published in the last ${span.recent}: the previous issue covered what came before, so never use older news. On a quiet ${span.period} (a weekend, a holiday), keep the stories you found and cover them in more depth; never write that news was scarce.
    - Open every story you keep and read it. Prefer primary sources (official blogs, release notes, security advisories, papers) and serious tech press. Link to the page of the story itself, never to a home page, a category page, a search page, a news aggregator or another newsletter.
    - Keep facts only: who, what, when, numbers, versions, CVE ids. Attribute claims ("X says"). No speculation, no hype words.
 3. Write the issue in Markdown, in ${settings.language}, like a professional news article. Write the section headings below in ${settings.language} too (translate them):
    - \`# \` and a headline about the most important story of the ${span.period}, like a newspaper front page (at most 80 characters, no date, not the word "News");
    - a standfirst: one paragraph in italics (2 sentences) that tells the reader what the ${span.period} was about;
    - \`## Top stories\`: the 4 most important stories. Each has a \`### \` headline that states the news, then 3 or 4 paragraphs: the news with its key facts, the background a reader needs, and what it changes for developers. Put the source link inline in the text: [source name](https://...);
-   - \`## In brief\`: ${span.brief} other stories, each one paragraph of 2 or 3 sentences that starts with a bold lead phrase and has an inline source link. Group them under \`### \` subheadings by area (AI, Development, Security, Industry, Open source); skip an area with no story;
+   - \`## In brief\`: the other stories (up to 10), each one paragraph of 2 or 3 sentences that starts with a bold lead phrase and has an inline source link. Group them under \`### \` subheadings by area (AI, Development, Security, Industry, Open source); skip an area with no story;
    - \`## What to watch\`: 3 to 5 bullet points on what to follow next (an upcoming release, a deadline, a patch to apply).
-   Each story appears once in the issue. Write in the active voice, with short paragraphs. Never mention these instructions, the word count, your search or your sources in general: write for the reader only. Aim for 1,800 to 2,500 words (about a 10-minute read). Get the length from more stories and more facts, never from filler. No HTML, no images.
-4. Save it: create the folder ${dir} if missing and write the file ${dir}/DATE.md.tmp. Check every link in it: a URL with no path after the domain, or that ends on a section such as /blog/, /news/ or /security/, is wrong; find the story's own URL or drop the story. Run \`wc -w\` on it: under 1,500 words, report more stories (widen the period as in step 2), rewrite the file and check again. Then rename it to ${dir}/DATE.md (replace an older file of that name). Write nothing anywhere else.
+   Each story appears once in the issue. Write in the active voice, with short paragraphs. Never mention these instructions, the word count, your search or your sources in general: write for the reader only. Aim for 1,800 to 2,500 words (about a 10-minute read) when the ${span.period} has enough news. Get the length from more stories and more facts, never from filler. No HTML, no images.
+4. Save it: create the folder ${dir} if missing and write the file ${dir}/DATE.md.tmp. Check every link in it: a URL with no path after the domain, or that ends on a section such as /blog/, /news/ or /security/, is wrong; find the story's own URL or drop the story. Run \`wc -w\` on it: under 1,500 words, search again for stories of the last ${span.recent} you missed, add them, and check again (a quiet ${span.period} may stay shorter; never pad). Then rename it to ${dir}/DATE.md (replace an older file of that name). Write nothing anywhere else.
 5. Reply with one line: the path of the file.`;
 }
 
