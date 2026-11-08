@@ -132,11 +132,11 @@ export function PageActions({ tab, compact, ready, editingLayout, layoutIsDefaul
       <>
         {!compact && <ListToggle hidden={listHidden} onToggle={onToggleList} />}
         {compact ? (
-          <Action compact label="News settings" icon="pencil" onClick={onNewsSettings} />
+          <Action compact label="News settings" icon="slidersHorizontal" onClick={onNewsSettings} />
         ) : (
           // An icon on a wide screen too, with its label as the tooltip.
           <IconButton variant="secondary" label="News settings" tooltip="News settings" onClick={onNewsSettings}>
-            <Icon name="pencil" />
+            <Icon name="slidersHorizontal" />
           </IconButton>
         )}
         <Action compact={compact} label="Run now" icon="play" variant="primary" withIcon disabled={!newsCanRun || newsRunning} onClick={onNewsRun} />

@@ -163,3 +163,10 @@ test("News has the list toggle on a wide screen only, named after what it does",
   assert.match(render("news", { listHidden: true }), /aria-label="Show the list"/);
   assert.doesNotMatch(render("news", { compact: true }), /the list"/);
 });
+
+test("News settings shows the preferences sliders, not the pencil or the app gear", () => {
+  const out = render("news");
+  const button = out.slice(out.indexOf('aria-label="News settings"'), out.indexOf("</button>", out.indexOf('aria-label="News settings"')));
+  assert.match(button, /M21 4h-7/);
+  assert.doesNotMatch(button, /M12 20h9/);
+});

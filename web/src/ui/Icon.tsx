@@ -70,6 +70,8 @@ const ICONS = {
   exitFullscreen: ["M9 4v5H4M15 4v5h5M9 20v-5H4M15 20v-5h5"],
   // Lucide ellipsis: the "more actions" menu button.
   moreHorizontal: ["M12 12h.01", "M19 12h.01", "M5 12h.01"],
+  // Lucide sliders-horizontal: page preferences (the gear is the app's Settings).
+  slidersHorizontal: ["M21 4h-7", "M10 4H3", "M21 12h-9", "M8 12H3", "M21 20h-5", "M12 20H3", "M14 2v4", "M8 10v4", "M16 18v4"],
   pencil: ["M12 20h9", "M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"],
   logOut: ["M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4", "m16 17 5-5-5-5", "M21 12H9"],
   settings: [
