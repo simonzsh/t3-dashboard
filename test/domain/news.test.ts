@@ -76,9 +76,9 @@ test("an article title is its first heading, or its date", () => {
 
 test("the daily prompt covers 24 hours, the weekly prompt 7 days", () => {
   const daily = newsPrompt(NEWS_DEFAULTS, DIR);
-  for (const part of ["last 24 hours", "older than 48 hours", "3 to 6 items", "`## Top stories`", "that day", "`# News — DATE`"]) assert.ok(daily.includes(part), part);
+  for (const part of ["last 24 hours", "older than 48 hours", "3 to 6 items", "`## Top stories`", "that day", "headline about the main subject"]) assert.ok(daily.includes(part), part);
   const weekly = newsPrompt({ ...NEWS_DEFAULTS, frequency: "weekly" }, DIR);
-  for (const part of ["last 7 days", "older than 8 days", "3 to 8 items", "that week", "`# News — DATE`"]) assert.ok(weekly.includes(part), part);
+  for (const part of ["last 7 days", "older than 8 days", "3 to 8 items", "that week", "headline about the main subject"]) assert.ok(weekly.includes(part), part);
   for (const gone of ["24 hours", "48 hours", "6 items"]) assert.ok(!weekly.includes(gone), gone);
   assert.equal(weekly.replace("7 days", "24 hours").replace("8 days", "48 hours").replace("3 to 8", "3 to 6").replace("that week", "that day"), daily);
 });

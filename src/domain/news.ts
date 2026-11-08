@@ -28,7 +28,7 @@ export function newsPrompt(settings: NewsSettings, dir: string): string {
 1. Run \`date +%F\` to get today's date in this machine's time zone. Call it DATE.
 2. Search the web for the most important news of the last ${weekly ? "7 days" : "24 hours"} for a software developer who follows: AI (models, research, products), software development (languages, frameworks, tools), security (vulnerabilities, breaches, incidents), the tech industry (major announcements, companies, regulation), and open source. Prefer primary sources and skip anything older than ${weekly ? "8 days" : "48 hours"}. Rank stories by importance, not by category.
 3. Write the article in Markdown, in ${settings.language}:
-   - first line, exactly: \`# News — DATE\` (with DATE replaced by the date);
+   - first line: \`# \` and a headline about the main subject of the article, like a newspaper front page (at most 80 characters, no date, not the word "News");
    - \`## Top stories\`: the 3 to 5 most important stories, each a bold headline, two or three sentences and a source link [name](https://...);
    - then up to 5 short \`## \` sections named after the areas that had real news that ${weekly ? "week" : "day"} (skip an area with nothing worth reading), ${weekly ? "3 to 8" : "3 to 6"} items each, same item format;
    - end with \`## Key takeaways\`: 3 bullet points.
