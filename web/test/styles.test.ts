@@ -209,3 +209,8 @@ test("hovering an open file header keeps its separator gray", () => {
   assert.match(rule(".pr-diff-file-head.open"), /box-shadow: inset 0 -1px var\(--line\);/);
   assert.doesNotMatch(rule(".pr-diff-file-head.open"), /border/);
 });
+
+test("on a phone the pull request head keeps room above the stuck file header", () => {
+  const phoneRules = [...css.matchAll(/@media \(max-width: 700px\) \{([\s\S]*?)\n\}/g)].map((m) => m[1]!).join("\n");
+  assert.match(phoneRules, /\.pulls-head \{ padding-bottom: 10px; \}/);
+});
