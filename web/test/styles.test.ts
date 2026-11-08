@@ -171,3 +171,10 @@ test("pages start their content the same distance below the header", () => {
   assert.match(css, /main:has\(> \.auto-page\) \{ padding-top: calc\(var\(--page-top\) - 8px\); \}/);
   assert.match(css, /main:has\(> \.news-page\) \{ padding-top: calc\(var\(--page-top\) - 4px\); \}/);
 });
+
+test("news: the list head stays put while the articles scroll, as on Automations", () => {
+  assert.match(css, /\.news-list-head \{ flex: none;/);
+  assert.match(css, /\.news-list-scroll \{ flex: 1; min-height: 0; overflow-y: auto;/);
+  const phone = css.slice(css.indexOf("@media (max-width: 700px) {\n  /* The page scrolls; the list and the article take turns. */"));
+  assert.match(phone, /\.news-list-head \{ position: sticky; z-index: 2; top: var\(--header-h, 64px\);/);
+});

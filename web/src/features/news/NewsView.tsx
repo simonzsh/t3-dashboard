@@ -149,51 +149,56 @@ export function NewsView({ news, writing, now, compact, seen, onRead, onOpenThre
   return (
     <div className={`news-page${reading ? " reading" : ""}`}>
       <section className="news-list" aria-label="News">
-        {status}
-        <div className="news-tools">
-          <div className="auto-search">
-            <Icon name="search" />
-            <TextInput aria-label="Search news" placeholder="Search news…" value={query} onChange={(e) => setQuery(e.target.value)} />
+        {/* Stays in place while the articles scroll, as the Automations toolbar does. */}
+        <div className="news-list-head">
+          {status}
+          <div className="news-tools">
+            <div className="auto-search">
+              <Icon name="search" />
+              <TextInput aria-label="Search news" placeholder="Search news…" value={query} onChange={(e) => setQuery(e.target.value)} />
+            </div>
+            <Button size="sm" variant="ghost" onClick={() => setDeleting("all")}>
+              <Icon name="trash" /> Delete all
+            </Button>
           </div>
-          <Button size="sm" variant="ghost" onClick={() => setDeleting("all")}>
-            <Icon name="trash" /> Delete all
-          </Button>
         </div>
-        <ul
-          ref={listRef}
-          className={`news-items${highlight ? " marked" : ""}`}
-          style={highlight ? ({ "--mark-top": `${highlight.top}px`, "--mark-height": `${highlight.height}px` } as CSSProperties) : undefined}
-        >
-          {progress}
-          {searching && visible.length === 0 && <li className="news-none">No matching articles</li>}
-          {visible.map((a) => {
-            // On a phone the list and the article take turns: no item is "open" while the list shows.
-            const open = a.date === date && !compact;
-            return (
-              <li key={a.date} className="news-row">
-                <Pressable
-                  className={`news-item${open ? " active" : ""}`}
-                  aria-current={open ? "true" : undefined}
-                  onClick={() => {
-                    setPicked(a.date);
-                    setReading(true);
-                  }}
-                >
-                  <span className="news-item-body">
-                    <span className="news-item-date">{shortDate(a.date)}</span>
-                    <span className="news-item-title">{a.title}</span>
+        <div className="news-list-scroll">
+          <ul
+            ref={listRef}
+            className={`news-items${highlight ? " marked" : ""}`}
+            style={highlight ? ({ "--mark-top": `${highlight.top}px`, "--mark-height": `${highlight.height}px` } as CSSProperties) : undefined}
+          >
+            {progress}
+            {searching && visible.length === 0 && <li className="news-none">No matching articles</li>}
+            {visible.map((a) => {
+              // On a phone the list and the article take turns: no item is "open" while the list shows.
+              const open = a.date === date && !compact;
+              return (
+                <li key={a.date} className="news-row">
+                  <Pressable
+                    className={`news-item${open ? " active" : ""}`}
+                    aria-current={open ? "true" : undefined}
+                    onClick={() => {
+                      setPicked(a.date);
+                      setReading(true);
+                    }}
+                  >
+                    <span className="news-item-body">
+                      <span className="news-item-date">{shortDate(a.date)}</span>
+                      <span className="news-item-title">{a.title}</span>
+                    </span>
+                    {seen && isUnreadArticle(a, seen) && <span className="notif-dot" aria-label="Unread" role="img" />}
+                  </Pressable>
+                  <span className="thread-actions">
+                    <IconButton label="Delete article" tooltip="Delete article" size="sm" variant="ghost" onClick={() => setDeleting(a)}>
+                      <Icon name="trash" />
+                    </IconButton>
                   </span>
-                  {seen && isUnreadArticle(a, seen) && <span className="notif-dot" aria-label="Unread" role="img" />}
-                </Pressable>
-                <span className="thread-actions">
-                  <IconButton label="Delete article" tooltip="Delete article" size="sm" variant="ghost" onClick={() => setDeleting(a)}>
-                    <Icon name="trash" />
-                  </IconButton>
-                </span>
-              </li>
-            );
-          })}
-        </ul>
+                </li>
+              );
+            })}
+          </ul>
+        </div>
       </section>
       <article ref={articleRef} className="news-article" aria-label={shown?.title ?? "News"}>
         <Button variant="ghost" size="sm" className="news-back" onClick={() => setReading(false)}>

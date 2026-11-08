@@ -1135,7 +1135,10 @@ main:has(> .news-page) { padding-top: calc(var(--page-top) - 4px); }
 .news-page > * { --news-list-w: clamp(260px, calc((100cqw - 42rem) / 2 - 24px), 380px); --news-list-space: calc(var(--news-list-w) + 24px); grid-area: 1 / 1; }
 /* The list's 4px inner room holds the focus rings, so it needs no negative margin here. */
 .news-page:not(.empty) > .news-list { z-index: 1; justify-self: start; width: var(--news-list-w); margin: 0; }
-.news-list { min-height: 0; overflow-y: auto; display: flex; flex-direction: column; gap: 12px; padding: 4px; margin: -4px; }
+.news-list { min-height: 0; overflow: hidden; display: flex; flex-direction: column; gap: 12px; padding: 4px; margin: -4px; }
+/* The next run, the search and Delete all stay put while only the articles scroll, as on Automations. */
+.news-list-head { flex: none; display: flex; flex-direction: column; gap: 12px; background: var(--page-bg); }
+.news-list-scroll { flex: 1; min-height: 0; overflow-y: auto; padding: 4px; margin: -4px; }
 .news-status { margin: 0; padding: 0 10px; font-size: 12px; color: var(--text-secondary); }
 .news-tools { display: flex; align-items: center; gap: 8px; }
 .news-tools > button { flex: none; }
@@ -1180,6 +1183,9 @@ main:has(> .news-page) { padding-top: calc(var(--page-top) - 4px); }
   .news-page > * { --news-list-space: 0px; }
   .news-page:not(.empty) > .news-list { width: auto; }
   .news-list, .news-article { overflow: visible; margin: 0; padding: 0; }
+  /* The page scrolls on a phone: the head sticks under the fixed header instead. */
+  .news-list-head { position: sticky; z-index: 2; top: var(--header-h, 64px); padding: 8px 0; margin-top: -8px; }
+  .news-list-scroll { overflow: visible; margin: 0; padding: 0; }
   /* The page scrolls under the fixed header: keep the back button in view. */
   .news-article { scroll-margin-top: calc(var(--header-h, 64px) + 8px); }
   .news-page:not(.reading) .news-article, .news-page.reading .news-list { display: none; }
