@@ -8,7 +8,9 @@ import { ProjectPicker } from "../../lib/ProjectPicker.tsx";
 import { loadNewAgentProject, presetSelection, saveNewAgentProject, titleFromMessage } from "./newAgent.ts";
 import { Composer } from "../conversation/Composer.tsx";
 import { AddProjectDialog } from "../projects/AddProjectDialog.tsx";
-import { Dialog, Icon } from "../../ui/index.ts";
+import { Dialog, Icon, Switch } from "../../ui/index.ts";
+import { WorkspaceOptions } from "./WorkspaceOptions.tsx";
+import { toWorkspaceChoice, type WorkspaceDraft } from "./workspaceOptions.ts";
 
 // Same default as the server when no mode is sent, used when T3 has none.
 const DEFAULT_RUNTIME_MODE: RuntimeMode = "full-access";
@@ -33,6 +35,8 @@ export function NewThreadDialog({ projects, providers, defaults, onClose, onCrea
   const [selection, setSelection] = useState<ModelSelection | null>(() => presetSelection(projects.find((p) => p.id === projectId), providers, defaults.selection));
   const [mode, setMode] = useState<RuntimeMode>(defaults.runtimeMode ?? DEFAULT_RUNTIME_MODE);
   const [draft, setDraft] = useState("");
+  const [workspace, setWorkspace] = useState<WorkspaceDraft | null>(null);
+  const [plan, setPlan] = useState(false);
   // Each project pick moves the focus to the message.
   // A preset project needs no pick: the field gets the focus at once (focusKey 1).
   const [picks, setPicks] = useState(preset ? 1 : 0);
@@ -55,7 +59,9 @@ export function NewThreadDialog({ projects, providers, defaults, onClose, onCrea
 
   async function send(text: string, uploads: UploadedAttachment[]): Promise<void> {
     if (!selection) throw new Error("No model is available.");
-    const extra = { runtimeMode: mode, ...(uploads.length > 0 && { uploads }) };
+    const root = projects.find((p) => p.id === projectId)?.workspaceRoot;
+    const choice = workspace && root ? toWorkspaceChoice(workspace, root) : undefined;
+    const extra = { runtimeMode: mode, ...(uploads.length > 0 && { uploads }), ...(choice && { workspace: choice }), ...(plan && { interactionMode: "plan" as const }) };
     if (issue) {
       const { threadId } = await api.assignIssue({ issueId: issue.id, projectId, text, modelSelection: selection, ...extra });
       saveAssignProject(browserStorage(), issue.team.key, projectId);
@@ -111,6 +117,11 @@ export function NewThreadDialog({ projects, providers, defaults, onClose, onCrea
             }}
           />
         </div>
+        <WorkspaceOptions project={projects.find((p) => p.id === projectId)} draft={workspace} onDraft={setWorkspace} />
+        <label className="workspace-origin">
+          <Switch checked={plan} onChange={setPlan} label="Plan mode" />
+          <span>Plan mode: the agent proposes a plan before it changes anything</span>
+        </label>
         <Composer
           providers={providers}
           selection={selection}
@@ -120,7 +131,7 @@ export function NewThreadDialog({ projects, providers, defaults, onClose, onCrea
           onDraft={setDraft}
           onSend={send}
           onSettings={changeSettings}
-          errorResetKey={projectId}
+          errorResetKey={`${projectId}:${workspace?.envMode ?? ""}`}
           placeholder={issue ? "Add instructions for the agent (optional)…" : "Describe the task…"}
           allowEmpty={issue !== undefined}
           focusKey={picks || undefined}

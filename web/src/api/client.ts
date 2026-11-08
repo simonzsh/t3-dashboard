@@ -9,6 +9,8 @@ import type {
   NewsState,
   SaveNewsBody,
   ProjectIconChoices,
+  ProjectRefs,
+  ProjectVcsStatus,
   UpdateProjectBody,
   CreateProjectResult,
   CreateThreadBody,
@@ -157,6 +159,13 @@ export function createApi(fetchImpl: Fetch) {
     updateProject: (id: string, b: UpdateProjectBody) => call<OkResult>(`/api/projects/${encodeURIComponent(id)}/update`, b),
     deleteProject: (id: string) => call<OkResult>(`/api/projects/${encodeURIComponent(id)}/delete`, {}),
     projectIcons: () => call<ProjectIconChoices>("/api/project-icons"),
+    projectRefs: (id: string, { query, cursor }: { query?: string; cursor?: number }) => {
+      const params = new URLSearchParams();
+      if (query) params.set("query", query);
+      if (cursor !== undefined) params.set("cursor", String(cursor));
+      return call<ProjectRefs>(`/api/projects/${encodeURIComponent(id)}/refs${params.size > 0 ? `?${params}` : ""}`);
+    },
+    projectVcsStatus: (id: string) => call<ProjectVcsStatus>(`/api/projects/${encodeURIComponent(id)}/vcs`),
     createThread: (b: CreateThreadBody) => call<CreateThreadResult>("/api/threads", b),
     sendMessage: (id: string, b: SendMessageBody) => call<OkResult>(`${t(id)}/messages`, b),
     settle: (id: string) => call<OkResult>(`${t(id)}/settle`, {}),
