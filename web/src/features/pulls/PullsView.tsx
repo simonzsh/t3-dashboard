@@ -116,7 +116,7 @@ function List(props: Omit<Props, "route">) {
 function Detail({ route, threads, now, onOpenThread }: Props & { route: PrRef }) {
   const { refresh, ...state } = usePrDetail(route);
   return (
-    <div className="pulls-detail-scroll">
+    <div className="page-scroll">
       <PrDetail pr={route} {...state} onRefresh={() => void refresh()} now={now} sessions={sessionsOf(threads, route)} onOpenSession={onOpenThread} />
     </div>
   );

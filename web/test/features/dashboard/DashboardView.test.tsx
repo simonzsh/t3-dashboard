@@ -180,7 +180,7 @@ test("the default layout draws Activity full width, then two columns of half car
 
 test("an open panel sits beside the cards and holds Notifications", () => {
   const out = render(state());
-  assert.match(out, /<div class="dashboard with-panel">/);
+  assert.match(out, /<div class="dashboard page-scroll with-panel">/);
   const aside = out.indexOf('<aside data-dash-item="notifications" class="dashboard-panel" aria-label="Notifications">');
   assert.ok(aside > out.indexOf('id="dashboard-server-head"'));
   assert.ok(aside < out.indexOf('id="notifications-head"'));
@@ -189,7 +189,7 @@ test("an open panel sits beside the cards and holds Notifications", () => {
 
 test("a closed panel is not drawn and the cards stay", () => {
   const out = render(state(), { panelOpen: false });
-  assert.match(out, /<div class="dashboard">/);
+  assert.match(out, /<div class="dashboard page-scroll">/);
   assert.doesNotMatch(out, /dashboard-panel|notifications-head/);
   assert.match(out, /id="running-head"/);
 });

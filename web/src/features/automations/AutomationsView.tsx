@@ -151,7 +151,6 @@ export function AutomationsView({ state, now, seen, onOpen, automations, automat
   return (
     <div className="auto-page">
       <ListPage
-        className="auto-section"
         aria-label="Automations"
         bodyClassName="auto-scroll"
         head={

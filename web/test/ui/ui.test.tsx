@@ -324,6 +324,6 @@ test("a ListPage puts its head before, and outside, the scrolling body", () => {
         <ul />
       </ListPage>,
     ),
-    '<section class="list-page x-page" aria-label="Things"><div class="list-page-head x-head"><span>tools</span></div><div class="list-page-body x-body"><ul></ul></div></section>',
+    '<section class="list-page x-page" aria-label="Things"><div class="list-page-head x-head"><span>tools</span></div><div class="list-page-body page-scroll x-body"><ul></ul></div></section>',
   );
 });

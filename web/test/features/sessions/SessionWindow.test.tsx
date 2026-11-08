@@ -55,10 +55,18 @@ test("a session with one pull request gets a link to its diff on the Pull reques
 
 test("a session with several pull requests gets one menu button that counts them", () => {
   const html = header([linked(12, "Summary"), linked(13)]);
-  assert.match(html, /<button [^>]*aria-label="2 pull requests"[^>]*aria-haspopup="menu"[^>]*>.*<\/svg> 2<\/button>/);
+  assert.match(html, /<button aria-haspopup="menu" [^>]*aria-label="2 pull requests"[^>]*class="icon-button sm ghost">.*<span class="count-badge icon-button-count" aria-hidden="true">2<\/span><\/button>/);
   assert.doesNotMatch(html, /href="#\/pulls/);
 });
 
+test("every control in the session header has the icon button classes, so they share one size", () => {
+  for (const html of [header([]), header([linked(12)]), header([linked(12), linked(13)])]) {
+    const buttons = html.slice(html.indexOf('class="session-window-buttons"'), html.indexOf("</span></div>", html.indexOf('class="session-window-buttons"')));
+    const controls = [...buttons.matchAll(/<(button|a) [^>]*class="([^"]*)"/g)].map((m) => m[2]!);
+    assert.ok(controls.length >= 2, buttons);
+    for (const cls of controls) assert.match(cls, /^icon-button sm ghost$/, cls);
+  }
+});
 test("the pull request menu items open each diff, with the title when T3 knows it", () => {
   const opened: string[] = [];
   const items = PullRequestsButton({ pullRequests: [linked(12, "Summary"), linked(13)] })!.props.items as Array<{ label: string; onSelect: () => void }>;

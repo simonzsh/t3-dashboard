@@ -118,6 +118,9 @@ input.field { height: var(--control-md); padding-block: 0; }
 .icon-button.has-update::after { content: ""; position: absolute; top: 8px; right: 8px; width: 8px; height: 8px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 0 2px var(--surface-0); }
 .icon-button.md { min-width: var(--control-md); height: var(--control-md); }
 .icon-button.sm { min-width: var(--control-sm); height: var(--control-sm); }
+/* A count on the icon's corner (a menu of several links): the button keeps its size. */
+.icon-button:has(> .icon-button-count) { position: relative; }
+.icon-button .count-badge.icon-button-count { position: absolute; top: -4px; right: -4px; min-width: 14px; height: 14px; padding: 0 3px; font-size: 9px; }
 .notif-bell { position: relative; }
 /* Same look as the other count bubbles, pushed into the corner so it overlaps the edge and the bell stays visible. */
 .notif-bell .count-badge { position: absolute; top: -6px; right: -6px; min-width: 16px; height: 16px; padding: 0 4px; font-size: 10px; font-weight: 600; background: color-mix(in srgb, var(--accent) 18%, transparent); color: var(--accent); box-shadow: 0 0 0 2px var(--surface-0); }
@@ -160,10 +163,24 @@ kbd { font: 11px/1 system-ui, -apple-system, "Segoe UI", sans-serif; padding: 2p
 .loader.inline { flex: none; display: inline-grid; min-height: 0; }
 .loader.inline svg { width: 16px; height: 16px; }
 @keyframes loader-wave { 0%, 60%, 100% { opacity: 0.35; transform: scale(0.82); } 30% { opacity: 1; transform: scale(1); } }
+/* page-shell:start — the only place that spaces a page. Pages differ only in their inner content (docs/development.md). */
+:root {
+  --page-top: 24px; /* header to the first content */
+  --page-x: 24px; /* left and right edge */
+  --page-bottom: 24px; /* space after the last content, inside the scroll box */
+  --page-ring: 4px; /* room for focus rings around a scroll box's content */
+  --page-gap: 16px; /* toolbar to list */
+}
 /* The page never scrolls: main fills the window and each view scrolls its own areas. */
-/* Every page starts its first content this far below the header; pages with inner padding subtract it. */
-:root { --page-top: 24px; }
-main { flex: 1; min-height: 0; overflow: hidden; padding: var(--page-top) 24px 24px; display: flex; flex-direction: column; gap: 28px; }
+main { flex: 1; min-height: 0; overflow: hidden; padding: var(--page-top) var(--page-x) 0; display: flex; flex-direction: column; gap: 28px; }
+/* Sessions is the one workspace page: its columns run edge to edge. */
+.app.sessions-mode main { padding: 0; gap: 0; }
+/* A page's scroll box: the ring room sits outside the content edge, and the bottom space scrolls with the content. */
+.page-scroll { flex: 1; min-height: 0; overflow-y: auto; padding: var(--page-ring) var(--page-ring) var(--page-bottom); margin: calc(-1 * var(--page-ring)) calc(-1 * var(--page-ring)) 0; }
+/* List pages (ListPage): the head stays outside the scroll box, so it never moves while the list scrolls. */
+.list-page { flex: 1; min-height: 0; display: flex; flex-direction: column; gap: var(--page-gap); }
+.list-page-head { flex: none; background: var(--page-bg); }
+/* page-shell:end */
 .project-icon { flex: none; width: 16px; height: 16px; }
 .provider-icon { flex: none; width: 20px; height: 20px; margin-top: 1px; }
 .badge { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 600; padding: 2px 10px; border-radius: 999px; }
@@ -534,11 +551,6 @@ input.dropdown-search { position: absolute; inset: 0 auto 0 0; z-index: 1; width
 .search-field { position: relative; display: flex; align-items: center; }
 .search-field .icon { position: absolute; left: 10px; width: 15px; height: 15px; color: var(--text-secondary); pointer-events: none; }
 .search-field .field { width: 100%; padding-left: 32px; }
-/* List pages (ListPage): the head stays outside the scroll box, so it never moves while the list scrolls.
-   The body's 4px inner room holds the focus rings; the negative margin keeps the layout aligned. */
-.list-page { flex: 1; min-height: 0; display: flex; flex-direction: column; gap: 8px; }
-.list-page-head { flex: none; background: var(--page-bg); }
-.list-page-body { flex: 1; min-height: 0; overflow-y: auto; padding: 4px; margin: -4px; }
 .switcher-input { flex: none; }
 .switcher-results { flex: 1; min-height: 0; overflow-y: auto; display: flex; flex-direction: column; gap: 6px; }
 .switcher-results .dropdown-list { max-height: none; overflow: visible; }
@@ -673,7 +685,6 @@ ol.install-steps { padding-left: 18px; }
 .glance-action .icon-button { opacity: 0; pointer-events: none; transition: opacity 0.12s; }
 .glance-row:hover .glance-action .icon-button, .glance-row:focus-within .glance-action .icon-button { opacity: 1; pointer-events: auto; }
 @media (hover: none) { .glance-action .icon-button { opacity: 1; pointer-events: auto; } }
-main:has(> .auto-page) { padding-top: calc(var(--page-top) - 8px); }
 .auto-page { flex: 1; min-height: 0; display: flex; flex-direction: column; gap: 28px; }
 .auto-section { flex: 1; min-height: 0; display: flex; flex-direction: column; gap: 8px; }
 .auto-scroll { display: flex; flex-direction: column; }
@@ -682,7 +693,7 @@ main:has(> .auto-page) { padding-top: calc(var(--page-top) - 8px); }
 .auto-note { margin: 0; font-size: 12px; color: var(--text-secondary); }
 .auto-model { display: inline-flex; align-items: center; gap: 6px; }
 .auto-model .provider-icon { width: 15px; height: 15px; margin: 0; }
-.auto-toolbar { flex: none; display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 8px 0; background: var(--page-bg); }
+.auto-toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
 .auto-toolbar .segmented { max-width: 100%; overflow-x: auto; }
 .auto-toolbar .segmented button { white-space: nowrap; }
 .auto-search { flex: 1 1 200px; min-width: 0; max-width: 360px; }
@@ -738,7 +749,6 @@ main:has(> .auto-page) { padding-top: calc(var(--page-top) - 8px); }
 .auto-prompt { max-height: 220px; margin: 0; padding: 10px 12px; overflow: auto; border: 1px solid var(--line); border-radius: var(--radius-md); background: var(--surface-1); font: 12px/1.5 var(--font-mono); white-space: pre-wrap; overflow-wrap: anywhere; }
 .app { display: flex; height: 100dvh; overflow: hidden; }
 .app-column { flex: 1; min-width: 0; min-height: 0; display: flex; flex-direction: column; }
-.app.sessions-mode main { padding: 0; gap: 0; }
 /* Sidebar: 232 px, or 56 px with icons only. */
 .sidebar { flex: none; width: 232px; display: flex; flex-direction: column; gap: 12px; padding: 12px; overflow: hidden auto; background: var(--header-bg); border-right: 1px solid var(--line); transition: width 160ms ease; }
 /* Collapsing only narrows the bar: every icon keeps its x (centered at 28 px), labels fade and get clipped. */
@@ -802,7 +812,7 @@ main:has(> .auto-page) { padding-top: calc(var(--page-top) - 8px); }
 .page-actions { flex: none; display: flex; align-items: center; gap: 8px; }
 .page-actions .icon { width: 18px; height: 18px; }
 /* Dashboard: full cards and bands of two stacking columns in one scroll area, and the Notifications panel on the right when open. */
-.dashboard { flex: 1; min-height: 0; overflow-y: auto; display: grid; grid-template-columns: minmax(0, 1fr); align-items: start; gap: 16px; padding: 4px; margin: -4px; }
+.dashboard { display: grid; grid-template-columns: minmax(0, 1fr); align-items: start; gap: 16px; }
 .dashboard.with-panel { grid-template-columns: minmax(0, 1fr) 340px; }
 .dashboard-main { min-width: 0; display: flex; flex-direction: column; gap: 16px; container-type: inline-size; }
 .dashboard-cards { min-width: 0; display: flex; flex-direction: column; gap: 16px; }
@@ -1005,7 +1015,6 @@ main:has(> .auto-page) { padding-top: calc(var(--page-top) - 8px); }
 .app.session-shown :is(.banner, .sessions.compact .session-window-head) { position: sticky; top: 0; z-index: 4; }
 .sessions.compact :is(.session-window-back, .session-window-buttons .icon-button) { min-width: 36px; height: 36px; }
 @media (max-width: 700px) {
-  .list-page-body { padding-bottom: 16px; }
   /* Linear rows: the meta takes a second line, so the title keeps the full width. */
   .glance-row { grid-template-columns: 16px minmax(0, 1fr) var(--control-sm); grid-template-areas: "kind link action" ". meta action"; row-gap: 0; padding-block: 6px; }
   .glance-kind { grid-area: kind; }
@@ -1013,8 +1022,6 @@ main:has(> .auto-page) { padding-top: calc(var(--page-top) - 8px); }
   .glance-meta { grid-area: meta; max-width: none; }
   .glance-action { grid-area: action; }
   .switcher-meta { display: none; }
-  /* The list runs down to the bottom bar, as the sessions list does. */
-  main:has(> .auto-page) { padding-top: calc(var(--page-top) - 8px); padding-bottom: 0; }
   .notif-toasts { left: 12px; right: 12px; width: auto; }
   /* Three compact tiles in one row; the chart is lower (see ActivityChart). */
   .stat-tile { gap: 2px; padding: 12px; }
@@ -1048,7 +1055,6 @@ main:has(> .auto-page) { padding-top: calc(var(--page-top) - 8px); }
   /* The Dashboard scrolls the page itself, so Safari's floating address bar sits over the content instead of under a cut-off box. */
   .app:not(.sessions-mode, .automations-mode, .news-mode, .pulls-mode) { height: auto; min-height: 100dvh; overflow: visible; }
   .app:not(.sessions-mode, .automations-mode, .news-mode, .pulls-mode) :is(main, .dashboard) { flex: none; overflow: visible; }
-  .app:not(.sessions-mode, .automations-mode, .news-mode, .pulls-mode) main { padding-bottom: 24px; }
   /* The keyboard covers the bottom bar and the home indicator: the composer sits right on top of it. */
   .keyboard-open .bottom-nav { display: none; }
   .keyboard-open .app .app-column { padding-bottom: 0; }
@@ -1117,14 +1123,11 @@ main:has(> .auto-page) { padding-top: calc(var(--page-top) - 8px); }
 .auto-error { margin: 0; color: var(--err-text); font-size: 13px; }
 .pulls-diff-error { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
 /* News: the articles beside the open article; each column scrolls on its own. */
-main:has(> .news-page) { padding-top: calc(var(--page-top) - 4px); }
 /* The list and the article share one cell: the article spans the page so its text sits at the page's centre, and the list takes the free margin on its left (260 to 380 px).
    Only on a page too narrow for both does the text step right of the list. */
 .news-page { container-type: inline-size; flex: 1; min-height: 0; display: grid; grid-template: minmax(0, 1fr) / minmax(0, 1fr); }
 .news-page > * { --news-list-w: clamp(260px, calc((100cqw - 42rem) / 2 - 24px), 380px); --news-list-space: calc(var(--news-list-w) + 24px); grid-area: 1 / 1; }
-/* The list's 4px inner room holds the focus rings, so it needs no negative margin here. */
-.news-page:not(.empty) > .news-list { z-index: 1; justify-self: start; width: var(--news-list-w); margin: 0; }
-.news-list { min-height: 0; overflow: hidden; display: flex; flex-direction: column; gap: 12px; padding: 4px; margin: -4px; }
+.news-page:not(.empty) > .news-list { z-index: 1; justify-self: start; width: var(--news-list-w); }
 /* The next run, the search and Delete all stay put while only the articles scroll, as on Automations. */
 .news-list-head { display: flex; flex-direction: column; gap: 12px; }
 .news-status { margin: 0; padding: 0 10px; font-size: 12px; color: var(--text-secondary); }
@@ -1143,7 +1146,7 @@ main:has(> .news-page) { padding-top: calc(var(--page-top) - 4px); }
 .news-item-body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
 .news-item-date { font-size: 12px; color: var(--text-secondary); }
 .news-item-title { font-weight: 500; overflow-wrap: anywhere; }
-.news-article { min-height: 0; overflow-y: auto; padding: 4px 4px 40px; }
+
 /* One rem width for every child: in ch, the small date line got a narrower box than the text and sat off its left edge. */
 .news-article > * { max-width: 42rem; margin-inline: max(var(--news-list-space), calc((100% - 42rem) / 2)) auto; }
 .news-back { display: none; }
@@ -1161,27 +1164,23 @@ main:has(> .news-page) { padding-top: calc(var(--page-top) - 4px); }
 /* After the base rules above: same specificity, so the later rule wins on a phone. */
 @media (max-width: 700px) {
   /* Like Automations, the page holds still: only the article list, or the open article, scrolls under the bar. */
-  main:has(> .news-page) { padding-bottom: 0; }
   .news-page { display: flex; flex-direction: column; }
   /* No list beside the article on a phone: full width, nothing pushes the text right. */
   .news-page > * { --news-list-space: 0px; }
   .news-page:not(.empty) > .news-list { width: auto; }
-  .news-list { flex: 1; margin: 0; }
-  .news-article { flex: 1; margin: 0; padding: 0 0 16px; }
+  .news-article { flex: 1; }
   .news-page:not(.reading) .news-article, .news-page.reading .news-list { display: none; }
   .news-item { padding: 12px 10px; }
   .news-back { display: inline-flex; margin: 0 0 4px -8px; }
   .news-body { font-size: 16px; }
 }
 /* Pull requests: the open pull requests and one pull request's diff. */
-main:has(> .pulls-page) { padding-top: calc(var(--page-top) - 8px); padding-bottom: 0; }
 .pulls-page { --pulls-bar: 44px; flex: 1; min-height: 0; display: flex; flex-direction: column; }
-/* The list is a ListPage; the detail scrolls as one box, so its diff bar sticks under the PR header. */
-.pulls-detail-scroll { flex: 1; min-height: 0; overflow-y: auto; padding: 4px 4px 40px; }
+/* The list is a ListPage; the detail is one page-scroll box, so its diff bar sticks under the PR header. */
 .pulls-list .list-page-body { display: flex; flex-direction: column; gap: 16px; }
-.pulls-list :is(.list-page-head, .list-page-body) > * { flex: none; width: 100%; max-width: 960px; margin-inline: auto; }
-.pulls-detail { max-width: 960px; margin-inline: auto; display: flex; flex-direction: column; gap: 16px; }
-.pulls-tools { display: flex; flex-direction: column; gap: 8px; padding: 8px 0; }
+.pulls-list .list-page-body > * { flex: none; }
+.pulls-detail { display: flex; flex-direction: column; gap: 16px; }
+.pulls-tools { display: flex; flex-direction: column; gap: 8px; }
 .pulls-search-row { display: flex; align-items: center; gap: 8px; }
 .pulls-search { flex: 1; min-width: 0; max-width: 360px; }
 .pulls-filters { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
@@ -1215,13 +1214,13 @@ main:has(> .pulls-page) { padding-top: calc(var(--page-top) - 8px); padding-bott
 .pulls-check.skipped, .pulls-check.neutral { color: var(--text-secondary); }
 .pulls-check-state { margin-left: auto; font-size: 12px; color: var(--text-secondary); }
 .pr-diff { display: flex; flex-direction: column; gap: 12px; }
-/* -4px: the page pads its top, and the bar must cover that strip too. */
-.pr-diff-bar { position: sticky; top: -4px; z-index: 3; display: flex; align-items: center; gap: 8px; min-height: var(--pulls-bar); margin-inline: -4px; padding: 0 4px; background: var(--page-bg); border-bottom: 1px solid var(--line); overflow-x: auto; }
+/* Sticks at the scroll box's very top: it covers the ring room too. */
+.pr-diff-bar { position: sticky; top: calc(-1 * var(--page-ring)); z-index: 3; display: flex; align-items: center; gap: 8px; min-height: var(--pulls-bar); margin-inline: calc(-1 * var(--page-ring)); padding: 0 var(--page-ring); background: var(--page-bg); border-bottom: 1px solid var(--line); overflow-x: auto; }
 .pr-diff-bar > * { flex: none; }
 .pr-diff-files { display: flex; flex-direction: column; gap: 12px; }
 .pr-diff-file { border: 1px solid var(--line); border-radius: var(--radius-lg); background: var(--surface-1); overflow: clip; }
 /* Opaque and square while stuck, so nothing shows through; the file clips its own corners. */
-.pr-diff-file-head { position: sticky; top: calc(var(--pulls-bar) - 4px); z-index: 2; display: flex; align-items: center; gap: 8px; width: 100%; padding: 8px 12px; border: 0; border-radius: 0; background: var(--surface-1); color: inherit; text-align: left; font: inherit; font-size: 13px; }
+.pr-diff-file-head { position: sticky; top: calc(var(--pulls-bar) - var(--page-ring)); z-index: 2; display: flex; align-items: center; gap: 8px; width: 100%; padding: 8px 12px; border: 0; border-radius: 0; background: var(--surface-1); color: inherit; text-align: left; font: inherit; font-size: 13px; }
 .pr-diff-file-head.open { border-bottom: 1px solid var(--line); }
 @media (hover: hover) { .pr-diff-file-head:hover { background: color-mix(in srgb, var(--surface-1), var(--text-primary) 5%); } }
 .pr-diff-file-head .disclosure { flex: none; color: var(--text-secondary); }
@@ -1268,8 +1267,6 @@ main:has(> .pulls-page) { padding-top: calc(var(--page-top) - 8px); padding-bott
 :root[data-theme="dark"] :is(.hljs-built_in, .hljs-symbol, .hljs-bullet, .hljs-name, .hljs-tag) { color: #7ee787; }
 :root[data-theme="dark"] .hljs-deletion { color: #ffa198; }
 @media (max-width: 700px) {
-  main:has(> .pulls-page) { padding-inline: 12px; }
-  .pulls-detail-scroll { padding-bottom: 16px; }
   .pulls-row { flex-wrap: wrap; padding-bottom: 6px; }
   .pulls-row-main { padding: 12px 10px; }
   .pulls-row-session { margin-left: 10px; }

@@ -103,7 +103,11 @@ The code has three parts: the server (`src/`), the interface (`web/src/`) and th
 | `features/` | One folder for each screen or part of a screen: `dashboard`, `shell`, `automations`, `news`, `pulls`, `sessions`, `conversation`, `settings`, `setup`, `update`, `new-thread`, `notifications`, `switcher`. |
 | `ui/` | Base components, tooltips and animations. See `web/src/ui/README.md`. |
 
-A new list page (a search, filters and a list that scrolls) uses `ListPage` from `ui/`, as Automations, News and Pull requests do. Put the search and the filters in `head` and the list in the children. The head stays outside the scroll box, so it does not move while the list scrolls. Do not make a toolbar `position: sticky` inside a scroll box: it shifts by the box's padding when the list starts to scroll. `web/test/styles.test.ts` checks this.
+Every page uses the page shell: the block between `page-shell:start` and `page-shell:end` at the top of `web/src/styles.css`. Its tokens (`--page-top`, `--page-x`, `--page-bottom`, `--page-ring`, `--page-gap`) set the edges, the space under the header, the space after the last content and the gap under a toolbar, the same on every page. Pages differ only in their inner content: do not add padding, margin or max-width to `main`, to a page root or to a list page outside this block, and do not add a `main:has(...)` rule. A test in `web/test/uiRules.test.ts` checks this. Sessions is the one exception: a workspace whose columns run edge to edge.
+
+- A list page (a search, filters and a list that scrolls) uses `ListPage` from `ui/`, as Pull requests, Automations and News do. Put the search and the filters in `head` and the list in the children. The head stays outside the scroll box, so it does not move while the list scrolls. Do not make a toolbar `position: sticky` inside a scroll box: it shifts by the box's padding when the list starts to scroll.
+- Any other page puts its content in one element with the `page-scroll` class (as Dashboard does), which scrolls it and adds the shared bottom space.
+- A new page (for example Setup) follows the same rules, with no exception.
 
 ### Contract (`shared/`)
 

@@ -125,7 +125,7 @@ export function PullRequestsButton({ pullRequests }: { pullRequests: ThreadPullR
     icon: "gitPullRequest" as const,
     onSelect: () => (window.location.hash = hashForPr(pr)),
   }));
-  return <ActionMenu label={`${pullRequests.length} pull requests`} tooltip="Pull requests" icon="gitPullRequest" text={String(pullRequests.length)} items={items} />;
+  return <ActionMenu label={`${pullRequests.length} pull requests`} tooltip="Pull requests" icon="gitPullRequest" count={pullRequests.length} items={items} />;
 }
 
 export const SessionWindow = memo(SessionWindowView);

@@ -15,7 +15,7 @@ export function ListPage({ head, headClassName, bodyClassName, className, childr
   return (
     <section className={join("list-page", className)} {...rest}>
       <div className={join("list-page-head", headClassName)}>{head}</div>
-      <div className={join("list-page-body", bodyClassName)}>{children}</div>
+      <div className={join("list-page-body page-scroll", bodyClassName)}>{children}</div>
     </section>
   );
 }

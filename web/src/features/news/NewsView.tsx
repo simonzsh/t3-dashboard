@@ -113,15 +113,14 @@ export function NewsView({ news, writing, now, compact, seen, onRead, onOpenThre
   if (articles.length === 0) {
     return (
       <div className="news-page empty">
-        <section className="news-list" aria-label="News">
-          {status}
+        <ListPage className="news-list" aria-label="News" headClassName="news-list-head" head={status}>
           {progress && <ul className="news-items">{progress}</ul>}
           <div className="empty-state">
             <Icon name="newspaper" />
             <strong>No news yet</strong>
             <span>{task ? "Your first article shows here after the next run. Use Run now to get one at once." : "Use Run now to get the first article. News settings sets when the next ones come."}</span>
           </div>
-        </section>
+        </ListPage>
       </div>
     );
   }
@@ -176,7 +175,7 @@ export function NewsView({ news, writing, now, compact, seen, onRead, onOpenThre
           })}
         </ul>
       </ListPage>
-      <article ref={articleRef} className="news-article" aria-label={shown?.title ?? "News"}>
+      <article ref={articleRef} className="news-article page-scroll" aria-label={shown?.title ?? "News"}>
         <Button variant="ghost" size="sm" className="news-back" onClick={() => setReading(false)}>
           <Icon name="arrowLeft" /> News
         </Button>

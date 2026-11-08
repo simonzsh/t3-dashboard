@@ -23,5 +23,5 @@ export function SessionsButton({ sessions, text, variant = "ghost", className, o
     );
   }
   const items = sessions.map((thread) => ({ label: thread.title, icon: "messagesSquare" as const, onSelect: () => onOpenThread(thread.id, false) }));
-  return <ActionMenu className={className} label={`${sessions.length} sessions`} icon="messagesSquare" text={`Sessions ${sessions.length}`} items={items} />;
+  return <ActionMenu className={className} label={`${sessions.length} sessions`} icon="messagesSquare" text={`Sessions ${sessions.length}`} variant={variant} items={items} />;
 }
