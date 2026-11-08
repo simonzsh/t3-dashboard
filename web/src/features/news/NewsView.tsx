@@ -89,6 +89,20 @@ export function NewsView({ news, writing, now, compact, seen, onRead, onOpenThre
       )}
     </li>
   );
+  // Before any early return: a hook skipped on some renders breaks React (empty list after Delete all).
+  useLayoutEffect(() => {
+    const list = listRef.current;
+    if (!list || compact) return setHighlight(null);
+    const measure = () => {
+      const item = list.querySelector<HTMLElement>(".news-item.active");
+      setHighlight(item ? { top: item.offsetTop, height: item.offsetHeight } : null);
+    };
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(list);
+    return () => observer.disconnect();
+  }, [date, compact, articles, writing]);
+
   if (articles.length === 0) {
     return (
       <div className="news-page empty">
@@ -105,19 +119,6 @@ export function NewsView({ news, writing, now, compact, seen, onRead, onOpenThre
     );
   }
   const shown = article?.date === date ? article : null;
-  useLayoutEffect(() => {
-    const list = listRef.current;
-    if (!list || compact) return setHighlight(null);
-    const measure = () => {
-      const item = list.querySelector<HTMLElement>(".news-item.active");
-      setHighlight(item ? { top: item.offsetTop, height: item.offsetHeight } : null);
-    };
-    measure();
-    const observer = new ResizeObserver(measure);
-    observer.observe(list);
-    return () => observer.disconnect();
-  }, [date, compact, articles, writing]);
-
   return (
     <div className={`news-page${reading ? " reading" : ""}`}>
       <section className="news-list" aria-label="News">

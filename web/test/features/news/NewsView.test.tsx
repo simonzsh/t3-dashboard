@@ -117,3 +117,11 @@ test("without an article there is nothing to delete", () => {
 test("no delete dialog shows until a delete is asked", () => {
   assert.doesNotMatch(view(state({ articles: [{ date: "2026-11-07", title: "News 7 Nov", mtimeMs: 2 }] })), /Delete article\?|Delete all articles\?/);
 });
+
+test("every hook runs before the empty-list return, so Delete all cannot crash the page", async () => {
+  // React throws (error #300) when a render calls fewer hooks than the one before it.
+  const source = await Bun.file(new URL("../../../src/features/news/NewsView.tsx", import.meta.url)).text();
+  const body = source.slice(source.indexOf("export function NewsView"));
+  const afterReturn = body.slice(body.indexOf("if (articles.length === 0)"));
+  assert.doesNotMatch(afterReturn, /\buse[A-Z]\w*\(/);
+});
