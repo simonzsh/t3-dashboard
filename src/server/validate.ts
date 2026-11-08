@@ -2,8 +2,7 @@ import type { ApprovalDecision, AssignIssueBody, CreateAutomationBody, CreatePro
 import { PROJECT_COLOR_NAMES } from "../../shared/projectColors.ts";
 import { ACTIVITY_PERIODS, DEFAULT_ACTIVITY_PERIOD, type ActivityPeriod } from "../../shared/usage.ts";
 import { isObject } from "../../shared/guards.ts";
-import { NEWS_LANGUAGES, type NewsLanguage } from "../../shared/news.ts";
-import { isTimeOfDay, isWeekday } from "../config/newsFile.ts";
+import { NEWS_LANGUAGES, isTimeOfDay, isWeekday, type NewsLanguage } from "../../shared/news.ts";
 import { normalizeSessions, type SessionsUpdate } from "../../shared/sessions.ts";
 import { IMAGE_TYPES, MAX_ATTACHMENTS, MAX_FILE_BYTES, MAX_IMAGE_BYTES, MAX_IMAGES, MAX_SECRET_CHARS, isRuntimeMode } from "../../shared/limits.ts";
 import { isSeenId, isSeenTime, type SeenChange } from "../../shared/seen.ts";

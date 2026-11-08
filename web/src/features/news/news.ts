@@ -1,25 +1,15 @@
-import type { DashboardProvider, ModelSelection, NewsSettings, NewsTask, SaveNewsBody } from "../../../../shared/api.ts";
-import type { NewsArticleSummary } from "../../../../shared/news.ts";
-import { later, type SeenState } from "../../../../shared/seen.ts";
+import type { DashboardProvider, ModelSelection, SaveNewsBody } from "../../../../shared/api.ts";
+import { NEWS_DEFAULT_MODEL, NEWS_LANGUAGES, isTimeOfDay, type NewsArticleSummary, type NewsFrequency, type NewsLanguage, type NewsSettings, type NewsTask } from "../../../../shared/news.ts";
+import { isUnseenAt, type SeenState } from "../../../../shared/seen.ts";
 import { formatMessageTime, relativeTime } from "../../lib/format.ts";
-import { NEWS_DEFAULT_MODEL, NEWS_LANGUAGES, type NewsLanguage } from "../../../../shared/news.ts";
+import { WEEKDAY_NAMES, WEEKDAY_ORDER } from "../new-thread/automationForm.ts";
 import { presetSelection } from "../new-thread/newAgent.ts";
-
-export type NewsFrequency = SaveNewsBody["frequency"];
 
 /** The article languages the dropdown offers. */
 export const LANGUAGES: ReadonlyArray<{ id: NewsLanguage; label: string }> = NEWS_LANGUAGES.map((id) => ({ id, label: id }));
 
 /** Monday first; the value is the JS weekday (0 = Sunday). */
-export const WEEKDAYS: ReadonlyArray<{ id: string; label: string }> = [
-  { id: "1", label: "Monday" },
-  { id: "2", label: "Tuesday" },
-  { id: "3", label: "Wednesday" },
-  { id: "4", label: "Thursday" },
-  { id: "5", label: "Friday" },
-  { id: "6", label: "Saturday" },
-  { id: "0", label: "Sunday" },
-];
+export const WEEKDAYS: ReadonlyArray<{ id: string; label: string }> = WEEKDAY_ORDER.map((day) => ({ id: String(day), label: WEEKDAY_NAMES[day] }));
 
 /** The sentence under the time field. */
 export const scheduleHint = (frequency: NewsFrequency, weekday: number): string =>
@@ -46,7 +36,7 @@ export const formFromSettings = (settings: NewsSettings, selection: ModelSelecti
 };
 
 export function toBody(form: NewsForm): { body: SaveNewsBody } | { error: string } {
-  if (!/^([01]\d|2[0-3]):[0-5]\d$/.test(form.timeOfDay)) return { error: "Pick a time of day." };
+  if (!isTimeOfDay(form.timeOfDay)) return { error: "Pick a time of day." };
   if (!form.selection) return { error: "Pick a model." };
   return { body: { enabled: form.enabled, frequency: form.frequency, weekday: form.weekday, timeOfDay: form.timeOfDay, language: form.language, modelSelection: form.selection } };
 }
@@ -69,7 +59,6 @@ export function isStarting(startedAt: number | null, now: number, newestMtimeMs:
   return newestMtimeMs === null || newestMtimeMs < startedAt;
 }
 
-/** One line under the page title: when the next article comes and how the last run went. */
 /** The line above the list: the next run and how the last one went. Empty when there is no schedule; a run in progress shows in the list. */
 export function statusLine(task: NewsTask | null, now: Date): string {
   if (!task || !task.enabled) return "";
@@ -105,7 +94,7 @@ export const newsMark = (a: Pick<NewsArticleSummary, "date" | "mtimeMs">): { id:
 
 export function isUnreadArticle(a: Pick<NewsArticleSummary, "date" | "mtimeMs">, seen: SeenState): boolean {
   const { id, at } = newsMark(a);
-  return at.localeCompare(later(seen.since, seen.seen[id] ?? "")) > 0;
+  return isUnseenAt(id, at, seen);
 }
 
 export const unreadNewsCount = (articles: readonly NewsArticleSummary[], seen: SeenState): number => articles.filter((a) => isUnreadArticle(a, seen)).length;

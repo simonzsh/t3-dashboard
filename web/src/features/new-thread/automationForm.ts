@@ -32,6 +32,7 @@ export interface AutomationForm {
 }
 
 export const WEEKDAY_LABELS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"] as const;
+export const WEEKDAY_NAMES = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"] as const;
 /** Display order: Monday first. Values stay T3's (0 is Sunday). */
 export const WEEKDAY_ORDER = [1, 2, 3, 4, 5, 6, 0] as const;
 export const FILTER_OPS: ReadonlyArray<{ id: FilterOp; label: string }> = [

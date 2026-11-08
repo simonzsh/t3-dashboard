@@ -1,4 +1,4 @@
-import { NEWS_DEFAULTS, NEWS_LANGUAGES, type NewsLanguage, type NewsSettings } from "../../shared/news.ts";
+import { NEWS_DEFAULTS, NEWS_LANGUAGES, isTimeOfDay, isWeekday, type NewsLanguage, type NewsSettings } from "../../shared/news.ts";
 import type { ModelSelection } from "../../shared/threads.ts";
 import type { ReadFile } from "./config.ts";
 
@@ -8,9 +8,6 @@ export interface StoredNews {
   taskCreatedAt: string | null;
 }
 
-const TIME_OF_DAY = /^([01]\d|2[0-3]):[0-5]\d$/;
-export const isTimeOfDay = (value: unknown): value is string => typeof value === "string" && TIME_OF_DAY.test(value);
-export const isWeekday = (value: unknown): value is number => Number.isInteger(value) && (value as number) >= 0 && (value as number) <= 6;
 const ARTICLE_NAME = /^\d{4}-\d{2}-\d{2}\.md$/;
 const fields = (value: unknown): Record<string, unknown> => (typeof value === "object" && value !== null ? (value as Record<string, unknown>) : {});
 const text = (value: unknown): string | null => (typeof value === "string" && value.trim() !== "" ? value : null);

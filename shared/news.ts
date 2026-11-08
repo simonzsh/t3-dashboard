@@ -16,6 +16,10 @@ export interface NewsSettings {
   modelSelection: ModelSelection | null;
 }
 
+const TIME_OF_DAY = /^([01]\d|2[0-3]):[0-5]\d$/;
+export const isTimeOfDay = (value: unknown): value is string => typeof value === "string" && TIME_OF_DAY.test(value);
+export const isWeekday = (value: unknown): value is number => Number.isInteger(value) && (value as number) >= 0 && (value as number) <= 6;
+
 export const NEWS_LANGUAGES = ["English", "French"] as const;
 export type NewsLanguage = (typeof NEWS_LANGUAGES)[number];
 
