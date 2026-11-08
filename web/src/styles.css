@@ -182,6 +182,8 @@ main { flex: 1; min-height: 0; overflow: hidden; padding: var(--page-top) var(--
 /* List pages (ListPage): the head stays outside the scroll box, so it never moves while the list scrolls. */
 .list-page { flex: 1; min-height: 0; display: flex; flex-direction: column; gap: var(--page-gap); }
 .list-page-head { flex: none; background: var(--page-bg); }
+/* A bleed body (a diff) uses the whole phone width: it drops the side edges of the page. */
+@media (width <= 700px) { .list-page-body.bleed { margin-inline: calc(-1 * var(--page-x)); padding-inline: 0; } }
 /* One height for each toolbar control: a segmented control or a menu must not make one page's list start lower. */
 .list-page-head :is(.segmented, .search-field .field, .dropdown-trigger, .tabs button, .btn.md, .icon-button.md) { height: var(--toolbar-control); }
 .list-page-head .segmented { padding-block: 2px; }
@@ -1308,6 +1310,9 @@ ol.install-steps { padding-left: 18px; }
   .pulls-row-session { margin-left: 10px; }
   .pr-diff-no { width: 36px; min-width: 36px; padding: 0 4px; }
   .pr-diff-file-head { padding: 10px; }
+  /* The detail body bleeds to the screen edges: the diff uses the full width, the rest keeps the page edge. */
+  .pulls-detail-main > :not(.pr-diff), .pr-diff > :not(.pr-diff-files) { margin-inline: var(--page-x); }
+  .pr-diff-file { border-inline: 0; border-radius: 0; }
   .pulls-title { white-space: normal; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; line-height: 1.3; font-size: 16px; }
   .pulls-meta { white-space: normal; overflow-wrap: anywhere; }
 }

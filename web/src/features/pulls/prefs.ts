@@ -24,3 +24,17 @@ export const { load: loadPullsPrefs, save: savePullsPrefs } = PREFS;
 
 /** The scope and repository filters of the list, saved in this browser. The search is not kept, as on Automations. */
 export const usePullsPrefs = () => usePrefs(PREFS);
+
+export interface PullDetailPrefs {
+  /** The file tree beside the diff on a wide screen. */
+  filesOpen: boolean;
+}
+
+export const PULL_DETAIL_KEY = "t3-dashboard-pull-detail";
+export const parsePullDetailPrefs = (data: unknown): PullDetailPrefs => ({ filesOpen: !(isObject(data) && data.filesOpen === false) });
+
+const DETAIL_PREFS = jsonPrefs(PULL_DETAIL_KEY, parsePullDetailPrefs);
+export const { load: loadPullDetailPrefs, save: savePullDetailPrefs } = DETAIL_PREFS;
+
+/** Whether the file tree shows beside the diff, saved in this browser. */
+export const usePullDetailPrefs = () => usePrefs(DETAIL_PREFS);

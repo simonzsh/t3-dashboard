@@ -149,7 +149,8 @@ test("the header holds the title, the meta line, the badges and the actions on o
   assert.doesNotMatch(html, /Collapse tests|Changed files/);
   assert.match(header({ controls: controls({ hasTests: true, testsOpen: true }) }), /aria-label="Collapse tests"/);
   assert.match(header({ controls: controls({ anyOpen: false }) }), /aria-label="Expand all"/);
-  assert.match(header({ onShowFiles: () => {} }), /aria-label="Changed files"/);
+  assert.match(header({ filesButton: { label: "Hide files", icon: "panelLeft", onClick: () => {} } }), /aria-label="Hide files"/);
+  assert.match(header({ phone: true, filesButton: { label: "Changed files", icon: "listTree", onClick: () => {} } }), /aria-label="Pull request actions"/);
 });
 
 test("the header opens no session, one session, or a menu of several", () => {
@@ -194,7 +195,7 @@ test("the file tree groups the files by folder, marks the current one and dims a
 test("the detail is a list page: the header above the scroll box, the diff inside it", () => {
   const html = page();
   assert.match(html, /<section class="list-page pulls-detail" aria-label="Pull request"><div class="list-page-head"><header class="pulls-head">/);
-  assert.match(html, /<div class="list-page-body page-scroll"><div class="pulls-detail-grid">.*data-pr-diff-file="src\/a.ts"/);
+  assert.match(html, /<div class="list-page-body page-scroll bleed"><div class="pulls-detail-grid">.*data-pr-diff-file="src\/a.ts"/);
   assert.match(html, /<a [^>]*href="https:\/\/example.test\/acme\/storefront\/pull\/12"[^>]*>.*Open on GitHub/);
   // A static render is narrow: the file list waits in a sheet behind the header button.
   assert.match(html, /aria-label="Changed files"/);

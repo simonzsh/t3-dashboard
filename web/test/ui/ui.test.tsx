@@ -318,6 +318,10 @@ test("media checks are false without matchMedia and name the shared queries", ()
   assert.equal(TOUCH, "(pointer: coarse)");
 });
 
+test("a bleed ListPage marks its body, so it runs edge to edge on a phone", () => {
+  assert.match(html(<ListPage head="h" bleed><ul /></ListPage>), /<div class="list-page-body page-scroll bleed"><ul><\/ul><\/div>/);
+});
+
 test("a ListPage with a body ref renders the same markup", () => {
   assert.equal(html(<ListPage head="h" bodyRef={{ current: null }}><ul /></ListPage>), '<section class="list-page"><div class="list-page-head">h</div><div class="list-page-body page-scroll"><ul></ul></div></section>');
 });

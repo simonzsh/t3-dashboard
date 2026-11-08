@@ -7,6 +7,7 @@ import { DiffFiles, useDiffView } from "./DiffFiles.tsx";
 import { currentIndex } from "./diffView.ts";
 import { FileNav } from "./FileNav.tsx";
 import { PrHeader, PrMeta } from "./PrHeader.tsx";
+import { usePullDetailPrefs } from "./prefs.ts";
 
 // Below this width the file tree leaves the side and opens in a sheet.
 const WIDE = "(min-width: 1100px)";
@@ -36,6 +37,8 @@ export function PrDetail({ pr, detail, detailError, diff, diffError, refreshing,
   const wide = useMediaQuery(WIDE);
   const phone = useMediaQuery(PHONE);
   const [sheet, setSheet] = useState(false);
+  const [{ filesOpen }, setDetailPrefs] = usePullDetailPrefs();
+  const side = wide && filesOpen && files.length > 0;
   const [active, setActive] = useState(0);
   const body = useRef<HTMLDivElement>(null);
   // At the end of the diff a short last file never reaches the reading line: keep the one the user picked.
@@ -75,6 +78,9 @@ export function PrDetail({ pr, detail, detailError, diff, diffError, refreshing,
     setActive(index);
   }
 
+  const filesButton = wide
+    ? { label: filesOpen ? "Hide files" : "Show files", icon: "panelLeft" as const, onClick: () => setDetailPrefs({ filesOpen: !filesOpen }) }
+    : { label: "Changed files", icon: "listTree" as const, onClick: () => setSheet(true) };
   const nav = <FileNav files={files} open={view.open} active={files[active]?.path ?? null} onPick={pick} />;
   const controls = { ...view, hasFiles: files.length > 0 };
   return (
@@ -82,12 +88,13 @@ export function PrDetail({ pr, detail, detailError, diff, diffError, refreshing,
       className="pulls-detail"
       aria-label="Pull request"
       bodyRef={body}
+      bleed
       head={
-        <PrHeader pr={pr} detail={detail} now={now} sessions={sessions} onOpenSession={onOpenSession} controls={controls} refreshing={refreshing} onRefresh={onRefresh} onShowFiles={wide ? undefined : () => setSheet(true)} phone={phone} />
+        <PrHeader pr={pr} detail={detail} now={now} sessions={sessions} onOpenSession={onOpenSession} controls={controls} refreshing={refreshing} onRefresh={onRefresh} filesButton={filesButton} phone={phone} />
       }
     >
-      <div className={`pulls-detail-grid${wide && files.length > 0 ? " with-files" : ""}`}>
-        {wide && files.length > 0 && <aside className="pulls-detail-side">{nav}</aside>}
+      <div className={`pulls-detail-grid${side ? " with-files" : ""}`}>
+        {side && <aside className="pulls-detail-side">{nav}</aside>}
         <div className="pulls-detail-main">
           {detail && phone && <PrMeta detail={detail} now={now} />}
           {detailError && <p className="auto-error" role="alert">{detailError}</p>}
