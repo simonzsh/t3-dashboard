@@ -87,7 +87,8 @@ export class PullRequests {
     return pending;
   }
 
-  /** A diff never changes for one head commit, so the head SHA is the cache key. It is read fresh: after a push, the old diff must not show. */
+  /** A diff never changes for one head commit, so the head SHA is the cache key. Without a SHA, or on refresh,
+   *  the head is read fresh. With a SHA, the caller owns freshness: the page asks with the newest head it knows. */
   async diff(repository: string, number: number, options: { sha?: string; refresh?: boolean } = {}): Promise<PrDiff> {
     // A caller that knows the head commit skips the gh call: the diff of one commit never changes.
     const hint = options.sha && !options.refresh ? this.diffs.get(`${repository}#${number}@${options.sha}`) : undefined;
