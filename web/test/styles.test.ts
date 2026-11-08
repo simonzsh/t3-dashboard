@@ -190,6 +190,7 @@ test("one spin keyframe, and shared rows have one rule each", () => {
 test("git: the diff bar and the file headers stick inside the page, and a dark theme recolours the tokens", () => {
   assert.match(rule(".pr-diff-bar"), /position: sticky; top: -4px/);
   assert.match(rule(".pr-diff-file-head"), /position: sticky; top: calc\(var\(--git-bar\) - 4px\)/);
+  assert.match(rule(".pr-diff-file-head"), /border-radius: 0;/);
   assert.match(rule(".git-page"), /overflow-y: auto/);
   assert.match(css, /:root\[data-theme="dark"\] :is\(\.hljs-keyword/);
 });
