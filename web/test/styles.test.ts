@@ -213,3 +213,7 @@ test("hovering an open file header keeps its separator gray", () => {
 test("the pull request head keeps room above the stuck file header and tree", () => {
   assert.match(rule(".pulls-head"), /padding-bottom: 10px;/);
 });
+
+test("on a phone only the diff runs edge to edge; the description and the file tab keep the page edge", () => {
+  assert.match(css, /\.pulls-detail-main > :not\(\.pulls-changes\), \.pulls-changes > :not\(\.pr-diff\), \.pr-diff > :not\(\.pr-diff-files\) \{ margin-inline: var\(--page-x\); \}/);
+});

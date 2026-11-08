@@ -1247,6 +1247,8 @@ ol.install-steps { padding-left: 18px; }
 .pulls-detail .list-page-body { container-type: size; }
 .pulls-detail-grid { display: flex; align-items: flex-start; }
 .pulls-detail-main { flex: 1; display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+.pulls-description { max-width: 860px; }
+.pulls-tabs { margin-top: 4px; }
 /* The kit SidePanel, as on Sessions: the tree and its gap slide shut together. */
 .pulls-detail-side { position: sticky; top: 0; --side-panel-w: 296px; max-height: calc(100cqh + var(--page-bottom)); }
 .pulls-detail-tree { flex: none; width: 280px; margin-right: 16px; display: flex; flex-direction: column; min-height: 0; }
@@ -1317,7 +1319,7 @@ ol.install-steps { padding-left: 18px; }
   .pr-diff-no { width: 36px; min-width: 36px; padding: 0 4px; }
   .pr-diff-file-head { padding: 10px; }
   /* The detail body bleeds to the screen edges: the diff uses the full width, the rest keeps the page edge. */
-  .pulls-detail-main > :not(.pr-diff), .pr-diff > :not(.pr-diff-files) { margin-inline: var(--page-x); }
+  .pulls-detail-main > :not(.pulls-changes), .pulls-changes > :not(.pr-diff), .pr-diff > :not(.pr-diff-files) { margin-inline: var(--page-x); }
   .pr-diff-file { border-inline: 0; border-radius: 0; }
   .pulls-title { white-space: normal; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; line-height: 1.3; font-size: 16px; }
   .pulls-meta { white-space: normal; overflow-wrap: anywhere; }
