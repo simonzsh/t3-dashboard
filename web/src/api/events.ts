@@ -28,6 +28,7 @@ export function applyEvent(state: DashboardState | null, event: DashboardEvent):
     case "sessions":
     case "stash":
     case "seen":
+    case "alerts":
       return state;
   }
 }

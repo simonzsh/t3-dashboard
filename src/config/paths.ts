@@ -34,6 +34,9 @@ export const seenFile = (env: Env, homedir: string): string => join(configDir(en
 /** The open sessions, shared by every device. */
 export const sessionsFile = (env: Env, homedir: string): string => join(configDir(env, homedir), "sessions.json");
 
+/** The phone alerts: the ntfy topic and the threads armed for one alert. */
+export const alertsFile = (env: Env, homedir: string): string => join(configDir(env, homedir), "alerts.json");
+
 /** Stashed composer drafts, shared by every device. */
 export const stashFile = (env: Env, homedir: string): string => join(configDir(env, homedir), "stash.json");
 
