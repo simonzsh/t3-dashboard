@@ -1,5 +1,4 @@
-import type { DashboardThread, PendingCategory, ThreadPullRequest } from "../../shared/api.ts";
-import { isRepository } from "../../shared/pulls.ts";
+import type { DashboardThread, PendingCategory } from "../../shared/api.ts";
 import type { RawThread } from "../integrations/t3/schemas.ts";
 
 const EPOCH = new Date(0).toISOString();
@@ -41,29 +40,6 @@ function categoryOf(kind: string): PendingCategory {
   return kind === "user_input" ? "user-input" : "other";
 }
 
-type RawPullRequest = { repository?: string | null; number?: number | null; url?: string | null; snapshot?: { title?: string | null } | null } | null | undefined;
-
-// A pull request without a usable repository, number or URL is dropped: the link would be dead.
-function usablePullRequest(pr: RawPullRequest): ThreadPullRequest | null {
-  if (!pr?.repository || !isRepository(pr.repository) || typeof pr.number !== "number" || !Number.isInteger(pr.number) || pr.number <= 0 || !pr.url) return null;
-  return { repository: pr.repository, number: pr.number, url: pr.url, title: pr.snapshot?.title || null };
-}
-
-/** Mirrors T3's threadPullRequestsOf: its list when it sends one, else the legacy linked pull request; the branch one last. */
-export function pullRequestsOf(raw: Pick<RawThread, "pullRequests" | "linkedPullRequest" | "branchPullRequest">): ThreadPullRequest[] {
-  const links: RawPullRequest[] = raw.pullRequests ? raw.pullRequests.filter((link) => link.source !== "stack-dismissed") : [raw.linkedPullRequest];
-  const seen = new Set<string>();
-  const out: ThreadPullRequest[] = [];
-  for (const pr of [...links, raw.branchPullRequest].map(usablePullRequest)) {
-    // T3 keys a pull request by lowercased repository and number.
-    const key = pr && `${pr.repository.toLowerCase()}#${pr.number}`;
-    if (!pr || !key || seen.has(key)) continue;
-    seen.add(key);
-    out.push(pr);
-  }
-  return out;
-}
-
 export function toDashboardThread(raw: RawThread, now: Date): DashboardThread {
   const pending = raw.pendingRuntimeRequest;
   return {
@@ -81,7 +57,5 @@ export function toDashboardThread(raw: RawThread, now: Date): DashboardThread {
     lastError: raw.lastError ?? null,
     pinned: raw.pinnedAt != null,
     lastActivityAt: lastActivityOf(raw),
-    branch: raw.branch ?? null,
-    pullRequests: pullRequestsOf(raw),
   };
 }

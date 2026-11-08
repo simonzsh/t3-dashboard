@@ -1,7 +1,6 @@
 import type { ApprovalDecision, AssignIssueBody, CreateAutomationBody, CreateProjectBody, CreateThreadBody, ProjectIconSpec, RoutineSchedule, WebhookFilter, WebhookSignature, ModelSelection, RespondBody, RewindBody, SaveNewsBody, SecretAnswerBody, SendMessageBody, ThreadSettingsBody, UpdateAutomationBody, UpdateProjectBody, UploadedAttachment, UserInputAnswers, WorkspaceChoice } from "../../shared/api.ts";
 import { PROJECT_COLOR_NAMES } from "../../shared/projectColors.ts";
 import { ACTIVITY_PERIODS, DEFAULT_ACTIVITY_PERIOD, type ActivityPeriod } from "../../shared/usage.ts";
-import { isRepository, type PrRef } from "../../shared/pulls.ts";
 import { isObject } from "../../shared/guards.ts";
 import { NEWS_LANGUAGES, isTimeOfDay, isWeekday, type NewsLanguage } from "../../shared/news.ts";
 import { normalizeSessions, type SessionsUpdate } from "../../shared/sessions.ts";
@@ -357,15 +356,6 @@ export function validProvider(params: URLSearchParams): string {
 export function validItemId(itemId: string): string {
   if (itemId.length > 512) throw new HttpError(400, "itemId must be at most 512 characters");
   return itemId;
-}
-
-/** `:owner/:repo/:number` of a pull request route. */
-export function validPrRef(params: Record<string, string>): PrRef {
-  const repository = `${params.owner}/${params.repo}`;
-  const number = /^[1-9]\d{0,8}$/.test(params.number ?? "") ? Number(params.number) : 0;
-  if (!isRepository(repository)) throw new HttpError(400, "owner and repo must be a GitHub owner and repository name");
-  if (number === 0) throw new HttpError(400, "number must be a positive integer");
-  return { repository, number };
 }
 
 export function validAssign(body: Record<string, unknown>): Omit<AssignIssueBody, "attachments" | "uploads"> {

@@ -11,8 +11,6 @@ import { toLimitsOverview } from "../../src/domain/providerLimits.ts";
 import { toProviders } from "../../src/domain/providers.ts";
 import { createActions } from "../../src/domain/actions.ts";
 import { createAutomations } from "../../src/domain/automations.ts";
-import { PullRequests } from "../../src/domain/pulls.ts";
-import { demoGh } from "../../src/app/demo/pulls.ts";
 import { createNews } from "../../src/domain/news.ts";
 import { isArticleName } from "../../src/config/newsFile.ts";
 import { agentStatus } from "../../shared/status.ts";
@@ -497,40 +495,4 @@ test("the demo launches a thread in a worktree and answers branch reads", async 
   assert.equal((await port.listRefs("/home/demo/src/sandbox", { limit: 100 })).isRepo, false);
   assert.equal((await port.vcsStatus("/home/demo/src/sandbox")).isRepo, false);
   assert.equal((await port.vcsStatus("/home/demo/src/atlas-api")).refName, "main");
-});
-
-test("the demo Pull requests page lists invented pull requests and a diff for each, through the real parsers", async () => {
-  const pulls = new PullRequests({ run: demoGh(() => NOW), now: () => NOW });
-  const { prs } = await pulls.prs();
-  assert.deepEqual(prs.map((pr) => `${pr.repository}#${pr.number}`).sort(), ["acme/atlas-api#149", "acme/atlas-api#151", "acme/atlas-mobile#57", "acme/atlas-web#138", "acme/atlas-web#142", "acme/atlas-web#143"]);
-  assert.deepEqual(new Set(prs.map((pr) => pr.checks)), new Set(["success", "failure", "pending", "none"]));
-  assert.deepEqual(new Set(prs.map((pr) => pr.review)), new Set(["approved", "changes_requested", "review_required", "none"]));
-  assert.equal(prs.filter((pr) => pr.draft).length, 1);
-  assert.deepEqual(new Set(prs.flatMap((pr) => pr.roles)), new Set(["author", "reviewer"]));
-  for (const pr of prs) {
-    const diff = await pulls.diff(pr.repository, pr.number);
-    assert.ok(diff.files.length > 0, `${pr.repository}#${pr.number}`);
-    assert.equal(diff.files.reduce((sum, file) => sum + file.additions, 0), pr.additions);
-  }
-});
-
-test("the demo checkout diff shows every kind of file", async () => {
-  const { files } = await new PullRequests({ run: demoGh(() => NOW), now: () => NOW }).diff("acme/atlas-web", 142);
-  assert.deepEqual(new Set(files.map((file) => file.status)), new Set(["added", "deleted", "modified", "renamed"]));
-  assert.ok(files.some((file) => file.binary));
-  assert.ok(files.some((file) => /\.test\./.test(file.path)));
-  assert.ok(files.some((file) => file.additions > 400));
-});
-
-test("the demo threads that carry pull requests point at demo pull requests, one with a stack of two", async () => {
-  const store = syncedStore(new DemoPort(() => NOW));
-  await Bun.sleep(0);
-  const threads = store.state({ t3: "live", serverVersion: null, protocolMismatch: false, error: null, setup: null }, []).threads;
-  const linked = threads.filter((thread) => thread.pullRequests.length > 0);
-  const listed = new Set((await new PullRequests({ run: demoGh(() => NOW), now: () => NOW }).prs()).prs.map((pr) => `${pr.repository}#${pr.number}`));
-  for (const pr of linked.flatMap((thread) => thread.pullRequests)) assert.ok(listed.has(`${pr.repository}#${pr.number}`), `${pr.repository}#${pr.number}`);
-  const checkout = linked.find((thread) => thread.branch === "checkout-summary")!;
-  assert.deepEqual(checkout.pullRequests.map((pr) => [pr.number, pr.title]), [[142, "ATL-142 Redesign the checkout summary"], [143, "ATL-143 Tests for the checkout fees row"]]);
-  // One pull request in two sessions, so the list shows a session count.
-  assert.equal(linked.filter((thread) => thread.pullRequests.some((pr) => pr.number === 138)).length, 2);
 });

@@ -4,7 +4,7 @@ import type { SeenState } from "../../../../shared/seen.ts";
 import { agentStatus } from "../../../../shared/status.ts";
 import { StatusBadge } from "../../lib/StatusBadge.tsx";
 import { ProjectTag } from "../../lib/ProjectTag.tsx";
-import { Badge, Button, Dropdown, Icon, type IconName, ListPage, Pressable, SearchField, Segmented, Sheet, Skeleton, SkeletonGroup } from "../../ui/index.ts";
+import { Badge, Button, Dropdown, Icon, type IconName, Pressable, SearchField, Segmented, Sheet, Skeleton, SkeletonGroup } from "../../ui/index.ts";
 import { NewAutomationDialog } from "../new-thread/NewAutomationDialog.tsx";
 import { AutomationRow } from "./AutomationRow.tsx";
 import { AutomationSheet } from "./AutomationSheet.tsx";
@@ -150,28 +150,25 @@ export function AutomationsView({ state, now, seen, onOpen, automations, automat
   }
   return (
     <div className="auto-page">
-      <ListPage
-        aria-label="Automations"
-        bodyClassName="auto-scroll"
-        head={
-          <div className="auto-toolbar">
-            <SearchField className="auto-search" aria-label="Search automations" placeholder="Search automations…" value={query} onChange={(e) => setQuery(e.target.value)} />
-            <Segmented
-              label="Filter automations"
-              value={prefs.filter}
-              options={[
-                { id: "all", label: "All" },
-                { id: "unread", label: unread > 0 ? `Unread ${unread}` : "Unread" },
-                { id: "failed", label: "Failed" },
-                { id: "running", label: "Running" },
-                { id: "paused", label: "Paused" },
-              ]}
-              onChange={(filter) => setPrefs({ filter })}
-            />
-            <Dropdown label="Sort automations" className="auto-sort" value={prefs.sort} options={SORTS} onPick={(sort) => setPrefs({ sort: sort as AutomationSort })} />
-          </div>
-        }
-      >
+      <section className="auto-section" aria-label="Automations">
+        <div className="auto-toolbar">
+          <SearchField className="auto-search" aria-label="Search automations" placeholder="Search automations…" value={query} onChange={(e) => setQuery(e.target.value)} />
+          <Segmented
+            label="Filter automations"
+            value={prefs.filter}
+            options={[
+              { id: "all", label: "All" },
+              { id: "unread", label: unread > 0 ? `Unread ${unread}` : "Unread" },
+              { id: "failed", label: "Failed" },
+              { id: "running", label: "Running" },
+              { id: "paused", label: "Paused" },
+            ]}
+            onChange={(filter) => setPrefs({ filter })}
+          />
+          <Dropdown label="Sort automations" className="auto-sort" value={prefs.sort} options={SORTS} onPick={(sort) => setPrefs({ sort: sort as AutomationSort })} />
+        </div>
+        {/* Only the list scrolls: the toolbar stays above its scrollbar, as in the sessions list. */}
+        <div className="auto-scroll">
         {sorted.length === 0 && setupRows.length === 0 ? (
           <EmptyList {...(query !== "" ? NO_MATCH : EMPTY[prefs.filter])} />
         ) : (
@@ -220,7 +217,8 @@ export function AutomationsView({ state, now, seen, onOpen, automations, automat
             </ul>
           </div>
         )}
-      </ListPage>
+        </div>
+      </section>
       <Sheet open={selected !== null} label={sheetAutomation?.title ?? "Automation"} width="wide" onClose={closeSheet}>
         {sheetAutomation && (
           <AutomationSheet
