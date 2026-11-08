@@ -6,6 +6,8 @@ import { getDiff, getPull, listPulls } from "../integrations/github/pulls.ts";
 import { DomainError } from "./errors.ts";
 
 const CACHE_MS = 60_000;
+// Past CACHE_MS a list is still served at once, marked stale, while a new read runs; past STALE_MS the reader waits.
+const STALE_MS = 600_000;
 const MAX_DETAILS = 50;
 const MAX_DIFFS = 20;
 
@@ -42,10 +44,19 @@ export class PullRequests {
 
   async prs(refresh = false): Promise<PrList> {
     const now = this.options.now().getTime();
-    if (!refresh && this.list && now - this.list.at < CACHE_MS) return this.list.value;
-    // Two readers at once share one pair of gh calls.
-    this.listing ??= this.readList().finally(() => (this.listing = null));
-    return this.listing;
+    const age = this.list ? now - this.list.at : Infinity;
+    if (!refresh && this.list && age < CACHE_MS) return this.list.value;
+    if (!refresh && this.list && age < STALE_MS && !this.listing) {
+      // The failure is dropped: the next reader starts a new read.
+      this.startListing().catch(() => {});
+      return { ...this.list.value, stale: true };
+    }
+    return this.startListing();
+  }
+
+  // Two readers at once share one pair of gh calls.
+  private startListing(): Promise<PrList> {
+    return (this.listing ??= this.readList().finally(() => (this.listing = null)));
   }
 
   private async readList(): Promise<PrList> {
@@ -77,7 +88,13 @@ export class PullRequests {
   }
 
   /** A diff never changes for one head commit, so the head SHA is the cache key. It is read fresh: after a push, the old diff must not show. */
-  async diff(repository: string, number: number): Promise<PrDiff> {
+  async diff(repository: string, number: number, options: { sha?: string; refresh?: boolean } = {}): Promise<PrDiff> {
+    // A caller that knows the head commit skips the gh call: the diff of one commit never changes.
+    const hint = options.sha && !options.refresh ? this.diffs.get(`${repository}#${number}@${options.sha}`) : undefined;
+    if (hint) {
+      remember(this.diffs, `${repository}#${number}@${options.sha}`, hint, MAX_DIFFS);
+      return hint;
+    }
     const { headSha } = await this.detail(repository, number, true);
     const key = `${repository}#${number}@${headSha}`;
     const known = this.diffs.get(key);
