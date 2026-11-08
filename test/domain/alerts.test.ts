@@ -226,3 +226,34 @@ test("a thread that was already waiting when armed fires only on a new change", 
   await observe([waiting("a")]);
   assert.equal(sent.length, 1);
 });
+
+test("a failed write still sends the alert and keeps the thread disarmed", async () => {
+  let failWrites = false;
+  const sent: string[] = [];
+  const warnings: string[] = [];
+  const alerts = createAlerts({
+    initial: SET_UP,
+    persist: () => {
+      if (failWrites) throw new Error("disk full");
+    },
+    send: async (_target, message) => void sent.push(message.title),
+    check: async () => "ok",
+    newTopic: () => "t",
+    threads: () => [running("a")],
+    projectTitle: () => undefined,
+    now: () => new Date(),
+    onChange: () => {},
+    warn: (message) => void warnings.push(message),
+  });
+  alerts.observe([running("a")]);
+  alerts.arm("a", CLICK("a"));
+  failWrites = true;
+  assert.doesNotThrow(() => alerts.observe([finished("a")]));
+  await new Promise((resolve) => setTimeout(resolve, 0));
+  assert.equal(sent.length, 1);
+  assert.deepEqual(alerts.state().armed, []);
+  assert.equal(warnings.length, 1);
+  alerts.observe([running("a")]);
+  alerts.observe([finished("a")]);
+  assert.equal(sent.length, 1);
+});

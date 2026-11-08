@@ -114,7 +114,13 @@ export function createAlerts(options: AlertsOptions): Alerts {
       const kept = file.armed.filter((a) => alive.has(a.threadId) && !spent.has(a.threadId));
       if (kept.length === file.armed.length) return;
       // Disarm before sending: a failed send must not repeat the alert on the next change.
-      save({ ...file, armed: kept });
+      // observe runs inside the T3 event flow: a failed write must not break it or lose the alert.
+      try {
+        save({ ...file, armed: kept });
+      } catch {
+        warn("Phone alerts: the armed list was not saved.");
+        onChange(state());
+      }
       const found = target();
       if (!found) return;
       for (const { entry, clickUrl } of due) {
