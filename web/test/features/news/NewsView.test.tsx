@@ -145,3 +145,15 @@ test("a search shows only the matching articles, and says so when none match", (
   assert.match(none, /No matching articles/);
   assert.doesNotMatch(none, /Sat 7 Nov|Fri 6 Nov/);
 });
+
+test("a hidden list leaves the article the whole width on a wide screen, never on a phone", () => {
+  const news = state({ articles: [{ date: "2026-11-07", title: "News 7 Nov", mtimeMs: 2 }] });
+  const render = (compact: boolean) =>
+    renderToStaticMarkup(
+      <ApiProvider value={{} as never}>
+        <NewsView news={news} writing={false} now={now} compact={compact} listHidden seen={null} onRead={() => {}} onOpenThread={() => {}} onDelete={async () => {}} onDeleteAll={async () => {}} />
+      </ApiProvider>,
+    );
+  assert.match(render(false), /class="news-page list-hidden"/);
+  assert.doesNotMatch(render(true), /list-hidden/);
+});

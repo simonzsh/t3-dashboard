@@ -157,3 +157,9 @@ test("on a phone News has icon buttons, and nothing before the state exists", ()
   assert.match(out, /aria-label="Run now"/);
   assert.equal(render("news", { ready: false }), "");
 });
+
+test("News has the list toggle on a wide screen only, named after what it does", () => {
+  assert.match(render("news"), /aria-label="Hide the list"/);
+  assert.match(render("news", { listHidden: true }), /aria-label="Show the list"/);
+  assert.doesNotMatch(render("news", { compact: true }), /the list"/);
+});

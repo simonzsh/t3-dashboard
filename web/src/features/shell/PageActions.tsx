@@ -15,7 +15,7 @@ interface Props {
   /** The Sessions layout toggle: shown only on a wide screen. */
   layout: SessionLayout;
   onLayoutChange: (layout: SessionLayout) => void;
-  /** The Sessions list toggle: wide screen only. */
+  /** The list toggle of Sessions and News: wide screen only. */
   listHidden: boolean;
   onToggleList: () => void;
   onNewSession: () => void;
@@ -134,6 +134,11 @@ export function PageActions({ tab, compact, ready, editingLayout, layoutIsDefaul
   } else if (tab === "news" && ready) {
     main = (
       <>
+        {!compact && (
+          <IconButton variant="ghost" label={listHidden ? "Show the list" : "Hide the list"} tooltip={listHidden ? "Show the list" : "Hide the list"} onClick={onToggleList}>
+            <Icon name="panelLeft" />
+          </IconButton>
+        )}
         <Action compact={compact} label="News settings" icon="pencil" iconOnly onClick={onNewsSettings} />
         <Action compact={compact} label="Run now" icon="play" variant="primary" withIcon disabled={!newsCanRun || newsRunning} onClick={onNewsRun} />
       </>

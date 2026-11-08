@@ -13,6 +13,8 @@ interface Props {
   /** An article is being written, or Run now was just pressed. */
   writing: boolean;
   now: Date;
+  /** Wide screen: the article list is hidden from the header and the article takes the width. */
+  listHidden?: boolean;
   /** Phone layout: the list and the article take turns. */
   compact: boolean;
   /** Read marks shared with the notifications; null until loaded (then no dot shows). */
@@ -30,7 +32,7 @@ interface Props {
 }
 
 /** The article list and the open article. On a phone they take turns: the list, then the article with a back button. */
-export function NewsView({ news, writing, now, compact, seen, onRead, onOpenThread, onDelete, onDeleteAll, initialQuery = "", initialMatches }: Props) {
+export function NewsView({ news, writing, now, compact, listHidden = false, seen, onRead, onOpenThread, onDelete, onDeleteAll, initialQuery = "", initialMatches }: Props) {
   const api = useApi();
   const { articles, task, running } = news;
   const [picked, setPicked] = useState<string | null>(null);
@@ -150,7 +152,7 @@ export function NewsView({ news, writing, now, compact, seen, onRead, onOpenThre
   }
   const shown = article?.date === date ? article : null;
   return (
-    <div className={`news-page${reading ? " reading" : ""}`}>
+    <div className={`news-page${reading ? " reading" : ""}${listHidden && !compact ? " list-hidden" : ""}`}>
       <section className="news-list" aria-label="News">
         {status}
         <div className="news-tools">
