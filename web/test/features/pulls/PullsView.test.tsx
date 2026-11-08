@@ -63,7 +63,7 @@ test("an unread row shows the unread ring, and the Unread filter shows its count
   const open: OpenPrs = new Map([["pr:acme/storefront#1", { createdAt: "2026-01-01T20:00:00.000Z", unread: true }], ["pr:acme/storefront#2", { createdAt: "2026-01-01T20:00:00.000Z", unread: false }]]);
   const all = view(prs, undefined, null, open);
   assert.equal(all.match(/class="notif-dot"/g)?.length, 1);
-  assert.match(all, /Change 1<\/span><span class="notif-dot" role="img" aria-label="Unread">/);
+  assert.match(all, /Change 1<span class="notif-dot" role="img" aria-label="Unread">/);
   assert.match(all, />Unread 1</);
   const unread = withStorage({ [PULLS_LIST_KEY]: JSON.stringify({ scope: "unread", repository: "all" }) }, () => view(prs, undefined, null, open));
   assert.match(unread, /Change 1/);

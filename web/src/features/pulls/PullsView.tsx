@@ -34,8 +34,8 @@ function Row({ pr, unread, sessions, now, onOpenThread }: { pr: PrSummary; unrea
   return (
     <li className="pulls-row">
       <a className="pulls-row-main" href={hashForPr(pr)}>
-        <span className="pulls-row-line">
-          <span className="pulls-row-title">{pr.title}</span>
+        <span className="pulls-row-title">
+          {pr.title}
           {unread && <span className="notif-dot" role="img" aria-label="Unread" />}
         </span>
         <span className="pulls-row-meta">
