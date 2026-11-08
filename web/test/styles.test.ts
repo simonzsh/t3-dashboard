@@ -217,3 +217,7 @@ test("the pull request head keeps room above the stuck file header and tree", ()
 test("on a phone only the diff runs edge to edge; the description and the file tab keep the page edge", () => {
   assert.match(css, /\.pulls-detail-main > :not\(\.pulls-changes\), \.pulls-changes > :not\(\.pr-diff\), \.pr-diff > :not\(\.pr-diff-files\) \{ margin-inline: var\(--page-x\); \}/);
 });
+
+test("a hovered underline tab keeps the bar line under it", () => {
+  assert.match(css, /\.tabs\.underline button:not\(\.active\):hover \{ box-shadow: inset 0 -1px var\(--line\); \}/);
+});

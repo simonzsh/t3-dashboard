@@ -131,9 +131,16 @@ export function PrDetail({ pr, detail, detailError, diff, diffError, refreshing,
       bleed
       flush
       head={
-        <PrHeader pr={pr} detail={detail} now={now} sessions={sessions} onOpenSession={onOpenSession} controls={controls} refreshing={refreshing} onRefresh={onRefresh} filesPanel={wide ? { hidden: !filesOpen, onToggle: () => setDetailPrefs({ filesOpen: !filesOpen }) } : undefined} onShowFiles={wide || phone ? undefined : () => setSheet(true)} phone={phone} tabs={tabs} />
+        <PrHeader pr={pr} detail={detail} now={now} sessions={sessions} onOpenSession={onOpenSession} controls={controls} refreshing={refreshing} onRefresh={onRefresh} filesPanel={wide ? { hidden: !filesOpen, onToggle: () => setDetailPrefs({ filesOpen: !filesOpen }) } : undefined} onShowFiles={wide || phone ? undefined : () => setSheet(true)} phone={phone} tabs={phone ? undefined : tabs} />
       }
     >
+      {/* On a phone the head stays one line: the meta line and the tabs scroll with the page, in the desktop order. */}
+      {phone && (
+        <div className="pulls-phone-top">
+          {detail && <PrMeta detail={detail} now={now} />}
+          {tabs}
+        </div>
+      )}
       <div className="pulls-detail-grid">
         {wide && files.length > 0 && shown === "changes" && (
           <SidePanel hidden={!filesOpen} className="pulls-detail-side">
@@ -141,7 +148,6 @@ export function PrDetail({ pr, detail, detailError, diff, diffError, refreshing,
           </SidePanel>
         )}
         <div className="pulls-detail-main" role="tabpanel" id="pr-tab-panel" aria-labelledby={`pr-tab-${shown}`}>
-          {detail && phone && <PrMeta detail={detail} now={now} />}
           {detailError && <p className="auto-error" role="alert">{detailError}</p>}
           <div className="pulls-description" hidden={shown !== "description"}>
             {!detail ? !detailError && <Loader /> : description ? <div className="md">{description}</div> : <p className="pulls-panel-empty">No description.</p>}
