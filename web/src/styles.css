@@ -1115,9 +1115,12 @@ main:has(> .news-page) { padding-top: 8px; }
 .news-page.empty { grid-template-columns: minmax(0, 1fr); }
 .news-list { min-height: 0; overflow-y: auto; display: flex; flex-direction: column; gap: 12px; padding: 4px; margin: -4px; }
 .news-status { margin: 0; padding: 0 10px; font-size: 12px; color: var(--text-secondary); }
-.news-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
-.news-head .news-status { flex: 1; min-width: 0; }
-.news-head > button { flex: none; }
+.news-tools { display: flex; align-items: center; gap: 8px; }
+.news-tools > button { flex: none; }
+.news-search { position: relative; display: flex; align-items: center; flex: 1 1 0; min-width: 0; }
+.news-search .icon { position: absolute; left: 11px; width: 15px; height: 15px; color: var(--text-secondary); pointer-events: none; }
+.news-search .field { width: 100%; min-width: 0; padding-left: 32px; }
+.news-none { padding: 8px 10px; font-size: 13px; color: var(--text-secondary); }
 .news-row { position: relative; }
 .news-row .thread-actions { top: 50%; bottom: auto; transform: translateY(-50%); }
 .news-items { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 2px; }

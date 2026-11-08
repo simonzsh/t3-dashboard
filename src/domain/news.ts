@@ -44,6 +44,10 @@ export function articleTitle(markdown: string, date: string): string {
   return heading?.slice(2).trim() || date;
 }
 
+const SEARCH_MAX_CHARS = 100;
+/** Lowercase without accents, so "Cafe" finds "Café". */
+const fold = (text: string): string => text.normalize("NFD").replace(/\p{M}/gu, "").toLowerCase();
+
 export interface NewsFolder {
   list(dir: string): Array<{ name: string; mtimeMs: number; isFile: boolean }>;
   /** `maxBytes` limits the read to the start of the file. */
@@ -70,6 +74,8 @@ export interface NewsOptions {
 export interface News {
   get(): Promise<NewsState>;
   article(date: string): Promise<NewsArticle>;
+  /** The dates of the articles whose title or text contains `query`, newest first. Case and accents are ignored. */
+  search(query: string): Promise<{ dates: string[] }>;
   /** Stores the settings, then creates or updates the T3 routine. */
   save(body: SaveNewsBody): Promise<NewsState>;
   runNow(): Promise<void>;
@@ -281,6 +287,22 @@ export function createNews(options: NewsOptions): News {
         throw new DomainError("not-found", "No article for this date");
       }
       return { date, title: articleTitle(markdown, date), markdown };
+    },
+
+    async search(query) {
+      const needle = fold(query.trim());
+      if (needle.length < 1 || needle.length > SEARCH_MAX_CHARS) throw new DomainError("invalid", `The search must have 1 to ${SEARCH_MAX_CHARS} characters`);
+      const dates: string[] = [];
+      for (const entry of files().sort((a, b) => b.name.localeCompare(a.name))) {
+        const date = entry.name.slice(0, 10);
+        try {
+          const markdown = fs.read(`${dir}/${entry.name}`).slice(0, ARTICLE_MAX_CHARS);
+          if (fold(`${articleTitle(markdown, date)}\n${markdown}`).includes(needle)) dates.push(date);
+        } catch {
+          // An unreadable file does not match.
+        }
+      }
+      return { dates };
     },
 
     async remove(date) {

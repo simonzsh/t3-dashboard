@@ -220,6 +220,26 @@ test("an article is read by date, and a bad date or a missing file is refused", 
   for (const date of ["2026-11-01", "2026-11-06"]) await assert.rejects(news.article(date), (error) => error instanceof DomainError && error.code === "not-found");
 });
 
+test("search finds a title or a body, ignores case and accents, and lists the newest first", async () => {
+  const entries = ["2026-11-05", "2026-11-07", "2026-11-06", "2026-11-04"].map((d) => ({ name: `${d}.md`, mtimeMs: 1, isFile: true }));
+  const contents = {
+    [`${DIR}/2026-11-07.md`]: "# Café ouvert\n\nRien.",
+    [`${DIR}/2026-11-06.md`]: "# Autre\n\nUn CAFE chaud.",
+    [`${DIR}/2026-11-05.md`]: "# Autre\n\nRien.",
+  };
+  const { news } = setup({ entries, contents });
+  assert.deepEqual(await news.search("cafe"), { dates: ["2026-11-07", "2026-11-06"] });
+  assert.deepEqual(await news.search("  CAFÉ "), { dates: ["2026-11-07", "2026-11-06"] });
+  assert.deepEqual(await news.search("ouvert"), { dates: ["2026-11-07"] });
+  assert.deepEqual(await news.search("zzz"), { dates: [] });
+});
+
+test("search refuses an empty or too long query", async () => {
+  const { news } = setup();
+  for (const q of ["", "   ", "x".repeat(101)]) await assert.rejects(news.search(q), (error) => error instanceof DomainError && error.code === "invalid");
+  await news.search("x".repeat(100));
+});
+
 test("a huge article is cut at 512 KB", async () => {
   const { news } = setup({ entries: [{ name: "2026-11-07.md", mtimeMs: 1, isFile: true }], contents: { [`${DIR}/2026-11-07.md`]: `# Big\n${"x".repeat(600_000)}` } });
   assert.equal((await news.article("2026-11-07")).markdown.length, 512 * 1024);

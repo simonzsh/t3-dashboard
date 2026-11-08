@@ -9,10 +9,10 @@ import { NewsSettingsDialog } from "../../../src/features/news/NewsSettingsDialo
 const task = { id: "t", enabled: true, nextRunAt: "2026-11-08T07:00:00.000Z", lastRunAt: null, lastRunStatus: null, lastRunError: null };
 const state = (over: Partial<NewsState> = {}): NewsState => ({ settings: { enabled: true, frequency: "daily", weekday: 1, timeOfDay: "07:00", language: "French", modelSelection: null }, task, articles: [], running: null, ...over });
 const now = new Date("2026-11-07T12:00:00.000Z");
-const view = (news: NewsState, writing = false, compact = false) =>
+const view = (news: NewsState, writing = false, compact = false, search: { initialQuery?: string; initialMatches?: string[] } = {}) =>
   renderToStaticMarkup(
     <ApiProvider value={{} as never}>
-      <NewsView news={news} writing={writing} now={now} compact={compact} seen={null} onRead={() => {}} onOpenThread={() => {}} onDelete={async () => {}} onDeleteAll={async () => {}} />
+      <NewsView news={news} writing={writing} now={now} compact={compact} seen={null} onRead={() => {}} onOpenThread={() => {}} onDelete={async () => {}} onDeleteAll={async () => {}} {...search} />
     </ApiProvider>,
   );
 
@@ -124,4 +124,24 @@ test("every hook runs before the empty-list return, so Delete all cannot crash t
   const body = source.slice(source.indexOf("export function NewsView"));
   const afterReturn = body.slice(body.indexOf("if (articles.length === 0)"));
   assert.doesNotMatch(afterReturn, /\buse[A-Z]\w*\(/);
+});
+
+const two = [{ date: "2026-11-07", title: "News 7 Nov", mtimeMs: 2 }, { date: "2026-11-06", title: "News 6 Nov", mtimeMs: 1 }];
+
+test("the search row sits above the list with Delete all, and only when there are articles", () => {
+  const out = view(state({ articles: two }));
+  assert.match(out, /news-tools[\s\S]*aria-label="Search news"[^>]*placeholder="Search news…"[\s\S]*Delete all[\s\S]*news-items/);
+  assert.doesNotMatch(out, /No matching articles/);
+  const empty = view(state());
+  assert.doesNotMatch(empty, /Search news|Delete all/);
+});
+
+test("a search shows only the matching articles, and says so when none match", () => {
+  const some = view(state({ articles: two }), false, false, { initialQuery: "6", initialMatches: ["2026-11-06"] });
+  assert.match(some, /value="6"/);
+  assert.match(some, /Fri 6 Nov/);
+  assert.doesNotMatch(some, /Sat 7 Nov/);
+  const none = view(state({ articles: two }), false, false, { initialQuery: "zzz", initialMatches: [] });
+  assert.match(none, /No matching articles/);
+  assert.doesNotMatch(none, /Sat 7 Nov|Fri 6 Nov/);
 });

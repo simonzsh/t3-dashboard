@@ -317,10 +317,11 @@ test("the news calls hit the news routes", async () => {
   await api.getNews();
   await api.getNewsArticle("2026-11-07");
   const body = { enabled: true, frequency: "daily" as const, weekday: 1, timeOfDay: "07:00", language: "French" as const, modelSelection: { instanceId: "provider-a", model: "model-x" } };
+  await api.searchNews("café & co");
   await api.saveNews(body);
   await api.runNews();
   await api.deleteNewsArticle("2026-11-07");
   await api.deleteAllNews();
-  assert.deepEqual(calls.map((c) => [c.url, c.init?.method ?? "GET"]), [["/api/news", "GET"], ["/api/news/2026-11-07", "GET"], ["/api/news/settings", "POST"], ["/api/news/run", "POST"], ["/api/news/2026-11-07/delete", "POST"], ["/api/news/delete-all", "POST"]]);
-  assert.deepEqual(JSON.parse(calls[2]!.init!.body as string), body);
+  assert.deepEqual(calls.map((c) => [c.url, c.init?.method ?? "GET"]), [["/api/news", "GET"], ["/api/news/2026-11-07", "GET"], ["/api/news/search?q=caf%C3%A9%20%26%20co", "GET"], ["/api/news/settings", "POST"], ["/api/news/run", "POST"], ["/api/news/2026-11-07/delete", "POST"], ["/api/news/delete-all", "POST"]]);
+  assert.deepEqual(JSON.parse(calls[3]!.init!.body as string), body);
 });

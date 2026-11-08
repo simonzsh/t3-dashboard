@@ -116,6 +116,7 @@ export function createApi(fetchImpl: Fetch) {
     runAutomation: (id: string) => call<OkResult>(`/api/automations/${encodeURIComponent(id)}/run`, {}),
     getNews: () => call<NewsState>("/api/news"),
     getNewsArticle: (date: string) => call<NewsArticle>(`/api/news/${encodeURIComponent(date)}`),
+    searchNews: (q: string) => call<{ dates: string[] }>(`/api/news/search?q=${encodeURIComponent(q)}`),
     saveNews: (b: SaveNewsBody) => call<NewsState>("/api/news/settings", b),
     runNews: () => call<OkResult>("/api/news/run", {}),
     deleteNewsArticle: (date: string) => call<OkResult>(`/api/news/${encodeURIComponent(date)}/delete`, {}),

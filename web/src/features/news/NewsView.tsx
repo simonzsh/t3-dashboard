@@ -4,9 +4,9 @@ import type { SeenState } from "../../../../shared/seen.ts";
 import { useApi } from "../../api/ApiContext.tsx";
 import { failure } from "../../lib/format.ts";
 import { renderMarkdown } from "../../lib/markdown.tsx";
-import { Button, Icon, IconButton, Loader, Pressable } from "../../ui/index.ts";
+import { Button, Icon, IconButton, Loader, Pressable, TextInput } from "../../ui/index.ts";
 import { DeleteNewsDialog } from "./DeleteNewsDialog.tsx";
-import { dateLabel, isUnreadArticle, readTarget, shortDate, statusLine } from "./news.ts";
+import { dateLabel, filterArticles, isUnreadArticle, readTarget, SEARCH_DEBOUNCE_MS, shortDate, statusLine } from "./news.ts";
 
 interface Props {
   news: NewsState;
@@ -24,10 +24,13 @@ interface Props {
   /** Delete one article, or all of them. They throw when the server refuses. */
   onDelete: (date: string) => Promise<void>;
   onDeleteAll: () => Promise<void>;
+  /** The search box text and its matching dates at the first render (tests). */
+  initialQuery?: string;
+  initialMatches?: string[];
 }
 
 /** The article list and the open article. On a phone they take turns: the list, then the article with a back button. */
-export function NewsView({ news, writing, now, compact, seen, onRead, onOpenThread, onDelete, onDeleteAll }: Props) {
+export function NewsView({ news, writing, now, compact, seen, onRead, onOpenThread, onDelete, onDeleteAll, initialQuery = "", initialMatches }: Props) {
   const api = useApi();
   const { articles, task, running } = news;
   const [picked, setPicked] = useState<string | null>(null);
@@ -41,6 +44,10 @@ export function NewsView({ news, writing, now, compact, seen, onRead, onOpenThre
   const [error, setError] = useState<string | null>(null);
   // The delete dialog: one article, or "all".
   const [deleting, setDeleting] = useState<NewsArticleSummary | "all" | null>(null);
+  // The search box, its debounced text, and the dates the server found for the last answered text.
+  const [query, setQuery] = useState(initialQuery);
+  const [term, setTerm] = useState(initialQuery.trim());
+  const [matches, setMatches] = useState<string[] | null>(initialMatches ?? null);
   const date = (articles.some((a) => a.date === picked) ? picked : articles[0]?.date) ?? null;
   // A second run on the same day rewrites that day's file: a new mtime reloads it.
   const mtimeMs = articles.find((a) => a.date === date)?.mtimeMs ?? null;
@@ -57,6 +64,27 @@ export function NewsView({ news, writing, now, compact, seen, onRead, onOpenThre
       stale = true;
     };
   }, [date, mtimeMs]);
+
+  useEffect(() => {
+    const timer = setTimeout(() => setTerm(query.trim()), SEARCH_DEBOUNCE_MS);
+    return () => clearTimeout(timer);
+  }, [query]);
+  // A new run or a delete changes the files: search again.
+  const files = articles.map((a) => `${a.date}:${a.mtimeMs}`).join();
+  useEffect(() => {
+    if (!term) return setMatches(null);
+    let stale = false;
+    api.searchNews(term).then(
+      (r) => !stale && setMatches(r.dates),
+      // A failed search keeps the last list: the error banner belongs to the open article.
+      () => {},
+    );
+    return () => {
+      stale = true;
+    };
+  }, [term, files]);
+  const searching = term !== "" && matches !== null;
+  const visible = searching ? filterArticles(articles, matches) : articles;
 
   // The article in front of the user is read: on a click, on the auto-selected newest one, and after a re-run.
   const mark = readTarget(articles, date, compact && !reading);
@@ -101,7 +129,7 @@ export function NewsView({ news, writing, now, compact, seen, onRead, onOpenThre
     const observer = new ResizeObserver(measure);
     observer.observe(list);
     return () => observer.disconnect();
-  }, [date, compact, articles, writing]);
+  }, [date, compact, visible, writing]);
 
   if (articles.length === 0) {
     return (
@@ -122,8 +150,12 @@ export function NewsView({ news, writing, now, compact, seen, onRead, onOpenThre
   return (
     <div className={`news-page${reading ? " reading" : ""}`}>
       <section className="news-list" aria-label="News">
-        <div className="news-head">
-          {status}
+        {status}
+        <div className="news-tools">
+          <div className="news-search">
+            <Icon name="search" />
+            <TextInput aria-label="Search news" placeholder="Search news…" value={query} onChange={(e) => setQuery(e.target.value)} />
+          </div>
           <Button size="sm" variant="ghost" onClick={() => setDeleting("all")}>
             <Icon name="trash" /> Delete all
           </Button>
@@ -134,7 +166,8 @@ export function NewsView({ news, writing, now, compact, seen, onRead, onOpenThre
           style={highlight ? ({ "--mark-top": `${highlight.top}px`, "--mark-height": `${highlight.height}px` } as CSSProperties) : undefined}
         >
           {progress}
-          {articles.map((a) => {
+          {searching && visible.length === 0 && <li className="news-none">No matching articles</li>}
+          {visible.map((a) => {
             // On a phone the list and the article take turns: no item is "open" while the list shows.
             const open = a.date === date && !compact;
             return (
@@ -182,6 +215,7 @@ export function NewsView({ news, writing, now, compact, seen, onRead, onOpenThre
         <DeleteNewsDialog
           article={deleting === "all" ? null : deleting}
           count={articles.length}
+          filtered={searching}
           onConfirm={deleting === "all" ? onDeleteAll : () => onDelete(deleting.date)}
           onClose={() => setDeleting(null)}
         />

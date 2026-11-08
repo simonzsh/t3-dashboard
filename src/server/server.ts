@@ -40,7 +40,7 @@ export interface DashboardServerOptions {
   serverStats: Pick<ServerStatsReader, "get">;
   cacheCleanup: Pick<CacheCleanup, "sizes" | "clear">;
   automations: Pick<Automations, "list" | "create" | "remove" | "update" | "setEnabled" | "runNow">;
-  news: Pick<News, "get" | "article" | "save" | "runNow" | "remove" | "removeAll">;
+  news: Pick<News, "get" | "article" | "search" | "save" | "runNow" | "remove" | "removeAll">;
   sessions: Pick<SessionsStore, "get" | "set">;
   stash: Pick<StashStore, "list" | "add" | "remove">;
   seen: Pick<SeenStore, "get" | "apply">;
@@ -206,6 +206,8 @@ export function createDashboardServer(options: DashboardServerOptions): Dashboar
     { method: "GET", path: "/api/limits", handle: async ({ req }) => json(200, await limits.get(new URL(req.url).searchParams.get("refresh") === "1")) },
     { method: "GET", path: "/api/automations", handle: async () => json(200, await automations.list()) },
     { method: "GET", path: "/api/news", handle: async () => json(200, await news.get()) },
+    // Before :date, which would take "search" for a date.
+    { method: "GET", path: "/api/news/search", handle: async ({ req }) => json(200, await news.search(new URL(req.url).searchParams.get("q") ?? "")) },
     { method: "GET", path: "/api/news/:date", handle: async ({ params }) => json(200, await news.article(params.date!)) },
     { method: "GET", path: "/api/settings", handle: () => json(200, settings.get()) },
     { method: "GET", path: "/api/sessions", handle: () => json(200, { sessions: sessions.get() }) },

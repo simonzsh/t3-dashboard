@@ -115,3 +115,9 @@ export function readTarget(articles: readonly NewsArticleSummary[], date: string
   const article = onList ? undefined : articles.find((a) => a.date === date);
   return article ? newsMark(article) : null;
 }
+
+export const SEARCH_DEBOUNCE_MS = 200;
+
+/** The articles whose date is in `dates`, in list order. Null (no search, or no answer yet) keeps them all. */
+export const filterArticles = (articles: readonly NewsArticleSummary[], dates: readonly string[] | null): NewsArticleSummary[] =>
+  dates === null ? [...articles] : articles.filter((a) => dates.includes(a.date));

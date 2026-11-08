@@ -43,7 +43,7 @@ interface StartOptions {
   linearFetch?: (url: string, init: RequestInit) => Promise<Response>;
   // Notifications the fake Linear answers to the inbox query.
   inbox?: unknown[];
-  news?: Partial<Pick<News, "get" | "article" | "save" | "runNow" | "remove" | "removeAll">>;
+  news?: Partial<Pick<News, "get" | "article" | "search" | "save" | "runNow" | "remove" | "removeAll">>;
   automations?: Pick<Automations, "list" | "create" | "remove" | "update"> & Partial<Pick<Automations, "setEnabled" | "runNow">>;
   // Content of the Linear file. Without it, `linearKey` feeds the board directly.
   linear?: unknown;
@@ -194,7 +194,7 @@ async function start(startOptions: StartOptions = {}) {
     serverStats,
     cacheCleanup,
     automations: { setEnabled: async () => {}, runNow: async () => {}, ...automations },
-    news: { get: async () => newsState, article: async (date) => ({ date, title: "T", markdown: "# T" }), save: async () => newsState, runNow: async () => {}, remove: async () => {}, removeAll: async () => 0, ...startOptions.news },
+    news: { get: async () => newsState, article: async (date) => ({ date, title: "T", markdown: "# T" }), search: async () => ({ dates: [] }), save: async () => newsState, runNow: async () => {}, remove: async () => {}, removeAll: async () => 0, ...startOptions.news },
     getState,
     connection: () => connection,
     site,
@@ -1847,6 +1847,20 @@ test("GET /api/news returns the news state, and GET /api/news/:date one article"
   const { server } = await start();
   assert.deepEqual((await call(server, "GET", "/api/news")).json, newsState);
   assert.deepEqual((await call(server, "GET", "/api/news/2026-11-07")).json, { date: "2026-11-07", title: "T", markdown: "# T" });
+});
+
+test("GET /api/news/search is not taken for a date, and maps a bad query to 400", async () => {
+  const queries: string[] = [];
+  const search = async (q: string) => {
+    queries.push(q);
+    if (!q.trim()) throw new DomainError("invalid", "The search must have 1 to 100 characters");
+    return { dates: ["2026-11-07"] };
+  };
+  const { server } = await start({ news: { search, article: async () => { throw new Error("taken for a date"); } } });
+  const reply = await call(server, "GET", "/api/news/search?q=caf%C3%A9");
+  assert.deepEqual([reply.status, reply.json], [200, { dates: ["2026-11-07"] }]);
+  assert.deepEqual(queries, ["café"]);
+  assert.equal((await call(server, "GET", "/api/news/search")).status, 400);
 });
 
 test("GET /api/news/:date maps a bad date to 400 and a missing article to 404", async () => {
