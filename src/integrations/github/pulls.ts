@@ -30,6 +30,7 @@ const SCOPES = { author: "is:pr is:open author:@me archived:false", reviewer: "i
 async function exec(run: GhRun, args: string[], maxBytes?: number): Promise<GhResult> {
   const result = await run(args, maxBytes === undefined ? undefined : { maxBytes });
   if (result.code === 0) return result;
+  if (result.notFound) throw new IntegrationError("This pull request does not exist, or this GitHub account cannot see it", { system: "github", kind: "refused", reason: "not_found" });
   if (result.code === EXIT_NOT_AUTHENTICATED) throw new IntegrationError("GitHub CLI is not signed in: run gh auth login on the server", { system: "github", kind: "not-authenticated" });
   if (result.code === null) throw new IntegrationError("GitHub CLI did not answer: is gh installed on the server?", { system: "github", kind: "unreachable" });
   throw new IntegrationError("GitHub refused the request", { system: "github", kind: "refused" });

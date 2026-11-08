@@ -26,7 +26,15 @@ test("locateGh prefers the env override, then PATH, then the usual folders", () 
 
 test("the runner passes the arguments as they are and keeps stdout and the exit code", async () => {
   const run = ghRunner({ T3_DASHBOARD_GH_BIN: fakeGh("echo", 'printf "%s|" "$@"; exit 3') }, "/home/u");
-  assert.deepEqual(await run(["pr", "view", "a b; rm -rf /"]), { code: 3, stdout: "pr|view|a b; rm -rf /|", truncated: false });
+  assert.deepEqual(await run(["pr", "view", "a b; rm -rf /"]), { code: 3, stdout: "pr|view|a b; rm -rf /|", truncated: false, notFound: false });
+});
+
+test("the runner flags gh's not-found message but never returns stderr", async () => {
+  const missing = ghRunner({ T3_DASHBOARD_GH_BIN: fakeGh("missing", 'echo "GraphQL: Could not resolve to a PullRequest with the number of 9. secret-token" >&2; exit 1') }, "/home/u");
+  const result = await missing([]);
+  assert.deepEqual(result, { code: 1, stdout: "", truncated: false, notFound: true });
+  const other = ghRunner({ T3_DASHBOARD_GH_BIN: fakeGh("other", 'echo "HTTP 500" >&2; exit 1') }, "/home/u");
+  assert.equal((await other([])).notFound, false);
 });
 
 test("the runner reports a null code when gh is missing or too slow", async () => {

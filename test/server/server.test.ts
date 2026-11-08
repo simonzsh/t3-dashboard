@@ -2058,6 +2058,14 @@ test("the pull request routes refuse a bad owner, repository or number with 400 
   }
 });
 
+test("an unknown pull request answers 404", async () => {
+  const missing = async () => {
+    throw new DomainError("not-found", "This pull request does not exist, or this GitHub account cannot see it");
+  };
+  const { server } = await start({ git: { detail: missing, diff: missing } });
+  for (const path of ["/api/git/prs/acme/api/9", "/api/git/prs/acme/api/9/diff"]) assert.equal((await call(server, "GET", path)).status, 404, path);
+});
+
 test("a gh failure on the pull request routes becomes a 502 without gh's output", async () => {
   const fail = async () => {
     throw new IntegrationError("GitHub CLI is not signed in: run gh auth login on the server", { system: "github", kind: "not-authenticated" });

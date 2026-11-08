@@ -219,7 +219,7 @@ export function createDashboardServer(options: DashboardServerOptions): Dashboar
     { method: "GET", path: "/api/news/:date", handle: async ({ params }) => json(200, await news.article(params.date!)) },
     { method: "GET", path: "/api/git/prs", handle: async ({ req }) => json(200, await git.prs(refreshing(req))) },
     { method: "GET", path: "/api/git/prs/:owner/:repo/:number", handle: async ({ req, params }) => json(200, await git.detail(...refOf(params), refreshing(req))) },
-    { method: "GET", path: "/api/git/prs/:owner/:repo/:number/diff", handle: async ({ req, params }) => json(200, await git.diff(...refOf(params), refreshing(req))) },
+    { method: "GET", path: "/api/git/prs/:owner/:repo/:number/diff", handle: async ({ req, params }) => json(200, await git.diff(...refOf(params))) },
     { method: "GET", path: "/api/settings", handle: () => json(200, settings.get()) },
     { method: "GET", path: "/api/sessions", handle: () => json(200, { sessions: sessions.get() }) },
     { method: "GET", path: "/api/stash", handle: () => json(200, { entries: stash.list() }) },

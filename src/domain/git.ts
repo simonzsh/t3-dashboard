@@ -1,7 +1,9 @@
 import { parseDiff } from "../../shared/diff.ts";
 import type { PrDetail, PrDiff, PrList } from "../../shared/git.ts";
+import { IntegrationError } from "../integrations/errors.ts";
 import type { GhRun } from "../integrations/github/gh.ts";
 import { getDiff, getPull, listPulls } from "../integrations/github/pulls.ts";
+import { DomainError } from "./errors.ts";
 
 const CACHE_MS = 60_000;
 const MAX_DETAILS = 50;
@@ -10,6 +12,12 @@ const MAX_DIFFS = 20;
 export interface GitReviewOptions {
   run: GhRun;
   now: () => Date;
+}
+
+// An unknown pull request is the caller's mistake (404), not a GitHub failure (502).
+function asNotFound(error: unknown): never {
+  if (error instanceof IntegrationError && error.reason === "not_found") throw new DomainError("not-found", error.message);
+  throw error;
 }
 
 // Evicts the oldest entry: a Map keeps insertion order.
@@ -57,6 +65,7 @@ export class GitReview {
     let pending = this.reading.get(key);
     if (!pending) {
       pending = getPull(this.options.run, repository, number)
+        .catch(asNotFound)
         .then((value) => {
           remember(this.details, key, { at: now, value }, MAX_DETAILS);
           return value;
@@ -67,13 +76,13 @@ export class GitReview {
     return pending;
   }
 
-  /** A diff never changes for one head commit, so the head SHA is the cache key. */
-  async diff(repository: string, number: number, refresh = false): Promise<PrDiff> {
-    const { headSha } = await this.detail(repository, number, refresh);
+  /** A diff never changes for one head commit, so the head SHA is the cache key. It is read fresh: after a push, the old diff must not show. */
+  async diff(repository: string, number: number): Promise<PrDiff> {
+    const { headSha } = await this.detail(repository, number, true);
     const key = `${repository}#${number}@${headSha}`;
     const known = this.diffs.get(key);
     if (known) return known;
-    const { text, truncated } = await getDiff(this.options.run, repository, number);
+    const { text, truncated } = await getDiff(this.options.run, repository, number).catch(asNotFound);
     const files = parseDiff(text);
     // The cut falls inside the last file: drop it rather than show part of it.
     if (truncated) files.pop();

@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "bun:test";
+import { DomainError } from "../../src/domain/errors.ts";
 import { GitReview } from "../../src/domain/git.ts";
 import type { GhRun } from "../../src/integrations/github/gh.ts";
 
@@ -52,22 +53,23 @@ test("a detail is cached per pull request for 60 seconds", async () => {
   assert.equal(calls.length, 3);
 });
 
-test("a diff is parsed once per head commit", async () => {
+test("a diff is parsed once per head commit, and a push right away shows the new diff", async () => {
   const { review, calls, tick, setSha } = setup();
   const first = await review.diff("acme/api", 1);
   assert.equal(first.headSha, "sha1");
   assert.equal(first.files[0]!.path, "a.ts");
   assert.equal(first.files[0]!.additions, 1);
   assert.deepEqual(calls, ["pr view", "pr diff"]);
-  tick(30_000);
+  // Same head: only the SHA is read again, the parsed diff is reused.
   await review.diff("acme/api", 1);
-  assert.deepEqual(calls, ["pr view", "pr diff"]);
-  // The head moved: the detail expires, and the new SHA asks for a new diff.
+  assert.deepEqual(calls, ["pr view", "pr diff", "pr view"]);
+  // A push inside the 60 s detail cache: the old diff must not show.
   setSha("sha2");
-  tick(31_000);
+  tick(1_000);
   const next = await review.diff("acme/api", 1);
   assert.equal(next.headSha, "sha2");
-  assert.deepEqual(calls, ["pr view", "pr diff", "pr view", "pr diff"]);
+  assert.deepEqual(calls, ["pr view", "pr diff", "pr view", "pr view", "pr diff"]);
+  assert.equal((await review.detail("acme/api", 1)).headSha, "sha2");
 });
 
 test("the detail and the diff opened together share one pr view", async () => {
@@ -75,6 +77,14 @@ test("the detail and the diff opened together share one pr view", async () => {
   await Promise.all([review.detail("acme/api", 1), review.diff("acme/api", 1)]);
   assert.deepEqual(calls, ["pr view", "pr diff"]);
   calls.length = 0;
-  await Promise.all([review.detail("acme/api", 1, true), review.diff("acme/api", 1, true)]);
+  await Promise.all([review.detail("acme/api", 1, true), review.diff("acme/api", 1)]);
   assert.deepEqual(calls, ["pr view"]);
+});
+
+test("an unknown pull request is not-found, not a GitHub failure", async () => {
+  const run: GhRun = async () => ({ code: 1, stdout: "", truncated: false, notFound: true });
+  const review = new GitReview({ run, now: () => new Date(0) });
+  for (const read of [() => review.detail("acme/api", 9), () => review.diff("acme/api", 9)]) {
+    await assert.rejects(read, (error: unknown) => error instanceof DomainError && error.code === "not-found");
+  }
 });

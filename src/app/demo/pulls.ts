@@ -91,7 +91,7 @@ export function demoGh(now: () => Date): GhRun {
       return reply({ data: { search: { nodes: PRS.filter((pr) => pr.scope === scope).map((pr) => searchNode(pr, now())) } } });
     }
     const pr = PRS.find((candidate) => candidate.repository === args[args.indexOf("-R") + 1] && String(candidate.number) === args[2]);
-    if (!pr) return { code: 1, stdout: "", truncated: false };
+    if (!pr) return { code: 1, stdout: "", truncated: false, notFound: true };
     return reply(args[1] === "diff" ? pr.diff : view(pr, now()));
   };
 }
