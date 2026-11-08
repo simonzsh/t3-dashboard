@@ -44,3 +44,10 @@ test("a back arrow shows only when the window can go back to the list", () => {
   assert.match(renderToStaticMarkup(<SessionWindow {...base} compact onBack={() => {}} missing />), /aria-label="Back to the list"/);
   assert.doesNotMatch(renderToStaticMarkup(<SessionWindow {...base} compact missing />), /Back to the list/);
 });
+
+test("a session with a pull request gets a button that opens its diff on the Git page", () => {
+  const pullRequest = { repository: "acme/storefront", number: 12, url: "https://example.test/acme/storefront/pull/12" };
+  const html = renderToStaticMarkup(<SessionWindow {...base} live={false} missing={false} thread={thread("t1", { pullRequest })} />);
+  assert.match(html, /<a [^>]*href="#\/git\/acme\/storefront\/12"[^>]*aria-label="Open pull request #12"/);
+  assert.doesNotMatch(renderToStaticMarkup(<SessionWindow {...base} live={false} missing={false} thread={thread("t1")} />), /pull request/);
+});
