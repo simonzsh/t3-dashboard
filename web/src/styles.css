@@ -1205,16 +1205,17 @@ main:has(> .news-page) { padding-top: calc(var(--page-top) - 4px); }
 .key-mask { font: 12px/1 var(--font-mono); padding: 4px 7px; border-radius: 6px; border: 1px solid var(--line); color: var(--text-secondary); background: var(--surface-0); }
 /* Phone: every Dialog is a bottom sheet. Its head (with a grip) and its actions stay in view while the body scrolls. */
 @media (max-width: 700px) {
-  /* Dialog.tsx sets top and --visible-h from the visual viewport, so the sheet sits above the iOS keyboard. */
-  .dialog-backdrop, .dialog-backdrop:has(.preview-dialog) { z-index: 30; bottom: auto; height: var(--visible-h, 100dvh); place-items: end stretch; padding: 0; }
-  .dialog-backdrop > .dialog { --sheet-x: max(16px, env(safe-area-inset-left), env(safe-area-inset-right)); --sheet-bottom: calc(16px + env(safe-area-inset-bottom)); --sheet-max: calc(var(--visible-h, 100dvh) - max(24px, env(safe-area-inset-top))); width: 100%; height: auto; max-height: var(--sheet-max); box-sizing: border-box; border-width: 1px 0 0; border-radius: 16px 16px 0 0; padding: 0 var(--sheet-x) var(--sheet-bottom); overscroll-behavior: contain; }
+  /* Dialog.tsx sets --visible-h and --kb-inset (screen hidden by the keyboard and Safari's bar) from the visual viewport:
+     the sheet runs to the bottom of the screen and pads its content above them. */
+  .dialog-backdrop, .dialog-backdrop:has(.preview-dialog) { z-index: 30; place-items: end stretch; padding: 0; }
+  .dialog-backdrop > .dialog { --sheet-x: max(16px, env(safe-area-inset-left), env(safe-area-inset-right)); --sheet-bottom: calc(16px + env(safe-area-inset-bottom)); --sheet-max: calc(var(--visible-h, 100dvh) - max(24px, env(safe-area-inset-top))); --kb: var(--kb-inset, 0px); width: 100%; height: auto; max-height: calc(var(--sheet-max) + var(--kb)); box-sizing: border-box; border-width: 1px 0 0; border-radius: 16px 16px 0 0; padding: 0 var(--sheet-x) calc(var(--sheet-bottom) + var(--kb)); overscroll-behavior: contain; }
   .keyboard-open .dialog-backdrop > .dialog { --sheet-bottom: 12px; }
-  .dialog-backdrop > .dialog.preview-dialog { height: var(--sheet-max); }
+  .dialog-backdrop > .dialog.preview-dialog { height: calc(var(--sheet-max) + var(--kb)); }
   .dialog-backdrop > .dialog > .dialog-head { position: sticky; top: 0; z-index: 1; margin: 0 calc(-1 * var(--sheet-x)); padding: 20px var(--sheet-x) 6px; background: inherit; touch-action: none; }
   .dialog-head::before { content: ""; position: absolute; top: 7px; left: calc(50% - 18px); width: 36px; height: 5px; border-radius: 3px; background: color-mix(in srgb, var(--text-primary) 22%, transparent); }
   /* The actions carry the bottom padding: a scroll container keeps its own padding below a sticky child. */
-  .dialog-backdrop > .dialog:has(> .dialog-actions) { padding-bottom: 0; --actions-h: calc(14px + 44px + var(--sheet-bottom)); scroll-padding-bottom: var(--actions-h); }
-  .dialog-backdrop > .dialog > .dialog-actions { position: sticky; bottom: 0; flex-wrap: nowrap; margin: 4px calc(-1 * var(--sheet-x)) 0; padding: 10px var(--sheet-x) var(--sheet-bottom); background: inherit; }
+  .dialog-backdrop > .dialog:has(> .dialog-actions) { padding-bottom: 0; --actions-h: calc(14px + 44px + var(--sheet-bottom) + var(--kb)); scroll-padding-bottom: var(--actions-h); }
+  .dialog-backdrop > .dialog > .dialog-actions { position: sticky; bottom: 0; flex-wrap: nowrap; margin: 4px calc(-1 * var(--sheet-x)) 0; padding: 10px var(--sheet-x) calc(var(--sheet-bottom) + var(--kb)); background: inherit; }
   .dialog-actions > .btn { flex: 1; min-width: 0; height: 44px; }
 }
 /* After every animated rule, so it wins on equal specificity. */

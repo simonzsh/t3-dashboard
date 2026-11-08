@@ -34,9 +34,6 @@ interface Props {
 
 const ignore = () => {};
 
-// Longer than the iOS keyboard animation.
-const SETTLE_MS = 1000;
-
 // Same breakpoint as the bottom bar in styles.css: there the dialog is a bottom sheet.
 const isPhone = () => typeof matchMedia === "function" && matchMedia("(max-width: 700px)").matches;
 
@@ -84,14 +81,16 @@ export function Dialog({ title, label, onClose, onCancel, cancelLabel = "Cancel"
     return root && el ? lockScroll(root, el) : undefined;
   }, []);
 
-  // iOS leaves fixed elements under the keyboard: on a phone, fit the backdrop to the visible part of the page.
+  // iOS leaves fixed elements under the keyboard, and Safari floats its address bar over the page above
+  // it. On a phone the sheet reaches the bottom of the screen, but keeps its content in the visible part.
   useEffect(() => {
     const root = backdrop.current;
     const vv = window.visualViewport;
     if (!root || !vv || !isPhone()) return;
     const fit = () => {
-      root.style.top = `${vv.offsetTop}px`;
+      const hidden = document.documentElement.clientHeight - vv.offsetTop - vv.height;
       root.style.setProperty("--visible-h", `${vv.height}px`);
+      root.style.setProperty("--kb-inset", `${Math.max(0, hidden)}px`);
     };
     // The sheet just got shorter: keep the field being typed in on screen.
     const resized = () => {
@@ -99,32 +98,12 @@ export function Dialog({ title, label, onClose, onCancel, cancelLabel = "Cancel"
       const active = document.activeElement;
       if (active instanceof HTMLElement && box.current?.contains(active)) active.scrollIntoView({ block: "nearest" });
     };
-    // A keyboard that opens with the dialog (autofocused field) can end its animation without a last
-    // resize or scroll event: keep fitting each frame for a while after any change.
-    let frame = 0;
-    let until = 0;
-    const tick = () => {
-      fit();
-      frame = performance.now() < until ? requestAnimationFrame(tick) : 0;
-    };
-    const settle = () => {
-      until = performance.now() + SETTLE_MS;
-      if (!frame) frame = requestAnimationFrame(tick);
-    };
-    const onResize = () => (resized(), settle());
-    const onScroll = () => (fit(), settle());
     fit();
-    settle();
-    vv.addEventListener("resize", onResize);
-    vv.addEventListener("scroll", onScroll);
-    root.addEventListener("focusin", settle);
-    window.addEventListener("scroll", settle);
+    vv.addEventListener("resize", resized);
+    vv.addEventListener("scroll", fit);
     return () => {
-      window.removeEventListener("scroll", settle);
-      cancelAnimationFrame(frame);
-      vv.removeEventListener("resize", onResize);
-      vv.removeEventListener("scroll", onScroll);
-      root.removeEventListener("focusin", settle);
+      vv.removeEventListener("resize", resized);
+      vv.removeEventListener("scroll", fit);
     };
   }, []);
 
