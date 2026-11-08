@@ -20,12 +20,27 @@ export const RawBackgroundTask = s.object({
 });
 export type RawBackgroundTask = Infer<typeof RawBackgroundTask>;
 
+// A pull request T3 tied to a thread: set by hand (linked) or found from the branch.
+const ThreadPullRequest = s.object({ repository: text(), number: s.optional(s.nullable(s.number())), url: text() });
+// One entry of T3's per-thread list (0.1.6+). "stack-dismissed" entries are hidden by T3 itself.
+const ThreadPullRequestLink = s.object({
+  repository: text(),
+  number: s.optional(s.nullable(s.number())),
+  url: text(),
+  source: text(),
+  snapshot: s.optional(s.nullable(s.object({ title: text() }))),
+});
+
 export const RawThread = s.object({
   id: s.string(),
   projectId: s.optional(s.string()),
   title: text(),
   worktreePath: text(),
   branch: text(),
+  linkedPullRequest: s.optional(s.nullable(ThreadPullRequest)),
+  branchPullRequest: s.optional(s.nullable(ThreadPullRequest)),
+  /** When present, replaces linkedPullRequest (T3's legacy single link). */
+  pullRequests: s.optional(s.nullable(s.array(ThreadPullRequestLink))),
   providerInstanceId: text(),
   activeProviderThreadId: text(),
   modelSelection: s.optional(s.nullable(ModelSelection)),

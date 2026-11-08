@@ -115,13 +115,13 @@ function BottomBar({ tab, unread, sessions, automations, news, onTab }: Pick<Pro
   return (
     <nav className="bottom-nav" aria-label="Pages" style={{ "--active-tab": TABS.findIndex(({ id }) => id === tab), "--tab-count": TABS.length } as CSSProperties}>
       <span className="bottom-nav-indicator" aria-hidden="true"><span /></span>
-      {TABS.map(({ id, label, icon }) => (
+      {TABS.map(({ id, label, short, icon }) => (
         <Pressable key={id} data-tab={id} className={`bottom-item${tab === id ? " active" : ""}`} aria-current={tab === id ? "page" : undefined} onClick={() => onTab(id)}>
           <span className="bottom-icon">
             <Icon name={icon} className="bottom-glyph" />
             <Badges id={id} unread={unread} sessions={sessions} automations={automations} news={news} />
           </span>
-          <span>{label}</span>
+          <span>{short ?? label}</span>
         </Pressable>
       ))}
     </nav>

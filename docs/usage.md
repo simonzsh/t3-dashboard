@@ -2,7 +2,7 @@
 
 [Back to the README](../README.md)
 
-The dashboard has four pages: Dashboard, Sessions, Automations and News. A sidebar on the left lists them, with a search button (`⌘` + `K`). Its last row shows the connection state, Settings and a button that collapses the sidebar to icons (`Ctrl` + `B`). The theme, the accent color and the interface tint are in Settings. The sidebar remembers its state. The page header is one line: the title and a short description. Its button depends on the page: Sessions has a list toggle (wide screen), a layout button and New Session (`Ctrl` + `N`), Automations has New Automation (`Ctrl` + `⇧` + `N`), News has News settings and Run now, and Dashboard has the Notifications bell, with the number of unread items, then Edit layout. The two shortcuts work on every page. On a phone, a bar at the bottom of the screen replaces the sidebar: Dashboard, Sessions, Automations and News. The header then shows the page buttons as icons (on Dashboard, the bell too), a search button and Settings. A dot on Settings shows that an update is ready.
+The dashboard has five pages: Dashboard, Sessions, Pull requests, Automations and News. A sidebar on the left lists them, with a search button (`⌘` + `K`). Its last row shows the connection state, Settings and a button that collapses the sidebar to icons (`Ctrl` + `B`). The theme, the accent color and the interface tint are in Settings. The sidebar remembers its state. The page header is one line: the title and a short description. Its button depends on the page: Sessions has a list toggle (wide screen), a layout button and New Session (`Ctrl` + `N`), Automations has New Automation (`Ctrl` + `⇧` + `N`), News has News settings and Run now, and Dashboard has the Notifications bell, with the number of unread items, then Edit layout. The two shortcuts work on every page. On a phone, a bar at the bottom of the screen replaces the sidebar: Dashboard, Sessions, Pull requests (shown as "PRs"), Automations and News. The header then shows the page buttons as icons (on Dashboard, the bell too), a search button and Settings. A dot on Settings shows that an update is ready.
 
 ## Dashboard
 
@@ -74,6 +74,7 @@ Sessions shows your open conversations side by side. Each session is a column at
 
 Each session contains a conversation.
 
+- When T3 Code links pull requests to the session, or finds an open pull request for its branch, the header shows a pull request button. With one pull request, the button ("Open pull request #12") opens the Pull requests page on its diff. With several (a stack, for example), the button shows their count and opens a menu: one line per pull request ("#12 acme/storefront – title", the title when T3 Code knows it), which opens its diff. The list follows T3 Code: its links in their order, then the pull request of the branch if it is not in the list. A stack layer that you removed in T3 Code does not show.
 - Write a message and send it with `Enter`. During a run, the message waits in the "Up next" list (dashed border). T3 Code sends it when the turn ends.
 - Under each queued message, three icons: "Send now" (the same arrow as Send), edit, remove. During a run, "Send now" steers: the message goes into the current run now. After a Stop, T3 Code holds the queue, and "Send now" starts a turn with this message.
 - Attach files with the paperclip, by drag and drop anywhere on the conversation (a dashed frame shows the drop area; it does not work in a subagent thread), or by paste. A chip shows each upload ("uploading", ready or "failed" with a retry button). Send waits for all uploads. The limits are those of T3 Code: 100 files, 10 MB for each image (PNG, JPEG, GIF or WebP), 50 MB for each other file and 80 MB of images in all.
@@ -255,6 +256,19 @@ The News tab shows a daily or weekly article with the latest tech news. A T3 rou
 - Without an article, the page says "No news yet".
 - The News tab (sidebar and phone bar) has a badge with the number of unread articles, like the other tabs. Opening an article marks it read: this includes the newest one, which the page opens by itself. On a phone, only the article view counts, not the list. A new run on the same day makes that article unread again. Articles that exist at the first visit count as read. The read marks use the same shared state as the Dashboard (`seen.json`), so they follow you across devices.
 
+## Pull requests
+
+The Pull requests page lists your open pull requests and shows the diff of one pull request, to review it without leaving the dashboard. It is read only: the page cannot approve, comment or merge.
+
+- It needs the GitHub CLI (`gh`) on the machine that runs the dashboard, signed in with `gh auth login`. The dashboard looks for `gh` on the `PATH`, then in `/usr/bin`, `/usr/local/bin`, `/opt/homebrew/bin` and `~/.local/bin`. Set `T3_DASHBOARD_GH_BIN` to use another file. Without `gh`, or without a login, the page shows an error that says so.
+- The list holds the open pull requests that you wrote and the ones that wait for your review (50 of each at most), grouped by repository. The search field finds a pull request by title, number, repository, author or branch. Under it, "All", "Mine" and "To review" filter the list, and a repository menu narrows it to one repository. The search and the filters stay at the top while the list scrolls. A row shows the title, the number, the author, the branch, the age, the checks (passed, failed or running), the review (approved, changes requested or review required), a "Draft" label and the +/- counts. The refresh button reads GitHub again.
+- A pull request that is linked to a session (T3 Code linked it, or the session branch has it) shows a "Session" button. It opens the session like any other list: `Shift` adds it next to the open columns. A pull request can belong to several sessions: the button then shows "Sessions" and their count, and opens a menu with one line per session.
+- Click a row to open the pull request (`#/pulls/<owner>/<repo>/<number>`, an address you can share or bookmark). The header shows the title, the repository, the branches, the state, the checks, the reviews and an "Open on GitHub" link. When sessions are linked to the pull request, it also has "Open session", or a "Sessions" menu with their count when there are several. The check list shows each check and its result. "Pull requests" goes back to the list.
+- The diff shows each changed file as a block with its path, its status (added, deleted, modified, renamed), its +/- counts, its line numbers and syntax highlighting. Click the file name to collapse or expand it. A file of more than 400 changed lines starts collapsed, and files stop opening once 3000 lines are open. A binary file and a file of more than 3000 lines show a note in place of the code.
+- "Collapse all" and "Expand all" act on every file. "Collapse tests" and "Expand tests" act on the test files only (test folders, `*.test.*`, `*.spec.*`, snapshots, `*_test.go`, `test_*.py`). The tests button shows only when the diff has a test file. The file headers and the buttons stay in view while you scroll.
+- On a phone, the list and the pull request take the full width, and a long line of code scrolls sideways.
+- The dashboard reads GitHub through `gh` and keeps the answers for 60 seconds: the list, then each pull request. The page reads the list again every 2 minutes while it is open, and not when the page is hidden. A diff is kept by the head commit of the pull request, so a new push shows a new diff. A diff over 2 MB is cut, and the page says so.
+
 ## Settings
 
 Open Settings with the header button or the `,` key. A sidebar on the left lists the tabs. Only one tab is visible at a time.
@@ -270,7 +284,7 @@ The shortcuts use `Ctrl`, also on a Mac, and they work while you type in a field
 
 | Key | Action |
 | --- | --- |
-| `Ctrl` + `1`, `2`, `3`, `4` | Opens Dashboard, Sessions, Automations or News. |
+| `Ctrl` + `1`, `2`, `3`, `4`, `5` | Opens the pages in the order of the sidebar: Dashboard, Sessions, Pull requests, Automations, News. |
 | `Ctrl` + `K` or `⌘` + `K` | Opens or closes the "Jump to" switcher. It finds a conversation by title, project or message. Without text, it shows the agents that wait for an answer, then your recent conversations. `↑` `↓` select, `Enter` opens in Sessions. |
 | `Ctrl` + `S` | In the message field of a conversation: stashes the draft. |
 | `Ctrl` + `N` | Opens New Session. |
@@ -285,6 +299,6 @@ The shortcuts use `Ctrl`, also on a Mac, and they work while you type in a field
 
 In Sessions, typing a letter outside any field writes it in the message field of the active session: no click needed first.
 
-On Windows and Linux, the browser keeps `Ctrl` + `N`, `Ctrl` + `⇧` + `N` and `Ctrl` + `1` to `3` for itself: use the buttons there.
+On Windows and Linux, the browser keeps `Ctrl` + `N`, `Ctrl` + `⇧` + `N` and `Ctrl` + `1` to `5` for itself: use the buttons there.
 
 A tooltip gives the name of each button and its shortcut. The animations stop if the system asks for reduced motion (`prefers-reduced-motion`).

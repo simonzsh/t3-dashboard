@@ -18,6 +18,8 @@ export function thread(id: string, over: Partial<DashboardThread> = {}): Dashboa
     lastError: null,
     pinned: false,
     lastActivityAt: "2026-01-10T10:00:00.000Z",
+    branch: null,
+    pullRequests: [],
     ...over,
   };
 }

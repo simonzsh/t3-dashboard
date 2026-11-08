@@ -160,7 +160,7 @@ export function DashboardView({ limits, server, activity, layout: saved, editing
     aim(e, { kind: "gap", row: rows.length, column: gapColumn });
   };
   return (
-    <div ref={root} className={`dashboard${inline ? " with-panel" : ""}`}>
+    <div ref={root} className={`dashboard page-scroll${inline ? " with-panel" : ""}`}>
       <div className="dashboard-main">
         {editing && layout.hidden.length > 0 && (
           <div className="dashboard-hidden">
