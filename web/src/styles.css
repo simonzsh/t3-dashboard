@@ -1148,10 +1148,6 @@ main:has(> .news-page) { padding-top: calc(var(--page-top) - 4px); }
 .news-items { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 2px; }
 .news-item { display: flex; align-items: center; gap: 8px; width: 100%; padding: 8px 10px; border: 0; border-radius: var(--radius-md); background: none; color: inherit; text-align: left; }
 .news-item.active { background: color-mix(in srgb, var(--accent) 12%, transparent); }
-/* Once measured, one highlight slides to the open item (same motion as the sidebar) instead of each item painting its own. */
-.news-items.marked { position: relative; isolation: isolate; }
-.news-items.marked .news-item.active { background: none; }
-.news-items.marked::before { content: ""; position: absolute; z-index: -1; top: 0; inset-inline: 0; height: var(--mark-height); border-radius: var(--radius-md); background: color-mix(in srgb, var(--accent) 12%, transparent); transform: translateY(var(--mark-top)); transition: transform 220ms cubic-bezier(0.2, 0.8, 0.2, 1), height 220ms cubic-bezier(0.2, 0.8, 0.2, 1); pointer-events: none; }
 @media (hover: hover) { .news-item:not(.active):hover { background: color-mix(in srgb, var(--text-primary) 6%, transparent); } }
 .news-item.writing { color: var(--text-secondary); }
 .news-item.writing .news-item-title { flex: 1; font-weight: 400; }
@@ -1230,7 +1226,7 @@ main:has(> .news-page) { padding-top: calc(var(--page-top) - 4px); }
   .skeleton { animation: none; }
   .switch, .switch-thumb { transition: none; }
   .ui-sheet, .ui-sheet-backdrop { transition: none; }
-  .thread-actions, .slist-slot, .sidebar, .sidebar-items::before, .news-items.marked::before, .bottom-nav-indicator, :is(.sidebar-name, .nav-label, .sidebar-search kbd) { transition: none; }
+  .thread-actions, .slist-slot, .sidebar, .sidebar-items::before, .bottom-nav-indicator, :is(.sidebar-name, .nav-label, .sidebar-search kbd) { transition: none; }
   .sidebar.collapsed :is(.sidebar-actions, .nav-badge, .nav-alert) { animation: none; }
   .swipe-dots { animation-duration: 1ms; animation-delay: 1.2s; }
 }

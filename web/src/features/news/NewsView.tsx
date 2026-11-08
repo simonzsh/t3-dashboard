@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { NewsArticle, NewsArticleSummary, NewsState } from "../../../../shared/api.ts";
 import type { SeenState } from "../../../../shared/seen.ts";
 import { useApi } from "../../api/ApiContext.tsx";
@@ -36,9 +36,6 @@ export function NewsView({ news, writing, now, compact, seen, onRead, onOpenThre
   const [reading, setReading] = useState(false);
   const [article, setArticle] = useState<NewsArticle | null>(null);
   const articleRef = useRef<HTMLElement>(null);
-  // The open item's box, for the highlight that slides between items like the sidebar's.
-  const listRef = useRef<HTMLUListElement>(null);
-  const [highlight, setHighlight] = useState<{ top: number; height: number } | null>(null);
   const [error, setError] = useState<string | null>(null);
   // The delete dialog: one article, or "all".
   const [deleting, setDeleting] = useState<NewsArticleSummary | "all" | null>(null);
@@ -112,23 +109,6 @@ export function NewsView({ news, writing, now, compact, seen, onRead, onOpenThre
       )}
     </li>
   );
-  // Dates and file times, not the array: it is new on every render.
-  const visibleKey = visible.map((a) => a.date + a.mtimeMs).join();
-  // Before any early return: a hook skipped on some renders breaks React (empty list after Delete all).
-  useLayoutEffect(() => {
-    const list = listRef.current;
-    if (!list || compact) return setHighlight(null);
-    const measure = () => {
-      const item = list.querySelector<HTMLElement>(".news-item.active");
-      // Measure against the list, not offsetTop: each row is its own positioned box (for its hover actions).
-      const box = item?.getBoundingClientRect();
-      setHighlight(box ? { top: box.top - list.getBoundingClientRect().top, height: box.height } : null);
-    };
-    measure();
-    const observer = new ResizeObserver(measure);
-    observer.observe(list);
-    return () => observer.disconnect();
-  }, [date, compact, visibleKey, writing]);
 
   if (articles.length === 0) {
     return (
@@ -163,11 +143,7 @@ export function NewsView({ news, writing, now, compact, seen, onRead, onOpenThre
           </div>
         </div>
         <div className="news-list-scroll">
-          <ul
-            ref={listRef}
-            className={`news-items${highlight ? " marked" : ""}`}
-            style={highlight ? ({ "--mark-top": `${highlight.top}px`, "--mark-height": `${highlight.height}px` } as CSSProperties) : undefined}
-          >
+          <ul className="news-items">
             {progress}
             {searching && visible.length === 0 && <li className="news-none">No matching articles</li>}
             {visible.map((a) => {
