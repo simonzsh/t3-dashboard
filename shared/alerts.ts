@@ -21,7 +21,6 @@ export function alertServer(s: string): string | null {
   return s.replace(/\/+$/, "");
 }
 
-export const isAlertServer = (s: string): boolean => alertServer(s) !== null;
 export const isAlertClick = (s: string): boolean => s.length <= ALERT_CLICK_MAX && httpUrl(s) !== null;
 
 /** Shared with every device over SSE: what the session bell needs. No topic here. */
