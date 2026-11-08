@@ -221,8 +221,10 @@ export function App() {
   const linkLive = state?.connection.t3 === "live";
   const linkAction = sessionLinkAction(sessionRoute, { loaded: sessionsLoaded, live: linkLive }, threadsById);
   useEffect(() => {
+    if (linkAction !== "open" && linkAction !== "drop") return;
+    // Replace the link first: setTab then sees "#/sessions" and adds no history entry, so Back leaves the page.
+    location.replace(hashForTab("sessions"));
     if (linkAction === "open") openRef.current(sessionRoute!, true);
-    if (linkAction === "open" || linkAction === "drop") location.replace(hashForTab("sessions"));
   }, [linkAction, sessionRoute]);
   const automationsNav = useMemo(() => automationsBadge(automations.result?.automations ?? [], threadsById, notify.seen), [automations.result?.automations, threadsById, notify.seen]);
   const unread = useMemo(() => attentionCount(threadSections(threads, notify.seen)), [threads, notify.seen]);

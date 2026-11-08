@@ -67,6 +67,7 @@ export function AlertsSettings() {
           <span>Use an existing topic</span>
           <form
             className="key-form"
+            autoComplete="off"
             onSubmit={(e) => {
               e.preventDefault();
               change(() => api.useAlertsTopic(topicBody(topic, server)));
