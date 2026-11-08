@@ -182,7 +182,9 @@ test("one spin keyframe, and shared rows have one rule each", () => {
 
 test("pull requests: the file headers and the file list stick inside the page, and a dark theme recolours the tokens", () => {
   assert.match(rule(".pulls-detail-side"), /position: sticky; top: 0;/);
-  assert.match(rule(".pr-diff-file-head"), /position: sticky; top: 0;/);
+  assert.match(rule(".pr-diff-sticky"), /position: sticky; top: 0;/);
+  // Safari places a sticky button wrong: the file head button stays static inside the sticky div.
+  assert.doesNotMatch(rule(".pr-diff-file-head"), /sticky/);
   // Safari ignores a negative sticky top: no sticky rule may use one.
   assert.doesNotMatch(css, /position: sticky; top: calc\(-/);
   assert.match(rule(".pr-diff-file-head"), /border-radius: 0;/);

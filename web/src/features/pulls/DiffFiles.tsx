@@ -93,12 +93,15 @@ const FileDiff = memo(function FileDiff({ file, open, onToggle }: { file: DiffFi
   const renamed = file.oldPath !== "" && file.newPath !== "" && file.oldPath !== file.newPath;
   return (
     <section className="pr-diff-file" data-pr-diff-file={file.path}>
-      <Pressable className={`pr-diff-file-head${open ? " open" : ""}`} aria-expanded={open} onClick={() => onToggle(file.path, open)}>
-        <Chevron open={open} />
-        <FilePath path={renamed ? `${file.oldPath} → ${file.newPath}` : file.path} />
-        <span className={`pr-diff-status ${file.status}`}>{file.status}</span>
-        <Counts additions={file.additions} deletions={file.deletions} />
-      </Pressable>
+      {/* Sticky on a div: Safari places a sticky button lower than its top. */}
+      <div className="pr-diff-sticky">
+        <Pressable className={`pr-diff-file-head${open ? " open" : ""}`} aria-expanded={open} onClick={() => onToggle(file.path, open)}>
+          <Chevron open={open} />
+          <FilePath path={renamed ? `${file.oldPath} → ${file.newPath}` : file.path} />
+          <span className={`pr-diff-status ${file.status}`}>{file.status}</span>
+          <Counts additions={file.additions} deletions={file.deletions} />
+        </Pressable>
+      </div>
       {open &&
         (file.binary ? (
           <p className="pr-diff-empty">Binary file</p>

@@ -45,6 +45,8 @@ function buttonGroups(text: string): Button[][] {
     if (name === "button" || name === "Button") {
       const close = `</${name}>`;
       const end = text.indexOf(close, tag.lastIndex);
+      // "<button>" in a comment has no closing tag: stop here instead of scanning the file again forever.
+      if (end < 0) break;
       stack.at(-1)!.push({ tag: open, text: text.slice(tag.lastIndex, end).replace(/<[^>]*>/g, " ") });
       tag.lastIndex = end + close.length;
       continue;
@@ -73,6 +75,10 @@ test("the guard sees a Cancel after a primary button", () => {
   const groups = buttonGroups(`<div className="buttons"><button className="primary" onClick={() => go(a > b)}>Create</button><button type="button">Cancel</button></div>`);
   assert.equal(groups.length, 1);
   assert.deepEqual(groups[0]!.map((b) => [isPrimary(b), isCancel(b)]), [[true, false], [false, true]]);
+});
+
+test("the button guard ends on a button tag with no closing tag", () => {
+  assert.deepEqual(buttonGroups("// a sticky <button> in a comment"), []);
 });
 
 test("the guard sees a kit Button row", () => {
