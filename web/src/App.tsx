@@ -4,7 +4,6 @@ import { AutomationsView } from "./features/automations/AutomationsView.tsx";
 import { PullsView } from "./features/pulls/PullsView.tsx";
 import { NewsSettingsDialog } from "./features/news/NewsSettingsDialog.tsx";
 import { NewsView } from "./features/news/NewsView.tsx";
-import { AgentSetupView } from "./features/agent-setup/AgentSetupView.tsx";
 import { firstRunBody, unreadNewsCount } from "./features/news/news.ts";
 import { useNews } from "./features/news/useNews.ts";
 import { DashboardView } from "./features/dashboard/DashboardView.tsx";
@@ -14,7 +13,6 @@ import { useNotificationsPanel } from "./features/dashboard/useNotificationsPane
 import { useActivity } from "./features/dashboard/useActivity.ts";
 import { useLimits } from "./features/dashboard/useLimits.ts";
 import { useServerStats } from "./features/dashboard/useServerStats.ts";
-import { useMcpServers } from "./features/dashboard/useMcpServers.ts";
 import { AppNav } from "./features/shell/AppNav.tsx";
 import { PageActions } from "./features/shell/PageActions.tsx";
 import { ConnectionBanner } from "./features/setup/ConnectionBanner.tsx";
@@ -239,7 +237,6 @@ export function App() {
   const activity = useActivity(cardShown("activity"));
   const limits = useLimits(cardShown("usage"));
   const server = useServerStats(cardShown("server"));
-  const mcp = useMcpServers(cardShown("mcp"));
   const page = TABS.find((t) => t.id === tab)!;
   const updateNav = update.status?.available && update.status.canUpdate ? { label: updateLabel(update.status), busy: update.updating || update.status.updating } : null;
 
@@ -254,7 +251,7 @@ export function App() {
 
   return (
     <AutomationThreadsContext.Provider value={automationThreads}>
-      <div className={`app${tab === "sessions" ? " sessions-mode" : ""}${tab === "automations" ? " automations-mode" : ""}${tab === "news" ? " news-mode" : ""}${tab === "pulls" ? " pulls-mode" : ""}${tab === "setup" ? " setup-mode" : ""}${sessionShown ? " session-shown" : ""}${sheetShown ? " sheet-shown" : ""}`}>
+      <div className={`app${tab === "sessions" ? " sessions-mode" : ""}${tab === "automations" ? " automations-mode" : ""}${tab === "news" ? " news-mode" : ""}${tab === "pulls" ? " pulls-mode" : ""}${sessionShown ? " session-shown" : ""}${sheetShown ? " sheet-shown" : ""}`}>
         <TooltipLayer />
         <AppNav
           layout={compact ? "bottom" : "side"}
@@ -316,7 +313,6 @@ export function App() {
                   state={state}
                   limits={limits}
                   server={server}
-                  mcp={mcp}
                   activity={activity}
                   now={now}
                   sessionIds={sessionIds}
@@ -350,7 +346,6 @@ export function App() {
               ) : <Loader />)}
             {tab === "news" && (news.state ? <NewsView news={news.state} writing={news.writing} now={now} compact={compact} seen={notify.seen} onRead={readNews} onOpenThread={onOpen} onDelete={news.remove} onDeleteAll={news.removeAll} /> : <Loader />)}
             {tab === "pulls" && (state ? <PullsView route={prRoute} threads={state.threads} now={now} onOpenThread={onOpen} /> : <Loader />)}
-            {tab === "setup" && <AgentSetupView projects={state?.projects ?? []} compact={compact} now={now} />}
             {tab === "sessions" &&
               (state ? (
                 <SessionsView

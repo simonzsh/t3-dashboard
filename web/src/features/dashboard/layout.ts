@@ -2,10 +2,10 @@ import { readJson, writeKey, type Store } from "../../lib/storage.ts";
 
 export const DASHBOARD_LAYOUT_KEY = "t3-dashboard-layout";
 
-const CARDS = ["activity", "usage", "running", "server", "linear", "mcp"] as const;
+const CARDS = ["activity", "usage", "running", "server", "linear"] as const;
 export type DashboardCard = (typeof CARDS)[number];
 
-export const CARD_TITLES: Record<DashboardCard, string> = { usage: "Usage", server: "Server", activity: "Activity", running: "Running", linear: "Linear", mcp: "MCP servers" };
+export const CARD_TITLES: Record<DashboardCard, string> = { usage: "Usage", server: "Server", activity: "Activity", running: "Running", linear: "Linear" };
 
 export type CardWidth = "half" | "full";
 export type CardColumn = "left" | "right";
@@ -36,7 +36,6 @@ const CARD_DEFAULTS: Record<DashboardCard, { width: CardWidth; column: CardColum
   linear: { width: "half", column: "right" },
   running: { width: "half", column: "right" },
   server: { width: "half", column: "right" },
-  mcp: { width: "half", column: "left" },
 };
 const defaultPlace = (id: DashboardCard): CardPlace => ({ id, ...CARD_DEFAULTS[id] });
 
@@ -72,7 +71,7 @@ function withRows(layout: DashboardLayout, rows: Row[]): DashboardLayout {
 export const layoutRows = (layout: DashboardLayout): LayoutRow[] =>
   rowsOf(layout.order).map((r) => (r.kind === "full" ? { kind: "full", card: r.place.id } : { kind: "band", left: r.left.map((p) => p.id), right: r.right.map((p) => p.id) }));
 
-export const DEFAULT_LAYOUT: DashboardLayout = { order: canon(CARDS.map(defaultPlace)), hidden: [] };
+export const DEFAULT_LAYOUT: DashboardLayout = { order: CARDS.map(defaultPlace), hidden: [] };
 
 const isCard = (v: unknown): v is DashboardCard => CARDS.includes(v as DashboardCard);
 // Ids saved by an older version, read as the card that replaced them.
