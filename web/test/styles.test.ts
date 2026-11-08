@@ -182,10 +182,8 @@ test("one spin keyframe, and shared rows have one rule each", () => {
 
 test("pull requests: the file headers and the file list stick inside the page, and a dark theme recolours the tokens", () => {
   assert.match(rule(".pulls-detail-side"), /position: sticky; top: 0;/);
-  assert.match(rule(".pr-diff-sticky"), /position: sticky; top: 0;/);
-  // Safari places a sticky button wrong: the file head button stays static inside the sticky div.
-  assert.doesNotMatch(rule(".pr-diff-file-head"), /sticky/);
-  // Safari ignores a negative sticky top: no sticky rule may use one.
+  assert.match(rule(".pr-diff-file-head"), /position: sticky; top: 0;/);
+  // Sticky parts stick at top 0 under a flush head; a negative top would hide them under it.
   assert.doesNotMatch(css, /position: sticky; top: calc\(-/);
   assert.match(rule(".pr-diff-file-head"), /border-radius: 0;/);
   assert.match(css, /:root\[data-theme="dark"\] :is\(\.hljs-keyword/);
@@ -194,4 +192,14 @@ test("pull requests: the file headers and the file list stick inside the page, a
 test("the current row of a tree is marked by a tint, never by a side bar", () => {
   assert.match(rule(".ui-tree-row.active"), /background: color-mix\(in srgb, var\(--text-primary\) 10%, transparent\);/);
   assert.doesNotMatch(css, /ui-tree-row[^{]*\{[^}]*box-shadow: inset/);
+});
+
+test("a flush list page moves the head-to-body space into the body, so sticky children touch the head", () => {
+  const shell = css.slice(css.indexOf("/* page-shell:start"), css.indexOf("/* page-shell:end */"));
+  assert.match(shell, /\.list-page\.flush \{ gap: 0; \}/);
+  assert.match(shell, /\.list-page\.flush > \.list-page-body \{ margin-top: 0; padding-top: 0; \}/);
+  assert.match(shell, /\.list-page\.flush > \.list-page-body::before \{ content: ""; display: block; height: var\(--page-gap\); \}/);
+  // The sticky parts of the pull request view stick at the top edge of that body.
+  assert.match(rule(".pulls-detail-side"), /position: sticky; top: 0;/);
+  assert.doesNotMatch(css, /position: sticky; top: calc\(-/);
 });

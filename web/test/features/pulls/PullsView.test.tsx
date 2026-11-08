@@ -195,7 +195,7 @@ test("the file tree groups the files by folder, marks the current one and dims a
 
 test("the detail is a list page: the header above the scroll box, the diff inside it", () => {
   const html = page();
-  assert.match(html, /<section class="list-page pulls-detail" aria-label="Pull request"><div class="list-page-head"><header class="pulls-head">/);
+  assert.match(html, /<section class="list-page flush pulls-detail" aria-label="Pull request"><div class="list-page-head"><header class="pulls-head">/);
   assert.match(html, /<div class="list-page-body page-scroll bleed"><div class="pulls-detail-grid">.*data-pr-diff-file="src\/a.ts"/);
   assert.match(html, /<a [^>]*href="https:\/\/example.test\/acme\/storefront\/pull\/12"[^>]*>.*Open on GitHub/);
   // A static render is narrow: the file list waits in a sheet behind the header button.

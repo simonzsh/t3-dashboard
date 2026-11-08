@@ -85,6 +85,7 @@ export function PrDetail({ pr, detail, detailError, diff, diffError, refreshing,
       aria-label="Pull request"
       bodyRef={body}
       bleed
+      flush
       head={
         <PrHeader pr={pr} detail={detail} now={now} sessions={sessions} onOpenSession={onOpenSession} controls={controls} refreshing={refreshing} onRefresh={onRefresh} filesPanel={wide ? { hidden: !filesOpen, onToggle: () => setDetailPrefs({ filesOpen: !filesOpen }) } : undefined} onShowFiles={wide ? undefined : () => setSheet(true)} phone={phone} />
       }

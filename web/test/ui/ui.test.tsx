@@ -318,6 +318,10 @@ test("media checks are false without matchMedia and name the shared queries", ()
   assert.equal(TOUCH, "(pointer: coarse)");
 });
 
+test("a flush ListPage marks itself, so its head-to-body space scrolls with the body", () => {
+  assert.match(html(<ListPage head="h" flush><ul /></ListPage>), /^<section class="list-page flush">/);
+});
+
 test("a bleed ListPage marks its body, so it runs edge to edge on a phone", () => {
   assert.match(html(<ListPage head="h" bleed><ul /></ListPage>), /<div class="list-page-body page-scroll bleed"><ul><\/ul><\/div>/);
 });
