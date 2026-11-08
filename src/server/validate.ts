@@ -369,6 +369,14 @@ export function validPrRef(params: Record<string, string>): PrRef {
   return { repository, number };
 }
 
+/** Optional `?sha=`: a head commit the client already holds. It is only a cache key, never passed to gh. */
+export function validSha(params: URLSearchParams): string | undefined {
+  const sha = params.get("sha");
+  if (!sha) return undefined;
+  if (!/^[0-9A-Za-z]{1,64}$/.test(sha)) throw new HttpError(400, "sha must be a commit SHA");
+  return sha;
+}
+
 export function validAssign(body: Record<string, unknown>): Omit<AssignIssueBody, "attachments" | "uploads"> {
   const modelSelection = validSelection(body.modelSelection);
   const projectId = body.projectId ?? "";

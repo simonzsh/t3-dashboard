@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { gunzipSync } from "node:zlib";
 import { afterEach, test } from "bun:test";
 import type { CacheCleanupPreview, CacheCleanupResult, LimitsOverview, ServerStats, UsageOverview, Automation, AutomationsResult, ConnectionStatus, DashboardEvent, DashboardState, NewsState } from "../../shared/api.ts";
 import { LinearClient } from "../../src/integrations/linear/client.ts";
@@ -1453,6 +1454,7 @@ test("the manifest, the service worker and the icons are served before the site"
   const { server } = await start({ site: { serve: async () => new Response("<p>app</p>") } });
   const manifest = await call(server, "GET", "/manifest.webmanifest");
   assert.equal(manifest.headers["content-type"], "application/manifest+json");
+  assert.equal(manifest.headers["cache-control"], "public, max-age=86400");
   const body = manifest.json as { display: string; start_url: string; icons: Array<{ src: string; sizes: string; purpose: string }> };
   assert.equal(body.display, "standalone");
   assert.equal(body.start_url, "/");
@@ -1918,6 +1920,8 @@ test("GET /api/project-icons lists the icon presets", async () => {
   const { server } = await start();
   const reply = await call(server, "GET", "/api/project-icons");
   assert.equal(reply.status, 200);
+  assert.equal(reply.headers["cache-control"], "private, max-age=3600");
+  assert.match(reply.headers.etag!, /^W\//);
   assert.equal(reply.json?.icons[0].name, "folder-code");
   assert.equal(reply.json?.icons[0].icon.kind, "lucide");
 });
@@ -2081,12 +2085,67 @@ test("GET /api/pulls/:owner/:repo/:number reads the detail and the diff of a val
   const { server } = await start({
     pulls: {
       detail: async (repository, number, refresh) => (asked.push(["detail", repository, number, refresh]), { title: "T" } as never),
-      diff: async (repository, number) => (asked.push(["diff", repository, number]), diff),
+      diff: async (repository, number, options) => (asked.push(["diff", repository, number, options]), diff),
     },
   });
   assert.deepEqual((await call(server, "GET", "/api/pulls/acme/storefront/12?refresh=1")).json, { title: "T" });
   assert.deepEqual((await call(server, "GET", "/api/pulls/acme/storefront/12/diff")).json, diff);
-  assert.deepEqual(asked, [["detail", "acme/storefront", 12, true], ["diff", "acme/storefront", 12]]);
+  assert.deepEqual(asked, [["detail", "acme/storefront", 12, true], ["diff", "acme/storefront", 12, { sha: undefined, refresh: false }]]);
+});
+
+const PR_DIFF = { headSha: "abc123", files: [], truncated: false };
+const diffPath = "/api/pulls/acme/api/1/diff";
+
+test("a diff answer for the asked head SHA is immutable and carries an etag", async () => {
+  const asked: unknown[] = [];
+  const { server } = await start({ pulls: { diff: async (_repository, _number, options) => (asked.push(options), PR_DIFF) } });
+  const reply = await call(server, "GET", `${diffPath}?sha=abc123`);
+  assert.equal(reply.headers["cache-control"], "private, max-age=31536000, immutable");
+  assert.match(reply.headers.etag!, /^W\/"[0-9a-z]+"$/);
+  assert.equal(reply.headers.vary, "accept-encoding");
+  assert.deepEqual(asked, [{ sha: "abc123", refresh: false }]);
+  const same = await call(server, "GET", `${diffPath}?sha=abc123`, { headers: { "if-none-match": reply.headers.etag! } });
+  assert.deepEqual([same.status, same.text, same.headers["cache-control"], same.headers.etag], [304, "", "private, max-age=31536000, immutable", reply.headers.etag]);
+});
+
+test("a diff answer is not immutable without a SHA, with another head, or on refresh", async () => {
+  const { server } = await start({ pulls: { diff: async () => PR_DIFF } });
+  for (const query of ["", "?sha=old000", "?sha=abc123&refresh=1", "?sha="]) {
+    assert.equal((await call(server, "GET", `${diffPath}${query}`)).headers["cache-control"], "no-cache", query);
+  }
+});
+
+test("a refresh asks the domain to read the head again", async () => {
+  const asked: unknown[] = [];
+  const { server } = await start({ pulls: { diff: async (_repository, _number, options) => (asked.push(options), PR_DIFF) } });
+  await call(server, "GET", `${diffPath}?sha=abc123&refresh=1`);
+  assert.deepEqual(asked, [{ sha: "abc123", refresh: true }]);
+});
+
+test("a malformed sha is a 400 that never reaches the domain", async () => {
+  const { server } = await start({ pulls: { diff: async () => { throw new Error("asked"); } } });
+  for (const sha of ["a b", "x".repeat(65), "a;b", "--flag"]) {
+    const reply = await call(server, "GET", `${diffPath}?sha=${encodeURIComponent(sha)}`);
+    assert.equal(reply.status, 400, sha);
+    assert.equal(reply.headers["cache-control"], "no-store");
+  }
+});
+
+test("the pull request list and detail answer no-cache with an etag, and the list etag ignores fetchedAt", async () => {
+  let list: Record<string, unknown> = { prs: [], fetchedAt: "2026-11-07T10:00:00.000Z" };
+  const { server } = await start({ pulls: { prs: async () => list as never, detail: async () => ({ title: "T" }) as never } });
+  const first = await call(server, "GET", "/api/pulls");
+  assert.equal(first.headers["cache-control"], "no-cache");
+  list = { prs: [], fetchedAt: "2026-11-07T10:05:00.000Z" };
+  const later = await call(server, "GET", "/api/pulls", { headers: { "if-none-match": first.headers.etag! } });
+  assert.equal(later.status, 304);
+  list = { prs: [], fetchedAt: "2026-11-07T10:06:00.000Z", stale: true };
+  const stale = await call(server, "GET", "/api/pulls", { headers: { "if-none-match": first.headers.etag! } });
+  assert.equal(stale.status, 200);
+  assert.notEqual(stale.headers.etag, first.headers.etag);
+  const detail = await call(server, "GET", "/api/pulls/acme/api/1");
+  assert.equal(detail.headers["cache-control"], "no-cache");
+  assert.match(detail.headers.etag!, /^W\//);
 });
 
 test("the pull request routes refuse a bad owner, repository or number with 400 and never ask gh", async () => {
@@ -2169,4 +2228,32 @@ test("disarm is idempotent and broadcasts the new state", async () => {
   assert.deepEqual((await post(server, "/api/alerts/threads/run-1/disarm")).json, { configured: true, armed: [] });
   assert.deepEqual((await post(server, "/api/alerts/threads/run-1/disarm")).json, { configured: true, armed: [] });
   assert.deepEqual(alertEvents(events), [{ configured: true, armed: ["run-1"] }, { configured: true, armed: [] }]);
+});
+
+test("every GET /api route answers with an explicit cache-control", async () => {
+  const source = await Bun.file(new URL("../../src/server/server.ts", import.meta.url)).text();
+  const paths = [...source.matchAll(/method: "GET",\s*path: "([^"]+)"/g)].map((match) => match[1]!).filter((path) => path !== "/api/events");
+  assert.ok(paths.length >= 25, `found ${paths.length} routes`);
+  const { server } = await start();
+  for (const path of paths) {
+    const url = path.replace(/:number/, "1").replace(/:\w+/g, "x");
+    const reply = await call(server, "GET", url);
+    assert.ok(reply.headers["cache-control"], `${path} answered ${reply.status} without cache-control`);
+  }
+});
+
+test("a JSON answer over 1 KB is compressed for a client that accepts it, and the event stream never is", async () => {
+  const prs = Array.from({ length: 60 }, (_, i) => ({ number: i, title: `Change number ${i}` }));
+  const { server } = await start({ pulls: { prs: async () => ({ prs, fetchedAt: "2026-11-07T10:00:00.000Z" }) as never } });
+  const get = (path: string, encoding: string, signal?: AbortSignal) => server.fetch(new Request(`http://127.0.0.1${path}`, { headers: { host: "127.0.0.1", "accept-encoding": encoding }, signal }));
+  const zipped = await get("/api/pulls", "gzip");
+  assert.equal(zipped.headers.get("content-encoding"), "gzip");
+  assert.equal(JSON.parse(gunzipSync(await zipped.arrayBuffer()).toString()).prs.length, 60);
+  const plain = await get("/api/pulls", "identity");
+  assert.equal(plain.headers.get("content-encoding"), null);
+  const abort = new AbortController();
+  const events = await get("/api/events", "gzip, br", abort.signal);
+  assert.equal(events.headers.get("content-encoding"), null);
+  abort.abort();
+  await events.body?.cancel().catch(() => {});
 });
