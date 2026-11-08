@@ -16,6 +16,8 @@ export interface PrSummary extends PrRef {
   draft: boolean;
   headRef: string;
   baseRef: string;
+  /** ISO time from GitHub; "" when missing. */
+  createdAt: string;
   updatedAt: string;
   additions: number;
   deletions: number;

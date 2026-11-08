@@ -11,6 +11,7 @@ test("parsePullsPrefs keeps known values and falls back field by field", () => {
   assert.deepEqual(parsePullsPrefs(null), DEFAULT_PULLS_PREFS);
   assert.deepEqual(parsePullsPrefs({ scope: "reviewer", repository: "acme/api" }), { scope: "reviewer", repository: "acme/api" });
   assert.deepEqual(parsePullsPrefs({ scope: "nope", repository: "acme/api" }), { scope: "all", repository: "acme/api" });
+  assert.deepEqual(parsePullsPrefs({ scope: "unread", repository: "all" }), { scope: "unread", repository: "all" });
   assert.deepEqual(parsePullsPrefs({ scope: "author", repository: 3 }), { scope: "author", repository: "all" });
   assert.deepEqual(parsePullsPrefs({ scope: "author", repository: "" }), { scope: "author", repository: "all" });
 });

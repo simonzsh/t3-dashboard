@@ -3,6 +3,7 @@ import { test } from "bun:test";
 import { renderToStaticMarkup } from "react-dom/server";
 import { nextRadioIndex, rovingTabIndex } from "../../src/ui/radioKeys.ts";
 import { isPhone, isTouch, PHONE, TOUCH } from "../../src/ui/media.ts";
+import { ActionMenuRow } from "../../src/ui/ActionMenu.tsx";
 import { ActionMenu, Badge, Button, ButtonLink, Chevron, Choice, CountBadge, Dialog, IconButtonLink, Kbd, ListPage, OptionList, SearchField, Segmented, FileInput, Icon, IconButton, PageHeader, Pressable, SecretInput, Sheet, Skeleton, SkeletonGroup, Switch, Tabs, TextArea, TextInput, Tree, SidePanel, SidePanelToggle } from "../../src/ui/index.ts";
 import { pathTree } from "../../src/ui/pathTree.ts";
 
@@ -225,6 +226,13 @@ test("an ActionMenu is a closed menu button with the given name", () => {
   assert.match(out, /aria-haspopup="menu"/);
   assert.match(out, /aria-expanded="false"/);
   assert.doesNotMatch(out, /role="menu"/);
+});
+
+test("an ActionMenu row shows the unread ring only for an unread item", () => {
+  const row = (unread?: boolean) => html(<ActionMenuRow item={{ label: "#12 repo", icon: "gitPullRequest", onSelect: () => {}, unread }} id="r" active={false} onPick={() => {}} onHover={() => {}} />);
+  assert.match(row(true), /<span class="dropdown-text">#12 repo<\/span><span class="notif-dot" role="img" aria-label="Unread"><\/span>/);
+  assert.doesNotMatch(row(), /notif-dot/);
+  assert.doesNotMatch(row(false), /notif-dot/);
 });
 
 test("a waiting badge carries the person icon and an error badge the alert circle; others carry none", () => {

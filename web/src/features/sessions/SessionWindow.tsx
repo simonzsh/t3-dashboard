@@ -9,6 +9,7 @@ import { OpenInT3 } from "../../lib/OpenInT3.tsx";
 import { ProjectIcon } from "../../lib/ProjectIcon.tsx";
 import { RunningBadge } from "../../lib/StatusBadge.tsx";
 import { ctrlLabel } from "../../lib/shortcuts.ts";
+import { newestFirst, prMarkId, type OpenPrs } from "../../lib/prSeen.ts";
 import { hashForPr } from "../../lib/tabs.ts";
 
 // Only the states that ask for attention get a badge: a done or idle session shows none.
@@ -30,6 +31,8 @@ interface Props {
   live: boolean;
   t3EnvironmentId: string | null;
   providers: DashboardProvider[];
+  /** The open pull requests (creation time, unread). Keyed on content in App, so a window does not rerender at each read. */
+  openPrs: OpenPrs;
   onTitle?: (id: string, title: string) => void;
   /** On a phone: the arrow back to the list. */
   onBack?: () => void;
@@ -37,7 +40,7 @@ interface Props {
   dispatch: Dispatch<SessionsAction>;
 }
 
-function SessionWindowView({ id, thread, title, projectTitle, projectIcon, missing, focused, maximized, compact, live, t3EnvironmentId, providers, onTitle, onBack, dispatch }: Props) {
+function SessionWindowView({ id, thread, title, projectTitle, projectIcon, missing, focused, maximized, compact, live, t3EnvironmentId, providers, openPrs, onTitle, onBack, dispatch }: Props) {
   const onFocus = () => dispatch({ type: "focus", id });
   const onClose = () => dispatch({ type: "close", id });
   const onToggleMaximize = () => dispatch({ type: "maximize", id });
@@ -74,7 +77,7 @@ function SessionWindowView({ id, thread, title, projectTitle, projectIcon, missi
             )
           )}
           <span className="session-window-buttons">
-            {thread && <PullRequestsButton pullRequests={thread.pullRequests} />}
+            {thread && <PullRequestsButton pullRequests={thread.pullRequests} open={openPrs} />}
             <OpenInT3 environmentId={t3EnvironmentId} threadId={id} />
             {!compact && (
               <IconButton variant="ghost" size="sm" label={fullscreen} tooltip={fullscreen} shortcut={maximized ? `${ctrlLabel("F")} / Esc` : ctrlLabel("F")} onClick={onToggleMaximize}>
@@ -108,22 +111,25 @@ function SessionWindowView({ id, thread, title, projectTitle, projectIcon, missi
 }
 
 
-/** One pull request: a direct link to its diff. Several (a stack, say): a menu with one link each. */
-export function PullRequestsButton({ pullRequests }: { pullRequests: ThreadPullRequest[] }) {
+/** One pull request: a direct link to its diff. Several (a stack, say): a menu with one link each, newest first. */
+export function PullRequestsButton({ pullRequests, open }: { pullRequests: ThreadPullRequest[]; open: OpenPrs }) {
   const [first] = pullRequests;
   if (!first) return null;
+  const unread = (pr: ThreadPullRequest) => open.get(prMarkId(pr))?.unread ?? false;
   if (pullRequests.length === 1) {
     const label = `Open pull request #${first.number}`;
     return (
-      <IconButtonLink variant="ghost" size="sm" href={hashForPr(first)} label={label} tooltip={label}>
+      <IconButtonLink variant="ghost" size="sm" href={hashForPr(first)} label={unread(first) ? `${label} (unread)` : label} tooltip={label}>
         <Icon name="gitPullRequest" />
+        {unread(first) && <span className="notif-dot icon-button-dot" aria-hidden="true" />}
       </IconButtonLink>
     );
   }
-  const items = pullRequests.map((pr) => ({
+  const items = newestFirst(pullRequests, open).map((pr) => ({
     label: `#${pr.number} ${pr.repository}${pr.title ? ` – ${pr.title}` : ""}`,
     icon: "gitPullRequest" as const,
     onSelect: () => (window.location.hash = hashForPr(pr)),
+    unread: unread(pr),
   }));
   return <ActionMenu label={`${pullRequests.length} pull requests`} tooltip="Pull requests" icon="gitPullRequest" count={pullRequests.length} items={items} />;
 }

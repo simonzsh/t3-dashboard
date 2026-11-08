@@ -14,6 +14,36 @@ export interface ActionMenuItem {
   disabled?: boolean;
   /** Says why an item is disabled. */
   tooltip?: string;
+  /** A hollow ring after the label, the unread mark of the dashboard. */
+  unread?: boolean;
+}
+
+interface RowProps {
+  item: ActionMenuItem;
+  id: string;
+  active: boolean;
+  onPick: () => void;
+  onHover: () => void;
+}
+
+// A row of its own: the menu is in a portal, so only a row can be rendered statically in a test.
+export function ActionMenuRow({ item, id, active, onPick, onHover }: RowProps) {
+  return (
+    <div
+      id={id}
+      role="menuitem"
+      aria-disabled={item.disabled || undefined}
+      data-tooltip={item.tooltip}
+      className={["dropdown-option", active && "active", item.danger && "danger", item.disabled && "disabled"].filter(Boolean).join(" ")}
+      onMouseDown={(e) => e.preventDefault()}
+      onMouseEnter={onHover}
+      onClick={onPick}
+    >
+      <Icon name={item.icon} />
+      <span className="dropdown-text">{item.label}</span>
+      {item.unread && <span className="notif-dot" role="img" aria-label="Unread" />}
+    </div>
+  );
 }
 
 interface Props {
@@ -87,20 +117,7 @@ export function ActionMenu({ label, tooltip, items, className, icon = "moreHoriz
         <Popover anchor={anchor} align="end" minWidth={170} className="dropdown-menu" onClose={(reason) => close(reason === "escape")}>
           <div ref={list} className="dropdown-list" role="menu" aria-label={label} tabIndex={-1} aria-activedescendant={active >= 0 ? `${id}-${active}` : undefined} onKeyDown={onKeyDown}>
             {items.map((item, i) => (
-              <div
-                key={item.label}
-                id={`${id}-${i}`}
-                role="menuitem"
-                aria-disabled={item.disabled || undefined}
-                data-tooltip={item.tooltip}
-                className={["dropdown-option", i === active && "active", item.danger && "danger", item.disabled && "disabled"].filter(Boolean).join(" ")}
-                onMouseDown={(e) => e.preventDefault()}
-                onMouseEnter={() => hover(i)}
-                onClick={() => pick(item)}
-              >
-                <Icon name={item.icon} />
-                <span className="dropdown-text">{item.label}</span>
-              </div>
+              <ActionMenuRow key={item.label} item={item} id={`${id}-${i}`} active={i === active} onPick={() => pick(item)} onHover={() => hover(i)} />
             ))}
           </div>
         </Popover>

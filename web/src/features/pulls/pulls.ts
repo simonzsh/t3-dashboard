@@ -2,21 +2,22 @@ import type { BadgeVariant } from "../../ui/index.ts";
 import type { DashboardThread } from "../../../../shared/api.ts";
 import type { PrChecks, PrRef, PrReview, PrSummary } from "../../../../shared/pulls.ts";
 
-export type Scope = "all" | "author" | "reviewer";
+export type Scope = "all" | "author" | "reviewer" | "unread";
 
 export const SCOPES: ReadonlyArray<{ id: Scope; label: string }> = [
   { id: "all", label: "All" },
   { id: "author", label: "Mine" },
   { id: "reviewer", label: "To review" },
+  { id: "unread", label: "Unread" },
 ];
 
 export const ALL_REPOSITORIES = "all";
 
-export function filterPrs(prs: PrSummary[], scope: Scope, repository: string, query = ""): PrSummary[] {
+export function filterPrs(prs: PrSummary[], scope: Scope, repository: string, query = "", unread: (pr: PrSummary) => boolean = () => false): PrSummary[] {
   const text = query.trim().toLowerCase().replace(/^#/, "");
   return prs.filter(
     (pr) =>
-      (scope === "all" || pr.roles.includes(scope)) &&
+      (scope === "all" || (scope === "unread" ? unread(pr) : pr.roles.includes(scope))) &&
       (repository === ALL_REPOSITORIES || pr.repository === repository) &&
       (text === "" || [pr.title, pr.repository, String(pr.number), pr.author, pr.headRef].some((field) => field.toLowerCase().includes(text))),
   );

@@ -8,8 +8,8 @@ import { useRefresh } from "../../lib/useRefresh.ts";
 // The server caches the list for a minute: a faster poll would read the same answer.
 export const POLL_MS = 120_000;
 
-/** The open pull requests, loaded on mount and polled while the Pull requests page is mounted. */
-export function usePulls() {
+/** The open pull requests: loaded and polled while `active`, and read again each time the user comes back to the list (`onPage`). */
+export function usePulls(active: boolean, onPage: boolean) {
   const api = useApi();
   const [list, setList] = useState<PrList | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -28,9 +28,18 @@ export function usePulls() {
       },
     );
   };
-  useEffect(() => void load(), []);
-  usePoll(() => load(), POLL_MS);
+  useEffect(() => {
+    if (active) void load();
+  }, [active]);
+  const wasOnPage = useRef(onPage);
+  useEffect(() => {
+    if (onPage && !wasOnPage.current && active) void load();
+    wasOnPage.current = onPage;
+  }, [onPage]);
+  usePoll(() => load(), active ? POLL_MS : null);
 
   const { refreshing, refresh } = useRefresh(() => load(true));
   return { list, error, refreshing, refresh };
 }
+
+export type PullsState = ReturnType<typeof usePulls>;

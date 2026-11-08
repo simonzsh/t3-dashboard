@@ -514,6 +514,19 @@ test("the demo Pull requests page lists invented pull requests and a diff for ea
   }
 });
 
+test("the demo pull requests keep their creation time between calls", async () => {
+  let clock = NOW;
+  const pulls = new PullRequests({ run: demoGh(() => clock), now: () => clock });
+  const start = (await pulls.prs()).prs;
+  assert.ok(start.every((pr) => Date.parse(pr.createdAt) <= Date.parse(pr.updatedAt)));
+  const first = start.map((pr) => pr.createdAt);
+  clock = new Date(NOW.getTime() + 3_600_000);
+  const second = (await pulls.prs(true)).prs.map((pr) => pr.createdAt);
+  assert.ok(first.every((at) => at !== ""));
+  assert.deepEqual(second, first);
+  assert.ok((await pulls.prs(true)).prs.every((pr) => Date.parse(pr.createdAt) <= Date.parse(pr.updatedAt)));
+});
+
 test("the demo checkout diff shows every kind of file", async () => {
   const { files } = await new PullRequests({ run: demoGh(() => NOW), now: () => NOW }).diff("acme/atlas-web", 142);
   assert.deepEqual(new Set(files.map((file) => file.status)), new Set(["added", "deleted", "modified", "renamed"]));

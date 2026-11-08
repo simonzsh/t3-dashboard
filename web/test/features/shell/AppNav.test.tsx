@@ -9,6 +9,7 @@ const base = {
   sessions: { count: 0, waiting: false },
   automations: { count: 0, failed: false },
   news: 0,
+  pulls: 0,
   live: true,
   update: null,
   collapsed: false,
@@ -45,6 +46,14 @@ test("the sidebar shows unread on Dashboard, running or unread on Sessions and a
   assert.match(out, /aria-label="2 running or unread">2</);
   assert.match(out, /aria-label="An agent is waiting for your reply"/);
   assert.doesNotMatch(side(), /count-badge|An agent is waiting/);
+});
+
+test("the Pull requests entry counts unread pull requests in the sidebar and the bottom bar, and shows nothing at 0", () => {
+  for (const render of [side, bottom]) {
+    assert.match(render({ pulls: 3 }), /aria-label="3 unread pull requests">3</);
+    assert.match(render({ pulls: 1 }), /aria-label="1 unread pull request">1</);
+    assert.doesNotMatch(render({ pulls: 0 }), /count-badge/);
+  }
 });
 
 test("the sidebar footer holds the connection, Settings and collapse on one row", () => {

@@ -9,6 +9,7 @@ import { enter, Kbd, SidePanel, useFlip } from "../../ui/index.ts";
 import type { SessionLayout } from "../../lib/sessionLayout.ts";
 import { ctrlLabel, startsTyping } from "../../lib/shortcuts.ts";
 import { swipeDirection } from "../../lib/swipe.ts";
+import type { OpenPrs } from "../../lib/prSeen.ts";
 import { SessionWindow } from "./SessionWindow.tsx";
 import { SessionList } from "./SessionList.tsx";
 import type { ListPrefs } from "./sessionList.ts";
@@ -19,6 +20,8 @@ interface Props {
   threads: DashboardThread[];
   projects: DashboardProject[];
   seen: SeenState;
+  /** Ids of the open pull requests not opened yet, for the pull request menu of each session. */
+  openPrs: OpenPrs;
   now: Date;
   layout: SessionLayout;
   prefs: ListPrefs;
@@ -216,7 +219,7 @@ function useWindowDrag(enabled: boolean, dispatch: Dispatch<SessionsAction>) {
   };
 }
 
-export function SessionsView({ sessions, dispatch, threads, projects, seen, now, layout, prefs, onPrefs, t3EnvironmentId, providers, phone, sessionShown, onBack, onOpen, onNewSession, onAddProject, onEditProject, onDeleteProject }: Props) {
+export function SessionsView({ sessions, dispatch, threads, projects, seen, openPrs, now, layout, prefs, onPrefs, t3EnvironmentId, providers, phone, sessionShown, onBack, onOpen, onNewSession, onAddProject, onEditProject, onDeleteProject }: Props) {
   const modelNames = useMemo(() => modelNameMap(providers), [providers]);
   const openIds = useMemo(() => new Set(sessions.ids), [sessions.ids]);
   // On a phone, closing the open session goes back to the list.
@@ -328,6 +331,7 @@ export function SessionsView({ sessions, dispatch, threads, projects, seen, now,
         live={live}
         t3EnvironmentId={t3EnvironmentId}
         providers={providers}
+        openPrs={openPrs}
         onTitle={setChildTitle}
         onBack={phone ? onBack : undefined}
         dispatch={phone ? phoneDispatch : dispatch}

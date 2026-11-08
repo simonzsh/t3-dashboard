@@ -20,6 +20,8 @@ interface Props {
   automations: { count: number; failed: boolean };
   /** News entry: articles not read yet. */
   news: number;
+  /** Pull requests entry: open pull requests not opened yet. */
+  pulls: number;
   live: boolean;
   update: NavUpdate | null;
   /** Sidebar only: App owns it so Ctrl+B can toggle it. */
@@ -33,7 +35,7 @@ interface Props {
 
 const WAITING = "An agent is waiting for your reply";
 
-function Badges({ id, unread, sessions, automations, news }: Pick<Props, "unread" | "sessions" | "automations" | "news"> & { id: Tab }) {
+function Badges({ id, unread, sessions, automations, news, pulls }: Pick<Props, "unread" | "sessions" | "automations" | "news" | "pulls"> & { id: Tab }) {
   if (id === "dashboard") return <CountBadge count={unread} max={9} label={`${unread} unread`} />;
   if (id === "automations") {
     return (
@@ -50,6 +52,9 @@ function Badges({ id, unread, sessions, automations, news }: Pick<Props, "unread
   if (id === "news") {
     return <CountBadge count={news} max={9} label={`${news} unread ${news === 1 ? "article" : "articles"}`} />;
   }
+  if (id === "pulls") {
+    return <CountBadge count={pulls} max={9} label={`${pulls} unread ${pulls === 1 ? "pull request" : "pull requests"}`} />;
+  }
   if (id !== "sessions") return null;
   return (
     <>
@@ -63,7 +68,7 @@ function Badges({ id, unread, sessions, automations, news }: Pick<Props, "unread
   );
 }
 
-function Sidebar({ tab, unread, sessions, automations, news, live, update, collapsed, onToggleCollapsed, onTab, onSearch, onSettings, onUpdate }: Omit<Props, "layout">) {
+function Sidebar({ tab, unread, sessions, automations, news, pulls, live, update, collapsed, onToggleCollapsed, onTab, onSearch, onSettings, onUpdate }: Omit<Props, "layout">) {
   // Collapsed rows hold only an icon: the tooltip gives the name back.
   const hint = (text: string) => (collapsed ? text : undefined);
   const collapse = collapsed ? "Expand the sidebar" : "Collapse the sidebar";
@@ -83,7 +88,7 @@ function Sidebar({ tab, unread, sessions, automations, news, live, update, colla
           <Pressable key={id} data-tab={id} className={`nav-row${tab === id ? " active" : ""}`} aria-current={tab === id ? "page" : undefined} tooltip={hint(label)} onClick={() => onTab(id)}>
             <Icon name={icon} className="nav-icon" />
             <span className="nav-label">{label}</span>
-            <Badges id={id} unread={unread} sessions={sessions} automations={automations} news={news} />
+            <Badges id={id} unread={unread} sessions={sessions} automations={automations} news={news} pulls={pulls} />
           </Pressable>
         ))}
       </div>
@@ -111,7 +116,7 @@ function Sidebar({ tab, unread, sessions, automations, news, live, update, colla
   );
 }
 
-function BottomBar({ tab, unread, sessions, automations, news, onTab }: Pick<Props, "tab" | "unread" | "sessions" | "automations" | "news" | "onTab">) {
+function BottomBar({ tab, unread, sessions, automations, news, pulls, onTab }: Pick<Props, "tab" | "unread" | "sessions" | "automations" | "news" | "pulls" | "onTab">) {
   return (
     <nav className="bottom-nav" aria-label="Pages" style={{ "--active-tab": TABS.findIndex(({ id }) => id === tab), "--tab-count": TABS.length } as CSSProperties}>
       <span className="bottom-nav-indicator" aria-hidden="true"><span /></span>
@@ -119,7 +124,7 @@ function BottomBar({ tab, unread, sessions, automations, news, onTab }: Pick<Pro
         <Pressable key={id} data-tab={id} className={`bottom-item${tab === id ? " active" : ""}`} aria-current={tab === id ? "page" : undefined} onClick={() => onTab(id)}>
           <span className="bottom-icon">
             <Icon name={icon} className="bottom-glyph" />
-            <Badges id={id} unread={unread} sessions={sessions} automations={automations} news={news} />
+            <Badges id={id} unread={unread} sessions={sessions} automations={automations} news={news} pulls={pulls} />
           </span>
           <span>{short ?? label}</span>
         </Pressable>
