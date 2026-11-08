@@ -164,3 +164,11 @@ test("news: the article text keeps the page's centre whether the list shows or n
   assert.match(css, /\.news-article > \* \{ max-width: 42rem; margin-inline: max\(var\(--news-list-space\), calc\(\(100% - 42rem\) \/ 2\)\) auto; \}/);
   assert.match(css, /\.news-page\.list-hidden > \* \{ --news-list-space: 0px; \}/);
 });
+
+test("pages start their content the same distance below the header", () => {
+  assert.match(css, /:root \{ --page-top: 24px; \}/);
+  assert.match(css, /main \{[^}]*padding: var\(--page-top\) 24px 24px;/);
+  // Pages with inner padding subtract it, so the first visible content still sits at --page-top.
+  assert.match(css, /main:has\(> \.auto-page\) \{ padding-top: calc\(var\(--page-top\) - 8px\); \}/);
+  assert.match(css, /main:has\(> \.news-page\) \{ padding-top: calc\(var\(--page-top\) - 4px\); \}/);
+});
