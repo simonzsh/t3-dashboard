@@ -338,7 +338,7 @@ export function App() {
                   setup={setup}
                 />
               ) : <Loader />)}
-            {tab === "news" && (news.state ? <NewsView news={news.state} writing={news.writing} now={now} compact={compact} seen={notify.seen} onRead={readNews} onOpenThread={onOpen} /> : <Loader />)}
+            {tab === "news" && (news.state ? <NewsView news={news.state} writing={news.writing} now={now} compact={compact} seen={notify.seen} onRead={readNews} onOpenThread={onOpen} onDelete={news.remove} onDeleteAll={news.removeAll} /> : <Loader />)}
             {tab === "sessions" &&
               (state ? (
                 <SessionsView

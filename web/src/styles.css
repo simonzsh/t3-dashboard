@@ -630,6 +630,7 @@ ol.install-steps { padding-left: 18px; }
 .notif-dot { flex: none; box-sizing: border-box; width: 8px; height: 8px; margin-top: 5px; border-radius: 50%; border: 2px solid var(--accent); background: none; }
 /* The buttons replace the dot corner on hover and keyboard focus; touch screens show them at once. */
 .thread-actions { position: absolute; right: 8px; bottom: 6px; display: flex; align-items: center; gap: 4px; padding: 2px; border-radius: var(--radius-md); background: var(--surface-1); box-shadow: 0 0 0 1px var(--line); opacity: 0; pointer-events: none; transition: opacity 0.12s; }
+@media (hover: hover) { .news-row:hover .thread-actions { opacity: 1; pointer-events: auto; } }
 .notif-item:hover .thread-actions, .thread-actions:focus-within { opacity: 1; pointer-events: auto; }
 /* Touch: a small plain button on the row (no floating box); an invisible margin makes the tap target 44 px. */
 @media (pointer: coarse) {
@@ -637,6 +638,7 @@ ol.install-steps { padding-left: 18px; }
   .thread-actions .icon-button { position: relative; }
   .thread-actions .icon-button::before { content: ""; position: absolute; inset: -8px; }
   .notif-item:has(.thread-actions) .notif-row { padding-right: 44px; }
+  .news-row:has(.thread-actions) .news-item { padding-right: 44px; }
 }
 /* A working agent has the pulsing dot of the sessions list, on its title line. */
 .run-row { align-items: flex-start; }
@@ -1113,6 +1115,11 @@ main:has(> .news-page) { padding-top: 8px; }
 .news-page.empty { grid-template-columns: minmax(0, 1fr); }
 .news-list { min-height: 0; overflow-y: auto; display: flex; flex-direction: column; gap: 12px; padding: 4px; margin: -4px; }
 .news-status { margin: 0; padding: 0 10px; font-size: 12px; color: var(--text-secondary); }
+.news-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.news-head .news-status { flex: 1; min-width: 0; }
+.news-head > button { flex: none; }
+.news-row { position: relative; }
+.news-row .thread-actions { top: 50%; bottom: auto; transform: translateY(-50%); }
 .news-items { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 2px; }
 .news-item { display: flex; align-items: center; gap: 8px; width: 100%; padding: 8px 10px; border: 0; border-radius: var(--radius-md); background: none; color: inherit; text-align: left; }
 .news-item.active { background: color-mix(in srgb, var(--accent) 12%, transparent); }

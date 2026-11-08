@@ -118,6 +118,8 @@ export function createApi(fetchImpl: Fetch) {
     getNewsArticle: (date: string) => call<NewsArticle>(`/api/news/${encodeURIComponent(date)}`),
     saveNews: (b: SaveNewsBody) => call<NewsState>("/api/news/settings", b),
     runNews: () => call<OkResult>("/api/news/run", {}),
+    deleteNewsArticle: (date: string) => call<OkResult>(`/api/news/${encodeURIComponent(date)}/delete`, {}),
+    deleteAllNews: () => call<OkResult & { removed: number }>("/api/news/delete-all", {}),
     getBoard: (refresh = false) => call<BoardResult>(refresh ? "/api/board?refresh=1" : "/api/board"),
     getUsage: (timeZone: string, period: ActivityPeriod, refresh = false) => call<UsageOverview>(`/api/usage?tz=${encodeURIComponent(timeZone)}&period=${period}${refresh ? "&refresh=1" : ""}`),
     getServerStats: () => call<ServerStats>("/api/server-stats"),

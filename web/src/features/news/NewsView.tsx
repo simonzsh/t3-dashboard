@@ -1,10 +1,11 @@
 import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties } from "react";
-import type { NewsArticle, NewsState } from "../../../../shared/api.ts";
+import type { NewsArticle, NewsArticleSummary, NewsState } from "../../../../shared/api.ts";
 import type { SeenState } from "../../../../shared/seen.ts";
 import { useApi } from "../../api/ApiContext.tsx";
 import { failure } from "../../lib/format.ts";
 import { renderMarkdown } from "../../lib/markdown.tsx";
-import { Button, Icon, Loader, Pressable } from "../../ui/index.ts";
+import { Button, Icon, IconButton, Loader, Pressable } from "../../ui/index.ts";
+import { DeleteNewsDialog } from "./DeleteNewsDialog.tsx";
 import { dateLabel, isUnreadArticle, readTarget, shortDate, statusLine } from "./news.ts";
 
 interface Props {
@@ -20,10 +21,13 @@ interface Props {
   onRead: (mark: { id: string; at: string }) => void;
   /** Opens a thread in Sessions; `addOnly` adds it next to the open ones. */
   onOpenThread: (id: string, addOnly: boolean) => void;
+  /** Delete one article, or all of them. They throw when the server refuses. */
+  onDelete: (date: string) => Promise<void>;
+  onDeleteAll: () => Promise<void>;
 }
 
 /** The article list and the open article. On a phone they take turns: the list, then the article with a back button. */
-export function NewsView({ news, writing, now, compact, seen, onRead, onOpenThread }: Props) {
+export function NewsView({ news, writing, now, compact, seen, onRead, onOpenThread, onDelete, onDeleteAll }: Props) {
   const api = useApi();
   const { articles, task, running } = news;
   const [picked, setPicked] = useState<string | null>(null);
@@ -35,6 +39,8 @@ export function NewsView({ news, writing, now, compact, seen, onRead, onOpenThre
   const listRef = useRef<HTMLUListElement>(null);
   const [highlight, setHighlight] = useState<{ top: number; height: number } | null>(null);
   const [error, setError] = useState<string | null>(null);
+  // The delete dialog: one article, or "all".
+  const [deleting, setDeleting] = useState<NewsArticleSummary | "all" | null>(null);
   const date = (articles.some((a) => a.date === picked) ? picked : articles[0]?.date) ?? null;
   // A second run on the same day rewrites that day's file: a new mtime reloads it.
   const mtimeMs = articles.find((a) => a.date === date)?.mtimeMs ?? null;
@@ -115,7 +121,12 @@ export function NewsView({ news, writing, now, compact, seen, onRead, onOpenThre
   return (
     <div className={`news-page${reading ? " reading" : ""}`}>
       <section className="news-list" aria-label="News">
-        {status}
+        <div className="news-head">
+          {status}
+          <Button size="sm" variant="ghost" onClick={() => setDeleting("all")}>
+            <Icon name="trash" /> Delete all
+          </Button>
+        </div>
         <ul
           ref={listRef}
           className={`news-items${highlight ? " marked" : ""}`}
@@ -126,7 +137,7 @@ export function NewsView({ news, writing, now, compact, seen, onRead, onOpenThre
             // On a phone the list and the article take turns: no item is "open" while the list shows.
             const open = a.date === date && !compact;
             return (
-              <li key={a.date}>
+              <li key={a.date} className="news-row">
                 <Pressable
                   className={`news-item${open ? " active" : ""}`}
                   aria-current={open ? "true" : undefined}
@@ -141,6 +152,11 @@ export function NewsView({ news, writing, now, compact, seen, onRead, onOpenThre
                   </span>
                   {seen && isUnreadArticle(a, seen) && <span className="notif-dot" aria-label="Unread" role="img" />}
                 </Pressable>
+                <span className="thread-actions">
+                  <IconButton label="Delete article" tooltip="Delete article" size="sm" variant="ghost" onClick={() => setDeleting(a)}>
+                    <Icon name="trash" />
+                  </IconButton>
+                </span>
               </li>
             );
           })}
@@ -161,6 +177,14 @@ export function NewsView({ news, writing, now, compact, seen, onRead, onOpenThre
           <Loader />
         )}
       </article>
+      {deleting && (
+        <DeleteNewsDialog
+          article={deleting === "all" ? null : deleting}
+          count={articles.length}
+          onConfirm={deleting === "all" ? onDeleteAll : () => onDelete(deleting.date)}
+          onClose={() => setDeleting(null)}
+        />
+      )}
     </div>
   );
 }

@@ -88,7 +88,16 @@ export async function startDemo(env: Record<string, string | undefined>): Promis
     dir: DEMO_NEWS_DIR,
     readFile,
     writeSecret: (path, text) => void files.set(path, text),
-    fs: { list: () => demo.entries, read: (path) => demo.contents[path] ?? "", mkdir() {} },
+    fs: {
+      list: () => demo.entries,
+      read: (path) => demo.contents[path] ?? "",
+      mkdir() {},
+      remove(path) {
+        delete demo.contents[path];
+        const at = demo.entries.findIndex((entry) => `${DEMO_NEWS_DIR}/${entry.name}` === path);
+        if (at >= 0) demo.entries.splice(at, 1);
+      },
+    },
   });
   const handler = createDashboardServer({
     actions,

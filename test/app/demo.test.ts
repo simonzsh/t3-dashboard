@@ -466,7 +466,7 @@ test("the demo news has a task and three English articles, and needs no file", a
     dir: DEMO_NEWS_DIR,
     readFile: (path) => (path === "news.json" ? demo.settings : ""),
     writeSecret() {},
-    fs: { list: () => demo.entries, read: (path) => demo.contents[path] ?? "", mkdir() {} },
+    fs: { list: () => demo.entries, read: (path) => demo.contents[path] ?? "", mkdir() {}, remove() {} },
     now: () => NOW,
   });
   const state = await news.get();

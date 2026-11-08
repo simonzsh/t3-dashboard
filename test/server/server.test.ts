@@ -43,7 +43,7 @@ interface StartOptions {
   linearFetch?: (url: string, init: RequestInit) => Promise<Response>;
   // Notifications the fake Linear answers to the inbox query.
   inbox?: unknown[];
-  news?: Partial<Pick<News, "get" | "article" | "save" | "runNow">>;
+  news?: Partial<Pick<News, "get" | "article" | "save" | "runNow" | "remove" | "removeAll">>;
   automations?: Pick<Automations, "list" | "create" | "remove" | "update"> & Partial<Pick<Automations, "setEnabled" | "runNow">>;
   // Content of the Linear file. Without it, `linearKey` feeds the board directly.
   linear?: unknown;
@@ -194,7 +194,7 @@ async function start(startOptions: StartOptions = {}) {
     serverStats,
     cacheCleanup,
     automations: { setEnabled: async () => {}, runNow: async () => {}, ...automations },
-    news: { get: async () => newsState, article: async (date) => ({ date, title: "T", markdown: "# T" }), save: async () => newsState, runNow: async () => {}, ...startOptions.news },
+    news: { get: async () => newsState, article: async (date) => ({ date, title: "T", markdown: "# T" }), save: async () => newsState, runNow: async () => {}, remove: async () => {}, removeAll: async () => 0, ...startOptions.news },
     getState,
     connection: () => connection,
     site,
@@ -622,6 +622,8 @@ test("every POST route refuses a body that is not JSON", async () => {
     "/api/automations/task-1/run",
     "/api/news/settings",
     "/api/news/run",
+    "/api/news/delete-all",
+    "/api/news/2026-11-07/delete",
     "/api/threads/run-1/messages",
     "/api/threads/run-1/settings",
     "/api/threads/run-1/interrupt",
@@ -1855,6 +1857,29 @@ test("GET /api/news/:date maps a bad date to 400 and a missing article to 404", 
   const { server } = await start({ news: { article } });
   assert.equal((await call(server, "GET", "/api/news/2026-11-01")).status, 404);
   assert.equal((await call(server, "GET", "/api/news/..%2Fsecret")).status, 400);
+});
+
+test("POST /api/news/:date/delete removes one article and maps errors", async () => {
+  const removed: string[] = [];
+  const remove = async (date: string) => {
+    if (date === "2026-11-01") throw new DomainError("not-found", "No article for this date");
+    if (date === "nope") throw new DomainError("invalid", "The date must look like 2026-11-07");
+    removed.push(date);
+  };
+  const { server } = await start({ news: { remove } });
+  const reply = await post(server, "/api/news/2026-11-07/delete", {});
+  assert.deepEqual([reply.status, reply.json], [200, { ok: true }]);
+  assert.deepEqual(removed, ["2026-11-07"]);
+  assert.equal((await post(server, "/api/news/2026-11-01/delete", {})).status, 404);
+  assert.equal((await post(server, "/api/news/nope/delete", {})).status, 400);
+});
+
+test("POST /api/news/delete-all is not taken for a date, and returns the count", async () => {
+  const removed: string[] = [];
+  const { server } = await start({ news: { remove: async (date) => void removed.push(date), removeAll: async () => 3 } });
+  const reply = await post(server, "/api/news/delete-all", {});
+  assert.deepEqual([reply.status, reply.json], [200, { ok: true, removed: 3 }]);
+  assert.deepEqual(removed, []);
 });
 
 test("POST /api/news/settings keeps the options of the model selection", async () => {

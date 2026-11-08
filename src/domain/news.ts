@@ -49,6 +49,8 @@ export interface NewsFolder {
   /** `maxBytes` limits the read to the start of the file. */
   read(path: string, maxBytes?: number): string;
   mkdir(dir: string): void;
+  /** Deletes one file; a symlink is removed itself, never followed. */
+  remove(path: string): void;
 }
 
 export interface NewsOptions {
@@ -71,6 +73,10 @@ export interface News {
   /** Stores the settings, then creates or updates the T3 routine. */
   save(body: SaveNewsBody): Promise<NewsState>;
   runNow(): Promise<void>;
+  /** Deletes one article file. */
+  remove(date: string): Promise<void>;
+  /** Deletes every article file and returns how many. Other files stay. */
+  removeAll(): Promise<number>;
   /** Archives the finished run threads that wrote an article. */
   sweep(): Promise<void>;
 }
@@ -275,6 +281,30 @@ export function createNews(options: NewsOptions): News {
         throw new DomainError("not-found", "No article for this date");
       }
       return { date, title: articleTitle(markdown, date), markdown };
+    },
+
+    async remove(date) {
+      if (!isArticleDate(date)) throw new DomainError("invalid", "The date must look like 2026-11-07");
+      // Listed first: only a regular file of this name is deleted.
+      if (!files().some((entry) => entry.name === `${date}.md`)) throw new DomainError("not-found", "No article for this date");
+      try {
+        fs.remove(`${dir}/${date}.md`);
+      } catch {
+        throw new DomainError("not-found", "No article for this date");
+      }
+    },
+
+    async removeAll() {
+      let removed = 0;
+      for (const entry of files()) {
+        try {
+          fs.remove(`${dir}/${entry.name}`);
+          removed++;
+        } catch (error) {
+          warn(`Could not delete article ${entry.name}: ${(error as Error).message}`);
+        }
+      }
+      return removed;
     },
 
     save(body) {

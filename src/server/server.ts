@@ -40,7 +40,7 @@ export interface DashboardServerOptions {
   serverStats: Pick<ServerStatsReader, "get">;
   cacheCleanup: Pick<CacheCleanup, "sizes" | "clear">;
   automations: Pick<Automations, "list" | "create" | "remove" | "update" | "setEnabled" | "runNow">;
-  news: Pick<News, "get" | "article" | "save" | "runNow">;
+  news: Pick<News, "get" | "article" | "save" | "runNow" | "remove" | "removeAll">;
   sessions: Pick<SessionsStore, "get" | "set">;
   stash: Pick<StashStore, "list" | "add" | "remove">;
   seen: Pick<SeenStore, "get" | "apply">;
@@ -335,6 +335,8 @@ export function createDashboardServer(options: DashboardServerOptions): Dashboar
     { method: "POST", path: "/api/settings/linear/disconnect", handle: () => json(200, settings.disconnect()) },
     { method: "POST", path: "/api/news/settings", handle: async ({ body }) => json(200, await news.save(validSaveNews(body))) },
     { method: "POST", path: "/api/news/run", handle: () => done(news.runNow()) },
+    { method: "POST", path: "/api/news/delete-all", handle: async () => ok({ removed: await news.removeAll() }) },
+    { method: "POST", path: "/api/news/:date/delete", handle: ({ params }) => done(news.remove(params.date!)) },
     { method: "POST", path: "/api/automations", handle: async ({ body }) => json(200, await automations.create(validCreateAutomation(body))) },
     { method: "POST", path: "/api/automations/:id/update", handle: ({ params, body }) => done(automations.update(params.id!, validUpdateAutomation(body))) },
     { method: "POST", path: "/api/automations/:id/enabled", handle: ({ params, body }) => done(automations.setEnabled(params.id!, validEnabled(body))) },

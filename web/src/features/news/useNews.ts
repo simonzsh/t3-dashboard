@@ -66,5 +66,21 @@ export function useNews(active: boolean) {
     await load();
   });
 
-  return { state, save, run, starting: running.busy, writing };
+  // Throws: the confirm dialog shows the error. The list reloads even when the delete fails half way.
+  async function remove(date: string): Promise<void> {
+    try {
+      await api.deleteNewsArticle(date);
+    } finally {
+      await load();
+    }
+  }
+  async function removeAll(): Promise<void> {
+    try {
+      await api.deleteAllNews();
+    } finally {
+      await load();
+    }
+  }
+
+  return { state, save, run, remove, removeAll, starting: running.busy, writing };
 }

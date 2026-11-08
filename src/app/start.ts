@@ -1,4 +1,4 @@
-import { closeSync, mkdirSync, openSync, readFileSync, readSync, readdirSync, lstatSync } from "node:fs";
+import { closeSync, mkdirSync, openSync, readFileSync, readSync, readdirSync, lstatSync, unlinkSync } from "node:fs";
 import { lstat, readdir, rm, statfs } from "node:fs/promises";
 import os, { homedir, tmpdir } from "node:os";
 import { join } from "node:path";
@@ -213,6 +213,7 @@ export async function start({ port, log, env }: StartOptions): Promise<void> {
       list: listFolder,
       read: readHead,
       mkdir: (dir) => void mkdirSync(dir, { recursive: true, mode: 0o700 }),
+      remove: unlinkSync,
     },
   });
   const sessionsFile = sessionsPath(env, home);

@@ -20,7 +20,7 @@ interface Entry { name: string; mtimeMs: number; isFile: boolean }
 function setup(options: { stored?: unknown; entries?: Entry[]; contents?: Record<string, string>; threads?: RawThread[] } = {}) {
   const port = new FakePort();
   const files: Record<string, string> = options.stored === undefined ? {} : { [FILE]: JSON.stringify(options.stored) };
-  const folder = { entries: options.entries ?? [], contents: options.contents ?? {}, made: [] as string[], reads: [] as Array<{ path: string; maxBytes?: number }>, listError: null as Error | null };
+  const folder = { entries: options.entries ?? [], contents: options.contents ?? {}, made: [] as string[], removed: [] as string[], reads: [] as Array<{ path: string; maxBytes?: number }>, listError: null as Error | null };
   const warnings: string[] = [];
   let counter = 0;
   const news = createNews({
@@ -46,6 +46,7 @@ function setup(options: { stored?: unknown; entries?: Entry[]; contents?: Record
         return text;
       },
       mkdir: (dir) => void folder.made.push(dir),
+      remove: (path) => void folder.removed.push(path),
     },
     now: () => NOW,
     newId: () => `id-${++counter}`,
@@ -371,4 +372,39 @@ test("get falls back to the task status when no thread is found", async () => {
   assert.deepEqual((await news.get()).running, { threadId: null, startedAt: "2026-11-07T06:45:00.000Z" });
   port.scheduledTasks = [liveTask({ lastRunStatus: "succeeded" })];
   assert.equal((await news.get()).running, null);
+});
+
+const file = (name: string, isFile = true): Entry => ({ name, mtimeMs: 1, isFile });
+
+test("remove deletes only the file of a valid date", async () => {
+  const { news, folder } = setup({ entries: [file("2026-11-07.md"), file("2026-11-06.md")] });
+  await news.remove("2026-11-07");
+  assert.deepEqual(folder.removed, [`${DIR}/2026-11-07.md`]);
+});
+
+test("remove refuses a bad date and a missing article, and deletes nothing", async () => {
+  const { news, folder } = setup({ entries: [file("2026-11-07.md")] });
+  await assert.rejects(news.remove("../secret"), (e: unknown) => e instanceof DomainError && e.code === "invalid");
+  await assert.rejects(news.remove("2026-02-31"), (e: unknown) => e instanceof DomainError && e.code === "invalid");
+  await assert.rejects(news.remove("2026-11-01"), (e: unknown) => e instanceof DomainError && e.code === "not-found");
+  assert.deepEqual(folder.removed, []);
+});
+
+test("remove leaves a symlink or a folder of that name alone", async () => {
+  const { news, folder } = setup({ entries: [file("2026-11-07.md", false)] });
+  await assert.rejects(news.remove("2026-11-07"), (e: unknown) => e instanceof DomainError && e.code === "not-found");
+  assert.deepEqual(folder.removed, []);
+});
+
+test("removeAll deletes every article file, counts them, and leaves the rest", async () => {
+  const { news, folder } = setup({ entries: [file("2026-11-07.md"), file("2026-11-06.md"), file("2026-11-08.md.tmp"), file("notes.md"), file("2026-11-05.md", false)] });
+  assert.equal(await news.removeAll(), 2);
+  assert.deepEqual(folder.removed, [`${DIR}/2026-11-07.md`, `${DIR}/2026-11-06.md`]);
+});
+
+test("removeAll gives 0 when the folder is empty or missing", async () => {
+  const { news, folder } = setup();
+  assert.equal(await news.removeAll(), 0);
+  folder.listError = new Error("ENOENT");
+  assert.equal(await news.removeAll(), 0);
 });

@@ -12,7 +12,7 @@ const now = new Date("2026-11-07T12:00:00.000Z");
 const view = (news: NewsState, writing = false, compact = false) =>
   renderToStaticMarkup(
     <ApiProvider value={{} as never}>
-      <NewsView news={news} writing={writing} now={now} compact={compact} seen={null} onRead={() => {}} onOpenThread={() => {}} />
+      <NewsView news={news} writing={writing} now={now} compact={compact} seen={null} onRead={() => {}} onOpenThread={() => {}} onDelete={async () => {}} onDeleteAll={async () => {}} />
     </ApiProvider>,
   );
 
@@ -88,7 +88,7 @@ test("an unread article shows the notification dot; a read one does not", () => 
   const seen = { since: "2026-11-01T00:00:00.000Z", seen: { "news:2026-11-07": "2026-11-07T07:05:00.000Z" } };
   const out = renderToStaticMarkup(
     <ApiProvider value={{} as never}>
-      <NewsView news={state({ articles })} writing={false} now={now} compact={false} seen={seen} onRead={() => {}} onOpenThread={() => {}} />
+      <NewsView news={state({ articles })} writing={false} now={now} compact={false} seen={seen} onRead={() => {}} onOpenThread={() => {}} onDelete={async () => {}} onDeleteAll={async () => {}} />
     </ApiProvider>,
   );
   assert.equal(out.match(/class="notif-dot"/g)?.length, 1);
@@ -98,4 +98,22 @@ test("on a phone the list marks no article open: the article is not on screen", 
   const out = view(state({ articles: [{ date: "2026-11-07", title: "News 7 Nov", mtimeMs: 2 }] }), false, true);
   assert.doesNotMatch(out, /news-item active/);
   assert.doesNotMatch(out, /aria-current="true"/);
+});
+
+test("each article row has a delete button, and Delete all shows above the list", () => {
+  const out = view(state({ articles: [{ date: "2026-11-07", title: "News 7 Nov", mtimeMs: 2 }, { date: "2026-11-06", title: "News 6 Nov", mtimeMs: 1 }] }));
+  assert.equal(out.match(/aria-label="Delete article"/g)?.length, 2);
+  assert.equal(out.match(/Delete all/g)?.length, 1);
+  assert.ok(out.indexOf("Delete all") < out.indexOf("news-items"));
+  // The button sits next to the row, not inside its button.
+  assert.match(out, /<\/button><span class="thread-actions"><button[^>]*aria-label="Delete article"/);
+});
+
+test("without an article there is nothing to delete", () => {
+  const out = view(state());
+  assert.doesNotMatch(out, /Delete all|Delete article/);
+});
+
+test("no delete dialog shows until a delete is asked", () => {
+  assert.doesNotMatch(view(state({ articles: [{ date: "2026-11-07", title: "News 7 Nov", mtimeMs: 2 }] })), /Delete article\?|Delete all articles\?/);
 });
