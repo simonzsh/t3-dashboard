@@ -1127,12 +1127,18 @@ main:has(> .auto-page) { padding-top: 8px; }
 .auto-error { margin: 0; color: var(--err-text); font-size: 13px; }
 /* News: the articles beside the open article; each column scrolls on its own. */
 main:has(> .news-page) { padding-top: 8px; }
-/* The article stays centred in its column; while the list slides, the column and so the centre move with it, smoothly. A wider list leaves less empty room beside a centred article. */
-.news-page { --news-list-w: clamp(280px, 26vw, 380px); flex: 1; min-height: 0; display: grid; grid-template-columns: var(--news-list-w) minmax(0, 1fr); column-gap: 24px; row-gap: 24px; transition: grid-template-columns 160ms ease, column-gap 160ms ease; }
-.news-page.empty { grid-template-columns: minmax(0, 1fr); }
-/* Hiding the list slides its column to zero, as the Sessions list does; the list keeps its width inside so nothing reflows. */
-.news-page.list-hidden { grid-template-columns: 0px minmax(0, 1fr); column-gap: 0px; }
-.news-list-slot { min-width: 0; min-height: 0; display: flex; overflow: hidden; }
+/* The list and the article share one cell: the article spans the page and its text stays at the page's centre, so showing or hiding the list never moves it.
+   Only when the page is too narrow for both does the text step right of the list, gliding as the list slides. */
+@property --news-list-space { syntax: "<length>"; inherits: true; initial-value: 0px; }
+.news-page { container-type: inline-size; flex: 1; min-height: 0; display: grid; grid-template: minmax(0, 1fr) / minmax(0, 1fr); }
+/* The list takes the margin left of the centred text (260 to 380 px), so on most screens the text never has to move. */
+.news-page > * { --news-list-w: clamp(260px, calc((100cqw - 42rem) / 2 - 24px), 380px); --news-list-space: calc(var(--news-list-w) + 24px); }
+.news-page.list-hidden > * { --news-list-space: 0px; }
+.news-article { transition: --news-list-space 160ms ease; }
+.news-page > :is(.news-list-slot, .news-article) { grid-area: 1 / 1; }
+/* Kept mounted and slid to zero, as the Sessions list does; the list keeps its width inside so nothing reflows. */
+.news-list-slot { z-index: 1; justify-self: start; width: var(--news-list-w); min-width: 0; min-height: 0; display: flex; overflow: hidden; background: var(--page-bg); transition: width 160ms ease; }
+.news-page.list-hidden .news-list-slot { width: 0; }
 .news-list-slot > .news-list { flex: none; width: var(--news-list-w); }
 .news-list { min-height: 0; overflow-y: auto; display: flex; flex-direction: column; gap: 12px; padding: 4px; margin: -4px; }
 .news-status { margin: 0; padding: 0 10px; font-size: 12px; color: var(--text-secondary); }
@@ -1157,14 +1163,14 @@ main:has(> .news-page) { padding-top: 8px; }
 .news-item-title { font-weight: 500; overflow-wrap: anywhere; }
 .news-article { min-height: 0; overflow-y: auto; padding: 4px 4px 40px; }
 /* One rem width for every child: in ch, the small date line got a narrower box than the text and sat off its left edge. */
-.news-article > * { max-width: 42rem; margin-inline: auto; }
+.news-article > * { max-width: 42rem; margin-inline: max(var(--news-list-space), calc((100% - 42rem) / 2)) auto; }
 .news-back { display: none; }
 .news-model { container-type: inline-size; }
 .news-schedule { display: contents; }
 .news-schedule:disabled .dialog-field { opacity: 0.5; }
 /* In a form the picker opens in place under its chip, and the dialog keeps scrolling. */
 .model-picker.inline .model-panel { position: static; width: 100%; margin-top: 8px; }
-.news-article-date { margin: 8px auto 0; font-size: 12px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-secondary); }
+.news-article-date { margin-top: 8px; margin-bottom: 0; font-size: 12px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-secondary); }
 /* Reading size: a 68-character line, taller leading and roomy blocks. */
 .news-body { font-size: 15.5px; line-height: 1.7; overflow-wrap: anywhere; }
 .news-body h1 { margin: 0.3em 0 0.6em; font-size: 1.75em; line-height: 1.2; letter-spacing: -0.02em; }
@@ -1175,6 +1181,7 @@ main:has(> .news-page) { padding-top: 8px; }
   /* The page scrolls; the list and the article take turns. */
   main:has(> .news-page) { padding-top: 12px; }
   .news-page { flex: none; display: block; }
+  .news-page > * { --news-list-space: 0px; }
   /* No slide on a phone: the slot steps aside and the list takes the full width again. */
   .news-list-slot { display: contents; }
   .news-list-slot > .news-list { width: auto; }
@@ -1226,7 +1233,7 @@ main:has(> .news-page) { padding-top: 8px; }
   .skeleton { animation: none; }
   .switch, .switch-thumb { transition: none; }
   .ui-sheet, .ui-sheet-backdrop { transition: none; }
-  .thread-actions, .slist-slot, .news-page, .sidebar, .sidebar-items::before, .news-items.marked::before, .bottom-nav-indicator, :is(.sidebar-name, .nav-label, .sidebar-search kbd) { transition: none; }
+  .thread-actions, .slist-slot, .news-article, .news-list-slot, .sidebar, .sidebar-items::before, .news-items.marked::before, .bottom-nav-indicator, :is(.sidebar-name, .nav-label, .sidebar-search kbd) { transition: none; }
   .sidebar.collapsed :is(.sidebar-actions, .nav-badge, .nav-alert) { animation: none; }
   .swipe-dots { animation-duration: 1ms; animation-delay: 1.2s; }
 }

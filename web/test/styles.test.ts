@@ -145,13 +145,22 @@ test("news: the article is a readable column, and on a phone the list and the ar
 });
 
 test("news: the phone rules come after the base rules, so the article fills the width", () => {
-  const base = css.indexOf(".news-page { --news-list-w:");
+  const base = css.indexOf(".news-page { container-type: inline-size;");
   const phone = css.indexOf("@media (max-width: 700px) {\n  /* The page scrolls; the list and the article take turns. */");
   assert.ok(base > 0 && phone > base, "the news phone block must follow the base rules");
   const block = css.slice(phone, css.indexOf("\n}\n", phone));
+  // No list beside the article on a phone: nothing may push the text right.
   assert.match(block, /\.news-page \{ flex: none; display: block; \}/);
+  assert.match(block, /\.news-page > \* \{ --news-list-space: 0px; \}/);
   assert.match(block, /\.news-back \{ display: inline-flex;/);
   assert.match(block, /\.news-list, \.news-article \{ overflow: visible; margin: 0; padding: 0; \}/);
   // No later base rule may undo the phone block.
   assert.doesNotMatch(css.slice(css.indexOf("\n}\n", phone)), /^\.news-(page|back|list|article) \{/m);
+});
+
+test("news: the article text keeps the page's centre whether the list shows or not", () => {
+  // List and article share one grid cell; the text only steps right when the page is too narrow for both.
+  assert.match(css, /\.news-page > :is\(\.news-list-slot, \.news-article\) \{ grid-area: 1 \/ 1; \}/);
+  assert.match(css, /\.news-article > \* \{ max-width: 42rem; margin-inline: max\(var\(--news-list-space\), calc\(\(100% - 42rem\) \/ 2\)\) auto; \}/);
+  assert.match(css, /\.news-page\.list-hidden > \* \{ --news-list-space: 0px; \}/);
 });
