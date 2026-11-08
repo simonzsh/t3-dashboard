@@ -25,10 +25,12 @@ test("remembering one part keeps the other", () => {
   assert.equal(cachedPage(ref(1))?.diff?.headSha, "b");
 });
 
-test("the diff hint prefers the cached diff, then the cached detail, then the list", () => {
+test("the diff hint prefers the list, then the cached detail, then the cached diff", () => {
   const page = { detail: detail("d"), diff: diff("f") };
-  assert.equal(diffHint(page, { headSha: "l" }), "f");
-  assert.equal(diffHint({ detail: detail("d"), diff: null }, { headSha: "l" }), "d");
+  assert.equal(diffHint(page, { headSha: "l" }), "l");
+  assert.equal(diffHint(page, { headSha: "" }), "d");
+  assert.equal(diffHint(page), "d");
+  assert.equal(diffHint({ detail: null, diff: diff("f") }), "f");
   assert.equal(diffHint(undefined, { headSha: "l" }), "l");
   assert.equal(diffHint(undefined, { headSha: "" }), undefined);
   assert.equal(diffHint(undefined), undefined);

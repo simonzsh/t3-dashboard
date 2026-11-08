@@ -74,7 +74,7 @@ export function App() {
   const automations = useAutomations(state?.connection.t3 === "live", threadIds, tab === "automations");
   const news = useNews(tab === "news");
   // Always loaded once the state is known: it feeds the Pull requests badge and the session menus, besides the page.
-  const pulls = usePulls(state !== null, tab === "pulls" && prRoute === null);
+  const pulls = usePulls(state !== null, tab === "pulls", prRoute === null);
   const [sessions, dispatchSessions] = useSessions();
   const compact = useMediaQuery(PHONE);
   const sheetMode = useMediaQuery(SHEET);

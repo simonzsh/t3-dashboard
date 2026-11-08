@@ -7,8 +7,8 @@ import { useRefresh } from "../../lib/useRefresh.ts";
 import { useTurnOn } from "../../lib/useTurnOn.ts";
 import { pullsPollMs, STALE_RETRY_MS } from "./pulls.ts";
 
-/** The open pull requests: loaded and polled while `active`, and read again each time the user comes back to the list (`onPage`). */
-export function usePulls(active: boolean, onPage: boolean) {
+/** The open pull requests: loaded and polled while `active` (faster `onPage`), and read again each time the user comes back to the list. */
+export function usePulls(active: boolean, onPage: boolean, onList: boolean) {
   const api = useApi();
   const [list, setList] = useState<PrList | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -35,7 +35,7 @@ export function usePulls(active: boolean, onPage: boolean) {
     if (active) void load();
   }, [active]);
   useEffect(() => () => clearTimeout(retry.current), []);
-  useTurnOn(onPage, () => active && void load());
+  useTurnOn(onPage && onList, () => active && void load());
   usePoll(() => load(), active ? pullsPollMs(onPage) : null);
 
   const { refreshing, refresh } = useRefresh(() => load(true));

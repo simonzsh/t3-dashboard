@@ -31,8 +31,9 @@ export function rememberPage(ref: PrRef, part: Partial<Page>): void {
 
 export const resetPages = (): void => pages.clear();
 
-/** The head commit to ask the diff for: the server then answers a kept diff without GitHub. */
-export const diffHint = (page: Page | undefined, summary?: { headSha: string }): string | undefined => page?.diff?.headSha || page?.detail?.headSha || summary?.headSha || undefined;
+/** The head commit to ask the diff for: the server then answers a kept diff without GitHub.
+ *  The list is polled, so its head is the newest one the page knows: it comes first. */
+export const diffHint = (page: Page | undefined, summary?: { headSha: string }): string | undefined => summary?.headSha || page?.detail?.headSha || page?.diff?.headSha || undefined;
 
 /** The head commit to read the diff for again: the hint came back as the diff but the detail shows a newer head. */
 export function diffFollowUp(hint: string | undefined, detail: PrDetail | null, diff: PrDiff | null): string | null {
