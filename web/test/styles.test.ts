@@ -125,15 +125,6 @@ test("an open dialog or sheet locks the page scroll", () => {
   assert.match(css, /html:has\(\.dialog-backdrop:not\(\[hidden\]\)\), html:has\(\.ui-sheet\.open\) \{ overflow: hidden; \}/);
 });
 
-test("automations: only the list scrolls, under a fixed toolbar, on a phone too", () => {
-  assert.match(css, /\.auto-scroll \{[^}]*overflow-y: auto/);
-  assert.doesNotMatch(css, /\.auto-page \{[^}]*overflow-y/);
-  assert.doesNotMatch(css, /\.auto-toolbar \{[^}]*sticky/);
-  const phone = css.slice(css.indexOf("@media (max-width: 700px)"));
-  // News and Git hold the page still the same way: no page scroll, only their list or article scrolls.
-  assert.match(phone, /\.app:not\(\.sessions-mode, \.automations-mode, \.news-mode, \.git-mode\) \{ height: auto;/);
-});
-
 test("news: the article is a readable column, and on a phone the list and the article take turns", () => {
   // A rem width, not ch: ch follows each child's font size, so the date line and the text would not share a left edge.
   assert.match(css, /\.news-article > \* \{ max-width: 42rem;/);
@@ -174,12 +165,17 @@ test("pages start their content the same distance below the header", () => {
   assert.match(css, /main:has\(> \.news-page\) \{ padding-top: calc\(var\(--page-top\) - 4px\); \}/);
 });
 
-test("news: the list head stays put while the articles scroll, as on Automations", () => {
-  assert.match(css, /\.news-list-head \{ flex: none;/);
-  assert.match(css, /\.news-list-scroll \{ flex: 1; min-height: 0; overflow-y: auto;/);
-  const phone = css.slice(css.indexOf("@media (max-width: 700px) {\n  /* Like Automations, the page holds still: only the article list, or the open article, scrolls under the bar. */"));
-  // No sticky trick on a phone either: the head simply sits above the scrolling list.
-  assert.doesNotMatch(phone.slice(0, phone.indexOf("\n}\n")), /news-list-head|sticky/);
+test("list pages: the head sits outside the scroll box, so it never moves, and no page makes its own toolbar sticky", () => {
+  assert.match(rule(".list-page"), /flex: 1; min-height: 0; display: flex; flex-direction: column;/);
+  assert.match(rule(".list-page-head"), /flex: none;/);
+  assert.match(rule(".list-page-body"), /flex: 1; min-height: 0; overflow-y: auto;/);
+  const phone = css.slice(css.indexOf("@media (max-width: 700px)"));
+  assert.match(phone, /\.list-page-body \{ padding-bottom: 16px; \}/);
+  // A sticky toolbar inside the scroll box slides by the box's padding as soon as the list scrolls.
+  for (const selector of [".list-page-head", ".auto-toolbar", ".news-list-head", ".git-tools"]) assert.doesNotMatch(rule(selector), /sticky|overflow/, selector);
+  // Pages only add spacing: the scroll and the size come from the shared rules.
+  for (const selector of [".auto-scroll", ".news-list-head", ".git-tools"]) assert.doesNotMatch(rule(selector), /overflow-y|min-height/, selector);
+  assert.doesNotMatch(css, /\.auto-page \{[^}]*overflow-y/);
 });
 
 test("one spin keyframe, and shared rows have one rule each", () => {
@@ -191,6 +187,6 @@ test("git: the diff bar and the file headers stick inside the page, and a dark t
   assert.match(rule(".pr-diff-bar"), /position: sticky; top: -4px/);
   assert.match(rule(".pr-diff-file-head"), /position: sticky; top: calc\(var\(--git-bar\) - 4px\)/);
   assert.match(rule(".pr-diff-file-head"), /border-radius: 0;/);
-  assert.match(rule(".git-page"), /overflow-y: auto/);
+  assert.match(rule(".git-detail-scroll"), /overflow-y: auto/);
   assert.match(css, /:root\[data-theme="dark"\] :is\(\.hljs-keyword/);
 });

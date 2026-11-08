@@ -534,6 +534,11 @@ input.dropdown-search { position: absolute; inset: 0 auto 0 0; z-index: 1; width
 .search-field { position: relative; display: flex; align-items: center; }
 .search-field .icon { position: absolute; left: 10px; width: 15px; height: 15px; color: var(--text-secondary); pointer-events: none; }
 .search-field .field { width: 100%; padding-left: 32px; }
+/* List pages (ListPage): the head stays outside the scroll box, so it never moves while the list scrolls.
+   The body's 4px inner room holds the focus rings; the negative margin keeps the layout aligned. */
+.list-page { flex: 1; min-height: 0; display: flex; flex-direction: column; gap: 8px; }
+.list-page-head { flex: none; background: var(--page-bg); }
+.list-page-body { flex: 1; min-height: 0; overflow-y: auto; padding: 4px; margin: -4px; }
 .switcher-input { flex: none; }
 .switcher-results { flex: 1; min-height: 0; overflow-y: auto; display: flex; flex-direction: column; gap: 6px; }
 .switcher-results .dropdown-list { max-height: none; overflow: visible; }
@@ -671,8 +676,7 @@ ol.install-steps { padding-left: 18px; }
 main:has(> .auto-page) { padding-top: calc(var(--page-top) - 8px); }
 .auto-page { flex: 1; min-height: 0; display: flex; flex-direction: column; gap: 28px; }
 .auto-section { flex: 1; min-height: 0; display: flex; flex-direction: column; gap: 8px; }
-/* The list scrolls on its own; the 4 px give room to the focus rings and the card shadow. */
-.auto-scroll { flex: 1; min-height: 0; overflow-y: auto; display: flex; flex-direction: column; padding: 4px; margin: -4px; }
+.auto-scroll { display: flex; flex-direction: column; }
 .auto-scroll > .auto-card { flex: none; }
 .auto-section-title { margin: 0; font-size: 12px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-secondary); }
 .auto-note { margin: 0; font-size: 12px; color: var(--text-secondary); }
@@ -1001,6 +1005,7 @@ main:has(> .auto-page) { padding-top: calc(var(--page-top) - 8px); }
 .app.session-shown :is(.banner, .sessions.compact .session-window-head) { position: sticky; top: 0; z-index: 4; }
 .sessions.compact :is(.session-window-back, .session-window-buttons .icon-button) { min-width: 36px; height: 36px; }
 @media (max-width: 700px) {
+  .list-page-body { padding-bottom: 16px; }
   /* Linear rows: the meta takes a second line, so the title keeps the full width. */
   .glance-row { grid-template-columns: 16px minmax(0, 1fr) var(--control-sm); grid-template-areas: "kind link action" ". meta action"; row-gap: 0; padding-block: 6px; }
   .glance-kind { grid-area: kind; }
@@ -1010,7 +1015,6 @@ main:has(> .auto-page) { padding-top: calc(var(--page-top) - 8px); }
   .switcher-meta { display: none; }
   /* The list runs down to the bottom bar, as the sessions list does. */
   main:has(> .auto-page) { padding-top: calc(var(--page-top) - 8px); padding-bottom: 0; }
-  .auto-scroll { padding-bottom: 16px; }
   .notif-toasts { left: 12px; right: 12px; width: auto; }
   /* Three compact tiles in one row; the chart is lower (see ActivityChart). */
   .stat-tile { gap: 2px; padding: 12px; }
@@ -1122,8 +1126,7 @@ main:has(> .news-page) { padding-top: calc(var(--page-top) - 4px); }
 .news-page:not(.empty) > .news-list { z-index: 1; justify-self: start; width: var(--news-list-w); margin: 0; }
 .news-list { min-height: 0; overflow: hidden; display: flex; flex-direction: column; gap: 12px; padding: 4px; margin: -4px; }
 /* The next run, the search and Delete all stay put while only the articles scroll, as on Automations. */
-.news-list-head { flex: none; display: flex; flex-direction: column; gap: 12px; background: var(--page-bg); }
-.news-list-scroll { flex: 1; min-height: 0; overflow-y: auto; padding: 4px; margin: -4px; }
+.news-list-head { display: flex; flex-direction: column; gap: 12px; }
 .news-status { margin: 0; padding: 0 10px; font-size: 12px; color: var(--text-secondary); }
 .news-tools { display: flex; align-items: center; gap: 8px; }
 .news-tools > button { flex: none; }
@@ -1164,19 +1167,21 @@ main:has(> .news-page) { padding-top: calc(var(--page-top) - 4px); }
   .news-page > * { --news-list-space: 0px; }
   .news-page:not(.empty) > .news-list { width: auto; }
   .news-list { flex: 1; margin: 0; }
-  .news-list-scroll { padding-bottom: 16px; }
   .news-article { flex: 1; margin: 0; padding: 0 0 16px; }
   .news-page:not(.reading) .news-article, .news-page.reading .news-list { display: none; }
   .news-item { padding: 12px 10px; }
   .news-back { display: inline-flex; margin: 0 0 4px -8px; }
   .news-body { font-size: 16px; }
 }
-/* Git: the open pull requests and one pull request's diff. The page scrolls on its own, so the diff bar and the file headers stick inside it. */
+/* Git: the open pull requests and one pull request's diff. */
 main:has(> .git-page) { padding-top: calc(var(--page-top) - 8px); padding-bottom: 0; }
-.git-page { --git-bar: 44px; flex: 1; min-height: 0; overflow-y: auto; padding: 4px 4px 40px; }
-.git-list, .git-detail { max-width: 960px; margin-inline: auto; display: flex; flex-direction: column; gap: 16px; }
-/* Sticks like the Automations toolbar; -4px covers the page's top padding. */
-.git-tools { position: sticky; top: -4px; z-index: 3; display: flex; flex-direction: column; gap: 8px; margin-inline: -4px; padding: 8px 4px; background: var(--page-bg); }
+.git-page { --git-bar: 44px; flex: 1; min-height: 0; display: flex; flex-direction: column; }
+/* The list is a ListPage; the detail scrolls as one box, so its diff bar sticks under the PR header. */
+.git-detail-scroll { flex: 1; min-height: 0; overflow-y: auto; padding: 4px 4px 40px; }
+.git-list .list-page-body { display: flex; flex-direction: column; gap: 16px; }
+.git-list :is(.list-page-head, .list-page-body) > * { flex: none; width: 100%; max-width: 960px; margin-inline: auto; }
+.git-detail { max-width: 960px; margin-inline: auto; display: flex; flex-direction: column; gap: 16px; }
+.git-tools { display: flex; flex-direction: column; gap: 8px; padding: 8px 0; }
 .git-search-row { display: flex; align-items: center; gap: 8px; }
 .git-search { flex: 1; min-width: 0; max-width: 360px; }
 .git-filters { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
@@ -1264,7 +1269,7 @@ main:has(> .git-page) { padding-top: calc(var(--page-top) - 8px); padding-bottom
 :root[data-theme="dark"] .hljs-deletion { color: #ffa198; }
 @media (max-width: 700px) {
   main:has(> .git-page) { padding-inline: 12px; }
-  .git-page { padding-bottom: 16px; }
+  .git-detail-scroll { padding-bottom: 16px; }
   .git-row { flex-wrap: wrap; padding-bottom: 6px; }
   .git-row-main { padding: 12px 10px; }
   .git-row-session { margin-left: 10px; }

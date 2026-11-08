@@ -38,6 +38,7 @@ This folder contains the base components of the dashboard. The screens in `web/s
 | `ButtonLink`, `IconButtonLink` | Link (`<a href>`) with the look of `Button` or `IconButton`. Same variants and sizes. Use them in place of `<a className="btn">`. |
 | `CountBadge` | Count bubble: nothing at 0, `max+` above `max` (99 by default). `label` gives it `role="img"` and a name; `hidden` removes it from the accessibility tree. |
 | `SearchField` | Text field with a search icon. `className` goes on the wrapper, `ref` and the other props on the input. |
+| `ListPage` | Page with a fixed head (search, filters, actions) above a list that scrolls. `head` holds the toolbar, the children hold the list. `headClassName` and `bodyClassName` add the page spacing. Use it for every list page: a sticky toolbar inside the scroll box moves when the list scrolls. |
 | `Chevron` | Disclosure arrow: right when closed, down when open. `opensUp` is for a block that grows upward (down closed, up open). |
 | `OptionList` | Listbox of option rows that never take the focus. The owner keeps the focus in a field and passes `active`, `itemId` and `onHover` from `useListNav`. `isSelected` marks the current value of a choice list. |
 | `useListNav` | Active row and keys of a list: arrows wrap, Home/End jump, Enter picks (Space too with `space`). `itemId` scrolls the active row into view. `nextActive` is the pure part. |

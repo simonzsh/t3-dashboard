@@ -3,7 +3,7 @@ import type { DashboardThread } from "../../../../shared/api.ts";
 import type { PrList, PrRef, PrSummary } from "../../../../shared/git.ts";
 import { relativeTime } from "../../lib/format.ts";
 import { hashForPr } from "../../lib/tabs.ts";
-import { Badge, Button, Dropdown, Icon, IconButton, Loader, SearchField, Segmented } from "../../ui/index.ts";
+import { Badge, Button, Dropdown, Icon, IconButton, ListPage, Loader, SearchField, Segmented } from "../../ui/index.ts";
 import { ALL_REPOSITORIES, CHECKS, filterPrs, groupByRepository, repositoriesOf, REVIEWS, SCOPES, sessionOf, shortRepository, type Scope } from "./git.ts";
 import { Counts } from "./DiffFiles.tsx";
 import { PrDetail } from "./PrDetail.tsx";
@@ -63,24 +63,29 @@ export function PrListView({ list, error, refreshing, onRefresh, threads, now, o
 
   if (!list) return error ? <p className="auto-error" role="alert">{error}</p> : <Loader />;
   return (
-    <section className="git-list" aria-label="Pull requests">
-      <div className="git-tools">
-        <div className="git-search-row">
-          <SearchField className="git-search" aria-label="Search pull requests" placeholder="Search pull requests…" value={query} onChange={(e) => setQuery(e.target.value)} />
-          <IconButton variant="ghost" label="Refresh the list" tooltip="Refresh the list" disabled={refreshing} onClick={onRefresh}>
-            <Icon name="refresh" />
-          </IconButton>
+    <ListPage
+      className="git-list"
+      aria-label="Pull requests"
+      head={
+        <div className="git-tools">
+          <div className="git-search-row">
+            <SearchField className="git-search" aria-label="Search pull requests" placeholder="Search pull requests…" value={query} onChange={(e) => setQuery(e.target.value)} />
+            <IconButton variant="ghost" label="Refresh the list" tooltip="Refresh the list" disabled={refreshing} onClick={onRefresh}>
+              <Icon name="refresh" />
+            </IconButton>
+          </div>
+          <div className="git-filters">
+            <Segmented label="Show" value={scope} options={SCOPES} onChange={setScope} />
+            <Dropdown
+              label="Repository"
+              value={repo}
+              options={[{ id: ALL_REPOSITORIES, label: "All repositories" }, ...repositories.map((r) => ({ id: r, label: r }))]}
+              onPick={setRepository}
+            />
+          </div>
         </div>
-        <div className="git-filters">
-          <Segmented label="Show" value={scope} options={SCOPES} onChange={setScope} />
-          <Dropdown
-            label="Repository"
-            value={repo}
-            options={[{ id: ALL_REPOSITORIES, label: "All repositories" }, ...repositories.map((r) => ({ id: r, label: r }))]}
-            onPick={setRepository}
-          />
-        </div>
-      </div>
+      }
+    >
       {error && <p className="auto-error" role="alert">{error}</p>}
       {groups.length === 0 ? (
         <div className="empty-state">
@@ -102,7 +107,7 @@ export function PrListView({ list, error, refreshing, onRefresh, threads, now, o
           </div>
         ))
       )}
-    </section>
+    </ListPage>
   );
 }
 
@@ -113,7 +118,11 @@ function List(props: Omit<Props, "route">) {
 
 function Detail({ route, threads, now, onOpenThread }: Props & { route: PrRef }) {
   const { refresh, ...state } = usePrDetail(route);
-  return <PrDetail pr={route} {...state} onRefresh={() => void refresh()} now={now} session={sessionOf(threads, route)} onOpenSession={onOpenThread} />;
+  return (
+    <div className="git-detail-scroll">
+      <PrDetail pr={route} {...state} onRefresh={() => void refresh()} now={now} session={sessionOf(threads, route)} onOpenSession={onOpenThread} />
+    </div>
+  );
 }
 
 /** The Git page: your open pull requests, and one pull request's diff. */

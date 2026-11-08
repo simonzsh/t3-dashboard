@@ -100,8 +100,10 @@ The code has three parts: the server (`src/`), the interface (`web/src/`) and th
 | --- | --- |
 | `api/` | Local API client, event stream (`useDashboard`) and `ApiContext`. `useApi()` gives the real API, unless an `ApiProvider` gives a different one. |
 | `lib/` | Functions and components that more than one screen uses. |
-| `features/` | One folder for each screen or part of a screen: `dashboard`, `shell`, `automations`, `sessions`, `conversation`, `settings`, `setup`, `update`, `new-thread`, `notifications`, `switcher`. |
+| `features/` | One folder for each screen or part of a screen: `dashboard`, `shell`, `automations`, `news`, `git`, `sessions`, `conversation`, `settings`, `setup`, `update`, `new-thread`, `notifications`, `switcher`. |
 | `ui/` | Base components, tooltips and animations. See `web/src/ui/README.md`. |
+
+A new list page (a search, filters and a list that scrolls) uses `ListPage` from `ui/`, as Automations, News and Git do. Put the search and the filters in `head` and the list in the children. The head stays outside the scroll box, so it does not move while the list scrolls. Do not make a toolbar `position: sticky` inside a scroll box: it shifts by the box's padding when the list starts to scroll. `web/test/styles.test.ts` checks this.
 
 ### Contract (`shared/`)
 

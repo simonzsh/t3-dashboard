@@ -5,7 +5,7 @@ import { useApi } from "../../api/ApiContext.tsx";
 import { failure } from "../../lib/format.ts";
 import { renderMarkdown } from "../../lib/markdown.tsx";
 import { useDebouncedValue } from "../../lib/useDebouncedValue.ts";
-import { Button, Icon, IconButton, Loader, Pressable, SearchField } from "../../ui/index.ts";
+import { Button, Icon, IconButton, ListPage, Loader, Pressable, SearchField } from "../../ui/index.ts";
 import { DeleteNewsDialog } from "./DeleteNewsDialog.tsx";
 import { dateLabel, filterArticles, isUnreadArticle, readTarget, SEARCH_DEBOUNCE_MS, shortDate, statusLine } from "./news.ts";
 
@@ -128,51 +128,54 @@ export function NewsView({ news, writing, now, compact, seen, onRead, onOpenThre
   const shown = article?.date === date ? article : null;
   return (
     <div className={`news-page${reading ? " reading" : ""}`}>
-      <section className="news-list" aria-label="News">
-        {/* Stays in place while the articles scroll, as the Automations toolbar does. */}
-        <div className="news-list-head">
-          {status}
-          <div className="news-tools">
-            <SearchField className="auto-search" aria-label="Search news" placeholder="Search news…" value={query} onChange={(e) => setQuery(e.target.value)} />
-            <Button size="sm" variant="ghost" onClick={() => setDeleting("all")}>
-              <Icon name="trash" /> Delete all
-            </Button>
-          </div>
-        </div>
-        <div className="news-list-scroll">
-          <ul className="news-items">
-            {progress}
-            {searching && visible.length === 0 && <li className="news-none">No matching articles</li>}
-            {visible.map((a) => {
-              // On a phone the list and the article take turns: no item is "open" while the list shows.
-              const open = a.date === date && !compact;
-              return (
-                <li key={a.date} className="news-row">
-                  <Pressable
-                    className={`news-item${open ? " active" : ""}`}
-                    aria-current={open ? "true" : undefined}
-                    onClick={() => {
-                      setPicked(a.date);
-                      setReading(true);
-                    }}
-                  >
-                    <span className="news-item-body">
-                      <span className="news-item-date">{shortDate(a.date)}</span>
-                      <span className="news-item-title">{a.title}</span>
-                    </span>
-                    {seen && isUnreadArticle(a, seen) && <span className="notif-dot" aria-label="Unread" role="img" />}
-                  </Pressable>
-                  <span className="thread-actions">
-                    <IconButton label="Delete article" tooltip="Delete article" size="sm" variant="ghost" onClick={() => setDeleting(a)}>
-                      <Icon name="trash" />
-                    </IconButton>
+      <ListPage
+        className="news-list"
+        aria-label="News"
+        headClassName="news-list-head"
+        head={
+          <>
+            {status}
+            <div className="news-tools">
+              <SearchField className="auto-search" aria-label="Search news" placeholder="Search news…" value={query} onChange={(e) => setQuery(e.target.value)} />
+              <Button size="sm" variant="ghost" onClick={() => setDeleting("all")}>
+                <Icon name="trash" /> Delete all
+              </Button>
+            </div>
+          </>
+        }
+      >
+        <ul className="news-items">
+          {progress}
+          {searching && visible.length === 0 && <li className="news-none">No matching articles</li>}
+          {visible.map((a) => {
+            // On a phone the list and the article take turns: no item is "open" while the list shows.
+            const open = a.date === date && !compact;
+            return (
+              <li key={a.date} className="news-row">
+                <Pressable
+                  className={`news-item${open ? " active" : ""}`}
+                  aria-current={open ? "true" : undefined}
+                  onClick={() => {
+                    setPicked(a.date);
+                    setReading(true);
+                  }}
+                >
+                  <span className="news-item-body">
+                    <span className="news-item-date">{shortDate(a.date)}</span>
+                    <span className="news-item-title">{a.title}</span>
                   </span>
-                </li>
-              );
-            })}
-          </ul>
-        </div>
-      </section>
+                  {seen && isUnreadArticle(a, seen) && <span className="notif-dot" aria-label="Unread" role="img" />}
+                </Pressable>
+                <span className="thread-actions">
+                  <IconButton label="Delete article" tooltip="Delete article" size="sm" variant="ghost" onClick={() => setDeleting(a)}>
+                    <Icon name="trash" />
+                  </IconButton>
+                </span>
+              </li>
+            );
+          })}
+        </ul>
+      </ListPage>
       <article ref={articleRef} className="news-article" aria-label={shown?.title ?? "News"}>
         <Button variant="ghost" size="sm" className="news-back" onClick={() => setReading(false)}>
           <Icon name="arrowLeft" /> News
