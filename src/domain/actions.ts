@@ -105,6 +105,12 @@ const REFS_PAGE = 100;
 const MEDIA_FILE = /\.(png|jpe?g|gif|webp|avif|mp4|m4v|webm|mov)$/i;
 const ATTACHMENT_ID = /^[\w-]+$/;
 
+// Same as T3's toSafeThreadAttachmentSegment: an attachment id starts with this, not the raw thread id.
+export function attachmentThreadSegment(threadId: string): string {
+  const segment = threadId.trim().toLowerCase().replace(/[^a-z0-9_-]+/g, "-").replace(/-+/g, "-").replace(/^[-_]+|[-_]+$/g, "").slice(0, 80).replace(/[-_]+$/g, "");
+  return segment === "pending" ? "_pending" : segment;
+}
+
 // Same lexer as the web view: only a real `![alt](path)` counts, not any text in parentheses.
 function addImageTargets(text: string | undefined, into: Set<string>): void {
   if (!text) return;
@@ -276,7 +282,7 @@ export function createActions(options: ActionsOptions): Actions {
     async asset(threadId, request, range) {
       let resource: AssetResource;
       if ("attachmentId" in request) {
-        if (!ATTACHMENT_ID.test(request.attachmentId) || !request.attachmentId.startsWith(`${threadId}-`)) throw new DomainError("not-found", "No such attachment in this thread");
+        if (!ATTACHMENT_ID.test(request.attachmentId) || !request.attachmentId.toLowerCase().startsWith(`${attachmentThreadSegment(threadId)}-`)) throw new DomainError("not-found", "No such attachment in this thread");
         resource = { _tag: "attachment", attachmentId: request.attachmentId };
       } else {
         const { path } = request;
