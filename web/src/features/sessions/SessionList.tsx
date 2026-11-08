@@ -7,7 +7,7 @@ import { AutomationMark } from "../../lib/automationThreads.tsx";
 import { ProviderIcon } from "../../lib/ProviderIcon.tsx";
 import { modelLabel } from "../../lib/models.ts";
 import { threadTitle } from "../../lib/threads.ts";
-import { Icon, IconButton, Pressable } from "../../ui/index.ts";
+import { Chevron, CountBadge, Icon, IconButton, Pressable } from "../../ui/index.ts";
 import { ProjectMenu } from "./ProjectMenu.tsx";
 import { groupByProject, listableThreads, statusMark, type ListPrefs } from "./sessionList.ts";
 
@@ -128,10 +128,10 @@ function SessionListView({ threads, projects, seen, modelNames, now, openIds, fo
             <section key={g.id} aria-label={g.title}>
               <div className="slist-project">
                 <Pressable className="slist-project-toggle" aria-expanded={open} onClick={toggle}>
-                  <Icon name={open ? "chevron" : "chevronRight"} className="icon slist-chevron" />
+                  <Chevron open={open} className="slist-chevron" />
                   <ProjectIcon icon={g.project?.icon ?? null} title={g.title} />
                   <span className="slist-project-title">{g.title}</span>
-                  {g.badge > 0 && <span className="slist-count" aria-label={`${g.badge} running or unread`}>{g.badge}</span>}
+                  <CountBadge count={g.badge} max={9} label={`${g.badge} running or unread`} />
                   <span className="slist-total" aria-label={`${g.threads.length} ${g.threads.length === 1 ? "session" : "sessions"}`}>{g.threads.length}</span>
                 </Pressable>
                 {newSession}

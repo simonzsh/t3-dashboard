@@ -110,6 +110,21 @@ function nativeTitles(text: string): string[] {
   return found;
 }
 
+// A menu or list written by hand misses the kit's hover, arrow keys, Home/End and focus rules.
+const MENU_ROLE = /\srole="(listbox|menu|option|menuitem|menuitemradio)"/;
+// Files that must keep a hand-made menu role, with the reason. Keep it empty if you can.
+const MENU_ROLE_ALLOWED = new Map<string, string>();
+
+test("menus and option lists come from the kit outside web/src/ui", () => {
+  const wrong = sources.filter(({ file, text }) => !file.startsWith("ui/") && !MENU_ROLE_ALLOWED.has(file) && MENU_ROLE.test(text)).map(({ file }) => file);
+  assert.deepEqual(wrong, [], "use Dropdown, ActionMenu, or OptionList with useListNav");
+});
+
+test("the menu guard sees a role attribute but not a selector string", () => {
+  assert.ok(MENU_ROLE.test('<div role="listbox">'));
+  assert.ok(!MENU_ROLE.test(`el.closest('[role="menu"]')`));
+});
+
 test("no HTML element or kit button sets a native title attribute", () => {
   const bad = sources.flatMap(({ file, text }) => nativeTitles(text).map((name) => `${file}: <${name} title=`));
   assert.deepEqual(bad, []);

@@ -1,8 +1,7 @@
 import type { Tab } from "../../lib/tabs.ts";
 import type { SessionLayout } from "../../lib/sessionLayout.ts";
 import { ctrlLabel } from "../../lib/shortcuts.ts";
-import { badgeText } from "./AppNav.tsx";
-import { Button, Icon, IconButton, type ButtonVariant, type IconName } from "../../ui/index.ts";
+import { Button, CountBadge, Icon, IconButton, type ButtonVariant, type IconName } from "../../ui/index.ts";
 
 interface Props {
   tab: Tab;
@@ -101,11 +100,7 @@ export function PageActions({ tab, compact, ready, editingLayout, layoutIsDefaul
       <>
         <IconButton variant="ghost" className="notif-bell" label={unread > 0 ? `Notifications, ${unread} unread` : "Notifications"} tooltip={bell} aria-pressed={notificationsOpen} onClick={onToggleNotifications}>
           <Icon name="bell" />
-          {unread > 0 && (
-            <span className="nav-badge" aria-hidden="true">
-              {badgeText(unread)}
-            </span>
-          )}
+          <CountBadge count={unread} max={9} hidden />
         </IconButton>
         <Action compact={compact} label="Edit layout" icon="layoutPanels" withIcon onClick={onEditLayout} />
       </>

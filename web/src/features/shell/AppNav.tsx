@@ -1,7 +1,7 @@
 import type { CSSProperties } from "react";
 import { ctrlLabel } from "../../lib/shortcuts.ts";
 import { TABS, type Tab } from "../../lib/tabs.ts";
-import { Icon, IconButton, Kbd, Logo, Pressable } from "../../ui/index.ts";
+import { CountBadge, Icon, IconButton, Kbd, Logo, Pressable } from "../../ui/index.ts";
 
 interface NavUpdate {
   label: string;
@@ -33,12 +33,8 @@ interface Props {
 
 const WAITING = "An agent is waiting for your reply";
 
-export const badgeText = (n: number): string => (n > 9 ? "9+" : String(n));
-
 function Badges({ id, unread, sessions, automations, news }: Pick<Props, "unread" | "sessions" | "automations" | "news"> & { id: Tab }) {
-  if (id === "dashboard" && unread > 0) {
-    return <span className="nav-badge" role="img" aria-label={`${unread} unread`}>{badgeText(unread)}</span>;
-  }
+  if (id === "dashboard") return <CountBadge count={unread} max={9} label={`${unread} unread`} />;
   if (id === "automations") {
     return (
       <>
@@ -47,12 +43,12 @@ function Badges({ id, unread, sessions, automations, news }: Pick<Props, "unread
             <Icon name="alert" />
           </span>
         )}
-        {automations.count > 0 && <span className="nav-badge" role="img" aria-label={`${automations.count} unread runs`}>{badgeText(automations.count)}</span>}
+        <CountBadge count={automations.count} max={9} label={`${automations.count} unread runs`} />
       </>
     );
   }
   if (id === "news") {
-    return news > 0 ? <span className="nav-badge" role="img" aria-label={`${news} unread ${news === 1 ? "article" : "articles"}`}>{badgeText(news)}</span> : null;
+    return <CountBadge count={news} max={9} label={`${news} unread ${news === 1 ? "article" : "articles"}`} />;
   }
   if (id !== "sessions") return null;
   return (
@@ -62,7 +58,7 @@ function Badges({ id, unread, sessions, automations, news }: Pick<Props, "unread
           <Icon name="user" />
         </span>
       )}
-      {sessions.count > 0 && <span className="nav-badge" role="img" aria-label={`${sessions.count} running or unread`}>{badgeText(sessions.count)}</span>}
+      <CountBadge count={sessions.count} max={9} label={`${sessions.count} running or unread`} />
     </>
   );
 }

@@ -4,7 +4,7 @@ import { PROJECT_COLORS, PROJECT_COLOR_NAMES } from "../../../../shared/projectC
 import { useApi } from "../../api/ApiContext.tsx";
 import { monogramColor } from "../../lib/monogram.ts";
 import { ProjectIcon } from "../../lib/ProjectIcon.tsx";
-import { Pressable, Segmented, TextInput } from "../../ui/index.ts";
+import { onRadioKeyDown, Pressable, rovingTabIndex, Segmented, TextInput } from "../../ui/index.ts";
 import { EMOJI_PRESETS, firstGrapheme, monogramFromInput, tabIcon } from "./projectIcons.ts";
 
 type Tab = "icons" | "emoji" | "monogram" | "default";
@@ -65,6 +65,8 @@ export function IconPicker({ title, value, onChange, current = null }: Props) {
     if (icon.kind === "monogram") setText(icon.text);
     onChange(icon);
   };
+  const lucideName = value?.kind === "lucide" ? value.name : undefined;
+  const emojiValue = value?.kind === "emoji" ? value.emoji : undefined;
   const shape = (name: string) => choices.find((c) => c.name === name)?.icon;
   const previewIcon = (): Icon | null => {
     if (!value) return null;
@@ -84,9 +86,17 @@ export function IconPicker({ title, value, onChange, current = null }: Props) {
         <Segmented label="Icon type" value={tab} options={TABS} onChange={pickTab} />
       </div>
       {tab === "icons" && (
-        <div className="icon-grid" role="group" aria-label="Icons">
-          {choices.map(({ name, icon }) => (
-            <Pressable key={name} className="icon-choice" aria-label={name} aria-pressed={value?.kind === "lucide" && value.name === name} onClick={() => pick({ kind: "lucide", name, color })}>
+        <div className="icon-grid" role="radiogroup" aria-label="Icons" onKeyDown={onRadioKeyDown}>
+          {choices.map(({ name, icon }, i) => (
+            <Pressable
+              key={name}
+              role="radio"
+              className="icon-choice"
+              aria-label={name}
+              aria-checked={lucideName === name}
+              tabIndex={rovingTabIndex(lucideName === name, i === 0, choices.some((c) => c.name === lucideName))}
+              onClick={() => pick({ kind: "lucide", name, color })}
+            >
               <ProjectIcon icon={icon.kind === "lucide" ? { ...icon, color: hex(color) } : icon} title={name} />
             </Pressable>
           ))}
@@ -94,9 +104,17 @@ export function IconPicker({ title, value, onChange, current = null }: Props) {
       )}
       {tab === "emoji" && (
         <>
-          <div className="icon-grid" role="group" aria-label="Emoji">
-            {EMOJI_PRESETS.map(({ emoji, label }) => (
-              <Pressable key={emoji} className="icon-choice" aria-label={label} aria-pressed={value?.kind === "emoji" && value.emoji === emoji} onClick={() => pick({ kind: "emoji", emoji })}>
+          <div className="icon-grid" role="radiogroup" aria-label="Emoji" onKeyDown={onRadioKeyDown}>
+            {EMOJI_PRESETS.map(({ emoji, label }, i) => (
+              <Pressable
+                key={emoji}
+                role="radio"
+                className="icon-choice"
+                aria-label={label}
+                aria-checked={emojiValue === emoji}
+                tabIndex={rovingTabIndex(emojiValue === emoji, i === 0, EMOJI_PRESETS.some((p) => p.emoji === emojiValue))}
+                onClick={() => pick({ kind: "emoji", emoji })}
+              >
                 <span aria-hidden="true">{emoji}</span>
               </Pressable>
             ))}
@@ -126,9 +144,18 @@ export function IconPicker({ title, value, onChange, current = null }: Props) {
         />
       )}
       {(tab === "icons" || tab === "monogram") && (
-        <div className="icon-swatches" role="group" aria-label="Color">
-          {PROJECT_COLOR_NAMES.map((name) => (
-            <Pressable key={name} className="icon-swatch" aria-label={name} aria-pressed={color === name} style={{ background: hex(name) }} onClick={() => pickColor(name)} />
+        <div className="icon-swatches" role="radiogroup" aria-label="Color" onKeyDown={onRadioKeyDown}>
+          {PROJECT_COLOR_NAMES.map((name, i) => (
+            <Pressable
+              key={name}
+              role="radio"
+              className="icon-swatch"
+              aria-label={name}
+              aria-checked={color === name}
+              tabIndex={rovingTabIndex(color === name, i === 0, PROJECT_COLOR_NAMES.some((n) => n === color))}
+              style={{ background: hex(name) }}
+              onClick={() => pickColor(name)}
+            />
           ))}
         </div>
       )}

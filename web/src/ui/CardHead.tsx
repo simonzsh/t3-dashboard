@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { CountBadge } from "./CountBadge.tsx";
 import { Icon, type IconName } from "./Icon.tsx";
 
 interface Props {
@@ -19,7 +20,7 @@ export function CardHead({ id, icon, title, note, count, actions }: Props) {
       {typeof icon === "string" ? <Icon name={icon as IconName} /> : icon}
       <h2 id={id}>{title}</h2>
       {typeof note === "string" ? <span className="card-note" data-tooltip={note} data-tooltip-clipped>{note}</span> : note && <span className="card-note-menu">{note}</span>}
-      {count !== undefined && count > 0 && <span className="count">{count}</span>}
+      {count !== undefined && <CountBadge count={count} />}
       {actions && <span className="card-actions">{actions}</span>}
     </div>
   );

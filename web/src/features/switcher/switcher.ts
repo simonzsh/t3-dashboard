@@ -37,8 +37,6 @@ export function highlightParts(text: string, query: string): TextPart[] {
   return parts;
 }
 
-export const moveSelection = (index: number, delta: number, length: number): number => Math.max(0, Math.min(length - 1, index + delta));
-
 function rowOf(thread: DashboardThread, projects: DashboardProject[]): SwitcherRow {
   const project = projects.find((p) => p.id === thread.projectId);
   return { thread, project: { id: thread.projectId, title: project?.title ?? thread.projectId, icon: project?.icon ?? null } };

@@ -1,10 +1,6 @@
-import { useEffect, useState } from "react";
 import type { ChatMessage } from "../../../../shared/api.ts";
 import { Icon, IconButton } from "../../ui/index.ts";
-import { copyText } from "../../lib/clipboard.ts";
-import { useAction } from "../../lib/useAction.ts";
-
-const COPIED_MS = 1500;
+import { useCopy } from "../../lib/useCopy.ts";
 
 interface Props {
   message: ChatMessage;
@@ -15,19 +11,12 @@ interface Props {
 }
 
 export function MessageActions({ message, onEdit, editDisabled }: Props) {
-  const [copied, setCopied] = useState(false);
-  const action = useAction("copy the message");
-
-  useEffect(() => {
-    if (!copied) return;
-    const timer = setTimeout(() => setCopied(false), COPIED_MS);
-    return () => clearTimeout(timer);
-  }, [copied]);
+  const { copied, copy } = useCopy("copy the message");
 
   return (
     <span className="msg-actions">
       {message.text && (
-        <IconButton label="Copy message" tooltip="Copy message" size="sm" variant="ghost" onClick={() => void action.run(() => copyText(message.text)).then((ok) => ok && setCopied(true))}>
+        <IconButton label="Copy message" tooltip="Copy message" size="sm" variant="ghost" onClick={() => copy(message.text)}>
           <Icon name={copied ? "check" : "copy"} />
         </IconButton>
       )}

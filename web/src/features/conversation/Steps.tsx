@@ -3,7 +3,7 @@ import type { StepDetail, TurnStep } from "../../../../shared/api.ts";
 import { useApi } from "../../api/ApiContext.tsx";
 import { duration, failure } from "../../lib/format.ts";
 import { safeHref } from "../../lib/markdown.tsx";
-import { Icon, Loader, Pressable } from "../../ui/index.ts";
+import { Chevron, Icon, Loader, Pressable } from "../../ui/index.ts";
 import { STEP_ICONS, diffLines, groupLabel, remember } from "./steps.ts";
 
 const LIVE_VISIBLE = 4;
@@ -32,7 +32,7 @@ export function WorkGroup({ steps, threadId, live }: { steps: TurnStep[]; thread
   return (
     <div className={`work-group${live ? " live" : ""}`}>
       <Pressable className="work-group-head" aria-expanded={open} onClick={() => setOpen(!open)}>
-        <span className={`chevron${open ? " open" : ""}`} aria-hidden="true" />
+        <Chevron open={open} />
         {label}
       </Pressable>
       {shown.length > 0 && (
@@ -76,7 +76,7 @@ export const StepRow = memo(function StepRow({ step, threadId }: { step: TurnSte
     <div className={cls}>
       <Pressable className="step-head" aria-expanded={open} onClick={() => setOpen(!open)}>
         <StepHead step={step} />
-        <span className={`chevron${open ? " open" : ""}`} aria-hidden="true" />
+        <Chevron open={open} />
       </Pressable>
       {open && <StepBody step={step} threadId={threadId} />}
     </div>

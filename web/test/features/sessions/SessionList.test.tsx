@@ -96,7 +96,7 @@ test("an empty project is a muted row at the end: no toggle, no count, but a + b
   const row = html.match(/<div class="slist-project empty">.*?<\/div>/)?.[0] ?? "";
   assert.match(row, /slist-project-title">Fresh</);
   assert.match(row, /aria-label="New session in Fresh"/);
-  assert.doesNotMatch(row, /slist-project-toggle"[^>]*aria-expanded|slist-total|slist-count/);
+  assert.doesNotMatch(row, /slist-project-toggle"[^>]*aria-expanded|slist-total|count-badge/);
   assert.ok(html.indexOf("Fresh") > html.indexOf("Project A"));
 });
 

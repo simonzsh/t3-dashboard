@@ -100,7 +100,7 @@ export function Popover({ anchor, onClose, align = "start", minWidth = 0, matchW
     };
     // Capture and stop: a dialog or the Sessions page must not also react to this Escape.
     const key = (e: KeyboardEvent) => {
-      if (e.key !== "Escape" || open[open.length - 1] !== self.current) return;
+      if (e.key !== "Escape" || e.isComposing || open[open.length - 1] !== self.current) return;
       e.stopPropagation();
       close.current("escape");
     };

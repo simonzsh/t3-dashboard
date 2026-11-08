@@ -5,8 +5,7 @@ import type { UpdateControl } from "../update/useUpdate.ts";
 import { InstallSettings } from "./InstallSettings.tsx";
 import { LinearSettings } from "./LinearSettings.tsx";
 import { UpdateSettings } from "./UpdateSettings.tsx";
-import { onRadioKeyDown } from "../../ui/radioKeys.ts";
-import { Dialog, Icon, Pressable, Segmented, Tabs, type IconName } from "../../ui/index.ts";
+import { Dialog, Icon, onRadioKeyDown, Pressable, rovingTabIndex, Segmented, Tabs, type IconName } from "../../ui/index.ts";
 
 interface Props {
   theme: ThemeSetting;
@@ -55,12 +54,12 @@ export function SettingsDialog({ theme, onThemeChange, accent, onAccentChange, t
         <div className="settings-row">
           <span>Accent color</span>
           <div className="swatches" role="radiogroup" aria-label="Accent color" onKeyDown={onRadioKeyDown}>
-            {ACCENTS.map((a) => (
+            {ACCENTS.map((a, i) => (
               <Pressable
                 key={a.id}
                 role="radio"
                 aria-checked={accent === a.id}
-                tabIndex={accent === a.id ? 0 : -1}
+                tabIndex={rovingTabIndex(accent === a.id, i === 0, ACCENTS.some((x) => x.id === accent))}
                 aria-label={a.label}
                 tooltip={a.label}
                 className={`swatch${accent === a.id ? " active" : ""}`}

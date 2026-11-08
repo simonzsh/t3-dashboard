@@ -1,7 +1,9 @@
 import { useEffect, useId, useLayoutEffect, useRef, type KeyboardEvent, type PointerEvent, type ReactNode } from "react";
+import { createPortal } from "react-dom";
 import { Button } from "./Button.tsx";
 import { Icon } from "./Icon.tsx";
 import { IconButton } from "./IconButton.tsx";
+import { isPhone } from "./media.ts";
 import { enter, leaveCopy, reducedMotion } from "./motion.ts";
 import { lockScroll } from "./scrollLock.ts";
 import { useEscape } from "./useEscape.ts";
@@ -34,14 +36,13 @@ interface Props {
 
 const ignore = () => {};
 
-// Same breakpoint as the bottom bar in styles.css: there the dialog is a bottom sheet.
-const isPhone = () => typeof matchMedia === "function" && matchMedia("(max-width: 700px)").matches;
-
 const FOCUSABLE = 'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
 
 /** Tab and Shift+Tab stay inside the element that has this handler (a modal). */
 export function trapTab(e: KeyboardEvent<HTMLElement>) {
   if (e.key !== "Tab") return;
+  // A key from a portal (a popover opened in the modal) is that popover's to handle.
+  if (!(e.target instanceof Node) || !e.currentTarget.contains(e.target)) return;
   const items = Array.from(e.currentTarget.querySelectorAll<HTMLElement>(FOCUSABLE));
   if (items.length === 0) return e.preventDefault();
   const first = items[0]!;
@@ -151,7 +152,8 @@ export function Dialog({ title, label, onClose, onCancel, cancelLabel = "Cancel"
     return () => previous.current?.focus?.();
   }, []);
 
-  return (
+  // In document.body, so no transformed or clipping parent can trap the fixed backdrop. Static renders have no document.
+  const dialog = (
     <div className="dialog-backdrop" ref={backdrop} onClick={onClose} hidden={hidden}>
       <div
         className={className ? `dialog ${className}` : "dialog"}
@@ -188,4 +190,5 @@ export function Dialog({ title, label, onClose, onCancel, cancelLabel = "Cancel"
       </div>
     </div>
   );
+  return typeof document === "undefined" ? dialog : createPortal(dialog, document.body);
 }

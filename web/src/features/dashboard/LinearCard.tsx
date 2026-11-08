@@ -1,5 +1,4 @@
 import { useState } from "react";
-import { createPortal } from "react-dom";
 import type { BoardResult, DashboardProject, DashboardProvider, DashboardThread, LinearIssue, ModelDefaults } from "../../../../shared/api.ts";
 import { relativeTime } from "../../lib/format.ts";
 import { Button, CardHead, Icon, IconButton, LinearMark, type IconName } from "../../ui/index.ts";
@@ -140,22 +139,20 @@ export function LinearCard({ board, now, loading, threads, started, onRefresh, p
           </Button>
         </div>
       )}
-      {choosing &&
-        createPortal(
-          <NewThreadDialog
-            issue={choosing}
-            projects={projects}
-            providers={providers}
-            defaults={modelDefaults}
-            onClose={() => setChoosing(null)}
-            onCreated={(threadId) => {
-              setChoosing(null);
-              onStarted(choosing.id);
-              onOpen(threadId, true);
-            }}
-          />,
-          document.body,
-        )}
+      {choosing && (
+        <NewThreadDialog
+          issue={choosing}
+          projects={projects}
+          providers={providers}
+          defaults={modelDefaults}
+          onClose={() => setChoosing(null)}
+          onCreated={(threadId) => {
+            setChoosing(null);
+            onStarted(choosing.id);
+            onOpen(threadId, true);
+          }}
+        />
+      )}
     </section>
   );
 }

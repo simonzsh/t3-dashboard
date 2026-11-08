@@ -181,3 +181,8 @@ test("news: the list head stays put while the articles scroll, as on Automations
   // No sticky trick on a phone either: the head simply sits above the scrolling list.
   assert.doesNotMatch(phone.slice(0, phone.indexOf("\n}\n")), /news-list-head|sticky/);
 });
+
+test("one spin keyframe, and shared rows have one rule each", () => {
+  assert.equal(css.match(/@keyframes spin /g)?.length, 1);
+  for (const selector of [".row-icons", ".linear-status"]) assert.equal(css.split("\n").filter((line) => line.startsWith(`${selector} {`)).length, 1);
+});

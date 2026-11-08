@@ -26,19 +26,30 @@ test("the edit form is prefilled, has no folder field, and Save is disabled unti
   assert.doesNotMatch(html, /role="alert"/);
 });
 
-test("the icon picker has four types and the 18 colors; the current color is pressed", () => {
+test("the icon picker has four types and the 18 colors; the current color is checked", () => {
   const html = renderToStaticMarkup(<IconPicker title="Shop" value={project.iconSpec!} onChange={noop} />);
   for (const label of ["Icons", "Emoji", "Monogram", "Default"]) assert.match(html, new RegExp(`role="radio"[^>]*>${label}<`));
   assert.equal(html.match(/class="icon-swatch"/g)?.length, 18);
-  assert.match(html, /aria-label="teal" aria-pressed="true"/);
-  assert.match(html, /aria-label="red" aria-pressed="false"/);
+  assert.match(html, /aria-label="teal" aria-checked="true"/);
+  assert.match(html, /aria-label="red" aria-checked="false"/);
 });
 
-test("with no icon the picker starts on Icons with the title's color and no icon pressed", () => {
+test("with no icon the picker starts on Icons with the title's color and no icon checked", () => {
   const html = renderToStaticMarkup(<IconPicker title="Shop" value={null} onChange={noop} />);
   assert.match(html, /aria-checked="true"[^>]*>Icons</);
-  assert.doesNotMatch(html, /icon-choice[^>]*aria-pressed="true"/);
-  assert.equal(html.match(/class="icon-swatch"[^>]*aria-pressed="true"|aria-pressed="true"[^>]*class="icon-swatch"/g)?.length ?? 0, 1);
+  assert.doesNotMatch(html, /icon-choice[^>]*aria-checked="true"/);
+  assert.equal(html.match(/class="icon-swatch"[^>]*aria-checked="true"|aria-checked="true"[^>]*class="icon-swatch"/g)?.length ?? 0, 1);
+});
+
+test("each picker grid is a radio group with one tab stop", () => {
+  const colors = renderToStaticMarkup(<IconPicker title="Shop" value={null} onChange={noop} />);
+  assert.match(colors, /role="radiogroup" aria-label="Color"/);
+  assert.doesNotMatch(colors, /aria-pressed/);
+  assert.equal(colors.match(/class="icon-swatch"[^>]*tabindex="0"|tabindex="0"[^>]*class="icon-swatch"/g)?.length, 1);
+  const emoji = renderToStaticMarkup(<IconPicker title="Shop" value={{ kind: "emoji", emoji: "🚀" }} onChange={noop} />);
+  assert.match(emoji, /role="radiogroup" aria-label="Emoji"/);
+  assert.equal(emoji.match(/class="icon-choice"[^>]*tabindex="0"|tabindex="0"[^>]*class="icon-choice"/g)?.length, 1);
+  assert.match(emoji, /aria-label="Rocket"[^>]*aria-checked="true"[^>]*tabindex="0"|tabindex="0"[^>]*aria-label="Rocket"/);
 });
 
 test("a monogram icon opens the Monogram tab with its text", () => {
@@ -49,7 +60,7 @@ test("a monogram icon opens the Monogram tab with its text", () => {
 
 test("an emoji icon opens the Emoji tab with the 30 presets and no swatches", () => {
   const html = renderToStaticMarkup(<IconPicker title="Shop" value={{ kind: "emoji", emoji: "🚀" }} onChange={noop} />);
-  assert.match(html, /aria-label="Rocket" aria-pressed="true"/);
+  assert.match(html, /aria-label="Rocket" aria-checked="true"/);
   assert.equal(html.match(/class="icon-choice"/g)?.length, 30);
   assert.doesNotMatch(html, /class="icon-swatch"/);
 });

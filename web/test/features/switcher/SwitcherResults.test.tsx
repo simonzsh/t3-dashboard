@@ -11,7 +11,7 @@ const rows: SwitcherRow[] = [
   { thread: thread("t2", { title: "Second" }), project, snippet: "…found the needle here…", source: "assistant" },
 ];
 const render = (over: Partial<Parameters<typeof SwitcherResults>[0]> = {}) =>
-  renderToStaticMarkup(<SwitcherResults rows={rows} selected={1} now={new Date("2026-01-10T11:00:00.000Z")} loading={false} error={null} searched query="" onSelect={() => {}} onOpen={() => {}} {...over} />);
+  renderToStaticMarkup(<SwitcherResults rows={rows} active={1} now={new Date("2026-01-10T11:00:00.000Z")} loading={false} error={null} searched query="" onHover={() => {}} onOpen={() => {}} {...over} />);
 
 test("each row shows its title, project and age; a content match shows its snippet", () => {
   const out = render();
@@ -21,8 +21,11 @@ test("each row shows its title, project and age; a content match shows its snipp
   assert.equal(out.match(/switcher-snippet/g)?.length, 1);
 });
 
-test("the selected row is marked for assistive tech", () => {
+test("the active row is marked for assistive tech and styled; rows are not tab stops", () => {
   const out = render();
+  assert.match(out, /id="switcher-option-t2"[^>]*class="[^"]*\bactive\b/);
+  assert.doesNotMatch(out, /id="switcher-option-t1"[^>]*class="[^"]*\bactive\b/);
+  assert.doesNotMatch(out, /tabindex/);
   assert.match(out, /id="switcher-option-t2"[^>]*aria-selected="true"/);
   assert.match(out, /id="switcher-option-t1"[^>]*aria-selected="false"/);
 });
@@ -34,9 +37,9 @@ test("an error keeps the rows and adds no inline text: the banner shows it", () 
 });
 
 test("no rows after a search says so; before any search it stays quiet", () => {
-  assert.match(render({ rows: [], selected: -1 }), /No conversations found/);
-  assert.doesNotMatch(render({ rows: [], selected: -1, searched: false }), /No conversations/);
-  assert.doesNotMatch(render({ rows: [], selected: -1, loading: true }), /No conversations/);
+  assert.match(render({ rows: [], active: -1 }), /No conversations found/);
+  assert.doesNotMatch(render({ rows: [], active: -1, searched: false }), /No conversations/);
+  assert.doesNotMatch(render({ rows: [], active: -1, loading: true }), /No conversations/);
 });
 
 test("a label titles the list, for the suggestions", () => {

@@ -1,10 +1,9 @@
-import { useEffect, useLayoutEffect, useRef, useState, type KeyboardEvent, type ReactNode } from "react";
+import { useEffect, useId, useRef, useState, type KeyboardEvent, type ReactNode } from "react";
 import type { DashboardProvider, ModelSelection, RuntimeMode } from "../../../../shared/api.ts";
 import { RUNTIME_MODE_LABELS, findModel, currentEffort, selectEffort, selectModel } from "./composer.ts";
 import { chipLabel, currentSpeed, panelModels, selectSpeed, type PanelRow, type Rail } from "./modelPanel.ts";
-import { moveActive } from "../../lib/dropdown.ts";
 import { ProviderIcon } from "../../lib/ProviderIcon.tsx";
-import { Icon, Pressable, Segmented, TextInput } from "../../ui/index.ts";
+import { Dropdown, Icon, OptionList, Popover, Pressable, Segmented, TextInput, isTouch, onRadioKeyDown, rovingTabIndex, trapTab, useListNav } from "../../ui/index.ts";
 
 interface Props {
   providers: DashboardProvider[];
@@ -21,27 +20,14 @@ interface Props {
 const sameRow = (row: PanelRow, selection: ModelSelection | null) => row.provider.instanceId === selection?.instanceId && row.model.slug === selection.model;
 
 /** One chip for the model, its reasoning, speed and the access mode; its panel opens above, inside the composer card. */
-const touch = () => matchMedia("(pointer: coarse)").matches;
-
 export function ModelPanel({ providers, selection, mode = null, modes = [], onSelection, onMode, inline = false }: Props) {
   const [open, setOpen] = useState(false);
   const [rail, setRail] = useState<Rail>("favorites");
   const [query, setQuery] = useState("");
-  const [active, setActive] = useState(0);
-  const [accessOpen, setAccessOpen] = useState(false);
   const root = useRef<HTMLDivElement>(null);
   const panel = useRef<HTMLDivElement>(null);
-  // A sessions window clips what overflows it: keep the panel within the room above the composer.
-  useLayoutEffect(() => {
-    const box = panel.current;
-    const anchor = box?.offsetParent;
-    if (!box || !anchor || inline) return;
-    const top = anchor.getBoundingClientRect().top;
-    // A dialog is fixed above the sessions: only the viewport bounds it.
-    const frame = anchor.closest(".dialog") ? 0 : (anchor.closest(".session-window")?.getBoundingClientRect().top ?? 0);
-    box.style.maxHeight = `${Math.max(180, top - frame - 12)}px`;
-  });
   const chip = useRef<HTMLButtonElement>(null);
+  const listId = useId();
   // In a form the panel opens in the flow: scroll the form so all of it shows at once.
   useEffect(() => {
     if (open && inline) panel.current?.scrollIntoView({ block: "nearest" });
@@ -51,6 +37,8 @@ export function ModelPanel({ providers, selection, mode = null, modes = [], onSe
   const found = findModel(providers, selection);
   const label = chipLabel(selection, found);
   const rows = panelModels(providers, rail, query);
+  // Home and End stay with the caret of the search field.
+  const nav = useListNav(rows.length, { initial: 0, homeEnd: false, onPick: (i) => pickRow(rows[i]), itemId: (i) => `${listId}-${i}` });
   const effort = found?.model.effort ?? null;
   const level = found ? currentEffort(selection, found.model) : null;
   const speed = found && selection ? currentSpeed(selection, found.model) : null;
@@ -61,8 +49,7 @@ export function ModelPanel({ providers, selection, mode = null, modes = [], onSe
     const first = panelModels(providers, start, "");
     setRail(start);
     setQuery("");
-    setActive(Math.max(0, first.findIndex((row) => sameRow(row, selection))));
-    setAccessOpen(false);
+    nav.setActive(Math.max(0, first.findIndex((row) => sameRow(row, selection))));
     setOpen(true);
   }
 
@@ -74,17 +61,24 @@ export function ModelPanel({ providers, selection, mode = null, modes = [], onSe
   useEffect(() => {
     if (!open) return;
     // On a touch screen nothing keeps a field focused: no keyboard covers the panel.
-    if (!touch()) search.current?.focus({ preventScroll: true });
+    if (!isTouch()) search.current?.focus({ preventScroll: true });
     else if (document.activeElement instanceof HTMLTextAreaElement || document.activeElement instanceof HTMLInputElement) document.activeElement.blur();
+  }, [open]);
+
+  // A floating panel is a Popover; one in the flow of a form closes by itself.
+  useEffect(() => {
+    if (!open || !inline) return;
     const down = (e: MouseEvent) => {
-      if (!root.current?.contains(e.target as Node)) setOpen(false);
+      // The Access menu floats in document.body: a click in it is not outside.
+      const target = e.target as Element;
+      if (!root.current?.contains(target) && !target.closest(".popover")) setOpen(false);
     };
-    // Capture and stop: the Sessions page must not also react to this Escape.
+    // Capture and stop: the dialog around the form must not also react to this Escape.
     const key = (e: globalThis.KeyboardEvent) => {
-      if (e.key !== "Escape") return;
+      // An open menu (Access) takes this Escape; the panel stays.
+      if (e.key !== "Escape" || document.querySelector(".popover")) return;
       e.stopPropagation();
-      if (accessOpen) setAccessOpen(false);
-      else close(true);
+      close(true);
     };
     document.addEventListener("mousedown", down);
     window.addEventListener("keydown", key, true);
@@ -92,14 +86,7 @@ export function ModelPanel({ providers, selection, mode = null, modes = [], onSe
       document.removeEventListener("mousedown", down);
       window.removeEventListener("keydown", key, true);
     };
-  }, [open, accessOpen]);
-
-  // Only the keyboard and the opening scroll the list: a row under the mouse must not move it.
-  const follow = useRef(true);
-  useEffect(() => {
-    if (open && follow.current) document.getElementById(`model-row-${active}`)?.scrollIntoView({ block: "nearest" });
-    follow.current = true;
-  }, [open, active]);
+  }, [open, inline]);
 
   function pickRow(row: PanelRow | undefined) {
     if (!row) return;
@@ -107,14 +94,13 @@ export function ModelPanel({ providers, selection, mode = null, modes = [], onSe
     close(true);
   }
 
-  function onKeyDown(e: KeyboardEvent) {
-    if (e.target === search.current && (e.key === "ArrowDown" || e.key === "ArrowUp")) {
-      e.preventDefault();
-      setActive(moveActive(rows.length, active, e.key === "ArrowDown" ? 1 : -1));
-    } else if (e.target === search.current && e.key === "Enter") {
-      e.preventDefault();
-      pickRow(rows[active]);
+  function onKeyDown(e: KeyboardEvent<HTMLElement>) {
+    // The panel is its own dialog in a portal: Tab cycles inside it.
+    if (e.key === "Tab") {
+      e.stopPropagation();
+      return trapTab(e);
     }
+    if (e.target === search.current) nav.onKeyDown(e);
   }
 
   const railButton = (id: Rail, name: string, icon: ReactNode) => (
@@ -128,12 +114,115 @@ export function ModelPanel({ providers, selection, mode = null, modes = [], onSe
       onClick={() => {
         setRail(id);
         setQuery("");
-        setActive(0);
-        if (!touch()) search.current?.focus({ preventScroll: true });
+        nav.setActive(0);
+        if (!isTouch()) search.current?.focus({ preventScroll: true });
       }}
     >
       {icon}
     </Pressable>
+  );
+
+  const body = (
+    <div className="model-panel-inner" role="dialog" aria-label="Model, reasoning and access" onKeyDown={onKeyDown}>
+      <div className="model-panel-body">
+        <div className="model-rail">
+          {railButton("favorites", "Favorites", <Icon name={rail === "favorites" ? "starFilled" : "star"} />)}
+          <span className="model-rail-sep" aria-hidden="true" />
+          {providers.map((p) => railButton(p.instanceId, p.displayName, <ProviderIcon provider={p.instanceId} driver={p.driver} />))}
+        </div>
+        <div className="model-main">
+          <div className="model-search">
+            <Icon name="search" />
+            <TextInput
+              ref={search}
+              role="combobox"
+              aria-expanded
+              aria-controls={listId}
+              aria-activedescendant={nav.active >= 0 ? `${listId}-${nav.active}` : undefined}
+              aria-label="Search models"
+              placeholder="Search models..."
+              value={query}
+              onChange={(e) => {
+                setQuery(e.target.value);
+                nav.setActive(0);
+              }}
+            />
+          </div>
+          <OptionList
+            id={listId}
+            label="Models"
+            className="model-list"
+            items={rows}
+            active={nav.active}
+            itemId={(i) => `${listId}-${i}`}
+            itemKey={(row) => `${row.provider.instanceId}\u0000${row.model.slug}`}
+            isSelected={(row) => sameRow(row, selection)}
+            onHover={nav.hover}
+            onPick={pickRow}
+            empty={<div className="model-empty">{query.trim() === "" && rail === "favorites" ? "No favorites yet" : "No models found"}</div>}
+          >
+            {(row) => (
+              <>
+                <ProviderIcon provider={row.provider.instanceId} driver={row.provider.driver} />
+                <span className="model-name">{row.model.name}</span>
+                {/* T3 Code owns the favorites: the star only shows them. */}
+                {row.model.favorite !== null && <Icon name="starFilled" className="icon model-star" label="Favorite" />}
+              </>
+            )}
+          </OptionList>
+        </div>
+        <div className="model-options">
+          {effort && found && selection ? (
+            <>
+              <div className="model-options-head">
+                <span>{effort.label}</span>
+                <small>{found.model.name}</small>
+              </div>
+              <div role="radiogroup" aria-label={effort.label} onKeyDown={onRadioKeyDown}>
+                {effort.levels.map((l, i) => (
+                  <Pressable
+                    key={l.id}
+                    role="radio"
+                    aria-checked={l.id === level}
+                    tabIndex={rovingTabIndex(l.id === level, i === 0, effort.levels.some((x) => x.id === level))}
+                    className="model-level"
+                    onClick={() => onSelection(selectEffort(selection, found.model, l.id))}
+                  >
+                    <span className="model-level-name">{l.label}</span>
+                    {l.id === effort.defaultLevel && <small>Default</small>}
+                    <Icon name="check" className={`icon model-level-check${l.id === level ? "" : " hidden"}`} />
+                  </Pressable>
+                ))}
+              </div>
+            </>
+          ) : (
+            <div className="model-empty">No options for this model</div>
+          )}
+        </div>
+      </div>
+      <div className="model-footer">
+        {found?.model.speed && selection && (
+          <Segmented
+            label="Speed"
+            value={speed ?? "standard"}
+            options={[{ id: "standard", label: "Standard" }, { id: "fast", label: "Fast", icon: <Icon name="bolt" className="icon segmented-icon" /> }]}
+            onChange={(id) => onSelection(selectSpeed(selection, found.model, id === "fast"))}
+          />
+        )}
+        {modes.length > 0 && (
+          <Dropdown
+            label="Access"
+            className="model-access"
+            align="end"
+            value={mode}
+            disabled={!mode}
+            icon={<Icon name={mode === "full-access" ? "unlock" : "lock"} />}
+            options={modes.map((m) => ({ id: m, label: RUNTIME_MODE_LABELS[m].label, description: RUNTIME_MODE_LABELS[m].description }))}
+            onPick={(id) => onMode?.(id as RuntimeMode)}
+          />
+        )}
+      </div>
+    </div>
   );
 
   return (
@@ -144,121 +233,15 @@ export function ModelPanel({ providers, selection, mode = null, modes = [], onSe
         {label.effort && <span className="model-chip-effort">{label.effort}</span>}
         {label.fast && <Icon name="bolt" className="icon model-chip-fast" />}
       </Pressable>
-      {open && (
-        <div ref={panel} className="model-panel" role="dialog" aria-label="Model, reasoning and access" onKeyDown={onKeyDown}>
-          <div className="model-panel-body">
-            <div className="model-rail">
-              {railButton("favorites", "Favorites", <Icon name={rail === "favorites" ? "starFilled" : "star"} />)}
-              <span className="model-rail-sep" aria-hidden="true" />
-              {providers.map((p) => railButton(p.instanceId, p.displayName, <ProviderIcon provider={p.instanceId} driver={p.driver} />))}
-            </div>
-            <div className="model-main">
-              <div className="model-search">
-                <Icon name="search" />
-                <TextInput
-                  ref={search}
-                  role="combobox"
-                  aria-expanded
-                  aria-controls="model-list"
-                  aria-activedescendant={rows.length > 0 ? `model-row-${active}` : undefined}
-                  aria-label="Search models"
-                  placeholder="Search models..."
-                  value={query}
-                  onChange={(e) => {
-                    setQuery(e.target.value);
-                    setActive(0);
-                  }}
-                />
-              </div>
-              <div id="model-list" className="model-list" role="listbox" aria-label="Models">
-                {rows.length === 0 && <div className="model-empty">{query.trim() === "" && rail === "favorites" ? "No favorites yet" : "No models found"}</div>}
-                {rows.map((row, i) => {
-                  return (
-                    <Pressable
-                      key={`${row.provider.instanceId}\u0000${row.model.slug}`}
-                      id={`model-row-${i}`}
-                      role="option"
-                      aria-selected={sameRow(row, selection)}
-                      className={`model-row${i === active ? " active" : ""}`}
-                      onMouseDown={(e) => e.preventDefault()}
-                      onMouseEnter={() => {
-                        if (i === active) return;
-                        follow.current = false;
-                        setActive(i);
-                      }}
-                      onClick={() => pickRow(row)}
-                    >
-                      <ProviderIcon provider={row.provider.instanceId} driver={row.provider.driver} />
-                      <span className="model-row-name">{row.model.name}</span>
-                      {/* T3 Code owns the favorites: the star only shows them. */}
-                      {row.model.favorite !== null && <Icon name="starFilled" className="icon model-row-star" label="Favorite" />}
-                    </Pressable>
-                  );
-                })}
-              </div>
-            </div>
-            <div className="model-options">
-              {effort && found && selection ? (
-                <>
-                  <div className="model-options-head">
-                    <span>{effort.label}</span>
-                    <small>{found.model.name}</small>
-                  </div>
-                  <div role="radiogroup" aria-label={effort.label}>
-                    {effort.levels.map((l) => (
-                      <Pressable key={l.id} role="radio" aria-checked={l.id === level} className="model-level" onClick={() => onSelection(selectEffort(selection, found.model, l.id))}>
-                        <span className="model-level-name">{l.label}</span>
-                        {l.id === effort.defaultLevel && <small>Default</small>}
-                        <Icon name="check" className={`icon model-level-check${l.id === level ? "" : " hidden"}`} />
-                      </Pressable>
-                    ))}
-                  </div>
-                </>
-              ) : (
-                <div className="model-empty">No options for this model</div>
-              )}
-            </div>
-          </div>
-          <div className="model-footer">
-            {found?.model.speed && selection && (
-              <Segmented
-                label="Speed"
-                value={speed ?? "standard"}
-                options={[{ id: "standard", label: "Standard" }, { id: "fast", label: "Fast", icon: <Icon name="bolt" className="icon segmented-icon" /> }]}
-                onChange={(id) => onSelection(selectSpeed(selection, found.model, id === "fast"))}
-              />
-            )}
-            {modes.length > 0 && <div className="model-access">
-              <Pressable className="model-access-button" aria-label="Access" aria-haspopup="listbox" aria-expanded={accessOpen} disabled={!mode} onClick={() => setAccessOpen((o) => !o)}>
-                <Icon name={mode === "full-access" ? "unlock" : "lock"} />
-                <span>{mode ? RUNTIME_MODE_LABELS[mode].label : "Access"}</span>
-                <Icon name="chevron" className="icon chevron-down" />
-              </Pressable>
-              {accessOpen && (
-                <div className="model-access-menu" role="listbox" aria-label="Access">
-                  {modes.map((m) => (
-                    <Pressable
-                      key={m}
-                      role="option"
-                      aria-selected={m === mode}
-                      className="model-access-option"
-                      onClick={() => {
-                        setAccessOpen(false);
-                        if (m !== mode) onMode?.(m);
-                      }}
-                    >
-                      <span className="model-access-text">
-                        <span>{RUNTIME_MODE_LABELS[m].label}</span>
-                        <small>{RUNTIME_MODE_LABELS[m].description}</small>
-                      </span>
-                      {m === mode && <Icon name="check" className="icon model-level-check" />}
-                    </Pressable>
-                  ))}
-                </div>
-              )}
-            </div>}
-          </div>
+      {open && inline && (
+        <div ref={panel} className="model-panel">
+          {body}
         </div>
+      )}
+      {open && !inline && (
+        <Popover anchor={chip} preferAbove className="model-panel" onClose={(reason) => close(reason === "escape")}>
+          {body}
+        </Popover>
       )}
     </div>
   );

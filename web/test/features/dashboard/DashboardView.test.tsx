@@ -270,7 +270,7 @@ test("notifications list what needs you first, then unread, with a count and Mar
     }),
     "notifications-head",
   );
-  assert.match(out, /Notifications<\/h2><span class="count">3</);
+  assert.match(out, /Notifications<\/h2><span class="count-badge">3</);
   assert.ok(out.indexOf("notif-item needs") < out.indexOf("notif-item unread"));
   assert.ok(out.indexOf("Waiting one") < out.indexOf("Finished one"));
   assert.match(out, /Waiting for your approval/);
@@ -310,7 +310,7 @@ test("the Running card lists working agents with a pulsing dot, model and projec
   assert.match(out, /class="pulse run-pulse"/);
   assert.match(out, /Running one/);
   assert.match(out, /notif-age.*project-tag-text">Project A<.*provider-icon/);
-  assert.match(out, /Running<\/h2><span class="count">1</);
+  assert.match(out, /Running<\/h2><span class="count-badge">1</);
 });
 
 test("the Running card says it is live, with a dot", () => {

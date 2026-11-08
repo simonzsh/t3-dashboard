@@ -1,14 +1,13 @@
-import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useEffect, useId, useLayoutEffect, useRef, useState } from "react";
 import type { ComposerCommands, ContextUsage, DashboardProvider, FileEntry, ModelSelection, RuntimeMode, ThreadSettingsBody, UploadedAttachment } from "../../../../shared/api.ts";
 import type { StashEntry } from "../../../../shared/stash.ts";
 import { STASH_LIMIT } from "../../../../shared/stash.ts";
 import { RUNTIME_MODE_LABELS, acceptFiles, applyTrigger, attachmentType, composerPlaceholder, dropTrigger, escapeBlurs, filterCommands, filterSkills, findModel, isSendKey, suggestsCompact, triggerAt } from "./composer.ts";
-import { AttachmentPreview } from "./AttachmentPreview.tsx";
+import { PreviewDialog } from "./AttachmentPreview.tsx";
 import type { PreviewTarget } from "./attachmentPreview.ts";
-import { moveActive } from "../../lib/dropdown.ts";
 import { useApi } from "../../api/ApiContext.tsx";
 import { setStash, useStash } from "../../api/stashStore.ts";
-import { Button, FileInput, Icon, IconButton, Loader, Pressable, TextArea } from "../../ui/index.ts";
+import { Button, FileInput, Icon, IconButton, Loader, OptionList, Popover, Pressable, TextArea, TOUCH, useListNav } from "../../ui/index.ts";
 import { errorMessage, formatTokens } from "../../lib/format.ts";
 import { useAction } from "../../lib/useAction.ts";
 import { useDebouncedValue } from "../../lib/useDebouncedValue.ts";
@@ -127,11 +126,10 @@ export function Composer({ providers, selection, runtimeMode, running, stoppable
   draftRef.current = draft;
   // The results carry the query they answer: a slower or older answer never shows for a newer mention.
   const [results, setResults] = useState<{ query: string; entries: FileEntry[] }>({ query: "", entries: [] });
-  const [active, setActive] = useState(0);
   // The start of the word that Escape closed: the popup stays shut for that one.
   const [dismissed, setDismissed] = useState<number | null>(null);
   const [focused, setFocused] = useState(false);
-  const menuBox = useRef<HTMLDivElement>(null);
+  const menuId = useId();
   const blurTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
   useEffect(() => () => clearTimeout(blurTimer.current), []);
   const nextCaret = useRef<number | null>(null);
@@ -141,7 +139,7 @@ export function Composer({ providers, selection, runtimeMode, running, stoppable
   // The image of a chip, opened in the same dialog as an image of a message.
   const [previewed, setPreviewed] = useState<PreviewTarget | null>(null);
   const [stopping, setStopping] = useState(false);
-  const touch = useMediaQuery("(pointer: coarse)");
+  const touch = useMediaQuery(TOUCH);
   const fileInput = useRef<HTMLInputElement>(null);
   const textarea = useRef<HTMLTextAreaElement>(null);
   const card = useRef<HTMLDivElement>(null);
@@ -214,18 +212,11 @@ export function Composer({ providers, selection, runtimeMode, running, stoppable
           ? filterSkills(lists.skills, trigger!.query).map((skill) => ({ id: skill.name, label: `$${skill.name}`, detail: skill.description ?? skill.displayName, insert: `$${skill.name}` }))
           : [];
   const showMenu = trigger !== null && menuKind !== null && (menuKind !== "mention" || query !== null) && dismissed !== trigger.start && items.length > 0;
+  // Home and End stay with the caret of the field.
+  const nav = useListNav(items.length, { initial: 0, homeEnd: false, onPick: (i) => pick(items[i]!), itemId: (i) => `${menuId}-${i}` });
   const wantsLists = menuKind === "command" || menuKind === "skill";
   // The menu shows while the field has the focus: a tap or click elsewhere hides it.
   const menuOpen = showMenu && focused;
-  // In the card, under CSS: it stays against the field, keyboard up or not. Only its height is measured.
-  useLayoutEffect(() => {
-    const box = menuBox.current;
-    const top = card.current?.getBoundingClientRect().top;
-    if (!box || top === undefined) return;
-    const frame = card.current!.closest(".session-window")?.getBoundingClientRect().top ?? 0;
-    box.style.maxHeight = `${Math.max(96, Math.min(260, top - frame - 12))}px`;
-  });
-
   useEffect(() => {
     if (!trigger) setDismissed(null);
   }, [trigger === null]);
@@ -240,7 +231,7 @@ export function Composer({ providers, selection, runtimeMode, running, stoppable
     };
   }, [provider, wantsLists]);
 
-  useEffect(() => setActive(0), [trigger?.kind, trigger?.query]);
+  useEffect(() => nav.setActive(0), [trigger?.kind, trigger?.query]);
 
   useEffect(() => {
     if (!searchFiles || query === null) return setResults({ query: "", entries: [] });
@@ -451,19 +442,10 @@ export function Composer({ providers, selection, runtimeMode, running, stoppable
           enterKeyHint={touch ? "enter" : "send"}
           onKeyDown={(e) => {
             if (menuOpen && !e.nativeEvent.isComposing) {
-              if (e.key === "Escape") {
-                // Stop here: a dialog or the sessions must not also react to this Escape.
+              if (!(e.key === "Enter" && e.shiftKey) && nav.onKeyDown(e)) return;
+              if (e.key === "Tab") {
                 e.preventDefault();
-                e.stopPropagation();
-                return setDismissed(trigger!.start);
-              }
-              if (e.key === "ArrowDown" || e.key === "ArrowUp") {
-                e.preventDefault();
-                return setActive(moveActive(items.length, active, e.key === "ArrowDown" ? 1 : -1));
-              }
-              if ((e.key === "Enter" && !e.shiftKey) || e.key === "Tab") {
-                e.preventDefault();
-                return pick(items[active]!);
+                return pick(items[nav.active]!);
               }
             }
             if (onEscape && escapeBlurs({ key: e.key, isComposing: e.nativeEvent.isComposing }, menuOpen)) {
@@ -495,26 +477,22 @@ export function Composer({ providers, selection, runtimeMode, running, stoppable
           readOnly={readOnly}
           placeholder={placeholder ?? composerPlaceholder(running, [...(searchFiles ? ["@ files"] : []), ...(loadCommands ? ["$ skills", "/ commands"] : [])])}
           aria-label="Message"
+          aria-controls={menuOpen ? menuId : undefined}
+          aria-activedescendant={menuOpen && nav.active >= 0 ? `${menuId}-${nav.active}` : undefined}
         />
         {menuOpen && (
-          <div ref={menuBox} className="mention-menu composer-menu" role="listbox">
-            {items.map((item, i) => (
-              <Pressable
-                key={item.id}
-                role="option"
-                aria-selected={i === active}
-                className={`mention-option${i === active ? " active" : ""}`}
-                onMouseDown={(e) => e.preventDefault()}
-                onMouseEnter={() => setActive(i)}
-                onClick={() => pick(item)}
-              >
-                <span className="mention-name">{item.label}</span>
-                {item.detail && <small className={`mention-dir${menuKind === "mention" ? " path" : ""}`}>{item.detail}</small>}
-              </Pressable>
-            ))}
-          </div>
+          <Popover anchor={card} preferAbove matchWidth fitWidth className="dropdown-menu composer-menu" onClose={(reason) => reason === "escape" && setDismissed(trigger!.start)}>
+            <OptionList id={menuId} label="Suggestions" items={items} active={nav.active} itemId={(i) => `${menuId}-${i}`} itemKey={(item) => item.id} onHover={nav.hover} onPick={(item) => pick(item)}>
+              {(item) => (
+                <>
+                  <span className="mention-name">{item.label}</span>
+                  {item.detail && <small className={`mention-dir${menuKind === "mention" ? " path" : ""}`}>{item.detail}</small>}
+                </>
+              )}
+            </OptionList>
+          </Popover>
         )}
-        {previewed && <AttachmentPreview target={previewed} onClose={() => setPreviewed(null)} />}
+        {previewed && <PreviewDialog target={previewed} onClose={() => setPreviewed(null)} />}
         {stashOpen && stashed.length > 0 && <StashDrawer anchor={card} entries={stashed} onRestore={(e) => void restoreStash(e)} onDelete={(e) => void deleteStash(e)} onClose={() => setStashOpen(false)} />}
         <div className="composer-toolbar">
           <div className="composer-pickers">

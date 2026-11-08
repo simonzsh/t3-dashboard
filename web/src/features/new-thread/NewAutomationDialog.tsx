@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import type { Automation, CreateAutomationResult, DashboardProject, DashboardProvider, ModelDefaults, ModelSelection, RuntimeMode, ThreadSettingsBody } from "../../../../shared/api.ts";
+import type { Automation, CreateAutomationResult, DashboardProject, DashboardProvider, ModelDefaults } from "../../../../shared/api.ts";
 import { useApi } from "../../api/ApiContext.tsx";
 import { loadProjectChoice, saveProjectChoice } from "../../lib/projectChoice.ts";
 import { ProjectPicker } from "../../lib/ProjectPicker.tsx";
@@ -9,11 +9,11 @@ import { findModel } from "../conversation/composer.ts";
 import { Composer } from "../conversation/Composer.tsx";
 import { Button, Dialog, Dropdown, Icon, IconButton, Segmented, SecretInput, Switch, TextInput, ToggleGroup } from "../../ui/index.ts";
 import { FILTER_OPS, WEEKDAY_LABELS, WEEKDAY_ORDER, addFilter, emptyForm, formFromAutomation, promptPlaceholder, removeFilter, toCreateBody, toUpdateBody, toggleWeekday, updateFilter, type AutomationForm, type FilterOp, type FormKind } from "./automationForm.ts";
-import { presetSelection } from "./newAgent.ts";
+import { DEFAULT_RUNTIME_MODE, presetSelection } from "./newAgent.ts";
+import { useAgentSettings } from "./useAgentSettings.ts";
 
 const KEY = "t3-dashboard-automation-project";
 // Same default as the server when no mode is sent, used when T3 has none.
-const DEFAULT_MODE: RuntimeMode = "full-access";
 
 const KINDS: ReadonlyArray<{ id: FormKind; label: string }> = [
   { id: "routine", label: "Routine" },
@@ -145,8 +145,7 @@ export function NewAutomationDialog({ projects, providers, defaults, automation,
   const editing = automation !== undefined;
   // The project of an edited task may be gone from the list: show no project, not a wrong one.
   const [projectId, setProjectId] = useState(() => (automation ? (projects.some((p) => p.id === automation.projectId) ? automation.projectId : "") : loadProjectChoice(browserStorage(), KEY, projects)));
-  const [selection, setSelection] = useState<ModelSelection | null>(() => automation?.modelSelection ?? presetSelection(projects.find((p) => p.id === projectId), providers, defaults.selection));
-  const [mode, setMode] = useState<RuntimeMode>(automation?.runtimeMode ?? defaults.runtimeMode ?? DEFAULT_MODE);
+  const { selection, setSelection, mode, changeSettings } = useAgentSettings(() => automation?.modelSelection ?? presetSelection(projects.find((p) => p.id === projectId), providers, defaults.selection), automation?.runtimeMode ?? defaults.runtimeMode ?? DEFAULT_RUNTIME_MODE);
   const [draft, setDraft] = useState(automation?.prompt ?? "");
   const [form, setForm] = useState(() => (automation ? formFromAutomation(automation, new Date()) : emptyForm()));
   const [created, setCreated] = useState<{ result: CreateAutomationResult; signed: boolean } | null>(null);
@@ -195,11 +194,6 @@ export function NewAutomationDialog({ projects, providers, defaults, automation,
       setSaveError((e as Error).message);
       setSaving(false);
     }
-  }
-
-  function changeSettings(change: ThreadSettingsBody) {
-    if (change.modelSelection) setSelection(change.modelSelection);
-    if (change.runtimeMode) setMode(change.runtimeMode);
   }
 
   if (created) return <WebhookCreated {...created} onClose={onClose} />;
