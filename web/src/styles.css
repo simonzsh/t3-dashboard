@@ -746,7 +746,8 @@ ol.install-steps { padding-left: 18px; }
 .ui-tree-row { width: 100%; display: flex; align-items: center; gap: 6px; padding: 5px 8px; border: 0; border-radius: var(--radius-md); background: none; color: var(--text-primary); font: inherit; text-align: left; }
 .ui-tree-row > .icon { flex: none; width: 14px; height: 14px; color: var(--text-secondary); }
 .ui-tree-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.ui-tree-row.active { background: var(--surface-0); }
+/* The current file takes the selected tint of the segmented control: surface-0 is lost on a dark page. */
+.ui-tree-row.active { background: color-mix(in srgb, var(--text-primary) 10%, transparent); }
 @media (hover: hover) { .ui-tree-row:not(.active):hover { background: color-mix(in srgb, var(--text-primary) 6%, transparent); } }
 .ui-sheet:focus { outline: none; }
 .auto-sheet-head { flex: none; display: flex; flex-direction: column; gap: 8px; padding: 16px 20px; border-bottom: 1px solid var(--line); }
@@ -1248,7 +1249,6 @@ ol.install-steps { padding-left: 18px; }
 .pulls-file-count { font-weight: 400; }
 .pulls-file-tree { flex: 1; min-height: 0; overflow-y: auto; font-size: 12px; }
 .pulls-file-tree .ui-tree-row { padding-block: 3px; }
-.pulls-file-tree .ui-tree-row.active { box-shadow: inset 2px 0 var(--accent); }
 .pulls-file-tree .ui-tree-row.active .ui-tree-name { font-weight: 600; }
 .pulls-file-tree .ui-tree-row.dim { opacity: 0.5; }
 .pr-diff { display: flex; flex-direction: column; gap: 12px; }

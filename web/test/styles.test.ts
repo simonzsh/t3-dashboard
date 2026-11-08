@@ -186,3 +186,8 @@ test("pull requests: the file headers and the file list stick inside the page, a
   assert.match(rule(".pr-diff-file-head"), /border-radius: 0;/);
   assert.match(css, /:root\[data-theme="dark"\] :is\(\.hljs-keyword/);
 });
+
+test("the current row of a tree is marked by a tint, never by a side bar", () => {
+  assert.match(rule(".ui-tree-row.active"), /background: color-mix\(in srgb, var\(--text-primary\) 10%, transparent\);/);
+  assert.doesNotMatch(css, /ui-tree-row[^{]*\{[^}]*box-shadow: inset/);
+});
