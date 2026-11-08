@@ -2,6 +2,7 @@ import { useState, type ReactNode } from "react";
 import { THEME_SETTINGS, type ThemeSetting } from "./theme.ts";
 import { ACCENTS, type Accent } from "./accent.ts";
 import type { UpdateControl } from "../update/useUpdate.ts";
+import { AlertsSettings } from "./AlertsSettings.tsx";
 import { InstallSettings } from "./InstallSettings.tsx";
 import { LinearSettings } from "./LinearSettings.tsx";
 import { UpdateSettings } from "./UpdateSettings.tsx";
@@ -23,6 +24,7 @@ interface Props {
 const SECTIONS = [
   { id: "appearance", label: "Appearance" },
   { id: "connections", label: "Connections" },
+  { id: "alerts", label: "Alerts" },
   { id: "app", label: "App" },
   { id: "updates", label: "Updates" },
 ] as const;
@@ -72,6 +74,7 @@ export function SettingsDialog({ theme, onThemeChange, accent, onAccentChange, t
       </>
     ),
     connections: <LinearSettings onChange={onLinearChange} />,
+    alerts: <AlertsSettings />,
     app: <InstallSettings />,
     updates: <UpdateSettings update={update} onUpdate={onUpdate} />,
   };
