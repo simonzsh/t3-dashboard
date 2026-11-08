@@ -7,7 +7,7 @@ import { usePoll } from "../../lib/usePoll.ts";
 // The server caches the list for a minute: a faster poll would read the same answer.
 export const POLL_MS = 120_000;
 
-/** The open pull requests, loaded on mount and polled while the Git page is mounted. */
+/** The open pull requests, loaded on mount and polled while the Pull requests page is mounted. */
 export function useGitPrs() {
   const api = useApi();
   const [list, setList] = useState<PrList | null>(null);

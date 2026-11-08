@@ -82,7 +82,7 @@ const view = (pr: DemoPr, now: Date) => ({
   })),
 });
 
-/** Answers the gh calls of the Git page from the demo pull requests: the demo never starts the real gh. */
+/** Answers the gh calls of the Pull requests page from the demo pull requests: the demo never starts the real gh. */
 export function demoGh(now: () => Date): GhRun {
   const reply = (value: unknown) => ({ code: 0, stdout: typeof value === "string" ? value : JSON.stringify(value), truncated: false });
   return async (args) => {

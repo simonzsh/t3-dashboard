@@ -10,7 +10,7 @@ const typing = { tagName: "TEXTAREA", isContentEditable: false };
 test("Ctrl+key maps to the actions", () => {
   assert.equal(matchShortcut(ctrl("1"), false), "dashboard");
   assert.equal(matchShortcut(ctrl("2"), false), "sessions");
-  assert.equal(matchShortcut(ctrl("3"), false), "git");
+  assert.equal(matchShortcut(ctrl("3"), false), "pulls");
   assert.equal(matchShortcut(ctrl("4"), false), "automations");
   assert.equal(matchShortcut(ctrl("5"), false), "news");
   assert.equal(matchShortcut(ctrl("n"), false), "new-session");

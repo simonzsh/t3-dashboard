@@ -50,7 +50,7 @@ export function PrDetail({ pr, detail, detailError, diff, diffError, refreshing,
   return (
     <div className="git-detail">
       <header className="git-detail-head">
-        <ButtonLink variant="ghost" size="sm" href="#/git" className="git-back">
+        <ButtonLink variant="ghost" size="sm" href="#/pulls" className="git-back">
           <Icon name="arrowLeft" /> Pull requests
         </ButtonLink>
         <h2 className="git-title">

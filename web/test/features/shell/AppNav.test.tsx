@@ -24,9 +24,15 @@ const bottom = (over = {}) => renderToStaticMarkup(<AppNav layout="bottom" {...b
 test("the sidebar lists Dashboard, Sessions, Automations, News and Git, with the open page marked current", () => {
   const out = side();
   assert.match(out, /<nav class="sidebar/);
-  assert.deepEqual([...out.matchAll(/data-tab="(\w+)"/g)].map((m) => m[1]), ["dashboard", "sessions", "git", "automations", "news"]);
+  assert.deepEqual([...out.matchAll(/data-tab="(\w+)"/g)].map((m) => m[1]), ["dashboard", "sessions", "pulls", "automations", "news"]);
   assert.match(out, /aria-current="page"[^>]*data-tab="sessions"|data-tab="sessions"[^>]*aria-current="page"/);
   assert.equal(out.match(/aria-current="page"/g)?.length, 1);
+});
+
+test("the bottom bar uses a tab's short label, the sidebar its full one", () => {
+  assert.match(bottom(), /<span>PRs<\/span>/);
+  assert.doesNotMatch(bottom(), /Pull requests/);
+  assert.match(side(), /Pull requests/);
 });
 
 test("the sidebar has the search button with its shortcut hint", () => {
@@ -55,7 +61,7 @@ test("the bottom bar has the five pages only (Settings is in the phone header), 
   const out = bottom();
   assert.match(out, /<nav class="bottom-nav"/);
   assert.doesNotMatch(out, /sidebar|Search…/);
-  assert.deepEqual([...out.matchAll(/data-tab="(\w+)"/g)].map((m) => m[1]), ["dashboard", "sessions", "git", "automations", "news"]);
+  assert.deepEqual([...out.matchAll(/data-tab="(\w+)"/g)].map((m) => m[1]), ["dashboard", "sessions", "pulls", "automations", "news"]);
   assert.doesNotMatch(out, /Settings/);
   assert.equal(out.match(/aria-current="page"/g)?.length, 1);
 });

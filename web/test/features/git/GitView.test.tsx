@@ -20,7 +20,7 @@ const view = (value: PrList | null, threads = [thread("t1")], error: string | nu
 test("the list groups pull requests by repository and links each one to its diff", () => {
   const html = view(list([pr("acme/storefront", 1), pr("acme/api", 2, { draft: true, checks: "failure", review: "changes_requested" })]));
   assert.ok(html.indexOf("acme/api") < html.indexOf("acme/storefront"));
-  assert.match(html, /href="#\/git\/acme\/storefront\/1"/);
+  assert.match(html, /href="#\/pulls\/acme\/storefront\/1"/);
   assert.match(html, /Change 2/);
   assert.match(html, /Draft/);
   assert.match(html, /Checks failed/);
@@ -103,7 +103,7 @@ test("the detail shows the title, branches, checks, reviews and a link to GitHub
   assert.match(html, /Review required/);
   assert.match(html, /<a [^>]*href="https:\/\/example.test\/acme\/storefront\/pull\/12"[^>]*>.*Open on GitHub/);
   assert.match(html, /<strong>grace<\/strong> changes requested/);
-  assert.match(html, /href="#\/git"/);
+  assert.match(html, /href="#\/pulls"/);
 });
 
 test("a check link that is not a web address is shown as text", () => {

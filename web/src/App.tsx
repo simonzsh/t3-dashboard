@@ -251,7 +251,7 @@ export function App() {
 
   return (
     <AutomationThreadsContext.Provider value={automationThreads}>
-      <div className={`app${tab === "sessions" ? " sessions-mode" : ""}${tab === "automations" ? " automations-mode" : ""}${tab === "news" ? " news-mode" : ""}${tab === "git" ? " git-mode" : ""}${sessionShown ? " session-shown" : ""}${sheetShown ? " sheet-shown" : ""}`}>
+      <div className={`app${tab === "sessions" ? " sessions-mode" : ""}${tab === "automations" ? " automations-mode" : ""}${tab === "news" ? " news-mode" : ""}${tab === "pulls" ? " pulls-mode" : ""}${sessionShown ? " session-shown" : ""}${sheetShown ? " sheet-shown" : ""}`}>
         <TooltipLayer />
         <AppNav
           layout={compact ? "bottom" : "side"}
@@ -345,7 +345,7 @@ export function App() {
                 />
               ) : <Loader />)}
             {tab === "news" && (news.state ? <NewsView news={news.state} writing={news.writing} now={now} compact={compact} seen={notify.seen} onRead={readNews} onOpenThread={onOpen} onDelete={news.remove} onDeleteAll={news.removeAll} /> : <Loader />)}
-            {tab === "git" && (state ? <GitView route={prRoute} threads={state.threads} now={now} onOpenThread={onOpen} /> : <Loader />)}
+            {tab === "pulls" && (state ? <GitView route={prRoute} threads={state.threads} now={now} onOpenThread={onOpen} /> : <Loader />)}
             {tab === "sessions" &&
               (state ? (
                 <SessionsView

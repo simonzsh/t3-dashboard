@@ -11,7 +11,7 @@ const subscribe = (onChange: () => void) => {
 export function useTab(): [Tab, (tab: Tab) => void] {
   const tab = useSyncExternalStore(subscribe, () => tabFromHash(location.hash));
   useEffect(() => {
-    // A pull request hash is a valid address of the Git tab: keep it.
+    // A pull request hash is a valid address of the Pull requests tab: keep it.
     if (location.hash !== hashForTab(tab) && !prFromHash(location.hash)) history.replaceState(history.state, "", hashForTab(tab));
   }, [tab]);
   const setTab = (next: Tab) => {
@@ -20,7 +20,7 @@ export function useTab(): [Tab, (tab: Tab) => void] {
   return [tab, setTab];
 }
 
-/** The pull request the hash points at, or null on the Git list and on every other page. */
+/** The pull request the hash points at, or null on the pull request list and on every other page. */
 export function usePrRoute(): PrRef | null {
   const hash = useSyncExternalStore(subscribe, () => location.hash);
   return useMemo(() => prFromHash(hash), [hash]);

@@ -125,7 +125,7 @@ function Detail({ route, threads, now, onOpenThread }: Props & { route: PrRef })
   );
 }
 
-/** The Git page: your open pull requests, and one pull request's diff. */
+/** The Pull requests page: your open pull requests, and one pull request's diff. */
 export function GitView({ route, ...rest }: Props) {
   return <div className="git-page">{route ? <Detail key={`${route.repository}#${route.number}`} route={route} {...rest} /> : <List {...rest} />}</div>;
 }

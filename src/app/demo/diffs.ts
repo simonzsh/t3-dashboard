@@ -1,4 +1,4 @@
-// Invented unified diffs for the demo pull requests: a mix of every file kind the Git page shows.
+// Invented unified diffs for the demo pull requests: a mix of every file kind the Pull requests page shows.
 
 const lines = (...rows: string[]): string => `${rows.join("\n")}\n`;
 

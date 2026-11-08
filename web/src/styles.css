@@ -1046,9 +1046,9 @@ main:has(> .auto-page) { padding-top: calc(var(--page-top) - 8px); }
   .page-actions .header-new { border-radius: 12px; }
   .app-column { padding-bottom: calc(var(--bottom-bar) + env(safe-area-inset-bottom)); }
   /* The Dashboard scrolls the page itself, so Safari's floating address bar sits over the content instead of under a cut-off box. */
-  .app:not(.sessions-mode, .automations-mode, .news-mode, .git-mode) { height: auto; min-height: 100dvh; overflow: visible; }
-  .app:not(.sessions-mode, .automations-mode, .news-mode, .git-mode) :is(main, .dashboard) { flex: none; overflow: visible; }
-  .app:not(.sessions-mode, .automations-mode, .news-mode, .git-mode) main { padding-bottom: 24px; }
+  .app:not(.sessions-mode, .automations-mode, .news-mode, .pulls-mode) { height: auto; min-height: 100dvh; overflow: visible; }
+  .app:not(.sessions-mode, .automations-mode, .news-mode, .pulls-mode) :is(main, .dashboard) { flex: none; overflow: visible; }
+  .app:not(.sessions-mode, .automations-mode, .news-mode, .pulls-mode) main { padding-bottom: 24px; }
   /* The keyboard covers the bottom bar and the home indicator: the composer sits right on top of it. */
   .keyboard-open .bottom-nav { display: none; }
   .keyboard-open .app .app-column { padding-bottom: 0; }
