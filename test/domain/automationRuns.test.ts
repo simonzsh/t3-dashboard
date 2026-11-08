@@ -187,3 +187,12 @@ test("a thread stored under two tasks and probed to one ends only under that one
   const next = recordRuns(log, [task(), task({ id: "task-2" })], [thread("run-1")], NOW, new Map([["run-1", "task-2"]]));
   assert.deepEqual([next["task-1"]!.length, next["task-2"]!.map((run) => run.threadId)], [0, ["run-1"]]);
 });
+
+test("a run archived before its end was seen takes T3's last-run status when it is T3's last run", () => {
+  const running = (threadId: string, startedAt: string) => stored({ threadId, startedAt, status: "running", finishedAt: null });
+  const log: RunLog = { "task-1": [running("archived-now", "2026-03-21T11:03:00.000Z"), running("archived-old", "2026-03-20T09:00:00.000Z")] };
+  const ok = record(log, [task({ lastRunAt: "2026-03-21T11:03:01.000Z", lastRunStatus: "succeeded" })], []);
+  assert.deepEqual(ok["task-1"]!.map((run) => [run.threadId, run.status]), [["archived-now", "succeeded"], ["archived-old", "unknown"]]);
+  const failed = record(log, [task({ lastRunAt: "2026-03-21T11:03:01.000Z", lastRunStatus: "failed", lastRunError: "boom" })], []);
+  assert.deepEqual([failed["task-1"]![0]!.status, failed["task-1"]![0]!.error], ["failed", "boom"]);
+});
