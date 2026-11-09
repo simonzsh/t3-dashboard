@@ -1,9 +1,20 @@
 import type { AlertTestResult } from "../../../../shared/api.ts";
 
-export const SETUP_STEPS = [
-  "Install the ntfy app on your phone (App Store or Google Play).",
-  "Press Set up. The dashboard creates a private topic.",
-  "In the ntfy app, press + and Subscribe to that topic.",
+export interface SetupStep {
+  text: string;
+  links?: { label: string; url: string }[];
+}
+
+export const SETUP_STEPS: SetupStep[] = [
+  {
+    text: "Install the ntfy app on your phone:",
+    links: [
+      { label: "App Store", url: "https://apps.apple.com/app/ntfy/id1625396347" },
+      { label: "Google Play", url: "https://play.google.com/store/apps/details?id=io.heckel.ntfy" },
+    ],
+  },
+  { text: "Press Set up. The dashboard creates a private topic." },
+  { text: "In the ntfy app, press + and Subscribe to that topic." },
 ];
 
 export function testMessage(result: AlertTestResult["result"]): string {

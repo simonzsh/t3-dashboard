@@ -4,9 +4,17 @@ import { maskedTopic, SETUP_STEPS, testMessage } from "../../../src/features/set
 
 test("the steps name the app, the Set up button and the subscription", () => {
   assert.equal(SETUP_STEPS.length, 3);
-  assert.match(SETUP_STEPS[0]!, /ntfy/);
-  assert.match(SETUP_STEPS[1]!, /Set up/);
-  assert.match(SETUP_STEPS[2]!, /Subscribe/);
+  assert.match(SETUP_STEPS[0]!.text, /ntfy/);
+  assert.match(SETUP_STEPS[1]!.text, /Set up/);
+  assert.match(SETUP_STEPS[2]!.text, /Subscribe/);
+});
+
+test("the install step links to the ntfy app in both stores", () => {
+  assert.deepEqual(
+    SETUP_STEPS[0]!.links?.map((link) => link.label),
+    ["App Store", "Google Play"],
+  );
+  for (const link of SETUP_STEPS[0]!.links ?? []) assert.match(link.url, /^https:\/\/(apps\.apple\.com|play\.google\.com)\//);
 });
 
 test("each test result tells the user what to do", () => {

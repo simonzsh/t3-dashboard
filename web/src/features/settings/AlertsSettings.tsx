@@ -45,7 +45,18 @@ export function AlertsSettings() {
           <span className="linear-status muted">Not set up</span>
           <ol className="install-steps">
             {SETUP_STEPS.map((step) => (
-              <li key={step}>{step}</li>
+              <li key={step.text}>
+                {step.text}
+                {step.links?.map((link, i) => (
+                  <span key={link.url}>
+                    {i === 0 ? " " : " or "}
+                    <a className="setup-link" href={link.url} target="_blank" rel="noreferrer">
+                      {link.label}
+                    </a>
+                  </span>
+                ))}
+                {step.links && "."}
+              </li>
             ))}
           </ol>
           <Button variant="primary" disabled={action.busy} onClick={() => change(() => api.setupAlerts())}>
