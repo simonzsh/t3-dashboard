@@ -138,7 +138,26 @@ const AUTOMATION_RUNS: ThreadSpec[] = [
 /** Finished runs from days ago, so the 30 and 90 day periods have turns to count. */
 const earlier = (id: string, days: number[]) => days.map((age) => ({ id: `run-${id}-${age}d`, status: "completed", started: age * 1440, completed: age * 1440 - 15 }));
 
+const RECENT_SETTLED: ThreadSpec[] = [
+  "Review account settings", "Update empty states", "Check keyboard navigation", "Fix invoice totals",
+  "Review search filters", "Update help text", "Check mobile menus", "Fix date formatting",
+  "Review error messages", "Update loading states", "Check export columns", "Fix profile validation",
+  "Review email templates", "Update onboarding steps", "Check notification preferences", "Fix table sorting",
+].map((title, index) => ({
+  id: `demo-settled-extra-${index + 1}`,
+  projectId: ["demo-atlas-web", "demo-mobile", "demo-assistant"][index % 3]!,
+  title,
+  model: index % 2 === 0 ? CODEX : SONNET,
+  status: "completed",
+  messages: [
+    ["user", 40 + index * 60, title + "."],
+    ["assistant", 30 + index * 60, "Done. The changes passed the checks and are ready."],
+  ],
+  thread: { settledOverride: "settled", settledAt: LAST },
+}));
+
 const SPECS: ThreadSpec[] = [
+  ...RECENT_SETTLED,
   ...AUTOMATION_RUNS,
   {
     id: "demo-checkout",
