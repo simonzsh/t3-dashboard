@@ -103,7 +103,10 @@ test("the demo shell fills the store with threads in every state", async () => {
   assert.ok(state.threads.length >= 8);
   const statuses = new Set(state.threads.map(agentStatus));
   assert.deepEqual([...statuses].sort(), ["finished", "waiting", "working"]);
-  assert.ok(state.threads.some((thread) => thread.settled));
+  const settled = demoFixtures(NOW).threads.filter((thread) => thread.settledOverride === "settled");
+  const cutoff = NOW.getTime() - 24 * 3_600_000;
+  assert.ok(settled.some((thread) => Date.parse(thread.settledAt ?? "") >= cutoff));
+  assert.ok(settled.some((thread) => Date.parse(thread.settledAt ?? "") < cutoff));
 });
 
 test("demo thread details show messages, activity, subagents and requests", async () => {

@@ -365,10 +365,10 @@ const SPECS: ThreadSpec[] = [
     messages: [
       ["user", 11000, "Write last week's product digest."],
       ["assistant", 10990, "Last week: 11 pull requests merged, 5 bugs closed. The digest is in the team channel."],
-      ["user", 1500, "Write this week's product digest."],
-      ["assistant", 1490, "This week: 14 pull requests merged, 3 bugs closed, and the 2.4 release is ready for review. Full digest posted in the team channel."],
+      ["user", 120, "Write this week's product digest."],
+      ["assistant", 110, "This week: 14 pull requests merged, 3 bugs closed, and the 2.4 release is ready for review. Full digest posted in the team channel."],
     ],
-    runs: [...earlier("digest", [160, 66, 48, 35, 24, 14]), { id: "run-digest-old0", status: "completed", started: 10999, completed: 10990 }, { id: "run-digest-1", status: "completed", started: 1499, completed: 1490 }],
+    runs: [...earlier("digest", [160, 66, 48, 35, 24, 14]), { id: "run-digest-old0", status: "completed", started: 10999, completed: 10990 }, { id: "run-digest-1", status: "completed", started: 119, completed: 110 }],
     thread: { settledOverride: "settled", settledAt: LAST },
   },
   {
