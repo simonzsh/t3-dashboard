@@ -144,6 +144,24 @@ test("the title guard sees HTML elements and kit buttons but not SVG titles or c
   assert.deepEqual(nativeTitles(`<svg><title>Done</title></svg><Dialog title="Settings" onClose={f} />`), []);
 });
 
+// The Pull requests refresh buttons once only greyed out while loading: every refresh that waits spins, like the cards.
+const RETRY_ICONS = new Set(["features/conversation/Composer.tsx"]);
+function staticRefreshIcons(text: string): number {
+  return [...text.matchAll(/<Icon name="refresh"(?![^>]*className)[^>]*\/>/g)].length;
+}
+
+test("a refresh icon spins while its load runs", () => {
+  const still = sources.filter(({ file, text }) => !RETRY_ICONS.has(file) && staticRefreshIcons(text) > 0).map(({ file }) => file);
+  assert.deepEqual(still, []);
+  const busy = sources.filter(({ text }) => /\brefreshing\b/.test(text) && /"refresh"/.test(text) && !text.includes("spinning")).map(({ file }) => file);
+  assert.deepEqual(busy, []);
+});
+
+test("the refresh guard sees an icon with no busy class", () => {
+  assert.equal(staticRefreshIcons(`<IconButton disabled={busy}><Icon name="refresh" /></IconButton>`), 1);
+  assert.equal(staticRefreshIcons(`<Icon name="refresh" className={busy ? "icon spinning" : "icon"} />`), 0);
+});
+
 // A CSS cleanup once dropped this rule and left dialog buttons glued together.
 test("button rows are spaced and dialog actions sit on the right", async () => {
   const css = await Bun.file(new URL("../src/styles.css", import.meta.url)).text();

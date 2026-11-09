@@ -86,7 +86,7 @@ export function PrListView({ list, error, refreshing, onRefresh, threads, now, o
             onPick={(repository) => setPrefs({ repository })}
           />
           <IconButton variant="ghost" className="pulls-refresh" label="Refresh the list" tooltip="Refresh the list" disabled={refreshing} onClick={onRefresh}>
-            <Icon name="refresh" />
+            <Icon name="refresh" className={refreshing ? "icon spinning" : "icon"} />
           </IconButton>
         </div>
       }
