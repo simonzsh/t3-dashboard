@@ -47,6 +47,8 @@ import { useMediaQuery } from "./lib/useMediaQuery.ts";
 import { usePageAttention } from "./lib/usePageAttention.ts";
 import { isTabAction } from "./lib/shortcuts.ts";
 import { useShortcuts } from "./lib/useShortcuts.ts";
+import { usePersisted } from "./lib/storage.ts";
+import { loadPhoneSession, savePhoneSession } from "./lib/phoneSession.ts";
 import { useSessionLayout } from "./lib/sessionLayout.ts";
 import { useSidebarCollapsed } from "./lib/sidebar.ts";
 import { agentCounts } from "./lib/agents.ts";
@@ -81,7 +83,7 @@ export function App() {
   const sheetMode = useMediaQuery(SHEET);
   const [listPrefs, setListPrefs] = useListPrefs();
   // On a phone the Sessions tab is a list; an opened session covers it, with no header or bottom bar.
-  const [phoneSession, setPhoneSession] = useState(false);
+  const [phoneSession, setPhoneSession] = usePersisted(loadPhoneSession, savePhoneSession);
   const sessionShown = compact && tab === "sessions" && phoneSession && sessions.focusedId !== null;
   const prShown = compact && tab === "pulls" && prRoute !== null;
   // Only a session in front of the user counts as read or watched: on a phone, not the list; never in a hidden or unfocused page.
