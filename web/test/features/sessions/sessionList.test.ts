@@ -14,6 +14,9 @@ import {
   sessionsBadgeCount,
   statusMark,
   settleBlockReason,
+  inactiveThreads,
+  settleThreads,
+  settlementFlightDelay,
 } from "../../../src/features/sessions/sessionList.ts";
 import { memoryStore, thread } from "../../fixtures.ts";
 
@@ -145,4 +148,43 @@ test("settle blocks all working sessions and requests but keeps unsettle availab
   assert.equal(settleBlockReason(thread("done", { status: "completed" })), null);
   assert.ok(settleBlockReason(thread("background", { status: "completed", backgroundWork: true })));
   assert.equal(settleBlockReason(thread("settled", { settled: true, status: "running" })), null);
+});
+
+test("bulk settlement selects only available sessions strictly older than three days", () => {
+  const now = new Date("2026-01-11T12:00:00.000Z");
+  const old = thread("old", { lastActivityAt: "2026-01-08T11:59:59.999Z" });
+  const threads = [
+    old,
+    { ...old, id: "settled", settled: true },
+    { ...old, id: "running", status: "running" },
+    { ...old, id: "background", backgroundWork: true },
+    { ...old, id: "waiting", pending: { category: "approval" as const } },
+    { ...old, id: "queued", status: "queued" },
+    { ...old, id: "boundary", lastActivityAt: "2026-01-08T12:00:00.000Z" },
+    { ...old, id: "invalid", lastActivityAt: "invalid" },
+  ];
+  assert.deepEqual(inactiveThreads(threads, now).map((t) => t.id), ["old"]);
+});
+
+test("bulk settlement continues after a failure and reports the failed count", async () => {
+  const called: string[] = [];
+  await assert.rejects(settleThreads([thread("a"), thread("b"), thread("c")], async (id, settled) => {
+    assert.equal(settled, true);
+    called.push(id);
+    if (id === "b") throw new Error("refused");
+  }), /1 of 3 sessions could not be settled/);
+  assert.deepEqual(called, ["a", "b", "c"]);
+  await settleThreads([], async () => { assert.fail("no request expected"); });
+});
+
+
+test("bulk flights fit within 1.5 seconds, including the dialog and arrival", () => {
+  for (const count of [1, 12, 200, 1000]) {
+    const last = settlementFlightDelay(count - 1, count, 0)!;
+    assert.ok(last + 560 <= 1500);
+  }
+  assert.equal(settlementFlightDelay(0, 12, 0), 160);
+  assert.equal(settlementFlightDelay(1, 12, 0), 220);
+  assert.equal(settlementFlightDelay(1, 200, 500), 0);
+  assert.equal(settlementFlightDelay(199, 200, 941), null);
 });

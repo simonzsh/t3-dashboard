@@ -4,15 +4,12 @@ import { hasFailed, threadState } from "../../../../shared/status.ts";
 import { newestFirst } from "../../lib/threads.ts";
 import type { IconName } from "../../ui/index.ts";
 
-/** Read threads older than this fold behind "See all", and "Settle all" settles them. */
-const RECENT_SETTLED_MS = 3 * 24 * 3_600_000;
-
 export interface ThreadSections {
   /** Waiting for an answer, or failed and not settled. */
   needsYou: DashboardThread[];
-  /** Finished, not settled, not read yet. */
+  /** Finished, not read yet. */
   unread: DashboardThread[];
-  /** Finished, not settled, read. */
+  /** Finished and read. */
   readIdle: DashboardThread[];
   /** Pinned first, then the most recent; the other lists keep the input order. */
   running: DashboardThread[];
@@ -28,8 +25,7 @@ export function threadSections(threads: DashboardThread[], seen: SeenState): Thr
     const state = threadState(t);
     if (state === "waiting") sections.needsYou.push(t);
     else if (state === "running") sections.running.push(t);
-    else if (t.settled) continue;
-    else if (state === "error") sections.needsYou.push(t);
+    else if (state === "error" && !t.settled) sections.needsYou.push(t);
     else if (isUnseen(t, seen)) sections.unread.push(t);
     else sections.readIdle.push(t);
   }
@@ -43,12 +39,6 @@ export function threadSections(threads: DashboardThread[], seen: SeenState): Thr
   return sections;
 }
 
-/** Read threads split at 3 days: the recent ones stay in the list, the old ones wait behind "See all" and "Settle all" settles them. */
-export function splitRead(readIdle: DashboardThread[], now: Date): { recent: DashboardThread[]; old: DashboardThread[] } {
-  const before = new Date(now.getTime() - RECENT_SETTLED_MS).toISOString();
-  return { recent: readIdle.filter((t) => t.lastActivityAt >= before), old: readIdle.filter((t) => t.lastActivityAt < before) };
-}
-
 /** The bell, the sidebar and the Notifications header count the same: what needs you (read or not) and the unread results. */
 export const attentionCount = (s: ThreadSections): number => s.needsYou.length + s.unread.length;
 
@@ -59,10 +49,10 @@ export interface Notification {
   kind: NotificationKind;
 }
 
-/** What needs you first, then unread results, then read threads; newest first in each group. */
-export function notificationList(s: ThreadSections, read: DashboardThread[]): Notification[] {
-  const group = (threads: DashboardThread[], kind: NotificationKind) => [...threads].sort(newestFirst).map((thread) => ({ thread, kind }));
-  return [...group(s.needsYou, "needs"), ...group(s.unread, "unread"), ...group(read, "read")];
+/** All retained notifications, newest first regardless of read or settlement state. */
+export function notificationList(s: ThreadSections): Notification[] {
+  const group = (threads: DashboardThread[], kind: NotificationKind) => threads.map((thread) => ({ thread, kind }));
+  return [...group(s.needsYou, "needs"), ...group(s.unread, "unread"), ...group(s.readIdle, "read")].sort((a, b) => newestFirst(a.thread, b.thread));
 }
 
 /** The status icon of a notification and its tone. */

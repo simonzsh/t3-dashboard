@@ -86,7 +86,6 @@ const render = (activity: ActivityState, { limits = limitsState(), threads = [th
       onCloseSheet={() => {}}
       onLayout={() => {}}
       onOpen={() => {}}
-      onSettle={async () => {}}
       seen={seen}
       seenReady
       onMarkRead={() => {}}
@@ -289,11 +288,11 @@ test("a read result stays in the list without a dot and greyed, under Nothing ne
   assert.match(out, /<button disabled=""[^>]*aria-label="Mark all read"/);
 });
 
-test("read threads older than 3 days wait behind See all", () => {
+test("old read threads appear directly without See all", () => {
   const old = thread("old", { title: "Old one", status: "completed", lastActivityAt: "2026-01-01T10:00:00.000Z" });
   const out = card(render(state(), { threads: [old], seen: { ...fresh, seen: { old: old.lastActivityAt } } }), "notifications-head");
-  assert.doesNotMatch(out, /Old one/);
-  assert.match(out, /See all \(1 more\)/);
+  assert.match(out, /Old one/);
+  assert.doesNotMatch(out, /See all|Settle all/);
 });
 
 test("an unread notification offers only Mark as read; Running rows have no button", () => {

@@ -1,32 +1,17 @@
-import { useMemo, useState, type ReactNode } from "react";
-import type { DashboardThread } from "../../../../shared/api.ts";
-import { useAction } from "../../lib/useAction.ts";
-import { Button, CardHead, Icon, IconButton } from "../../ui/index.ts";
+import { useMemo, type ReactNode } from "react";
+import { CardHead, Icon, IconButton } from "../../ui/index.ts";
 import { SkeletonRows } from "./SkeletonRows.tsx";
 import { attentionCount, notificationList, type Notification, type ThreadSections } from "./sections.ts";
 
 interface Props {
   sections: ThreadSections;
-  /** Read threads from the last 3 days, and the older ones that wait behind "See all". */
-  recent: DashboardThread[];
-  old: DashboardThread[];
   loading: boolean;
   renderItem: (n: Notification) => ReactNode;
   onMarkAllRead: () => void;
-  onSettle: (id: string, settle: boolean) => Promise<unknown>;
 }
 
-// Settles every thread even when some fail, then reports how many failed.
-async function settleEach(threads: DashboardThread[], onSettle: Props["onSettle"]): Promise<void> {
-  const results = await Promise.allSettled(threads.map((t) => onSettle(t.id, true)));
-  const failed = results.filter((r) => r.status === "rejected").length;
-  if (failed > 0) throw new Error(`${failed} of ${threads.length} failed.`);
-}
-
-export function NotificationsCard({ sections, recent, old, loading, renderItem, onMarkAllRead, onSettle }: Props) {
-  const [all, setAll] = useState(false);
-  const settleAll = useAction("settle the threads");
-  const items = useMemo(() => notificationList(sections, all ? sections.readIdle : recent), [sections, all, recent]);
+export function NotificationsCard({ sections, loading, renderItem, onMarkAllRead }: Props) {
+  const items = useMemo(() => notificationList(sections), [sections]);
   const attention = attentionCount(sections);
   return (
     <section className="dashboard-card notifications-card" aria-labelledby="notifications-head">
@@ -51,24 +36,6 @@ export function NotificationsCard({ sections, recent, old, loading, renderItem, 
             </p>
           )}
           {items.map(renderItem)}
-        </div>
-      )}
-      {(old.length > 0 || all) && (
-        <div className="notif-foot">
-          {all && old.length > 0 && (
-            <Button
-              size="sm"
-              loading={settleAll.busy}
-              tooltip={settleAll.error ?? undefined}
-              variant={settleAll.error ? "danger" : "secondary"}
-              onClick={() => void settleAll.run(() => settleEach(old, onSettle))}
-            >
-              Settle all older than 3 days ({old.length})
-            </Button>
-          )}
-          <Button variant="ghost" size="sm" aria-expanded={all} onClick={() => setAll(!all)}>
-            {all ? "Show less" : `See all (${old.length} more)`}
-          </Button>
         </div>
       )}
     </section>

@@ -8,9 +8,9 @@ import { AutomationMark } from "../../lib/automationThreads.tsx";
 import { ProviderIcon } from "../../lib/ProviderIcon.tsx";
 import { modelLabel } from "../../lib/models.ts";
 import { threadTitle } from "../../lib/threads.ts";
-import { Chevron, CountBadge, Icon, IconButton, Pressable, enter, fly, useFlip } from "../../ui/index.ts";
+import { Chevron, CountBadge, Dialog, Icon, IconButton, Pressable, enter, fly, reducedMotion, useFlip } from "../../ui/index.ts";
 import { ProjectMenu } from "./ProjectMenu.tsx";
-import { groupByProject, listableThreads, recentSettledThreads, settleBlockReason, statusMark, type ListPrefs } from "./sessionList.ts";
+import { groupByProject, inactiveThreads, settleThreads, settlementFlightDelay, listableThreads, recentSettledThreads, settleBlockReason, statusMark, type ListPrefs } from "./sessionList.ts";
 
 const MARK_LABELS = { running: "Running", waiting: "Waiting for you", error: "Failed", unread: "Unread" } as const;
 
@@ -38,6 +38,10 @@ interface Props {
 /** Every listed thread, by project or by recent activity: a click opens it as a session. */
 function SessionListView({ threads, projects, seen, modelNames, now, openIds, focusedId, prefs, onPrefs, onOpen, onNewSession, onAddProject, onEditProject, onDeleteProject, onSettle, onClose, onCloseAll }: Props) {
   const settleAction = useAction("change the session status");
+  const inactive = useMemo(() => inactiveThreads(threads, now), [threads, now]);
+  const [settleSelection, setSettleSelection] = useState<string[] | null>(null);
+  const selectedInactive = inactive.filter((t) => settleSelection?.includes(t.id));
+  const closeSettleDialog = () => { if (!settleAction.busy) setSettleSelection(null); };
   const shown = useMemo(() => listableThreads(threads), [threads]);
   const [settledOpen, setSettledOpen] = useState(false);
   const settled = useMemo(() => recentSettledThreads(threads, now), [threads, now]);
@@ -51,8 +55,11 @@ function SessionListView({ threads, projects, seen, modelNames, now, openIds, fo
   }, []);
   const activeBar = useRef<HTMLDivElement>(null);
   const settledAnchor = useRef<HTMLSpanElement>(null);
-  const flight = useRef<Animation | null>(null);
-  useEffect(() => () => { flight.current?.cancel(); }, []);
+  const flights = useRef(new Set<Animation>());
+  useEffect(() => () => {
+    for (const animation of flights.current) animation.cancel();
+    flights.current.clear();
+  }, []);
   const settledPanel = useRef<HTMLElement>(null);
   const settledContent = useRef<HTMLDivElement>(null);
   useLayoutEffect(() => {
@@ -90,6 +97,41 @@ function SessionListView({ threads, projects, seen, modelNames, now, openIds, fo
   const modeLabel = grouped ? "Show one list by recent activity" : "Group by project";
   const foldLabel = anyOpen ? "Collapse all projects" : "Expand all projects";
   const projectsById = useMemo(() => new Map(projects.map((p) => [p.id, p])), [projects]);
+
+  const flySession = (source: Element | null, unsettle = false) => {
+    const target = unsettle ? activeBar.current : settledPanel.current?.firstElementChild ?? settledAnchor.current;
+    const animation = source ? fly(source, target) : null;
+    if (animation) {
+      flights.current.add(animation);
+      const remove = () => { flights.current.delete(animation); };
+      void animation.finished.then(remove, remove);
+    }
+    return animation;
+  };
+
+  const settleInactive = async () => {
+    setSettleSelection(null);
+    const animate = !reducedMotion();
+    const started = performance.now();
+    let index = 0;
+    await settleThreads(selectedInactive, async (id, settle) => {
+      const delay = animate ? settlementFlightDelay(index++, selectedInactive.length, performance.now() - started) : null;
+      if (delay !== null && delay > 0) await new Promise<void>((resolve) => setTimeout(resolve, delay));
+      // Slow requests must not stretch the flight sequence beyond its visual budget.
+      const withinBudget = delay !== null && settlementFlightDelay(0, 1, performance.now() - started) !== null;
+      const source = withinBudget
+        ? Array.from(activeList.current?.querySelectorAll("[data-session-row]") ?? [])
+          .find((element) => element.getAttribute("data-session-row") === id)
+        : null;
+      const animation = flySession(source ?? null);
+      try {
+        await onSettle(id, settle);
+      } catch (error) {
+        animation?.cancel();
+        throw error;
+      }
+    });
+  };
 
   const row = (t: DashboardThread, settledRow = false) => {
     const mark = statusMark(t, seen);
@@ -134,23 +176,20 @@ function SessionListView({ threads, projects, seen, modelNames, now, openIds, fo
         </Pressable>
         {/* A sibling of the row, not inside it: a button cannot hold another button. */}
         {(blocked === null || isOpen) && <span className="thread-actions">
+          {isOpen && (
+            <IconButton variant="ghost" size="sm" label={`Close ${title}`} tooltip="Close session" onClick={() => onClose(t.id)}>
+              <Icon name="x" />
+            </IconButton>
+          )}
           {blocked === null && <IconButton variant="ghost" size="sm" label={`${t.settled ? "Unsettle" : "Settle"} ${title}`} tooltip={t.settled ? "Unsettle" : "Settle"} disabled={settleAction.busy} onClick={(event) => {
             const source = event.currentTarget.closest(".slist-item");
-            const target = t.settled ? activeBar.current : settledPanel.current?.firstElementChild ?? settledAnchor.current;
-            flight.current?.cancel();
-            const animation = source ? fly(source, target) : null;
-            flight.current = animation;
+            const animation = flySession(source, t.settled);
             void settleAction.run(() => onSettle(t.id, !t.settled)).then((success) => {
               if (!success) animation?.cancel();
             });
           }}>
             <Icon name={t.settled ? "archiveRestore" : "archive"} />
           </IconButton>}
-          {isOpen && (
-            <IconButton variant="ghost" size="sm" label={`Close ${title}`} tooltip="Close session" onClick={() => onClose(t.id)}>
-              <Icon name="x" />
-            </IconButton>
-          )}
         </span>}
       </div>
     );
@@ -222,6 +261,9 @@ function SessionListView({ threads, projects, seen, modelNames, now, openIds, fo
         <IconButton variant="ghost" size="sm" label="Close all sessions" tooltip="Close all sessions" disabled={openIds.size === 0} onClick={onCloseAll}>
           <Icon name="copyX" />
         </IconButton>
+        {inactive.length > 0 && <IconButton variant="ghost" size="sm" label="Settle inactive sessions" tooltip="Settle inactive sessions" disabled={settleAction.busy} onClick={() => { settleAction.setError(null); setSettleSelection(inactive.map((t) => t.id)); }}>
+          <Icon name="archive" />
+        </IconButton>}
       </div>
       <div ref={activeList} className="slist-body">
         {(grouped ? projectGroups.length === 0 : shown.length === 0) && settled.length === 0 ? <p className="slist-empty">No sessions yet.</p> : groups}
@@ -239,6 +281,26 @@ function SessionListView({ threads, projects, seen, modelNames, now, openIds, fo
         </section>
       )}
       <span ref={settledAnchor} aria-hidden="true" />
+      {settleSelection !== null && (
+        <Dialog
+          title="Settle inactive sessions?"
+          className="settle-dialog"
+          onClose={closeSettleDialog}
+          onCancel={closeSettleDialog}
+          primary={{
+            label: settleAction.busy ? "Settling…" : "Settle sessions",
+            disabled: settleAction.busy || selectedInactive.length === 0,
+            onClick: () => {
+              if (settleAction.busy) return;
+              void settleAction.run(settleInactive);
+            },
+          }}
+        >
+          <p>{settleAction.busy ? "Settling sessions…" : `${selectedInactive.length} ${selectedInactive.length === 1 ? "session" : "sessions"} inactive for over 3 days.`}</p>
+          <p className="hint">You can unsettle them later.</p>
+          {settleAction.error && <p className="auto-error" role="alert">{settleAction.error}</p>}
+        </Dialog>
+      )}
     </aside>
   );
 }

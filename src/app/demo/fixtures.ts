@@ -157,6 +157,23 @@ const RECENT_SETTLED: ThreadSpec[] = [
 }));
 
 const SPECS: ThreadSpec[] = [
+  ...[
+    "Fix export column order", "Review account labels", "Update password hints",
+    "Check invoice rounding", "Clean up unused styles", "Improve search empty states",
+    "Fix mobile table spacing", "Review API error messages", "Update setup instructions",
+    "Add missing form labels", "Simplify settings navigation", "Check report date filters",
+  ].map((title, index): ThreadSpec => {
+    const minutes = (4 + index) * 24 * 60;
+    return {
+      id: `demo-inactive-${index + 1}`,
+      projectId: ["demo-atlas-web", "demo-atlas-api", "demo-mobile"][index % 3]!,
+      title,
+      model: CODEX,
+      status: "completed",
+      messages: [["user", minutes + 15, title], ["assistant", minutes, "Done. Updated the implementation and checked the result."]],
+      runs: [{ id: `run-inactive-${index + 1}`, status: "completed", started: minutes + 14, completed: minutes }],
+    };
+  }),
   ...RECENT_SETTLED,
   ...AUTOMATION_RUNS,
   {
