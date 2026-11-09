@@ -193,6 +193,14 @@ const SPACING = /(^|;)\s*(padding|margin|max-width)(-[a-z-]+)?\s*:/;
 const rulesOf = (text: string): Array<[string, string]> =>
   [...text.replace(/\/\*[\s\S]*?\*\//g, "").replace(/@media[^{]*\{/g, "").matchAll(/([^{}]+)\{([^{}]*)\}/g)].map((m) => [m[1]!.trim(), m[2]!]);
 
+test("automation sheet sections keep their content height inside the scrolling body", () => {
+  const rules = new Map(rulesOf(css));
+  for (const selector of [".auto-section", ".auto-facts"]) {
+    assert.match(rules.get(selector) ?? "", /\bflex:\s*none\s*;/, `${selector} must not stretch or shrink`);
+  }
+  assert.match(rules.get(".auto-sheet-body") ?? "", /overflow-y:\s*auto\s*;/);
+});
+
 // The classes a page passes to its ListPage, or puts on its scroll box: they belong to the shell too.
 function shellClasses(): string[] {
   const out = new Set<string>();
