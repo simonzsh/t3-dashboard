@@ -134,3 +134,13 @@ test("a thread of an unknown project gets no actions button", () => {
   assert.match(html, /Unknown project/);
   assert.doesNotMatch(html, /Project actions/);
 });
+
+test("recent settled stays outside the main scroll body and starts collapsed", () => {
+  const html = renderToStaticMarkup(<SessionList {...base} threads={[
+    thread("recent", { title: "Settled example", settled: true, settledAt: base.now.toISOString() }),
+  ]} projects={[]} />);
+  assert.match(html, /<div class="slist-body"><\/div><section class="slist-settled"/);
+  assert.match(html, /aria-expanded="false"/);
+  assert.match(html, /Settled · last 24h/);
+  assert.doesNotMatch(html, /Settled example/);
+});

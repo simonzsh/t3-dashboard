@@ -164,19 +164,19 @@ function SessionListView({ threads, projects, seen, modelNames, now, openIds, fo
       </div>
       <div className="slist-body">
         {(grouped ? projectGroups.length === 0 : shown.length === 0) && settled.length === 0 ? <p className="slist-empty">No sessions yet.</p> : groups}
-        {settled.length > 0 && (
-          <section aria-label="Settled in the last 24 hours">
-            <div className="slist-project">
-              <Pressable className="slist-project-toggle" aria-expanded={settledOpen} onClick={() => setSettledOpen(!settledOpen)}>
-                <Chevron open={settledOpen} className="slist-chevron" />
-                <span className="slist-project-title">Settled · last 24h</span>
-                <span className="slist-total">{settled.length}</span>
-              </Pressable>
-            </div>
-            {settledOpen && settled.map((t) => row(t, true))}
-          </section>
-        )}
       </div>
+      {settled.length > 0 && (
+        <section className="slist-settled" aria-label="Settled in the last 24 hours">
+          <div className="slist-project">
+            <Pressable className="slist-project-toggle" aria-expanded={settledOpen} onClick={() => setSettledOpen(!settledOpen)}>
+              <Chevron open={settledOpen} opensUp className="slist-chevron" />
+              <span className="slist-project-title">Settled · last 24h</span>
+              <span className="slist-total">{settled.length}</span>
+            </Pressable>
+          </div>
+          {settledOpen && <div className="slist-settled-body">{settled.map((t) => row(t, true))}</div>}
+        </section>
+      )}
     </aside>
   );
 }
