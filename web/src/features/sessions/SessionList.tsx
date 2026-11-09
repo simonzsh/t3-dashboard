@@ -1,4 +1,4 @@
-import { memo, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { memo, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import type { DashboardProject, DashboardThread } from "../../../../shared/api.ts";
 import type { SeenState } from "../../../../shared/seen.ts";
 import { useAction } from "../../lib/useAction.ts";
@@ -8,7 +8,7 @@ import { AutomationMark } from "../../lib/automationThreads.tsx";
 import { ProviderIcon } from "../../lib/ProviderIcon.tsx";
 import { modelLabel } from "../../lib/models.ts";
 import { threadTitle } from "../../lib/threads.ts";
-import { Chevron, CountBadge, Icon, IconButton, Pressable, useFlip } from "../../ui/index.ts";
+import { Chevron, CountBadge, Icon, IconButton, Pressable, fly, useFlip } from "../../ui/index.ts";
 import { ProjectMenu } from "./ProjectMenu.tsx";
 import { groupByProject, listableThreads, recentSettledThreads, statusMark, type ListPrefs } from "./sessionList.ts";
 
@@ -42,6 +42,10 @@ function SessionListView({ threads, projects, seen, modelNames, now, openIds, fo
   const [settledOpen, setSettledOpen] = useState(false);
   const settled = useMemo(() => recentSettledThreads(threads, now), [threads, now]);
   const activeList = useRef<HTMLDivElement>(null);
+  const activeBar = useRef<HTMLDivElement>(null);
+  const settledAnchor = useRef<HTMLSpanElement>(null);
+  const flight = useRef<Animation | null>(null);
+  useEffect(() => () => { flight.current?.cancel(); }, []);
   const settledPanel = useRef<HTMLElement>(null);
   const settledContent = useRef<HTMLDivElement>(null);
   useFlip(activeList, shown.map((t) => t.id).join(","), { item: "data-session-row" });
@@ -117,7 +121,16 @@ function SessionListView({ threads, projects, seen, modelNames, now, openIds, fo
         </Pressable>
         {/* A sibling of the row, not inside it: a button cannot hold another button. */}
         <span className="thread-actions">
-          <IconButton variant="ghost" size="sm" label={`${t.settled ? "Unsettle" : "Settle"} ${title}`} tooltip={t.settled ? "Unsettle" : "Settle"} disabled={settleAction.busy} onClick={() => void settleAction.run(() => onSettle(t.id, !t.settled))}>
+          <IconButton variant="ghost" size="sm" label={`${t.settled ? "Unsettle" : "Settle"} ${title}`} tooltip={t.settled ? "Unsettle" : "Settle"} disabled={settleAction.busy} onClick={(event) => {
+            const source = event.currentTarget.closest(".slist-item");
+            const target = t.settled ? activeBar.current : settledPanel.current?.firstElementChild ?? settledAnchor.current;
+            flight.current?.cancel();
+            const animation = source ? fly(source, target) : null;
+            flight.current = animation;
+            void settleAction.run(() => onSettle(t.id, !t.settled)).then((success) => {
+              if (!success) animation?.cancel();
+            });
+          }}>
             <Icon name={t.settled ? "archiveRestore" : "archive"} />
           </IconButton>
           {isOpen && (
@@ -177,7 +190,7 @@ function SessionListView({ threads, projects, seen, modelNames, now, openIds, fo
 
   return (
     <aside className="slist" aria-label="Sessions list">
-      <div className="slist-bar">
+      <div ref={activeBar} className="slist-bar">
         <span className="slist-bar-title">Active sessions</span>
         <IconButton variant="ghost" size="sm" label="Add project" tooltip="Add project" onClick={onAddProject}>
           <Icon name="folderPlus" />
@@ -209,6 +222,7 @@ function SessionListView({ threads, projects, seen, modelNames, now, openIds, fo
           </div>
         </section>
       )}
+      <span ref={settledAnchor} aria-hidden="true" />
     </aside>
   );
 }
