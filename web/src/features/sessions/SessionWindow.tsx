@@ -48,7 +48,7 @@ function SessionWindowView({ id, thread, title, projectTitle, projectIcon, missi
   const onClose = () => dispatch({ type: "close", id });
   const onToggleMaximize = () => dispatch({ type: "maximize", id });
   const fullscreen = maximized ? "Exit fullscreen" : "Fullscreen";
-  const alertLabel = alert === "armed" ? "Alert armed: click to cancel" : "Alert me on my phone";
+  const alertLabel = alert === "armed" ? "Alert on: click to turn off" : "Alert me on my phone";
   const badge = thread ? attentionState(thread) : null;
   return (
     <section

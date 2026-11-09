@@ -111,5 +111,5 @@ test("the alert bell shows only when alerts are set up, and reports whether it i
   const bell = (alert: "armed" | "off" | null) => renderToStaticMarkup(<SessionWindow {...base} alert={alert} missing />);
   assert.doesNotMatch(bell(null), /Alert/);
   assert.match(bell("off"), /aria-label="Alert me on my phone"[^>]*aria-pressed="false"|aria-pressed="false"[^>]*aria-label="Alert me on my phone"/);
-  assert.match(bell("armed"), /aria-label="Alert armed: click to cancel"[^>]*aria-pressed="true"|aria-pressed="true"[^>]*aria-label="Alert armed: click to cancel"/);
+  assert.match(bell("armed"), /aria-label="Alert on: click to turn off"[^>]*aria-pressed="true"|aria-pressed="true"[^>]*aria-label="Alert on: click to turn off"/);
 });
