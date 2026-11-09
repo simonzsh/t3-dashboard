@@ -3,7 +3,7 @@ import type { DashboardProject, DashboardProvider, DashboardThread } from "../..
 import type { SeenState } from "../../../../shared/seen.ts";
 import { threadTitle } from "../../lib/threads.ts";
 import { modelNameMap } from "../../lib/models.ts";
-import { cellOf, neighborId, perColumn, spansRows, type SessionsAction, type SessionsState } from "./sessions.ts";
+import { alertMode, cellOf, neighborId, perColumn, spansRows, type SessionsAction, type SessionsState } from "./sessions.ts";
 import { focusSessionField, revealSessionWindow } from "./dom.ts";
 import { enter, Kbd, SidePanel, useFlip } from "../../ui/index.ts";
 import type { SessionLayout } from "../../lib/sessionLayout.ts";
@@ -35,6 +35,10 @@ interface Props {
   onBack: () => void;
   /** Opens a thread as a session and focuses it. */
   onOpen: (id: string) => void;
+  /** Phone alerts: the bell shows only when set up. */
+  alertsConfigured: boolean;
+  armedAlerts: ReadonlySet<string>;
+  onToggleAlert: (id: string) => void;
   onNewSession: (projectId: string) => void;
   onAddProject: () => void;
   onEditProject: (id: string) => void;
@@ -219,7 +223,7 @@ function useWindowDrag(enabled: boolean, dispatch: Dispatch<SessionsAction>) {
   };
 }
 
-export function SessionsView({ sessions, dispatch, threads, projects, seen, openPrs, now, layout, prefs, onPrefs, t3EnvironmentId, providers, phone, sessionShown, onBack, onOpen, onNewSession, onAddProject, onEditProject, onDeleteProject }: Props) {
+export function SessionsView({ sessions, dispatch, threads, projects, seen, openPrs, now, layout, prefs, onPrefs, t3EnvironmentId, providers, phone, sessionShown, onBack, onOpen, alertsConfigured, armedAlerts, onToggleAlert, onNewSession, onAddProject, onEditProject, onDeleteProject }: Props) {
   const modelNames = useMemo(() => modelNameMap(providers), [providers]);
   const openIds = useMemo(() => new Set(sessions.ids), [sessions.ids]);
   // On a phone, closing the open session goes back to the list.
@@ -334,6 +338,8 @@ export function SessionsView({ sessions, dispatch, threads, projects, seen, open
         openPrs={openPrs}
         onTitle={setChildTitle}
         onBack={phone ? onBack : undefined}
+        alert={alertMode(alertsConfigured, armedAlerts, id)}
+        onToggleAlert={onToggleAlert}
         dispatch={phone ? phoneDispatch : dispatch}
       />
     );

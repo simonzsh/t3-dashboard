@@ -67,3 +67,10 @@ test("a seen event leaves the dashboard state alone", () => {
   assert.equal(applyEvent(s, { type: "seen", data }), s);
   assert.equal(applyEvent(null, { type: "seen", data }), null);
 });
+
+test("an alerts event leaves the dashboard state alone", () => {
+  const s = baseState([thread("thread-1")]);
+  const data = { configured: true, armed: ["thread-1"] };
+  assert.equal(applyEvent(s, { type: "alerts", data }), s);
+  assert.equal(applyEvent(null, { type: "alerts", data }), null);
+});

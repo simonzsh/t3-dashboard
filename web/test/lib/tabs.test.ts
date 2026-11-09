@@ -1,6 +1,6 @@
 import { test } from "bun:test";
 import assert from "node:assert/strict";
-import { TABS, hashForPr, hashForTab, prFromHash, tabFromHash } from "../../src/lib/tabs.ts";
+import { TABS, hashForPr, hashForSession, hashForTab, prFromHash, sessionFromHash, tabFromHash } from "../../src/lib/tabs.ts";
 
 test("the tabs are Dashboard, Sessions, Pull requests, Automations and News", () => {
   assert.deepEqual(TABS.map((t) => [t.id, t.label]), [["dashboard", "Dashboard"], ["sessions", "Sessions"], ["pulls", "Pull requests"], ["automations", "Automations"], ["news", "News"]]);
@@ -33,7 +33,7 @@ test("no hash opens Dashboard", () => {
 });
 
 test("an unknown hash opens Dashboard", () => {
-  for (const hash of ["#/agents", "#/inbox", "#/home", "#/board", "#/settings", "#/Sessions", "#/sessions/extra", "#/constructor", "#/__proto__", "sessions"]) assert.equal(tabFromHash(hash), "dashboard", hash);
+  for (const hash of ["#/agents", "#/inbox", "#/home", "#/board", "#/settings", "#/Sessions", "#/sessions/a/b", "#/sessions/", "#/constructor", "#/__proto__", "sessions"]) assert.equal(tabFromHash(hash), "dashboard", hash);
 });
 
 test("a pull request hash opens the Pull requests page and reads back as its reference", () => {
@@ -49,4 +49,15 @@ test("a malformed pull request hash opens the Dashboard", () => {
     assert.equal(prFromHash(hash), null, hash);
     assert.equal(tabFromHash(hash), "dashboard", hash);
   }
+});
+
+test("a session hash opens the Sessions tab and reads back as its thread id", () => {
+  assert.equal(hashForSession("thread-1"), "#/sessions/thread-1");
+  assert.equal(tabFromHash("#/sessions/thread-1"), "sessions");
+  assert.equal(sessionFromHash("#/sessions/thread-1"), "thread-1");
+  assert.equal(sessionFromHash(hashForSession("a b/c")), "a b/c");
+});
+
+test("only a session hash reads as a session", () => {
+  for (const hash of ["", "#/sessions", "#/sessions/", "#/sessions/a/b", "#/pulls/acme/storefront/1", "#/sessions/%E0%A4%A"]) assert.equal(sessionFromHash(hash), null, hash);
 });

@@ -91,10 +91,10 @@ The code has three parts: the server (`src/`), the interface (`web/src/`) and th
 | `main.ts` | Entry point. It reads the arguments and starts the correct command. |
 | `app/` | Composition root. `start.ts` creates the real clients and connects them. `deps.ts` gives the real access to the disk and to processes. |
 | `cli/` | Commands that run one time: arguments, installation, service, binary update. |
-| `config/` | Environment variables, paths, version, dashboard files (Linear key, token, PID, automation threads, news settings) and the agent rules block. |
+| `config/` | Environment variables, paths, version, dashboard files (Linear key, token, PID, automation threads, news settings, alerts) and the agent rules block. |
 | `server/` | HTTP, SSE and static site. The router reads and validates the requests (`validate.ts`), then calls the domain. `htmlRender.ts` applies the theme to the `html_render` pages. |
-| `domain/` | Rules and state: sync with T3, thread sorting, thread detail, actions, token, Linear board, settings, updates, automations (and the guard that moves tasks out of worktrees and pauses reminders), the news, the Pull requests page (pull requests read through `gh`, cached), project icons, models, usage, provider limits, server stats. |
-| `integrations/` | All calls to another system: T3 Code, Linear and GitHub (releases by HTTP, pull requests through the `gh` program). Each response goes through a schema. |
+| `domain/` | Rules and state: sync with T3, thread sorting, thread detail, actions, token, Linear board, settings, updates, automations (and the guard that moves tasks out of worktrees and pauses reminders), the phone alerts (ntfy topic, armed sessions, one alert per armed session), the news, the Pull requests page (pull requests read through `gh`, cached), project icons, models, usage, provider limits, server stats. |
+| `integrations/` | All calls to another system: T3 Code, Linear, ntfy (phone alerts) and GitHub (releases by HTTP, pull requests through the `gh` program). Each response goes through a schema. |
 
 ### Interface (`web/src/`)
 
@@ -115,7 +115,7 @@ Every page uses the page shell: the block between `page-shell:start` and `page-s
 
 ### Contract (`shared/`)
 
-`shared/api.ts` re-exports the types of each topic: `threads`, `connection`, `events`, `requests`, `linear`, `settings`, `automations`, `usage`, `providerLimits`, `serverStats`, `news`. `limits.ts` contains the shared limits (images, message size, runtime modes). `status.ts` contains the thread status model. `guards.ts` contains the checks for untrusted values (request bodies, files, browser storage). `events.ts` gives the list of event types: the interface subscribes to this list.
+`shared/api.ts` re-exports the types of each topic: `threads`, `connection`, `events`, `requests`, `linear`, `settings`, `automations`, `usage`, `providerLimits`, `serverStats`, `news`, `alerts`. `limits.ts` contains the shared limits (images, message size, runtime modes). `status.ts` contains the thread status model. `notify.ts` finds the threads that start waiting or end a run: the browser toasts and the phone alerts both use it. `guards.ts` contains the checks for untrusted values (request bodies, files, browser storage). `events.ts` gives the list of event types: the interface subscribes to this list.
 
 ### Import rules
 

@@ -33,7 +33,7 @@ import { useOpenHistory } from "./features/switcher/useOpenHistory.ts";
 import { SettingsDialog } from "./features/settings/SettingsDialog.tsx";
 import { SetupScreen } from "./features/setup/SetupScreen.tsx";
 import { UpdateDialog } from "./features/update/UpdateDialog.tsx";
-import { neighborId, type Direction } from "./features/sessions/sessions.ts";
+import { neighborId, sessionLinkAction, type Direction } from "./features/sessions/sessions.ts";
 import { useAutomations } from "./features/automations/useAutomations.ts";
 import { automationsBadge } from "./features/automations/automations.ts";
 import { AutomationThreadsContext } from "./lib/automationThreads.tsx";
@@ -49,8 +49,9 @@ import { useShortcuts } from "./lib/useShortcuts.ts";
 import { useSessionLayout } from "./lib/sessionLayout.ts";
 import { useSidebarCollapsed } from "./lib/sidebar.ts";
 import { agentCounts } from "./lib/agents.ts";
-import { TABS } from "./lib/tabs.ts";
-import { usePrRoute, useTab } from "./lib/useTab.ts";
+import { hashForTab, TABS } from "./lib/tabs.ts";
+import { useAlerts } from "./features/alerts/useAlerts.ts";
+import { usePrRoute, useSessionRoute, useTab } from "./lib/useTab.ts";
 import { useTheme } from "./features/settings/useTheme.ts";
 import { useAccent } from "./features/settings/useAccent.ts";
 import { useTint } from "./features/settings/useTint.ts";
@@ -64,9 +65,10 @@ const NO_IDS: string[] = [];
 const SHEET = "(max-width: 1200px)";
 
 export function App() {
-  const { state, sseDown, remoteSessions, remoteSeen, connects } = useDashboard();
+  const { state, sseDown, remoteSessions, remoteSeen, remoteAlerts, connects } = useDashboard();
   const [tab, setTab] = useTab();
   const prRoute = usePrRoute();
+  const sessionRoute = useSessionRoute();
   // Always loaded while live: it feeds the Automations badge and the automation icon, besides the page.
   const threadIds = useMemo(() => state?.threads.map((t) => t.id) ?? NO_IDS, [state?.threads]);
   const automations = useAutomations(state?.connection.t3 === "live", threadIds);
@@ -83,13 +85,14 @@ export function App() {
   // Only a session in front of the user counts as read or watched: on a phone, not the list.
   const inFront = tab === "sessions" && (!compact || sessionShown) ? sessions.focusedId : null;
   const [openHistory, recordOpened] = useOpenHistory();
-  useSessionsSync({
+  const { loaded: sessionsLoaded } = useSessionsSync({
     sessions,
     dispatch: dispatchSessions,
     threads: state?.connection.t3 === "live" ? state.threads : null,
     remote: remoteSessions,
     connects,
   });
+  const alerts = useAlerts({ remote: remoteAlerts, connects });
   const watching = useRef<(id: string) => boolean>(() => false);
   watching.current = (id) => inFront === id;
   const notify = useNotifications({
@@ -214,6 +217,15 @@ export function App() {
   const setup = useSetupRows(threads, automations.result?.setupThreadIds, automations.reload);
   const automationThreads = useMemo(() => new Set(automations.result?.automationThreadIds ?? NO_IDS), [automations.result?.automationThreadIds]);
   const threadsById = useMemo(() => new Map(threads.map((t) => [t.id, t])), [threads]);
+  // A `#/sessions/<id>` link (a phone alert) opens that session once the saved sessions and live threads are in.
+  const linkLive = state?.connection.t3 === "live";
+  const linkAction = sessionLinkAction(sessionRoute, { loaded: sessionsLoaded, live: linkLive }, threadsById);
+  useEffect(() => {
+    if (linkAction !== "open" && linkAction !== "drop") return;
+    // Replace the link first: setTab then sees "#/sessions" and adds no history entry, so Back leaves the page.
+    location.replace(hashForTab("sessions"));
+    if (linkAction === "open") openRef.current(sessionRoute!, true);
+  }, [linkAction, sessionRoute]);
   const automationsNav = useMemo(() => automationsBadge(automations.result?.automations ?? [], threadsById, notify.seen), [automations.result?.automations, threadsById, notify.seen]);
   const unread = useMemo(() => attentionCount(threadSections(threads, notify.seen)), [threads, notify.seen]);
   const agents = useMemo(() => agentCounts(threads), [threads]);
@@ -374,6 +386,9 @@ export function App() {
                   sessionShown={sessionShown}
                   onBack={back}
                   onOpen={openSession}
+                  alertsConfigured={alerts.configured}
+                  armedAlerts={alerts.armed}
+                  onToggleAlert={alerts.toggle}
                   onNewSession={newSession}
                   onAddProject={() => setAddingProject(true)}
                   onEditProject={setEditingProject}

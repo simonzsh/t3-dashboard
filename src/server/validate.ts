@@ -1,4 +1,5 @@
-import type { ApprovalDecision, AssignIssueBody, CreateAutomationBody, CreateProjectBody, CreateThreadBody, ProjectIconSpec, RoutineSchedule, WebhookFilter, WebhookSignature, ModelSelection, RespondBody, RewindBody, SaveNewsBody, SecretAnswerBody, SendMessageBody, ThreadSettingsBody, UpdateAutomationBody, UpdateProjectBody, UploadedAttachment, UserInputAnswers, WorkspaceChoice } from "../../shared/api.ts";
+import type { AlertArmBody, ApprovalDecision, AssignIssueBody, CreateAutomationBody, CreateProjectBody, CreateThreadBody, ProjectIconSpec, RoutineSchedule, WebhookFilter, WebhookSignature, ModelSelection, RespondBody, RewindBody, SaveNewsBody, SecretAnswerBody, SendMessageBody, ThreadSettingsBody, UpdateAutomationBody, UpdateProjectBody, UploadedAttachment, UserInputAnswers, WorkspaceChoice } from "../../shared/api.ts";
+import { isAlertClick } from "../../shared/alerts.ts";
 import { PROJECT_COLOR_NAMES } from "../../shared/projectColors.ts";
 import { ACTIVITY_PERIODS, DEFAULT_ACTIVITY_PERIOD, type ActivityPeriod } from "../../shared/usage.ts";
 import { isRepository, type PrRef } from "../../shared/pulls.ts";
@@ -454,6 +455,11 @@ export function validSeen(body: Record<string, unknown>): SeenChange {
   if (isSeenId(body.id) && isSeenTime(body.at)) return { id: body.id, at: body.at };
   if (isSeenTime(body.since)) return { since: body.since };
   throw new HttpError(400, "id and at (a mark), or since (the baseline), are required");
+}
+
+export function validArm(body: Record<string, unknown>): AlertArmBody {
+  if (typeof body.clickUrl !== "string" || !isAlertClick(body.clickUrl)) throw bad("clickUrl must be an http(s) URL");
+  return { clickUrl: body.clickUrl };
 }
 
 export function validEnabled(body: Record<string, unknown>): boolean {

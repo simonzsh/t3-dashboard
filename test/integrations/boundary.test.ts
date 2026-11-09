@@ -20,7 +20,7 @@ const RULES: Rule[] = [
     // Skips only a `fetch(...) {` or `fetch(...):` method definition (the server's own handler).
     pattern: /^(?!\s*(?:async\s+)?fetch\([^)]*\)\s*[:{]).*(?:(?<![\w.])fetch\(|globalThis\.fetch\b)/m,
     allowed: {
-      "app/start.ts": "composition root: hands the real fetch to the Linear and GitHub clients",
+      "app/start.ts": "composition root: hands the real fetch to the Linear, GitHub and ntfy clients",
       "app/deps.ts": "install probe of the dashboard's own /api/health",
     },
   },
@@ -34,9 +34,9 @@ const RULES: Rule[] = [
     },
   },
   {
-    name: "T3, Linear or GitHub location",
+    name: "T3, Linear, GitHub or ntfy location",
     pattern:
-      /server-runtime\.json|environment-id|"\.t3"|"auth", "session"|api\.linear\.app|github\.com|env\.(?:T3CODE_HOME|T3_SERVER_RUNTIME|T3_DASHBOARD_T3_BIN)\b/,
+      /server-runtime\.json|environment-id|"\.t3"|"auth", "session"|api\.linear\.app|github\.com|ntfy\.sh|env\.(?:T3CODE_HOME|T3_SERVER_RUNTIME|T3_DASHBOARD_T3_BIN)\b/,
     allowed: {},
   },
 ];

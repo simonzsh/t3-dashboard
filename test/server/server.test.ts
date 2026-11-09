@@ -16,6 +16,9 @@ import type { StashEntry } from "../../shared/stash.ts";
 import type { SharedSessions } from "../../shared/sessions.ts";
 import type { SeenState } from "../../shared/seen.ts";
 import { SeenStore } from "../../src/domain/seenStore.ts";
+import { createAlerts } from "../../src/domain/alerts.ts";
+import type { StoredAlerts } from "../../src/config/alertsFile.ts";
+import type { NtfyMessage, NtfyTarget } from "../../src/integrations/ntfy/client.ts";
 import { createSettings } from "../../src/domain/settings.ts";
 import { createDashboardServer } from "../../src/server/server.ts";
 import type { DashboardHandler } from "../../src/server/server.ts";
@@ -55,6 +58,7 @@ interface StartOptions {
   sessions?: SharedSessions | null;
   stash?: StashEntry[];
   seen?: SeenState | null;
+  alerts?: StoredAlerts;
 }
 
 const CACHE_PREVIEW: CacheCleanupPreview = { supported: true, targets: [{ id: "npm", label: "npm cache", bytes: 300 }, { id: "uv", label: "uv cache", bytes: 200 }], totalBytes: 500 };
@@ -151,10 +155,30 @@ async function start(startOptions: StartOptions = {}) {
   };
   const hub = new SseHub({ batchMs: 10, pingMs: 60_000 });
   let counter = 0;
+  const sentAlerts: Array<{ target: NtfyTarget; message: NtfyMessage }> = [];
+  const savedAlerts: StoredAlerts[] = [];
+  const alerts = createAlerts({
+    initial: startOptions.alerts ?? { server: "https://ntfy.example", topic: null, armed: [] },
+    persist: (file) => void savedAlerts.push(file),
+    send: async (target, message) => void sentAlerts.push({ target, message }),
+    check: async () => "ok",
+    newTopic: () => "topic-made-here",
+    threads: () => store.threads(),
+    projectTitle: (id) => store.project(id)?.title,
+    now: () => now,
+    onChange: (state) => hub.broadcast({ type: "alerts", data: state }),
+    warn: () => {},
+  });
   const store: ShellStore = new ShellStore({
     now: () => now,
-    onState: () => hub.broadcast({ type: "state", data: getState() }),
-    onThreads: (diff) => hub.broadcast({ type: "threads", data: diff }),
+    onState: () => {
+      hub.broadcast({ type: "state", data: getState() });
+      alerts.observe(store.threads());
+    },
+    onThreads: (diff) => {
+      hub.broadcast({ type: "threads", data: diff });
+      alerts.observe(store.threads());
+    },
     onProjects: (diff) => hub.broadcast({ type: "projects", data: diff }),
   });
   const getState = (): DashboardState => store.state(connection, []);
@@ -189,6 +213,7 @@ async function start(startOptions: StartOptions = {}) {
     sessions,
     stash,
     seen,
+    alerts,
     hub,
     board,
     usage,
@@ -207,7 +232,7 @@ async function start(startOptions: StartOptions = {}) {
     allowedHosts: startOptions.allowedHosts,
   });
   running.push(async () => hub.close());
-  return { port, store, hub, server, cleanupCalls, usageCalls, limitsCalls, savedSessions, savedStashes, savedSeen, events, linearCalls, files, setupCalls, updateRuns };
+  return { port, store, hub, server, alerts, sentAlerts, savedAlerts, cleanupCalls, usageCalls, limitsCalls, savedSessions, savedStashes, savedSeen, events, linearCalls, files, setupCalls, updateRuns };
 }
 
 interface Reply {
@@ -672,6 +697,11 @@ test("every POST route refuses a body that is not JSON", async () => {
     "/api/sessions",
     "/api/stash",
     "/api/seen",
+    "/api/alerts/threads/run-1/arm",
+    "/api/alerts/threads/run-1/disarm",
+    "/api/settings/alerts/setup",
+    "/api/settings/alerts/test",
+    "/api/settings/alerts/disconnect",
     "/api/cache-cleanup",
     "/api/setup/retry",
     "/api/setup/token",
@@ -2084,4 +2114,59 @@ test("a gh failure on the pull request routes becomes a 502 without gh's output"
     assert.equal(reply.status, 502, path);
     assert.equal((reply.json as { error: string }).error, "GitHub CLI is not signed in: run gh auth login on the server");
   }
+});
+
+const CLICK = "https://dash.example/#/sessions/run-1";
+const SET_UP: StoredAlerts = { server: "https://ntfy.example", topic: "secret-topic", armed: [] };
+const alertEvents = (events: DashboardEvent[]) => events.flatMap((event) => (event.type === "alerts" ? [event.data] : []));
+const updateThread = (id: string, status: string, activeRunId: string | null = null): ShellItem => ({ kind: "thread.updated", thread: { id, projectId: "project-1", title: "Thread 2", status, activeRunId, createdAt: "2026-03-02T00:00:00Z" } });
+
+test("GET /api/alerts says whether alerts are set up and what is armed, never the topic", async () => {
+  const { server } = await start();
+  assert.deepEqual((await call(server, "GET", "/api/alerts")).json, { configured: false, armed: [] });
+  const set = await start({ alerts: SET_UP });
+  await post(set.server, "/api/alerts/threads/run-1/arm", { clickUrl: CLICK });
+  const reply = await call(set.server, "GET", "/api/alerts");
+  assert.deepEqual(reply.json, { configured: true, armed: ["run-1"] });
+  assert.equal(reply.text.includes("secret-topic"), false);
+});
+
+test("settings: setup, test and disconnect answer with the settings and broadcast the state", async () => {
+  const { server, events } = await start();
+  assert.deepEqual((await call(server, "GET", "/api/settings/alerts")).json, { connected: false, server: null, topic: null, subscribeUrl: null });
+  assert.equal((await post(server, "/api/settings/alerts/test")).status, 409);
+  const made = await post(server, "/api/settings/alerts/setup", {});
+  assert.deepEqual(made.json, { connected: true, server: "https://ntfy.sh", topic: "topic-made-here", subscribeUrl: "https://ntfy.sh/topic-made-here" });
+  assert.deepEqual((await post(server, "/api/settings/alerts/test")).json, { result: "ok" });
+  assert.equal((await post(server, "/api/settings/alerts/disconnect")).json.connected, false);
+  assert.deepEqual(alertEvents(events), [{ configured: true, armed: [] }, { configured: false, armed: [] }]);
+});
+
+test("arm answers 409 when not set up, 404 for an unknown thread and 400 for a bad link", async () => {
+  const off = await start();
+  assert.equal((await post(off.server, "/api/alerts/threads/run-1/arm", { clickUrl: CLICK })).status, 409);
+  const { server } = await start({ alerts: SET_UP });
+  assert.equal((await post(server, "/api/alerts/threads/nope/arm", { clickUrl: CLICK })).status, 404);
+  assert.equal((await post(server, "/api/alerts/threads/run-1/arm", { clickUrl: "javascript:1" })).status, 400);
+  assert.equal((await post(server, "/api/alerts/threads/run-1/arm", {})).status, 400);
+});
+
+test("an armed thread that finishes sends one alert and broadcasts the state without it; a second change sends none", async () => {
+  const { server, store, events, sentAlerts } = await start({ alerts: SET_UP });
+  assert.deepEqual((await post(server, "/api/alerts/threads/run-1/arm", { clickUrl: CLICK })).json, { configured: true, armed: ["run-1"] });
+  store.apply([updateThread("run-1", "completed")]);
+  assert.equal(sentAlerts.length, 1);
+  assert.deepEqual(sentAlerts[0], { target: { server: "https://ntfy.example", topic: "secret-topic" }, message: { title: "Thread 2", message: "Finished · Project A", priority: 3, click: CLICK } });
+  assert.deepEqual(alertEvents(events).at(-1), { configured: true, armed: [] });
+  store.apply([updateThread("run-1", "running", "run-b")]);
+  store.apply([updateThread("run-1", "completed")]);
+  assert.equal(sentAlerts.length, 1);
+});
+
+test("disarm is idempotent and broadcasts the new state", async () => {
+  const { server, events } = await start({ alerts: SET_UP });
+  await post(server, "/api/alerts/threads/run-1/arm", { clickUrl: CLICK });
+  assert.deepEqual((await post(server, "/api/alerts/threads/run-1/disarm")).json, { configured: true, armed: [] });
+  assert.deepEqual((await post(server, "/api/alerts/threads/run-1/disarm")).json, { configured: true, armed: [] });
+  assert.deepEqual(alertEvents(events), [{ configured: true, armed: ["run-1"] }, { configured: true, armed: [] }]);
 });
