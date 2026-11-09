@@ -392,6 +392,15 @@ test("a dragged session header keeps its source width and pointer offset", () =>
   assert.doesNotMatch(rule, /(?:^|;)\s*(?:width|min-width):/);
 });
 
+test("mobile session header spacing cannot replace its focus tint", () => {
+  const rules = [...css.matchAll(/([^{}]+)\{([^{}]+)\}/g)];
+  const mobileHeaders = rules.filter(([, selector]) => selector!.includes(".sessions.compact .session-window-head"));
+  assert.ok(mobileHeaders.length > 0);
+  for (const [, , declarations] of mobileHeaders) {
+    assert.doesNotMatch(declarations!, /\bbackground(?:-color)?\s*:/);
+  }
+});
+
 test("menu icons preserve semantic status colors before the neutral fallback", () => {
   const css = readFileSync("web/src/styles.css", "utf8");
   const rule = css.match(/\.dropdown-option\[role="menuitem"\] > \.icon \{([^}]+)\}/)?.[1];

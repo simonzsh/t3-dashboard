@@ -97,7 +97,8 @@ export function PrHeader(props: Props) {
           </IconButtonLink>
         )}
         <h2 className="pulls-title">
-          {title} {detail && <span className="pulls-num">#{detail.number}</span>}
+          <span className="pulls-title-text" data-tooltip={title} data-tooltip-clipped>{title}</span>
+          {detail && <span className="pulls-num">#{detail.number}</span>}
         </h2>
         <div className="pulls-head-actions">
           {phone ? (

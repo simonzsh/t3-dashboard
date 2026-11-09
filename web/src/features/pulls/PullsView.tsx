@@ -81,6 +81,8 @@ export function PrListView({ list, error, refreshing, onRefresh, threads, now, o
           <Segmented label="Show" value={scope} options={SCOPES.map((s) => (s.id === "unread" && unread > 0 ? { ...s, label: `Unread ${unread}` } : s))} onChange={(scope) => setPrefs({ scope })} />
           <Dropdown
             label="Repository"
+            filterable
+            searchPlaceholder="Search repositories…"
             value={repo}
             options={[{ id: ALL_REPOSITORIES, label: "All repositories" }, ...repositories.map((r) => ({ id: r, label: r }))]}
             onPick={(repository) => setPrefs({ repository })}
