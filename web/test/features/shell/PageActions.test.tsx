@@ -7,7 +7,7 @@ import type { Tab } from "../../../src/lib/tabs.ts";
 const noop = () => {};
 const render = (tab: Tab, over: Partial<Parameters<typeof PageActions>[0]> = {}) =>
   renderToStaticMarkup(
-    <PageActions tab={tab} compact={false} ready editingLayout={false} layoutIsDefault={false} layout="columns" onLayoutChange={noop} listHidden={false} onToggleList={noop} onNewSession={noop} onNewAutomation={noop} newsCanRun newsRunning={false} onNewsRun={noop} onNewsSettings={noop} onSearch={noop} onSettings={noop} updateReady={false} onEditLayout={noop} onDoneLayout={noop} onResetLayout={noop} unread={0} notificationsOpen={false} onToggleNotifications={noop} {...over} />,
+    <PageActions tab={tab} compact={false} ready editingLayout={false} layoutIsDefault={false} layout="columns" onLayoutChange={noop} listHidden={false} onToggleList={noop} onAddProject={noop} onNewSession={noop} onNewAutomation={noop} newsCanRun newsRunning={false} onNewsRun={noop} onNewsSettings={noop} onSearch={noop} onSettings={noop} updateReady={false} onEditLayout={noop} onDoneLayout={noop} onResetLayout={noop} unread={0} notificationsOpen={false} onToggleNotifications={noop} {...over} />,
   );
 
 test("Sessions shows the list toggle, then the layout toggle, then New Session", () => {
@@ -130,7 +130,7 @@ test("on a phone every page header ends with Search and Settings", () => {
 
 test("on a phone the Settings button shows a dot when an update is ready", () => {
   const out = renderToStaticMarkup(
-    <PageActions tab="sessions" compact ready editingLayout={false} layoutIsDefault={false} layout="columns" onLayoutChange={noop} listHidden={false} onToggleList={noop} onNewSession={noop} onNewAutomation={noop} newsCanRun newsRunning={false} onNewsRun={noop} onNewsSettings={noop} onSearch={noop} onSettings={noop} updateReady onEditLayout={noop} onDoneLayout={noop} onResetLayout={noop} unread={0} notificationsOpen={false} onToggleNotifications={noop} />,
+    <PageActions tab="sessions" compact ready editingLayout={false} layoutIsDefault={false} layout="columns" onLayoutChange={noop} listHidden={false} onToggleList={noop} onAddProject={noop} onNewSession={noop} onNewAutomation={noop} newsCanRun newsRunning={false} onNewsRun={noop} onNewsSettings={noop} onSearch={noop} onSettings={noop} updateReady onEditLayout={noop} onDoneLayout={noop} onResetLayout={noop} unread={0} notificationsOpen={false} onToggleNotifications={noop} />,
   );
   assert.match(out, /class="[^"]*has-update[^"]*"[^>]*aria-label="Settings, an update is ready"|aria-label="Settings, an update is ready"[^>]*class="[^"]*has-update/);
 });
@@ -169,4 +169,14 @@ test("News settings shows the preferences sliders, not the pencil or the app gea
   assert.doesNotMatch(button, /M12 20h9/);
   // Ghost like the list toggle beside it: no background.
   assert.match(out, /class="icon-button md ghost"[^>]*aria-label="News settings"|aria-label="News settings"[^>]*class="icon-button md ghost"/);
+});
+
+
+test("Sessions places the icon-only Add project before New Session", () => {
+  for (const compact of [false, true]) {
+    const html = render("sessions", { compact });
+    assert.ok(html.indexOf('aria-label="Add project"') >= 0);
+    assert.ok(html.indexOf('aria-label="Add project"') < html.indexOf('New Session'));
+    assert.doesNotMatch(html, />Add project</);
+  }
 });

@@ -27,7 +27,6 @@ interface Props {
   onPrefs: (change: Partial<ListPrefs>) => void;
   onOpen: (id: string) => void;
   onNewSession: (projectId: string) => void;
-  onAddProject: () => void;
   onEditProject: (id: string) => void;
   onDeleteProject: (id: string) => void;
   onSettle: (id: string, settle: boolean) => Promise<unknown>;
@@ -36,7 +35,7 @@ interface Props {
 }
 
 /** Every listed thread, by project or by recent activity: a click opens it as a session. */
-function SessionListView({ threads, projects, seen, modelNames, now, openIds, focusedId, prefs, onPrefs, onOpen, onNewSession, onAddProject, onEditProject, onDeleteProject, onSettle, onClose, onCloseAll }: Props) {
+function SessionListView({ threads, projects, seen, modelNames, now, openIds, focusedId, prefs, onPrefs, onOpen, onNewSession, onEditProject, onDeleteProject, onSettle, onClose, onCloseAll }: Props) {
   const settleAction = useAction("change the session status");
   const inactive = useMemo(() => inactiveThreads(threads, now), [threads, now]);
   const [settleSelection, setSettleSelection] = useState<string[] | null>(null);
@@ -247,9 +246,6 @@ function SessionListView({ threads, projects, seen, modelNames, now, openIds, fo
           <span>Active sessions</span>
           <CountBadge count={shown.length} tone="neutral" showZero max={Infinity} label={`${shown.length} active sessions`} />
         </span>
-        <IconButton variant="ghost" size="sm" label="Add project" tooltip="Add project" onClick={onAddProject}>
-          <Icon name="folderPlus" />
-        </IconButton>
         {grouped && (
           <IconButton variant="ghost" size="sm" label={foldLabel} tooltip={foldLabel} disabled={foldable.length === 0} onClick={() => onPrefs({ collapsed: anyOpen ? foldable.map((g) => g.id) : [] })}>
             <Icon name={anyOpen ? "chevronsDownUp" : "chevronsUpDown"} />
@@ -258,9 +254,9 @@ function SessionListView({ threads, projects, seen, modelNames, now, openIds, fo
         <IconButton variant="ghost" size="sm" label={modeLabel} tooltip={modeLabel} onClick={() => onPrefs({ mode: toMode })}>
           <Icon name={toMode === "grouped" ? "listTree" : "list"} />
         </IconButton>
-        <IconButton variant="ghost" size="sm" label="Close all sessions" tooltip="Close all sessions" disabled={openIds.size === 0} onClick={onCloseAll}>
+        {openIds.size > 0 && <IconButton variant="ghost" size="sm" label="Close all sessions" tooltip="Close all sessions" onClick={onCloseAll}>
           <Icon name="copyX" />
-        </IconButton>
+        </IconButton>}
         {inactive.length > 0 && <IconButton variant="ghost" size="sm" label="Settle inactive sessions" tooltip="Settle inactive sessions" disabled={settleAction.busy} onClick={() => { settleAction.setError(null); setSettleSelection(inactive.map((t) => t.id)); }}>
           <Icon name="archive" />
         </IconButton>}
