@@ -214,6 +214,11 @@ test("the pull request head keeps room above the stuck file header and tree", ()
   assert.match(rule(".pulls-head"), /padding-bottom: 10px;/);
 });
 
+test("a pull request row lights up as a whole on hover, Sessions button included", () => {
+  assert.match(css, /\.pulls-row:hover \{ background:/);
+  assert.doesNotMatch(css, /\.pulls-row-main:hover/);
+});
+
 test("on a phone only the diff runs edge to edge; the description and the file tab keep the page edge", () => {
   assert.match(css, /\.pulls-detail-main > :not\(\.pulls-changes\), \.pulls-changes > :not\(\.pr-diff\), \.pr-diff > :not\(\.pr-diff-files\) \{ margin-inline: var\(--page-x\); \}/);
 });
