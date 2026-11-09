@@ -157,7 +157,13 @@ test("session row actions offer settle or unsettle as siblings of the row", () =
   assert.doesNotMatch(html, /<button[^>]*slist-row[^>]*>(?:(?!<\/button>).)*aria-label="(?:Settle|Unsettle)/);
 });
 
-test("running sessions show a disabled settle action with an explanation", () => {
-  const html = renderToStaticMarkup(<SessionList {...base} threads={[thread("running", { title: "Busy", status: "running" })]} />);
-  assert.match(html, /<button[^>]*disabled=""[^>]*aria-label="Settle Busy"[^>]*data-tooltip="Wait for the session to finish or stop it before settling."/);
+test("blocked sessions hide settle and keep close for an open session", () => {
+  for (const extra of [{ status: "running" }, { status: "queued" }, { pending: { category: "approval" as const } }]) {
+    const props = { ...base, threads: [thread("running", { title: "Busy", ...extra })] };
+    const html = renderToStaticMarkup(<SessionList {...props} />);
+    assert.doesNotMatch(html, /aria-label="Settle Busy"|class="thread-actions"/);
+    const open = renderToStaticMarkup(<SessionList {...props} openIds={new Set(["running"])} />);
+    assert.doesNotMatch(open, /aria-label="Settle Busy"/);
+    assert.match(open, /aria-label="Close Busy"/);
+  }
 });

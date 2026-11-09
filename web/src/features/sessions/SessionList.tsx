@@ -133,8 +133,8 @@ function SessionListView({ threads, projects, seen, modelNames, now, openIds, fo
           </span>
         </Pressable>
         {/* A sibling of the row, not inside it: a button cannot hold another button. */}
-        <span className="thread-actions">
-          <IconButton variant="ghost" size="sm" label={`${t.settled ? "Unsettle" : "Settle"} ${title}`} tooltip={blocked ?? (t.settled ? "Unsettle" : "Settle")} disabled={settleAction.busy || blocked !== null} onClick={(event) => {
+        {(blocked === null || isOpen) && <span className="thread-actions">
+          {blocked === null && <IconButton variant="ghost" size="sm" label={`${t.settled ? "Unsettle" : "Settle"} ${title}`} tooltip={t.settled ? "Unsettle" : "Settle"} disabled={settleAction.busy} onClick={(event) => {
             const source = event.currentTarget.closest(".slist-item");
             const target = t.settled ? activeBar.current : settledPanel.current?.firstElementChild ?? settledAnchor.current;
             flight.current?.cancel();
@@ -145,13 +145,13 @@ function SessionListView({ threads, projects, seen, modelNames, now, openIds, fo
             });
           }}>
             <Icon name={t.settled ? "archiveRestore" : "archive"} />
-          </IconButton>
+          </IconButton>}
           {isOpen && (
             <IconButton variant="ghost" size="sm" label={`Close ${title}`} tooltip="Close session" onClick={() => onClose(t.id)}>
               <Icon name="x" />
             </IconButton>
           )}
-        </span>
+        </span>}
       </div>
     );
   };
