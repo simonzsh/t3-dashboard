@@ -15,7 +15,8 @@ import { PullRequests } from "../../src/domain/pulls.ts";
 import { demoGh } from "../../src/app/demo/pulls.ts";
 import { createNews } from "../../src/domain/news.ts";
 import { isArticleName } from "../../src/config/newsFile.ts";
-import { agentStatus } from "../../shared/status.ts";
+import { toDashboardThread } from "../../src/domain/classify.ts";
+import { agentStatus, threadState } from "../../shared/status.ts";
 import { isUnseen } from "../../shared/seen.ts";
 import { isUnreadPr } from "../../web/src/lib/prSeen.ts";
 import { createAlerts } from "../../src/domain/alerts.ts";
@@ -627,4 +628,13 @@ test("demo settle dismisses a message-based question after the run ends", async 
   await port.dispatch({ type: "thread.settle", threadId: "demo-onboarding" });
   assert.equal(projection.runtimeRequests[0]?.status, "cancelled");
   assert.equal(projection.thread?.pendingRuntimeRequest, null);
+});
+
+
+test("the demo secret request takes priority over its running command", () => {
+  const raw = demoFixtures(NOW).threads.find(thread => thread.id === "demo-rate-limit")!;
+  const thread = toDashboardThread(raw, NOW);
+  assert.equal(threadState(thread), "waiting");
+  assert.equal(agentStatus(thread), "waiting");
+  assert.equal(thread.activeRunId, "run-rate-1");
 });

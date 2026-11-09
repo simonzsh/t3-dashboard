@@ -115,11 +115,11 @@ const Timeline = memo(function Timeline({ detail, threadId, running, editing, on
             return <StandaloneStep key={entry.step.id} step={entry.step} threadId={threadId} />;
         }
       })}
-      {awaitingStep(entries, running) && (
+      {!waiting && awaitingStep(entries, running) && (
         <div className="working-row">
-          <Loader inline label="Working" />
-          <span>Working…</span>
-          {!waiting && <WorkingRobot thinking />}
+          <Loader inline label="Thinking" />
+          <span>Thinking…</span>
+          <WorkingRobot thinking />
         </div>
       )}
     </>
@@ -520,6 +520,19 @@ function Conversation({ searchRequest = 0, threadId, thread, providers, onOpenTh
           {detail && <QueuedMessages threadId={threadId} queue={detail.queue} held={detail.queueHeld} running={running} onChanged={() => void load()} />}
           {/* Sent during a run: it waits below the queue, as T3 shows it. */}
           {detail && running && pending.map((p) => <PendingBubble key={p.id} message={p} />)}
+          {detail && !running && background && !needsInput && (
+            <div className="working-row">
+              <Loader inline label="Background activity" />
+              <span>Running in the background…</span>
+              <WorkingRobot background />
+            </div>
+          )}
+          {needsInput && (
+            <div className="working-row"><Icon name={STATUS_ICONS.waiting} className="waiting-icon" /><span>Waiting for your reply</span><WorkingRobot waiting /></div>
+          )}
+          {detail && !running && !background && !needsInput && pending.length === 0 && (
+            <div className="working-row"><WorkingRobot sleeping /></div>
+          )}
         </div>
         {!atBottom && (
           <IconButton
@@ -536,16 +549,6 @@ function Conversation({ searchRequest = 0, threadId, thread, providers, onOpenTh
           </IconButton>
         )}
       </div>
-      {detail && !running && !background && !needsInput && pending.length === 0 && (
-        <div className="input-request-dock">
-          <div className="working-row"><WorkingRobot sleeping /></div>
-        </div>
-      )}
-      {needsInput && (
-        <div className="input-request-dock">
-          <div className="working-row"><Icon name={STATUS_ICONS.waiting} className="waiting-icon" /><span>Waiting for your reply</span><WorkingRobot waiting /></div>
-        </div>
-      )}
       {secrets[0] ? (
         <div className="question-docked">
           <SecretRequestCard key={secrets[0].id} step={secrets[0]} threadId={threadId} onAnswered={load} />
