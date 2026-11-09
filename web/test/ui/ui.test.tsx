@@ -243,9 +243,10 @@ test("an ActionMenu row cuts only its detail: the label and the unread ring stay
   assert.match(out, /<\/span><\/span><span class="notif-dot" role="img" aria-label="Unread"><\/span><\/div>$/);
 });
 
-test("a waiting badge carries the person icon and an error badge the alert circle; others carry none", () => {
+test("a waiting badge carries a hollow diamond and an error badge the alert circle; others carry none", () => {
   const html = (variant: "waiting" | "error" | "done") => renderToStaticMarkup(<Badge variant={variant}>x</Badge>);
   assert.match(html("waiting"), /badge-icon/);
+  assert.match(html("waiting"), /d="M12 3 21 12 12 21 3 12Z" fill="none" stroke="currentColor"/);
   assert.match(html("error"), /badge-icon/);
   assert.doesNotMatch(html("done"), /badge-icon/);
 });

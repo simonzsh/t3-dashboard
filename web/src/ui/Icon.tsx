@@ -40,7 +40,8 @@ const ICONS = {
   checkCheck: ["M18 6 7 17l-5-5", "m22 10-7.5 7.5L13 16"],
   circleCheck: ["M21.801 10A10 10 0 1 1 17 3.335", "m9 11 3 3L22 4"],
   x: ["M18 6 6 18", "m6 6 12 12"],
-  // Lucide user-round: an agent waits for a human.
+  diamond: ["M12 3 21 12 12 21 3 12Z"],
+  // Lucide user-round: a person or assignee.
   user: ["M12 13a5 5 0 1 0 0-10 5 5 0 0 0 0 10Z", "M20 21a8 8 0 0 0-16 0"],
   // Lucide monitor, sun and moon: the System, Light and Dark themes.
   monitor: ["M4 3h16a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2Z", "M8 21h8", "M12 17v4"],

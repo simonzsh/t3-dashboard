@@ -3,6 +3,7 @@ import { test } from "bun:test";
 import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { tsxSources } from "./fixtures.ts";
+import { STATUS_ICONS } from "../src/ui/statusIcons.ts";
 
 const sources = tsxSources();
 
@@ -414,4 +415,22 @@ test("menu icons preserve semantic status colors before the neutral fallback", (
   const rule = css.match(/\.dropdown-option\[role="menuitem"\] > \.icon \{([^}]+)\}/)?.[1];
   assert.ok(rule);
   assert.match(rule, /color: var\(--pr-status, var\(--text-secondary\)\)/);
+});
+
+test("agent status consumers use the shared icon mapping", () => {
+  const consumers = ["ui/Badge.tsx", "features/sessions/SessionList.tsx", "features/shell/AppNav.tsx", "features/dashboard/sections.ts"];
+  for (const file of consumers) {
+    const source = allSources.find(source => source.file === file);
+    assert.ok(source, file);
+    assert.match(source.text, /\bSTATUS_ICONS[.[]/, file);
+    assert.doesNotMatch(source.text, /(?:name=|icon:\s*)["'](?:diamond|alert|user)["']/, file);
+  }
+  const directWaitingIcon = new RegExp(`["']${STATUS_ICONS.waiting}["']`);
+  assert.deepEqual(allSources.filter(({ file, text }) => file !== "ui/statusIcons.ts" && directWaitingIcon.test(text)).map(source => source.file), []);
+});
+
+test("session search consumes requests before Activity can restart its effect", () => {
+  const source = readFileSync("web/src/features/conversation/ConversationPanel.tsx", "utf8");
+  assert.match(source, /const handledSearchRequest = useRef\(searchRequest\)/);
+  assert.match(source, /if \(searchRequest === handledSearchRequest\.current\) return;\s*handledSearchRequest\.current = searchRequest;\s*if \(!searchRequest\) return;\s*setSearchOpen\(true\)/);
 });

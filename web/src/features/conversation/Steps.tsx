@@ -1,10 +1,10 @@
-import { memo, useEffect, useState } from "react";
+import { memo, useEffect, useLayoutEffect, useRef, useState } from "react";
 import type { StepDetail, TurnStep } from "../../../../shared/api.ts";
 import { useApi } from "../../api/ApiContext.tsx";
 import { duration, failure } from "../../lib/format.ts";
 import { safeHref } from "../../lib/markdown.tsx";
-import { Chevron, Icon, Loader, Pressable } from "../../ui/index.ts";
-import { STEP_ICONS, diffLines, groupLabel, remember } from "./steps.ts";
+import { Chevron, Icon, Loader, Pressable, STATUS_ICONS, useFlip } from "../../ui/index.ts";
+import { STEP_ICONS, diffLines, groupLabel, remember, stepDuration } from "./steps.ts";
 
 const LIVE_VISIBLE = 4;
 const DETAIL_REFRESH_MS = 3000;
@@ -29,16 +29,42 @@ export function WorkGroup({ steps, threadId, live }: { steps: TurnStep[]; thread
   const start = steps[0]?.startedAt;
   const label = live ? (start ? `Working for ${duration(now - Date.parse(start))}` : "Working") : groupLabel(steps);
   const shown = open ? steps : live ? steps.slice(-LIVE_VISIBLE) : [];
+  const root = useRef<HTMLDivElement>(null);
+  const list = useRef<HTMLUListElement>(null);
+  const marker = useRef<HTMLLIElement>(null);
+  const shownKey = JSON.stringify(shown.map(step => step.id));
+  const activeId = live ? shown.findLast(step => step.status === "running")?.id : undefined;
+  useFlip(root, shownKey, { item: "data-work-step", enabled: live && !open, enter: { y: 6, scale: 1, duration: 220 }, stagger: 45, spring: false });
+  useLayoutEffect(() => {
+    const el = list.current;
+    const mark = marker.current;
+    if (!el || !mark) return;
+    const measure = () => {
+      const row = el.querySelector<HTMLElement>("[data-active-step]");
+      const head = row?.querySelector<HTMLElement>(".step-head");
+      mark.style.opacity = head ? "1" : "0";
+      if (head) {
+        mark.style.top = `${row!.offsetTop}px`;
+        mark.style.height = `${head.offsetHeight}px`;
+      }
+    };
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [shownKey, activeId]);
   return (
-    <div className={`work-group${live ? " live" : ""}`}>
+    <div ref={root} className={`work-group${live ? " live" : ""}`}>
       <Pressable className="work-group-head" aria-expanded={open} onClick={() => setOpen(!open)}>
         <Chevron open={open} />
+        {live && <span className="work-group-dot" aria-hidden="true" />}
         {label}
       </Pressable>
       {shown.length > 0 && (
-        <ul className="step-list">
+        <ul ref={list} className="step-list">
+          <li ref={marker} className="step-marker" aria-hidden="true" />
           {shown.map((step) => (
-            <li key={step.id}>
+            <li key={step.id} data-work-step={step.id} data-active-step={step.id === activeId || undefined}>
               <StepRow step={step} threadId={threadId} />
             </li>
           ))}
@@ -55,6 +81,7 @@ function StepHead({ step }: { step: TurnStep }) {
       <span className="step-text">{step.text}</span>
       {step.detail && <span className="step-detail">{step.detail}</span>}
       {step.exitCode !== null && step.exitCode !== 0 && <span className="step-exit">exit {step.exitCode}</span>}
+      {step.status === "done" && <span className="step-result"><Icon name={STATUS_ICONS.done} label="Completed" />{stepDuration(step)}</span>}
     </>
   );
 }

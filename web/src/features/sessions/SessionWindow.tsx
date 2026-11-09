@@ -165,7 +165,8 @@ export function PullRequestsButton({ pullRequests, open, fromSession }: { fromSe
   const unreadCount = items.filter((item) => item.unread).length;
   const label = `${pullRequests.length} pull requests${unreadCount ? `, ${unreadCount} unread` : ""}`;
   const status = prGroupStatus(pullRequests);
-  return <ActionMenu label={label} tooltip={`Pull requests: ${status.label}`} icon={status.icon} iconClassName={status.className} iconLabel={status.label} count={unreadCount} items={items} />;
+  const tooltip = status.label === "Mixed statuses" ? "Pull requests" : `Pull requests: ${status.label}`;
+  return <ActionMenu label={label} tooltip={tooltip} icon={status.icon} iconClassName={status.className} iconLabel={status.label} count={unreadCount} items={items} />;
 }
 
 export const SessionWindow = memo(SessionWindowView);

@@ -85,7 +85,7 @@ test("notifications are chronological and include old read threads", () => {
 });
 
 test("a notification shows a warning when it waits, an alert on error, a check when done", () => {
-  assert.deepEqual(notificationIcon(thread("a", { status: "waiting", pending: ask })), { icon: "user", tone: "warn" });
+  assert.deepEqual(notificationIcon(thread("a", { status: "waiting", pending: ask })), { icon: "diamond", tone: "warn" });
   assert.deepEqual(notificationIcon(thread("b", { status: "failed", lastError: "x" })), { icon: "alert", tone: "err" });
   assert.deepEqual(notificationIcon(thread("c", { status: "completed" })), { icon: "circleCheck", tone: "ok" });
   assert.deepEqual(notificationIcon(thread("d", { status: "idle" })), { icon: "info", tone: "info" });

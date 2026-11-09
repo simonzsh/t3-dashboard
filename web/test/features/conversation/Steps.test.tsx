@@ -24,4 +24,21 @@ test("the live group shows its last four steps", () => {
 test("a failed command shows its exit code", () => {
   const out = renderToStaticMarkup(<WorkGroup steps={[step("x", { status: "failed", exitCode: 2 })]} threadId="t" live />);
   assert.match(out, /exit 2/);
+  assert.doesNotMatch(out, /aria-label="Completed"/);
+});
+
+test("only the latest running step gets the rail marker target", () => {
+  const out = renderToStaticMarkup(<WorkGroup steps={[step("a", { status: "running" }), step("b"), step("c", { status: "running", completedAt: null })]} threadId="t" live />);
+  assert.match(out, /data-work-step="c" data-active-step="true"/);
+  assert.equal(out.match(/data-active-step=/g)?.length, 1);
+  assert.match(out, /class="step-marker" aria-hidden="true"/);
+  assert.match(out, /class="work-group-dot" aria-hidden="true"/);
+});
+
+test("completed steps keep their action and show the completion icon and duration", () => {
+  const out = renderToStaticMarkup(<WorkGroup steps={[step("a")]} threadId="t" live />);
+  assert.match(out, /cmd a/);
+  assert.match(out, /class="step-result"><svg[^>]*aria-label="Completed"/);
+  assert.match(out, /<\/svg>3s<\/span>/);
+  assert.doesNotMatch(out, /data-active-step=/);
 });
