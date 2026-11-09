@@ -127,6 +127,15 @@ test("the alert bell shows only when alerts are set up, and reports whether it i
   assert.match(bell("armed"), /aria-label="Alert on: click to turn off"[^>]*aria-pressed="true"|aria-pressed="true"[^>]*aria-label="Alert on: click to turn off"/);
 });
 
+test("mixed PR states omit the group status from the tooltip", () => {
+  const menu = PullRequestsButton({ pullRequests: [
+    { ...linked(12), state: "merged" },
+    { ...linked(13), state: "closed" },
+  ], open: new Map() })!;
+  assert.equal(menu.props.tooltip, "Pull requests");
+  assert.deepEqual(menu.props.items.map((item: { iconLabel: string }) => item.iconLabel), ["Closed", "Merged"]);
+});
+
 test("opening a PR carries the source session in its address", () => {
   const html = renderToStaticMarkup(<PullRequestsButton fromSession="source" open={new Map()} pullRequests={[{ repository: "acme/storefront", number: 12, title: "Fix navigation", url: "https://github.com/acme/storefront/pull/12" }]} />);
   assert.match(html, /href="#\/pulls\/acme\/storefront\/12\?fromSession=source"/);

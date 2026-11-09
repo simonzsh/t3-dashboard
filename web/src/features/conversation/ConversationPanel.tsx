@@ -4,6 +4,7 @@ import { runActive } from "../../../../shared/status.ts";
 import { highlightText } from "../../lib/highlightText.tsx";
 import { useMediaQuery } from "../../lib/useMediaQuery.ts";
 import { useApi } from "../../api/ApiContext.tsx";
+import { watchSelection } from "./selection.ts";
 import { Button, Popover, SearchField, Icon, IconButton, Loader, TOUCH } from "../../ui/index.ts";
 import { attachmentUrl } from "../../api/client.ts";
 import { type PendingMessage, countSame, isSettled, pendingLabel, sentMessages } from "./pending.ts";
@@ -190,7 +191,11 @@ function Conversation({ searchRequest = 0, threadId, thread, providers, onOpenTh
   const touch = useMediaQuery(TOUCH);
   const quoteAnchor = useRef<HTMLSpanElement>(null);
   const searchField = useRef<HTMLInputElement>(null);
+  const handledSearchRequest = useRef(searchRequest);
   useLayoutEffect(() => {
+    // Activity restarts effects on return; a remount must also ignore old requests.
+    if (searchRequest === handledSearchRequest.current) return;
+    handledSearchRequest.current = searchRequest;
     if (!searchRequest) return;
     setSearchOpen(true);
     searchField.current?.focus();
@@ -209,14 +214,7 @@ function Conversation({ searchRequest = 0, threadId, thread, providers, onOpenTh
       setSelectionRect(rect ? { left: rect.left, top: rect.top, width: rect.width, height: rect.height } : null);
     };
     const hide = () => { setSelection(""); setSelectionRect(null); };
-    document.addEventListener("selectionchange", read);
-    window.addEventListener("scroll", hide, true);
-    window.addEventListener("resize", hide);
-    return () => {
-      document.removeEventListener("selectionchange", read);
-      window.removeEventListener("scroll", hide, true);
-      window.removeEventListener("resize", hide);
-    };
+    return watchSelection(document, window, read, hide);
   }, [touch]);
   useEffect(() => {
     if (searchOpen) searchField.current?.focus();

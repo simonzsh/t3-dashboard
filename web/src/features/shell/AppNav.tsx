@@ -1,7 +1,7 @@
 import type { CSSProperties } from "react";
 import { ctrlLabel } from "../../lib/shortcuts.ts";
 import { TABS, type Tab } from "../../lib/tabs.ts";
-import { CountBadge, Icon, IconButton, Kbd, Logo, Pressable } from "../../ui/index.ts";
+import { CountBadge, Icon, IconButton, Kbd, Logo, Pressable, STATUS_ICONS } from "../../ui/index.ts";
 
 interface NavUpdate {
   label: string;
@@ -42,7 +42,7 @@ function Badges({ id, unread, sessions, automations, news, pulls }: Pick<Props, 
       <>
         {automations.failed && (
           <span className="nav-alert err" role="img" aria-label="An automation run failed">
-            <Icon name="alert" />
+            <Icon name={STATUS_ICONS.error} />
           </span>
         )}
         <CountBadge count={automations.count} max={9} label={`${automations.count} unread runs`} />
@@ -60,7 +60,7 @@ function Badges({ id, unread, sessions, automations, news, pulls }: Pick<Props, 
     <>
       {sessions.waiting && (
         <span className="nav-alert" role="img" aria-label={WAITING}>
-          <Icon name="user" />
+          <Icon name={STATUS_ICONS.waiting} />
         </span>
       )}
       <CountBadge count={sessions.count} max={9} label={`${sessions.count} running or unread`} />

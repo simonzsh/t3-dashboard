@@ -2,7 +2,7 @@ import type { DashboardThread } from "../../../../shared/api.ts";
 import { isUnseen, type SeenState } from "../../../../shared/seen.ts";
 import { hasFailed, threadState } from "../../../../shared/status.ts";
 import { newestFirst } from "../../lib/threads.ts";
-import type { IconName } from "../../ui/index.ts";
+import { STATUS_ICONS, type IconName } from "../../ui/index.ts";
 
 export interface ThreadSections {
   /** Waiting for an answer, or failed and not settled. */
@@ -57,9 +57,9 @@ export function notificationList(s: ThreadSections): Notification[] {
 
 /** The status icon of a notification and its tone. */
 export function notificationIcon(t: DashboardThread): { icon: IconName; tone: "warn" | "err" | "ok" | "info" } {
-  if (t.pending) return { icon: "user", tone: "warn" };
-  if (hasFailed(t)) return { icon: "alert", tone: "err" };
-  return threadState(t) === "done" ? { icon: "circleCheck", tone: "ok" } : { icon: "info", tone: "info" };
+  if (t.pending) return { icon: STATUS_ICONS.waiting, tone: "warn" };
+  if (hasFailed(t)) return { icon: STATUS_ICONS.error, tone: "err" };
+  return threadState(t) === "done" ? { icon: STATUS_ICONS.done, tone: "ok" } : { icon: STATUS_ICONS.idle, tone: "info" };
 }
 
 /** The line under the title: what the agent waits for, the error, or "Finished". */

@@ -9,6 +9,7 @@ This folder contains the base components of the dashboard. The screens in `web/s
 - In a row of buttons, put Cancel on the left and the primary action on the right. The `Dialog` applies this order.
 - The accent color marks the primary action, the focus and the selection. Do not use a different color for these roles.
 - The component style comes from `styles.css`. The tokens are at the top of the file: `--focus-ring`, `--radius-*`, `--control-sm` (28 px) and `--control-md` (32 px).
+- Use `STATUS_ICONS` for agent status icons in badges, lists, notifications and navigation. Change the mapping only in `statusIcons.ts`.
 - Put a tooltip only on an icon with an unclear meaning, or on truncated text. Do not put one on a text button, a tab, a selector or a card.
 - Do not use the native `title` attribute for a tooltip: a test blocks it. Write `tooltip` and `shortcut` (or `data-tooltip`). The accessible name stays `aria-label`.
 - Each element that can get the focus gets the accent ring. Do not set `outline: none` again without a different visible focus sign.
@@ -28,7 +29,7 @@ This folder contains the base components of the dashboard. The screens in `web/s
 | `Sheet` | Side sheet under the header, always mounted, rendered in `document.body` (no clipping parent can cut it). `open` slides it in and out and fades the backdrop. `width`: `narrow` (380 px) or `wide` (600 px). Backdrop click and Escape call `onClose`; the focus goes in and comes back; Tab stays inside. |
 | `ActionMenu` | The "…" button of a row and its menu. `items` are `{ label, icon, onSelect, danger?, disabled?, tooltip?, unread?, detail? }`; `unread` puts the hollow unread ring after the label. `iconClassName` colors the row icon; `iconLabel` gives its accessible status. `detail` is a text after the label and a dash: the menu is at most 420 px wide (less on a small screen), and only the detail is cut with "…", with a tooltip that gives it in full. The arrows move between items; Escape gives the focus back. Use it for every row menu, with no separator. | `icon` changes the trigger icon. `iconClassName` and `iconLabel` style and name that icon. `count` puts a count badge on the icon's corner and keeps the exact size of the icon buttons beside it. `text` makes it a text button, with `variant` as for a `Button`. Use these for a menu that lists links rather than row actions.
 | `CardHead` | Header of a card: icon, title, a note (a muted word or a menu), count and icon buttons on the right. |
-| `Badge` | Status label: `waiting`, `running`, `done`, `error`, `neutral`. |
+| `Badge` | Status label: `waiting`, `running`, `done`, `error`, `neutral`. Waiting uses a hollow diamond; error uses an alert circle. |
 | `Dropdown` | Choice menu. Use it in place of `<select>`. A filter field appears for long lists. |
 | `Popover` | Panel attached next to an element. Escape and outside click close it. |
 | `Segmented` | Single choice between some visible options (for example the theme). |
@@ -61,7 +62,7 @@ The animations use the Web Animations API (`element.animate`), without a library
 | Tool | Use |
 | --- | --- |
 | `fly(source, target)` | A light copy of `source` (its frame and its first line) flies to `target` and shrinks. The target then bounces a little. Example: the + button of an agent card to the Sessions tab. |
-| `useFlip(root, key, { item })` | Animates the `[item]` elements of `root` at each change of `key` (FLIP technique). A kept element slides to its new position. A new element fades in. A removed element fades out. The animations stop at unmount. |
+| `useFlip(root, key, { item })` | Animates the `[item]` elements of `root` at each change of `key` (FLIP technique). A kept element slides to its new position. A new element fades in. A removed element fades out. `enter` customizes arrival, `stagger` delays arrivals in a batch, and `spring: false` uses smooth moves. Initial content and effect restarts do not replay arrivals. The animations stop at unmount. |
 | `Dialog`, `Popover` | They have their own open animation. Do not add one in a dialog or a menu. |
 
 The pure calculations (FLIP offset, target, plan) are in `flip.ts` and have unit tests.

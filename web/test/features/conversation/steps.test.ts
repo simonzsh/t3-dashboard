@@ -1,7 +1,7 @@
 import { test } from "bun:test";
 import assert from "node:assert/strict";
 import type { TurnStep } from "../../../../shared/api.ts";
-import { diffLines, groupLabel, omittedLabel, remember } from "../../../src/features/conversation/steps.ts";
+import { diffLines, groupLabel, omittedLabel, remember, stepDuration } from "../../../src/features/conversation/steps.ts";
 
 const step = (startedAt: string, completedAt: string | null): TurnStep => ({ id: startedAt, runId: null, kind: "command", status: "done", startedAt, completedAt, text: "", detail: null, expandable: false, exitCode: null });
 
@@ -40,6 +40,13 @@ test("groupLabel counts steps and shows the time they took", () => {
 test("groupLabel leaves the time out when a step has no time", () => {
   assert.equal(groupLabel([step("", null), step("", null)]), "2 steps");
   assert.equal(groupLabel([step("2026-01-01T10:00:00Z", null)]), "1 step");
+});
+
+test("step duration omits missing, invalid and reversed timestamps", () => {
+  assert.equal(stepDuration(step("2026-01-01T10:00:00Z", "2026-01-01T10:00:03Z")), "3s");
+  assert.equal(stepDuration(step("2026-01-01T10:00:00Z", null)), null);
+  assert.equal(stepDuration(step("invalid", "2026-01-01T10:00:03Z")), null);
+  assert.equal(stepDuration(step("2026-01-01T10:00:04Z", "2026-01-01T10:00:03Z")), null);
 });
 
 test("remember drops the oldest entry past the cap and keeps a rewritten key fresh", () => {

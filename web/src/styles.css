@@ -351,16 +351,24 @@ main { flex: 1; min-height: 0; overflow: hidden; padding: var(--page-top) var(--
 .work-group-head { align-self: flex-start; display: inline-flex; align-items: center; gap: 8px; padding: 2px 0; border: 0; background: none; color: var(--text-secondary); font-size: 12px; font-variant-numeric: tabular-nums; }
 .work-group-head:hover:not(:disabled) { color: var(--text-primary); }
 .work-group.live .work-group-head { font-size: 13px; }
-.step-list { list-style: none; margin: 0; padding: 0 0 0 4px; display: flex; flex-direction: column; gap: 2px; border-left: 1px solid var(--line); min-width: 0; }
+.work-group-dot { width: 5px; height: 5px; border-radius: 50%; background: var(--work); animation: breathe 1.8s ease-in-out infinite; }
+.step-list { position: relative; list-style: none; margin: 0; padding: 0 0 0 4px; display: flex; flex-direction: column; gap: 2px; border-left: 1px solid var(--line); min-width: 0; }
 .step-list > li { min-width: 0; padding-left: 8px; }
+.step-list > .step-marker { position: absolute; z-index: 1; left: -2px; top: 0; width: 3px; height: 0; padding: 0; border-radius: var(--radius-sm); background: var(--work); opacity: 0; box-shadow: 0 0 8px color-mix(in srgb, var(--work) 25%, transparent); pointer-events: none; transition: top 350ms cubic-bezier(0.2, 0, 0, 1), height 240ms ease, opacity 180ms ease; }
 .step { min-width: 0; }
-.step-head { display: flex; align-items: center; gap: 8px; width: 100%; padding: 2px 4px; border: 0; border-radius: var(--radius-sm); background: none; text-align: left; color: var(--text-secondary); min-width: 0; }
+.step-head { position: relative; display: flex; align-items: center; gap: 8px; width: 100%; padding: 3px 4px; border: 0; border-radius: var(--radius-sm); background: none; text-align: left; color: var(--text-secondary); min-width: 0; overflow: hidden; transition: background-color 180ms ease, color 180ms ease; }
+.work-group.live .step.running .step-head { background: color-mix(in srgb, var(--work) 5%, transparent); color: var(--text-primary); }
+.work-group.live .step.running .step-head::before { content: ""; position: absolute; inset: 0; pointer-events: none; background: linear-gradient(100deg, transparent 15%, color-mix(in srgb, var(--work) 9%, transparent) 48%, transparent 80%); translate: -100% 0; animation: step-sheen 2.3s ease-in-out infinite; }
+@keyframes step-sheen { to { translate: 100% 0; } }
 button.step-head:hover:not(:disabled) { background: var(--surface-1); color: var(--text-primary); }
 .step-head .icon { flex: none; width: 14px; height: 14px; }
 .step-text { min-width: 0; flex: 0 1 auto; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .step.command .step-text, .step.file .step-text { font: 12px/1.5 var(--font-mono); }
 .step-detail { flex: 0 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; opacity: 0.75; }
 .step-head .disclosure { margin-left: auto; }
+.step-result { display: inline-flex; align-items: center; gap: 5px; flex: none; margin-left: auto; color: var(--text-secondary); font-size: 11px; font-variant-numeric: tabular-nums; }
+.step-result > .icon { width: 12px; height: 12px; color: var(--ok); }
+.step-result + .disclosure { margin-left: 0; }
 .step.running .icon:not(.disclosure) { color: var(--work); animation: breathe 1.4s ease-in-out infinite; }
 .step.failed .icon:not(.disclosure), .step.failed .step-text { color: var(--err-text); }
 .step-exit { flex: none; padding: 0 6px; border-radius: 999px; background: var(--err-bg); color: var(--err-text); font-size: 11px; }
@@ -834,7 +842,7 @@ ol.install-steps { padding-left: 18px; }
 /* Every count follows the accent color; the text is darkened or lightened to stay readable. */
 .count-badge.neutral { background: color-mix(in srgb, var(--text-primary) 8%, transparent); color: var(--text-secondary); }
 .count-badge { flex: none; display: inline-grid; place-items: center; min-width: 20px; height: 20px; padding: 0 6px; border-radius: 999px; font-size: 11px; font-weight: 600; line-height: 1; background: color-mix(in srgb, var(--accent) 20%, transparent); color: var(--work-text); }
-/* Waiting is a person (a human is needed) and a failure an alert circle, as in the Notifications card: a dot means running. */
+/* Waiting uses a hollow diamond and failure an alert circle: a dot means running. */
 .nav-alert { flex: none; display: grid; place-items: center; width: 14px; height: 14px; color: var(--warn); }
 .nav-alert.err { color: var(--err-text); }
 .nav-alert > .icon { width: 14px; height: 14px; }
@@ -1428,6 +1436,9 @@ ol.install-steps { padding-left: 18px; }
 }
 /* After every animated rule, so it wins on equal specificity. */
 @media (prefers-reduced-motion: reduce) {
+  .work-group-dot { animation: none; }
+  .work-group.live .step.running .step-head::before { display: none; }
+  .step-marker, .step-head { transition: none; }
   .pulse::after, .slist-mark.running::after { display: none; }
   .streaming, .step.running .icon, .todo.running .todo-mark, .spinning { animation: none; }
   .loader rect { animation: none; }

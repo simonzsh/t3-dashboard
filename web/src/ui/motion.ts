@@ -38,6 +38,7 @@ function ghost(source: Element, at: Rect): HTMLElement {
     margin: "0",
     zIndex: "60",
     pointerEvents: "none",
+    listStyle: "none",
     transformOrigin: "0 0",
   });
   document.body.append(g);
@@ -101,7 +102,7 @@ function exit(source: Element, from: Rect): Animation | null {
 }
 
 /** Fades the element in from a slight offset or scale: dialogs, menus, new windows. */
-export function enter(el: Element, { x = 0, y = 0, scale = 1, duration = BASE, spring = false }: { x?: number; y?: number; scale?: number; duration?: number; spring?: boolean } = {}): Animation | null {
+export function enter(el: Element, { x = 0, y = 0, scale = 1, duration = BASE, delay = 0, spring = false }: { x?: number; y?: number; scale?: number; duration?: number; delay?: number; spring?: boolean } = {}): Animation | null {
   if (reducedMotion()) return null;
   const from = { opacity: 0, translate: `${x}px ${y}px`, scale: `${scale}` };
   const rest = { opacity: 1, translate: "0 0", scale: "1" };
@@ -109,11 +110,11 @@ export function enter(el: Element, { x = 0, y = 0, scale = 1, duration = BASE, s
   const frames = spring
     ? [{ ...from, easing: "ease-out" }, { opacity: 1, translate: "0 -2px", scale: "1.04", offset: 0.55, easing: "ease-in-out" }, { scale: "0.99", offset: 0.8, easing: "ease-in-out" }, rest]
     : [from, rest];
-  return el.animate(frames, { duration, easing: spring ? "linear" : EASE });
+  return el.animate(frames, { duration, delay, fill: "backwards", easing: spring ? "linear" : EASE });
 }
 
 /** Slides an element from its old rect to the one it has now (FLIP), above its neighbours while it moves. */
-function flip(el: Element, before: Rect, delay: number): Animation | null {
+function flip(el: Element, before: Rect, delay: number, spring = true): Animation | null {
   if (reducedMotion()) return null;
   const after = el.getBoundingClientRect();
   if (!moved(before, after)) return null;
@@ -122,7 +123,7 @@ function flip(el: Element, before: Rect, delay: number): Animation | null {
       { ...placed(before, after), transformOrigin: "0 0", zIndex: 4 },
       { ...AT_REST, transformOrigin: "0 0", zIndex: 4 },
     ],
-    { duration: LONG, delay, easing: SPRING, fill: "backwards" },
+    { duration: spring ? LONG : BASE, delay, easing: spring ? SPRING : EASE, fill: "backwards" },
   );
 }
 
@@ -133,7 +134,7 @@ function measure(root: Element, attr: string): Measured {
 }
 
 /** Animates the `[item]` elements under `root` each time `key` changes: kept ones slide to their new rect, new ones fade in, removed ones fade out. */
-export function useFlip(root: RefObject<HTMLElement | null>, key: string, { item, enabled = true }: { item: string; enabled?: boolean }) {
+export function useFlip(root: RefObject<HTMLElement | null>, key: string, { item, enabled = true, enter: entrance, stagger = 0, spring = true }: { item: string; enabled?: boolean; enter?: Parameters<typeof enter>[1]; stagger?: number; spring?: boolean }) {
   const committed = useRef<{ key: string; enabled: boolean } | null>(null);
   const snapshot = useRef<Measured | null>(null);
   const running = useRef(new Set<Animation>());
@@ -162,11 +163,12 @@ export function useFlip(root: RefObject<HTMLElement | null>, key: string, { item
       const done = () => running.current.delete(anim);
       anim.finished.then(done, done);
     };
+    let entered = 0;
     for (const step of plan) {
       const now = items.get(step.id)?.el;
       const was = before.get(step.id);
-      if (step.kind === "move" && now && was) track(flip(now, was.rect, leaving ? SHORT / 2 : 0));
-      else if (step.kind === "enter" && now) track(enter(now, { scale: 0.96 }));
+      if (step.kind === "move" && now && was) track(flip(now, was.rect, leaving ? SHORT / 2 : 0, spring));
+      else if (step.kind === "enter" && now) track(enter(now, { scale: 0.96, ...entrance, delay: Math.min(entered++ * stagger, SHORT) }));
       else if (step.kind === "leave" && was) track(exit(was.el, was.rect));
     }
   }, [key, enabled]);

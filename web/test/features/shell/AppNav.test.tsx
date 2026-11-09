@@ -40,11 +40,12 @@ test("the sidebar has the search button with its shortcut hint", () => {
   assert.match(side(), /Search…[\s\S]*?<kbd>⌘K<\/kbd>/);
 });
 
-test("the sidebar shows unread on Dashboard, running or unread on Sessions and a dot for a waiting agent", () => {
+test("the sidebar shows unread on Dashboard, running or unread on Sessions and a hollow diamond for a waiting agent", () => {
   const out = side({ unread: 12, sessions: { count: 2, waiting: true } });
   assert.match(out, /aria-label="12 unread">9\+</);
   assert.match(out, /aria-label="2 running or unread">2</);
   assert.match(out, /aria-label="An agent is waiting for your reply"/);
+  assert.match(out, /d="M12 3 21 12 12 21 3 12Z" fill="none" stroke="currentColor"/);
   assert.doesNotMatch(side(), /count-badge|An agent is waiting/);
 });
 
