@@ -11,7 +11,7 @@ import { ConversationPanel } from "../conversation/ConversationPanel.tsx";
 import { OpenInT3 } from "../../lib/OpenInT3.tsx";
 import { ProjectIcon } from "../../lib/ProjectIcon.tsx";
 import { RunningBadge } from "../../lib/StatusBadge.tsx";
-import { ctrlLabel } from "../../lib/shortcuts.ts";
+import { ctrlLabel, fullscreenShortcut } from "../../lib/shortcuts.ts";
 import { newestFirst, prMarkId, type OpenPrs } from "../../lib/prSeen.ts";
 import { hashForPr } from "../../lib/tabs.ts";
 
@@ -87,7 +87,7 @@ function SessionWindowView({ id, thread, title, projectTitle, projectIcon, missi
           )}
           <span className="session-window-buttons">
             {!compact && (
-              <IconButton variant="ghost" size="sm" label={fullscreen} tooltip={fullscreen} onClick={onToggleMaximize}>
+              <IconButton variant="ghost" size="sm" label={fullscreen} tooltip={fullscreen} shortcut={fullscreenShortcut} onClick={onToggleMaximize}>
                 <Icon name={maximized ? "exitFullscreen" : "fullscreen"} />
               </IconButton>
             )}

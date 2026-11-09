@@ -93,3 +93,14 @@ test("Ctrl+digit follows the order of the tabs", () => {
   TABS.forEach((tab, i) => assert.equal(matchShortcut(ctrl(String(i + 1)), false), tab.id));
   assert.equal(matchShortcut(ctrl(String(TABS.length + 1)), false), null);
 });
+
+test("Ctrl+Shift+F and Cmd+Shift+F toggle fullscreen without stealing search", () => {
+  for (const modifier of [{ ctrlKey: true }, { metaKey: true }]) {
+    const key = press("F", { ...modifier, shiftKey: true, target: typing });
+    assert.equal(matchShortcut(key, false, true), "toggle-fullscreen");
+    assert.equal(matchShortcut(key, true, true), null);
+    assert.equal(matchShortcut(key, false, false), null);
+    assert.equal(matchShortcut({ ...key, altKey: true }, false, true), null);
+    assert.equal(matchShortcut({ ...key, shiftKey: false }, false, true), "search-session");
+  }
+});

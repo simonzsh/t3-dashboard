@@ -301,6 +301,7 @@ The shortcuts use `Ctrl`, also on a Mac, and they work while you type in a field
 | `Ctrl` + `,` | Opens Settings. |
 | `Ctrl` + `B` | Collapses or expands the sidebar. |
 | `Ctrl` + `X` | Sessions: closes the active session. |
+| `Ctrl` + `Shift` + `F` | Sessions: toggles fullscreen. Cmd+Shift+F also works on macOS. |
 | `Ctrl` + `F` | Sessions: searches the active session. Cmd+F also works on macOS. |
 | `Esc` | Sessions, outside a field: exits full screen. In the message field, it leaves the field. |
 | `←` `→` | Sessions, outside a field: moves the focus to the next column and scrolls it into view. |

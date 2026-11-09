@@ -9,6 +9,7 @@ export type ShortcutAction =
   | "switcher"
   | "close-window"
   | "search-session"
+  | "toggle-fullscreen"
   | "unmaximize"
   | "focus-left"
   | "focus-right"
@@ -24,7 +25,7 @@ export interface KeyInfo {
   target: { tagName: string; isContentEditable: boolean } | null;
 }
 
-// Ctrl+key works everywhere, fields included, like Ctrl+S for the stash. Cmd stays the browser's.
+// Ctrl+key works everywhere, fields included, like Ctrl+S for the stash. Cmd also works for search and fullscreen.
 // Ctrl+1, Ctrl+2... follow the order of the tabs, so a new or moved tab needs no change here.
 const CTRL_KEYS: Record<string, ShortcutAction> = {
   ...Object.fromEntries(TABS.map((tab, i) => [String(i + 1), tab.id])),
@@ -46,13 +47,14 @@ const TYPING = new Set(["INPUT", "TEXTAREA", "SELECT"]);
 
 const isMac = typeof navigator !== "undefined" && /Mac|iPhone|iPad/.test(navigator.platform);
 /** How a Ctrl shortcut reads in a tooltip or a key cap: ⌃N on a Mac, Ctrl+N elsewhere. */
+export const fullscreenShortcut = isMac ? "⌘⇧F" : "Ctrl+Shift+F";
 export const ctrlLabel = (key: string): string => (isMac ? `⌃${key}` : `Ctrl+${key}`);
 
 export function matchShortcut(e: KeyInfo, dialogOpen: boolean, inSessions = false): ShortcutAction | null {
   const key = e.key.toLowerCase();
   // Before the guards: the switcher opens from a field or a dialog too, and App decides.
   if ((e.ctrlKey || e.metaKey) && !e.altKey && key === "k") return "switcher";
-  if (!dialogOpen && inSessions && (e.ctrlKey || e.metaKey) && !e.altKey && !e.shiftKey && key === "f") return "search-session";
+  if (!dialogOpen && inSessions && (e.ctrlKey || e.metaKey) && !e.altKey && key === "f") return e.shiftKey ? "toggle-fullscreen" : "search-session";
   if (dialogOpen || e.metaKey) return null;
   if (e.ctrlKey) {
     // Ctrl+Alt is AltGr on Windows: it types a character and is not a shortcut.
