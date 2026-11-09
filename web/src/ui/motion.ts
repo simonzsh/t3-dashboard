@@ -13,6 +13,24 @@ export function reducedMotion(): boolean {
   return typeof matchMedia !== "function" || matchMedia("(prefers-reduced-motion: reduce)").matches;
 }
 
+type PausableAnimation = Pick<Animation, "playState" | "pause" | "play">;
+
+/** Resume only animations that still belong to the connected element and remain paused. */
+export function pauseAnimations(element: { readonly isConnected: boolean; getAnimations(): readonly PausableAnimation[] }): () => void {
+  const paused = element.getAnimations().filter(animation => animation.playState === "running");
+  paused.forEach(animation => animation.pause());
+  let restored = false;
+  return () => {
+    if (restored) return;
+    restored = true;
+    if (!element.isConnected) return;
+    const current = new Set(element.getAnimations());
+    for (const animation of paused) {
+      if (current.has(animation) && animation.playState === "paused") animation.play();
+    }
+  };
+}
+
 // Individual transform properties: they add to the element's own `transform` instead of replacing it.
 const placed = (r: Rect, from: Rect) => {
   const d = flipDelta(r, from);

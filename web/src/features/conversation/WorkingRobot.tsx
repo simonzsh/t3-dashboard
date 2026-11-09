@@ -1,12 +1,34 @@
-import { useEffect, useRef } from "react";
-import { reducedMotion } from "../../ui/index.ts";
+import { useEffect, useRef, useState } from "react";
+import { Pressable, pauseAnimations, reducedMotion } from "../../ui/index.ts";
 
 /** CSS depth keeps the small mascot light enough for several live sessions. */
-export function WorkingRobot({ thinking = false, waiting = false }: { thinking?: boolean; waiting?: boolean }) {
-  const root = useRef<HTMLDivElement>(null);
+export function WorkingRobot({ thinking = false, waiting = false, sleeping = false }: { thinking?: boolean; waiting?: boolean; sleeping?: boolean }) {
+  const root = useRef<HTMLButtonElement>(null);
+  const [reacting, setReacting] = useState(false);
+  const greeting = useRef(false);
+  useEffect(() => {
+    if (!reacting || !root.current) return;
+    const head = root.current.querySelector<HTMLElement>(".robot-head")!;
+    const resume = pauseAnimations(head);
+    const rest = getComputedStyle(head).transform;
+    const ease = "cubic-bezier(0.45, 0, 0.55, 1)";
+    // Return to the captured pose before resuming its idle animation.
+    const animation = reducedMotion() ? null : head.animate([
+      { transform: rest, easing: ease },
+      { transform: "translateZ(18px) rotate(-9deg) translateY(-2px)", offset: 0.3, easing: ease },
+      { transform: "translateZ(18px) rotate(-9deg) translateY(-2px)", offset: 0.65, easing: ease },
+      { transform: rest },
+    ], { duration: 1600 });
+    const timer = setTimeout(() => { greeting.current = false; setReacting(false); }, 1600);
+    return () => {
+      clearTimeout(timer);
+      animation?.cancel();
+      resume();
+    };
+  }, [reacting, waiting, thinking, sleeping]);
   useEffect(() => {
     const scene = root.current;
-    if (thinking || waiting || !scene) return;
+    if (thinking || waiting || sleeping || !scene) return;
     const animations = new Set<Animation>();
     const timers = new Set<ReturnType<typeof setTimeout>>();
     let stopped = false;
@@ -72,20 +94,25 @@ export function WorkingRobot({ thinking = false, waiting = false }: { thinking?:
       for (const timer of timers) clearTimeout(timer);
       for (const animation of animations) animation.cancel();
     };
-  }, [thinking, waiting]);
+  }, [thinking, waiting, sleeping]);
   return (
-    <div ref={root} className={`working-robot ${waiting ? "waiting" : thinking ? "thinking" : "typing"}`} aria-hidden="true">
-      <div className="robot-size">
+    <Pressable ref={root} className={`working-robot ${waiting ? "waiting" : sleeping ? "sleeping" : thinking ? "thinking" : "typing"}${reacting ? " reacting" : ""}`}
+      aria-label={sleeping && !waiting ? "Wake the robot" : "Greet the robot"}
+      onClick={(event) => { event.stopPropagation(); if (!greeting.current) { greeting.current = true; setReacting(true); } }}>
+      <div className="robot-size" aria-hidden="true">
         <div className="robot-scene">
-          <div className="robot-head"><i className="robot-antenna" /><div className="robot-face"><i /><i /></div></div>
+          <div className="robot-head"><i className="robot-antenna" /><div className="robot-face"><i /><i /><span className="robot-love-eyes">
+            {[0, 1].map(eye => <svg key={eye} viewBox="0 0 24 24"><path d="M12 21 3 12C-3 5 6-2 12 5 18-2 27 5 21 12Z" /></svg>)}
+          </span></div></div>
           <div className="robot-body" />
           <div className="robot-arm left" /><div className="robot-arm right" />
           <div className="robot-hand left" /><div className="robot-hand right" />
           {waiting && <div className="robot-wave-arm"><i className="robot-forearm" /><i className="robot-palm" /></div>}
           <div className="robot-keyboard">{Array.from({ length: 15 }, (_, i) => <i key={i} />)}</div>
+          {sleeping && !waiting && <div className="robot-snooze"><span>z</span><span>z</span><span>Z</span></div>}
           <div className="robot-thought"><i /><i /><i /></div>
         </div>
       </div>
-    </div>
+    </Pressable>
   );
 }

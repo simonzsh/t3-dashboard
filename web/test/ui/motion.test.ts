@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "bun:test";
-import { enter, leaveCopy } from "../../src/ui/motion.ts";
+import { enter, leaveCopy, pauseAnimations } from "../../src/ui/motion.ts";
 
 test("staggered arrivals hold their start frame and respect reduced motion", () => {
   const original = Object.getOwnPropertyDescriptor(globalThis, "matchMedia");
@@ -91,4 +91,50 @@ test("an exit copy stays until its slide and fade finish, including after a drag
     if (doc) Object.defineProperty(globalThis, "document", doc);
     else Reflect.deleteProperty(globalThis, "document");
   }
+});
+
+function animation(state: AnimationPlayState = "running") {
+  return {
+    playState: state,
+    plays: 0,
+    pause() { this.playState = "paused"; },
+    play() { this.plays++; this.playState = "running"; },
+  };
+}
+
+test("a pose change never restarts the replaced CSS animation", () => {
+  const old = animation();
+  let current = [old];
+  const resume = pauseAnimations({ isConnected: true, getAnimations: () => current });
+  const next = animation();
+  current = [next];
+  resume();
+  assert.equal(old.plays, 0);
+  assert.equal(next.plays, 0);
+});
+
+test("cancelled animations and detached elements are never resumed", () => {
+  const cancelled = animation();
+  const resume = pauseAnimations({ isConnected: true, getAnimations: () => [cancelled] });
+  cancelled.playState = "idle";
+  resume();
+  assert.equal(cancelled.plays, 0);
+
+  const detached = animation();
+  const element = { isConnected: true, getAnimations: () => [detached] };
+  const restore = pauseAnimations(element);
+  element.isConnected = false;
+  restore();
+  assert.equal(detached.plays, 0);
+});
+
+test("the retained idle animation resumes once, without touching an existing pause", () => {
+  const running = animation();
+  const paused = animation("paused");
+  const resume = pauseAnimations({ isConnected: true, getAnimations: () => [running, paused] });
+  assert.equal(running.playState, "paused");
+  resume();
+  resume();
+  assert.equal(running.plays, 1);
+  assert.equal(paused.plays, 0);
 });

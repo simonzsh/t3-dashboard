@@ -20,7 +20,7 @@ export { LinearMark } from "./LinearMark.tsx";
 export { Loader } from "./Loader.tsx";
 export { Logo, LOGO_TILES } from "./Logo.tsx";
 export { isPhone, isTouch, PHONE, TOUCH, WIDE } from "./media.ts";
-export { enter, fly, reducedMotion, useFlip } from "./motion.ts";
+export { enter, fly, pauseAnimations, reducedMotion, useFlip } from "./motion.ts";
 export { NO_AUTOFILL, SECRET_FIELD } from "./noAutofill.ts";
 export { PageHeader } from "./PageHeader.tsx";
 export { OptionList } from "./OptionList.tsx";
