@@ -83,7 +83,7 @@ function SessionWindowView({ id, thread, title, projectTitle, projectIcon, missi
           <span className="session-window-buttons">
             {alert && (
               <IconButton variant="ghost" size="sm" label={alertLabel} tooltip={alertLabel} aria-pressed={alert === "armed"} onClick={() => onToggleAlert(id)}>
-                <Icon name="megaphone" />
+                <Icon name={alert === "armed" ? "megaphone" : "megaphoneOff"} />
               </IconButton>
             )}
             {thread && <PullRequestsButton pullRequests={thread.pullRequests} open={openPrs} />}
