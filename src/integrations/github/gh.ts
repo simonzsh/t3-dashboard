@@ -6,6 +6,7 @@ type Env = Record<string, string | undefined>;
 /** `code` is null when gh did not start or did not finish in time. Only stdout is kept, up to `maxBytes`. */
 export interface GhResult {
   code: number | null;
+  missing?: boolean;
   stdout: string;
   truncated: boolean;
   /** gh said the repository or the pull request does not exist (or is not visible). */
@@ -51,7 +52,7 @@ async function readCapped(stream: ReadableStream<Uint8Array>, maxBytes: number):
 export function ghRunner(env: Env, homedir: string): GhRun {
   return async (args, { timeoutMs = DEFAULT_TIMEOUT_MS, maxBytes = DEFAULT_MAX_BYTES } = {}) => {
     const bin = locateGh(env, homedir, existsSync, (name) => Bun.which(name));
-    if (!bin) return { code: null, stdout: "", truncated: false };
+    if (!bin) return { code: null, stdout: "", truncated: false, missing: true };
     try {
       const child = Bun.spawn([bin, ...args], { stdin: "ignore", stdout: "pipe", stderr: "pipe", env: { ...env, GH_PROMPT_DISABLED: "1", NO_COLOR: "1" } });
       let timedOut = false;

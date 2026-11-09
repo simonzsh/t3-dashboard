@@ -1,6 +1,7 @@
 import type {
   AlertArmBody,
   AlertsSettings,
+  GitHubConnection,
   AlertsState,
   AlertTestResult,
   ActivityPeriod,
@@ -146,6 +147,7 @@ export function createApi(fetchImpl: Fetch) {
     clearCaches: () => call<CacheCleanupResult>("/api/cache-cleanup", {}),
     getLimits: (refresh = false) => call<LimitsOverview>(refresh ? "/api/limits?refresh=1" : "/api/limits"),
     assignIssue: (b: AssignIssueBody) => call<CreateThreadResult>("/api/board/assign", b),
+    getGitHubConnection: () => call<GitHubConnection>("/api/settings/github"),
     getSettings: () => call<SettingsResult>("/api/settings"),
     retrySetup: () => call<ConnectionStatus>("/api/setup/retry", {}),
     pasteToken: (token: string) => call<ConnectionStatus>("/api/setup/token", { token }),
