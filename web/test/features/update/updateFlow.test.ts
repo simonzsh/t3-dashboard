@@ -48,6 +48,13 @@ test("labels name the target version", () => {
   assert.equal(updateQuestion(status()), "Update to v1.1.0?");
 });
 
+test("main update labels show a short commit without a version prefix", () => {
+  const main = status({ latest: `main-${"a".repeat(40)}` });
+  assert.equal(updateLabel(main), "Update main aaaaaaa");
+  assert.equal(updateQuestion(main), "Update to main aaaaaaa?");
+  assert.equal(versionNote(main), "Version main aaaaaaa is available.");
+});
+
 test("versionNote tells apart dev, available, current and unknown", () => {
   assert.match(versionNote(status({ current: "dev", available: false, canUpdate: false })), /^Development build/);
   assert.equal(versionNote(status()), "Version 1.1.0 is available.");

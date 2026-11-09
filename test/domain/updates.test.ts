@@ -38,6 +38,18 @@ test("the same version is not available", async () => {
   assert.equal((await manager.check()).available, false);
 });
 
+test("checking a main build keeps the update manual and compares commit identities", async () => {
+  let runs = 0;
+  const current = `main-${"a".repeat(40)}`;
+  const next = `main-${"b".repeat(40)}`;
+  const { manager } = harness({ version: current, tags: [current, next], run: async () => { runs++; return true; } });
+  assert.equal((await manager.check()).available, false);
+  assert.equal((await manager.check()).available, true);
+  assert.equal(runs, 0);
+  manager.apply();
+  assert.equal(runs, 1);
+});
+
 test("a network error or a 404 shows nothing and keeps the last answer", async () => {
   const first = harness({ tags: [new Error("GitHub answered 404 for the latest release")] });
   const empty = await first.manager.check();

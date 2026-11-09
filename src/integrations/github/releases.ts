@@ -1,6 +1,7 @@
 import { parse } from "../contract.ts";
 import { IntegrationError } from "../errors.ts";
-import { LatestRelease } from "./schemas.ts";
+import { BranchCommit, LatestRelease } from "./schemas.ts";
+import type { UpdateChannel } from "../../../shared/updates.ts";
 
 export const DEFAULT_REPO = "simonzsh/t3-dashboard";
 
@@ -25,10 +26,20 @@ async function get(fetchImpl: typeof fetch, url: string, init: RequestInit | und
   return response;
 }
 
-export async function latestTag(fetchImpl: typeof fetch, repo: string): Promise<string> {
-  const response = await get(fetchImpl, `https://api.github.com/repos/${repo}/releases/latest`, { headers: { accept: "application/vnd.github+json" } }, (status) => `GitHub answered ${status} for the latest release`);
+export async function latestTag(fetchImpl: typeof fetch, repo: string, channel: UpdateChannel = "stable"): Promise<string> {
+  const headers = { accept: "application/vnd.github+json" };
+  let expected: string | undefined;
+  if (channel === "main") {
+    const response = await get(fetchImpl, `https://api.github.com/repos/${repo}/commits/main`, { headers }, status => `GitHub answered ${status} for main`);
+    const { sha } = parse(BranchCommit, await response.json(), { system: "github", what: "GitHub main commit" });
+    if (!/^[0-9a-f]{40}$/.test(sha)) throw new IntegrationError("GitHub returned an invalid main commit", { system: "github", kind: "protocol" });
+    expected = `main-${sha}`;
+  }
+  const path = expected ? `tags/${expected}` : "latest";
+  const response = await get(fetchImpl, `https://api.github.com/repos/${repo}/releases/${path}`, { headers }, (status) => `GitHub answered ${status} for the latest release`);
   const { tag_name: tag } = parse(LatestRelease, await response.json(), { system: "github", what: "GitHub release" });
   if (tag === "") throw new IntegrationError("GitHub returned no release tag", { system: "github", kind: "protocol" });
+  if (expected && tag !== expected) throw new IntegrationError("GitHub release does not match main", { system: "github", kind: "protocol" });
   return tag;
 }
 

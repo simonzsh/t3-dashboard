@@ -1,6 +1,7 @@
 import { s, type Infer } from "../contract.ts";
 
 export const LatestRelease = s.object({ tag_name: s.string() });
+export const BranchCommit = s.object({ sha: s.string() });
 
 // Pull request shapes read through gh. Every field is optional: a missing one drops the row, not the page.
 const text = () => s.optional(s.nullable(s.string()));

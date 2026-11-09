@@ -169,6 +169,17 @@ test("linux: the agent rules variables pass into the unit", () => {
   assert.match(unit, /^Environment="T3_DASHBOARD_AGENT_RULES=off"$/m);
 });
 
+test("the main update channel and repository survive service installation on every platform", () => {
+  const env = { T3_DASHBOARD_UPDATE_CHANNEL: "main", T3_DASHBOARD_REPO: "o/r" };
+  for (const platform of ["linux", "darwin", "win32"] as const) {
+    const content = servicePlan(platform, { ...base, env }).files.map(file => file.content).join("\n");
+    assert.match(content, /T3_DASHBOARD_UPDATE_CHANNEL/);
+    assert.match(content, /main/);
+    assert.match(content, /T3_DASHBOARD_REPO/);
+    assert.match(content, /o\/r/);
+  }
+});
+
 test("macos: the set override variables go into EnvironmentVariables, escaped", () => {
   const content = servicePlan("darwin", { ...base, home: "/Users/ann", env: { T3_DASHBOARD_CONFIG_DIR: "/a&b", T3CODE_HOME: "/t3" } }).files[0]!.content;
   assert.match(content, /<key>T3_DASHBOARD_CONFIG_DIR<\/key>\s*<string>\/a&amp;b<\/string>/);
