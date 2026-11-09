@@ -226,3 +226,9 @@ test("on a phone only the diff runs edge to edge; the description and the file t
 test("a hovered underline tab keeps the bar line under it", () => {
   assert.match(css, /\.tabs\.underline button:not\(\.active\):hover \{ box-shadow: inset 0 -1px var\(--line\); \}/);
 });
+
+test("an ActionMenu has a max width and only the row detail gives way", () => {
+  assert.match(rule(".action-menu"), /max-width: min\(420px, calc\(100vw - 16px\)\)/);
+  assert.match(rule(".action-menu-label"), /flex: none; white-space: nowrap/);
+  assert.match(rule(".action-menu-detail"), /min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap/);
+});

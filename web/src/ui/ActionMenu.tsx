@@ -16,6 +16,8 @@ export interface ActionMenuItem {
   tooltip?: string;
   /** A hollow ring after the label, the unread mark of the dashboard. */
   unread?: boolean;
+  /** Text after the label and a dash. It alone is cut with an ellipsis when the row is too long; the full text shows as a tooltip. */
+  detail?: string;
 }
 
 interface RowProps {
@@ -40,7 +42,16 @@ export function ActionMenuRow({ item, id, active, onPick, onHover }: RowProps) {
       onClick={onPick}
     >
       <Icon name={item.icon} />
-      <span className="dropdown-text">{item.label}</span>
+      {item.detail ? (
+        <span className="dropdown-text action-menu-text">
+          <span className="action-menu-label">{item.label}</span>
+          <span className="action-menu-detail" data-tooltip={item.detail} data-tooltip-clipped="">
+            – {item.detail}
+          </span>
+        </span>
+      ) : (
+        <span className="dropdown-text">{item.label}</span>
+      )}
       {item.unread && <span className="notif-dot" role="img" aria-label="Unread" />}
     </div>
   );
@@ -63,7 +74,7 @@ interface Props {
   variant?: ButtonVariant;
 }
 
-/** The "…" button of a row, and its menu of actions. Same menu, rows and keys as the Dropdown. */
+/** The "…" button of a row, and its menu of actions. Same menu, rows and keys as the Dropdown. The menu is at most 420 px wide. */
 export function ActionMenu({ label, tooltip, items, className, icon = "moreHorizontal", count, text, variant = "ghost" }: Props) {
   const [open, setOpen] = useState(false);
   const anchor = useRef<HTMLButtonElement>(null);
@@ -114,7 +125,7 @@ export function ActionMenu({ label, tooltip, items, className, icon = "moreHoriz
         </Button>
       )}
       {open && (
-        <Popover anchor={anchor} align="end" minWidth={170} className="dropdown-menu" onClose={(reason) => close(reason === "escape")}>
+        <Popover anchor={anchor} align="end" minWidth={170} className="dropdown-menu action-menu" onClose={(reason) => close(reason === "escape")}>
           <div ref={list} className="dropdown-list" role="menu" aria-label={label} tabIndex={-1} aria-activedescendant={active >= 0 ? `${id}-${active}` : undefined} onKeyDown={onKeyDown}>
             {items.map((item, i) => (
               <ActionMenuRow key={item.label} item={item} id={`${id}-${i}`} active={i === active} onPick={() => pick(item)} onHover={() => hover(i)} />

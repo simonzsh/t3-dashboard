@@ -235,6 +235,14 @@ test("an ActionMenu row shows the unread ring only for an unread item", () => {
   assert.doesNotMatch(row(false), /notif-dot/);
 });
 
+test("an ActionMenu row cuts only its detail: the label and the unread ring stay whole", () => {
+  const title = "A very long pull request title ".repeat(8).trim();
+  const out = html(<ActionMenuRow item={{ label: "#12 acme/storefront", detail: title, icon: "gitPullRequest", onSelect: () => {}, unread: true }} id="r" active={false} onPick={() => {}} onHover={() => {}} />);
+  assert.match(out, /<span class="action-menu-label">#12 acme\/storefront<\/span>/);
+  assert.match(out, new RegExp(`<span class="action-menu-detail" data-tooltip="${title}" data-tooltip-clipped="">– ${title}</span>`));
+  assert.match(out, /<\/span><\/span><span class="notif-dot" role="img" aria-label="Unread"><\/span><\/div>$/);
+});
+
 test("a waiting badge carries the person icon and an error badge the alert circle; others carry none", () => {
   const html = (variant: "waiting" | "error" | "done") => renderToStaticMarkup(<Badge variant={variant}>x</Badge>);
   assert.match(html("waiting"), /badge-icon/);
