@@ -299,9 +299,39 @@ test("no page sizes a toolbar control on its own", () => {
 });
 
 test("the toolbar guard sees a page that sizes one of its toolbar controls", () => {
-  assert.deepEqual(toolbarViolations(`${css}\n.auto-toolbar .segmented { padding: 3px; }\n`), [".auto-toolbar .segmented"]);
+  assert.deepEqual(toolbarViolations(`${css}\n.news-list .segmented { padding: 3px; }\n`), [".news-list .segmented"]);
   assert.deepEqual(toolbarViolations(`${css}\n.pulls-list .dropdown-trigger { height: 26px; }\n`), [".pulls-list .dropdown-trigger"]);
   assert.deepEqual(toolbarViolations(`${css}\n.model-footer .segmented { padding: 2px; }\n`), []);
+});
+
+// --- List toolbar: one kit component (ListToolbar) and one set of rules in the page-shell block. ---
+const TOOLBAR_CLASS = /\b(list-toolbar|auto-(toolbar|search|sort|filter))\b/;
+const TOOLBAR_SELECTOR = /\.(list-toolbar|auto-(toolbar|search|sort|filter))\b/;
+
+// Features render <ListToolbar>: they never name its classes, nor bring back the old Automations names.
+const toolbarClassUsers = (files: Array<{ file: string; text: string }>): string[] =>
+  files.filter(({ file, text }) => !file.startsWith("ui/") && TOOLBAR_CLASS.test(text)).map(({ file }) => file);
+
+function localToolbarRules(text: string): string[] {
+  const start = text.indexOf(SHELL_START);
+  const end = text.indexOf(SHELL_END);
+  const outside = text.slice(0, start) + text.slice(end + SHELL_END.length);
+  return rulesOf(outside).flatMap(([selectors]) => selectors.split(",").map((part) => part.trim())).filter((selector) => TOOLBAR_SELECTOR.test(selector));
+}
+
+test("the list toolbar is styled only in the page-shell block, and features use it only through ListToolbar", () => {
+  assert.ok(sources.filter(({ text }) => /<ListToolbar\b/.test(text)).length >= 3, "the guard finds the pages that use ListToolbar");
+  assert.deepEqual(toolbarClassUsers(allSources), []);
+  assert.deepEqual(localToolbarRules(css), []);
+});
+
+test("the list toolbar guard sees a feature that uses or styles the toolbar on its own", () => {
+  assert.deepEqual(toolbarClassUsers([{ file: "features/news/X.tsx", text: '<div className="list-toolbar">' }]), ["features/news/X.tsx"]);
+  assert.deepEqual(toolbarClassUsers([{ file: "features/pulls/X.tsx", text: '<SearchField className="auto-search" />' }]), ["features/pulls/X.tsx"]);
+  assert.deepEqual(toolbarClassUsers([{ file: "ui/ListToolbar.tsx", text: '<div className="list-toolbar">' }]), []);
+  assert.deepEqual(localToolbarRules(`${css}\n.news-list .list-toolbar { gap: 4px; }\n`), [".news-list .list-toolbar"]);
+  assert.deepEqual(localToolbarRules(`${css}\n.auto-toolbar { gap: 4px; }\n`), [".auto-toolbar"]);
+  assert.deepEqual(localToolbarRules(`${css}\n.x { grid-auto-flow: row; }\n`), []);
 });
 
 // --- Page choices: filters, sorts and views persist through one helper (lib/storage.ts). ---

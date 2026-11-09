@@ -4,7 +4,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { nextRadioIndex, rovingTabIndex } from "../../src/ui/radioKeys.ts";
 import { isPhone, isTouch, PHONE, TOUCH } from "../../src/ui/media.ts";
 import { ActionMenuRow } from "../../src/ui/ActionMenu.tsx";
-import { ActionMenu, Badge, Button, ButtonLink, Chevron, Choice, CountBadge, Dialog, IconButtonLink, Kbd, ListPage, OptionList, SearchField, Segmented, FileInput, Icon, IconButton, PageHeader, Pressable, SecretInput, Sheet, Skeleton, SkeletonGroup, Switch, Tabs, TextArea, TextInput, Tree, SidePanel, SidePanelToggle } from "../../src/ui/index.ts";
+import { ActionMenu, Badge, Button, ButtonLink, Chevron, Choice, CountBadge, Dialog, IconButtonLink, Kbd, ListPage, ListToolbar, OptionList, SearchField, Segmented, FileInput, Icon, IconButton, PageHeader, Pressable, SecretInput, Sheet, Skeleton, SkeletonGroup, Switch, Tabs, TextArea, TextInput, Tree, SidePanel, SidePanelToggle } from "../../src/ui/index.ts";
 import { pathTree } from "../../src/ui/pathTree.ts";
 
 const html = renderToStaticMarkup;
@@ -292,8 +292,8 @@ test("a CountBadge with a label is an image, and a hidden one is out of the acce
 });
 
 test("a SearchField wraps an icon and a field; className is on the wrapper", () => {
-  const out = html(<SearchField className="auto-search" aria-label="Find" />);
-  assert.match(out, /^<div class="search-field auto-search"><svg/);
+  const out = html(<SearchField className="x-search" aria-label="Find" />);
+  assert.match(out, /^<div class="search-field x-search"><svg/);
   assert.match(out, /<input[^>]*aria-label="Find"[^>]*class="field"/);
 });
 
@@ -332,6 +332,13 @@ test("media checks are false without matchMedia and name the shared queries", ()
   assert.equal(isTouch(), false);
   assert.equal(PHONE, "(max-width: 700px)");
   assert.equal(TOUCH, "(pointer: coarse)");
+});
+
+test("a ListToolbar puts its search field first, labelled, then the page's filters and actions", () => {
+  const onChange = () => {};
+  const out = html(<ListToolbar search={{ label: "Search things", value: "a", onChange }}><button>Sort</button></ListToolbar>);
+  assert.match(out, /^<div class="list-toolbar"><div class="search-field list-toolbar-search"><svg[\s\S]*<input[^>]*aria-label="Search things"[^>]*placeholder="Search things…"[^>]*value="a"[\s\S]*<\/div><button>Sort<\/button><\/div>$/);
+  assert.match(html(<ListToolbar wrap={false} search={{ label: "Search", value: "", onChange }} />), /^<div class="list-toolbar no-wrap">/);
 });
 
 test("a flush ListPage marks itself, so its head-to-body space scrolls with the body", () => {

@@ -4,7 +4,7 @@ import type { PrList, PrRef, PrSummary } from "../../../../shared/pulls.ts";
 import { relativeTime } from "../../lib/format.ts";
 import { prMark, prMarkId, unreadPrCount, type OpenPrs } from "../../lib/prSeen.ts";
 import { hashForPr } from "../../lib/tabs.ts";
-import { Badge, Dropdown, Icon, IconButton, ListPage, Loader, SearchField, Segmented } from "../../ui/index.ts";
+import { Badge, Dropdown, Icon, IconButton, ListPage, ListToolbar, Loader, Segmented } from "../../ui/index.ts";
 import { ALL_REPOSITORIES, CHECKS, filterPrs, groupByRepository, repositoriesOf, REVIEWS, SCOPES, sessionsOf, shortRepository } from "./pulls.ts";
 import { usePullsPrefs } from "./prefs.ts";
 import { Counts } from "./DiffFiles.tsx";
@@ -76,8 +76,7 @@ export function PrListView({ list, error, refreshing, onRefresh, threads, now, o
       className="pulls-list"
       aria-label="Pull requests"
       head={
-        <div className="auto-toolbar">
-          <SearchField className="auto-search" aria-label="Search pull requests" placeholder="Search pull requests…" value={query} onChange={(e) => setQuery(e.target.value)} />
+        <ListToolbar search={{ label: "Search pull requests", value: query, onChange: setQuery }}>
           <Segmented label="Show" value={scope} options={SCOPES.map((s) => (s.id === "unread" && unread > 0 ? { ...s, label: `Unread ${unread}` } : s))} onChange={(scope) => setPrefs({ scope })} />
           <Dropdown
             label="Repository"
@@ -88,7 +87,7 @@ export function PrListView({ list, error, refreshing, onRefresh, threads, now, o
           <IconButton variant="ghost" className="pulls-refresh" label="Refresh the list" tooltip="Refresh the list" disabled={refreshing} onClick={onRefresh}>
             <Icon name="refresh" className={refreshing ? "icon spinning" : "icon"} />
           </IconButton>
-        </div>
+        </ListToolbar>
       }
     >
       {error && <p className="auto-error" role="alert">{error}</p>}

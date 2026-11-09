@@ -5,7 +5,7 @@ import { useApi } from "../../api/ApiContext.tsx";
 import { failure } from "../../lib/format.ts";
 import { renderMarkdown } from "../../lib/markdown.tsx";
 import { useDebouncedValue } from "../../lib/useDebouncedValue.ts";
-import { Button, Icon, IconButton, ListPage, Loader, Pressable, SearchField } from "../../ui/index.ts";
+import { Button, Icon, IconButton, ListPage, ListToolbar, Loader, Pressable } from "../../ui/index.ts";
 import { DeleteNewsDialog } from "./DeleteNewsDialog.tsx";
 import { dateLabel, filterArticles, isUnreadArticle, readTarget, SEARCH_DEBOUNCE_MS, shortDate, statusLine } from "./news.ts";
 
@@ -134,12 +134,11 @@ export function NewsView({ news, writing, now, compact, seen, onRead, onOpenThre
         head={
           <>
             {status}
-            <div className="news-tools">
-              <SearchField className="auto-search" aria-label="Search news" placeholder="Search news…" value={query} onChange={(e) => setQuery(e.target.value)} />
+            <ListToolbar wrap={false} search={{ label: "Search news", value: query, onChange: setQuery }}>
               <Button size="sm" variant="ghost" onClick={() => setDeleting("all")}>
                 <Icon name="trash" /> Delete all
               </Button>
-            </div>
+            </ListToolbar>
           </>
         }
       >

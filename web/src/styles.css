@@ -196,6 +196,14 @@ main { flex: 1; min-height: 0; overflow: hidden; padding: var(--page-top) var(--
 .list-page-head :is(.segmented, .search-field .field, .dropdown-trigger, .tabs button, .btn.md, .icon-button.md) { height: var(--toolbar-control); }
 .list-page-head .segmented { padding-block: 2px; }
 .list-page-head :is(.dropdown-trigger, .tabs button) { padding-block: 0; }
+/* The list toolbar (ListToolbar): search, filters and actions on one row, wrapped on a narrow screen. */
+.list-toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.list-toolbar .segmented { max-width: 100%; overflow-x: auto; }
+.list-toolbar .segmented button { white-space: nowrap; }
+.list-toolbar-search { flex: 1 1 200px; min-width: 0; max-width: 360px; }
+/* A narrow list keeps one row: only the search field shrinks. */
+.list-toolbar.no-wrap { flex-wrap: nowrap; }
+.list-toolbar.no-wrap > :not(.list-toolbar-search) { flex: none; }
 /* page-shell:end */
 .project-icon { flex: none; width: 16px; height: 16px; }
 .provider-icon { flex: none; width: 20px; height: 20px; margin-top: 1px; }
@@ -724,10 +732,6 @@ ol.install-steps { padding-left: 18px; }
 .auto-note { margin: 0; font-size: 12px; color: var(--text-secondary); }
 .auto-model { display: inline-flex; align-items: center; gap: 6px; }
 .auto-model .provider-icon { width: 15px; height: 15px; margin: 0; }
-.auto-toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
-.auto-toolbar .segmented { max-width: 100%; overflow-x: auto; }
-.auto-toolbar .segmented button { white-space: nowrap; }
-.auto-search { flex: 1 1 200px; min-width: 0; max-width: 360px; }
 .auto-card { overflow: hidden; border: 1px solid var(--line); border-radius: var(--radius-lg); background: var(--surface-1); box-shadow: var(--shadow); }
 .auto-rows { margin: 0; padding: 0; list-style: none; }
 .auto-rows > li + li { border-top: 1px solid var(--line); }
@@ -1170,8 +1174,6 @@ ol.install-steps { padding-left: 18px; }
 /* The next run, the search and Delete all stay put while only the articles scroll, as on Automations. */
 .news-list-head { display: flex; flex-direction: column; gap: 12px; }
 .news-status { margin: 0; padding: 0 10px; font-size: 12px; color: var(--text-secondary); }
-.news-tools { display: flex; align-items: center; gap: 8px; }
-.news-tools > button { flex: none; }
 .news-none { padding: 8px 10px; font-size: 13px; color: var(--text-secondary); }
 .news-row { position: relative; }
 .news-row .thread-actions { top: 50%; bottom: auto; transform: translateY(-50%); }
@@ -1219,7 +1221,7 @@ ol.install-steps { padding-left: 18px; }
 /* The list and the detail are ListPages: the detail's header stays above the scroll box, so it never moves. */
 .pulls-list .list-page-body { display: flex; flex-direction: column; gap: 16px; }
 .pulls-list .list-page-body > * { flex: none; }
-/* The list reuses the Automations toolbar (auto-toolbar); refresh sits at its end. */
+/* Refresh sits at the end of the list toolbar. */
 .pulls-refresh { margin-left: auto; }
 .pulls-group { display: flex; flex-direction: column; gap: 6px; }
 .pulls-group-name { display: flex; align-items: center; gap: 6px; margin: 0; font-size: 14px; font-weight: 600; }
