@@ -90,7 +90,7 @@ export function AlertsSettings() {
           <>
             {" "}
             or open{" "}
-            <a href={settings.subscribeUrl} target="_blank" rel="noreferrer">
+            <a className="setup-link" href={settings.subscribeUrl} target="_blank" rel="noreferrer">
               the subscribe link
             </a>
           </>
