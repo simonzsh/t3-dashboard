@@ -169,7 +169,7 @@ function SessionListView({ threads, projects, seen, modelNames, now, openIds, fo
         <section className="slist-settled" aria-label="Settled in the last 24 hours">
           <div className="slist-project">
             <Pressable className="slist-project-toggle" aria-expanded={settledOpen} onClick={() => setSettledOpen(!settledOpen)}>
-              <Chevron open={settledOpen} opensUp className="slist-chevron" />
+              <Chevron open={settledOpen} className="slist-chevron" />
               <span className="slist-project-title">Settled · last 24h</span>
               <span className="slist-total">{settled.length}</span>
             </Pressable>

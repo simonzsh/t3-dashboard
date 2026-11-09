@@ -1009,7 +1009,7 @@ ol.install-steps { padding-left: 18px; }
 /* Same slide as the app sidebar: the slot narrows, the list keeps its width inside. */
 .slist { flex: none; width: 280px; min-height: 0; display: flex; flex-direction: column; border-right: 1px solid var(--line); background: var(--page-bg); }
 .slist-body { flex: 1; min-height: 0; overflow-y: auto; padding: 6px; }
-.slist-settled { flex: none; display: flex; flex-direction: column-reverse; min-height: 0; max-height: 50%; padding: 6px; border-top: 1px solid var(--line); background: var(--page-bg); }
+.slist-settled { flex: none; display: flex; flex-direction: column; min-height: 0; max-height: 50%; padding: 6px; border-top: 1px solid var(--line); background: var(--page-bg); }
 .slist-settled > .slist-project { flex: none; }
 .slist-settled-body { min-height: 0; overflow-y: auto; }
 .slist-project { display: flex; align-items: center; border-radius: var(--radius-md); }
