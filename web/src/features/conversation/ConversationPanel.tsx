@@ -536,6 +536,11 @@ function Conversation({ searchRequest = 0, threadId, thread, providers, onOpenTh
           </IconButton>
         )}
       </div>
+      {detail && !running && !background && !needsInput && pending.length === 0 && (
+        <div className="input-request-dock">
+          <div className="working-row"><WorkingRobot sleeping /></div>
+        </div>
+      )}
       {needsInput && (
         <div className="input-request-dock">
           <div className="working-row"><Icon name={STATUS_ICONS.waiting} className="waiting-icon" /><span>Waiting for your reply</span><WorkingRobot waiting /></div>

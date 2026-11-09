@@ -348,8 +348,8 @@ main { flex: 1; min-height: 0; overflow: hidden; padding: var(--page-top) var(--
 @media (prefers-reduced-motion: reduce) { .disclosure { transition: none; } }
 @keyframes breathe { 0%, 100% { opacity: 1; } 50% { opacity: 0.35; } }
 /* Sculpted surfaces and perspective give the mascot depth without a render loop. */
-.working-robot { --robot-light: color-mix(in srgb, var(--accent) 35%, white); --robot-shade: color-mix(in srgb, var(--accent) 65%, black); position: relative; width: 70px; height: 56px; flex: none; margin-left: auto; align-self: center; overflow: hidden; pointer-events: none; }
-.robot-size { position: absolute; left: 0; top: 5px; width: 164px; height: 124px; transform: scale(0.41); transform-origin: top left; perspective: 450px; }
+.working-robot { --robot-light: color-mix(in srgb, var(--accent) 35%, white); --robot-shade: color-mix(in srgb, var(--accent) 65%, black); position: relative; width: 86px; height: 68px; flex: none; margin-left: auto; align-self: center; overflow: hidden; padding: 0; border: 0; border-radius: var(--radius-md); background: none; cursor: pointer; touch-action: manipulation; }
+.robot-size { position: absolute; left: 0; top: 5px; width: 164px; height: 124px; transform: scale(0.5); transform-origin: top left; perspective: 450px; }
 .robot-scene { position: relative; width: 148px; height: 114px; transform: rotateX(8deg) rotateY(-14deg); transform-style: preserve-3d; }
 .robot-head, .robot-body, .robot-hand { position: absolute; background: linear-gradient(135deg, var(--robot-light), var(--accent) 55%, var(--robot-shade)); box-shadow: inset -4px -4px 8px color-mix(in srgb, var(--robot-shade) 35%, transparent), inset 2px 2px 4px var(--robot-light), 3px 5px 0 var(--robot-shade); }
 .robot-head { left: 39px; top: 15px; width: 70px; height: 49px; border-radius: 22px; transform: translateZ(18px); animation: robot-nod 2.8s ease-in-out infinite; z-index: 3; }
@@ -370,14 +370,14 @@ main { flex: 1; min-height: 0; overflow: hidden; padding: var(--page-top) var(--
 .robot-thought::before, .robot-thought::after { content: ""; position: absolute; border: 1px solid var(--line); border-radius: 50%; background: var(--surface-1); }
 .robot-thought::before { width: 9px; height: 9px; left: 4px; bottom: -9px; }
 .robot-thought::after { width: 5px; height: 5px; left: -2px; bottom: -15px; }
-.working-robot.thinking .robot-arm.right { rotate: -40deg; }
+.working-robot.thinking .robot-arm.right { height: 16px; rotate: -90deg; }
 .robot-thought i { width: 5px; height: 5px; border-radius: 50%; background: var(--work); animation: breathe 1.4s infinite; }
 .robot-thought i:nth-child(2) { animation-delay: 200ms; }
 .robot-thought i:nth-child(3) { animation-delay: 400ms; }
 .working-robot.thinking .robot-thought { display: flex; }
-.working-robot.thinking .robot-head { animation: robot-ponder 3s ease-in-out infinite; }
+.working-robot.thinking .robot-head { transform: translate3d(5px, 6px, 18px) rotate(-10deg); animation: none; }
 .working-robot.thinking .robot-hand { animation: none; }
-.working-robot.thinking .robot-hand.right { top: 58px; right: 28px; transform: rotate(-35deg); }
+.working-robot.thinking .robot-hand.right { top: 63px; right: 30px; transform: translateZ(24px) rotate(-10deg); }
 .working-robot.waiting .robot-head { animation: robot-ponder 3s ease-in-out infinite; }
 .working-robot.waiting .robot-arm.right, .working-robot.waiting .robot-hand.right { display: none; }
 .robot-wave-arm { position: absolute; left: 87px; top: 33px; width: 18px; height: 46px; z-index: 4; transform: translateZ(6px) rotate(48deg); transform-origin: 50% 100%; animation: robot-wave 1.8s ease-in-out infinite; }
@@ -386,11 +386,33 @@ main { flex: 1; min-height: 0; overflow: hidden; padding: var(--page-top) var(--
 .robot-palm { left: 0; top: 0; width: 18px; height: 24px; border-radius: 9px 9px 7px 7px; }
 .robot-palm::after { content: ""; position: absolute; left: -4px; bottom: 2px; width: 7px; height: 12px; border-radius: 5px; background: var(--accent); transform: rotate(-25deg); }
 .working-robot.waiting .robot-hand.left { top: 77px; }
+.working-robot.sleeping .robot-head { transform: translateZ(18px) rotate(8deg) translateY(4px); animation: robot-sleep 4s ease-in-out infinite; }
+.working-robot.sleeping .robot-face i { height: 5px; width: 10px; background: none; border-bottom: 3px solid var(--robot-light); border-radius: 0 0 8px 8px; box-shadow: none; animation: none; }
+.working-robot.sleeping .robot-antenna::before { opacity: 0.45; box-shadow: none; }
+.robot-snooze { position: absolute; left: 112px; top: 5px; display: flex; align-items: baseline; gap: 2px; color: var(--accent); font: 600 14px var(--font-mono); }
+.robot-snooze span { animation: robot-dream 4s ease-in-out infinite; }
+.robot-snooze span:nth-child(2) { animation-delay: 500ms; }
+.robot-snooze span:nth-child(3) { animation-delay: 1s; }
+.robot-face > i { transition: opacity 200ms ease; }
+.robot-love-eyes { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; gap: 5px; opacity: 0; transition: opacity 200ms ease; }
+.robot-love-eyes svg { width: 19px; height: 19px; fill: var(--danger); }
+.working-robot.reacting .robot-face > i { opacity: 0; }
+.working-robot.reacting .robot-love-eyes { opacity: 1; }
+.working-robot.reacting .robot-love-eyes svg { transform-box: fill-box; transform-origin: center; animation: robot-heartbeat 800ms ease-in-out infinite; }
+@keyframes robot-heartbeat { 0%, 100% { scale: 1; } 22% { scale: 1.18; } 40% { scale: 1; } 58% { scale: 1.1; } 78% { scale: 1; } }
+@media (prefers-reduced-motion: reduce) { .working-robot.reacting .robot-love-eyes svg { animation: none; } }
+.robot-snooze { transition: opacity 200ms ease; }
+.working-robot.reacting .robot-snooze { opacity: 0; }
+.working-robot.reacting .robot-thought { visibility: hidden; }
+.working-robot.reacting .robot-antenna::before { opacity: 1; }
+@media (prefers-reduced-motion: reduce) { .robot-love-eyes, .robot-face > i, .robot-snooze { transition: none; } }
+@keyframes robot-sleep { 50% { transform: translateZ(18px) rotate(8deg) translateY(2px); } }
+@keyframes robot-dream { 0%, 100% { opacity: 0.35; transform: translateY(0); } 50% { opacity: 0.8; transform: translateY(-3px); } }
 @keyframes robot-wave { 0%, 60%, 100% { transform: translateZ(6px) rotate(48deg); } 15%, 45% { transform: translateZ(6px) rotate(56deg); } 30% { transform: translateZ(6px) rotate(44deg); } }
 @keyframes robot-nod { 50% { transform: translateZ(18px) rotateX(8deg) translateY(2px); } }
 @keyframes robot-ponder { 50% { transform: translateZ(18px) rotate(-9deg); } }
 @keyframes robot-blink { 0%, 43%, 47%, 100% { scale: 1 1; } 45% { scale: 1 0.15; } }
-@media (prefers-reduced-motion: reduce) { .working-robot *, .working-robot.thinking .robot-head, .working-robot.waiting .robot-head, .working-robot.waiting .robot-hand.right { animation: none; } }
+@media (prefers-reduced-motion: reduce) { .working-robot *, .working-robot.thinking .robot-head, .working-robot.waiting .robot-head, .working-robot.waiting .robot-hand.right, .working-robot.sleeping .robot-head { animation: none; } }
 
 .ui-collapse { height: 0; overflow: hidden; min-width: 0; }
 .ui-collapse > div { display: flow-root; }

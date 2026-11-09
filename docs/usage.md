@@ -353,7 +353,7 @@ Cards open in 80 ms and keep loaded details. A running command with no output sh
 Before the first action arrives, an inline loader appears next to Working.
 
 A small robot sits to the right of Working, above the cards. It follows the selected accent color.
-Its hands type at varied rhythms, with key feedback timed to contact. A thought bubble appears while it thinks.
+Its hands type at varied rhythms, with key feedback timed to contact. It rests its chin on its hand and shows a thought bubble while thinking.
 The robot uses CSS depth. Reduced motion disables its animation and the card transitions.
 
 When a question, approval, or secret needs your reply, the robot raises a hand above the composer.
@@ -361,3 +361,5 @@ Pending secrets appear there too. Answered secrets stay in the conversation hist
 Secret requests use the same collapsible panel as questions and approvals, attached to the composer. Pending secrets appear one at a time.
 On mobile, refreshing keeps the focused session open. Returning to the session list also persists across refreshes.
 Incoming questions, approvals, and secret requests do not move keyboard focus or select another session.
+When a session has no active run, background task, pending message, or request, the robot rests above the composer with closed eyes.
+Tap or click the robot to greet it. Its eyes become pulsing red hearts and its head tilts gently, then returns to its current pose. A sleeping robot briefly wakes.
