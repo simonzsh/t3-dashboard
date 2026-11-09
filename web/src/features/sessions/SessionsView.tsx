@@ -40,7 +40,6 @@ interface Props {
   armedAlerts: ReadonlySet<string>;
   onToggleAlert: (id: string) => void;
   onNewSession: (projectId: string) => void;
-  onAddProject: () => void;
   onEditProject: (id: string) => void;
   onDeleteProject: (id: string) => void;
   onSettle: (id: string, settle: boolean) => Promise<unknown>;
@@ -224,7 +223,7 @@ function useWindowDrag(enabled: boolean, dispatch: Dispatch<SessionsAction>) {
   };
 }
 
-export function SessionsView({ sessions, dispatch, threads, projects, seen, openPrs, now, layout, prefs, onPrefs, t3EnvironmentId, providers, phone, sessionShown, onBack, onOpen, alertsConfigured, armedAlerts, onToggleAlert, onNewSession, onAddProject, onEditProject, onDeleteProject, onSettle }: Props) {
+export function SessionsView({ sessions, dispatch, threads, projects, seen, openPrs, now, layout, prefs, onPrefs, t3EnvironmentId, providers, phone, sessionShown, onBack, onOpen, alertsConfigured, armedAlerts, onToggleAlert, onNewSession, onEditProject, onDeleteProject, onSettle }: Props) {
   const modelNames = useMemo(() => modelNameMap(providers), [providers]);
   const openIds = useMemo(() => new Set(sessions.ids), [sessions.ids]);
   // On a phone, closing the open session goes back to the list.
@@ -304,7 +303,6 @@ export function SessionsView({ sessions, dispatch, threads, projects, seen, open
       onPrefs={onPrefs}
       onOpen={openFromList}
       onNewSession={onNewSession}
-      onAddProject={onAddProject}
       onEditProject={onEditProject}
       onDeleteProject={onDeleteProject}
       onSettle={onSettle}

@@ -309,6 +309,7 @@ export function App() {
                 onLayoutChange={setLayout}
                 listHidden={listPrefs.hidden}
                 onToggleList={() => setListPrefs({ hidden: !listPrefs.hidden })}
+                onAddProject={() => setAddingProject(true)}
                 onNewSession={() => setCreating({ projectId: null })}
                 onNewAutomation={() => setCreatingAutomation(true)}
                 newsCanRun={news.state !== null && (news.state.task !== null || newsFirstRun !== null)}
@@ -391,7 +392,6 @@ export function App() {
                   armedAlerts={alerts.armed}
                   onToggleAlert={alerts.toggle}
                   onNewSession={newSession}
-                  onAddProject={() => setAddingProject(true)}
                   onEditProject={setEditingProject}
                   onDeleteProject={setDeletingProject}
                   onSettle={onSettle}

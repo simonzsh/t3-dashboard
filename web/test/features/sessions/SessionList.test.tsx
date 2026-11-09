@@ -18,7 +18,6 @@ const base = {
   onPrefs: () => {},
   onOpen: () => {},
   onNewSession: () => {},
-  onAddProject: () => {},
   onEditProject: () => {},
   onDeleteProject: () => {},
   onSettle: async () => {},
@@ -50,10 +49,10 @@ test("a collapsed project hides its threads; flat mode has no project rows", () 
   assert.doesNotMatch(flat, /Model One/);
 });
 
-test("the top band, on the right: add project, collapse all, view toggle, close all, settle inactive, and no hide button", () => {
+test("the top band, on the right: collapse all, view toggle, close all, settle inactive, and no hide button", () => {
   const html = renderToStaticMarkup(<SessionList {...base} threads={[...base.threads, thread("old", { lastActivityAt: "2026-01-01T00:00:00.000Z" })]} />);
   const at = (label: string) => html.indexOf(`aria-label="${label}"`);
-  const order = ["Add project", "Collapse all projects", "Show one list by recent activity", "Close all sessions", "Settle inactive sessions"].map(at);
+  const order = ["Collapse all projects", "Show one list by recent activity", "Close all sessions", "Settle inactive sessions"].map(at);
   assert.ok(order[0]! >= 0 && order.every((n, i) => i === 0 || n > order[i - 1]!));
   assert.doesNotMatch(html, /Hide the list/);
 });
@@ -69,10 +68,10 @@ test("flat mode offers Group by project", () => {
   assert.match(renderToStaticMarkup(<SessionList {...base} prefs={{ ...DEFAULT_LIST_PREFS, mode: "flat" }} />), /aria-label="Group by project"/);
 });
 
-test("flat mode has no fold button; close all is disabled when nothing is open", () => {
+test("flat mode has no fold button; close all is hidden when nothing is open", () => {
   const html = renderToStaticMarkup(<SessionList {...base} openIds={new Set()} prefs={{ ...DEFAULT_LIST_PREFS, mode: "flat" }} />);
   assert.doesNotMatch(html, /all projects/);
-  assert.match(html, /<button[^>]*aria-label="Close all sessions"[^>]*disabled|<button[^>]*disabled[^>]*aria-label="Close all sessions"/);
+  assert.doesNotMatch(html, /aria-label="Close all sessions"/);
 });
 
 test("an open row has a close button beside it, a closed row has none", () => {

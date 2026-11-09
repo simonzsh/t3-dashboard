@@ -18,6 +18,7 @@ interface Props {
   listHidden: boolean;
   onToggleList: () => void;
   onNewSession: () => void;
+  onAddProject: () => void;
   onNewAutomation: () => void;
   /** News: Run now needs a saved task, and waits while a run starts. */
   newsCanRun: boolean;
@@ -75,7 +76,7 @@ function Action({ compact, label, icon, variant = "secondary", withIcon = false,
 }
 
 /** The header buttons of a page: Sessions hides the list, picks its layout and starts a session, Automations a task, News edits its settings and runs it, Dashboard shows the Notifications bell and edits its layout. */
-export function PageActions({ tab, compact, ready, editingLayout, layoutIsDefault, layout, onLayoutChange, listHidden, onToggleList, onNewSession, onNewAutomation, newsCanRun, newsRunning, onNewsRun, onNewsSettings, onSearch, onSettings, updateReady, onEditLayout, onDoneLayout, onResetLayout, unread, notificationsOpen, onToggleNotifications }: Props) {
+export function PageActions({ tab, compact, ready, editingLayout, layoutIsDefault, layout, onLayoutChange, listHidden, onToggleList, onNewSession, onAddProject, onNewAutomation, newsCanRun, newsRunning, onNewsRun, onNewsSettings, onSearch, onSettings, updateReady, onEditLayout, onDoneLayout, onResetLayout, unread, notificationsOpen, onToggleNotifications }: Props) {
   let main = null;
   if (tab === "dashboard" && editingLayout) {
     main = (
@@ -107,6 +108,9 @@ export function PageActions({ tab, compact, ready, editingLayout, layoutIsDefaul
             <Icon name={layout === "columns" ? "layoutGrid" : "columns"} />
           </IconButton>
         )}
+        <IconButton variant="ghost" label="Add project" tooltip="Add project" onClick={onAddProject}>
+          <Icon name="folderPlus" />
+        </IconButton>
         <Action compact={compact} label="New Session" icon="messageSquarePlus" variant="primary" withIcon kbd={ctrlLabel("N")} onClick={onNewSession} />
       </>
     );
