@@ -118,7 +118,7 @@ test("recent settled uses settlement time, includes the boundary and excludes ac
   const recent = settled("recent", "2026-01-11T11:00:00.000Z");
   const threads = [
     settled("boundary", at(12)), recent, settled("old", at(11)), settled("missing"),
-    settled("invalid", "bad"), settled("future", "2027-01-01T00:00:00.000Z"),
+    settled("invalid", "bad"),
     { ...recent, id: "active", status: "running" },
     { ...recent, id: "background", backgroundWork: true },
     { ...recent, id: "waiting", pending: { category: "approval" as const } },
@@ -126,4 +126,11 @@ test("recent settled uses settlement time, includes the boundary and excludes ac
   ];
   assert.deepEqual(recentSettledThreads(threads, now).map((t) => t.id), ["recent", "boundary"]);
   assert.deepEqual(recentSettledThreads([recent], new Date("2026-01-12T11:00:00.001Z")), []);
+});
+
+test("a live settlement appears before the display clock next ticks", () => {
+  const displayTime = new Date("2026-01-11T12:00:00.000Z");
+  const recent = thread("just-settled", { settled: true, settledAt: "2026-01-11T12:00:01.000Z" });
+  assert.deepEqual(recentSettledThreads([recent], displayTime).map((t) => t.id), ["just-settled"]);
+  assert.deepEqual(recentSettledThreads([{ ...recent, settled: false }], displayTime), []);
 });

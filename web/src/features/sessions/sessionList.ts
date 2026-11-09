@@ -57,7 +57,8 @@ export function recentSettledThreads(threads: readonly DashboardThread[], now: D
   return threads.filter((t) => {
     const state = threadState(t);
     const at = Date.parse(t.settledAt ?? "");
-    return t.settled && state !== "running" && state !== "waiting" && at >= cutoff && at <= now.getTime();
+    // The display clock ticks every 30 seconds; a live settlement can be newer than that clock.
+    return t.settled && state !== "running" && state !== "waiting" && at >= cutoff;
   }).sort((a, b) => Date.parse(b.settledAt!) - Date.parse(a.settledAt!));
 }
 
