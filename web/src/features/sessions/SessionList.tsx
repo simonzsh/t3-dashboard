@@ -114,7 +114,7 @@ function SessionListView({ threads, projects, seen, modelNames, now, openIds, fo
         {/* A sibling of the row, not inside it: a button cannot hold another button. */}
         <span className="thread-actions">
           <IconButton variant="ghost" size="sm" label={`${t.settled ? "Unsettle" : "Settle"} ${title}`} tooltip={t.settled ? "Unsettle" : "Settle"} disabled={settleAction.busy} onClick={() => void settleAction.run(() => onSettle(t.id, !t.settled))}>
-            <Icon name={t.settled ? "undo" : "check"} />
+            <Icon name={t.settled ? "archiveRestore" : "archive"} />
           </IconButton>
           {isOpen && (
             <IconButton variant="ghost" size="sm" label={`Close ${title}`} tooltip="Close session" onClick={() => onClose(t.id)}>
