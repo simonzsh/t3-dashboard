@@ -1,25 +1,12 @@
 import { useEffect, useState } from "react";
 import type { AlertsSettings as AlertsSettingsData, AlertTestResult } from "../../../../shared/api.ts";
 import { useApi } from "../../api/ApiContext.tsx";
-import { Button, Icon, IconButton, Loader } from "../../ui/index.ts";
+import { Button, Icon, IconButton, IconButtonLink, Loader } from "../../ui/index.ts";
 import { useAction } from "../../lib/useAction.ts";
 import { useCopy } from "../../lib/useCopy.ts";
 import { failure } from "../../lib/format.ts";
 import { useNotify } from "../../lib/notices.tsx";
 import { SETUP_STEPS, testMessage } from "./alertsSettings.ts";
-
-function CopyValue({ label, value }: { label: string; value: string }) {
-  const { copied, copy } = useCopy(`copy the ${label.toLowerCase()}`);
-  return (
-    <span className="linear-status">
-      <small className="muted">{label}</small>
-      <code className="key-mask">{value}</code>
-      <IconButton label={`Copy the ${label.toLowerCase()}`} tooltip={copied ? "Copied" : "Copy"} size="sm" onClick={() => copy(value)}>
-        <Icon name={copied ? "check" : "copy"} strokeWidth={1.8} />
-      </IconButton>
-    </span>
-  );
-}
 
 /** Settings > Connections > Alerts: the ntfy topic that carries phone alerts. The server holds it; this block sets it up. */
 export function AlertsSettings() {
@@ -30,6 +17,7 @@ export function AlertsSettings() {
   const notify = useNotify();
   const action = useAction("change the alerts");
   const test = useAction("send the test alert");
+  const { copied, copy } = useCopy("copy the topic");
 
   useEffect(() => {
     api.getAlertsSettings().then(setSettings, (e: unknown) => {
@@ -68,41 +56,37 @@ export function AlertsSettings() {
     );
   }
 
+  // One line, like Linear: the topic is all the user needs to subscribe; the server is always ntfy.sh.
   return (
     <div className="settings-row">
       <span>Alerts</span>
-      {intro}
       <span className="linear-controls">
-        <span className="conn up">
-          <span className="conn-dot" /> Connected
+        <span className="linear-status">
+          <span className="conn up">
+            <span className="conn-dot" /> Connected
+          </span>
+          {settings.topic && <code className="key-mask">{settings.topic}</code>}
         </span>
         <span className="row-icons">
+          {settings.topic && (
+            <IconButton label="Copy the topic" tooltip={copied ? "Copied" : "Copy the topic"} size="sm" onClick={() => copy(settings.topic!)}>
+              <Icon name={copied ? "check" : "copy"} strokeWidth={1.8} />
+            </IconButton>
+          )}
+          {settings.subscribeUrl && (
+            <IconButtonLink href={settings.subscribeUrl} target="_blank" rel="noreferrer" label="Subscribe in the ntfy app" tooltip="Subscribe in the ntfy app" size="sm">
+              <Icon name="arrowUpRight" strokeWidth={1.8} />
+            </IconButtonLink>
+          )}
+          <IconButton label="Send test alert" tooltip="Send test alert" size="sm" disabled={test.busy} onClick={() => void test.run(async () => setTested((await api.testAlerts()).result))}>
+            <Icon name="bellRing" strokeWidth={1.8} />
+          </IconButton>
           <IconButton label="Disconnect" tooltip="Disconnect" size="sm" disabled={action.busy} onClick={() => change(api.disconnectAlerts)}>
             <Icon name="logOut" strokeWidth={1.8} />
           </IconButton>
         </span>
       </span>
-      {settings.server && <CopyValue label="Server" value={settings.server} />}
-      {settings.topic && <CopyValue label="Topic" value={settings.topic} />}
-      <p className="install-steps">
-        In the ntfy app, subscribe to this topic
-        {settings.subscribeUrl && (
-          <>
-            {" "}
-            or open{" "}
-            <a className="setup-link" href={settings.subscribeUrl} target="_blank" rel="noreferrer">
-              the subscribe link
-            </a>
-          </>
-        )}
-        .
-      </p>
-      <span className="linear-controls">
-        <Button loading={test.busy && "Sending…"} onClick={() => void test.run(async () => setTested((await api.testAlerts()).result))}>
-          Send test alert
-        </Button>
-        {tested && <small className="muted">{testMessage(tested)}</small>}
-      </span>
+      {tested && <small className="muted">{testMessage(tested)}</small>}
     </div>
   );
 }
