@@ -103,7 +103,10 @@ test("the demo shell fills the store with threads in every state", async () => {
   assert.ok(state.threads.length >= 8);
   const statuses = new Set(state.threads.map(agentStatus));
   assert.deepEqual([...statuses].sort(), ["finished", "waiting", "working"]);
-  assert.ok(state.threads.some((thread) => thread.settled));
+  const settled = demoFixtures(NOW).threads.filter((thread) => thread.settledOverride === "settled");
+  const cutoff = NOW.getTime() - 24 * 3_600_000;
+  assert.equal(settled.filter((thread) => Date.parse(thread.settledAt ?? "") >= cutoff).length, 20);
+  assert.ok(settled.some((thread) => Date.parse(thread.settledAt ?? "") < cutoff));
 });
 
 test("demo thread details show messages, activity, subagents and requests", async () => {
@@ -597,4 +600,31 @@ test("interrupting an armed demo thread sends one alert, through the fake sender
   await Bun.sleep(0);
   assert.deepEqual(sent, [`Cancelled|${click}`]);
   assert.deepEqual(alerts.state().armed, [working.id]);
+});
+
+test("demo settle rejects runs, requests and queues without changing settlement", async () => {
+  const port = new DemoPort(() => NOW);
+  for (const threadId of ["demo-checkout", "demo-migration", "demo-onboarding"]) {
+    await assert.rejects(port.dispatch({ type: "thread.settle", threadId }), /before settling/);
+    assert.notEqual((await port.threadProjection(threadId)).thread?.settledOverride, "settled");
+  }
+  const queued = await port.threadProjection("demo-release-notes");
+  queued.runs = [{ id: "queued-test", status: "queued" }];
+  await assert.rejects(port.dispatch({ type: "thread.settle", threadId: "demo-release-notes" }), /queued message/);
+  queued.runs = [{ id: "completed-test", status: "completed" }];
+  await port.dispatch({ type: "thread.settle", threadId: "demo-release-notes" });
+  assert.equal(queued.thread?.settledOverride, "settled");
+  assert.equal(queued.thread?.settledAt, NOW.toISOString());
+  await port.dispatch({ type: "thread.unsettle", threadId: "demo-release-notes" });
+  assert.equal(queued.thread?.settledOverride, "active");
+});
+
+test("demo settle dismisses a message-based question after the run ends", async () => {
+  const port = new DemoPort(() => NOW);
+  const projection = await port.threadProjection("demo-onboarding");
+  projection.runs = [];
+  projection.runtimeRequests = [{ id: "question", kind: "user_input", status: "pending", responseCapability: { type: "message" } }];
+  await port.dispatch({ type: "thread.settle", threadId: "demo-onboarding" });
+  assert.equal(projection.runtimeRequests[0]?.status, "cancelled");
+  assert.equal(projection.thread?.pendingRuntimeRequest, null);
 });

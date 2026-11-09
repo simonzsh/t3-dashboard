@@ -102,3 +102,17 @@ test("the detail line says what the agent waits for, the error, or the model", (
   assert.equal(notificationDetail(thread("c", { status: "completed" })), "Finished");
   assert.equal(notificationDetail(thread("d", { status: "completed" })), "Finished");
 });
+
+test("notifications keep the latest 50 across groups without limiting running threads", () => {
+  const threads = Array.from({ length: 60 }, (_, i) => thread(String(i), {
+    lastActivityAt: at(i * 1000),
+    ...(i % 3 === 0 ? { pending: ask } : {}),
+  }));
+  const seen = readAt(...threads.filter((_, i) => i % 3 === 1));
+  const s = sectionsOf([...threads, thread("running", { status: "running" })], seen);
+  const notifications = notificationList(s, s.readIdle);
+  assert.equal(notifications.length, 50);
+  assert.deepEqual(new Set(notifications.map((n) => n.thread.id)), new Set(threads.slice(0, 50).map((t) => t.id)));
+  assert.deepEqual(ids(s.running), ["running"]);
+  assert.equal(attentionCount(s), s.needsYou.length + s.unread.length);
+});

@@ -1,15 +1,16 @@
-import { memo, useMemo } from "react";
+import { memo, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import type { DashboardProject, DashboardThread } from "../../../../shared/api.ts";
 import type { SeenState } from "../../../../shared/seen.ts";
+import { useAction } from "../../lib/useAction.ts";
 import { relativeTime } from "../../lib/format.ts";
 import { ProjectIcon } from "../../lib/ProjectIcon.tsx";
 import { AutomationMark } from "../../lib/automationThreads.tsx";
 import { ProviderIcon } from "../../lib/ProviderIcon.tsx";
 import { modelLabel } from "../../lib/models.ts";
 import { threadTitle } from "../../lib/threads.ts";
-import { Chevron, CountBadge, Icon, IconButton, Pressable } from "../../ui/index.ts";
+import { Chevron, CountBadge, Icon, IconButton, Pressable, enter, fly, useFlip } from "../../ui/index.ts";
 import { ProjectMenu } from "./ProjectMenu.tsx";
-import { groupByProject, listableThreads, statusMark, type ListPrefs } from "./sessionList.ts";
+import { groupByProject, listableThreads, recentSettledThreads, settleBlockReason, statusMark, type ListPrefs } from "./sessionList.ts";
 
 const MARK_LABELS = { running: "Running", waiting: "Waiting for you", error: "Failed", unread: "Unread" } as const;
 
@@ -29,13 +30,56 @@ interface Props {
   onAddProject: () => void;
   onEditProject: (id: string) => void;
   onDeleteProject: (id: string) => void;
+  onSettle: (id: string, settle: boolean) => Promise<unknown>;
   onClose: (id: string) => void;
   onCloseAll: () => void;
 }
 
 /** Every listed thread, by project or by recent activity: a click opens it as a session. */
-function SessionListView({ threads, projects, seen, modelNames, now, openIds, focusedId, prefs, onPrefs, onOpen, onNewSession, onAddProject, onEditProject, onDeleteProject, onClose, onCloseAll }: Props) {
+function SessionListView({ threads, projects, seen, modelNames, now, openIds, focusedId, prefs, onPrefs, onOpen, onNewSession, onAddProject, onEditProject, onDeleteProject, onSettle, onClose, onCloseAll }: Props) {
+  const settleAction = useAction("change the session status");
   const shown = useMemo(() => listableThreads(threads), [threads]);
+  const [settledOpen, setSettledOpen] = useState(false);
+  const settled = useMemo(() => recentSettledThreads(threads, now), [threads, now]);
+  const listPanel = useRef<HTMLElement>(null);
+  const activeList = useRef<HTMLDivElement>(null);
+  useLayoutEffect(() => {
+    const list = listPanel.current;
+    if (!list) return;
+    const animation = enter(list, { y: 8, duration: 240 });
+    return () => { animation?.cancel(); };
+  }, []);
+  const activeBar = useRef<HTMLDivElement>(null);
+  const settledAnchor = useRef<HTMLSpanElement>(null);
+  const flight = useRef<Animation | null>(null);
+  useEffect(() => () => { flight.current?.cancel(); }, []);
+  const settledPanel = useRef<HTMLElement>(null);
+  const settledContent = useRef<HTMLDivElement>(null);
+  useLayoutEffect(() => {
+    if (!settledOpen || !settledContent.current) return;
+    const animation = enter(settledContent.current, { y: 8, duration: 240 });
+    return () => { animation?.cancel(); };
+  }, [settledOpen]);
+  useFlip(activeList, shown.map((t) => t.id).join(","), { item: "data-session-row" });
+  useFlip(settledContent, settled.map((t) => t.id).join(","), { item: "data-session-row", enabled: settledOpen });
+
+  useLayoutEffect(() => {
+    const panel = settledPanel.current;
+    const content = settledContent.current;
+    const bar = panel?.firstElementChild;
+    if (!panel || !content || !bar) return;
+    // Animate the bounded height directly so long lists do not move after the panel reaches its cap.
+    const measure = () => {
+      const barHeight = bar.getBoundingClientRect().height;
+      panel.style.setProperty("--settled-bar-height", `${barHeight + 1}px`);
+      panel.style.setProperty("--settled-height", `${barHeight + content.getBoundingClientRect().height + 1}px`);
+    };
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(content);
+    observer.observe(bar);
+    return () => observer.disconnect();
+  }, [settled.length]);
   const collapsed = new Set(prefs.collapsed);
   const grouped = prefs.mode === "grouped";
   const projectGroups = useMemo(() => (grouped ? groupByProject(shown, projects, seen) : []), [grouped, shown, projects, seen]);
@@ -47,14 +91,15 @@ function SessionListView({ threads, projects, seen, modelNames, now, openIds, fo
   const foldLabel = anyOpen ? "Collapse all projects" : "Expand all projects";
   const projectsById = useMemo(() => new Map(projects.map((p) => [p.id, p])), [projects]);
 
-  const row = (t: DashboardThread) => {
+  const row = (t: DashboardThread, settledRow = false) => {
     const mark = statusMark(t, seen);
+    const blocked = settleBlockReason(t);
     const model = modelLabel(t.model, modelNames);
     const project = projectsById.get(t.projectId);
     const title = threadTitle(t);
     const isOpen = openIds.has(t.id);
     return (
-      <div key={t.id} className="slist-item">
+      <div key={t.id} className="slist-item" data-session-row={t.id}>
         <Pressable className={`slist-row${isOpen ? " open" : ""}${t.id === focusedId ? " focused" : ""}`} aria-current={t.id === focusedId || undefined} onClick={() => onOpen(t.id)}>
           <span className={`slist-mark${mark ? ` ${mark}` : ""}`} role={mark ? "img" : undefined} aria-label={mark ? MARK_LABELS[mark] : undefined} aria-hidden={mark ? undefined : true}>
             {/* Same icons as the Notifications card: a dot would look like "running" with a yellow or red accent. */}
@@ -69,7 +114,7 @@ function SessionListView({ threads, projects, seen, modelNames, now, openIds, fo
             <span className="slist-meta">
               {relativeTime(t.lastActivityAt, now)}
               {/* Grouped rows sit under their project, so they name the model; flat rows name the project. */}
-              {grouped
+              {grouped && !settledRow
                 ? model && (
                     <>
                       {" · "}
@@ -88,11 +133,25 @@ function SessionListView({ threads, projects, seen, modelNames, now, openIds, fo
           </span>
         </Pressable>
         {/* A sibling of the row, not inside it: a button cannot hold another button. */}
-        {isOpen && (
-          <IconButton variant="ghost" size="sm" className="slist-close" label={`Close ${title}`} tooltip="Close session" onClick={() => onClose(t.id)}>
-            <Icon name="x" />
-          </IconButton>
-        )}
+        {(blocked === null || isOpen) && <span className="thread-actions">
+          {blocked === null && <IconButton variant="ghost" size="sm" label={`${t.settled ? "Unsettle" : "Settle"} ${title}`} tooltip={t.settled ? "Unsettle" : "Settle"} disabled={settleAction.busy} onClick={(event) => {
+            const source = event.currentTarget.closest(".slist-item");
+            const target = t.settled ? activeBar.current : settledPanel.current?.firstElementChild ?? settledAnchor.current;
+            flight.current?.cancel();
+            const animation = source ? fly(source, target) : null;
+            flight.current = animation;
+            void settleAction.run(() => onSettle(t.id, !t.settled)).then((success) => {
+              if (!success) animation?.cancel();
+            });
+          }}>
+            <Icon name={t.settled ? "archiveRestore" : "archive"} />
+          </IconButton>}
+          {isOpen && (
+            <IconButton variant="ghost" size="sm" label={`Close ${title}`} tooltip="Close session" onClick={() => onClose(t.id)}>
+              <Icon name="x" />
+            </IconButton>
+          )}
+        </span>}
       </div>
     );
   };
@@ -136,15 +195,19 @@ function SessionListView({ threads, projects, seen, modelNames, now, openIds, fo
                 </Pressable>
                 {newSession}
               </div>
-              {open && g.threads.map(row)}
+              {open && g.threads.map((t) => row(t))}
             </section>
           );
         })
-      : shown.map(row);
+      : shown.map((t) => row(t));
 
   return (
-    <aside className="slist" aria-label="Sessions list">
-      <div className="slist-bar">
+    <aside ref={listPanel} className="slist" aria-label="Sessions list">
+      <div ref={activeBar} className="slist-bar">
+        <span className="slist-bar-title">
+          <span>Active sessions</span>
+          <CountBadge count={shown.length} tone="neutral" showZero max={Infinity} label={`${shown.length} active sessions`} />
+        </span>
         <IconButton variant="ghost" size="sm" label="Add project" tooltip="Add project" onClick={onAddProject}>
           <Icon name="folderPlus" />
         </IconButton>
@@ -160,9 +223,22 @@ function SessionListView({ threads, projects, seen, modelNames, now, openIds, fo
           <Icon name="copyX" />
         </IconButton>
       </div>
-      <div className="slist-body">
-        {(grouped ? projectGroups.length === 0 : shown.length === 0) ? <p className="slist-empty">No sessions yet.</p> : groups}
+      <div ref={activeList} className="slist-body">
+        {(grouped ? projectGroups.length === 0 : shown.length === 0) && settled.length === 0 ? <p className="slist-empty">No sessions yet.</p> : groups}
       </div>
+      {settled.length > 0 && (
+        <section ref={settledPanel} className={`slist-settled${settledOpen ? " expanded" : ""}`} aria-label="Settled in the last 24 hours">
+          <Pressable className="slist-project-toggle slist-settled-toggle" aria-expanded={settledOpen} onClick={() => setSettledOpen(!settledOpen)}>
+            <Chevron open={settledOpen} className="slist-chevron" />
+            <span>Settled · last 24h</span>
+            <CountBadge count={settled.length} tone="neutral" max={Infinity} label={`${settled.length} settled sessions in the last 24 hours`} />
+          </Pressable>
+          <div className="slist-settled-body" inert={!settledOpen} aria-hidden={!settledOpen}>
+            <div ref={settledContent} className="slist-settled-content">{settled.map((t) => row(t, true))}</div>
+          </div>
+        </section>
+      )}
+      <span ref={settledAnchor} aria-hidden="true" />
     </aside>
   );
 }

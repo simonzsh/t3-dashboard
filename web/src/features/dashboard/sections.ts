@@ -33,6 +33,11 @@ export function threadSections(threads: DashboardThread[], seen: SeenState): Thr
     else if (isUnseen(t, seen)) sections.unread.push(t);
     else sections.readIdle.push(t);
   }
+  const latest = new Set([...sections.needsYou, ...sections.unread, ...sections.readIdle]
+    .sort(newestFirst).slice(0, 50).map((t) => t.id));
+  sections.needsYou = sections.needsYou.filter((t) => latest.has(t.id));
+  sections.unread = sections.unread.filter((t) => latest.has(t.id));
+  sections.readIdle = sections.readIdle.filter((t) => latest.has(t.id));
   // Only Running shows this order: notificationList sorts the other lists itself.
   sections.running.sort(byPinThenRecent);
   return sections;

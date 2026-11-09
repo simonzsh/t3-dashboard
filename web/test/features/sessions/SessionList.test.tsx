@@ -21,6 +21,7 @@ const base = {
   onAddProject: () => {},
   onEditProject: () => {},
   onDeleteProject: () => {},
+  onSettle: async () => {},
   onClose: () => {},
   onCloseAll: () => {},
 };
@@ -133,4 +134,45 @@ test("a thread of an unknown project gets no actions button", () => {
   const html = renderToStaticMarkup(<SessionList {...base} projects={[]} />);
   assert.match(html, /Unknown project/);
   assert.doesNotMatch(html, /Project actions/);
+});
+
+test("recent settled stays outside the main scroll body and starts collapsed", () => {
+  const html = renderToStaticMarkup(<SessionList {...base} threads={[
+    thread("recent", { title: "Settled example", settled: true, settledAt: base.now.toISOString() }),
+  ]} projects={[]} />);
+  assert.match(html, /<div class="slist-body"><\/div><section class="slist-settled"/);
+  assert.match(html, /aria-expanded="false"/);
+  assert.match(html, /Settled · last 24h/);
+  assert.match(html, /class="slist-settled-body" inert="" aria-hidden="true"/);
+  assert.match(html, /Settled example/);
+});
+
+test("session row actions offer settle or unsettle as siblings of the row", () => {
+  const html = renderToStaticMarkup(<SessionList {...base} threads={[
+    thread("active", { title: "Active example" }),
+    thread("settled", { title: "Settled example", settled: true, settledAt: base.now.toISOString() }),
+  ]} />);
+  assert.match(html, /aria-label="Settle Active example"/);
+  assert.match(html, /aria-label="Unsettle Settled example"/);
+  assert.doesNotMatch(html, /<button[^>]*slist-row[^>]*>(?:(?!<\/button>).)*aria-label="(?:Settle|Unsettle)/);
+});
+
+test("blocked sessions hide settle and keep close for an open session", () => {
+  for (const extra of [{ status: "running" }, { status: "queued" }, { status: "completed", backgroundWork: true }, { pending: { category: "approval" as const } }]) {
+    const props = { ...base, threads: [thread("running", { title: "Busy", ...extra })] };
+    const html = renderToStaticMarkup(<SessionList {...props} />);
+    assert.doesNotMatch(html, /aria-label="Settle Busy"|class="thread-actions"/);
+    const open = renderToStaticMarkup(<SessionList {...props} openIds={new Set(["running"])} />);
+    assert.doesNotMatch(open, /aria-label="Settle Busy"/);
+    assert.match(open, /aria-label="Close Busy"/);
+  }
+});
+
+test("section titles show neutral counts of all listed sessions", () => {
+  const markup = renderToStaticMarkup(<SessionList {...base} threads={[
+    ...base.threads,
+    thread("settled", { settled: true, settledAt: base.now.toISOString() }),
+  ]} />);
+  assert.match(markup, /Active sessions<\/span><span class="count-badge neutral" role="img" aria-label="2 active sessions">2<\/span>/);
+  assert.match(markup, /Settled · last 24h<\/span><span class="count-badge neutral" role="img" aria-label="1 settled sessions in the last 24 hours">1<\/span>/);
 });

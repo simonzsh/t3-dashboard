@@ -36,7 +36,7 @@ This folder contains the base components of the dashboard. The screens in `web/s
 | `ToggleGroup` | Several options that each turn on and off (for example the weekdays). The "on" look is the same gray as `Segmented`. |
 | `Kbd` | Keyboard shortcut. `className` is optional. |
 | `ButtonLink`, `IconButtonLink` | Link (`<a href>`) with the look of `Button` or `IconButton`. Same variants and sizes. Use them in place of `<a className="btn">`. |
-| `CountBadge` | Count bubble: nothing at 0, `max+` above `max` (99 by default). `label` gives it `role="img"` and a name; `hidden` removes it from the accessibility tree. |
+| `CountBadge` | Count bubble: `tone="neutral"` uses gray instead of the accent. `showZero` keeps a zero count visible. By default, nothing at 0, `max+` above `max` (99 by default). `label` gives it `role="img"` and a name; `hidden` removes it from the accessibility tree. |
 | `SearchField` | Text field with a search icon. `className` goes on the wrapper, `ref` and the other props on the input. |
 | `ListPage` | Page with a fixed head (search, filters, actions) above a list that scrolls. `head` holds the toolbar, the children hold the list. `headClassName` and `bodyClassName` add the page spacing. `bodyRef` gives the scroll box, to follow or set its scroll position. `bleed` makes the body run edge to edge on a phone (the content then sets its own side space). `flush` is for sticky content: the space under the head becomes a spacer that scrolls away inside the body, so a sticky child (`top: 0`) sticks right under the head. Every control in the head has the height `--toolbar-control` (32 px): search field, segmented control, menu trigger, tabs, md buttons. Use `size="md"` (the default) for toolbar buttons. Use it for every list page: a sticky toolbar inside the scroll box moves when the list scrolls. |
 | `ListToolbar` | The row in a `ListPage` head: a search field first (`search`: label, value, onChange; the placeholder is the label with "…"), then the filters and actions as children. It wraps on a narrow screen; `wrap={false}` keeps one row for a narrow list. It takes no `className`: style it only in the page-shell block. |
@@ -51,7 +51,7 @@ This folder contains the base components of the dashboard. The screens in `web/s
 | `TooltipLayer` | Dashboard tooltip, mounted one time in `App`. It shows immediately on hover and on keyboard focus of an element with `data-tooltip` (and `data-shortcut` for the shortcut, in a frame). It closes when the pointer leaves, on click, on scroll and with Escape. Its width stays independent of its previous position, so measurement near an edge cannot add a vertical gap. It does not exist on a touch screen. `Button`, `IconButton` and `Pressable` set these attributes with `tooltip` and `shortcut`. On a different element, write `data-tooltip`. |
 | `PageHeader` | Top of a page: title, one-line description, at most three actions on the right. `leading` goes before the title (the logo on a phone). |
 | `Loader` | Loading state: the animated logo, centered in the area. Use it in place of a "Loading…" text. |
-| `Icon` | Lucide icon by its name. |
+| `Icon` | Lucide icon by its name. Use `archive` and `archiveRestore` for settle and unsettle actions. |
 | `Logo` | The app mark, drawn with the current text colour. |
 
 ## Animations

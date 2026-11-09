@@ -321,9 +321,21 @@ export class DemoPort implements T3Port {
         projection.checkpoints = (projection.checkpoints ?? []).filter((checkpoint) => (checkpoint.appRunOrdinal ?? 0) <= kept);
         break;
       }
-      case "thread.settle":
-        Object.assign(thread, { settledOverride: "settled", settledAt: at });
+      case "thread.settle": {
+        const pending = (projection.runtimeRequests ?? []).filter((request) => request.status === "pending");
+        const runs = projection.runs ?? [];
+        const blocker = pending.some((request) => request.kind !== "user_input" || request.responseCapability?.type !== "message")
+          ? "Answer the pending request before settling."
+          : runs.some((run) => RUNNING_RUN_STATUSES.has(run.status ?? ""))
+            ? "Stop the running session before settling."
+            : runs.some((run) => run.status === "queued")
+              ? "Send or remove the queued message before settling."
+              : null;
+        if (blocker) throw new IntegrationError(blocker, { system: "t3", kind: "refused" });
+        projection.runtimeRequests = (projection.runtimeRequests ?? []).map((request) => request.status === "pending" ? { ...request, status: "cancelled" } : request);
+        Object.assign(thread, { settledOverride: "settled", settledAt: at, pendingRuntimeRequest: null });
         break;
+      }
       case "thread.unsettle":
         Object.assign(thread, { settledOverride: "active", settledAt: null, unsettledAt: at });
         break;

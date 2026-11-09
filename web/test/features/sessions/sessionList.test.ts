@@ -7,11 +7,13 @@ import {
   SESSION_LIST_KEY,
   groupByProject,
   listableThreads,
+  recentSettledThreads,
   loadListPrefs,
   parseListPrefs,
   saveListPrefs,
   sessionsBadgeCount,
   statusMark,
+  settleBlockReason,
 } from "../../../src/features/sessions/sessionList.ts";
 import { memoryStore, thread } from "../../fixtures.ts";
 
@@ -109,4 +111,38 @@ test("groupByProject: a project badge counts running and unread rows, and the ba
   const groups = groupByProject(threads, [project("p1", "Alpha"), project("p2", "Beta")], seenNone);
   assert.deepEqual(groups.map((g) => [g.id, g.badge]), [["p1", 2], ["p2", 1]]);
   assert.equal(groups.reduce((sum, g) => sum + g.badge, 0), sessionsBadgeCount(threads, seenNone));
+});
+
+test("recent settled uses settlement time, includes the boundary and excludes active or undated threads", () => {
+  const now = new Date("2026-01-11T12:00:00.000Z");
+  const settled = (id: string, settledAt?: string) => thread(id, { settled: true, settledAt, lastActivityAt: "2025-01-01T00:00:00.000Z" });
+  const recent = settled("recent", "2026-01-11T11:00:00.000Z");
+  const threads = [
+    settled("boundary", at(12)), recent, settled("old", at(11)), settled("missing"),
+    settled("invalid", "bad"),
+    { ...recent, id: "active", status: "running" },
+    { ...recent, id: "background", backgroundWork: true },
+    { ...recent, id: "waiting", pending: { category: "approval" as const } },
+    { ...recent, id: "unsettled", settled: false },
+  ];
+  assert.deepEqual(recentSettledThreads(threads, now).map((t) => t.id), ["recent", "boundary"]);
+  assert.deepEqual(recentSettledThreads([recent], new Date("2026-01-12T11:00:00.001Z")), []);
+});
+
+test("a live settlement appears before the display clock next ticks", () => {
+  const displayTime = new Date("2026-01-11T12:00:00.000Z");
+  const recent = thread("just-settled", { settled: true, settledAt: "2026-01-11T12:00:01.000Z" });
+  assert.deepEqual(recentSettledThreads([recent], displayTime).map((t) => t.id), ["just-settled"]);
+  assert.deepEqual(recentSettledThreads([{ ...recent, settled: false }], displayTime), []);
+});
+
+test("settle blocks all working sessions and requests but keeps unsettle available", () => {
+  for (const status of ["preparing", "queued", "starting", "running", "waiting"]) {
+    assert.ok(settleBlockReason(thread("active", { status })));
+  }
+  assert.ok(settleBlockReason(thread("active-id", { activeRunId: "run" })));
+  assert.ok(settleBlockReason(thread("approval", { pending: { category: "approval" } })));
+  assert.equal(settleBlockReason(thread("done", { status: "completed" })), null);
+  assert.ok(settleBlockReason(thread("background", { status: "completed", backgroundWork: true })));
+  assert.equal(settleBlockReason(thread("settled", { settled: true, status: "running" })), null);
 });

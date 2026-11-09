@@ -406,3 +406,9 @@ test("menu trigger supports a named status icon without coloring its count", () 
   assert.match(out, /aria-label="Merged"/);
   assert.match(out, /count-badge/);
 });
+
+test("neutral count badges support visible zero without changing default badges", () => {
+  assert.equal(html(<CountBadge count={0} tone="neutral" showZero />), '<span class="count-badge neutral">0</span>');
+  assert.equal(html(<CountBadge count={0} tone="neutral" />), "");
+  assert.match(html(<CountBadge count={120} tone="neutral" max={Infinity} />), />120</);
+});

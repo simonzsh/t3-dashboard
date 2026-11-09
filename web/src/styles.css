@@ -694,7 +694,7 @@ ol.install-steps { padding-left: 18px; }
 /* The buttons replace the dot corner on hover and keyboard focus; touch screens show them at once. */
 .thread-actions { position: absolute; right: 8px; bottom: 6px; display: flex; align-items: center; gap: 4px; padding: 2px; border-radius: var(--radius-md); background: var(--surface-1); box-shadow: 0 0 0 1px var(--line); opacity: 0; pointer-events: none; transition: opacity 0.12s; }
 @media (hover: hover) { .news-row:hover .thread-actions { opacity: 1; pointer-events: auto; } }
-.notif-item:hover .thread-actions, .thread-actions:focus-within { opacity: 1; pointer-events: auto; }
+.slist-item:hover .thread-actions, .notif-item:hover .thread-actions, .thread-actions:focus-within { opacity: 1; pointer-events: auto; }
 /* Touch: a small plain button on the row (no floating box); an invisible margin makes the tap target 44 px. */
 @media (pointer: coarse) {
   .thread-actions { top: 50%; bottom: auto; transform: translateY(-50%); padding: 0; background: none; box-shadow: none; opacity: 1; pointer-events: auto; }
@@ -822,6 +822,7 @@ ol.install-steps { padding-left: 18px; }
 .nav-icon { flex: none; width: 18px; height: 18px; }
 .nav-label { flex: 1; min-width: 0; overflow: hidden; }
 /* Every count follows the accent color; the text is darkened or lightened to stay readable. */
+.count-badge.neutral { background: color-mix(in srgb, var(--text-primary) 8%, transparent); color: var(--text-secondary); }
 .count-badge { flex: none; display: inline-grid; place-items: center; min-width: 20px; height: 20px; padding: 0 6px; border-radius: 999px; font-size: 11px; font-weight: 600; line-height: 1; background: color-mix(in srgb, var(--accent) 20%, transparent); color: var(--work-text); }
 /* Waiting is a person (a human is needed) and a failure an alert circle, as in the Notifications card: a dot means running. */
 .nav-alert { flex: none; display: grid; place-items: center; width: 14px; height: 14px; color: var(--warn); }
@@ -1009,9 +1010,15 @@ ol.install-steps { padding-left: 18px; }
 /* Same slide as the app sidebar: the slot narrows, the list keeps its width inside. */
 .slist { flex: none; width: 280px; min-height: 0; display: flex; flex-direction: column; border-right: 1px solid var(--line); background: var(--page-bg); }
 .slist-body { flex: 1; min-height: 0; overflow-y: auto; padding: 6px; }
+.slist-settled { flex: none; display: flex; flex-direction: column; height: var(--settled-bar-height, 43px); transition: height 160ms ease; min-height: 0; overflow: hidden; border-top: 1px solid var(--line); background: var(--page-bg); }
+.slist-settled.expanded { height: min(50%, var(--settled-height)); }
+.slist-settled-body { flex: 1; min-height: 0; overflow-y: auto; overflow-anchor: none; }
+.slist-settled-content { padding: 0 6px 6px; }
 .slist-project { display: flex; align-items: center; border-radius: var(--radius-md); }
 @media (hover: hover) { .slist-project:hover { background: color-mix(in srgb, var(--text-primary) 5%, transparent); } }
 .slist-project-toggle { flex: 1; min-width: 0; display: flex; align-items: center; gap: 6px; height: 30px; padding: 0 6px; border: 0; border-radius: var(--radius-md); background: none; color: var(--text-primary); font-size: 13px; font-weight: 600; text-align: left; }
+.slist-settled-toggle { flex: none; width: 100%; height: 42px; padding: 0 12px; border-radius: 0; font-weight: 400; }
+@media (hover: hover) { .slist-settled-toggle:hover { background: color-mix(in srgb, var(--text-primary) 5%, transparent); } }
 .slist-chevron { flex: none; width: 14px; height: 14px; color: var(--text-secondary); }
 .slist-project .project-icon { flex: none; width: 16px; height: 16px; }
 .slist-project-title { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -1021,12 +1028,11 @@ ol.install-steps { padding-left: 18px; }
 .slist-new { opacity: 0; }
 .slist-project:hover .slist-new, .slist-new:focus-visible, .slist-new[aria-expanded="true"] { opacity: 1; }
 .slist-row { position: relative; display: flex; align-items: flex-start; gap: 8px; width: 100%; padding: 5px 8px 5px 30px; border: 0; border-radius: var(--radius-md); background: none; color: var(--text-primary); text-align: left; }
-.slist-body > .slist-item > .slist-row { padding-left: 12px; }
+.slist-body > .slist-item > .slist-row, .slist-settled-content > .slist-item > .slist-row { padding-left: 12px; }
 /* An open row has a close button on hover; its title leaves room for it. */
 .slist-item { position: relative; }
 .slist-row.open { padding-right: 32px; }
-.slist-close { position: absolute; top: 4px; right: 4px; opacity: 0; }
-.slist-item:hover .slist-close, .slist-close:focus-visible { opacity: 1; }
+.slist-item .thread-actions { top: 4px; bottom: auto; right: 4px; }
 /* Hover only with a real pointer: a tap on a phone would leave the row grey. */
 @media (hover: hover) { .slist-item:hover .slist-row:not(.focused) { background: color-mix(in srgb, var(--text-primary) 5%, transparent); } }
 .slist-row.focused { background: color-mix(in srgb, var(--text-primary) 10%, transparent); }
@@ -1049,13 +1055,16 @@ ol.install-steps { padding-left: 18px; }
 .slist-meta :is(.provider-icon, .project-icon) { display: inline-block; width: 12px; height: 12px; margin: 0 4px 0 0; vertical-align: -2px; }
 .slist-empty { margin: 12px 8px; color: var(--text-secondary); font-size: 12px; }
 .slist-bar { flex: none; display: flex; align-items: center; justify-content: flex-end; gap: 2px; height: 40px; padding: 0 6px; border-bottom: 1px solid var(--line); }
+.slist-bar-title { flex: 1; min-width: 0; display: flex; align-items: center; gap: 6px; padding-left: 6px; font-size: 13px; font-weight: 400; }
+.slist-bar-title > span:first-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 /* On a phone the list fills the page. */
 .sessions.phone-list .slist { flex: 1; width: auto; min-width: 0; border-right: 0; }
 @media (pointer: coarse) {
-  .slist-new, .slist-close { opacity: 1; }
-  .slist-project-toggle, .slist-new, .slist-close { min-height: 44px; min-width: 44px; }
-  .slist-close { top: 0; right: 0; }
-  .slist-row.open { padding-right: 48px; }
+  .slist-new { opacity: 1; }
+  .slist-project-toggle, .slist-new { min-height: 44px; min-width: 44px; }
+  .slist-item .thread-actions { top: 50%; gap: 16px; }
+  .slist-row { padding-right: 40px; }
+  .slist-row.open { padding-right: 88px; }
   .slist-row { padding-block: 10px; }
 }
 /* On a phone an opened session covers the page: no header, no bottom bar. */
@@ -1402,7 +1411,7 @@ ol.install-steps { padding-left: 18px; }
   .skeleton { animation: none; }
   .switch, .switch-thumb { transition: none; }
   .ui-sheet, .ui-sheet-backdrop { transition: none; }
-  .thread-actions, .side-panel, .sidebar, .sidebar-items::before, .bottom-nav-indicator, :is(.sidebar-name, .nav-label, .sidebar-search kbd) { transition: none; }
+  .thread-actions, .side-panel, .slist-settled, .sidebar, .sidebar-items::before, .bottom-nav-indicator, :is(.sidebar-name, .nav-label, .sidebar-search kbd) { transition: none; }
   .sidebar.collapsed :is(.sidebar-actions, .count-badge, .nav-alert) { animation: none; }
   .swipe-dots { animation-duration: 1ms; animation-delay: 1.2s; }
 }

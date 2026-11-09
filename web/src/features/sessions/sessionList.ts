@@ -25,6 +25,15 @@ export function attentionState(t: DashboardThread): "waiting" | "running" | "err
   return state === "running" || state === "waiting" || state === "error" ? state : null;
 }
 
+/** The shell cannot prove that a pending question can be dismissed, so wait for it to clear. */
+export function settleBlockReason(t: DashboardThread): string | null {
+  if (t.settled) return null;
+  if (t.pending) return "Answer the pending request before settling.";
+  if (t.status === "queued") return "Send or remove the queued message before settling.";
+  if (threadState(t) === "running") return "Wait for the session to finish or stop it before settling.";
+  return null;
+}
+
 /** The mark before a row: what asks for attention, then a dot for an unread result. */
 export function statusMark(t: DashboardThread, seen: SeenState): StatusMark {
   return attentionState(t) ?? (isUnseen(t, seen) ? "unread" : null);
@@ -49,6 +58,17 @@ export function listableThreads(threads: readonly DashboardThread[]): DashboardT
       return !t.settled || state === "running" || state === "waiting";
     })
     .sort(newestFirst);
+}
+
+/** Use the settlement time, not the last message: an old conversation can be settled today. */
+export function recentSettledThreads(threads: readonly DashboardThread[], now: Date): DashboardThread[] {
+  const cutoff = now.getTime() - 24 * 3_600_000;
+  return threads.filter((t) => {
+    const state = threadState(t);
+    const at = Date.parse(t.settledAt ?? "");
+    // The display clock ticks every 30 seconds; a live settlement can be newer than that clock.
+    return t.settled && state !== "running" && state !== "waiting" && at >= cutoff;
+  }).sort((a, b) => Date.parse(b.settledAt!) - Date.parse(a.settledAt!));
 }
 
 interface ProjectGroup {

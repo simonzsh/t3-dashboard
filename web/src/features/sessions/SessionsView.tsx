@@ -43,6 +43,7 @@ interface Props {
   onAddProject: () => void;
   onEditProject: (id: string) => void;
   onDeleteProject: (id: string) => void;
+  onSettle: (id: string, settle: boolean) => Promise<unknown>;
 }
 
 /** Fixed-width columns in a strip that scrolls sideways; grid view stacks two sessions per column. */
@@ -223,7 +224,7 @@ function useWindowDrag(enabled: boolean, dispatch: Dispatch<SessionsAction>) {
   };
 }
 
-export function SessionsView({ sessions, dispatch, threads, projects, seen, openPrs, now, layout, prefs, onPrefs, t3EnvironmentId, providers, phone, sessionShown, onBack, onOpen, alertsConfigured, armedAlerts, onToggleAlert, onNewSession, onAddProject, onEditProject, onDeleteProject }: Props) {
+export function SessionsView({ sessions, dispatch, threads, projects, seen, openPrs, now, layout, prefs, onPrefs, t3EnvironmentId, providers, phone, sessionShown, onBack, onOpen, alertsConfigured, armedAlerts, onToggleAlert, onNewSession, onAddProject, onEditProject, onDeleteProject, onSettle }: Props) {
   const modelNames = useMemo(() => modelNameMap(providers), [providers]);
   const openIds = useMemo(() => new Set(sessions.ids), [sessions.ids]);
   // On a phone, closing the open session goes back to the list.
@@ -306,6 +307,7 @@ export function SessionsView({ sessions, dispatch, threads, projects, seen, open
       onAddProject={onAddProject}
       onEditProject={onEditProject}
       onDeleteProject={onDeleteProject}
+      onSettle={onSettle}
       onClose={closeOne}
       onCloseAll={closeAll}
     />

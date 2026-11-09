@@ -138,7 +138,26 @@ const AUTOMATION_RUNS: ThreadSpec[] = [
 /** Finished runs from days ago, so the 30 and 90 day periods have turns to count. */
 const earlier = (id: string, days: number[]) => days.map((age) => ({ id: `run-${id}-${age}d`, status: "completed", started: age * 1440, completed: age * 1440 - 15 }));
 
+const RECENT_SETTLED: ThreadSpec[] = [
+  "Review account settings", "Update empty states", "Check keyboard navigation", "Fix invoice totals",
+  "Review search filters", "Update help text", "Check mobile menus", "Fix date formatting",
+  "Review error messages", "Update loading states", "Check export columns", "Fix profile validation",
+  "Review email templates", "Update onboarding steps", "Check notification preferences", "Fix table sorting",
+].map((title, index) => ({
+  id: `demo-settled-extra-${index + 1}`,
+  projectId: ["demo-atlas-web", "demo-mobile", "demo-assistant"][index % 3]!,
+  title,
+  model: index % 2 === 0 ? CODEX : SONNET,
+  status: "completed",
+  messages: [
+    ["user", 40 + index * 60, title + "."],
+    ["assistant", 30 + index * 60, "Done. The changes passed the checks and are ready."],
+  ],
+  thread: { settledOverride: "settled", settledAt: LAST },
+}));
+
 const SPECS: ThreadSpec[] = [
+  ...RECENT_SETTLED,
   ...AUTOMATION_RUNS,
   {
     id: "demo-checkout",
@@ -365,10 +384,46 @@ const SPECS: ThreadSpec[] = [
     messages: [
       ["user", 11000, "Write last week's product digest."],
       ["assistant", 10990, "Last week: 11 pull requests merged, 5 bugs closed. The digest is in the team channel."],
-      ["user", 1500, "Write this week's product digest."],
-      ["assistant", 1490, "This week: 14 pull requests merged, 3 bugs closed, and the 2.4 release is ready for review. Full digest posted in the team channel."],
+      ["user", 120, "Write this week's product digest."],
+      ["assistant", 110, "This week: 14 pull requests merged, 3 bugs closed, and the 2.4 release is ready for review. Full digest posted in the team channel."],
     ],
-    runs: [...earlier("digest", [160, 66, 48, 35, 24, 14]), { id: "run-digest-old0", status: "completed", started: 10999, completed: 10990 }, { id: "run-digest-1", status: "completed", started: 1499, completed: 1490 }],
+    runs: [...earlier("digest", [160, 66, 48, 35, 24, 14]), { id: "run-digest-old0", status: "completed", started: 10999, completed: 10990 }, { id: "run-digest-1", status: "completed", started: 119, completed: 110 }],
+    thread: { settledOverride: "settled", settledAt: LAST },
+  },
+  {
+    id: "demo-settled-copy",
+    projectId: "demo-atlas-web",
+    title: "Review checkout labels",
+    model: CODEX,
+    status: "completed",
+    messages: [
+      ["user", 35, "Review the checkout labels."],
+      ["assistant", 25, "Updated the labels and checked the confirmation screen."],
+    ],
+    thread: { settledOverride: "settled", settledAt: LAST },
+  },
+  {
+    id: "demo-settled-mobile",
+    projectId: "demo-mobile",
+    title: "Fix settings screen spacing",
+    model: CLAUDE,
+    status: "completed",
+    messages: [
+      ["user", 250, "Fix the spacing on the settings screen."],
+      ["assistant", 240, "Adjusted the spacing and checked both phone layouts."],
+    ],
+    thread: { settledOverride: "settled", settledAt: LAST },
+  },
+  {
+    id: "demo-settled-notes",
+    projectId: "demo-assistant",
+    title: "Summarize release feedback",
+    model: SONNET,
+    status: "completed",
+    messages: [
+      ["user", 730, "Summarize the release feedback."],
+      ["assistant", 720, "Grouped the feedback and listed the next actions."],
+    ],
     thread: { settledOverride: "settled", settledAt: LAST },
   },
   {
