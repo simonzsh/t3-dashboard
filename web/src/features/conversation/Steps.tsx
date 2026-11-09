@@ -25,7 +25,7 @@ export function useTicker(active: boolean): number {
 }
 
 /** One group of agent steps. Collapsed, except the live one, which shows its latest steps. */
-export function WorkGroup({ steps, threadId, live, fresh = false }: { steps: TurnStep[]; threadId: string; live: boolean; fresh?: boolean }) {
+export function WorkGroup({ steps, threadId, live, fresh = false, showRobot = true }: { showRobot?: boolean; steps: TurnStep[]; threadId: string; live: boolean; fresh?: boolean }) {
   const [expanded, setOpen] = useState<boolean | null>(null);
   const [recentUntil, setRecentUntil] = useState(() => fresh ? Date.now() + RECENT_STEPS_MS : 0);
   const stepKey = JSON.stringify(steps.map(step => step.id));
@@ -60,7 +60,7 @@ export function WorkGroup({ steps, threadId, live, fresh = false }: { steps: Tur
           {live && <RunningDot />}
           {label}
         </Pressable>
-        {live && <WorkingRobot thinking={!activeId || shown.find(step => step.id === activeId)?.kind === "thinking"} />}
+        {live && showRobot && <WorkingRobot thinking={!activeId || shown.find(step => step.id === activeId)?.kind === "thinking"} />}
       </div>
       <Collapse open={open}>
         <ul className="step-list">

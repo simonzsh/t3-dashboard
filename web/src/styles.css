@@ -377,10 +377,15 @@ main { flex: 1; min-height: 0; overflow: hidden; padding: var(--page-top) var(--
 .working-robot.thinking .robot-head { animation: robot-ponder 3s ease-in-out infinite; }
 .working-robot.thinking .robot-hand { animation: none; }
 .working-robot.thinking .robot-hand.right { top: 58px; right: 28px; transform: rotate(-35deg); }
+.working-robot.waiting .robot-head { animation: robot-ponder 3s ease-in-out infinite; }
+.working-robot.waiting .robot-arm.right { top: 60px; rotate: -145deg; }
+.working-robot.waiting .robot-hand.right { top: 39px; right: 16px; transform-origin: 50% 100%; animation: robot-wave 1.8s ease-in-out infinite; }
+.working-robot.waiting .robot-hand.left { top: 77px; }
+@keyframes robot-wave { 0%, 60%, 100% { transform: rotate(0deg); } 15%, 45% { transform: rotate(18deg); } 30% { transform: rotate(-12deg); } }
 @keyframes robot-nod { 50% { transform: translateZ(18px) rotateX(8deg) translateY(2px); } }
 @keyframes robot-ponder { 50% { transform: translateZ(18px) rotate(-9deg); } }
 @keyframes robot-blink { 0%, 43%, 47%, 100% { scale: 1 1; } 45% { scale: 1 0.15; } }
-@media (prefers-reduced-motion: reduce) { .working-robot *, .working-robot.thinking .robot-head { animation: none; } }
+@media (prefers-reduced-motion: reduce) { .working-robot *, .working-robot.thinking .robot-head, .working-robot.waiting .robot-head, .working-robot.waiting .robot-hand.right { animation: none; } }
 
 .ui-collapse { height: 0; overflow: hidden; min-width: 0; }
 .ui-collapse > div { display: flow-root; }
@@ -609,6 +614,7 @@ input.dropdown-search { position: absolute; inset: 0 auto 0 0; z-index: 1; width
 .composer-round.send:disabled { opacity: 0.4; }
 .composer-round.stop { color: var(--text-primary); background: var(--surface-0); }
 /* A question from the agent sits on the Composer, which covers its bottom edge, as in T3 Code. */
+.input-request-dock { flex: none; display: flex; flex-direction: column; gap: 8px; padding: 0 14px 8px; max-height: 40%; overflow-y: auto; }
 .question-docked { display: flex; flex-direction: column; min-height: 0; }
 .question-docked .composer { padding-top: 0; }
 .question-docked .composer-card { z-index: 1; }

@@ -355,3 +355,6 @@ Before the first action arrives, an inline loader appears next to Working.
 A small robot sits to the right of Working, above the cards. It follows the selected accent color.
 Its hands type at varied rhythms, with key feedback timed to contact. A thought bubble appears while it thinks.
 The robot uses CSS depth. Reduced motion disables its animation and the card transitions.
+
+When a question, approval, or secret needs your reply, the robot raises a hand above the composer.
+Pending secrets appear there too. Answered secrets stay in the conversation history.

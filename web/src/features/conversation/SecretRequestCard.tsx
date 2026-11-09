@@ -6,7 +6,7 @@ import { Button, Icon, SecretInput } from "../../ui/index.ts";
 import { SECRET_STATUS_LABELS, saveBody } from "./secretRequest.ts";
 
 /** The agent asks for a secret. The value goes straight to T3: it stays in this field only until the send. */
-export function SecretRequestCard({ step, threadId }: { step: TurnStep; threadId: string }) {
+export function SecretRequestCard({ step, threadId, onAnswered }: { step: TurnStep; threadId: string; onAnswered?: () => void }) {
   const api = useApi();
   const action = useAction("send the secret");
   const [value, setValue] = useState("");
@@ -19,7 +19,10 @@ export function SecretRequestCard({ step, threadId }: { step: TurnStep; threadId
   async function answer(answerBody: NonNullable<ReturnType<typeof saveBody>>) {
     const ok = await action.run(() => api.answerSecret(threadId, step.id, answerBody));
     setValue("");
-    if (ok) setSent(true);
+    if (ok) {
+      setSent(true);
+      onAnswered?.();
+    }
   }
 
   return (

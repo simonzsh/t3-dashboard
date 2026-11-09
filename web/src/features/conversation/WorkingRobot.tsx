@@ -2,11 +2,11 @@ import { useEffect, useRef } from "react";
 import { reducedMotion } from "../../ui/index.ts";
 
 /** CSS depth keeps the small mascot light enough for several live sessions. */
-export function WorkingRobot({ thinking = false }: { thinking?: boolean }) {
+export function WorkingRobot({ thinking = false, waiting = false }: { thinking?: boolean; waiting?: boolean }) {
   const root = useRef<HTMLDivElement>(null);
   useEffect(() => {
     const scene = root.current;
-    if (thinking || !scene) return;
+    if (thinking || waiting || !scene) return;
     const animations = new Set<Animation>();
     const timers = new Set<ReturnType<typeof setTimeout>>();
     let stopped = false;
@@ -72,9 +72,9 @@ export function WorkingRobot({ thinking = false }: { thinking?: boolean }) {
       for (const timer of timers) clearTimeout(timer);
       for (const animation of animations) animation.cancel();
     };
-  }, [thinking]);
+  }, [thinking, waiting]);
   return (
-    <div ref={root} className={`working-robot ${thinking ? "thinking" : "typing"}`} aria-hidden="true">
+    <div ref={root} className={`working-robot ${waiting ? "waiting" : thinking ? "thinking" : "typing"}`} aria-hidden="true">
       <div className="robot-size">
         <div className="robot-scene">
           <div className="robot-head"><i className="robot-antenna" /><div className="robot-face"><i /><i /></div></div>

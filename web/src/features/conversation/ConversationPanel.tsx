@@ -19,6 +19,7 @@ import { PendingRequestView } from "./PendingRequestView.tsx";
 import { ApprovalDock, dockedRequest, useQuestionDock } from "./QuestionDock.tsx";
 import { WorkingRobot } from "./WorkingRobot.tsx";
 import { WorkGroup } from "./Steps.tsx";
+import { pendingSecrets } from "./secretRequest.ts";
 import { SecretRequestCard } from "./SecretRequestCard.tsx";
 import { SubagentRows } from "./SubagentRows.tsx";
 import { NoticeRow, PlanCard, TodoCard } from "./TimelineBlocks.tsx";
@@ -94,6 +95,7 @@ const Timeline = memo(function Timeline({ detail, threadId, running, editing, on
     for (const step of detail.steps) knownSteps.current.add(step.id);
   }, [detail.steps]);
   const entries = timeline(detail);
+  const waiting = detail.pendingRequests.length > 0 || pendingSecrets(detail.steps).length > 0;
   return (
     <>
       {detail.stepsOmitted > 0 && <div className="steps-omitted">{omittedLabel(detail.stepsOmitted)}</div>}
@@ -105,10 +107,11 @@ const Timeline = memo(function Timeline({ detail, threadId, running, editing, on
             return <RenderFrame key={entry.render.id} render={entry.render} threadId={threadId} />;
           case "work":
             // Keyed by its first step: the group keeps its open state while later steps join it.
-            return <WorkGroup key={entry.steps[0]!.id} steps={entry.steps} threadId={threadId} fresh={!knownSteps.current.has(entry.steps[0]!.id)} live={running && i === entries.length - 1} />;
+            return <WorkGroup showRobot={!waiting} key={entry.steps[0]!.id} steps={entry.steps} threadId={threadId} fresh={!knownSteps.current.has(entry.steps[0]!.id)} live={running && i === entries.length - 1} />;
           case "subagents":
             return <SubagentRows key={entry.steps[0]!.id} steps={entry.steps} threadId={threadId} onOpenThread={onOpenThread} onChanged={onChanged} />;
           case "step":
+            if (entry.step.kind === "secret" && entry.step.secret?.status === "pending") return null;
             return <StandaloneStep key={entry.step.id} step={entry.step} threadId={threadId} />;
         }
       })}
@@ -116,7 +119,7 @@ const Timeline = memo(function Timeline({ detail, threadId, running, editing, on
         <div className="working-row">
           <Loader inline label="Working" />
           <span>Working…</span>
-          <WorkingRobot thinking />
+          {!waiting && <WorkingRobot thinking />}
         </div>
       )}
     </>
@@ -310,6 +313,8 @@ function Conversation({ searchRequest = 0, threadId, thread, providers, onOpenTh
   }, [title]);
 
   const messageEditing = useMemo(() => ({ onEdit: setEditing, disabled: running }), [running]);
+  const secrets = pendingSecrets(detail?.steps ?? []);
+  const needsInput = secrets.length > 0 || (detail?.pendingRequests.length ?? 0) > 0;
   const docked = detail ? dockedRequest(detail.pendingRequests) : null;
   const question = useQuestionDock(threadId, docked?.category === "user-input" ? docked : null, load);
   const otherRequests = detail ? detail.pendingRequests.filter((r) => r !== docked) : [];
@@ -531,6 +536,12 @@ function Conversation({ searchRequest = 0, threadId, thread, providers, onOpenTh
           </IconButton>
         )}
       </div>
+      {needsInput && (
+        <div className="input-request-dock">
+          <div className="working-row"><span>Waiting for your reply</span><WorkingRobot waiting /></div>
+          {secrets.map(step => <SecretRequestCard key={step.id} step={step} threadId={threadId} onAnswered={load} />)}
+        </div>
+      )}
       {detail?.subagentThread ? (
         <SubagentBar detail={detail} providers={providers} onOpenThread={onOpenThread} />
       ) : question.composer ? (
