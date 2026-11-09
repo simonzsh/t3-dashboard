@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { updateTargetLabel, versionNote } from "../update/updateFlow.ts";
 import { displayVersion } from "../../../../shared/updates.ts";
-import { Button, Dropdown, Icon, IconButton, Loader } from "../../ui/index.ts";
+import { Button, Icon, IconButton, Loader, Segmented } from "../../ui/index.ts";
 import type { UpdateControl } from "../update/useUpdate.ts";
 
 interface Props {
@@ -19,11 +19,9 @@ export function UpdateSettings({ update, onUpdate }: Props) {
     <>
       <div className="settings-row">
         <span>Update channel</span>
-        <Dropdown label="Update channel" value={status.channel} options={[{ id: "stable", label: "Stable" }, { id: "main", label: "Main" }]} disabled={update.checking || update.updating || status.updating} onPick={channel => {
-          if (channel === "stable" || channel === "main") void update.setChannel(channel);
-        }} />
+        <Segmented label="Update channel" value={status.channel} options={[{ id: "stable", label: "Stable" }, { id: "main", label: "Main" }]} disabled={update.checking || update.updating || status.updating} onChange={channel => void update.setChannel(channel)} />
+        <small className="about-note">Stable releases or the latest main build. Updates stay manual.</small>
       </div>
-      <p className="about-note">Stable follows releases. Main follows the latest published commit. Updates require your confirmation.</p>
       <div className="settings-row">
         <span>Version</span>
         <span className="row-icons">

@@ -9,6 +9,12 @@ import { pathTree } from "../../src/ui/pathTree.ts";
 
 const html = renderToStaticMarkup;
 
+test("a disabled Segmented removes every option from keyboard navigation", () => {
+  const out = html(<Segmented label="Channel" value="main" options={[{ id: "stable", label: "Stable" }, { id: "main", label: "Main" }]} disabled onChange={() => {}} />);
+  assert.match(out, /aria-disabled="true"/);
+  assert.equal(out.match(/disabled="" tabindex="-1"/g)?.length, 2);
+});
+
 test("a Button is a secondary md button of type button by default", () => {
   assert.equal(html(<Button>Save</Button>), '<button type="button" class="btn md">Save</button>');
 });

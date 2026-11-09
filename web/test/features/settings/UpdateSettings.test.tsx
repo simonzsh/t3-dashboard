@@ -11,9 +11,10 @@ test("update settings show the saved channel and disable its picker during an in
     check: async () => {}, setChannel: async () => {}, apply: async () => {},
   };
   const html = renderToStaticMarkup(<UpdateSettings update={update} onUpdate={() => {}} />);
-  assert.match(html, /aria-label="Update channel"/);
-  assert.match(html, /Main/);
-  assert.match(html, /Updates require your confirmation/);
+  assert.match(html, /class="segmented" role="radiogroup" aria-label="Update channel"/);
+  assert.match(html, /role="radio" aria-checked="true"[^>]*>Main<\/button>/);
+  assert.match(html, /Updates stay manual/);
   const busy = renderToStaticMarkup(<UpdateSettings update={{ ...update, updating: true }} onUpdate={() => {}} />);
-  assert.match(busy, /<button[^>]*disabled=""[^>]*aria-label="Update channel"|<button[^>]*aria-label="Update channel"[^>]*disabled=""/);
+  assert.match(busy, /role="radiogroup" aria-label="Update channel" aria-disabled="true"/);
+  assert.equal(busy.match(/role="radio"[^>]*disabled=""[^>]*tabindex="-1"/g)?.length, 2);
 });
