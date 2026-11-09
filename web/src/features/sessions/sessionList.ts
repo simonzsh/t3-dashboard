@@ -1,7 +1,7 @@
 import type { DashboardProject, DashboardThread } from "../../../../shared/api.ts";
 import { isObject, uniqueStrings } from "../../../../shared/guards.ts";
 import { isUnseen, type SeenState } from "../../../../shared/seen.ts";
-import { runActive, threadState } from "../../../../shared/status.ts";
+import { threadState } from "../../../../shared/status.ts";
 import { jsonPrefs, usePrefs } from "../../lib/storage.ts";
 import { newestFirst } from "../../lib/threads.ts";
 
@@ -30,7 +30,7 @@ export function settleBlockReason(t: DashboardThread): string | null {
   if (t.settled) return null;
   if (t.pending) return "Answer the pending request before settling.";
   if (t.status === "queued") return "Send or remove the queued message before settling.";
-  if (runActive(t)) return "Wait for the session to finish or stop it before settling.";
+  if (threadState(t) === "running") return "Wait for the session to finish or stop it before settling.";
   return null;
 }
 

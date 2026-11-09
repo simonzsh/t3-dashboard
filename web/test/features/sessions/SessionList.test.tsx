@@ -158,7 +158,7 @@ test("session row actions offer settle or unsettle as siblings of the row", () =
 });
 
 test("blocked sessions hide settle and keep close for an open session", () => {
-  for (const extra of [{ status: "running" }, { status: "queued" }, { pending: { category: "approval" as const } }]) {
+  for (const extra of [{ status: "running" }, { status: "queued" }, { status: "completed", backgroundWork: true }, { pending: { category: "approval" as const } }]) {
     const props = { ...base, threads: [thread("running", { title: "Busy", ...extra })] };
     const html = renderToStaticMarkup(<SessionList {...props} />);
     assert.doesNotMatch(html, /aria-label="Settle Busy"|class="thread-actions"/);
