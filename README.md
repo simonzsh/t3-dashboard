@@ -1,6 +1,8 @@
 # t3-dashboard
 
-t3-dashboard is a web dashboard on top of T3 Code. It shows all your coding agents on one screen: every provider that T3 Code runs. You follow their work, reply to them and start new sessions. Dashboard shows the usage limits of your providers, the CPU, memory and disk of the server, your activity, a Notifications panel with what needs you, the running agents and a Linear card with your urgent, due and unread items: you can assign an issue to an agent. The dashboard runs in the background on your computer and opens in your browser.
+t3-dashboard is a web dashboard for T3 Code. Follow coding agents from every provider, reply to them and start sessions in your browser.
+
+Review GitHub pull request diffs, manage automations and read daily or weekly tech news. Track provider limits, server resources, activity and Linear issues from one dashboard.
 
 ## Screenshots
 
@@ -11,6 +13,14 @@ t3-dashboard is a web dashboard on top of T3 Code. It shows all your coding agen
 **Sessions**: many conversations open side by side
 
 <picture><source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/sessions-dark.png"><img alt="Sessions" src="docs/screenshots/sessions.png"></picture>
+
+**Pull requests**: checks, reviews and linked sessions
+
+<picture><source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/pulls-dark.png"><img alt="Pull requests grouped by repository" src="docs/screenshots/pulls.png"></picture>
+
+**News**: tech articles with source links
+
+<picture><source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/news-dark.png"><img alt="News article and archive" src="docs/screenshots/news.png"></picture>
 
 **Automations**
 
@@ -34,10 +44,18 @@ The screenshots come from the demo mode: the projects, agents and conversations 
 **Sessions**
 
 - Follow several conversations side by side, in columns that scroll sideways. Switch to a grid of two rows.
-- Send a message, attach images, change the model, stop a run.
+- Send messages and files, change the model, queue messages during a run, or stop it.
+- Stash drafts and restore them in another session. Open linked pull requests from a session.
+- Start a session in the current checkout or a new worktree, with a branch you choose.
 - Reply to the approvals and questions of the agents.
 - Add a T3 project from a folder (the folder is created if it does not exist). Empty projects show in the list, muted, at the end. Edit a project's title, folder and icon, or delete it with its sessions, from the "…" menu of its row.
 - See the images, videos and HTML pages that the agent shows.
+
+**Pull requests**
+
+- Find your open pull requests and those that need your review. Filter by repository, ownership or unread status.
+- Read file diffs with syntax highlighting. Inspect checks and reviews, collapse test files and open linked sessions.
+- Use GitHub CLI (`gh`) authentication on the server. The page is read only; approve, comment and merge on GitHub.
 
 **Automations**
 
@@ -45,9 +63,10 @@ The screenshots come from the demo mode: the projects, agents and conversations 
 
 **News**
 
-- Get a daily article with the latest tech news: a T3 routine asks an agent to search the web and write it. Read it as an article, on a computer or a phone. Pick the time, language and model in News settings.
+- Generate daily or weekly tech articles through a T3 routine, or select "Run now". Choose the schedule, language and model.
+- Search the article archive, follow source links and track unread articles across devices. Read on a computer or phone.
 
-The New Session button (key `N`) starts a session in a T3 project, or in "No project". It uses the default model and the favorites of T3 Code. Each screen is described in [docs/usage.md](docs/usage.md).
+The New Session button (`Ctrl+N`, or `Cmd+N` on Mac) starts a session in a T3 project, or in "No project". It uses the default model and the favorites of T3 Code. Each screen is described in [docs/usage.md](docs/usage.md).
 
 ## Install
 
@@ -73,6 +92,7 @@ The script downloads the binary and checks its SHA-256 sum. Then it registers a 
 2. If T3 Code is not installed or not running, a screen shows how to install or start it. Do that, then click "Retry".
 3. If the token cannot be created, the screen gives a command. Run it, then paste the token.
 4. Optional: in Settings, paste a Linear API key to show the Linear card on the Dashboard.
+5. For pull requests, install GitHub CLI on the server. Run `gh auth login` as the dashboard service user.
 
 More details in [docs/install.md](docs/install.md).
 
@@ -82,6 +102,7 @@ More details in [docs/install.md](docs/install.md).
 | --- | --- | --- |
 | T3 Code local API | Yes | Reads the projects, sessions, conversations and scheduled tasks. Sends the messages, the replies and the new agents. |
 | Linear API key | No | Reads the issues assigned to you, for the Dashboard. |
+| GitHub CLI | No | Reads pull requests, diffs, checks and reviews through your `gh` login. |
 | GitHub Releases | No | Looks for a new version and downloads it when you click. |
 
 ## How it works
