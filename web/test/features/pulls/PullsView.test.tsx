@@ -4,6 +4,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import type { PrDetail as Detail, PrList, PrSummary } from "../../../../shared/pulls.ts";
 import type { DiffFile } from "../../../../shared/diff.ts";
 import { DiffFiles, HunkRows } from "../../../src/features/pulls/DiffFiles.tsx";
+import * as highlighter from "../../../src/features/pulls/highlight.tsx";
 import { openByDefault } from "../../../src/features/pulls/diffView.ts";
 import { FileNav } from "../../../src/features/pulls/FileNav.tsx";
 import { ChecksPanel, StatusButton } from "../../../src/features/pulls/PrChecks.tsx";
@@ -17,7 +18,7 @@ import type { OpenPrs } from "../../../src/lib/prSeen.ts";
 const now = new Date("2026-01-02T00:00:00Z");
 const pr = (repository: string, number: number, over: Partial<PrSummary> = {}): PrSummary => ({
   repository, number, title: `Change ${number}`, url: `https://example.test/${repository}/pull/${number}`, author: "ada", draft: false, headRef: `feature-${number}`, baseRef: "main",
-  createdAt: "2026-01-01T20:00:00Z", updatedAt: "2026-01-01T23:00:00Z", additions: 7, deletions: 2, checks: "success", review: "approved", roles: ["author"], ...over,
+  createdAt: "2026-01-01T20:00:00Z", updatedAt: "2026-01-01T23:00:00Z", additions: 7, deletions: 2, checks: "success", review: "approved", roles: ["author"], headSha: "", ...over,
 });
 const list = (prs: PrSummary[]): PrList => ({ prs, fetchedAt: now.toISOString() });
 const view = (value: PrList | null, threads = [thread("t1")], error: string | null = null, openPrs: OpenPrs = new Map()) =>
@@ -113,7 +114,7 @@ test("each file is a collapsible block with line numbers, counts and highlighted
 
 test("a hunk shows both line numbers, the marks, and the code highlighted on each side", () => {
   const [hunk] = file("src/a.ts").hunks;
-  const html = renderToStaticMarkup(<table><tbody><HunkRows hunk={{ ...hunk!, lines: [...hunk!.lines, { kind: "context", text: "return a;", oldNo: 2, newNo: 2, noNewline: true }] }} lang="typescript" /></tbody></table>);
+  const html = renderToStaticMarkup(<table><tbody><HunkRows hunk={{ ...hunk!, lines: [...hunk!.lines, { kind: "context", text: "return a;", oldNo: 2, newNo: 2, noNewline: true }] }} lang="typescript" hl={highlighter} /></tbody></table>);
   assert.match(html, /<tr class="pr-diff-line del"><td class="pr-diff-no">1<\/td><td class="pr-diff-no"><\/td><td class="pr-diff-mark">-<\/td>/);
   assert.match(html, /<tr class="pr-diff-line add"><td class="pr-diff-no"><\/td><td class="pr-diff-no">1<\/td><td class="pr-diff-mark">\+<\/td>/);
   assert.match(html, /<tr class="pr-diff-line context"><td class="pr-diff-no">2<\/td><td class="pr-diff-no">2<\/td>/);
@@ -124,6 +125,15 @@ test("a hunk shows both line numbers, the marks, and the code highlighted on eac
 
 test("a large file starts collapsed", () => {
   assert.match(diff([file("big.ts", { additions: 500 }), file("src/a.test.ts")]), /aria-expanded="false"/);
+});
+
+test("a large collapsed file offers a button instead of its lines", () => {
+  const big = diff([file("big.ts", { additions: 500 })]);
+  assert.match(big, /Load diff \(501 lines\)/);
+  assert.doesNotMatch(big, /pr-diff-line/);
+  assert.doesNotMatch(diff([file("small.ts")]), /Load diff/);
+  assert.doesNotMatch(diff([file("big.png", { additions: 500, binary: true, hunks: [] })]), /Load diff/);
+  assert.doesNotMatch(diff([file("big.json", { additions: 500, truncated: true, hunks: [] })]), /Load diff/);
 });
 
 test("binary, hidden and empty files explain themselves", () => {

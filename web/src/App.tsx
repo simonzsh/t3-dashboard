@@ -72,10 +72,10 @@ export function App() {
   const sessionRoute = useSessionRoute();
   // Always loaded while live: it feeds the Automations badge and the automation icon, besides the page.
   const threadIds = useMemo(() => state?.threads.map((t) => t.id) ?? NO_IDS, [state?.threads]);
-  const automations = useAutomations(state?.connection.t3 === "live", threadIds);
+  const automations = useAutomations(state?.connection.t3 === "live", threadIds, tab === "automations");
   const news = useNews(tab === "news");
   // Always loaded once the state is known: it feeds the Pull requests badge and the session menus, besides the page.
-  const pulls = usePulls(state !== null, tab === "pulls" && prRoute === null);
+  const pulls = usePulls(state !== null, tab === "pulls", prRoute === null);
   const [sessions, dispatchSessions] = useSessions();
   const compact = useMediaQuery(PHONE);
   const sheetMode = useMediaQuery(SHEET);

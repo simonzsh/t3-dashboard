@@ -17,6 +17,7 @@ import type { Usage } from "../domain/usage.ts";
 import type { Settings } from "../domain/settings.ts";
 import type { UpdateManager } from "../domain/updates.ts";
 import { VERSION } from "../config/version.ts";
+import { compressJson } from "./compress.ts";
 import { HttpError, toHttp } from "./httpError.ts";
 import { isPageTheme, themedPage } from "./htmlRender.ts";
 import { matchesEtag } from "./etag.ts";
@@ -24,7 +25,7 @@ import { servePwa } from "./pwa.ts";
 import type { Site } from "./site.ts";
 import type { SseHub } from "./sse.ts";
 import { isObject } from "../../shared/guards.ts";
-import { isText, validActivityPeriod, validArm, validAssign, validAttachments, validCreateAutomation, validCreate, validCreateProject, validEnabled, validUpdateProject, validFolderPath, validFileSearch, validItemId, validMessage, validPrRef, validProvider, validRefsQuery, validQueuedEdit, validRespond, validRewind, validSearch, validSecretAnswer, validSeen, validSaveNews, validSessions, validSettings, validStash, validTimeZone, validUpdateAutomation, validUpload } from "./validate.ts";
+import { isText, validActivityPeriod, validArm, validAssign, validAttachments, validCreateAutomation, validCreate, validCreateProject, validEnabled, validUpdateProject, validFolderPath, validFileSearch, validItemId, validMessage, validPrRef, validProvider, validRefsQuery, validQueuedEdit, validRespond, validRewind, validSearch, validSecretAnswer, validSeen, validSha, validSaveNews, validSessions, validSettings, validStash, validTimeZone, validUpdateAutomation, validUpload } from "./validate.ts";
 
 export interface SetupControl {
   /** Resolves the token again. */
@@ -117,17 +118,20 @@ async function readJson(req: Request, maxBytes = MAX_BODY_BYTES): Promise<Record
   return parsed;
 }
 
+// no-store by default: a route that may be cached says so itself.
 const json = (status: number, body: unknown, headers: Record<string, string> = {}) =>
-  new Response(JSON.stringify(body), { status, headers: { "content-type": "application/json; charset=utf-8", ...headers } });
+  new Response(JSON.stringify(body), { status, headers: { "content-type": "application/json; charset=utf-8", "cache-control": "no-store", ...headers } });
 
-// A weak etag of the exact body lets the client poll without downloading an unchanged thread.
-function threadResponse(req: Request, detail: unknown): Response {
-  const body = JSON.stringify(detail);
-  const etag = `W/"${Bun.hash(body).toString(36)}"`;
-  const headers = { etag, "cache-control": "no-cache" };
+// A weak etag lets the client poll without downloading an unchanged answer. `tagged` is what the etag covers, when part of the body (a timestamp) must not change it.
+function cachedJson(req: Request, body: unknown, cacheControl: string, tagged: unknown = body): Response {
+  const text = JSON.stringify(body);
+  const etag = `W/"${Bun.hash(tagged === body ? text : JSON.stringify(tagged)).toString(36)}"`;
+  const headers = { etag, "cache-control": cacheControl, vary: "accept-encoding" };
   if (matchesEtag(req.headers.get("if-none-match"), etag)) return new Response(null, { status: 304, headers });
-  return new Response(body, { headers: { "content-type": "application/json; charset=utf-8", ...headers } });
+  return new Response(text, { headers: { "content-type": "application/json; charset=utf-8", ...headers } });
 }
+
+const NO_CACHE = "no-cache";
 
 export interface DashboardHandler {
   fetch(req: Request, server?: Server<undefined>): Promise<Response>;
@@ -219,9 +223,21 @@ export function createDashboardServer(options: DashboardServerOptions): Dashboar
     // Before :date, which would take "search" for a date.
     { method: "GET", path: "/api/news/search", handle: async ({ req }) => json(200, await news.search(new URL(req.url).searchParams.get("q") ?? "")) },
     { method: "GET", path: "/api/news/:date", handle: async ({ params }) => json(200, await news.article(params.date!)) },
-    { method: "GET", path: "/api/pulls", handle: async ({ req }) => json(200, await pulls.prs(refreshing(req))) },
-    { method: "GET", path: "/api/pulls/:owner/:repo/:number", handle: async ({ req, params }) => json(200, await pulls.detail(...refOf(params), refreshing(req))) },
-    { method: "GET", path: "/api/pulls/:owner/:repo/:number/diff", handle: async ({ req, params }) => json(200, await pulls.diff(...refOf(params))) },
+    { method: "GET", path: "/api/pulls", handle: async ({ req }) => {
+        const list = await pulls.prs(refreshing(req));
+        return cachedJson(req, list, NO_CACHE, { prs: list.prs, stale: list.stale });
+      },
+    },
+    { method: "GET", path: "/api/pulls/:owner/:repo/:number", handle: async ({ req, params }) => cachedJson(req, await pulls.detail(...refOf(params), refreshing(req)), NO_CACHE) },
+    { method: "GET", path: "/api/pulls/:owner/:repo/:number/diff", handle: async ({ req, params }) => {
+        const query = new URL(req.url).searchParams;
+        const sha = validSha(query);
+        const refresh = refreshing(req);
+        const diff = await pulls.diff(...refOf(params), { sha, refresh });
+        // Immutable only when the answer is for the head the client named: a diff of one commit never changes.
+        return cachedJson(req, diff, sha && !refresh && diff.headSha === sha ? "private, max-age=31536000, immutable" : NO_CACHE);
+      },
+    },
     { method: "GET", path: "/api/settings", handle: () => json(200, settings.get()) },
     { method: "GET", path: "/api/sessions", handle: () => json(200, { sessions: sessions.get() }) },
     { method: "GET", path: "/api/stash", handle: () => json(200, { entries: stash.list() }) },
@@ -248,7 +264,7 @@ export function createDashboardServer(options: DashboardServerOptions): Dashboar
     { method: "GET", path: "/api/folders", handle: async ({ req }) => json(200, await actions.browseFolders(validFolderPath(new URL(req.url).searchParams))) },
     { method: "GET", path: "/api/projects/:id/refs", handle: async ({ req, params }) => json(200, await actions.projectRefs(params.id!, validRefsQuery(new URL(req.url).searchParams))) },
     { method: "GET", path: "/api/projects/:id/vcs", handle: async ({ params }) => json(200, await actions.projectVcsStatus(params.id!)) },
-    { method: "GET", path: "/api/threads/:id", handle: async ({ req, params }) => threadResponse(req, await actions.threadDetail(params.id!)) },
+    { method: "GET", path: "/api/threads/:id", handle: async ({ req, params }) => cachedJson(req, await actions.threadDetail(params.id!), NO_CACHE) },
     { method: "GET", path: "/api/threads/:id/items/:itemId", handle: async ({ params }) => json(200, await actions.stepDetail(params.id!, validItemId(params.itemId!))) },
     {
       method: "GET",
@@ -366,7 +382,7 @@ export function createDashboardServer(options: DashboardServerOptions): Dashboar
     { method: "POST", path: "/api/automations/:id/enabled", handle: ({ params, body }) => done(automations.setEnabled(params.id!, validEnabled(body))) },
     { method: "POST", path: "/api/automations/:id/run", handle: ({ params }) => done(automations.runNow(params.id!)) },
     { method: "POST", path: "/api/automations/:id/delete", handle: ({ params }) => done(automations.remove(params.id!)) },
-    { method: "GET", path: "/api/project-icons", handle: () => json(200, actions.projectIcons()) },
+    { method: "GET", path: "/api/project-icons", handle: ({ req }) => cachedJson(req, actions.projectIcons(), "private, max-age=3600") },
     { method: "POST", path: "/api/projects/:id/update", handle: ({ params, body }) => done(actions.updateProject(params.id!, validUpdateProject(body))) },
     { method: "POST", path: "/api/projects/:id/delete", handle: ({ params }) => done(actions.deleteProject(params.id!)) },
     { method: "POST", path: "/api/projects", handle: async ({ body }) => ok(await actions.createProject(validCreateProject(body))) },
@@ -457,6 +473,7 @@ export function createDashboardServer(options: DashboardServerOptions): Dashboar
         const { status, message } = http ?? { status: 500, message: "Internal error" };
         response = json(status, { error: message }, status === 413 ? { connection: "close" } : undefined);
       }
+      response = await compressJson(req, response);
       // Forbids framing: a hostile page could otherwise clickjack the approval buttons.
       // A sandboxed page allows framing by the dashboard itself: its own CSP replaces the default.
       const framable = response.headers.get("content-security-policy")?.includes("frame-ancestors 'self'");

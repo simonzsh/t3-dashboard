@@ -21,6 +21,7 @@ bun run build   # single binary in dist/t3-dashboard
 - A version that Bun starts has the name `dev`. It does not look for updates automatically and does not contact GitHub at startup.
 - A dev version does not write the agent rules and does not run the automation guard, so it never changes your real tasks. Set `T3_DASHBOARD_AUTOMATION_GUARD=on` to test the guard.
 - `install` and `update` refuse to run outside the compiled binary. The service always points to this binary.
+- The build splits the code (`--splitting`). A heavy part that only one page needs loads with `import()` on first use, like the diff highlighter (`web/src/features/pulls/highlighter.ts`). `bun run smoke` checks that the binary serves these chunks.
 
 ## Demo mode
 

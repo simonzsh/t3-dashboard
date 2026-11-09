@@ -13,6 +13,7 @@ export const SearchNode = s.object({
   url: text(),
   isDraft: s.optional(s.nullable(s.boolean())),
   headRefName: text(),
+  headRefOid: text(),
   baseRefName: text(),
   createdAt: text(),
   updatedAt: text(),

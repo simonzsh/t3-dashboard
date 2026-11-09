@@ -5,7 +5,7 @@ import { isUnreadPr, newestFirst, openPrIndex, openPrKey, prMark, prMarkId, unre
 
 const pr = (repository: string, number: number, over: Partial<PrSummary> = {}): PrSummary => ({
   repository, number, title: "t", url: "u", author: "ada", draft: false, headRef: "h", baseRef: "main", createdAt: "2026-02-01T10:00:00Z", updatedAt: "2026-02-01T10:00:00Z",
-  additions: 1, deletions: 1, checks: "success", review: "none", roles: ["author"], ...over,
+  additions: 1, deletions: 1, checks: "success", review: "none", roles: ["author"], headSha: "", ...over,
 });
 const seen = (since: string, marks: Record<string, string> = {}) => ({ since, seen: marks });
 

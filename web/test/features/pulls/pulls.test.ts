@@ -1,12 +1,12 @@
 import assert from "node:assert/strict";
 import { test } from "bun:test";
 import type { PrSummary } from "../../../../shared/pulls.ts";
-import { filterPrs, groupByRepository, isWebUrl, repositoriesOf, sessionsOf, shortRepository } from "../../../src/features/pulls/pulls.ts";
+import { filterPrs, pullsPollMs, groupByRepository, isWebUrl, repositoriesOf, sessionsOf, shortRepository } from "../../../src/features/pulls/pulls.ts";
 import { thread } from "../../fixtures.ts";
 
 const pr = (repository: string, number: number, roles: PrSummary["roles"]): PrSummary => ({
   repository, number, title: `PR ${number}`, url: `https://example.test/${repository}/pull/${number}`, author: "ada", draft: false, headRef: "b", baseRef: "main",
-  createdAt: "2026-01-01T00:00:00Z", updatedAt: "2026-01-01T00:00:00Z", additions: 1, deletions: 1, checks: "success", review: "none", roles,
+  createdAt: "2026-01-01T00:00:00Z", updatedAt: "2026-01-01T00:00:00Z", additions: 1, deletions: 1, checks: "success", review: "none", roles, headSha: "",
 });
 const prs = [pr("acme/storefront", 1, ["author"]), pr("acme/api", 2, ["reviewer"]), pr("acme/storefront", 3, ["author", "reviewer"])];
 
@@ -49,4 +49,9 @@ test("only web addresses become links", () => {
   assert.equal(isWebUrl("javascript:alert(1)"), false);
   assert.equal(isWebUrl("//example.test"), false);
   assert.equal(shortRepository("acme/storefront"), "storefront");
+});
+
+test("the list is polled every 2 minutes on its page and every 5 minutes elsewhere", () => {
+  assert.equal(pullsPollMs(true), 30_000);
+  assert.equal(pullsPollMs(false), 120_000);
 });

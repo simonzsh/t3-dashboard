@@ -86,7 +86,7 @@ export function PrListView({ list, error, refreshing, onRefresh, threads, now, o
             onPick={(repository) => setPrefs({ repository })}
           />
           <IconButton variant="ghost" className="pulls-refresh" label="Refresh the list" tooltip="Refresh the list" disabled={refreshing} onClick={onRefresh}>
-            <Icon name="refresh" />
+            <Icon name="refresh" className={refreshing ? "icon spinning" : "icon"} />
           </IconButton>
         </div>
       }
@@ -122,9 +122,10 @@ function List({ pulls, threads, now, onOpenThread, openPrs }: Omit<Props, "route
 }
 
 function Detail({ route, threads, now, onOpenThread, pulls, onRead }: Props & { route: PrRef }) {
-  const { refresh, ...state } = usePrDetail(route);
+  const summary = pulls.list?.prs.find((pr) => prMarkId(pr) === prMarkId(route));
+  const { refresh, ...state } = usePrDetail(route, summary);
   // The detail may come before the list (a shared link): the list has the time when it loaded first.
-  const known = state.detail ?? pulls.list?.prs.find((pr) => prMarkId(pr) === prMarkId(route));
+  const known = state.detail ?? summary;
   const mark = known ? prMark(known) : null;
   useEffect(() => {
     if (mark) onRead(mark);

@@ -112,6 +112,36 @@ test("invalidate drops the cache", async () => {
   assert.equal(calls.length, 4);
 });
 
+test("two reads at once share one Linear call", async () => {
+  const { board, calls } = setup("k", () => linearPage([linearNode(1)]));
+  await Promise.all([board.get(), board.get()]);
+  assert.equal(calls.length, 2);
+});
+
+test("invalidate during a read makes the next get read again with the new key", async () => {
+  let key = "key-old";
+  let release!: () => void;
+  const gate = new Promise<void>((resolve) => (release = resolve));
+  const auths: string[] = [];
+  const fetchFn = async (_url: string, init?: RequestInit) => {
+    const auth = new Headers(init?.headers).get("authorization") ?? "";
+    const body = JSON.parse(String(init?.body));
+    if (body.query.includes("notifications")) return linearInbox([]);
+    auths.push(auth);
+    if (auth === "key-old") await gate;
+    return linearPage([linearNode(1)]);
+  };
+  const board = new LinearBoard({ client: new LinearClient(fetchFn), readKey: () => key, now: () => new Date(1_000_000) });
+  const old = board.get();
+  key = "key-new";
+  board.invalidate();
+  const next = board.get();
+  release();
+  await Promise.all([old, next]);
+  await board.get();
+  assert.deepEqual(auths, ["key-old", "key-new"]);
+});
+
 test("a cached board keeps its read time, a refresh sets a new one", async () => {
   const { board, tick } = setup("key-1", () => linearPage([linearNode(1)]));
   const first = await board.get();

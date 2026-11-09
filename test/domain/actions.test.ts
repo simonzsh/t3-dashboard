@@ -243,6 +243,57 @@ function fakeHarness(workspaces: Record<string, string | null> = {}, projects: R
   return { actions, port };
 }
 
+function detailHarness() {
+  const port = new FakePort();
+  let shell: unknown = { id: "t1", n: 1 };
+  const store = { thread: () => shell, project: () => undefined, backgroundTasks: () => [], workspaceOf: () => null, projectByRoot: () => undefined } as unknown as Parameters<typeof createActions>[0]["store"];
+  const actions = createActions({ port, store, board: { get: async () => ({ configured: true, ok: true, error: null, issues: [], readAt: "2026-11-06T12:00:00.000Z", inbox: [], inboxError: null }) } });
+  let open!: () => void;
+  const hold = () => {
+    const gate = new Promise<void>((resolve) => (open = resolve));
+    port.projectionGate = () => gate;
+  };
+  return { actions, port, hold, release: () => open(), update: () => (shell = { id: "t1", n: 2 }) };
+}
+
+test("two detail reads at once share one projection", async () => {
+  const { actions, port, hold, release } = detailHarness();
+  hold();
+  const both = Promise.all([actions.threadDetail("t1"), actions.threadDetail("t1")]);
+  release();
+  await both;
+  assert.equal(port.projectionCalls, 1);
+  await actions.threadDetail("t1");
+  assert.equal(port.projectionCalls, 2);
+});
+
+test("a shell update between two reads starts a new projection", async () => {
+  const { actions, port, hold, release, update } = detailHarness();
+  hold();
+  const first = actions.threadDetail("t1");
+  update();
+  const second = actions.threadDetail("t1");
+  release();
+  await Promise.all([first, second]);
+  assert.equal(port.projectionCalls, 2);
+});
+
+test("composer commands read the T3 config once per 10 seconds", async () => {
+  const port = new FakePort();
+  let clock = 0;
+  let reads = 0;
+  port.config = async () => (reads++, { providers: [] });
+  const store = { thread: () => undefined, project: () => undefined, backgroundTasks: () => [], workspaceOf: () => null, projectByRoot: () => undefined };
+  const actions = createActions({ port, store, board: { get: async () => ({ configured: true, ok: true, error: null, issues: [], readAt: "", inbox: [], inboxError: null }) }, now: () => new Date(clock) });
+  await actions.composerCommands("t1", "a");
+  clock = 9_999;
+  await actions.composerCommands("t1", "a");
+  assert.equal(reads, 1);
+  clock = 10_000;
+  await actions.composerCommands("t1", "a");
+  assert.equal(reads, 2);
+});
+
 test("searchFiles searches the thread's folder and keeps path and kind", async () => {
   const { actions, port } = fakeHarness({ t1: "/work/wt" });
   port.entries = { entries: [{ path: "src", kind: "directory" }, { path: "a.ts", kind: "file" }], truncated: true };

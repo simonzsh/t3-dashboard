@@ -4,12 +4,13 @@ import { useApi } from "../../api/ApiContext.tsx";
 import { failure } from "../../lib/format.ts";
 import { useNotify } from "../../lib/notices.tsx";
 import { usePoll } from "../../lib/usePoll.ts";
+import { useTurnOn } from "../../lib/useTurnOn.ts";
+import { automationsPollMs } from "./automations.ts";
 
-const POLL_MS = 30_000;
 const NEW_THREAD_MS = 2_000;
 
-// Polls while active; it reloads at once on each activation, and soon after a thread it does not know appears (a new run).
-export function useAutomations(active: boolean, threadIds: readonly string[] = []): { result: AutomationsResult | null; error: string | null; reload: () => Promise<void> } {
+// Polls while active, faster on its page; it reloads at once on each activation and each return to the page, and soon after a thread it does not know appears (a new run).
+export function useAutomations(active: boolean, threadIds: readonly string[] = [], onPage = true): { result: AutomationsResult | null; error: string | null; reload: () => Promise<void> } {
   const api = useApi();
   const notify = useNotify();
   const [result, setResult] = useState<AutomationsResult | null>(null);
@@ -33,6 +34,7 @@ export function useAutomations(active: boolean, threadIds: readonly string[] = [
   useEffect(() => {
     if (active) void load();
   }, [active]);
+  useTurnOn(onPage, () => active && void load());
   // Once per distinct error: a poll that keeps failing must not reopen a dismissed banner.
   useEffect(() => {
     if (error) notify(error);
@@ -51,7 +53,7 @@ export function useAutomations(active: boolean, threadIds: readonly string[] = [
     }
   }, [active, result !== null, idsKey]);
   useEffect(() => () => clearTimeout(timer.current), []);
-  usePoll(load, active ? POLL_MS : null);
+  usePoll(load, active ? automationsPollMs(onPage) : null);
 
   return { result, error, reload: load };
 }

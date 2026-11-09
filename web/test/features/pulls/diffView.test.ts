@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "bun:test";
 import type { DiffFile } from "../../../../shared/diff.ts";
-import { isOpen, LARGE_FILE, openByDefault, setAll, setTests, toolbarOf, currentIndex } from "../../../src/features/pulls/diffView.ts";
+import { canLoad, isLarge, loadLabel, nearViewport, PLAIN_ABOVE, shouldHighlight, isOpen, LARGE_FILE, openByDefault, setAll, setTests, toolbarOf, currentIndex } from "../../../src/features/pulls/diffView.ts";
 
 const file = (path: string, additions: number, deletions = 0): DiffFile => ({ path, oldPath: path, newPath: path, status: "modified", binary: false, additions, deletions, hunks: [] });
 
@@ -54,4 +54,30 @@ test("the current file is the last one whose top reached the reading line", () =
   assert.equal(currentIndex([50, 300, 900], 10), 0);
   assert.equal(currentIndex([-400, 8, 600], 10), 1);
   assert.equal(currentIndex([-900, -500, -100], 10), 2);
+});
+
+const withLines = (n: number): DiffFile => ({ ...file("a.ts", 1), hunks: [{ header: "@@", oldStart: 1, oldLines: 1, newStart: 1, newLines: 1, lines: Array.from({ length: n }, () => ({ kind: "add" as const, text: "x", newNo: 1 })) }] });
+
+test("a file is large above the limit, and loads only when it has hunks to show", () => {
+  assert.equal(isLarge(file("a.ts", LARGE_FILE)), false);
+  assert.equal(isLarge(file("a.ts", LARGE_FILE - 1, 2)), true);
+  assert.equal(canLoad(withLines(2)), true);
+  assert.equal(canLoad(file("a.ts", 500)), false);
+  assert.equal(canLoad({ ...withLines(2), binary: true }), false);
+  assert.equal(canLoad({ ...withLines(2), truncated: true }), false);
+  assert.equal(loadLabel(file("a.ts", 400, 100)), "Load diff (500 lines)");
+});
+
+test("a file with a very long diff is shown without syntax colours", () => {
+  assert.equal(shouldHighlight(withLines(PLAIN_ABOVE)), true);
+  assert.equal(shouldHighlight(withLines(PLAIN_ABOVE + 1)), false);
+});
+
+test("an element without layout is never near the viewport", () => {
+  const rect = { top: 0, bottom: 0 };
+  assert.equal(nearViewport(false, rect, 800, 100), false);
+  assert.equal(nearViewport(true, rect, 800, 100), true);
+  assert.equal(nearViewport(true, { top: 899, bottom: 950 }, 800, 100), true);
+  assert.equal(nearViewport(true, { top: 900, bottom: 950 }, 800, 100), false);
+  assert.equal(nearViewport(true, { top: -300, bottom: -101 }, 800, 100), false);
 });

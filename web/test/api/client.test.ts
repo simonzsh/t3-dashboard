@@ -343,3 +343,18 @@ test("createThread and assignIssue carry the workspace", async () => {
   await api.assignIssue({ issueId: "i", projectId: "p", text: "x", modelSelection: { instanceId: "i", model: "m" }, workspace });
   for (const c of calls) assert.deepEqual(JSON.parse(String(c.init?.body)).workspace, workspace);
 });
+
+test("getPrDiff builds its query from the sha and the refresh flag", async () => {
+  const { calls, api } = fake(200, {});
+  const ref = { repository: "acme/api", number: 7 };
+  await api.getPrDiff(ref);
+  await api.getPrDiff(ref, { sha: "abc" });
+  await api.getPrDiff(ref, { refresh: true });
+  await api.getPrDiff(ref, { sha: "abc", refresh: true });
+  await api.getPrDiff(ref, { sha: "" });
+  const base = "/api/pulls/acme/api/7/diff";
+  assert.deepEqual(
+    calls.map((c) => c.url),
+    [base, `${base}?sha=abc`, `${base}?refresh=1`, `${base}?sha=abc&refresh=1`, base],
+  );
+});
