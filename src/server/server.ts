@@ -25,7 +25,7 @@ import { servePwa } from "./pwa.ts";
 import type { Site } from "./site.ts";
 import type { SseHub } from "./sse.ts";
 import { isObject } from "../../shared/guards.ts";
-import { validTitle, isText, validActivityPeriod, validArm, validAssign, validAttachments, validCreateAutomation, validCreate, validCreateProject, validEnabled, validUpdateProject, validFolderPath, validFileSearch, validItemId, validMessage, validPrRef, validProvider, validRefsQuery, validQueuedEdit, validRespond, validRewind, validSearch, validSecretAnswer, validSeen, validSha, validSaveNews, validSessions, validSettings, validStash, validTimeZone, validUpdateAutomation, validUpload } from "./validate.ts";
+import { validUpdateChannel, validTitle, isText, validActivityPeriod, validArm, validAssign, validAttachments, validCreateAutomation, validCreate, validCreateProject, validEnabled, validUpdateProject, validFolderPath, validFileSearch, validItemId, validMessage, validPrRef, validProvider, validRefsQuery, validQueuedEdit, validRespond, validRewind, validSearch, validSecretAnswer, validSeen, validSha, validSaveNews, validSessions, validSettings, validStash, validTimeZone, validUpdateAutomation, validUpload } from "./validate.ts";
 
 export interface SetupControl {
   /** Resolves the token again. */
@@ -55,7 +55,7 @@ export interface DashboardServerOptions {
   site: Site;
   settings: Settings;
   setup: SetupControl;
-  updates: Pick<UpdateManager, "status" | "check" | "apply">;
+  updates: Pick<UpdateManager, "status" | "check" | "apply" | "setChannel">;
   /** Lowercase hostnames, without port, accepted besides 127.0.0.1 and localhost. */
   allowedHosts?: string[];
 }
@@ -363,6 +363,7 @@ export function createDashboardServer(options: DashboardServerOptions): Dashboar
     { method: "POST", path: "/api/settings/alerts/test", handle: async () => json(200, await alerts.test()) },
     { method: "POST", path: "/api/settings/alerts/disconnect", handle: () => json(200, alerts.disconnect()) },
     { method: "POST", path: "/api/update/check", handle: async () => json(200, await updates.check()) },
+    { method: "POST", path: "/api/update/channel", handle: async ({ body }) => json(200, await updates.setChannel(validUpdateChannel(body))) },
     {
       method: "POST",
       path: "/api/update/apply",

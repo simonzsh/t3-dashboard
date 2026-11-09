@@ -1,4 +1,4 @@
-import type { AlertArmBody, ApprovalDecision, AssignIssueBody, CreateAutomationBody, CreateProjectBody, CreateThreadBody, ProjectIconSpec, RoutineSchedule, WebhookFilter, WebhookSignature, ModelSelection, RespondBody, RewindBody, SaveNewsBody, SecretAnswerBody, SendMessageBody, ThreadSettingsBody, UpdateAutomationBody, UpdateProjectBody, UploadedAttachment, UserInputAnswers, WorkspaceChoice } from "../../shared/api.ts";
+import type { AlertArmBody, ApprovalDecision, AssignIssueBody, CreateAutomationBody, CreateProjectBody, CreateThreadBody, ProjectIconSpec, RoutineSchedule, WebhookFilter, WebhookSignature, ModelSelection, RespondBody, RewindBody, SaveNewsBody, SecretAnswerBody, SendMessageBody, ThreadSettingsBody, UpdateAutomationBody, UpdateChannel, UpdateProjectBody, UploadedAttachment, UserInputAnswers, WorkspaceChoice } from "../../shared/api.ts";
 import { isAlertClick } from "../../shared/alerts.ts";
 import { PROJECT_COLOR_NAMES } from "../../shared/projectColors.ts";
 import { ACTIVITY_PERIODS, DEFAULT_ACTIVITY_PERIOD, type ActivityPeriod } from "../../shared/usage.ts";
@@ -43,6 +43,11 @@ const FILTER_PATH = /^(body|headers|query)(\.|$)/;
 const TIME_OF_DAY = /^([01]?\d|2[0-3]):[0-5]\d$/;
 const HEADER_NAME = /^[\w-]{1,100}$/;
 const bad = (message: string) => new HttpError(400, message);
+
+export function validUpdateChannel(body: Record<string, unknown>): UpdateChannel {
+  if (body.channel !== "stable" && body.channel !== "main") throw bad("Update channel must be stable or main");
+  return body.channel;
+}
 
 function validFilter(entry: unknown): WebhookFilter {
   if (!isObject(entry) || typeof entry.path !== "string" || !FILTER_PATH.test(entry.path.trim())) throw bad("Each filter needs a path that starts with body, headers or query");

@@ -1,3 +1,5 @@
+import type { UpdateChannel } from "./updates.ts";
+
 // Settings and self-update.
 
 export interface LinearSettings {
@@ -15,6 +17,7 @@ export interface LinearKeyBody {
 }
 
 export interface UpdateStatus {
+  channel: UpdateChannel;
   current: string;
   latest: string | null;
   available: boolean;

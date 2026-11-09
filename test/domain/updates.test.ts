@@ -22,7 +22,7 @@ function harness(options: Partial<UpdateManagerOptions> & { tags?: Array<string 
 test("status is empty before the first check", () => {
   const { manager } = harness();
   assert.deepEqual(manager.status(), {
-    current: "1.0.0", latest: null, available: false, canUpdate: true, reason: null, updating: false, error: null,
+    channel: "stable", current: "1.0.0", latest: null, available: false, canUpdate: true, reason: null, updating: false, error: null,
   });
 });
 
@@ -116,4 +116,53 @@ test("a successful check clears the last update error", async () => {
   const status = await manager.check();
   assert.equal(status.error, null);
   assert.equal(status.available, true);
+});
+
+test("changing channel saves the choice and checks that source without installing", async () => {
+  const saved: string[] = [];
+  const asked: string[] = [];
+  let installs = 0;
+  const { manager } = harness({
+    saveChannel: channel => { saved.push(channel); },
+    latestTag: async channel => { asked.push(channel); return channel === "main" ? `main-${"a".repeat(40)}` : "v1.2.8"; },
+    run: async () => { installs++; return true; },
+  });
+  const main = await manager.setChannel("main");
+  assert.equal(main.channel, "main");
+  assert.equal(main.latest, `main-${"a".repeat(40)}`);
+  const stable = await manager.setChannel("stable");
+  assert.equal(stable.channel, "stable");
+  assert.equal(stable.latest, "1.2.8");
+  assert.deepEqual(saved, ["main", "stable"]);
+  assert.deepEqual(asked, ["main", "stable"]);
+  assert.equal(installs, 0);
+});
+
+test("a response from the old channel cannot replace the newly selected version", async () => {
+  let finish!: (tag: string) => void;
+  const { manager } = harness({ latestTag: channel => channel === "stable" ? new Promise(resolve => { finish = resolve; }) : Promise.resolve(`main-${"a".repeat(40)}`) });
+  const old = manager.check();
+  await manager.setChannel("main");
+  finish("v9.9.9");
+  await old;
+  assert.equal(manager.status().latest, `main-${"a".repeat(40)}`);
+  assert.equal(manager.status().channel, "main");
+});
+
+test("a channel without a build clears the previous target; failed persistence keeps the old choice", async () => {
+  const { manager } = harness({ latestTag: async channel => { if (channel === "main") throw new Error("missing build"); return "v1.2.8"; } });
+  await manager.check();
+  const next = await manager.setChannel("main");
+  assert.equal(next.latest, null);
+  assert.equal(next.available, false);
+  const broken = harness({ saveChannel: () => { throw new Error("disk full"); } }).manager;
+  await assert.rejects(broken.setChannel("main"), /disk full/);
+  assert.equal(broken.status().channel, "stable");
+});
+
+test("the channel cannot change during installation", async () => {
+  const { manager } = harness({ run: () => new Promise(() => {}) });
+  manager.apply();
+  await assert.rejects(manager.setChannel("main"), /Wait for the update to finish/);
+  assert.equal(manager.status().channel, "stable");
 });

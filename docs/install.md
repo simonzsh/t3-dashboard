@@ -144,11 +144,13 @@ File format:
 
 ### Update channels
 
-Stable binaries follow stable releases by default. Main binaries follow `main` by default. Set `T3_DASHBOARD_UPDATE_CHANNEL=stable` or `main` to override this choice.
+Choose Stable or Main in Settings → Updates → Update channel. The server saves this choice in `<config>/updates.json`. It survives restarts and applies to terminal updates too. Changing the channel checks its latest build but does not install it.
+
+A saved choice takes priority over the service environment. Without a saved choice, `T3_DASHBOARD_UPDATE_CHANNEL=stable` or `main` overrides the binary default. Stable binaries default to stable releases; main binaries default to `main`.
 
 The main channel reads the current commit of `main`, then looks for its published build. A missing build is not offered as an update. Each build has immutable binaries and SHA-256 checksums. Settings and the update button show a short commit, such as `main a1b2c3d`. Updates still require a click; no automatic installation occurs.
 
-For a service, set the variable before running `t3-dashboard install --no-open`, or add it to the existing service environment and restart. Installation preserves this variable. To switch channels from a terminal, run:
+For a service, set the variable before running `t3-dashboard install --no-open`, or add it to the existing service environment and restart. Installation preserves this variable. Without a saved choice, you can also select a channel from a terminal:
 
 ```sh
 T3_DASHBOARD_UPDATE_CHANNEL=main t3-dashboard update
@@ -213,7 +215,7 @@ The dashboard has no authentication. Each person who can reach the address can c
 | Variable | Default | Purpose |
 | --- | --- | --- |
 | `PORT` | `4300` | Local port. The server still listens on `127.0.0.1`. `--port` has priority. An empty value, an invalid value or `0` gives `4300`. |
-| `T3_DASHBOARD_CONFIG_DIR` | `~/.config/t3-dashboard` | Folder of `auth.json`, `linear.json`, `alerts.json` and `automation-threads.json`. |
+| `T3_DASHBOARD_CONFIG_DIR` | `~/.config/t3-dashboard` | Folder of `auth.json`, `linear.json`, `alerts.json`, `updates.json` and `automation-threads.json`. |
 | `T3_DASHBOARD_TOKEN_FILE` | none | JSON file with the `token` field. Without it, the dashboard keeps its own token. With it, the setup screen refuses a pasted token: put the token in this file. |
 | `T3_DASHBOARD_ALLOWED_HOSTS` | none | Comma-separated host names, without a port. They are added to `127.0.0.1` and `localhost` for the `Host` and `Origin` headers. See [Remote access](#remote-access). |
 | `T3_DASHBOARD_T3_BIN` | automatic search | Absolute path of `t3`. |
@@ -227,4 +229,4 @@ The dashboard has no authentication. Each person who can reach the address can c
 | `T3_DASHBOARD_AUTOMATION_GUARD` | off in a dev build | `on` starts the automation guard in a version that Bun starts, for a test against the real T3 Code. The compiled binary always runs it. |
 | `T3_SERVER_RUNTIME` | `<T3CODE_HOME>/userdata/server-runtime.json` | JSON file with the `origin` field. The dashboard reads it again at each connection to T3. Fallback: `http://127.0.0.1:3773`. |
 | `T3_DASHBOARD_REPO` | `simonzsh/t3-dashboard` | GitHub repo of the releases, for `update`, the hourly check and the install scripts. |
-| `T3_DASHBOARD_UPDATE_CHANNEL` | `stable`, or `main` for a main binary | Update source for the button and `update`. Only `stable` and `main` are accepted. |
+| `T3_DASHBOARD_UPDATE_CHANNEL` | `stable`, or `main` for a main binary | Default update source for the button and `update`, unless Settings has saved a choice. Only `stable` and `main` are accepted. |
