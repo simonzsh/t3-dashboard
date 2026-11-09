@@ -51,6 +51,16 @@ export function listableThreads(threads: readonly DashboardThread[]): DashboardT
     .sort(newestFirst);
 }
 
+/** Use the settlement time, not the last message: an old conversation can be settled today. */
+export function recentSettledThreads(threads: readonly DashboardThread[], now: Date): DashboardThread[] {
+  const cutoff = now.getTime() - 24 * 3_600_000;
+  return threads.filter((t) => {
+    const state = threadState(t);
+    const at = Date.parse(t.settledAt ?? "");
+    return t.settled && state !== "running" && state !== "waiting" && at >= cutoff && at <= now.getTime();
+  }).sort((a, b) => Date.parse(b.settledAt!) - Date.parse(a.settledAt!));
+}
+
 interface ProjectGroup {
   id: string;
   /** null when the shell no longer lists the project. */

@@ -1,4 +1,4 @@
-import { memo, useMemo } from "react";
+import { memo, useMemo, useState } from "react";
 import type { DashboardProject, DashboardThread } from "../../../../shared/api.ts";
 import type { SeenState } from "../../../../shared/seen.ts";
 import { relativeTime } from "../../lib/format.ts";
@@ -9,7 +9,7 @@ import { modelLabel } from "../../lib/models.ts";
 import { threadTitle } from "../../lib/threads.ts";
 import { Chevron, CountBadge, Icon, IconButton, Pressable } from "../../ui/index.ts";
 import { ProjectMenu } from "./ProjectMenu.tsx";
-import { groupByProject, listableThreads, statusMark, type ListPrefs } from "./sessionList.ts";
+import { groupByProject, listableThreads, recentSettledThreads, statusMark, type ListPrefs } from "./sessionList.ts";
 
 const MARK_LABELS = { running: "Running", waiting: "Waiting for you", error: "Failed", unread: "Unread" } as const;
 
@@ -36,6 +36,8 @@ interface Props {
 /** Every listed thread, by project or by recent activity: a click opens it as a session. */
 function SessionListView({ threads, projects, seen, modelNames, now, openIds, focusedId, prefs, onPrefs, onOpen, onNewSession, onAddProject, onEditProject, onDeleteProject, onClose, onCloseAll }: Props) {
   const shown = useMemo(() => listableThreads(threads), [threads]);
+  const [settledOpen, setSettledOpen] = useState(false);
+  const settled = useMemo(() => recentSettledThreads(threads, now), [threads, now]);
   const collapsed = new Set(prefs.collapsed);
   const grouped = prefs.mode === "grouped";
   const projectGroups = useMemo(() => (grouped ? groupByProject(shown, projects, seen) : []), [grouped, shown, projects, seen]);
@@ -47,7 +49,7 @@ function SessionListView({ threads, projects, seen, modelNames, now, openIds, fo
   const foldLabel = anyOpen ? "Collapse all projects" : "Expand all projects";
   const projectsById = useMemo(() => new Map(projects.map((p) => [p.id, p])), [projects]);
 
-  const row = (t: DashboardThread) => {
+  const row = (t: DashboardThread, settledRow = false) => {
     const mark = statusMark(t, seen);
     const model = modelLabel(t.model, modelNames);
     const project = projectsById.get(t.projectId);
@@ -69,7 +71,7 @@ function SessionListView({ threads, projects, seen, modelNames, now, openIds, fo
             <span className="slist-meta">
               {relativeTime(t.lastActivityAt, now)}
               {/* Grouped rows sit under their project, so they name the model; flat rows name the project. */}
-              {grouped
+              {grouped && !settledRow
                 ? model && (
                     <>
                       {" · "}
@@ -136,11 +138,11 @@ function SessionListView({ threads, projects, seen, modelNames, now, openIds, fo
                 </Pressable>
                 {newSession}
               </div>
-              {open && g.threads.map(row)}
+              {open && g.threads.map((t) => row(t))}
             </section>
           );
         })
-      : shown.map(row);
+      : shown.map((t) => row(t));
 
   return (
     <aside className="slist" aria-label="Sessions list">
@@ -161,7 +163,19 @@ function SessionListView({ threads, projects, seen, modelNames, now, openIds, fo
         </IconButton>
       </div>
       <div className="slist-body">
-        {(grouped ? projectGroups.length === 0 : shown.length === 0) ? <p className="slist-empty">No sessions yet.</p> : groups}
+        {(grouped ? projectGroups.length === 0 : shown.length === 0) && settled.length === 0 ? <p className="slist-empty">No sessions yet.</p> : groups}
+        {settled.length > 0 && (
+          <section aria-label="Settled in the last 24 hours">
+            <div className="slist-project">
+              <Pressable className="slist-project-toggle" aria-expanded={settledOpen} onClick={() => setSettledOpen(!settledOpen)}>
+                <Chevron open={settledOpen} className="slist-chevron" />
+                <span className="slist-project-title">Settled · last 24h</span>
+                <span className="slist-total">{settled.length}</span>
+              </Pressable>
+            </div>
+            {settledOpen && settled.map((t) => row(t, true))}
+          </section>
+        )}
       </div>
     </aside>
   );

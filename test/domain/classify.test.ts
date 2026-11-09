@@ -133,3 +133,10 @@ test("a pull request that cannot make a safe link is dropped, the others stay", 
     assert.deepEqual(numbers({ linkedPullRequest: pr(1, bad) }), [], JSON.stringify(bad));
   }
 });
+
+test("settlement time reaches the dashboard independently of activity", () => {
+  const mapped = toDashboardThread(thread({ settledOverride: "settled", settledAt: ago(1000) }), now);
+  assert.equal(mapped.settledAt, ago(1000));
+  assert.equal(mapped.lastActivityAt, ago(100 * DAY));
+  assert.equal(toDashboardThread(thread(), now).settledAt, null);
+});

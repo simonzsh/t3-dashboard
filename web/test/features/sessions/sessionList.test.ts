@@ -7,6 +7,7 @@ import {
   SESSION_LIST_KEY,
   groupByProject,
   listableThreads,
+  recentSettledThreads,
   loadListPrefs,
   parseListPrefs,
   saveListPrefs,
@@ -109,4 +110,20 @@ test("groupByProject: a project badge counts running and unread rows, and the ba
   const groups = groupByProject(threads, [project("p1", "Alpha"), project("p2", "Beta")], seenNone);
   assert.deepEqual(groups.map((g) => [g.id, g.badge]), [["p1", 2], ["p2", 1]]);
   assert.equal(groups.reduce((sum, g) => sum + g.badge, 0), sessionsBadgeCount(threads, seenNone));
+});
+
+test("recent settled uses settlement time, includes the boundary and excludes active or undated threads", () => {
+  const now = new Date("2026-01-11T12:00:00.000Z");
+  const settled = (id: string, settledAt?: string) => thread(id, { settled: true, settledAt, lastActivityAt: "2025-01-01T00:00:00.000Z" });
+  const recent = settled("recent", "2026-01-11T11:00:00.000Z");
+  const threads = [
+    settled("boundary", at(12)), recent, settled("old", at(11)), settled("missing"),
+    settled("invalid", "bad"), settled("future", "2027-01-01T00:00:00.000Z"),
+    { ...recent, id: "active", status: "running" },
+    { ...recent, id: "background", backgroundWork: true },
+    { ...recent, id: "waiting", pending: { category: "approval" as const } },
+    { ...recent, id: "unsettled", settled: false },
+  ];
+  assert.deepEqual(recentSettledThreads(threads, now).map((t) => t.id), ["recent", "boundary"]);
+  assert.deepEqual(recentSettledThreads([recent], new Date("2026-01-12T11:00:00.001Z")), []);
 });

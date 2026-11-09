@@ -20,6 +20,8 @@ export interface DashboardThread {
   status: string;
   /** In the T3 Code sidebar's Settled section. */
   settled: boolean;
+  /** When T3 marked the thread settled; absent on older dashboard data. */
+  settledAt?: string | null;
   pending: { category: PendingCategory } | null;
   activeRunId: string | null;
   /** Subagents or a thread wait still run after the turn ended. */

@@ -74,6 +74,7 @@ export function toDashboardThread(raw: RawThread, now: Date): DashboardThread {
     model: raw.modelSelection?.model ?? null,
     status: raw.status ?? "idle",
     settled: isSettled(raw, now),
+    settledAt: raw.settledAt ?? null,
     pending: pending ? { category: categoryOf(pending.kind) } : null,
     activeRunId: raw.activeRunId ?? null,
     backgroundWork: hasBackgroundWork(raw),
