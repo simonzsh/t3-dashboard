@@ -98,16 +98,16 @@ export function createAlerts(options: AlertsOptions): Alerts {
         const armed = file.armed.find((a) => a.threadId === entry.thread.id);
         return armed ? [{ entry, clickUrl: armed.clickUrl }] : [];
       });
-      const spent = new Set(due.map(({ entry }) => entry.thread.id));
-      const kept = file.armed.filter((a) => alive.has(a.threadId) && !spent.has(a.threadId));
-      if (kept.length === file.armed.length) return;
-      // Disarm before sending: a failed send must not repeat the alert on the next change.
-      // observe runs inside the T3 event flow: a failed write must not break it or lose the alert.
-      try {
-        save({ ...file, armed: kept });
-      } catch {
-        warn("Phone alerts: the armed list was not saved.");
-        onChange(state());
+      // The bell stays on until the user turns it off; a thread archived or deleted leaves the list.
+      const kept = file.armed.filter((a) => alive.has(a.threadId));
+      if (kept.length !== file.armed.length) {
+        // observe runs inside the T3 event flow: a failed write must not break it or lose the alert.
+        try {
+          save({ ...file, armed: kept });
+        } catch {
+          warn("Phone alerts: the armed list was not saved.");
+          onChange(state());
+        }
       }
       const found = target();
       if (!found) return;

@@ -94,7 +94,7 @@ The code has three parts: the server (`src/`), the interface (`web/src/`) and th
 | `cli/` | Commands that run one time: arguments, installation, service, binary update. |
 | `config/` | Environment variables, paths, version, dashboard files (Linear key, token, PID, automation threads, news settings, alerts) and the agent rules block. |
 | `server/` | HTTP, SSE and static site. The router reads and validates the requests (`validate.ts`), then calls the domain. `htmlRender.ts` applies the theme to the `html_render` pages. |
-| `domain/` | Rules and state: sync with T3, thread sorting, thread detail, actions, token, Linear board, settings, updates, automations (and the guard that moves tasks out of worktrees and pauses reminders), the phone alerts (ntfy topic, armed sessions, one alert per armed session), the news, the Pull requests page (pull requests read through `gh`, cached), project icons, models, usage, provider limits, server stats. |
+| `domain/` | Rules and state: sync with T3, thread sorting, thread detail, actions, token, Linear board, settings, updates, automations (and the guard that moves tasks out of worktrees and pauses reminders), the phone alerts (ntfy topic, armed sessions, one alert per change of an armed session), the news, the Pull requests page (pull requests read through `gh`, cached), project icons, models, usage, provider limits, server stats. |
 | `integrations/` | All calls to another system: T3 Code, Linear, ntfy (phone alerts) and GitHub (releases by HTTP, pull requests through the `gh` program). Each response goes through a schema. |
 
 ### Interface (`web/src/`)
