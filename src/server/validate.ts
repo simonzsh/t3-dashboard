@@ -1,4 +1,4 @@
-import type { AlertArmBody, AlertsSetupBody, AlertsTopicBody, ApprovalDecision, AssignIssueBody, CreateAutomationBody, CreateProjectBody, CreateThreadBody, ProjectIconSpec, RoutineSchedule, WebhookFilter, WebhookSignature, ModelSelection, RespondBody, RewindBody, SaveNewsBody, SecretAnswerBody, SendMessageBody, ThreadSettingsBody, UpdateAutomationBody, UpdateProjectBody, UploadedAttachment, UserInputAnswers, WorkspaceChoice } from "../../shared/api.ts";
+import type { AlertArmBody, ApprovalDecision, AssignIssueBody, CreateAutomationBody, CreateProjectBody, CreateThreadBody, ProjectIconSpec, RoutineSchedule, WebhookFilter, WebhookSignature, ModelSelection, RespondBody, RewindBody, SaveNewsBody, SecretAnswerBody, SendMessageBody, ThreadSettingsBody, UpdateAutomationBody, UpdateProjectBody, UploadedAttachment, UserInputAnswers, WorkspaceChoice } from "../../shared/api.ts";
 import { isAlertClick } from "../../shared/alerts.ts";
 import { PROJECT_COLOR_NAMES } from "../../shared/projectColors.ts";
 import { ACTIVITY_PERIODS, DEFAULT_ACTIVITY_PERIOD, type ActivityPeriod } from "../../shared/usage.ts";
@@ -460,20 +460,6 @@ export function validSeen(body: Record<string, unknown>): SeenChange {
 export function validArm(body: Record<string, unknown>): AlertArmBody {
   if (typeof body.clickUrl !== "string" || !isAlertClick(body.clickUrl)) throw bad("clickUrl must be an http(s) URL");
   return { clickUrl: body.clickUrl };
-}
-
-function validAlertServer(value: unknown): string | undefined {
-  if (value !== undefined && typeof value !== "string") throw bad("server must be a text");
-  return value;
-}
-
-export function validAlertsSetup(body: Record<string, unknown>): AlertsSetupBody {
-  return { server: validAlertServer(body.server) };
-}
-
-export function validAlertsTopic(body: Record<string, unknown>): AlertsTopicBody {
-  if (typeof body.topic !== "string") throw bad("topic is required");
-  return { topic: body.topic, server: validAlertServer(body.server) };
 }
 
 export function validEnabled(body: Record<string, unknown>): boolean {

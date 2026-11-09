@@ -24,7 +24,7 @@ import { servePwa } from "./pwa.ts";
 import type { Site } from "./site.ts";
 import type { SseHub } from "./sse.ts";
 import { isObject } from "../../shared/guards.ts";
-import { isText, validActivityPeriod, validAlertsSetup, validAlertsTopic, validArm, validAssign, validAttachments, validCreateAutomation, validCreate, validCreateProject, validEnabled, validUpdateProject, validFolderPath, validFileSearch, validItemId, validMessage, validPrRef, validProvider, validRefsQuery, validQueuedEdit, validRespond, validRewind, validSearch, validSecretAnswer, validSeen, validSaveNews, validSessions, validSettings, validStash, validTimeZone, validUpdateAutomation, validUpload } from "./validate.ts";
+import { isText, validActivityPeriod, validArm, validAssign, validAttachments, validCreateAutomation, validCreate, validCreateProject, validEnabled, validUpdateProject, validFolderPath, validFileSearch, validItemId, validMessage, validPrRef, validProvider, validRefsQuery, validQueuedEdit, validRespond, validRewind, validSearch, validSecretAnswer, validSeen, validSaveNews, validSessions, validSettings, validStash, validTimeZone, validUpdateAutomation, validUpload } from "./validate.ts";
 
 export interface SetupControl {
   /** Resolves the token again. */
@@ -342,15 +342,7 @@ export function createDashboardServer(options: DashboardServerOptions): Dashboar
     },
     { method: "POST", path: "/api/alerts/threads/:id/arm", handle: ({ params, body }) => json(200, alerts.arm(params.id!, validArm(body).clickUrl)) },
     { method: "POST", path: "/api/alerts/threads/:id/disarm", handle: ({ params }) => json(200, alerts.disarm(params.id!)) },
-    { method: "POST", path: "/api/settings/alerts/setup", handle: ({ body }) => json(200, alerts.setup(validAlertsSetup(body).server)) },
-    {
-      method: "POST",
-      path: "/api/settings/alerts/topic",
-      handle: ({ body }) => {
-        const { topic, server } = validAlertsTopic(body);
-        return json(200, alerts.useTopic(topic, server));
-      },
-    },
+    { method: "POST", path: "/api/settings/alerts/setup", handle: () => json(200, alerts.setup()) },
     { method: "POST", path: "/api/settings/alerts/test", handle: async () => json(200, await alerts.test()) },
     { method: "POST", path: "/api/settings/alerts/disconnect", handle: () => json(200, alerts.disconnect()) },
     { method: "POST", path: "/api/update/check", handle: async () => json(200, await updates.check()) },

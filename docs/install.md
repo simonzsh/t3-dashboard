@@ -126,13 +126,11 @@ File format:
 Alerts are optional. They send a message to your phone when a session needs you or ends, even when no browser tab is open. The dashboard sends them through [ntfy](https://ntfy.sh), a free notification service.
 
 1. On your phone, install the ntfy app (App Store or Google Play).
-2. In Settings, open the Alerts section and click "Set up". The dashboard makes a private topic. To use a topic that you already have, paste it in "Use an existing topic" instead.
+2. In Settings, open the Connections tab. In the Alerts block, click "Set up". The dashboard makes a private topic on `https://ntfy.sh`.
 3. In the ntfy app, subscribe to the topic that Settings shows.
 4. Click "Send test alert" to check the link.
 
 The topic name is the only secret. Anyone who knows it can read your alerts and send messages to it. The topic is long and random for this reason. Do not share it.
-
-To use your own ntfy server, enter its URL in the "Use an existing topic" form. The default server is `https://ntfy.sh`.
 
 The server keeps the settings in `~/.config/t3-dashboard/alerts.json` (mode 600): the server, the topic and the armed sessions. If the server is down when a session ends, the alert is lost.
 

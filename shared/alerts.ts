@@ -38,15 +38,6 @@ export interface AlertsSettings {
   subscribeUrl: string | null;
 }
 
-export interface AlertsSetupBody {
-  server?: string;
-}
-
-export interface AlertsTopicBody {
-  topic: string;
-  server?: string;
-}
-
 export interface AlertArmBody {
   clickUrl: string;
 }

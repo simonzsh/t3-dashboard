@@ -700,7 +700,6 @@ test("every POST route refuses a body that is not JSON", async () => {
     "/api/alerts/threads/run-1/arm",
     "/api/alerts/threads/run-1/disarm",
     "/api/settings/alerts/setup",
-    "/api/settings/alerts/topic",
     "/api/settings/alerts/test",
     "/api/settings/alerts/disconnect",
     "/api/cache-cleanup",
@@ -2141,17 +2140,6 @@ test("settings: setup, test and disconnect answer with the settings and broadcas
   assert.deepEqual((await post(server, "/api/settings/alerts/test")).json, { result: "ok" });
   assert.equal((await post(server, "/api/settings/alerts/disconnect")).json.connected, false);
   assert.deepEqual(alertEvents(events), [{ configured: true, armed: [] }, { configured: false, armed: [] }]);
-});
-
-test("settings: a pasted topic and a self-hosted server are used; bad input gives 400", async () => {
-  const { server } = await start();
-  const reply = await post(server, "/api/settings/alerts/topic", { topic: "mine", server: "http://box.local:8080/" });
-  assert.equal(reply.json.subscribeUrl, "http://box.local:8080/mine");
-  assert.equal((await post(server, "/api/settings/alerts/topic", { topic: "bad topic" })).status, 400);
-  assert.equal((await post(server, "/api/settings/alerts/topic", {})).status, 400);
-  assert.equal((await post(server, "/api/settings/alerts/topic", { topic: "ok", server: "nope" })).status, 400);
-  assert.equal((await post(server, "/api/settings/alerts/topic", { topic: "ok", server: 5 })).status, 400);
-  assert.equal((await post(server, "/api/settings/alerts/setup", { server: "ftp://x" })).status, 400);
 });
 
 test("arm answers 409 when not set up, 404 for an unknown thread and 400 for a bad link", async () => {

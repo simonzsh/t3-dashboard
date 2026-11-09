@@ -1,4 +1,4 @@
-import { NTFY_DEFAULT_SERVER, ALERTS_ARMED_MAX, alertServer, isAlertClick, isAlertTopic, type AlertTestResult, type AlertsSettings, type AlertsState } from "../../shared/alerts.ts";
+import { NTFY_DEFAULT_SERVER, ALERTS_ARMED_MAX, isAlertClick, type AlertTestResult, type AlertsSettings, type AlertsState } from "../../shared/alerts.ts";
 import { statusMap, transitions, type NotifyEntry } from "../../shared/notify.ts";
 import type { AgentStatus } from "../../shared/status.ts";
 import type { DashboardThread } from "../../shared/threads.ts";
@@ -22,8 +22,7 @@ export interface AlertsOptions {
 
 export interface Alerts {
   settings(): AlertsSettings;
-  setup(server?: string): AlertsSettings;
-  useTopic(topic: string, server?: string): AlertsSettings;
+  setup(): AlertsSettings;
   test(): Promise<AlertTestResult>;
   disconnect(): AlertsSettings;
   state(): AlertsState;
@@ -47,14 +46,8 @@ export function createAlerts(options: AlertsOptions): Alerts {
     onChange(state());
   };
   const target = (): NtfyTarget | null => (file.topic === null ? null : { server: file.server, topic: file.topic });
-  const serverOf = (server: string | undefined): string => {
-    if (server === undefined || server.trim() === "") return NTFY_DEFAULT_SERVER;
-    const clean = alertServer(server.trim());
-    if (clean === null) throw new DomainError("invalid", "Enter a server URL that starts with http:// or https://.");
-    return clean;
-  };
-  const configure = (topic: string, server: string | undefined): AlertsSettings => {
-    save({ ...file, server: serverOf(server), topic });
+  const configure = (topic: string): AlertsSettings => {
+    save({ ...file, server: NTFY_DEFAULT_SERVER, topic });
     return settings();
   };
   const mustBeSetUp = (): NtfyTarget => {
@@ -75,12 +68,7 @@ export function createAlerts(options: AlertsOptions): Alerts {
 
   return {
     settings,
-    setup: (server) => configure(options.newTopic(), server),
-    useTopic(topic, server) {
-      const clean = topic.trim();
-      if (!isAlertTopic(clean)) throw new DomainError("invalid", "A topic has 1 to 64 letters, digits, dashes or underscores.");
-      return configure(clean, server);
-    },
+    setup: () => configure(options.newTopic()),
     async test() {
       return { result: await check(mustBeSetUp()) };
     },

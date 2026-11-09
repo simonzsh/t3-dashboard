@@ -63,23 +63,6 @@ test("setup makes a topic on the default server, saves it and broadcasts", () =>
   assert.deepEqual(changes, [{ configured: true, armed: [] }]);
 });
 
-test("setup takes a self-hosted server without its trailing slash, and refuses a bad one", () => {
-  const { alerts, saved } = setup({ initial: NOT_SET_UP });
-  assert.equal(alerts.setup("http://box.local:8080/").server, "http://box.local:8080");
-  assert.equal(saved.length, 1);
-  assert.throws(() => alerts.setup("ntfy.sh"), (error) => error instanceof DomainError && error.code === "invalid");
-  assert.equal(saved.length, 1);
-});
-
-test("useTopic keeps an existing topic, and refuses a bad topic or server", () => {
-  const { alerts, saved } = setup({ initial: NOT_SET_UP });
-  assert.equal(alerts.useTopic("friends-topic", "https://ntfy.example").subscribeUrl, "https://ntfy.example/friends-topic");
-  assert.equal(saved.at(-1)!.topic, "friends-topic");
-  assert.equal(alerts.useTopic("other").server, NTFY_DEFAULT_SERVER);
-  assert.throws(() => alerts.useTopic("bad topic"), (error) => error instanceof DomainError && error.code === "invalid");
-  assert.throws(() => alerts.useTopic("ok", "nope"), (error) => error instanceof DomainError && error.code === "invalid");
-});
-
 test("test sends through check; it needs a set up topic", async () => {
   const { alerts, checks } = setup({ checked: "refused" });
   assert.deepEqual(await alerts.test(), { result: "refused" });
