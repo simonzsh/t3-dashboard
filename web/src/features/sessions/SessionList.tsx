@@ -1,4 +1,4 @@
-import { memo, useMemo, useState } from "react";
+import { memo, useLayoutEffect, useMemo, useRef, useState } from "react";
 import type { DashboardProject, DashboardThread } from "../../../../shared/api.ts";
 import type { SeenState } from "../../../../shared/seen.ts";
 import { relativeTime } from "../../lib/format.ts";
@@ -38,6 +38,25 @@ function SessionListView({ threads, projects, seen, modelNames, now, openIds, fo
   const shown = useMemo(() => listableThreads(threads), [threads]);
   const [settledOpen, setSettledOpen] = useState(false);
   const settled = useMemo(() => recentSettledThreads(threads, now), [threads, now]);
+  const settledPanel = useRef<HTMLElement>(null);
+  const settledContent = useRef<HTMLDivElement>(null);
+  useLayoutEffect(() => {
+    const panel = settledPanel.current;
+    const content = settledContent.current;
+    const bar = panel?.firstElementChild;
+    if (!panel || !content || !bar) return;
+    // Animate the bounded height directly so long lists do not move after the panel reaches its cap.
+    const measure = () => {
+      const barHeight = bar.getBoundingClientRect().height;
+      panel.style.setProperty("--settled-bar-height", `${barHeight + 1}px`);
+      panel.style.setProperty("--settled-height", `${barHeight + content.getBoundingClientRect().height + 1}px`);
+    };
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(content);
+    observer.observe(bar);
+    return () => observer.disconnect();
+  }, [settled.length]);
   const collapsed = new Set(prefs.collapsed);
   const grouped = prefs.mode === "grouped";
   const projectGroups = useMemo(() => (grouped ? groupByProject(shown, projects, seen) : []), [grouped, shown, projects, seen]);
@@ -166,14 +185,14 @@ function SessionListView({ threads, projects, seen, modelNames, now, openIds, fo
         {(grouped ? projectGroups.length === 0 : shown.length === 0) && settled.length === 0 ? <p className="slist-empty">No sessions yet.</p> : groups}
       </div>
       {settled.length > 0 && (
-        <section className={`slist-settled${settledOpen ? " expanded" : ""}`} aria-label="Settled in the last 24 hours">
+        <section ref={settledPanel} className={`slist-settled${settledOpen ? " expanded" : ""}`} aria-label="Settled in the last 24 hours">
           <Pressable className="slist-project-toggle slist-settled-toggle" aria-expanded={settledOpen} onClick={() => setSettledOpen(!settledOpen)}>
             <Chevron open={settledOpen} className="slist-chevron" />
             <span className="slist-project-title">Settled · last 24h</span>
             <span className="slist-total">{settled.length}</span>
           </Pressable>
           <div className="slist-settled-body" inert={!settledOpen} aria-hidden={!settledOpen}>
-            <div className="slist-settled-content">{settled.map((t) => row(t, true))}</div>
+            <div ref={settledContent} className="slist-settled-content">{settled.map((t) => row(t, true))}</div>
           </div>
         </section>
       )}

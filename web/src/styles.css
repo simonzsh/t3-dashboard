@@ -1009,9 +1009,9 @@ ol.install-steps { padding-left: 18px; }
 /* Same slide as the app sidebar: the slot narrows, the list keeps its width inside. */
 .slist { flex: none; width: 280px; min-height: 0; display: flex; flex-direction: column; border-right: 1px solid var(--line); background: var(--page-bg); }
 .slist-body { flex: 1; min-height: 0; overflow-y: auto; padding: 6px; }
-.slist-settled { flex: none; display: grid; grid-template-rows: auto 0fr; transition: grid-template-rows 160ms ease; min-height: 0; max-height: 50%; overflow: hidden; border-top: 1px solid var(--line); background: var(--page-bg); }
-.slist-settled.expanded { grid-template-rows: auto 1fr; }
-.slist-settled-body { min-height: 0; overflow-y: auto; }
+.slist-settled { flex: none; display: flex; flex-direction: column; height: var(--settled-bar-height, 43px); transition: height 160ms ease; min-height: 0; overflow: hidden; border-top: 1px solid var(--line); background: var(--page-bg); }
+.slist-settled.expanded { height: min(50%, var(--settled-height)); }
+.slist-settled-body { flex: 1; min-height: 0; overflow-y: auto; overflow-anchor: none; }
 .slist-settled-content { padding: 0 6px 6px; }
 .slist-project { display: flex; align-items: center; border-radius: var(--radius-md); }
 @media (hover: hover) { .slist-project:hover { background: color-mix(in srgb, var(--text-primary) 5%, transparent); } }
@@ -1027,7 +1027,7 @@ ol.install-steps { padding-left: 18px; }
 .slist-new { opacity: 0; }
 .slist-project:hover .slist-new, .slist-new:focus-visible, .slist-new[aria-expanded="true"] { opacity: 1; }
 .slist-row { position: relative; display: flex; align-items: flex-start; gap: 8px; width: 100%; padding: 5px 8px 5px 30px; border: 0; border-radius: var(--radius-md); background: none; color: var(--text-primary); text-align: left; }
-.slist-body > .slist-item > .slist-row { padding-left: 12px; }
+.slist-body > .slist-item > .slist-row, .slist-settled-content > .slist-item > .slist-row { padding-left: 12px; }
 /* An open row has a close button on hover; its title leaves room for it. */
 .slist-item { position: relative; }
 .slist-row.open { padding-right: 32px; }
