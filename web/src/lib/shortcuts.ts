@@ -8,7 +8,7 @@ export type ShortcutAction =
   | "toggle-sidebar"
   | "switcher"
   | "close-window"
-  | "toggle-fullscreen"
+  | "search-session"
   | "unmaximize"
   | "focus-left"
   | "focus-right"
@@ -33,7 +33,7 @@ const CTRL_KEYS: Record<string, ShortcutAction> = {
   b: "toggle-sidebar",
 };
 export const isTabAction = (action: ShortcutAction): action is Tab => TABS.some((tab) => tab.id === action);
-const CTRL_SESSIONS_KEYS: Record<string, ShortcutAction> = { x: "close-window", f: "toggle-fullscreen" };
+const CTRL_SESSIONS_KEYS: Record<string, ShortcutAction> = { x: "close-window", f: "search-session" };
 // Plain keys that a field needs for itself: they act only outside fields.
 const PLAIN_SESSIONS_KEYS: Record<string, ShortcutAction> = {
   escape: "unmaximize",
@@ -52,6 +52,7 @@ export function matchShortcut(e: KeyInfo, dialogOpen: boolean, inSessions = fals
   const key = e.key.toLowerCase();
   // Before the guards: the switcher opens from a field or a dialog too, and App decides.
   if ((e.ctrlKey || e.metaKey) && !e.altKey && key === "k") return "switcher";
+  if (!dialogOpen && inSessions && (e.ctrlKey || e.metaKey) && !e.altKey && !e.shiftKey && key === "f") return "search-session";
   if (dialogOpen || e.metaKey) return null;
   if (e.ctrlKey) {
     // Ctrl+Alt is AltGr on Windows: it types a character and is not a shortcut.

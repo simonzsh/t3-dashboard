@@ -42,7 +42,7 @@ test("an open dialog disables shortcuts", () => {
 
 test("Ctrl+X and F act on the sessions only, and Ctrl+M does nothing", () => {
   assert.equal(matchShortcut(ctrl("x"), false, true), "close-window");
-  assert.equal(matchShortcut(ctrl("F"), false, true), "toggle-fullscreen");
+  assert.equal(matchShortcut(ctrl("F"), false, true), "search-session");
   assert.equal(matchShortcut(ctrl("m"), false, true), null);
   assert.equal(matchShortcut(ctrl("f"), false), null);
 });

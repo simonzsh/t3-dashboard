@@ -301,7 +301,7 @@ The shortcuts use `Ctrl`, also on a Mac, and they work while you type in a field
 | `Ctrl` + `,` | Opens Settings. |
 | `Ctrl` + `B` | Collapses or expands the sidebar. |
 | `Ctrl` + `X` | Sessions: closes the active session. |
-| `Ctrl` + `F` | Sessions: puts the active session in full screen, or takes it out of full screen. |
+| `Ctrl` + `F` | Sessions: searches the active session. Cmd+F also works on macOS. |
 | `Esc` | Sessions, outside a field: exits full screen. In the message field, it leaves the field. |
 | `←` `→` | Sessions, outside a field: moves the focus to the next column and scrolls it into view. |
 | `↑` `↓` | Sessions, grid view, outside a field: moves the focus between the two sessions of a column. |
@@ -319,3 +319,16 @@ News articles sit near the page center with space from the article list and a ma
 In demo mode, the checkout and chart comparison sessions include merged PR #137. Its menu icon and page badge are purple.
 
 The session PR menu icon is green when any PR is open and ready. Otherwise, a remaining draft gives a gray draft icon. All merged gives a purple merge icon; all closed gives a red closed icon. Mixed final or unknown states stay gray. Each menu row keeps its own status.
+
+### Conversation tools
+
+Hover over a session in the list and open its **…** menu. Session and project **…** buttons have no hover tooltip. On touch screens, the menu button stays visible.
+Choose **Rename** first to edit the title, or double-click the title in the session header. Enter saves the title; Cancel leaves it unchanged.
+Title regeneration stays available while an agent runs or waits for your answer.
+Choose **Regenerate title** (the refresh icon), toggle phone alerts when configured, or open the session in T3 Code. This action uses the same T3 logo as the session header.
+Select message text, then choose the quotation icon with **Cite** beside the selection to append a Markdown quote to your draft. On touch screens, **Cite** appears above the composer to avoid the native selection menu. The button closes on scroll or Escape.
+On desktop, Ctrl+F (Cmd+F on macOS) opens search directly, with no permanent search toolbar. On mobile, tap the search icon beside the other actions in the session header. The field opens with the keyboard. Search matches message text without case sensitivity.
+Matching text is highlighted inside messages. The active message uses a stronger highlight. Closing search removes the highlights.
+The search bar separates the field, result counter, and navigation buttons with space.
+The counter counts matching messages. Use the arrows or Enter and Shift+Enter to move between them. Escape closes search.
+The fullscreen button remains in the session header.

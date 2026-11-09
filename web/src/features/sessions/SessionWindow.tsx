@@ -1,5 +1,7 @@
+import { flushSync } from "react-dom";
+import { RenameSessionDialog } from "./RenameSessionDialog.tsx";
 import { prGroupStatus, prStatus } from "../../lib/prStatus.ts";
-import { memo, type Dispatch } from "react";
+import { memo, useState, type Dispatch } from "react";
 import type { DashboardProvider, DashboardThread, ProjectIcon as ProjectIconData, ThreadPullRequest } from "../../../../shared/api.ts";
 import { ActionMenu, Badge, Button, Icon, IconButton, IconButtonLink } from "../../ui/index.ts";
 import { AutomationMark } from "../../lib/automationThreads.tsx";
@@ -45,6 +47,8 @@ interface Props {
 }
 
 function SessionWindowView({ id, thread, title, projectTitle, projectIcon, missing, focused, maximized, compact, live, t3EnvironmentId, providers, openPrs, onTitle, onBack, alert, onToggleAlert, dispatch }: Props) {
+  const [renaming, setRenaming] = useState(false);
+  const [searchRequest, setSearchRequest] = useState(0);
   const onFocus = () => dispatch({ type: "focus", id });
   const onClose = () => dispatch({ type: "close", id });
   const onToggleMaximize = () => dispatch({ type: "maximize", id });
@@ -68,7 +72,7 @@ function SessionWindowView({ id, thread, title, projectTitle, projectIcon, missi
               <Icon name="arrowLeft" />
             </IconButton>
           )}
-          <span className="session-window-title" data-tooltip={title} data-tooltip-clipped>
+          <span onDoubleClick={() => { if (!missing) setRenaming(true); }} className="session-window-title" data-tooltip={title} data-tooltip-clipped>
             {title}
           </span>
           <AutomationMark id={id} />
@@ -83,7 +87,7 @@ function SessionWindowView({ id, thread, title, projectTitle, projectIcon, missi
           )}
           <span className="session-window-buttons">
             {!compact && (
-              <IconButton variant="ghost" size="sm" label={fullscreen} tooltip={fullscreen} shortcut={maximized ? `${ctrlLabel("F")} / Esc` : ctrlLabel("F")} onClick={onToggleMaximize}>
+              <IconButton variant="ghost" size="sm" label={fullscreen} tooltip={fullscreen} onClick={onToggleMaximize}>
                 <Icon name={maximized ? "exitFullscreen" : "fullscreen"} />
               </IconButton>
             )}
@@ -100,6 +104,14 @@ function SessionWindowView({ id, thread, title, projectTitle, projectIcon, missi
             </>
           )}
           <span className="session-window-buttons">
+            <IconButton data-session-search="" variant="ghost" size="sm" label="Search in session" tooltip="Search in session" disabled={missing || !live} onClick={(event) => {
+              // Mobile browsers open the keyboard only during the tap that requests focus.
+              const session = event.currentTarget.closest(".session-window");
+              flushSync(() => setSearchRequest((value) => value + 1));
+              session?.querySelector<HTMLInputElement>(".conversation-search input")?.focus();
+            }}>
+              <Icon name="search" />
+            </IconButton>
             {alert && (
               <IconButton variant="ghost" size="sm" label={alertLabel} tooltip={alertLabel} aria-pressed={alert === "armed"} onClick={() => onToggleAlert(id)}>
                 <Icon name={alert === "armed" ? "bellRing" : "bell"} />
@@ -118,8 +130,9 @@ function SessionWindowView({ id, thread, title, projectTitle, projectIcon, missi
       ) : !live ? (
         <div className="sessions-placeholder" />
       ) : (
-        <ConversationPanel threadId={id} thread={thread} providers={providers} onOpenThread={(child) => dispatch({ type: "open", id: child })} onTitle={(name) => onTitle?.(id, name)} />
+        <ConversationPanel searchRequest={searchRequest} threadId={id} thread={thread} providers={providers} onOpenThread={(child) => dispatch({ type: "open", id: child })} onTitle={(name) => onTitle?.(id, name)} />
       )}
+      {renaming && <RenameSessionDialog id={id} title={title} onClose={() => setRenaming(false)} onRenamed={(name) => onTitle?.(id, name)} />}
     </section>
   );
 }

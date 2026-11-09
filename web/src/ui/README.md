@@ -51,7 +51,7 @@ This folder contains the base components of the dashboard. The screens in `web/s
 | `TooltipLayer` | Dashboard tooltip, mounted one time in `App`. It shows immediately on hover and on keyboard focus of an element with `data-tooltip` (and `data-shortcut` for the shortcut, in a frame). It closes when the pointer leaves, on click, on scroll and with Escape. Its width stays independent of its previous position, so measurement near an edge cannot add a vertical gap. It does not exist on a touch screen. `Button`, `IconButton` and `Pressable` set these attributes with `tooltip` and `shortcut`. On a different element, write `data-tooltip`. |
 | `PageHeader` | Top of a page: title, one-line description, at most three actions on the right. `leading` goes before the title (the logo on a phone). |
 | `Loader` | Loading state: the animated logo, centered in the area. Use it in place of a "Loading…" text. |
-| `Icon` | Lucide icon by its name. Use `archive` and `archiveRestore` for settle and unsettle actions. |
+| `Icon` | Lucide icon by its name. Use `t3` for the shared T3 Code logo and `quote` for citations. Use `archive` and `archiveRestore` for settle and unsettle actions. |
 | `Logo` | The app mark, drawn with the current text colour. |
 
 ## Animations

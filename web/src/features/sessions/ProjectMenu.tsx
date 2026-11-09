@@ -12,7 +12,6 @@ export function ProjectMenu({ title, onEdit, onDelete }: Props) {
     <ActionMenu
       className="slist-new"
       label={`Project actions for ${title}`}
-      tooltip="Project actions"
       items={[
         { label: "Edit project", icon: "pencil", onSelect: onEdit },
         { label: "Delete project", icon: "trash", onSelect: onDelete, danger: true },

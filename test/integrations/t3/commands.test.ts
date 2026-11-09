@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { test } from "bun:test";
 import {
   approvalCommand,
+  regenerateTitleCommand,
   cancelQueuedCommand,
   editQueuedCommand,
   promoteQueuedCommand,
@@ -168,4 +169,8 @@ test("editing a queued message sends the text and no attachments key", () => {
   const command = editQueuedCommand("t", "q1", "new");
   assert.deepEqual(command, { type: "queued-run.edit", threadId: "t", runId: "q1", text: "new" });
   assert.equal("attachments" in command, false);
+});
+
+test("title regeneration uses the native metadata command without a title", () => {
+  assert.deepEqual(regenerateTitleCommand("thread-1"), { type: "thread.metadata.update", threadId: "thread-1", regenerateTitle: true });
 });

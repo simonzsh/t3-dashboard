@@ -194,7 +194,7 @@ export function validCreateProject(body: Record<string, unknown>): CreateProject
   return title ? { path, title } : { path };
 }
 
-const validTitle = (value: unknown): string => {
+export const validTitle = (value: unknown): string => {
   const title = typeof value === "string" ? value.trim() : "";
   if (title.length === 0 || title.length > PROJECT_TITLE_MAX) throw new HttpError(400, `title must be 1 to ${PROJECT_TITLE_MAX} characters`);
   return title;

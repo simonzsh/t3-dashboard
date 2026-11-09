@@ -197,6 +197,8 @@ export function App() {
         if (state) setCreating({ projectId: null });
       } else if (action === "new-automation") {
         if (state) setCreatingAutomation(true);
+      } else if (action === "search-session") {
+        document.querySelector<HTMLElement>(".session-window.focused [data-session-search]")?.click();
       } else if (action === "unmaximize") {
         if (sessions.maximized && sessions.focusedId) dispatchSessions({ type: "maximize", id: sessions.focusedId });
       } else if (action.startsWith("focus-")) {

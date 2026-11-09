@@ -161,7 +161,8 @@ test("blocked sessions hide settle and keep close for an open session", () => {
   for (const extra of [{ status: "running" }, { status: "queued" }, { status: "completed", backgroundWork: true }, { pending: { category: "approval" as const } }]) {
     const props = { ...base, threads: [thread("running", { title: "Busy", ...extra })] };
     const html = renderToStaticMarkup(<SessionList {...props} />);
-    assert.doesNotMatch(html, /aria-label="Settle Busy"|class="thread-actions"/);
+    assert.doesNotMatch(html, /aria-label="Settle Busy"/);
+    assert.match(html, /aria-label="Actions for Busy"/);
     const open = renderToStaticMarkup(<SessionList {...props} openIds={new Set(["running"])} />);
     assert.doesNotMatch(open, /aria-label="Settle Busy"/);
     assert.match(open, /aria-label="Close Busy"/);
