@@ -27,11 +27,12 @@ test("a failed command shows its exit code", () => {
   assert.doesNotMatch(out, /aria-label="Completed"/);
 });
 
-test("only the latest running step gets the rail marker target", () => {
+test("only the latest running card is active, without a rail", () => {
   const out = renderToStaticMarkup(<WorkGroup steps={[step("a", { status: "running" }), step("b"), step("c", { status: "running", completedAt: null })]} threadId="t" live />);
   assert.match(out, /data-work-step="c" data-active-step="true"/);
   assert.equal(out.match(/data-active-step=/g)?.length, 1);
-  assert.match(out, /class="step-marker" aria-hidden="true"/);
+  assert.doesNotMatch(out, /step-marker/);
+  assert.match(out, /class="work-group-heading"/);
   assert.match(out, /class="pulse" aria-hidden="true"/);
 });
 
@@ -51,4 +52,13 @@ test("a newly received finished group reveals fast completed steps without a run
   assert.match(out, /&lt;1s/);
   assert.match(out, /aria-label="Completed"/);
   assert.doesNotMatch(out, /class="pulse"|data-active-step|step command running/);
+});
+
+test("the robot follows live activity and leaves finished groups", () => {
+  const render = (kind: TurnStep["kind"], live: boolean) => renderToStaticMarkup(
+    <WorkGroup steps={[step("a", { kind, status: "running", completedAt: null })]} threadId="t" live={live} />,
+  );
+  assert.match(render("command", true), /working-robot typing/);
+  assert.match(render("thinking", true), /working-robot thinking/);
+  assert.doesNotMatch(render("command", false), /working-robot/);
 });

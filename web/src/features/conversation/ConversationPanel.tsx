@@ -5,7 +5,7 @@ import { highlightText } from "../../lib/highlightText.tsx";
 import { useMediaQuery } from "../../lib/useMediaQuery.ts";
 import { useApi } from "../../api/ApiContext.tsx";
 import { watchSelection } from "./selection.ts";
-import { Button, Popover, SearchField, Icon, IconButton, Loader, TOUCH } from "../../ui/index.ts";
+import { Button, Popover, SearchField, Icon, IconButton, Loader, STATUS_ICONS, TOUCH } from "../../ui/index.ts";
 import { attachmentUrl } from "../../api/client.ts";
 import { type PendingMessage, countSame, isSettled, pendingLabel, sentMessages } from "./pending.ts";
 import { MarkdownText } from "./MarkdownText.tsx";
@@ -17,7 +17,9 @@ import { RewindDialog } from "./RewindDialog.tsx";
 import { attachmentFiles, mergeDraft } from "./rewind.ts";
 import { PendingRequestView } from "./PendingRequestView.tsx";
 import { ApprovalDock, dockedRequest, useQuestionDock } from "./QuestionDock.tsx";
+import { WorkingRobot } from "./WorkingRobot.tsx";
 import { WorkGroup } from "./Steps.tsx";
+import { pendingSecrets } from "./secretRequest.ts";
 import { SecretRequestCard } from "./SecretRequestCard.tsx";
 import { SubagentRows } from "./SubagentRows.tsx";
 import { NoticeRow, PlanCard, TodoCard } from "./TimelineBlocks.tsx";
@@ -93,6 +95,7 @@ const Timeline = memo(function Timeline({ detail, threadId, running, editing, on
     for (const step of detail.steps) knownSteps.current.add(step.id);
   }, [detail.steps]);
   const entries = timeline(detail);
+  const waiting = detail.pendingRequests.length > 0 || pendingSecrets(detail.steps).length > 0;
   return (
     <>
       {detail.stepsOmitted > 0 && <div className="steps-omitted">{omittedLabel(detail.stepsOmitted)}</div>}
@@ -104,17 +107,19 @@ const Timeline = memo(function Timeline({ detail, threadId, running, editing, on
             return <RenderFrame key={entry.render.id} render={entry.render} threadId={threadId} />;
           case "work":
             // Keyed by its first step: the group keeps its open state while later steps join it.
-            return <WorkGroup key={entry.steps[0]!.id} steps={entry.steps} threadId={threadId} fresh={!knownSteps.current.has(entry.steps[0]!.id)} live={running && i === entries.length - 1} />;
+            return <WorkGroup showRobot={!waiting} key={entry.steps[0]!.id} steps={entry.steps} threadId={threadId} fresh={!knownSteps.current.has(entry.steps[0]!.id)} live={running && i === entries.length - 1} />;
           case "subagents":
             return <SubagentRows key={entry.steps[0]!.id} steps={entry.steps} threadId={threadId} onOpenThread={onOpenThread} onChanged={onChanged} />;
           case "step":
+            if (entry.step.kind === "secret" && entry.step.secret?.status === "pending") return null;
             return <StandaloneStep key={entry.step.id} step={entry.step} threadId={threadId} />;
         }
       })}
       {awaitingStep(entries, running) && (
         <div className="working-row">
           <Loader inline label="Working" />
-          Working…
+          <span>Working…</span>
+          {!waiting && <WorkingRobot thinking />}
         </div>
       )}
     </>
@@ -308,6 +313,8 @@ function Conversation({ searchRequest = 0, threadId, thread, providers, onOpenTh
   }, [title]);
 
   const messageEditing = useMemo(() => ({ onEdit: setEditing, disabled: running }), [running]);
+  const secrets = pendingSecrets(detail?.steps ?? []);
+  const needsInput = secrets.length > 0 || (detail?.pendingRequests.length ?? 0) > 0;
   const docked = detail ? dockedRequest(detail.pendingRequests) : null;
   const question = useQuestionDock(threadId, docked?.category === "user-input" ? docked : null, load);
   const otherRequests = detail ? detail.pendingRequests.filter((r) => r !== docked) : [];
@@ -529,7 +536,17 @@ function Conversation({ searchRequest = 0, threadId, thread, providers, onOpenTh
           </IconButton>
         )}
       </div>
-      {detail?.subagentThread ? (
+      {needsInput && (
+        <div className="input-request-dock">
+          <div className="working-row"><Icon name={STATUS_ICONS.waiting} className="waiting-icon" /><span>Waiting for your reply</span><WorkingRobot waiting /></div>
+        </div>
+      )}
+      {secrets[0] ? (
+        <div className="question-docked">
+          <SecretRequestCard key={secrets[0].id} step={secrets[0]} threadId={threadId} onAnswered={load} />
+          {detail?.subagentThread ? <SubagentBar detail={detail} providers={providers} onOpenThread={onOpenThread} /> : mainComposer}
+        </div>
+      ) : detail?.subagentThread ? (
         <SubagentBar detail={detail} providers={providers} onOpenThread={onOpenThread} />
       ) : question.composer ? (
         // The question sits on the Composer, whose field is the free answer.
@@ -548,7 +565,6 @@ function Conversation({ searchRequest = 0, threadId, thread, providers, onOpenTh
             readOnly={question.composer.readOnly}
             placeholder={question.composer.placeholder}
             submitLabel={question.composer.submitLabel}
-            focusKey={question.composer.focusKey}
             noImages
             onEscape={() => frame.current?.focus({ preventScroll: true })}
             onStop={() => api.interrupt(threadId)}

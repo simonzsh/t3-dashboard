@@ -3,8 +3,9 @@ import type { StepDetail, TurnStep } from "../../../../shared/api.ts";
 import { useApi } from "../../api/ApiContext.tsx";
 import { duration, failure } from "../../lib/format.ts";
 import { safeHref } from "../../lib/markdown.tsx";
-import { Chevron, Icon, Loader, Pressable, RunningDot, STATUS_ICONS, useFlip } from "../../ui/index.ts";
+import { Chevron, Collapse, Icon, Pressable, RunningDot, STATUS_ICONS, useFlip } from "../../ui/index.ts";
 import { STEP_ICONS, diffLines, groupLabel, remember, stepDuration } from "./steps.ts";
+import { WorkingRobot } from "./WorkingRobot.tsx";
 
 const LIVE_VISIBLE = 4;
 const RECENT_STEPS_MS = 1000;
@@ -24,8 +25,8 @@ export function useTicker(active: boolean): number {
 }
 
 /** One group of agent steps. Collapsed, except the live one, which shows its latest steps. */
-export function WorkGroup({ steps, threadId, live, fresh = false }: { steps: TurnStep[]; threadId: string; live: boolean; fresh?: boolean }) {
-  const [open, setOpen] = useState(false);
+export function WorkGroup({ steps, threadId, live, fresh = false, showRobot = true }: { showRobot?: boolean; steps: TurnStep[]; threadId: string; live: boolean; fresh?: boolean }) {
+  const [expanded, setOpen] = useState<boolean | null>(null);
   const [recentUntil, setRecentUntil] = useState(() => fresh ? Date.now() + RECENT_STEPS_MS : 0);
   const stepKey = JSON.stringify(steps.map(step => step.id));
   const previous = useRef({ stepKey, live });
@@ -45,48 +46,31 @@ export function WorkGroup({ steps, threadId, live, fresh = false }: { steps: Tur
   const now = useTicker(live);
   const start = steps[0]?.startedAt;
   const label = live ? (start ? `Working for ${duration(now - Date.parse(start))}` : "Working") : groupLabel(steps);
-  const shown = open ? steps : live || recent ? steps.slice(-LIVE_VISIBLE) : [];
+  const open = expanded ?? (live || recent);
+  const shown = expanded === true ? steps : steps.slice(-LIVE_VISIBLE);
   const root = useRef<HTMLDivElement>(null);
-  const list = useRef<HTMLUListElement>(null);
-  const marker = useRef<HTMLLIElement>(null);
   const shownKey = JSON.stringify(shown.map(step => step.id));
   const activeId = live ? shown.findLast(step => step.status === "running")?.id : undefined;
-  useFlip(root, shownKey, { item: "data-work-step", enabled: (live || recent) && !open, initial: fresh, enter: { y: 6, scale: 1, duration: 650, highlight: "color-mix(in srgb, var(--work) 12%, transparent)" }, stagger: 75, spring: false });
-  useLayoutEffect(() => {
-    const el = list.current;
-    const mark = marker.current;
-    if (!el || !mark) return;
-    const measure = () => {
-      const row = el.querySelector<HTMLElement>("[data-active-step]");
-      const head = row?.querySelector<HTMLElement>(".step-head");
-      mark.style.opacity = head ? "1" : "0";
-      if (head) {
-        mark.style.top = `${row!.offsetTop}px`;
-        mark.style.height = `${head.offsetHeight}px`;
-      }
-    };
-    measure();
-    const observer = new ResizeObserver(measure);
-    observer.observe(el);
-    return () => observer.disconnect();
-  }, [shownKey, activeId]);
+  useFlip(root, shownKey, { item: "data-work-step", enabled: (live || recent) && expanded === null, initial: fresh, enter: { y: 6, scale: 1, duration: 650, highlight: "color-mix(in srgb, var(--work) 12%, transparent)" }, stagger: 75, spring: false });
   return (
     <div ref={root} className={`work-group${live ? " live" : ""}`}>
-      <Pressable className="work-group-head" aria-expanded={open} onClick={() => setOpen(!open)}>
-        <Chevron open={open} />
-        {live && <RunningDot />}
-        {label}
-      </Pressable>
-      {shown.length > 0 && (
-        <ul ref={list} className="step-list">
-          <li ref={marker} className="step-marker" aria-hidden="true" />
+      <div className="work-group-heading">
+        <Pressable className="work-group-head" aria-expanded={open} onClick={() => setOpen(!open)}>
+          <Chevron open={open} />
+          {live && <RunningDot />}
+          {label}
+        </Pressable>
+        {live && showRobot && <WorkingRobot thinking={!activeId || shown.find(step => step.id === activeId)?.kind === "thinking"} />}
+      </div>
+      <Collapse open={open}>
+        <ul className="step-list">
           {shown.map((step) => (
             <li key={step.id} data-work-step={step.id} data-active-step={step.id === activeId || undefined}>
-              <StepRow step={step} threadId={threadId} />
+              <StepRow step={step} threadId={threadId} active={open} />
             </li>
           ))}
         </ul>
-      )}
+      </Collapse>
     </div>
   );
 }
@@ -104,7 +88,7 @@ function StepHead({ step }: { step: TurnStep }) {
 }
 
 /** A row that opens to the full command, output, diff or results when T3 has them. */
-export const StepRow = memo(function StepRow({ step, threadId }: { step: TurnStep; threadId: string }) {
+export const StepRow = memo(function StepRow({ step, threadId, active = true }: { step: TurnStep; threadId: string; active?: boolean }) {
   const [open, setOpen] = useState(false);
   const cls = `step ${step.kind} ${step.status}`;
   if (!step.expandable) {
@@ -122,7 +106,7 @@ export const StepRow = memo(function StepRow({ step, threadId }: { step: TurnSte
         <StepHead step={step} />
         <Chevron open={open} />
       </Pressable>
-      {open && <StepBody step={step} threadId={threadId} />}
+      <Collapse open={open}><StepBody step={step} threadId={threadId} active={open && active} /></Collapse>
     </div>
   );
 });
@@ -162,10 +146,10 @@ export function useStepDetail(threadId: string, step: TurnStep, enabled = true):
   return state.key === key ? { detail: state.detail, error: state.error } : { detail: null, error: null };
 }
 
-function StepBody({ step, threadId }: { step: TurnStep; threadId: string }) {
-  const { detail, error } = useStepDetail(threadId, step);
+function StepBody({ step, threadId, active }: { step: TurnStep; threadId: string; active: boolean }) {
+  const { detail, error } = useStepDetail(threadId, step, active);
   if (error) return <p className="step-error">{error}</p>;
-  if (!detail) return <Loader />;
+  if (!detail) return <div className="step-body" aria-busy="true">{step.kind === "command" && <pre className="step-code step-input">{`$ ${step.text}`}</pre>}<p className="step-empty" role="status">Loading details…</p></div>;
   const { input, output, diff, text, results } = detail;
   const showInput = input !== null && step.kind !== "command";
   const empty = !showInput && !output && !diff && !text && results.length === 0;
@@ -192,7 +176,7 @@ function StepBody({ step, threadId }: { step: TurnStep; threadId: string }) {
           ))}
         </ul>
       )}
-      {empty && <p className="step-empty">No output</p>}
+      {empty && <p className="step-empty">{step.status === "running" ? "Waiting for output…" : "No output"}</p>}
       {detail.exitCode !== null && step.kind === "command" && <p className={`step-exit-line${detail.exitCode === 0 ? "" : " failed"}`}>Exit code {detail.exitCode}</p>}
       {detail.truncated && <p className="step-cut">Cut: only part of this is shown.</p>}
     </div>

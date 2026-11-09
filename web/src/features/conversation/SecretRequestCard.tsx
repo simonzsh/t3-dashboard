@@ -3,14 +3,16 @@ import type { TurnStep } from "../../../../shared/api.ts";
 import { useApi } from "../../api/ApiContext.tsx";
 import { useAction } from "../../lib/useAction.ts";
 import { Button, Icon, SecretInput } from "../../ui/index.ts";
+import { RequestDock } from "./RequestDock.tsx";
 import { SECRET_STATUS_LABELS, saveBody } from "./secretRequest.ts";
 
 /** The agent asks for a secret. The value goes straight to T3: it stays in this field only until the send. */
-export function SecretRequestCard({ step, threadId }: { step: TurnStep; threadId: string }) {
+export function SecretRequestCard({ step, threadId, onAnswered }: { step: TurnStep; threadId: string; onAnswered?: () => void }) {
   const api = useApi();
   const action = useAction("send the secret");
   const [value, setValue] = useState("");
   const [sent, setSent] = useState(false);
+  const [collapsed, setCollapsed] = useState(false);
   const request = step.secret;
   if (!request) return null;
   const pending = request.status === "pending";
@@ -19,16 +21,14 @@ export function SecretRequestCard({ step, threadId }: { step: TurnStep; threadId
   async function answer(answerBody: NonNullable<ReturnType<typeof saveBody>>) {
     const ok = await action.run(() => api.answerSecret(threadId, step.id, answerBody));
     setValue("");
-    if (ok) setSent(true);
+    if (ok) {
+      setSent(true);
+      onAnswered?.();
+    }
   }
 
-  return (
-    <section className="request secret-card">
-      <header>
-        <Icon name="lock" />
-        <strong>{request.label}</strong>
-        {!pending && <span className="secret-status">{SECRET_STATUS_LABELS[request.status as keyof typeof SECRET_STATUS_LABELS]}</span>}
-      </header>
+  const content = (
+    <>
       {request.reason && <div className="msg">{request.reason}</div>}
       {pending && (
         <form
@@ -49,6 +49,17 @@ export function SecretRequestCard({ step, threadId }: { step: TurnStep; threadId
         </form>
       )}
       {action.error && <p className="step-error">{action.error}</p>}
+    </>
+  );
+  if (pending) return (
+    <RequestDock title={request.label} label="Secret requested by the agent" collapsed={collapsed} onToggle={() => setCollapsed(!collapsed)}>
+      {content}
+    </RequestDock>
+  );
+  return (
+    <section className="request secret-card">
+      <header><Icon name="lock" /><strong>{request.label}</strong><span className="secret-status">{SECRET_STATUS_LABELS[request.status as keyof typeof SECRET_STATUS_LABELS]}</span></header>
+      {content}
     </section>
   );
 }

@@ -344,3 +344,20 @@ Matching text is highlighted inside messages. The active message uses a stronger
 The search bar separates the field, result counter, and navigation buttons with space.
 The counter counts matching messages. Use the arrows or Enter and Shift+Enter to move between them. Escape closes search.
 The fullscreen button remains in the session header.
+
+### Live action cards
+
+Live actions appear in compact cards, without a left rail. Open a card to read its output or diff.
+Working starts expanded during a run. Click its heading to hide or show the cards.
+Cards open in 80 ms and keep loaded details. A running command with no output shows “Waiting for output…”.
+Before the first action arrives, an inline loader appears next to Working.
+
+A small robot sits to the right of Working, above the cards. It follows the selected accent color.
+Its hands type at varied rhythms, with key feedback timed to contact. A thought bubble appears while it thinks.
+The robot uses CSS depth. Reduced motion disables its animation and the card transitions.
+
+When a question, approval, or secret needs your reply, the robot raises a hand above the composer.
+Pending secrets appear there too. Answered secrets stay in the conversation history.
+Secret requests use the same collapsible panel as questions and approvals, attached to the composer. Pending secrets appear one at a time.
+On mobile, refreshing keeps the focused session open. Returning to the session list also persists across refreshes.
+Incoming questions, approvals, and secret requests do not move keyboard focus or select another session.

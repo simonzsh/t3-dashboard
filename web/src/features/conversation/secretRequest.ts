@@ -1,4 +1,4 @@
-import type { SecretAnswerBody, SecretStatus } from "../../../../shared/api.ts";
+import type { SecretAnswerBody, SecretStatus, TurnStep } from "../../../../shared/api.ts";
 import { MAX_SECRET_CHARS } from "../../../../shared/limits.ts";
 
 export const SECRET_STATUS_LABELS: Record<Exclude<SecretStatus, "pending">, string> = {
@@ -12,3 +12,5 @@ export function saveBody(value: string): SecretAnswerBody | null {
   const secret = value.trim();
   return secret === "" || secret.length > MAX_SECRET_CHARS ? null : { secret };
 }
+
+export const pendingSecrets = (steps: TurnStep[]): TurnStep[] => steps.filter(step => step.kind === "secret" && step.secret?.status === "pending");
