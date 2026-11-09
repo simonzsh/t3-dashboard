@@ -2,7 +2,9 @@ import { useLayoutEffect, useRef, useState } from "react";
 import type { QueuedMessage } from "../../../../shared/api.ts";
 import { useApi } from "../../api/ApiContext.tsx";
 import { useAction } from "../../lib/useAction.ts";
-import { Button, Icon, IconButton, TextArea } from "../../ui/index.ts";
+import { useMediaQuery } from "../../lib/useMediaQuery.ts";
+import { Button, Icon, IconButton, TextArea, TOUCH } from "../../ui/index.ts";
+import { isSendKey } from "./composer.ts";
 import { MarkdownText } from "./MarkdownText.tsx";
 import { MessageAttachments } from "./MessageAttachments.tsx";
 
@@ -36,6 +38,7 @@ export function QueuedMessages({ threadId, queue, held, running, onChanged }: Pr
 function QueuedItem({ threadId, item, running, onChanged }: { threadId: string; item: QueuedMessage; running: boolean; onChanged: () => void }) {
   const api = useApi();
   const { busy, run } = useAction("update the queued message");
+  const touch = useMediaQuery(TOUCH);
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(item.text);
   const bubble = useRef<HTMLDivElement>(null);
@@ -57,6 +60,7 @@ function QueuedItem({ threadId, item, running, onChanged }: { threadId: string; 
     setEditing(true);
   };
   const save = async () => {
+    if (busy || draft.trim() === "") return;
     if (await act(() => api.editQueued(threadId, item.runId, draft))) setEditing(false);
   };
 
@@ -71,6 +75,10 @@ function QueuedItem({ threadId, item, running, onChanged }: { threadId: string; 
             onChange={(e) => setDraft(e.target.value)}
             onKeyDown={(e) => {
               if (e.key === "Escape") setEditing(false);
+              if (isSendKey({ key: e.key, shiftKey: e.shiftKey, isComposing: e.nativeEvent.isComposing }, touch)) {
+                e.preventDefault();
+                void save();
+              }
             }}
             aria-label="Queued message"
             autoFocus
