@@ -23,8 +23,8 @@ test("the header has a grip, Fullscreen and Close", () => {
 test("the sub-line names the project only when the thread and its project are known", () => {
   const known = renderToStaticMarkup(<SessionWindow {...base} thread={thread("t1")} projectTitle="Billing" missing />);
   assert.match(known, /<div class="session-window-sub">.*<span class="session-window-project">Billing<\/span>/);
-  assert.doesNotMatch(renderToStaticMarkup(<SessionWindow {...base} projectTitle="Billing" missing />), /session-window-sub/);
-  assert.doesNotMatch(renderToStaticMarkup(<SessionWindow {...base} thread={thread("t1")} missing />), /session-window-sub/);
+  assert.doesNotMatch(renderToStaticMarkup(<SessionWindow {...base} projectTitle="Billing" missing />), /session-window-project/);
+  assert.doesNotMatch(renderToStaticMarkup(<SessionWindow {...base} thread={thread("t1")} missing />), /session-window-project/);
 });
 
 test("a window far off screen keeps its header and skips the conversation", () => {
@@ -49,7 +49,7 @@ const linked = (number: number, title: string | null = null) => ({ repository: "
 const header = (pullRequests: ReturnType<typeof linked>[]) => renderToStaticMarkup(<SessionWindow {...base} live={false} missing={false} thread={thread("t1", { pullRequests })} />);
 
 test("a session with one pull request gets a link to its diff on the Pull requests page", () => {
-  assert.match(header([linked(12)]), /<a [^>]*href="#\/pulls\/acme\/storefront\/12"[^>]*aria-label="Open pull request #12"/);
+  assert.match(header([linked(12)]), /<a [^>]*href="#\/pulls\/acme\/storefront\/12\?fromSession=t1"[^>]*aria-label="Open pull request #12"/);
   assert.doesNotMatch(header([]), /pull request/);
 });
 
@@ -62,7 +62,7 @@ test("a session with several pull requests gets one menu button, with no badge w
 
 test("every control in the session header has the icon button classes, so they share one size", () => {
   for (const html of [header([]), header([linked(12)]), header([linked(12), linked(13)])]) {
-    const buttons = html.slice(html.indexOf('class="session-window-buttons"'), html.indexOf("</span></div>", html.indexOf('class="session-window-buttons"')));
+    const buttons = html.slice(html.indexOf('class="session-window-head"'), html.indexOf("</header>"));
     const controls = [...buttons.matchAll(/<(button|a) [^>]*class="([^"]*)"/g)].map((m) => m[2]!);
     assert.ok(controls.length >= 2, buttons);
     for (const cls of controls) assert.match(cls, /^icon-button sm ghost$/, cls);
@@ -70,7 +70,7 @@ test("every control in the session header has the icon button classes, so they s
 });
 test("the pull request menu items open each diff, with the title when T3 knows it", () => {
   const opened: string[] = [];
-  const items = PullRequestsButton({ pullRequests: [linked(12, "Summary"), linked(13)], open: new Map() })!.props.items as Array<{ label: string; detail?: string; onSelect: () => void }>;
+  const items = PullRequestsButton({ fromSession: "source", pullRequests: [linked(12, "Summary"), linked(13)], open: new Map() })!.props.items as Array<{ label: string; detail?: string; onSelect: () => void }>;
   assert.deepEqual(items.map((item) => [item.label, item.detail]), [["#13 acme/storefront", undefined], ["#12 acme/storefront", "Summary"]]);
   const location = { hash: "" };
   const saved = Object.getOwnPropertyDescriptor(globalThis, "window");
@@ -84,7 +84,7 @@ test("the pull request menu items open each diff, with the title when T3 knows i
     if (saved) Object.defineProperty(globalThis, "window", saved);
     else delete (globalThis as { window?: unknown }).window;
   }
-  assert.deepEqual(opened, ["#/pulls/acme/storefront/13", "#/pulls/acme/storefront/12"]);
+  assert.deepEqual(opened, ["#/pulls/acme/storefront/13?fromSession=source", "#/pulls/acme/storefront/12?fromSession=source"]);
 });
 
 const openOf = (entries: Array<[number, string, boolean]>) => new Map(entries.map(([n, createdAt, unread]) => [`pr:acme/storefront#${n}`, { createdAt, unread }]));
@@ -125,4 +125,33 @@ test("the alert bell shows only when alerts are set up, and reports whether it i
   assert.doesNotMatch(bell(null), /Alert/);
   assert.match(bell("off"), /aria-label="Alert me on my phone"[^>]*aria-pressed="false"|aria-pressed="false"[^>]*aria-label="Alert me on my phone"/);
   assert.match(bell("armed"), /aria-label="Alert on: click to turn off"[^>]*aria-pressed="true"|aria-pressed="true"[^>]*aria-label="Alert on: click to turn off"/);
+});
+
+test("opening a PR carries the source session in its address", () => {
+  const html = renderToStaticMarkup(<PullRequestsButton fromSession="source" open={new Map()} pullRequests={[{ repository: "acme/storefront", number: 12, title: "Fix navigation", url: "https://github.com/acme/storefront/pull/12" }]} />);
+  assert.match(html, /href="#\/pulls\/acme\/storefront\/12\?fromSession=source"/);
+});
+
+test("the status and window controls stay beside the title, with session actions below", () => {
+  for (const compact of [false, true]) {
+    for (const projectTitle of ["Billing", null]) {
+      const html = renderToStaticMarkup(<SessionWindow {...base} compact={compact} projectTitle={projectTitle}
+        thread={thread("t1", { status: "running", pullRequests: [linked(12)] })}
+        t3EnvironmentId="env" alert="off" live={false} missing={false} />);
+      const split = html.indexOf('class="session-window-sub"');
+      assert.ok(split > 0);
+      const top = html.slice(0, split);
+      const bottom = html.slice(split, html.indexOf("</header>"));
+      assert.match(top, /session-window-title/);
+      assert.match(top, /aria-label="Close"/);
+      assert.equal(top.includes('aria-label="Fullscreen"'), !compact);
+      assert.match(top, /session-window-state/);
+      assert.doesNotMatch(top, /Open pull request|Open in T3 Code|Alert me/);
+      assert.ok(top.indexOf("session-window-state") < top.indexOf('aria-label="Close"'));
+      for (const label of ["Open pull request #12", "Open in T3 Code", "Alert me on my phone"]) {
+        assert.ok(bottom.includes(label), label);
+      }
+      assert.doesNotMatch(bottom, /session-window-state|aria-label="Close"|aria-label="Fullscreen"/);
+    }
+  }
 });

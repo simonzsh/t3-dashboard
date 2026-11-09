@@ -2,7 +2,7 @@ import { Fragment, type ReactNode } from "react";
 import type { DashboardThread } from "../../../../shared/api.ts";
 import type { PrDetail, PrRef } from "../../../../shared/pulls.ts";
 import { relativeTime } from "../../lib/format.ts";
-import { ActionMenu, Badge, ButtonLink, Icon, IconButton, IconButtonLink, SidePanelToggle, type ActionMenuItem } from "../../ui/index.ts";
+import { ActionMenu, Badge, Button, ButtonLink, Icon, IconButton, IconButtonLink, SidePanelToggle, type ActionMenuItem } from "../../ui/index.ts";
 import { Counts } from "./DiffFiles.tsx";
 import { StatusButton } from "./PrChecks.tsx";
 import { SessionsButton } from "./SessionsButton.tsx";
@@ -21,6 +21,7 @@ export interface DiffControls {
 }
 
 interface Props {
+  sourceSession?: DashboardThread;
   pr: PrRef;
   detail: PrDetail | null;
   now: Date;
@@ -81,9 +82,19 @@ export function PrHeader(props: Props) {
   return (
     <header className="pulls-head">
       <div className="pulls-head-row">
-        <IconButtonLink variant="ghost" size="sm" href="#/pulls" label="Back to pull requests" className="pulls-back">
-          <Icon name="arrowLeft" />
-        </IconButtonLink>
+        {props.sourceSession ? (phone ? (
+          <IconButton variant="ghost" size="sm" className="pulls-back" label="Back to session" onClick={() => onOpenSession(props.sourceSession!.id, false)}>
+            <Icon name="arrowLeft" />
+          </IconButton>
+        ) : (
+          <Button variant="ghost" size="sm" className="pulls-back" tooltip={props.sourceSession.title} onClick={() => onOpenSession(props.sourceSession!.id, false)}>
+            <Icon name="arrowLeft" /> Back to session
+          </Button>
+        )) : (
+          <IconButtonLink variant="ghost" size="sm" href="#/pulls" label="Back to pull requests" className="pulls-back">
+            <Icon name="arrowLeft" />
+          </IconButtonLink>
+        )}
         <h2 className="pulls-title">
           {title} {detail && <span className="pulls-num">#{detail.number}</span>}
         </h2>

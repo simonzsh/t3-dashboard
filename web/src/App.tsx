@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { Activity, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import type { DashboardThread } from "../../shared/api.ts";
 import { AutomationsView } from "./features/automations/AutomationsView.tsx";
 import { PullsView } from "./features/pulls/PullsView.tsx";
@@ -369,8 +369,8 @@ export function App() {
               ) : <Loader />)}
             {tab === "news" && (news.state ? <NewsView news={news.state} writing={news.writing} now={now} compact={compact} seen={notify.seen} onRead={readMark} onOpenThread={onOpen} onDelete={news.remove} onDeleteAll={news.removeAll} /> : <Loader />)}
             {tab === "pulls" && (state ? <PullsView route={prRoute} threads={state.threads} now={now} onOpenThread={onOpen} pulls={pulls} onRead={readMark} openPrs={openPrs} /> : <Loader />)}
-            {tab === "sessions" &&
-              (state ? (
+            <Activity mode={tab === "sessions" ? "visible" : "hidden"}>
+              {state ? (
                 <SessionsView
                   sessions={sessions}
                   dispatch={dispatchSessions}
@@ -396,7 +396,8 @@ export function App() {
                   onEditProject={setEditingProject}
                   onDeleteProject={setDeletingProject}
                 />
-              ) : <Loader />)}
+              ) : <Loader />}
+            </Activity>
           </main>
         </div>
         {state && creating && (

@@ -1,3 +1,4 @@
+import { usePrSource } from "../../lib/useTab.ts";
 import { useEffect, useMemo, useState } from "react";
 import type { DashboardThread } from "../../../../shared/api.ts";
 import type { PrList, PrRef, PrSummary } from "../../../../shared/pulls.ts";
@@ -121,6 +122,8 @@ function List({ pulls, threads, now, onOpenThread, openPrs }: Omit<Props, "route
 }
 
 function Detail({ route, threads, now, onOpenThread, pulls, onRead }: Props & { route: PrRef }) {
+  const sourceId = usePrSource();
+  const sourceSession = threads.find((thread) => thread.id === sourceId);
   const summary = pulls.list?.prs.find((pr) => prMarkId(pr) === prMarkId(route));
   const { refresh, ...state } = usePrDetail(route, summary);
   // The detail may come before the list (a shared link): the list has the time when it loaded first.
@@ -129,7 +132,7 @@ function Detail({ route, threads, now, onOpenThread, pulls, onRead }: Props & { 
   useEffect(() => {
     if (mark) onRead(mark);
   }, [mark?.id, mark?.at, onRead]);
-  return <PrDetail pr={route} {...state} onRefresh={() => void refresh()} now={now} sessions={sessionsOf(threads, route)} onOpenSession={onOpenThread} />;
+  return <PrDetail sourceSession={sourceSession} pr={route} {...state} onRefresh={() => void refresh()} now={now} sessions={sessionsOf(threads, route)} onOpenSession={onOpenThread} />;
 }
 
 /** The Pull requests page: your open pull requests, and one pull request's diff. */

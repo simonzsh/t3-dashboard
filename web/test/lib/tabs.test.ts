@@ -1,6 +1,6 @@
 import { test } from "bun:test";
 import assert from "node:assert/strict";
-import { TABS, hashForPr, hashForSession, hashForTab, prFromHash, sessionFromHash, tabFromHash } from "../../src/lib/tabs.ts";
+import { TABS, hashForPr, hashForSession, hashForTab, prFromHash, prSourceFromHash, sessionFromHash, tabFromHash } from "../../src/lib/tabs.ts";
 
 test("the tabs are Dashboard, Sessions, Pull requests, Automations and News", () => {
   assert.deepEqual(TABS.map((t) => [t.id, t.label]), [["dashboard", "Dashboard"], ["sessions", "Sessions"], ["pulls", "Pull requests"], ["automations", "Automations"], ["news", "News"]]);
@@ -60,4 +60,17 @@ test("a session hash opens the Sessions tab and reads back as its thread id", ()
 
 test("only a session hash reads as a session", () => {
   for (const hash of ["", "#/sessions", "#/sessions/", "#/sessions/a/b", "#/pulls/acme/storefront/1", "#/sessions/%E0%A4%A"]) assert.equal(sessionFromHash(hash), null, hash);
+});
+
+test("PR addresses preserve the exact source session without changing the PR reference", () => {
+  const ref = { repository: "acme/storefront", number: 12 };
+  for (const source of ["first", "second", "a b/c?d&e#f"]) {
+    const hash = hashForPr(ref, source);
+    assert.deepEqual(prFromHash(hash), ref);
+    assert.equal(tabFromHash(hash), "pulls");
+    assert.equal(prSourceFromHash(hash), source);
+  }
+  assert.equal(prSourceFromHash(hashForPr(ref)), null);
+  assert.equal(prSourceFromHash("#/sessions/a?fromSession=b"), null);
+  assert.equal(prSourceFromHash("#/pulls/acme/storefront/0?fromSession=b"), null);
 });

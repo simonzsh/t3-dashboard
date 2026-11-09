@@ -18,11 +18,12 @@ export const tabSelector = (tab: Tab): string => `[data-tab="${tab}"]`;
 export const hashForTab = (tab: Tab): string => `#/${tab}`;
 
 /** The Pull requests page opened on one pull request's diff. */
-export const hashForPr = ({ repository, number }: PrRef): string => `#/pulls/${repository}/${number}`;
+export const hashForPr = ({ repository, number }: PrRef, fromSession?: string): string =>
+  `#/pulls/${repository}/${number}${fromSession ? `?fromSession=${encodeURIComponent(fromSession)}` : ""}`;
 
 /** The pull request of a `#/pulls/<owner>/<repo>/<number>` hash; null for any other hash. */
 export function prFromHash(hash: string): PrRef | null {
-  const match = /^#\/pulls\/([^/]+\/[^/]+)\/([1-9]\d{0,8})$/.exec(hash);
+  const match = /^#\/pulls\/([^/]+\/[^/]+)\/([1-9]\d{0,8})$/.exec(hash.split("?")[0]!);
   return match && isRepository(match[1]!) ? { repository: match[1]!, number: Number(match[2]) } : null;
 }
 
@@ -45,4 +46,10 @@ export function tabFromHash(hash: string): Tab {
   if (prFromHash(hash)) return "pulls";
   if (sessionFromHash(hash)) return "sessions";
   return TABS.find(({ id }) => hashForTab(id) === hash)?.id ?? "dashboard";
+}
+
+/** The source session belongs to this PR address, not to global navigation history. */
+export function prSourceFromHash(hash: string): string | null {
+  if (!prFromHash(hash)) return null;
+  return new URLSearchParams(hash.split("?").slice(1).join("?")).get("fromSession") || null;
 }

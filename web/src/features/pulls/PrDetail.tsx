@@ -14,6 +14,7 @@ import { usePullDetailPrefs } from "./prefs.ts";
 const READ_OFFSET = 12;
 
 interface Props {
+  sourceSession?: DashboardThread;
   pr: PrRef;
   detail: Detail | null;
   detailError: string | null;
@@ -41,7 +42,7 @@ export function tabsOf(phone: boolean, files: number): Array<TabOption<DetailTab
 const fileBlocks = (box: HTMLElement) => [...box.querySelectorAll<HTMLElement>("[data-pr-diff-file]")];
 
 /** One pull request: a fixed header with its status and actions, its diff, and the list of its files. */
-export function PrDetail({ pr, detail, detailError, diff, diffError, refreshing, onRefresh, now, sessions, onOpenSession }: Props) {
+export function PrDetail({ pr, detail, detailError, diff, diffError, refreshing, onRefresh, now, sessions, onOpenSession, sourceSession }: Props) {
   // The diff follows the file tree, folder by folder: scrolling the diff walks down the tree.
   const files = useMemo(() => (diff ? leavesOf(pathTree(diff.files, (file) => file.path.split("/"), (file) => file.path)) : []), [diff]);
   const view = useDiffView(files, diff?.headSha ?? "");
@@ -133,7 +134,7 @@ export function PrDetail({ pr, detail, detailError, diff, diffError, refreshing,
       bleed
       flush
       head={
-        <PrHeader pr={pr} detail={detail} now={now} sessions={sessions} onOpenSession={onOpenSession} controls={controls} refreshing={refreshing} onRefresh={onRefresh} filesPanel={wide ? { hidden: !filesOpen, onToggle: () => setDetailPrefs({ filesOpen: !filesOpen }) } : undefined} onShowFiles={wide || phone ? undefined : () => setSheet(true)} phone={phone} tabs={phone ? undefined : tabs} />
+        <PrHeader sourceSession={sourceSession} pr={pr} detail={detail} now={now} sessions={sessions} onOpenSession={onOpenSession} controls={controls} refreshing={refreshing} onRefresh={onRefresh} filesPanel={wide ? { hidden: !filesOpen, onToggle: () => setDetailPrefs({ filesOpen: !filesOpen }) } : undefined} onShowFiles={wide || phone ? undefined : () => setSheet(true)} phone={phone} tabs={phone ? undefined : tabs} />
       }
     >
       {/* On a phone the head stays one line: the meta line and the tabs scroll with the page, in the desktop order. */}

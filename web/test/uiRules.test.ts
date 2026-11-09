@@ -368,3 +368,18 @@ test("only lib/storage.ts touches browser storage, and every prefs hook goes thr
   assert.ok(hooks.length >= 3, "the guard finds the prefs hooks");
   assert.deepEqual(hooks.filter(({ text }) => !/\busePrefs\(/.test(text)).map(({ file }) => file), []);
 });
+
+
+test("tooltip measurements do not shrink to the space left by their previous position", () => {
+  const rule = css.match(/^\.tooltip \{([^}]+)\}/m)?.[1];
+  assert.ok(rule);
+  assert.match(rule, /width: max-content;/);
+  assert.match(rule, /max-width: min\(320px, calc\(100vw - 8px\)\);/);
+});
+
+test("a dragged session header keeps its source width and pointer offset", () => {
+  const rule = css.match(/^\.sessions-drag-ghost \{([^}]+)\}/m)?.[1];
+  assert.ok(rule);
+  assert.match(rule, /max-width: none;/);
+  assert.doesNotMatch(rule, /(?:^|;)\s*(?:width|min-width):/);
+});

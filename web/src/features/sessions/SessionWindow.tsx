@@ -81,13 +81,6 @@ function SessionWindowView({ id, thread, title, projectTitle, projectIcon, missi
             )
           )}
           <span className="session-window-buttons">
-            {alert && (
-              <IconButton variant="ghost" size="sm" label={alertLabel} tooltip={alertLabel} aria-pressed={alert === "armed"} onClick={() => onToggleAlert(id)}>
-                <Icon name={alert === "armed" ? "bellRing" : "bell"} />
-              </IconButton>
-            )}
-            {thread && <PullRequestsButton pullRequests={thread.pullRequests} open={openPrs} />}
-            <OpenInT3 environmentId={t3EnvironmentId} threadId={id} />
             {!compact && (
               <IconButton variant="ghost" size="sm" label={fullscreen} tooltip={fullscreen} shortcut={maximized ? `${ctrlLabel("F")} / Esc` : ctrlLabel("F")} onClick={onToggleMaximize}>
                 <Icon name={maximized ? "exitFullscreen" : "fullscreen"} />
@@ -98,12 +91,23 @@ function SessionWindowView({ id, thread, title, projectTitle, projectIcon, missi
             </IconButton>
           </span>
         </div>
-        {thread && projectTitle && (
-          <div className="session-window-sub">
-            <ProjectIcon icon={projectIcon} title={projectTitle} />
-            <span className="session-window-project">{projectTitle}</span>
-          </div>
-        )}
+        <div className="session-window-sub">
+          {thread && projectTitle && (
+            <>
+              <ProjectIcon icon={projectIcon} title={projectTitle} />
+              <span className="session-window-project">{projectTitle}</span>
+            </>
+          )}
+          <span className="session-window-buttons">
+            {alert && (
+              <IconButton variant="ghost" size="sm" label={alertLabel} tooltip={alertLabel} aria-pressed={alert === "armed"} onClick={() => onToggleAlert(id)}>
+                <Icon name={alert === "armed" ? "bellRing" : "bell"} />
+              </IconButton>
+            )}
+            {thread && <PullRequestsButton fromSession={thread.id} pullRequests={thread.pullRequests} open={openPrs} />}
+            <OpenInT3 environmentId={t3EnvironmentId} threadId={id} />
+          </span>
+        </div>
       </header>
       {missing ? (
         <div className="sessions-missing">
@@ -121,14 +125,14 @@ function SessionWindowView({ id, thread, title, projectTitle, projectIcon, missi
 
 
 /** One pull request: a direct link to its diff. Several (a stack, say): a menu with one link each, newest first. */
-export function PullRequestsButton({ pullRequests, open }: { pullRequests: ThreadPullRequest[]; open: OpenPrs }) {
+export function PullRequestsButton({ pullRequests, open, fromSession }: { fromSession?: string; pullRequests: ThreadPullRequest[]; open: OpenPrs }) {
   const [first] = pullRequests;
   if (!first) return null;
   const unread = (pr: ThreadPullRequest) => open.get(prMarkId(pr))?.unread ?? false;
   if (pullRequests.length === 1) {
     const label = `Open pull request #${first.number}`;
     return (
-      <IconButtonLink variant="ghost" size="sm" href={hashForPr(first)} label={unread(first) ? `${label} (unread)` : label} tooltip={label}>
+      <IconButtonLink variant="ghost" size="sm" href={hashForPr(first, fromSession)} label={unread(first) ? `${label} (unread)` : label} tooltip={label}>
         <Icon name="gitPullRequest" />
         {unread(first) && <span className="notif-dot icon-button-dot" aria-hidden="true" />}
       </IconButtonLink>
@@ -138,7 +142,7 @@ export function PullRequestsButton({ pullRequests, open }: { pullRequests: Threa
     label: `#${pr.number} ${pr.repository}`,
     detail: pr.title || undefined,
     icon: "gitPullRequest" as const,
-    onSelect: () => (window.location.hash = hashForPr(pr)),
+    onSelect: () => (window.location.hash = hashForPr(pr, fromSession)),
     unread: unread(pr),
   }));
   // The badge counts the rows with the unread ring, so it goes away once they are all read.
