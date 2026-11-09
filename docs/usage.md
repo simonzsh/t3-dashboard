@@ -313,6 +313,8 @@ On Windows and Linux, the browser keeps `Ctrl` + `N`, `Ctrl` + `⇧` + `N` and `
 
 A tooltip gives the name of each button and its shortcut. It stays next to the button, including when you move between buttons near the screen edge. The animations stop if the system asks for reduced motion (`prefers-reduced-motion`).
 
+Dialogs close over 280 ms on desktop and mobile. On a phone, they slide down and fade, including when you drag them down.
+
 Pull request pages and session menus show status icons: green for open, purple for merged, red for closed, and gray for draft. Missing session status stays gray.
 
 News articles sit near the page center with space from the article list and a maximum reading width of 42rem.
