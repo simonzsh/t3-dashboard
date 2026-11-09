@@ -2,34 +2,14 @@ import { memo, useCallback, useLayoutEffect, useMemo, useRef, useState, type Rea
 import type { DiffFile, DiffHunk } from "../../../../shared/diff.ts";
 import { Button, Chevron, Pressable } from "../../ui/index.ts";
 import { canLoad, isLarge, isOpen, loadLabel, nearViewport, openByDefault, setAll, setTests, shouldHighlight, toolbarOf, type Overrides } from "./diffView.ts";
-import { highlightLines, languageOf } from "./highlight.tsx";
+import { useHighlighter, type Highlighter } from "./highlighter.ts";
+import { languageOf } from "./language.ts";
 
 const MARK = { add: "+", del: "-", context: " " } as const;
 
-// Highlighted rows per hunk, kept while the diff lives: collapsing and reopening a file does not highlight it again.
-const highlighted = new WeakMap<DiffHunk, ReactNode[]>();
-
-// Old side (context + del) and new side (context + add) are highlighted as two blocks, then mapped back per line.
-function highlightHunk(hunk: DiffHunk, lang: string | undefined): ReactNode[] {
-  const cached = highlighted.get(hunk);
-  if (cached) return cached;
-  const oldText: string[] = [];
-  const newText: string[] = [];
-  // Index of each line within the block of the side it is shown from.
-  const pos = hunk.lines.map((line) => {
-    if (line.kind !== "add") oldText.push(line.text);
-    if (line.kind !== "del") newText.push(line.text);
-    return (line.kind === "del" ? oldText : newText).length - 1;
-  });
-  const oldHl = highlightLines(oldText.join("\n"), lang);
-  const newHl = highlightLines(newText.join("\n"), lang);
-  const rows = hunk.lines.map((line, i) => (line.kind === "del" ? oldHl[pos[i]!] : newHl[pos[i]!]));
-  highlighted.set(hunk, rows);
-  return rows;
-}
-
-export function HunkRows({ hunk, lang }: { hunk: DiffHunk; lang: string | undefined }) {
-  const rows = useMemo(() => highlightHunk(hunk, lang), [hunk, lang]);
+// Plain text until the highlighter chunk arrives, then coloured.
+export function HunkRows({ hunk, lang, hl }: { hunk: DiffHunk; lang: string | undefined; hl: Highlighter | null }) {
+  const rows = useMemo<ReactNode[]>(() => (hl && lang ? hl.highlightHunk(hunk, lang) : hunk.lines.map((line) => line.text)), [hl, hunk, lang]);
   return (
     <>
       <tr className="pr-diff-hunk">
@@ -98,6 +78,7 @@ export function Counts({ additions, deletions }: { additions: number; deletions:
 
 const FileDiff = memo(function FileDiff({ file, open, onToggle }: { file: DiffFile; open: boolean; onToggle: (path: string, open: boolean) => void }) {
   const lang = useMemo(() => (shouldHighlight(file) ? languageOf(file.path) : undefined), [file]);
+  const hl = useHighlighter(open && lang !== undefined);
   const renamed = file.oldPath !== "" && file.newPath !== "" && file.oldPath !== file.newPath;
   return (
     <section className="pr-diff-file" data-pr-diff-file={file.path}>
@@ -127,7 +108,7 @@ const FileDiff = memo(function FileDiff({ file, open, onToggle }: { file: DiffFi
               <table className="pr-diff-table">
                 <tbody>
                   {file.hunks.map((hunk, i) => (
-                    <HunkRows key={i} hunk={hunk} lang={lang} />
+                    <HunkRows key={i} hunk={hunk} lang={lang} hl={hl} />
                   ))}
                 </tbody>
               </table>

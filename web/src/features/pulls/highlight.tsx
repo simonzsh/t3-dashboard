@@ -1,27 +1,8 @@
 import { createElement, type ReactNode } from "react";
+import type { DiffHunk } from "../../../../shared/diff.ts";
 import { common, createLowlight } from "lowlight";
 
 const lowlight = createLowlight(common);
-
-const BY_EXT: Record<string, string> = {
-  ts: "typescript", tsx: "typescript", mts: "typescript", cts: "typescript",
-  js: "javascript", jsx: "javascript", mjs: "javascript", cjs: "javascript",
-  json: "json", jsonc: "json", css: "css", scss: "scss", less: "less",
-  html: "xml", htm: "xml", xml: "xml", svg: "xml", vue: "xml",
-  md: "markdown", mdx: "markdown", py: "python", rb: "ruby", go: "go", rs: "rust",
-  java: "java", kt: "kotlin", swift: "swift", php: "php", c: "c", h: "c",
-  cpp: "cpp", cc: "cpp", hpp: "cpp", cs: "csharp", sh: "bash", bash: "bash", zsh: "bash",
-  yml: "yaml", yaml: "yaml", toml: "ini", ini: "ini", sql: "sql", graphql: "graphql",
-  diff: "diff", patch: "diff", lua: "lua", pl: "perl", r: "r", mk: "makefile",
-};
-const BY_NAME: Record<string, string> = { dockerfile: "bash", makefile: "makefile" };
-
-export function languageOf(path: string): string | undefined {
-  const file = (path.split("/").pop() ?? "").toLowerCase();
-  const dot = file.lastIndexOf(".");
-  const lang = BY_NAME[file] ?? (dot >= 0 ? BY_EXT[file.slice(dot + 1)] : undefined);
-  return lang && lowlight.registered(lang) ? lang : undefined;
-}
 
 interface HNode {
   type: string;
@@ -70,4 +51,26 @@ export function highlightLines(code: string, lang: string | undefined): ReactNod
   } catch {
     return fallback;
   }
+}
+
+// Highlighted rows per hunk, kept while the diff lives: collapsing and reopening a file does not highlight it again.
+const highlighted = new WeakMap<DiffHunk, ReactNode[]>();
+
+// Old side (context + del) and new side (context + add) are highlighted as two blocks, then mapped back per line.
+export function highlightHunk(hunk: DiffHunk, lang: string): ReactNode[] {
+  const cached = highlighted.get(hunk);
+  if (cached) return cached;
+  const oldText: string[] = [];
+  const newText: string[] = [];
+  // Index of each line within the block of the side it is shown from.
+  const pos = hunk.lines.map((line) => {
+    if (line.kind !== "add") oldText.push(line.text);
+    if (line.kind !== "del") newText.push(line.text);
+    return (line.kind === "del" ? oldText : newText).length - 1;
+  });
+  const oldHl = highlightLines(oldText.join("\n"), lang);
+  const newHl = highlightLines(newText.join("\n"), lang);
+  const rows = hunk.lines.map((line, i) => (line.kind === "del" ? oldHl[pos[i]!] : newHl[pos[i]!]));
+  highlighted.set(hunk, rows);
+  return rows;
 }

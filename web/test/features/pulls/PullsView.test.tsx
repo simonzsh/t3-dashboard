@@ -4,6 +4,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import type { PrDetail as Detail, PrList, PrSummary } from "../../../../shared/pulls.ts";
 import type { DiffFile } from "../../../../shared/diff.ts";
 import { DiffFiles, HunkRows } from "../../../src/features/pulls/DiffFiles.tsx";
+import * as highlighter from "../../../src/features/pulls/highlight.tsx";
 import { openByDefault } from "../../../src/features/pulls/diffView.ts";
 import { FileNav } from "../../../src/features/pulls/FileNav.tsx";
 import { ChecksPanel, StatusButton } from "../../../src/features/pulls/PrChecks.tsx";
@@ -113,7 +114,7 @@ test("each file is a collapsible block with line numbers, counts and highlighted
 
 test("a hunk shows both line numbers, the marks, and the code highlighted on each side", () => {
   const [hunk] = file("src/a.ts").hunks;
-  const html = renderToStaticMarkup(<table><tbody><HunkRows hunk={{ ...hunk!, lines: [...hunk!.lines, { kind: "context", text: "return a;", oldNo: 2, newNo: 2, noNewline: true }] }} lang="typescript" /></tbody></table>);
+  const html = renderToStaticMarkup(<table><tbody><HunkRows hunk={{ ...hunk!, lines: [...hunk!.lines, { kind: "context", text: "return a;", oldNo: 2, newNo: 2, noNewline: true }] }} lang="typescript" hl={highlighter} /></tbody></table>);
   assert.match(html, /<tr class="pr-diff-line del"><td class="pr-diff-no">1<\/td><td class="pr-diff-no"><\/td><td class="pr-diff-mark">-<\/td>/);
   assert.match(html, /<tr class="pr-diff-line add"><td class="pr-diff-no"><\/td><td class="pr-diff-no">1<\/td><td class="pr-diff-mark">\+<\/td>/);
   assert.match(html, /<tr class="pr-diff-line context"><td class="pr-diff-no">2<\/td><td class="pr-diff-no">2<\/td>/);

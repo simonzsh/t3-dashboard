@@ -70,6 +70,13 @@ try {
     const packed = await fetch(new URL(script, base), { headers: { "accept-encoding": "br" } });
     expect(packed.headers.get("content-encoding") === "br", `${script} is not brotli with accept-encoding: br`);
     expect((packed.headers.get("cache-control") ?? "").includes("immutable"), `${script} is not immutable`);
+    // Code split out of the entry (the diff highlighter) must be served too, or the page breaks on first use.
+    const chunks = [...(await (await fetch(new URL(script, base))).text()).matchAll(/(?:import\(|from)\s*"(\.?\/[^"]+\.js)"/g)].map((match) => match[1]!);
+    expect(chunks.some((chunk) => chunk !== script), `${script} imports no chunk: the build lost --splitting`);
+    for (const chunk of chunks) {
+      const res = await fetch(new URL(chunk, new URL(script, base)));
+      expect(res.status === 200 && (res.headers.get("content-type") ?? "").includes("javascript"), `chunk ${chunk} answered ${res.status}`);
+    }
   }
   const etag = page.headers.get("etag");
   expect(page.headers.get("cache-control") === "no-cache" && etag !== null, "/ lacks no-cache or an etag");
