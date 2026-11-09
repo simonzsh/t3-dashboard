@@ -44,6 +44,7 @@ import { useSessions } from "./features/sessions/useSessions.ts";
 import { sessionsBadgeCount, useListPrefs } from "./features/sessions/sessionList.ts";
 import { useSessionsSync } from "./features/sessions/useSessionsSync.ts";
 import { useMediaQuery } from "./lib/useMediaQuery.ts";
+import { usePageAttention } from "./lib/usePageAttention.ts";
 import { isTabAction } from "./lib/shortcuts.ts";
 import { useShortcuts } from "./lib/useShortcuts.ts";
 import { useSessionLayout } from "./lib/sessionLayout.ts";
@@ -82,8 +83,9 @@ export function App() {
   // On a phone the Sessions tab is a list; an opened session covers it, with no header or bottom bar.
   const [phoneSession, setPhoneSession] = useState(false);
   const sessionShown = compact && tab === "sessions" && phoneSession && sessions.focusedId !== null;
-  // Only a session in front of the user counts as read or watched: on a phone, not the list.
-  const inFront = tab === "sessions" && (!compact || sessionShown) ? sessions.focusedId : null;
+  // Only a session in front of the user counts as read or watched: on a phone, not the list; never in a hidden or unfocused page.
+  const attention = usePageAttention();
+  const inFront = attention && tab === "sessions" && (!compact || sessionShown) ? sessions.focusedId : null;
   const [openHistory, recordOpened] = useOpenHistory();
   const { loaded: sessionsLoaded } = useSessionsSync({
     sessions,
