@@ -379,14 +379,13 @@ main { flex: 1; min-height: 0; overflow: hidden; padding: var(--page-top) var(--
 .working-robot.thinking .robot-hand.right { top: 58px; right: 28px; transform: rotate(-35deg); }
 .working-robot.waiting .robot-head { animation: robot-ponder 3s ease-in-out infinite; }
 .working-robot.waiting .robot-arm.right, .working-robot.waiting .robot-hand.right { display: none; }
-.robot-wave-arm { position: absolute; left: 94px; top: 32px; width: 38px; height: 48px; z-index: 4; transform: translateZ(6px); transform-origin: 0 100%; animation: robot-wave 1.8s ease-in-out infinite; }
-.robot-upper-arm, .robot-forearm, .robot-palm { position: absolute; background: linear-gradient(120deg, var(--robot-light), var(--accent) 60%, var(--robot-shade)); box-shadow: inset -2px -2px 4px var(--robot-shade); }
-.robot-upper-arm { left: -3px; bottom: 0; width: 29px; height: 13px; border-radius: 8px; transform: rotate(-12deg); transform-origin: 0 50%; }
-.robot-forearm { left: 18px; top: 17px; width: 12px; height: 29px; border-radius: 8px; }
-.robot-palm { left: 15px; top: 0; width: 18px; height: 24px; border-radius: 9px 9px 7px 7px; }
+.robot-wave-arm { position: absolute; left: 87px; top: 33px; width: 18px; height: 46px; z-index: 4; transform: translateZ(6px) rotate(48deg); transform-origin: 50% 100%; animation: robot-wave 1.8s ease-in-out infinite; }
+.robot-forearm, .robot-palm { position: absolute; background: linear-gradient(120deg, var(--robot-light), var(--accent) 60%, var(--robot-shade)); box-shadow: inset -2px -2px 4px var(--robot-shade); }
+.robot-forearm { left: 3px; top: 17px; width: 12px; height: 29px; border-radius: 8px; }
+.robot-palm { left: 0; top: 0; width: 18px; height: 24px; border-radius: 9px 9px 7px 7px; }
 .robot-palm::after { content: ""; position: absolute; left: -4px; bottom: 2px; width: 7px; height: 12px; border-radius: 5px; background: var(--accent); transform: rotate(-25deg); }
 .working-robot.waiting .robot-hand.left { top: 77px; }
-@keyframes robot-wave { 0%, 60%, 100% { transform: translateZ(6px) rotate(0deg); } 15%, 45% { transform: translateZ(6px) rotate(8deg); } 30% { transform: translateZ(6px) rotate(-4deg); } }
+@keyframes robot-wave { 0%, 60%, 100% { transform: translateZ(6px) rotate(48deg); } 15%, 45% { transform: translateZ(6px) rotate(56deg); } 30% { transform: translateZ(6px) rotate(44deg); } }
 @keyframes robot-nod { 50% { transform: translateZ(18px) rotateX(8deg) translateY(2px); } }
 @keyframes robot-ponder { 50% { transform: translateZ(18px) rotate(-9deg); } }
 @keyframes robot-blink { 0%, 43%, 47%, 100% { scale: 1 1; } 45% { scale: 1 0.15; } }
