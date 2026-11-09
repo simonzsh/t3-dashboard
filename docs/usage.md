@@ -358,3 +358,4 @@ The robot uses CSS depth. Reduced motion disables its animation and the card tra
 
 When a question, approval, or secret needs your reply, the robot raises a hand above the composer.
 Pending secrets appear there too. Answered secrets stay in the conversation history.
+Secret requests use the same collapsible panel as questions and approvals, attached to the composer. Pending secrets appear one at a time.

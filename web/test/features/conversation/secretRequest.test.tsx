@@ -21,6 +21,9 @@ test("saveBody sends the value as typed and refuses a blank or too long one", ()
 test("a pending request shows the reason, a masked field, Decline and Save", () => {
   const out = render("pending");
   assert.match(out, /Sign the webhook/);
+  assert.match(out, /class="question-dock"/);
+  assert.match(out, /Hide the request/);
+  assert.doesNotMatch(out, /request secret-card/);
   assert.match(out, /placeholder="Paste it"/);
   assert.match(out, />Decline</);
   assert.match(out, />Save</);

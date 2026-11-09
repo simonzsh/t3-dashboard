@@ -2,7 +2,8 @@ import { useState, type KeyboardEvent, type ReactNode } from "react";
 import type { PendingRequestDetail } from "../../../../shared/api.ts";
 import { useApi } from "../../api/ApiContext.tsx";
 import { answerReady, buildAnswers, shortcutOption, toggleChoice, type Draft, type Drafts } from "./answers.ts";
-import { Chevron, Choice, Icon, IconButton, Kbd } from "../../ui/index.ts";
+import { Choice, Icon, IconButton, Kbd } from "../../ui/index.ts";
+import { RequestDock } from "./RequestDock.tsx";
 import { ApprovalButtons } from "./ApprovalButtons.tsx";
 import { useAction } from "../../lib/useAction.ts";
 
@@ -41,9 +42,7 @@ export function useQuestionDock(threadId: string, request: UserInputRequest | nu
   const pick = (value: string) => setDraft({ choices: toggleChoice(q, draft, value) });
 
   const card = (
-    <section className={`question-dock${current.collapsed ? " collapsed" : ""}`} aria-label="Question from the agent">
-      <header className="question-dock-head">
-        <span className="question-dock-title">{q.header ?? "Question"}</span>
+    <RequestDock title={q.header ?? "Question"} label="Question from the agent" collapsed={current.collapsed} onToggle={() => update({ collapsed: !current.collapsed })} actions={<>
         {total > 1 && <span className="question-dock-count">{`${index + 1}/${total}`}</span>}
         {request.dismissable && (
           <IconButton label="Dismiss the question" tooltip="Dismiss" variant="ghost" size="sm" disabled={dismiss.busy} onClick={() => void dismiss.run(async () => {
@@ -53,12 +52,7 @@ export function useQuestionDock(threadId: string, request: UserInputRequest | nu
             <Icon name="x" />
           </IconButton>
         )}
-        <IconButton label={current.collapsed ? "Show the question" : "Hide the question"} variant="ghost" size="sm" aria-expanded={!current.collapsed} onClick={() => update({ collapsed: !current.collapsed })}>
-          <Chevron open={!current.collapsed} opensUp />
-        </IconButton>
-      </header>
-      {!current.collapsed && (
-        <div className="question-dock-body">
+      </>}>
           <p className="question-dock-text">
             {q.question}
             {q.required ? " *" : ""}
@@ -77,9 +71,7 @@ export function useQuestionDock(threadId: string, request: UserInputRequest | nu
               ))}
             </div>
           )}
-        </div>
-      )}
-    </section>
+    </RequestDock>
   );
 
   const composer: DockedComposer = {
@@ -122,22 +114,12 @@ export function dockedRequest(requests: PendingRequestDetail[]): UserInputReques
 export function ApprovalDock({ threadId, request, onAnswered }: { threadId: string; request: ApprovalRequest; onAnswered: () => Promise<unknown> }) {
   const [collapsed, setCollapsed] = useState(false);
   return (
-    <section className={`question-dock${collapsed ? " collapsed" : ""}`} aria-label="Approval requested by the agent">
-      <header className="question-dock-head">
-        <span className="question-dock-title">{`Approval requested · ${request.requestKind}`}</span>
-        <IconButton label={collapsed ? "Show the request" : "Hide the request"} variant="ghost" size="sm" aria-expanded={!collapsed} onClick={() => setCollapsed(!collapsed)}>
-          <Chevron open={!collapsed} opensUp />
-        </IconButton>
-      </header>
-      {!collapsed && (
-        <div className="question-dock-body">
+    <RequestDock title={`Approval requested · ${request.requestKind}`} label="Approval requested by the agent" collapsed={collapsed} onToggle={() => setCollapsed(!collapsed)}>
           {request.prompt && <pre className="question-dock-command">{request.prompt}</pre>}
           {request.reason && <p className="question-dock-reason">{request.reason}</p>}
           <div className="question-dock-actions">
             <ApprovalButtons threadId={threadId} requestId={request.requestId} size="sm" onAnswered={onAnswered} />
           </div>
-        </div>
-      )}
-    </section>
+    </RequestDock>
   );
 }

@@ -539,10 +539,14 @@ function Conversation({ searchRequest = 0, threadId, thread, providers, onOpenTh
       {needsInput && (
         <div className="input-request-dock">
           <div className="working-row"><Icon name={STATUS_ICONS.waiting} className="waiting-icon" /><span>Waiting for your reply</span><WorkingRobot waiting /></div>
-          {secrets.map(step => <SecretRequestCard key={step.id} step={step} threadId={threadId} onAnswered={load} />)}
         </div>
       )}
-      {detail?.subagentThread ? (
+      {secrets[0] ? (
+        <div className="question-docked">
+          <SecretRequestCard key={secrets[0].id} step={secrets[0]} threadId={threadId} onAnswered={load} />
+          {detail?.subagentThread ? <SubagentBar detail={detail} providers={providers} onOpenThread={onOpenThread} /> : mainComposer}
+        </div>
+      ) : detail?.subagentThread ? (
         <SubagentBar detail={detail} providers={providers} onOpenThread={onOpenThread} />
       ) : question.composer ? (
         // The question sits on the Composer, whose field is the free answer.
