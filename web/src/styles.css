@@ -346,16 +346,56 @@ main { flex: 1; min-height: 0; overflow: hidden; padding: var(--page-top) var(--
 .disclosure.up.open { transform: rotate(180deg); }
 @media (prefers-reduced-motion: reduce) { .disclosure { transition: none; } }
 @keyframes breathe { 0%, 100% { opacity: 1; } 50% { opacity: 0.35; } }
+/* Sculpted surfaces and perspective give the mascot depth without a render loop. */
+.working-robot { --robot-light: color-mix(in srgb, var(--accent) 35%, white); --robot-shade: color-mix(in srgb, var(--accent) 65%, black); position: relative; width: 70px; height: 56px; flex: none; margin-left: auto; align-self: center; overflow: hidden; pointer-events: none; }
+.robot-size { position: absolute; left: 0; top: 5px; width: 164px; height: 124px; transform: scale(0.41); transform-origin: top left; perspective: 450px; }
+.robot-scene { position: relative; width: 148px; height: 114px; transform: rotateX(8deg) rotateY(-14deg); transform-style: preserve-3d; }
+.robot-head, .robot-body, .robot-hand { position: absolute; background: linear-gradient(135deg, var(--robot-light), var(--accent) 55%, var(--robot-shade)); box-shadow: inset -4px -4px 8px color-mix(in srgb, var(--robot-shade) 35%, transparent), inset 2px 2px 4px var(--robot-light), 3px 5px 0 var(--robot-shade); }
+.robot-head { left: 39px; top: 15px; width: 70px; height: 49px; border-radius: 22px; transform: translateZ(18px); animation: robot-nod 2.8s ease-in-out infinite; z-index: 3; }
+.robot-face { position: absolute; inset: 10px 9px 9px; border-radius: 15px; background: linear-gradient(150deg, color-mix(in srgb, var(--accent) 25%, black), color-mix(in srgb, var(--accent) 10%, black)); display: flex; justify-content: center; align-items: center; gap: 14px; box-shadow: inset 0 2px 4px #000; }
+.robot-face i { width: 7px; height: 13px; border-radius: 8px; background: var(--robot-light); box-shadow: 0 0 8px color-mix(in srgb, var(--accent) 55%, transparent); animation: robot-blink 5s infinite; }
+.robot-antenna { position: absolute; left: 33px; top: -13px; width: 4px; height: 14px; background: var(--robot-shade); }
+.robot-antenna::before { content: ""; position: absolute; width: 9px; height: 9px; left: -3px; top: -3px; border-radius: 50%; background: var(--work); box-shadow: 0 0 12px color-mix(in srgb, var(--work) 40%, transparent); }
+.robot-body { left: 50px; top: 62px; width: 48px; height: 31px; border-radius: 14px; }
+.robot-hand { top: 82px; width: 20px; height: 13px; border-radius: 10px; z-index: 4; }
+.robot-arm { position: absolute; top: 67px; width: 13px; height: 26px; border-radius: 9px; background: linear-gradient(90deg, var(--robot-shade), var(--accent)); transform-origin: 50% 0; z-index: 2; }
+.robot-arm.left { left: 37px; rotate: 12deg; }
+.robot-arm.right { right: 35px; rotate: -12deg; }
+.robot-hand.left { left: 35px; }
+.robot-hand.right { right: 33px; }
+.robot-keyboard { position: absolute; left: 25px; top: 88px; width: 102px; height: 29px; display: grid; grid-template-columns: repeat(5, 1fr); gap: 3px; padding: 5px; border-radius: 7px; background: var(--robot-shade); box-shadow: 0 4px 0 var(--robot-shade), 0 10px 14px #0002; transform: rotateX(48deg); }
+.robot-keyboard i { border-radius: 2px; background: var(--robot-light); box-shadow: 0 1px 0 var(--robot-light); }
+.robot-thought { position: absolute; right: -16px; top: -2px; display: none; align-items: center; justify-content: center; gap: 4px; width: 49px; height: 32px; border: 1px solid var(--line); border-radius: 50%; background: var(--surface-1); box-shadow: var(--shadow); transform: translateZ(24px); z-index: 5; }
+.robot-thought::before, .robot-thought::after { content: ""; position: absolute; border: 1px solid var(--line); border-radius: 50%; background: var(--surface-1); }
+.robot-thought::before { width: 9px; height: 9px; left: 4px; bottom: -9px; }
+.robot-thought::after { width: 5px; height: 5px; left: -2px; bottom: -15px; }
+.working-robot.thinking .robot-arm.right { rotate: -40deg; }
+.robot-thought i { width: 5px; height: 5px; border-radius: 50%; background: var(--work); animation: breathe 1.4s infinite; }
+.robot-thought i:nth-child(2) { animation-delay: 200ms; }
+.robot-thought i:nth-child(3) { animation-delay: 400ms; }
+.working-robot.thinking .robot-thought { display: flex; }
+.working-robot.thinking .robot-head { animation: robot-ponder 3s ease-in-out infinite; }
+.working-robot.thinking .robot-hand { animation: none; }
+.working-robot.thinking .robot-hand.right { top: 58px; right: 28px; transform: rotate(-35deg); }
+@keyframes robot-nod { 50% { transform: translateZ(18px) rotateX(8deg) translateY(2px); } }
+@keyframes robot-ponder { 50% { transform: translateZ(18px) rotate(-9deg); } }
+@keyframes robot-blink { 0%, 43%, 47%, 100% { scale: 1 1; } 45% { scale: 1 0.15; } }
+@media (prefers-reduced-motion: reduce) { .working-robot *, .working-robot.thinking .robot-head { animation: none; } }
+
+.ui-collapse { height: 0; overflow: hidden; min-width: 0; }
+.ui-collapse > div { display: flow-root; }
+
 /* Timeline: work groups, steps, diffs and the blocks that stand alone. */
 .work-group { display: flex; flex-direction: column; gap: 4px; font-size: 13px; color: var(--text-secondary); min-width: 0; }
-.work-group-head { align-self: flex-start; display: inline-flex; align-items: center; gap: 8px; padding: 2px 0; border: 0; background: none; color: var(--text-secondary); font-size: 12px; font-variant-numeric: tabular-nums; }
+.work-group-heading { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.work-group-head { display: inline-flex; align-items: center; gap: 8px; padding: 2px 0; border: 0; background: none; color: var(--text-secondary); font-size: 12px; font-variant-numeric: tabular-nums; }
 .work-group-head:hover:not(:disabled) { color: var(--text-primary); }
 .work-group.live .work-group-head { font-size: 13px; }
-.step-list { position: relative; list-style: none; margin: 0; padding: 0 0 0 4px; display: flex; flex-direction: column; gap: 2px; border-left: 1px solid var(--line); min-width: 0; }
-.step-list > li { min-width: 0; padding-left: 8px; border-radius: var(--radius-sm); }
-.step-list > .step-marker { position: absolute; z-index: 1; left: -2px; top: 0; width: 3px; height: 0; padding: 0; border-radius: var(--radius-sm); background: var(--work); opacity: 0; box-shadow: 0 0 8px color-mix(in srgb, var(--work) 25%, transparent); pointer-events: none; transition: top 350ms cubic-bezier(0.2, 0, 0, 1), height 240ms ease, opacity 180ms ease; }
-.step { min-width: 0; }
-.step-head { position: relative; display: flex; align-items: center; gap: 8px; width: 100%; padding: 3px 4px; border: 0; border-radius: var(--radius-sm); background: none; text-align: left; color: var(--text-secondary); min-width: 0; overflow: hidden; transition: background-color 180ms ease, color 180ms ease; }
+.step-list { position: relative; list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+.step-list > li { min-width: 0; padding-left: 0; border-radius: var(--radius-sm); }
+.step { min-width: 0; border: 1px solid var(--line); border-radius: var(--radius-lg); background: var(--surface-1); overflow: hidden; }
+.step.failed { border-color: color-mix(in srgb, var(--danger) 45%, var(--line)); }
+.step-head { position: relative; display: flex; align-items: center; gap: 8px; width: 100%; padding: 9px 10px; border: 0; border-radius: var(--radius-sm); background: none; text-align: left; color: var(--text-secondary); min-width: 0; overflow: hidden; transition: background-color 180ms ease, color 180ms ease; }
 .work-group.live .step.running .step-head { background: color-mix(in srgb, var(--work) 5%, transparent); color: var(--text-primary); }
 .work-group.live .step.running .step-head::before { content: ""; position: absolute; inset: 0; pointer-events: none; background: linear-gradient(100deg, transparent 15%, color-mix(in srgb, var(--work) 9%, transparent) 48%, transparent 80%); translate: -100% 0; animation: step-sheen 2.3s ease-in-out infinite; }
 @keyframes step-sheen { to { translate: 100% 0; } }
@@ -371,7 +411,7 @@ button.step-head:hover:not(:disabled) { background: var(--surface-1); color: var
 .step.running .icon:not(.disclosure) { color: var(--work); animation: breathe 1.4s ease-in-out infinite; }
 .step.failed .icon:not(.disclosure), .step.failed .step-text { color: var(--err-text); }
 .step-exit { flex: none; padding: 0 6px; border-radius: 999px; background: var(--err-bg); color: var(--err-text); font-size: 11px; }
-.step-body { display: flex; flex-direction: column; gap: 6px; margin: 4px 0 6px 22px; min-width: 0; }
+.step-body { padding: 0 10px 8px 0; display: flex; flex-direction: column; gap: 6px; margin: 4px 0 6px 22px; min-width: 0; }
 .step-code, .diff { margin: 0; padding: 8px 10px; max-height: 320px; overflow: auto; border-radius: var(--radius-md); border: 1px solid var(--line); background: color-mix(in srgb, var(--text-primary) 5%, var(--surface-1)); color: var(--text-primary); font: 12px/1.5 var(--font-mono); white-space: pre-wrap; overflow-wrap: anywhere; }
 .diff { white-space: pre; overflow-wrap: normal; padding-inline: 0; }
 .diff-line { display: block; padding: 0 10px; }
@@ -1438,7 +1478,7 @@ ol.install-steps { padding-left: 18px; }
 /* After every animated rule, so it wins on equal specificity. */
 @media (prefers-reduced-motion: reduce) {
   .work-group.live .step.running .step-head::before { display: none; }
-  .step-marker, .step-head { transition: none; }
+  .step-head { transition: none; }
   .pulse::after { display: none; }
   .streaming, .step.running .icon, .todo.running .todo-mark, .spinning { animation: none; }
   .loader rect { animation: none; }

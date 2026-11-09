@@ -67,3 +67,5 @@ The animations use the Web Animations API (`element.animate`), without a library
 | `Dialog`, `Popover` | They have their own open animation. Do not add one in a dialog or a menu. Dialogs also animate on close over 280 ms on desktop and mobile. On a phone, the sheet slides down and fades, with a slow start that keeps the movement visible. |
 
 The pure calculations (FLIP offset, target, plan) are in `flip.ts` and have unit tests.
+
+- `Collapse` animates open, close, and content height changes. Closed content stays inert after its first opening. Reduced motion disables transitions.

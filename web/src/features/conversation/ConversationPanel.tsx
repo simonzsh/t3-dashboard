@@ -17,6 +17,7 @@ import { RewindDialog } from "./RewindDialog.tsx";
 import { attachmentFiles, mergeDraft } from "./rewind.ts";
 import { PendingRequestView } from "./PendingRequestView.tsx";
 import { ApprovalDock, dockedRequest, useQuestionDock } from "./QuestionDock.tsx";
+import { WorkingRobot } from "./WorkingRobot.tsx";
 import { WorkGroup } from "./Steps.tsx";
 import { SecretRequestCard } from "./SecretRequestCard.tsx";
 import { SubagentRows } from "./SubagentRows.tsx";
@@ -114,7 +115,8 @@ const Timeline = memo(function Timeline({ detail, threadId, running, editing, on
       {awaitingStep(entries, running) && (
         <div className="working-row">
           <Loader inline label="Working" />
-          Working…
+          <span>Working…</span>
+          <WorkingRobot thinking />
         </div>
       )}
     </>
