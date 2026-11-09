@@ -291,6 +291,7 @@ export function SessionsView({ sessions, dispatch, threads, projects, seen, open
   const closeOne = useCallback((id: string) => dispatch({ type: "close", id }), [dispatch]);
   const list = () => (
     <SessionList
+      menuContext={(id) => ({ t3EnvironmentId, alert: alertMode(alertsConfigured, armedAlerts, id), onToggleAlert })}
       threads={threads}
       projects={projects}
       seen={seen}

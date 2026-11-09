@@ -6,6 +6,8 @@ import { ACTIVE_STATUSES, RUNNING_RUN_STATUSES } from "../../shared/status.ts";
 import { IntegrationError } from "../integrations/errors.ts";
 import {
   approvalCommand,
+  regenerateTitleCommand,
+  renameThreadCommand,
   cancelQueuedCommand,
   dismissCommand,
   editQueuedCommand,
@@ -90,7 +92,9 @@ export interface Actions {
   dismiss(threadId: string, requestId: string): Promise<void>;
   /** Hands a secret the agent asked for to T3, or declines the request. The value is never kept or logged. */
   answerSecret(threadId: string, itemId: string, answer: SecretAnswerBody): Promise<void>;
-  /** Rewinds the thread to before a user message; `restoreFiles` also undoes the agent's file edits. */
+  renameThread(threadId: string, title: string): Promise<void>;
+  regenerateTitle(threadId: string): Promise<void>;
+  /** Rewinds the thread to before this user message; `restoreFiles` also undoes the agent's file edits. */
   rewind(threadId: string, messageId: string, restoreFiles: boolean): Promise<void>;
   settle(threadId: string): Promise<void>;
   unsettle(threadId: string): Promise<void>;
@@ -485,6 +489,14 @@ export function createActions(options: ActionsOptions): Actions {
 
     async dismiss(threadId, requestId) {
       await send(dismissCommand(threadId, requestId));
+    },
+
+    async renameThread(threadId, title) {
+      await send(renameThreadCommand(threadId, title));
+    },
+
+    async regenerateTitle(threadId) {
+      await send(regenerateTitleCommand(threadId));
     },
 
     async rewind(threadId, messageId, restoreFiles) {

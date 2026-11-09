@@ -85,3 +85,7 @@ Exit codes:
 3. Correct the code if a sent or read field has changed: `src/integrations/t3/schemas.ts`, `src/integrations/t3/commands.ts`.
 4. Run `bun run contracts --update-snapshot`. The script writes `contracts/t3-commands.snapshot.json` only if it could read all the commands.
 5. Read the snapshot diff, then open a PR with this diff.
+
+Title regeneration sends `thread.metadata.update` with `threadId`, `commandId`, and `regenerateTitle: true`, without `title`.
+
+Manual renaming sends `thread.metadata.update` with `threadId`, `commandId`, and `title`, without `regenerateTitle`.

@@ -1,8 +1,10 @@
-import { memo, useEffect, useMemo, useRef, useState } from "react";
+import { createContext, memo, useContext, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import type { ChatMessage, DashboardProvider, HtmlRender, DashboardThread, ThreadDetail, ThreadSettingsBody, TurnStep, UploadedAttachment } from "../../../../shared/api.ts";
 import { runActive } from "../../../../shared/status.ts";
+import { highlightText } from "../../lib/highlightText.tsx";
+import { useMediaQuery } from "../../lib/useMediaQuery.ts";
 import { useApi } from "../../api/ApiContext.tsx";
-import { Icon, IconButton, Loader } from "../../ui/index.ts";
+import { Button, Popover, SearchField, Icon, IconButton, Loader, TOUCH } from "../../ui/index.ts";
 import { attachmentUrl } from "../../api/client.ts";
 import { type PendingMessage, countSame, isSettled, pendingLabel, sentMessages } from "./pending.ts";
 import { MarkdownText } from "./MarkdownText.tsx";
@@ -29,6 +31,8 @@ import { awaitingStep, timeline } from "./timeline.ts";
 import { LIVE_RELOAD_MS, SEND_POLL_WINDOW_MS, detailRunning, pollDelay } from "./reload.ts";
 import { SubagentBar } from "./SubagentBar.tsx";
 
+const SearchQuery = createContext("");
+
 const ROLE_LABELS: Record<string, string> = { user: "You", assistant: "Agent", system: "System" };
 // A window remounts when the narrow view switches tabs: keep what it showed.
 const detailCache = new Map<string, ThreadDetail>();
@@ -44,21 +48,22 @@ interface MessageEditing {
 }
 
 const Message = memo(function Message({ message: m, threadId, editing }: { message: ChatMessage; threadId: string; editing: MessageEditing }) {
+  const query = useContext(SearchQuery);
   const time = formatMessageTime(m.createdAt);
   const attachments = <MessageAttachments threadId={threadId} attachments={m.attachments} />;
   return (
-    <div className={`msg ${m.role}`}>
+    <div className={`msg ${m.role}`} data-message-id={m.id}>
       {m.role === "user" ? (
         (m.text || m.attachments.length > 0) && (
           <div className="bubble md">
             {attachments}
-            {m.text && <MarkdownText text={m.text} threadId={threadId} breaks />}
+            {m.text && <MarkdownText text={m.text} query={query} threadId={threadId} breaks />}
           </div>
         )
       ) : (
         <>
           {attachments}
-          <div className="md">{m.role === "assistant" ? <MarkdownText text={m.text} threadId={threadId} /> : m.text}</div>
+          <div className="md">{m.role === "assistant" ? <MarkdownText text={m.text} query={query} threadId={threadId} /> : highlightText(m.text, query)}</div>
         </>
       )}
       <small>
@@ -134,6 +139,7 @@ function PendingBubble({ message: p }: { message: PendingMessage }) {
 }
 
 interface Props {
+  searchRequest?: number;
   threadId: string;
   /** Live state of the thread: a new object each time the server sends it again. */
   thread: DashboardThread | null;
@@ -153,7 +159,7 @@ export function ConversationPanel(props: Props) {
   );
 }
 
-function Conversation({ threadId, thread, providers, onOpenThread, onTitle }: Props) {
+function Conversation({ searchRequest = 0, threadId, thread, providers, onOpenThread, onTitle }: Props) {
   const api = useApi();
   const [detail, setDetail] = useState<ThreadDetail | null>(() => detailCache.get(threadId) ?? null);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -176,6 +182,58 @@ function Conversation({ threadId, thread, providers, onOpenThread, onTitle }: Pr
   const [editing, setEditing] = useState<ChatMessage | null>(null);
   const [restore, setRestore] = useState<{ key: number; files: File[] }>({ key: 0, files: [] });
   const [dropping, setDropping] = useState(false);
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [query, setQuery] = useState("");
+  const [matchIndex, setMatchIndex] = useState(0);
+  const [selection, setSelection] = useState("");
+  const [selectionRect, setSelectionRect] = useState<{ left: number; top: number; width: number; height: number } | null>(null);
+  const touch = useMediaQuery(TOUCH);
+  const quoteAnchor = useRef<HTMLSpanElement>(null);
+  const searchField = useRef<HTMLInputElement>(null);
+  useLayoutEffect(() => {
+    if (!searchRequest) return;
+    setSearchOpen(true);
+    searchField.current?.focus();
+  }, [searchRequest]);
+  const matches = useMemo(() => query.trim() ? (detail?.messages ?? []).filter((m) => m.text.toLocaleLowerCase().includes(query.trim().toLocaleLowerCase())).map((m) => m.id) : [], [detail, query]);
+  useEffect(() => {
+    const read = () => {
+      const selected = window.getSelection();
+      const text = selected && scroller.current?.contains(selected.anchorNode) && scroller.current?.contains(selected.focusNode) ? selected.toString().trim() : "";
+      setSelection(text);
+      if (!text || !selected?.rangeCount) { setSelectionRect(null); return; }
+      const rects = selected.getRangeAt(0).getClientRects();
+      const composer = touch ? frame.current?.querySelector(".composer-card")?.getBoundingClientRect() : null;
+      // iOS owns the menu beside the selection. Keep our touch action by the composer.
+      const rect = composer ? { left: composer.left, top: composer.top, width: composer.width, height: 0 } : rects[rects.length - 1];
+      setSelectionRect(rect ? { left: rect.left, top: rect.top, width: rect.width, height: rect.height } : null);
+    };
+    const hide = () => { setSelection(""); setSelectionRect(null); };
+    document.addEventListener("selectionchange", read);
+    window.addEventListener("scroll", hide, true);
+    window.addEventListener("resize", hide);
+    return () => {
+      document.removeEventListener("selectionchange", read);
+      window.removeEventListener("scroll", hide, true);
+      window.removeEventListener("resize", hide);
+    };
+  }, [touch]);
+  useEffect(() => {
+    if (searchOpen) searchField.current?.focus();
+  }, [searchOpen]);
+  const matchKey = matches.join("\0");
+  useEffect(() => {
+    const nodes = scroller.current?.querySelectorAll<HTMLElement>("[data-message-id]");
+    nodes?.forEach((node) => {
+      const active = searchOpen && node.dataset.messageId === matches[matchIndex % (matches.length || 1)];
+      node.classList.toggle("search-match", active);
+      if (active) {
+        stick.current = false;
+        smoothing.current = false;
+        node.scrollIntoView({ block: "center" });
+      }
+    });
+  }, [matchKey, matchIndex, searchOpen]);
 
   // Bumped on every thread change and cleanup: a late response from an older effect is dropped.
   const epoch = useRef(0);
@@ -379,6 +437,27 @@ function Conversation({ threadId, thread, providers, onOpenThread, onTitle }: Pr
         setRestore((last) => ({ key: last.key + 1, files: [...e.dataTransfer.files] }));
       }}
     >
+      {selection && selectionRect && !detail?.subagentThread && <>
+        <span ref={quoteAnchor} className="selection-quote-anchor" style={selectionRect} aria-hidden="true" />
+        <Popover key={JSON.stringify(selectionRect)} anchor={quoteAnchor} align="end" preferAbove={touch} className={touch ? "selection-quote selection-quote-touch" : "selection-quote"} onClose={() => setSelection("")}>
+          <Button size={touch ? "md" : "sm"} onPointerDown={(e) => e.preventDefault()} onMouseDown={(e) => e.preventDefault()} onClick={() => {
+            setDraft(mergeDraft(drafts.get(threadId) ?? "", selection.split("\n").map((line) => `> ${line}`).join("\n") + "\n\n"));
+            setSelection("");
+            window.getSelection()?.removeAllRanges();
+            frame.current?.querySelector<HTMLTextAreaElement>("textarea")?.focus();
+          }}><Icon name="quote" />Cite</Button>
+        </Popover>
+      </>}
+      {searchOpen && <div className="conversation-tools conversation-search" onKeyDown={(e) => {
+        if (e.key === "Escape") { e.stopPropagation(); setSearchOpen(false); frame.current?.focus(); }
+        if (e.key === "Enter" && e.target === searchField.current && !e.nativeEvent.isComposing) { e.preventDefault(); setMatchIndex((i) => (i + (e.shiftKey ? matches.length - 1 : 1)) % (matches.length || 1)); }
+      }}>
+        <SearchField ref={searchField} aria-label="Search in session" placeholder="Search in session…" value={query} onChange={(e) => { setQuery(e.target.value); setMatchIndex(0); }} />
+        <span className="conversation-search-count" role="status">{matches.length ? (matchIndex % matches.length) + 1 : 0}/{matches.length}</span>
+        <IconButton variant="ghost" label="Previous result" disabled={!matches.length} onClick={() => setMatchIndex((i) => (i + matches.length - 1) % matches.length)}><Icon name="arrowUp" /></IconButton>
+        <IconButton variant="ghost" label="Next result" disabled={!matches.length} onClick={() => setMatchIndex((i) => (i + 1) % matches.length)}><Icon name="arrowDown" /></IconButton>
+        <IconButton variant="ghost" label="Close search" onClick={() => setSearchOpen(false)}><Icon name="x" /></IconButton>
+      </div>}
       <div className="messages-frame">
         <div
           className="messages"
@@ -420,7 +499,7 @@ function Conversation({ threadId, thread, providers, onOpenThread, onTitle }: Pr
           {!detail && loadError && <p className="empty">This conversation could not be loaded.</p>}
           {detail && detail.messages.length === 0 && detail.renders.length === 0 && detail.steps.length === 0 && <p className="empty">No messages</p>}
           {!detail && !loadError && <Loader />}
-          {detail && <Timeline detail={detail} threadId={threadId} running={running} editing={messageEditing} onOpenThread={onOpenThread} onChanged={load} />}
+          {detail && <SearchQuery.Provider value={searchOpen ? query : ""}><Timeline detail={detail} threadId={threadId} running={running} editing={messageEditing} onOpenThread={onOpenThread} onChanged={load} /></SearchQuery.Provider>}
           {detail && !running && pending.map((p) => <PendingBubble key={p.id} message={p} />)}
           {otherRequests.length > 0 && (
             <div className="requests">

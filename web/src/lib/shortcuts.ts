@@ -8,6 +8,7 @@ export type ShortcutAction =
   | "toggle-sidebar"
   | "switcher"
   | "close-window"
+  | "search-session"
   | "toggle-fullscreen"
   | "unmaximize"
   | "focus-left"
@@ -24,7 +25,7 @@ export interface KeyInfo {
   target: { tagName: string; isContentEditable: boolean } | null;
 }
 
-// Ctrl+key works everywhere, fields included, like Ctrl+S for the stash. Cmd stays the browser's.
+// Ctrl+key works everywhere, fields included, like Ctrl+S for the stash. Cmd also works for search.
 // Ctrl+1, Ctrl+2... follow the order of the tabs, so a new or moved tab needs no change here.
 const CTRL_KEYS: Record<string, ShortcutAction> = {
   ...Object.fromEntries(TABS.map((tab, i) => [String(i + 1), tab.id])),
@@ -33,7 +34,7 @@ const CTRL_KEYS: Record<string, ShortcutAction> = {
   b: "toggle-sidebar",
 };
 export const isTabAction = (action: ShortcutAction): action is Tab => TABS.some((tab) => tab.id === action);
-const CTRL_SESSIONS_KEYS: Record<string, ShortcutAction> = { x: "close-window", f: "toggle-fullscreen" };
+const CTRL_SESSIONS_KEYS: Record<string, ShortcutAction> = { x: "close-window", o: "toggle-fullscreen" };
 // Plain keys that a field needs for itself: they act only outside fields.
 const PLAIN_SESSIONS_KEYS: Record<string, ShortcutAction> = {
   escape: "unmaximize",
@@ -52,6 +53,7 @@ export function matchShortcut(e: KeyInfo, dialogOpen: boolean, inSessions = fals
   const key = e.key.toLowerCase();
   // Before the guards: the switcher opens from a field or a dialog too, and App decides.
   if ((e.ctrlKey || e.metaKey) && !e.altKey && key === "k") return "switcher";
+  if (!dialogOpen && inSessions && (e.ctrlKey || e.metaKey) && !e.altKey && !e.shiftKey && key === "f") return "search-session";
   if (dialogOpen || e.metaKey) return null;
   if (e.ctrlKey) {
     // Ctrl+Alt is AltGr on Windows: it types a character and is not a shortcut.

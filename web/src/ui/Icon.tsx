@@ -3,6 +3,9 @@ type Part = string | { solid: string };
 
 // Icon paths from Lucide (ISC), plus the assign robot, the stop square and the GitHub mark (Octicons, MIT).
 const ICONS = {
+  quote: ["M3 5h7v7a7 7 0 0 1-7 7v-3a4 4 0 0 0 4-4H3Z", "M14 5h7v7a7 7 0 0 1-7 7v-3a4 4 0 0 0 4-4h-4Z"],
+  // T3 Code mark (MIT, pingdotgg/t3code).
+  t3: [{ solid: "M33.4509 93V47.56H15.5309V37H64.3309V47.56H46.4109V93H33.4509ZM86.7253 93.96C82.832 93.96 78.9653 93.4533 75.1253 92.44C71.2853 91.3733 68.032 89.88 65.3653 87.96L70.4053 78.04C72.5386 79.5867 75.0186 80.8133 77.8453 81.72C80.672 82.6267 83.5253 83.08 86.4053 83.08C89.6586 83.08 92.2186 82.44 94.0853 81.16C95.952 79.88 96.8853 78.12 96.8853 75.88C96.8853 73.7467 96.0586 72.0667 94.4053 70.84C92.752 69.6133 90.0853 69 86.4053 69H80.4853V60.44L96.0853 42.76L97.5253 47.4H68.1653V37H107.365V45.4L91.8453 63.08L85.2853 59.32H89.0453C95.9253 59.32 101.125 60.8667 104.645 63.96C108.165 67.0533 109.925 71.0267 109.925 75.88C109.925 79.0267 109.099 81.9867 107.445 84.76C105.792 87.48 103.259 89.6933 99.8453 91.4C96.432 93.1067 92.0586 93.96 86.7253 93.96Z" }],
   messagesSquare: ["M14 9a2 2 0 0 1-2 2H6l-4 4V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2z", "M18 9h2a2 2 0 0 1 2 2v11l-4-4h-6a2 2 0 0 1-2-2v-1"],
   layoutPanels: [
     "M4 3h5a1 1 0 0 1 1 1v16a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1Z",
@@ -134,7 +137,7 @@ interface IconProps {
 export function Icon({ name, className = "icon", strokeWidth = 2, label }: IconProps) {
   const a11y = label ? { role: "img", "aria-label": label } : { "aria-hidden": true };
   return (
-    <svg className={className} viewBox="0 0 24 24" {...a11y}>
+    <svg className={className} viewBox={name === "t3" ? "7 29 111 74" : "0 0 24 24"} {...a11y}>
       {(ICONS[name] as Part[]).map((part) =>
         typeof part === "string" ? (
           <path key={part} d={part} fill="none" stroke="currentColor" strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" />

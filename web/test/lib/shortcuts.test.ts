@@ -42,7 +42,7 @@ test("an open dialog disables shortcuts", () => {
 
 test("Ctrl+X and F act on the sessions only, and Ctrl+M does nothing", () => {
   assert.equal(matchShortcut(ctrl("x"), false, true), "close-window");
-  assert.equal(matchShortcut(ctrl("F"), false, true), "toggle-fullscreen");
+  assert.equal(matchShortcut(ctrl("F"), false, true), "search-session");
   assert.equal(matchShortcut(ctrl("m"), false, true), null);
   assert.equal(matchShortcut(ctrl("f"), false), null);
 });
@@ -92,4 +92,19 @@ test("startsTyping: a plain character outside a field, not a shortcut, space or 
 test("Ctrl+digit follows the order of the tabs", () => {
   TABS.forEach((tab, i) => assert.equal(matchShortcut(ctrl(String(i + 1)), false), tab.id));
   assert.equal(matchShortcut(ctrl(String(TABS.length + 1)), false), null);
+});
+
+test("Ctrl+O toggles fullscreen only in sessions, including while typing", () => {
+  const key = ctrl("o", { target: typing });
+  assert.equal(matchShortcut(key, false, true), "toggle-fullscreen");
+  assert.equal(matchShortcut(ctrl("O"), false, true), "toggle-fullscreen");
+  assert.equal(matchShortcut(key, true, true), null);
+  assert.equal(matchShortcut(key, false, false), null);
+  assert.equal(matchShortcut({ ...key, altKey: true }, false, true), null);
+  assert.equal(matchShortcut({ ...key, shiftKey: true }, false, true), null);
+  assert.equal(matchShortcut(press("o", { metaKey: true }), false, true), null);
+  for (const modifier of [{ ctrlKey: true }, { metaKey: true }]) {
+    assert.equal(matchShortcut(press("f", modifier), false, true), "search-session");
+    assert.equal(matchShortcut(press("f", { ...modifier, shiftKey: true }), false, true), null);
+  }
 });

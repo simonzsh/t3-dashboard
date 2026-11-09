@@ -9,12 +9,14 @@ import { ProviderIcon } from "../../lib/ProviderIcon.tsx";
 import { modelLabel } from "../../lib/models.ts";
 import { threadTitle } from "../../lib/threads.ts";
 import { Chevron, CountBadge, Dialog, Icon, IconButton, Pressable, enter, fly, reducedMotion, useFlip } from "../../ui/index.ts";
+import { SessionMenu, type SessionMenuContext } from "./SessionMenu.tsx";
 import { ProjectMenu } from "./ProjectMenu.tsx";
 import { groupByProject, inactiveThreads, settleThreads, settlementFlightDelay, listableThreads, recentSettledThreads, settleBlockReason, statusMark, type ListPrefs } from "./sessionList.ts";
 
 const MARK_LABELS = { running: "Running", waiting: "Waiting for you", error: "Failed", unread: "Unread" } as const;
 
 interface Props {
+  menuContext?: (id: string) => SessionMenuContext;
   threads: DashboardThread[];
   projects: DashboardProject[];
   seen: SeenState;
@@ -35,7 +37,7 @@ interface Props {
 }
 
 /** Every listed thread, by project or by recent activity: a click opens it as a session. */
-function SessionListView({ threads, projects, seen, modelNames, now, openIds, focusedId, prefs, onPrefs, onOpen, onNewSession, onEditProject, onDeleteProject, onSettle, onClose, onCloseAll }: Props) {
+function SessionListView({ menuContext, threads, projects, seen, modelNames, now, openIds, focusedId, prefs, onPrefs, onOpen, onNewSession, onEditProject, onDeleteProject, onSettle, onClose, onCloseAll }: Props) {
   const settleAction = useAction("change the session status");
   const inactive = useMemo(() => inactiveThreads(threads, now), [threads, now]);
   const [settleSelection, setSettleSelection] = useState<string[] | null>(null);
@@ -174,7 +176,7 @@ function SessionListView({ threads, projects, seen, modelNames, now, openIds, fo
           </span>
         </Pressable>
         {/* A sibling of the row, not inside it: a button cannot hold another button. */}
-        {(blocked === null || isOpen) && <span className="thread-actions">
+        <span className="thread-actions">
           {isOpen && (
             <IconButton variant="ghost" size="sm" label={`Close ${title}`} tooltip="Close session" onClick={() => onClose(t.id)}>
               <Icon name="x" />
@@ -189,7 +191,8 @@ function SessionListView({ threads, projects, seen, modelNames, now, openIds, fo
           }}>
             <Icon name={t.settled ? "archiveRestore" : "archive"} />
           </IconButton>}
-        </span>}
+          <SessionMenu thread={t} {...(menuContext?.(t.id) ?? { t3EnvironmentId: null, alert: null, onToggleAlert: () => {} })} />
+        </span>
       </div>
     );
   };

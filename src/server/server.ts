@@ -25,7 +25,7 @@ import { servePwa } from "./pwa.ts";
 import type { Site } from "./site.ts";
 import type { SseHub } from "./sse.ts";
 import { isObject } from "../../shared/guards.ts";
-import { isText, validActivityPeriod, validArm, validAssign, validAttachments, validCreateAutomation, validCreate, validCreateProject, validEnabled, validUpdateProject, validFolderPath, validFileSearch, validItemId, validMessage, validPrRef, validProvider, validRefsQuery, validQueuedEdit, validRespond, validRewind, validSearch, validSecretAnswer, validSeen, validSha, validSaveNews, validSessions, validSettings, validStash, validTimeZone, validUpdateAutomation, validUpload } from "./validate.ts";
+import { validTitle, isText, validActivityPeriod, validArm, validAssign, validAttachments, validCreateAutomation, validCreate, validCreateProject, validEnabled, validUpdateProject, validFolderPath, validFileSearch, validItemId, validMessage, validPrRef, validProvider, validRefsQuery, validQueuedEdit, validRespond, validRewind, validSearch, validSecretAnswer, validSeen, validSha, validSaveNews, validSessions, validSettings, validStash, validTimeZone, validUpdateAutomation, validUpload } from "./validate.ts";
 
 export interface SetupControl {
   /** Resolves the token again. */
@@ -409,6 +409,8 @@ export function createDashboardServer(options: DashboardServerOptions): Dashboar
         return ok();
       },
     },
+    { method: "POST", path: "/api/threads/:id/title", handle: ({ params, body }) => done(actions.renameThread(params.id!, validTitle(body.title))) },
+    { method: "POST", path: "/api/threads/:id/regenerate-title", handle: ({ params }) => done(actions.regenerateTitle(params.id!)) },
     { method: "POST", path: "/api/threads/:id/settings", handle: ({ params, body }) => done(actions.changeSettings(params.id!, validSettings(body))) },
     { method: "POST", path: "/api/threads/:id/settle", handle: ({ params }) => done(actions.settle(params.id!)) },
     { method: "POST", path: "/api/threads/:id/unsettle", handle: ({ params }) => done(actions.unsettle(params.id!)) },

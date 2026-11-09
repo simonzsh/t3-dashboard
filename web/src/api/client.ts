@@ -198,6 +198,8 @@ export function createApi(fetchImpl: Fetch) {
     sendQueued: (id: string, runId: string) => call<OkResult>(`${t(id)}/queue/${encodeURIComponent(runId)}/send`, {}),
     editQueued: (id: string, runId: string, text: string) => call<OkResult>(`${t(id)}/queue/${encodeURIComponent(runId)}/edit`, { text } satisfies EditQueuedBody),
     cancelQueued: (id: string, runId: string) => call<OkResult>(`${t(id)}/queue/${encodeURIComponent(runId)}/cancel`, {}),
+    renameThread: (id: string, title: string) => call<OkResult>(`${t(id)}/title`, { title }),
+    regenerateTitle: (id: string) => call<OkResult>(`${t(id)}/regenerate-title`, {}),
     rewind: (id: string, b: RewindBody) => call<OkResult>(`${t(id)}/rewind`, b),
     interrupt: (id: string) => call<OkResult>(`${t(id)}/interrupt`, {}),
     stopSubagent: (id: string, subagentId: string) => call<OkResult>(`${t(id)}/subagents/${encodeURIComponent(subagentId)}/stop`, {}),
