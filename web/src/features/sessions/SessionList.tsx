@@ -8,7 +8,7 @@ import { AutomationMark } from "../../lib/automationThreads.tsx";
 import { ProviderIcon } from "../../lib/ProviderIcon.tsx";
 import { modelLabel } from "../../lib/models.ts";
 import { threadTitle } from "../../lib/threads.ts";
-import { Chevron, CountBadge, Dialog, Icon, IconButton, Pressable, STATUS_ICONS, enter, fly, reducedMotion, useFlip } from "../../ui/index.ts";
+import { Chevron, CountBadge, Dialog, Icon, IconButton, Pressable, RunningDot, STATUS_ICONS, enter, fly, reducedMotion, useFlip } from "../../ui/index.ts";
 import { SessionMenu, type SessionMenuContext } from "./SessionMenu.tsx";
 import { ProjectMenu } from "./ProjectMenu.tsx";
 import { groupByProject, inactiveThreads, settleThreads, settlementFlightDelay, listableThreads, recentSettledThreads, settleBlockReason, statusMark, type ListPrefs } from "./sessionList.ts";
@@ -145,6 +145,7 @@ function SessionListView({ menuContext, threads, projects, seen, modelNames, now
       <div key={t.id} className="slist-item" data-session-row={t.id}>
         <Pressable className={`slist-row${isOpen ? " open" : ""}${t.id === focusedId ? " focused" : ""}`} aria-current={t.id === focusedId || undefined} onClick={() => onOpen(t.id)}>
           <span className={`slist-mark${mark ? ` ${mark}` : ""}`} role={mark ? "img" : undefined} aria-label={mark ? MARK_LABELS[mark] : undefined} aria-hidden={mark ? undefined : true}>
+            {mark === "running" && <RunningDot />}
             {/* Same icons as the Notifications card: a dot would look like "running" with a yellow or red accent. */}
             {(mark === "waiting" || mark === "error") && <Icon name={STATUS_ICONS[mark]} />}
           </span>

@@ -18,9 +18,14 @@ test("staggered arrivals hold their start frame and respect reduced motion", () 
     assert.equal(calls[0]!.options.duration, 220);
     assert.equal(calls[0]!.options.delay, 45);
     assert.equal(calls[0]!.options.fill, "backwards");
+    enter(element, { duration: 650, highlight: "blue" });
+    assert.equal(calls[1]!.options.duration, 650);
+    assert.equal(calls[1]!.frames[1]!.backgroundColor, "blue");
+    assert.equal(calls[1]!.frames[1]!.offset, 0.45);
+    assert.equal(calls[1]!.frames[2]!.backgroundColor, "transparent");
     reduce = true;
     assert.equal(enter(element, { y: 6 }), null);
-    assert.equal(calls.length, 1);
+    assert.equal(calls.length, 2);
   } finally {
     if (original) Object.defineProperty(globalThis, "matchMedia", original);
     else Reflect.deleteProperty(globalThis, "matchMedia");

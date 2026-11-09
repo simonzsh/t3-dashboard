@@ -32,7 +32,7 @@ test("only the latest running step gets the rail marker target", () => {
   assert.match(out, /data-work-step="c" data-active-step="true"/);
   assert.equal(out.match(/data-active-step=/g)?.length, 1);
   assert.match(out, /class="step-marker" aria-hidden="true"/);
-  assert.match(out, /class="work-group-dot" aria-hidden="true"/);
+  assert.match(out, /class="pulse" aria-hidden="true"/);
 });
 
 test("completed steps keep their action and show the completion icon and duration", () => {
@@ -41,4 +41,14 @@ test("completed steps keep their action and show the completion icon and duratio
   assert.match(out, /class="step-result"><svg[^>]*aria-label="Completed"/);
   assert.match(out, /<\/svg>3s<\/span>/);
   assert.doesNotMatch(out, /data-active-step=/);
+});
+
+test("a newly received finished group reveals fast completed steps without a running state", () => {
+  const fast = step("fast", { completedAt: "2026-01-01T10:00:00Z" });
+  const out = renderToStaticMarkup(<WorkGroup steps={[fast]} threadId="t" live={false} fresh />);
+  assert.match(out, /cmd fast/);
+  assert.match(out, /1 step · 0s/);
+  assert.match(out, /&lt;1s/);
+  assert.match(out, /aria-label="Completed"/);
+  assert.doesNotMatch(out, /class="pulse"|data-active-step|step command running/);
 });

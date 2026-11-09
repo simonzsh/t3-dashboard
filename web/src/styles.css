@@ -227,10 +227,10 @@ main { flex: 1; min-height: 0; overflow: hidden; padding: var(--page-top) var(--
 .badge > .badge-icon { flex: none; width: 12px; height: 12px; margin-left: -2px; }
 /* A running badge carries a pulsing dot instead of a coloured header. */
 .session-window-state .pulse { display: inline-block; vertical-align: middle; width: 6px; height: 6px; margin-right: 5px; background: currentColor; }
-.pulse { width: 8px; height: 8px; border-radius: 50%; background: var(--work); }
+.pulse { display: inline-block; flex: none; width: 8px; height: 8px; border-radius: 50%; background: var(--work); }
 /* A running dot stays solid; a halo of its color grows and fades around it. */
-.pulse, .slist-mark.running { position: relative; }
-.pulse::after, .slist-mark.running::after { content: ""; position: absolute; inset: 0; border-radius: 50%; background: inherit; animation: ping 1.6s cubic-bezier(0, 0, 0.2, 1) infinite; }
+.pulse { position: relative; }
+.pulse::after { content: ""; position: absolute; inset: 0; border-radius: 50%; background: inherit; animation: ping 1.6s cubic-bezier(0, 0, 0.2, 1) infinite; }
 @keyframes ping { from { opacity: 0.7; transform: scale(1); } to { opacity: 0; transform: scale(2.6); } }
 @keyframes pulse { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.35; transform: scale(0.7); } }
 .empty-state { display: flex; flex-direction: column; gap: 4px; align-items: center; padding: 64px 16px; text-align: center; color: var(--text-secondary); border: 1px dashed var(--line); border-radius: var(--radius-lg); }
@@ -351,9 +351,8 @@ main { flex: 1; min-height: 0; overflow: hidden; padding: var(--page-top) var(--
 .work-group-head { align-self: flex-start; display: inline-flex; align-items: center; gap: 8px; padding: 2px 0; border: 0; background: none; color: var(--text-secondary); font-size: 12px; font-variant-numeric: tabular-nums; }
 .work-group-head:hover:not(:disabled) { color: var(--text-primary); }
 .work-group.live .work-group-head { font-size: 13px; }
-.work-group-dot { width: 5px; height: 5px; border-radius: 50%; background: var(--work); animation: breathe 1.8s ease-in-out infinite; }
 .step-list { position: relative; list-style: none; margin: 0; padding: 0 0 0 4px; display: flex; flex-direction: column; gap: 2px; border-left: 1px solid var(--line); min-width: 0; }
-.step-list > li { min-width: 0; padding-left: 8px; }
+.step-list > li { min-width: 0; padding-left: 8px; border-radius: var(--radius-sm); }
 .step-list > .step-marker { position: absolute; z-index: 1; left: -2px; top: 0; width: 3px; height: 0; padding: 0; border-radius: var(--radius-sm); background: var(--work); opacity: 0; box-shadow: 0 0 8px color-mix(in srgb, var(--work) 25%, transparent); pointer-events: none; transition: top 350ms cubic-bezier(0.2, 0, 0, 1), height 240ms ease, opacity 180ms ease; }
 .step { min-width: 0; }
 .step-head { position: relative; display: flex; align-items: center; gap: 8px; width: 100%; padding: 3px 4px; border: 0; border-radius: var(--radius-sm); background: none; text-align: left; color: var(--text-secondary); min-width: 0; overflow: hidden; transition: background-color 180ms ease, color 180ms ease; }
@@ -419,6 +418,7 @@ a.step-result-title { color: var(--accent); }
 .subagent-group-text, .subagent-text { flex: 1; display: flex; flex-direction: column; min-width: 0; }
 .subagent-group-title { font-size: 12px; font-weight: 600; }
 .subagent-group-status { font-size: 11px; color: var(--text-secondary); }
+.subagent-state { display: inline-flex; align-items: center; gap: 6px; }
 .subagent-group-status.active, .subagent-state.active { color: var(--work-text); }
 .subagent-group-status.danger, .subagent-state.danger, .subagent-line.failed { color: var(--err-text); }
 .subagent-card { margin-top: 4px; padding: 4px; border: 1px solid var(--line); border-radius: var(--radius-md); background: var(--surface-1); }
@@ -1065,8 +1065,7 @@ ol.install-steps { padding-left: 18px; }
 .slist-row:not(.open) .slist-title { color: var(--text-secondary); }
 .slist-row.open .slist-title { font-weight: 500; }
 .slist-row.open::before { content: ""; position: absolute; left: 1px; top: 6px; bottom: 6px; width: 2px; border-radius: 1px; background: var(--accent); }
-.slist-mark { flex: none; width: 8px; height: 8px; margin-top: 6px; border-radius: 50%; }
-.slist-mark.running { background: var(--work); }
+.slist-mark { display: inline-flex; flex: none; width: 8px; height: 8px; margin-top: 6px; border-radius: 50%; }
 .slist-mark.waiting, .slist-mark.error { display: grid; place-items: center; width: 12px; height: 12px; margin: 4px -2px 0; border-radius: 0; }
 .slist-mark > .icon { width: 12px; height: 12px; }
 .slist-mark.waiting { color: var(--warn); }
@@ -1437,10 +1436,9 @@ ol.install-steps { padding-left: 18px; }
 }
 /* After every animated rule, so it wins on equal specificity. */
 @media (prefers-reduced-motion: reduce) {
-  .work-group-dot { animation: none; }
   .work-group.live .step.running .step-head::before { display: none; }
   .step-marker, .step-head { transition: none; }
-  .pulse::after, .slist-mark.running::after { display: none; }
+  .pulse::after { display: none; }
   .streaming, .step.running .icon, .todo.running .todo-mark, .spinning { animation: none; }
   .loader rect { animation: none; }
   .skeleton { animation: none; }

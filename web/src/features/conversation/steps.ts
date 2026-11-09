@@ -19,7 +19,7 @@ export const STEP_ICONS: Record<StepKind, IconName> = {
 export function stepDuration(step: TurnStep): string | null {
   if (!step.startedAt || !step.completedAt) return null;
   const ms = Date.parse(step.completedAt) - Date.parse(step.startedAt);
-  return Number.isFinite(ms) && ms >= 0 ? duration(ms) : null;
+  return Number.isFinite(ms) && ms >= 0 ? ms < 1000 ? "<1s" : duration(ms) : null;
 }
 
 /** The time from the first start to the last end, or null while a step has no time. */

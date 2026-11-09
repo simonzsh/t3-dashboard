@@ -11,6 +11,7 @@ export { Dropdown } from "./Dropdown.tsx";
 export { FileInput } from "./FileInput.tsx";
 export { Icon, type IconName } from "./Icon.tsx";
 export { STATUS_ICONS } from "./statusIcons.ts";
+export { RunningDot } from "./RunningDot.tsx";
 export { IconButton, type IconButtonProps } from "./IconButton.tsx";
 export { ListPage } from "./ListPage.tsx";
 export { ListToolbar } from "./ListToolbar.tsx";

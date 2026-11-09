@@ -33,6 +33,15 @@ test("one subagent is a bare row: no header, no card", () => {
   assert.match(out, /Running Read a\.ts/);
   assert.match(out, /aria-label="Open Task a"/);
   assert.match(out, /aria-label="Stop subagent"/);
+  assert.match(out, /class="subagent-state active"><span class="pulse" aria-hidden="true"><\/span>Running<\/span>/);
+});
+
+test("the running fallback label has the shared dot; other states do not", () => {
+  const out = render([sub("a", "running", { progress: null })]);
+  assert.match(out, /class="subagent-state"><span class="pulse" aria-hidden="true"><\/span>Running<\/span>/);
+  for (const state of ["queued", "waiting", "idle", "completed", "failed", "stopped"] as const) {
+    assert.doesNotMatch(render([sub("a", state)]), /class="pulse"/);
+  }
 });
 
 test("a row without a child thread or handler is not a button and has no chevron", () => {

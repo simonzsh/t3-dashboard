@@ -1,12 +1,12 @@
 import type { DashboardThread } from "../../../shared/api.ts";
 import { hasFailed, type AgentStatus } from "../../../shared/status.ts";
 import { pendingLabel } from "./threads.ts";
-import { Badge } from "../ui/index.ts";
+import { Badge, RunningDot } from "../ui/index.ts";
 
 export function RunningBadge({ className }: { className?: string }) {
   return (
     <Badge variant="running" className={className}>
-      <span className="pulse" aria-hidden="true" />
+      <RunningDot />
       Running
     </Badge>
   );
