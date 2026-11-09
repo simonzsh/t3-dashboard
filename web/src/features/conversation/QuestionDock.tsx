@@ -19,7 +19,6 @@ export interface DockedComposer {
   readOnly: boolean;
   placeholder: string;
   submitLabel: string;
-  focusKey: string;
 }
 
 const EMPTY: Draft = { choices: [], custom: "" };
@@ -81,7 +80,6 @@ export function useQuestionDock(threadId: string, request: UserInputRequest | nu
     readOnly: !q.allowCustomAnswer,
     placeholder: !q.allowCustomAnswer ? "Pick an option above" : q.options.length > 0 ? "Type your own answer, or leave this blank to use the selected option" : "Type your answer",
     submitLabel: last ? "Submit" : "Next",
-    focusKey: `${request.requestId}:${index}`,
     onSend: async () => {
       if (!answerReady(q, draft)) return;
       if (!last) return update({ index: index + 1 });

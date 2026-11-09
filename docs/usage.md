@@ -360,3 +360,4 @@ When a question, approval, or secret needs your reply, the robot raises a hand a
 Pending secrets appear there too. Answered secrets stay in the conversation history.
 Secret requests use the same collapsible panel as questions and approvals, attached to the composer. Pending secrets appear one at a time.
 On mobile, refreshing keeps the focused session open. Returning to the session list also persists across refreshes.
+Incoming questions, approvals, and secret requests do not move keyboard focus or select another session.

@@ -565,7 +565,6 @@ function Conversation({ searchRequest = 0, threadId, thread, providers, onOpenTh
             readOnly={question.composer.readOnly}
             placeholder={question.composer.placeholder}
             submitLabel={question.composer.submitLabel}
-            focusKey={question.composer.focusKey}
             noImages
             onEscape={() => frame.current?.focus({ preventScroll: true })}
             onStop={() => api.interrupt(threadId)}

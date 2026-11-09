@@ -449,3 +449,11 @@ test("settings notes and action rows can wrap inside the dialog", () => {
   assert.match(note, /overflow-wrap: anywhere;/);
   assert.match(css, /\.settings-row > \.row-icons \{[^}]*flex-wrap: wrap;/);
 });
+
+
+test("incoming questions never autofocus their composer", async () => {
+  const source = await Bun.file("web/src/features/conversation/ConversationPanel.tsx").text();
+  assert.doesNotMatch(source, /focusKey=\{question\.composer\./);
+  const dock = await Bun.file("web/src/features/conversation/QuestionDock.tsx").text();
+  assert.doesNotMatch(dock, /focusKey|autoFocus|\.focus\(/);
+});
