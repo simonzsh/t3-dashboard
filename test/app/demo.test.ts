@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "bun:test";
 import { DemoPort, demoLinearFetch } from "../../src/app/demo/port.ts";
-import { DEMO_HOME, DEMO_NEWS_DIR, createDemoCacheCleanup, demoNews, demoFixtures, demoServerStats, demoUsageBuckets } from "../../src/app/demo/fixtures.ts";
+import { DEMO_HOME, DEMO_NEWS_DIR, createDemoCacheCleanup, demoNews, demoFixtures, demoSeen, DEMO_LONG_PR_TITLE, demoServerStats, demoUsageBuckets } from "../../src/app/demo/fixtures.ts";
 import { issues } from "../../src/integrations/contract.ts";
 import { inboxItems } from "../../src/domain/linearBoard.ts";
 import { LinearClient } from "../../src/integrations/linear/client.ts";
@@ -16,6 +16,8 @@ import { demoGh } from "../../src/app/demo/pulls.ts";
 import { createNews } from "../../src/domain/news.ts";
 import { isArticleName } from "../../src/config/newsFile.ts";
 import { agentStatus } from "../../shared/status.ts";
+import { isUnseen } from "../../shared/seen.ts";
+import { isUnreadPr } from "../../web/src/lib/prSeen.ts";
 import { createAlerts } from "../../src/domain/alerts.ts";
 
 const NOW = new Date("2026-10-26T10:00:00Z");
@@ -503,7 +505,7 @@ test("the demo launches a thread in a worktree and answers branch reads", async 
 test("the demo Pull requests page lists invented pull requests and a diff for each, through the real parsers", async () => {
   const pulls = new PullRequests({ run: demoGh(() => NOW), now: () => NOW });
   const { prs } = await pulls.prs();
-  assert.deepEqual(prs.map((pr) => `${pr.repository}#${pr.number}`).sort(), ["acme/atlas-api#149", "acme/atlas-api#151", "acme/atlas-mobile#57", "acme/atlas-web#138", "acme/atlas-web#142", "acme/atlas-web#143"]);
+  assert.deepEqual(prs.map((pr) => `${pr.repository}#${pr.number}`).sort(), ["acme/atlas-api#149", "acme/atlas-api#151", "acme/atlas-mobile#57", "acme/atlas-web#138", "acme/atlas-web#142", "acme/atlas-web#143", "acme/atlas-web#144"]);
   assert.deepEqual(new Set(prs.map((pr) => pr.checks)), new Set(["success", "failure", "pending", "none"]));
   assert.deepEqual(new Set(prs.map((pr) => pr.review)), new Set(["approved", "changes_requested", "review_required", "none"]));
   assert.equal(prs.filter((pr) => pr.draft).length, 1);
@@ -536,7 +538,7 @@ test("the demo checkout diff shows every kind of file", async () => {
   assert.ok(files.some((file) => file.additions > 400));
 });
 
-test("the demo threads that carry pull requests point at demo pull requests, one with a stack of two", async () => {
+test("the demo threads that carry pull requests point at demo pull requests, one with a stack of three", async () => {
   const store = syncedStore(new DemoPort(() => NOW));
   await Bun.sleep(0);
   const threads = store.state({ t3: "live", serverVersion: null, protocolMismatch: false, error: null, setup: null }, []).threads;
@@ -544,9 +546,20 @@ test("the demo threads that carry pull requests point at demo pull requests, one
   const listed = new Set((await new PullRequests({ run: demoGh(() => NOW), now: () => NOW }).prs()).prs.map((pr) => `${pr.repository}#${pr.number}`));
   for (const pr of linked.flatMap((thread) => thread.pullRequests)) assert.ok(listed.has(`${pr.repository}#${pr.number}`), `${pr.repository}#${pr.number}`);
   const checkout = linked.find((thread) => thread.branch === "checkout-summary")!;
-  assert.deepEqual(checkout.pullRequests.map((pr) => [pr.number, pr.title]), [[142, "ATL-142 Redesign the checkout summary"], [143, "ATL-143 Tests for the checkout fees row"]]);
+  assert.deepEqual(checkout.pullRequests.map((pr) => [pr.number, pr.title]), [[142, "ATL-142 Redesign the checkout summary"], [143, "ATL-143 Tests for the checkout fees row"], [144, DEMO_LONG_PR_TITLE]]);
   // One pull request in two sessions, so the list shows a session count.
   assert.equal(linked.filter((thread) => thread.pullRequests.some((pr) => pr.number === 138)).length, 2);
+});
+
+test("the demo starts with its sessions read and only the pull requests of the last hour unread", async () => {
+  const seen = demoSeen(NOW);
+  const store = syncedStore(new DemoPort(() => NOW));
+  await Bun.sleep(0);
+  const threads = store.state({ t3: "live", serverVersion: null, protocolMismatch: false, error: null, setup: null }, []).threads;
+  assert.ok(threads.length > 0);
+  assert.deepEqual(threads.filter((thread) => isUnseen(thread, seen)).map((thread) => thread.id), []);
+  const { prs } = await new PullRequests({ run: demoGh(() => NOW), now: () => NOW }).prs();
+  assert.deepEqual(prs.filter((pr) => isUnreadPr(pr, seen)).map((pr) => pr.number).sort(), [143, 144]);
 });
 
 test("interrupting an armed demo thread sends one alert, through the fake sender only, and stays armed", async () => {

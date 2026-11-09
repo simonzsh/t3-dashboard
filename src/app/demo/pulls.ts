@@ -1,5 +1,6 @@
 import { parseDiff } from "../../../shared/diff.ts";
 import type { GhRun } from "../../integrations/github/gh.ts";
+import { DEMO_LONG_PR_TITLE } from "./fixtures.ts";
 import { AUDIT_DIFF, CHARTS_DIFF, CHECKOUT_DIFF, FEES_TESTS_DIFF, ONBOARDING_DIFF, RATE_LIMIT_DIFF } from "./diffs.ts";
 
 type Conclusion = "SUCCESS" | "FAILURE" | "PENDING";
@@ -34,6 +35,10 @@ const PRS: DemoPr[] = [
   {
     repository: "acme/atlas-web", number: 143, title: "ATL-143 Tests for the checkout fees row", author: "ada", draft: false, headRef: "checkout-fees-tests", baseRef: "checkout-summary", created: 0, updated: 4,
     decision: "REVIEW_REQUIRED", checks: [["build", "SUCCESS"], ["unit tests", "PENDING"]], reviews: [], scope: "author", body: "Stacked on #142.", diff: FEES_TESTS_DIFF,
+  },
+  {
+    repository: "acme/atlas-web", number: 144, title: DEMO_LONG_PR_TITLE, author: "ada", draft: false, headRef: "checkout-fees-copy", baseRef: "checkout-fees-tests",
+    created: 20, updated: 5, decision: "REVIEW_REQUIRED", checks: [["build", "SUCCESS"]], reviews: [], scope: "author", body: "Stacked on #143.", diff: FEES_TESTS_DIFF,
   },
   {
     repository: "acme/atlas-api", number: 149, title: "ATL-149 Add rate limiting to public endpoints", author: "ada", draft: false, headRef: "rate-limit", created: 1440, updated: 35, decision: "REVIEW_REQUIRED",

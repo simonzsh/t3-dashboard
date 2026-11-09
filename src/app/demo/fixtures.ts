@@ -1,4 +1,5 @@
 import type { CacheCleanupPreview, CacheCleanupResult, ServerStats } from "../../../shared/api.ts";
+import type { SeenState } from "../../../shared/seen.ts";
 import type { LinearInboxNode, LinearIssueNode } from "../../integrations/linear/schemas.ts";
 import type { RawConfig, RawProject, RawProjection, RawScheduledTask, RawSubagent, RawThread, RawTurnItem, RawUsageLimits, RawUsageSummary } from "../../integrations/t3/schemas.ts";
 
@@ -85,7 +86,8 @@ const demoLink = (repository: string, number: number, title: string, stack: { id
   snapshot: { title, state: "open" },
   stack: stack && { kind: "native", id: stack.id, number: stack.layers[0], url: demoPullRequest(repository, stack.layers[0]!).url, base: "main", layers: stack.layers.map((n) => ({ number: n })) },
 });
-const CHECKOUT_STACK = { id: "checkout", layers: [142, 143] };
+export const DEMO_LONG_PR_TITLE = "ATL-144 Explain each fee of the checkout summary in plain words, with the shipping, tax and service lines";
+const CHECKOUT_STACK = { id: "checkout", layers: [142, 143, 144] };
 const CHART_PR = demoLink("acme/atlas-web", 138, "Dark mode contrast on charts");
 
 interface DemoRun {
@@ -179,9 +181,13 @@ const SPECS: ThreadSpec[] = [
       { id: "sub-mobile", runId: "run-checkout-2", childThreadId: CHILD_ID, title: "Check mobile breakpoints", status: "running", progress: "Testing 375 px and 768 px widths", at: 4 },
     ],
     thread: { activeRunId: "run-checkout-2", runtimeMode: "full-access", pinnedAt: LAST, branch: "checkout-summary",
-      // A stack of two: the summary and its tests. The legacy field still names the first one, as T3 0.1.6 keeps it.
+      // A stack of three: the summary, its tests and a copy fix with a long title. The legacy field still names the first one, as T3 0.1.6 keeps it.
       linkedPullRequest: demoPullRequest("acme/atlas-web", 142),
-      pullRequests: [demoLink("acme/atlas-web", 142, "ATL-142 Redesign the checkout summary", CHECKOUT_STACK), demoLink("acme/atlas-web", 143, "ATL-143 Tests for the checkout fees row", CHECKOUT_STACK)],
+      pullRequests: [
+        demoLink("acme/atlas-web", 142, "ATL-142 Redesign the checkout summary", CHECKOUT_STACK),
+        demoLink("acme/atlas-web", 143, "ATL-143 Tests for the checkout fees row", CHECKOUT_STACK),
+        demoLink("acme/atlas-web", 144, DEMO_LONG_PR_TITLE, CHECKOUT_STACK),
+      ],
     },
   },
   {
@@ -654,6 +660,12 @@ export function demoFixtures(now: Date): DemoFixtures {
     config: CONFIG,
     hiddenThreadIds: [CHILD_ID],
   };
+}
+
+/** The sessions start read, and so does every pull request but the ones of the last hour: the checkout stack shows both. */
+export function demoSeen(now: Date): SeenState {
+  const since = new Date(now.getTime() - 60 * 60_000).toISOString();
+  return { since, seen: Object.fromEntries(Object.keys(demoFixtures(now).projections).map((id) => [id, now.toISOString()])) };
 }
 
 const ISSUES: Array<[string, string, string, number, string | null, number]> = [

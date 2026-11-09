@@ -26,7 +26,7 @@ import { envAllowedHosts } from "../../config/config.ts";
 import { alertsText, readAlerts } from "../../config/alertsFile.ts";
 import { readLinearKey } from "../../config/linearFile.ts";
 import { VERSION } from "../../config/version.ts";
-import { DEMO_ENVIRONMENT_ID, DEMO_HOME, DEMO_NEWS_DIR, createDemoCacheCleanup, demoNews, demoServerStats } from "./fixtures.ts";
+import { DEMO_ENVIRONMENT_ID, DEMO_HOME, DEMO_NEWS_DIR, createDemoCacheCleanup, demoNews, demoSeen, demoServerStats } from "./fixtures.ts";
 import { DemoPort, demoLinearFetch } from "./port.ts";
 import { demoGh } from "./pulls.ts";
 
@@ -128,7 +128,7 @@ export async function startDemo(env: Record<string, string | undefined>): Promis
     actions,
     sessions: new SessionsStore(null, () => {}),
     stash: new StashStore([], () => {}, { now: () => new Date(), newId: () => crypto.randomUUID() }),
-    seen: new SeenStore(null, () => {}),
+    seen: new SeenStore(demoSeen(new Date()), () => {}),
     alerts,
     hub,
     board,
