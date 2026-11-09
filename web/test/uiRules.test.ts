@@ -441,3 +441,11 @@ test("running dots use the shared component and its one halo animation", () => {
   assert.doesNotMatch(css, /work-group-dot|\.slist-mark\.running::after/);
   assert.match(css, /\.pulse::after \{[^}]*animation: ping 1\.6s/);
 });
+
+test("settings notes and action rows can wrap inside the dialog", () => {
+  const note = css.match(/\.about-note \{([^}]+)\}/)?.[1];
+  assert.ok(note);
+  assert.match(note, /white-space: normal;/);
+  assert.match(note, /overflow-wrap: anywhere;/);
+  assert.match(css, /\.settings-row > \.row-icons \{[^}]*flex-wrap: wrap;/);
+});

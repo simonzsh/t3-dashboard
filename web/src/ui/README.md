@@ -33,7 +33,7 @@ This folder contains the base components of the dashboard. The screens in `web/s
 | `RunningDot` | Shared running indicator: a solid dot with an expanding halo. Use it in work groups, badges and lists. `label` gives an accessible name; otherwise it is hidden from assistive tools. `className` adjusts placement. Reduced motion removes the halo. |
 | `Dropdown` | Choice menu. Use it in place of `<select>`. A filter field appears for long lists. |
 | `Popover` | Panel attached next to an element. Escape and outside click close it. |
-| `Segmented` | Single choice between some visible options (for example the theme). |
+| `Segmented` | Single choice between some visible options (for example the theme). `disabled` blocks all options and keyboard navigation during a save or update. |
 | `Switch` | On/off setting that acts at once (pause an automation). `role="switch"`; `label` gives the accessible name. |
 | `ToggleGroup` | Several options that each turn on and off (for example the weekdays). The "on" look is the same gray as `Segmented`. |
 | `Kbd` | Keyboard shortcut. `className` is optional. |
