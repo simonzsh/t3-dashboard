@@ -128,7 +128,7 @@ Alerts are optional. They send a message to your phone when a session needs you 
 1. On your phone, install the ntfy app (App Store or Google Play).
 2. In Settings, open the Connections tab. In the Alerts block, click "Set up". The dashboard makes a private topic on `https://ntfy.sh`.
 3. In the ntfy app, subscribe to the topic that Settings shows.
-4. Click the "Send test alert" bell icon to check the link.
+4. Click the "Send test alert" icon (a vibrating phone) to check the link.
 
 The topic name is the only secret. Anyone who knows it can read your alerts and send messages to it. The topic is long and random for this reason. Do not share it.
 
