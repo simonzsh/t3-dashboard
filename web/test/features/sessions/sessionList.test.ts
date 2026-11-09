@@ -13,6 +13,7 @@ import {
   saveListPrefs,
   sessionsBadgeCount,
   statusMark,
+  settleBlockReason,
 } from "../../../src/features/sessions/sessionList.ts";
 import { memoryStore, thread } from "../../fixtures.ts";
 
@@ -133,4 +134,15 @@ test("a live settlement appears before the display clock next ticks", () => {
   const recent = thread("just-settled", { settled: true, settledAt: "2026-01-11T12:00:01.000Z" });
   assert.deepEqual(recentSettledThreads([recent], displayTime).map((t) => t.id), ["just-settled"]);
   assert.deepEqual(recentSettledThreads([{ ...recent, settled: false }], displayTime), []);
+});
+
+test("settle blocks active runs and requests but keeps unsettle and background-only threads available", () => {
+  for (const status of ["preparing", "queued", "starting", "running", "waiting"]) {
+    assert.ok(settleBlockReason(thread("active", { status })));
+  }
+  assert.ok(settleBlockReason(thread("active-id", { activeRunId: "run" })));
+  assert.ok(settleBlockReason(thread("approval", { pending: { category: "approval" } })));
+  assert.equal(settleBlockReason(thread("done", { status: "completed" })), null);
+  assert.equal(settleBlockReason(thread("background", { backgroundWork: true })), null);
+  assert.equal(settleBlockReason(thread("settled", { settled: true, status: "running" })), null);
 });

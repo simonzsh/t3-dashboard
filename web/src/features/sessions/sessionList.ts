@@ -1,7 +1,7 @@
 import type { DashboardProject, DashboardThread } from "../../../../shared/api.ts";
 import { isObject, uniqueStrings } from "../../../../shared/guards.ts";
 import { isUnseen, type SeenState } from "../../../../shared/seen.ts";
-import { threadState } from "../../../../shared/status.ts";
+import { runActive, threadState } from "../../../../shared/status.ts";
 import { jsonPrefs, usePrefs } from "../../lib/storage.ts";
 import { newestFirst } from "../../lib/threads.ts";
 
@@ -23,6 +23,15 @@ type StatusMark = "running" | "waiting" | "error" | "unread" | null;
 export function attentionState(t: DashboardThread): "waiting" | "running" | "error" | null {
   const state = threadState(t);
   return state === "running" || state === "waiting" || state === "error" ? state : null;
+}
+
+/** The shell cannot prove that a pending question can be dismissed, so wait for it to clear. */
+export function settleBlockReason(t: DashboardThread): string | null {
+  if (t.settled) return null;
+  if (t.pending) return "Answer the pending request before settling.";
+  if (t.status === "queued") return "Send or remove the queued message before settling.";
+  if (runActive(t)) return "Wait for the session to finish or stop it before settling.";
+  return null;
 }
 
 /** The mark before a row: what asks for attention, then a dot for an unread result. */

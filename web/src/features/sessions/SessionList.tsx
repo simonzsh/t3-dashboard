@@ -10,7 +10,7 @@ import { modelLabel } from "../../lib/models.ts";
 import { threadTitle } from "../../lib/threads.ts";
 import { Chevron, CountBadge, Icon, IconButton, Pressable, enter, fly, useFlip } from "../../ui/index.ts";
 import { ProjectMenu } from "./ProjectMenu.tsx";
-import { groupByProject, listableThreads, recentSettledThreads, statusMark, type ListPrefs } from "./sessionList.ts";
+import { groupByProject, listableThreads, recentSettledThreads, settleBlockReason, statusMark, type ListPrefs } from "./sessionList.ts";
 
 const MARK_LABELS = { running: "Running", waiting: "Waiting for you", error: "Failed", unread: "Unread" } as const;
 
@@ -93,6 +93,7 @@ function SessionListView({ threads, projects, seen, modelNames, now, openIds, fo
 
   const row = (t: DashboardThread, settledRow = false) => {
     const mark = statusMark(t, seen);
+    const blocked = settleBlockReason(t);
     const model = modelLabel(t.model, modelNames);
     const project = projectsById.get(t.projectId);
     const title = threadTitle(t);
@@ -133,7 +134,7 @@ function SessionListView({ threads, projects, seen, modelNames, now, openIds, fo
         </Pressable>
         {/* A sibling of the row, not inside it: a button cannot hold another button. */}
         <span className="thread-actions">
-          <IconButton variant="ghost" size="sm" label={`${t.settled ? "Unsettle" : "Settle"} ${title}`} tooltip={t.settled ? "Unsettle" : "Settle"} disabled={settleAction.busy} onClick={(event) => {
+          <IconButton variant="ghost" size="sm" label={`${t.settled ? "Unsettle" : "Settle"} ${title}`} tooltip={blocked ?? (t.settled ? "Unsettle" : "Settle")} disabled={settleAction.busy || blocked !== null} onClick={(event) => {
             const source = event.currentTarget.closest(".slist-item");
             const target = t.settled ? activeBar.current : settledPanel.current?.firstElementChild ?? settledAnchor.current;
             flight.current?.cancel();

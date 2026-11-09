@@ -156,3 +156,8 @@ test("session row actions offer settle or unsettle as siblings of the row", () =
   assert.match(html, /aria-label="Unsettle Settled example"/);
   assert.doesNotMatch(html, /<button[^>]*slist-row[^>]*>(?:(?!<\/button>).)*aria-label="(?:Settle|Unsettle)/);
 });
+
+test("running sessions show a disabled settle action with an explanation", () => {
+  const html = renderToStaticMarkup(<SessionList {...base} threads={[thread("running", { title: "Busy", status: "running" })]} />);
+  assert.match(html, /<button[^>]*disabled=""[^>]*aria-label="Settle Busy"[^>]*data-tooltip="Wait for the session to finish or stop it before settling."/);
+});
