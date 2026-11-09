@@ -7,6 +7,12 @@ import { STATUS_ICONS } from "../src/ui/statusIcons.ts";
 
 const sources = tsxSources();
 
+test("notification unread rings and read actions share the row center", () => {
+  const css = readFileSync(join(import.meta.dir, "../src/styles.css"), "utf8");
+  assert.match(css, /\.notif-row > \.notif-dot\s*\{[^}]*align-self: center;[^}]*margin: 0;/);
+  assert.match(css, /\.notif-item > \.thread-actions\s*\{[^}]*top: 50%;[^}]*bottom: auto;[^}]*transform: translateY\(-50%\);/);
+});
+
 interface Button {
   tag: string;
   text: string;
