@@ -26,7 +26,7 @@ Notifications and Running list your agents. Notifications is a panel, Running is
 - Archived or deleted sessions and sub-agents do not appear. The sessions of automations (run threads of routines, reminders and webhooks) appear like any session, with a small calendar icon after the title (see [Automations](#automations)).
 - The "Settle" button (box icon) settles an agent, as T3 Code does: it leaves the lists. It does not exist for an agent that works or waits.
 
-The rows change status live, without a page reload. The toasts and the browser notifications still tell you when an agent waits or finishes. Phone alerts are another feature: see the bell in [Sessions](#sessions) and the Alerts tab in [Settings](#settings). A click on a toast opens the conversation.
+The rows change status live, without a page reload. The toasts and the browser notifications still tell you when an agent waits or finishes. Phone alerts are another feature: see the bell in [Sessions](#sessions) and Alerts in the Connections tab of [Settings](#settings). A click on a toast opens the conversation.
 
 ### Clear caches
 
@@ -278,8 +278,7 @@ The Pull requests page lists your open pull requests and shows the diff of one p
 Open Settings with the header button or the `,` key. A sidebar on the left lists the tabs. Only one tab is visible at a time.
 
 - Appearance: "System", "Light" or "Dark" theme, the accent color (blue by default; purple, pink, red, orange, yellow or green). The accent color paints the buttons, the links, the focus ring, the logo and the tab icon. The interface is "Neutral" (default) or "Tinted": "Tinted" mixes the accent color into the background, the cards and the lines. Each browser keeps its own choice.
-- Connections: status of the Linear key, change or removal of the key.
-- Alerts: phone alerts through [ntfy](https://ntfy.sh). See [install.md](install.md#alerts). Without a setup, the tab lists the steps and has a "Set up" button, which creates a private topic. You can also paste an existing topic, with an optional server (default `https://ntfy.sh`), and press "Use topic". Once set up, the tab shows "Connected", the server and the topic (each with a copy button), a subscribe link, "Send test alert" and a Disconnect button. Disconnect also cancels every armed alert.
+- Connections: status of the Linear key, change or removal of the key. Below it, Alerts: phone alerts through [ntfy](https://ntfy.sh). See [install.md](install.md#alerts). Without a setup, the block lists the steps and has a "Set up" button, which creates a private topic on `https://ntfy.sh`. Once set up, the block shows "Connected", the server and the topic (each with a copy button), a subscribe link, "Send test alert" and a Disconnect button. Disconnect also cancels every armed alert.
 - App: how to install the dashboard as an application (Dock, Launchpad, Start menu, home screen). The steps change with the browser and the device: Safari, Chrome, Edge, iPhone and iPad, Android. Dia and Firefox do not install web apps.
 - Updates: installed version, check for and installation of an update. See [install.md](install.md#updates).
 

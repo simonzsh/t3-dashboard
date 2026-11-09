@@ -24,7 +24,6 @@ interface Props {
 const SECTIONS = [
   { id: "appearance", label: "Appearance" },
   { id: "connections", label: "Connections" },
-  { id: "alerts", label: "Alerts" },
   { id: "app", label: "App" },
   { id: "updates", label: "Updates" },
 ] as const;
@@ -73,8 +72,12 @@ export function SettingsDialog({ theme, onThemeChange, accent, onAccentChange, t
         </div>
       </>
     ),
-    connections: <LinearSettings onChange={onLinearChange} />,
-    alerts: <AlertsSettings />,
+    connections: (
+      <>
+        <LinearSettings onChange={onLinearChange} />
+        <AlertsSettings />
+      </>
+    ),
     app: <InstallSettings />,
     updates: <UpdateSettings update={update} onUpdate={onUpdate} />,
   };
