@@ -135,7 +135,6 @@ input.field { height: var(--control-md); padding-block: 0; }
 .notif-bell { position: relative; }
 /* Same look as the other count bubbles, pushed into the corner so it overlaps the edge and the bell stays visible. */
 .notif-bell .count-badge { position: absolute; top: -6px; right: -6px; min-width: 16px; height: 16px; padding: 0 4px; font-size: 10px; font-weight: 600; background: color-mix(in srgb, var(--accent) 18%, transparent); color: var(--accent); box-shadow: 0 0 0 2px var(--surface-0); }
-.count-badge.neutral { background: color-mix(in srgb, var(--text-primary) 8%, transparent); color: var(--text-secondary); }
 .icon-button:has(kbd) { gap: 6px; padding: 0 6px; }
 .icon-button:not(.primary):hover:not(:disabled) { color: var(--text-primary); }
 button.primary, a.primary { background: var(--accent); border-color: var(--accent); color: var(--on-accent); font-weight: 500; }
@@ -823,6 +822,7 @@ ol.install-steps { padding-left: 18px; }
 .nav-icon { flex: none; width: 18px; height: 18px; }
 .nav-label { flex: 1; min-width: 0; overflow: hidden; }
 /* Every count follows the accent color; the text is darkened or lightened to stay readable. */
+.count-badge.neutral { background: color-mix(in srgb, var(--text-primary) 8%, transparent); color: var(--text-secondary); }
 .count-badge { flex: none; display: inline-grid; place-items: center; min-width: 20px; height: 20px; padding: 0 6px; border-radius: 999px; font-size: 11px; font-weight: 600; line-height: 1; background: color-mix(in srgb, var(--accent) 20%, transparent); color: var(--work-text); }
 /* Waiting is a person (a human is needed) and a failure an alert circle, as in the Notifications card: a dot means running. */
 .nav-alert { flex: none; display: grid; place-items: center; width: 14px; height: 14px; color: var(--warn); }
@@ -1062,9 +1062,9 @@ ol.install-steps { padding-left: 18px; }
 @media (pointer: coarse) {
   .slist-new { opacity: 1; }
   .slist-project-toggle, .slist-new { min-height: 44px; min-width: 44px; }
-  .slist-item .thread-actions { top: 50%; }
+  .slist-item .thread-actions { top: 50%; gap: 16px; }
   .slist-row { padding-right: 40px; }
-  .slist-row.open { padding-right: 76px; }
+  .slist-row.open { padding-right: 88px; }
   .slist-row { padding-block: 10px; }
 }
 /* On a phone an opened session covers the page: no header, no bottom bar. */
