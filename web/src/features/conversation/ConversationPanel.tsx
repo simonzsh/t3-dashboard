@@ -5,7 +5,7 @@ import { highlightText } from "../../lib/highlightText.tsx";
 import { useMediaQuery } from "../../lib/useMediaQuery.ts";
 import { useApi } from "../../api/ApiContext.tsx";
 import { watchSelection } from "./selection.ts";
-import { Button, Popover, SearchField, Icon, IconButton, Loader, TOUCH } from "../../ui/index.ts";
+import { Button, Popover, SearchField, Icon, IconButton, Loader, STATUS_ICONS, TOUCH } from "../../ui/index.ts";
 import { attachmentUrl } from "../../api/client.ts";
 import { type PendingMessage, countSame, isSettled, pendingLabel, sentMessages } from "./pending.ts";
 import { MarkdownText } from "./MarkdownText.tsx";
@@ -538,7 +538,7 @@ function Conversation({ searchRequest = 0, threadId, thread, providers, onOpenTh
       </div>
       {needsInput && (
         <div className="input-request-dock">
-          <div className="working-row"><span>Waiting for your reply</span><WorkingRobot waiting /></div>
+          <div className="working-row"><Icon name={STATUS_ICONS.waiting} className="waiting-icon" /><span>Waiting for your reply</span><WorkingRobot waiting /></div>
           {secrets.map(step => <SecretRequestCard key={step.id} step={step} threadId={threadId} onAnswered={load} />)}
         </div>
       )}
