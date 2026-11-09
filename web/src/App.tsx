@@ -138,7 +138,13 @@ export function App() {
   useLayoutEffect(() => {
     const el = header.current;
     if (!el) return;
-    const set = () => document.documentElement.style.setProperty("--header-h", `${el.offsetHeight}px`);
+    let height = -1;
+    const set = () => {
+      const next = el.offsetHeight;
+      if (next === height) return;
+      height = next;
+      document.documentElement.style.setProperty("--header-h", `${next}px`);
+    };
     set();
     const observer = new ResizeObserver(set);
     // Border box: the phone header's top padding follows the safe area, and a padding-only change (rotation) leaves the content box as is.

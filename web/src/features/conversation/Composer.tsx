@@ -9,6 +9,7 @@ import { useApi } from "../../api/ApiContext.tsx";
 import { ensureStash, setStash, useStash } from "../../api/stashStore.ts";
 import { Button, FileInput, Icon, IconButton, Loader, OptionList, Popover, Pressable, TextArea, TOUCH, useListNav } from "../../ui/index.ts";
 import { errorMessage, formatTokens } from "../../lib/format.ts";
+import { observeSettledWidth } from "../../lib/observeSettledWidth.ts";
 import { useAction } from "../../lib/useAction.ts";
 import { useDebouncedValue } from "../../lib/useDebouncedValue.ts";
 import { useMediaQuery } from "../../lib/useMediaQuery.ts";
@@ -174,9 +175,7 @@ export function Composer({ providers, selection, runtimeMode, running, stoppable
       if (el.value === "" || el.clientWidth === 0) return;
       el.style.height = `${el.scrollHeight}px`;
     };
-    const observer = new ResizeObserver(() => fit.current());
-    observer.observe(el.parentElement ?? el);
-    return () => observer.disconnect();
+    return observeSettledWidth(el.parentElement ?? el, () => fit.current());
   }, []);
   useEffect(() => fit.current(), [draft]);
 

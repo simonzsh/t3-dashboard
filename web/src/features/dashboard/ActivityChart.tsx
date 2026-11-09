@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { observeSettledWidth } from "../../lib/observeSettledWidth.ts";
 import { formatTokens } from "../../lib/format.ts";
 import { barLayout, barRange, cacheShare, formatMetric, formatUsd, labelEvery, METRICS, metricValue, niceTicks, shortDay, tokensOf, type ChartBar, type Metric } from "./activityView.ts";
 
@@ -19,11 +20,7 @@ function useWidth(): [React.RefObject<HTMLDivElement | null>, number] {
   useEffect(() => {
     const el = ref.current;
     if (!el) return;
-    const set = () => setWidth(Math.max(240, el.clientWidth));
-    set();
-    const observer = new ResizeObserver(set);
-    observer.observe(el);
-    return () => observer.disconnect();
+    return observeSettledWidth(el, (next) => setWidth(Math.max(240, next)));
   }, []);
   return [ref, width];
 }

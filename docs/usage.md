@@ -4,6 +4,8 @@
 
 The dashboard has five pages: Dashboard, Sessions, Pull requests, Automations and News. A sidebar on the left lists them, with a search button (`⌘` + `K`). Its last row shows the connection state, Settings and a button that collapses the sidebar to icons (`Ctrl` + `B`). The theme, the accent color and the interface tint are in Settings. The sidebar remembers its state. The page header is one line: the title and a short description. Its button depends on the page: Sessions has a list toggle (wide screen), a layout button and New Session (`Ctrl` + `N`), Automations has New Automation (`Ctrl` + `⇧` + `N`), News has News settings and Run now, and Dashboard has the Notifications bell, with the number of unread items, then Edit layout. The two shortcuts work on every page. On a phone, a bar at the bottom of the screen replaces the sidebar: Dashboard, Sessions, Pull requests (shown as "PRs"), Automations and News. The header then shows the page buttons as icons (on Dashboard, the bell too), a search button and Settings. A dot on Settings shows that an update is ready.
 
+The sidebar and session list keep their slide animation. Charts and composer heights adjust after the width settles.
+
 When an update is ready, the sidebar shows an Update button above the connection row. Its label sits beside the arrow icon.
 
 ## Dashboard
