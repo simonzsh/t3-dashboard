@@ -1205,7 +1205,8 @@ ol.install-steps { padding-left: 18px; }
   .news-article { flex: 1; }
   .news-page:not(.reading) .news-article, .news-page.reading .news-list { display: none; }
   .news-item { padding: 12px 10px; }
-  .news-back { display: inline-flex; margin: 0 0 4px -8px; }
+  /* No negative inset: the scroll box clips at its 4px ring room, and the focus ring would be cut. */
+  .news-back { display: inline-flex; margin: 0 0 4px; }
   .news-body { font-size: 16px; }
 }
 /* Pull requests: the open pull requests and one pull request's diff. */
