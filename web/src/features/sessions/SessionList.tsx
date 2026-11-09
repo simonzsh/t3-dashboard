@@ -8,7 +8,7 @@ import { AutomationMark } from "../../lib/automationThreads.tsx";
 import { ProviderIcon } from "../../lib/ProviderIcon.tsx";
 import { modelLabel } from "../../lib/models.ts";
 import { threadTitle } from "../../lib/threads.ts";
-import { Chevron, CountBadge, Icon, IconButton, Pressable, fly, useFlip } from "../../ui/index.ts";
+import { Chevron, CountBadge, Icon, IconButton, Pressable, enter, fly, useFlip } from "../../ui/index.ts";
 import { ProjectMenu } from "./ProjectMenu.tsx";
 import { groupByProject, listableThreads, recentSettledThreads, statusMark, type ListPrefs } from "./sessionList.ts";
 
@@ -42,6 +42,12 @@ function SessionListView({ threads, projects, seen, modelNames, now, openIds, fo
   const [settledOpen, setSettledOpen] = useState(false);
   const settled = useMemo(() => recentSettledThreads(threads, now), [threads, now]);
   const activeList = useRef<HTMLDivElement>(null);
+  useLayoutEffect(() => {
+    const list = activeList.current;
+    if (!list) return;
+    const animation = enter(list, { y: 8, duration: 240 });
+    return () => { animation?.cancel(); };
+  }, []);
   const activeBar = useRef<HTMLDivElement>(null);
   const settledAnchor = useRef<HTMLSpanElement>(null);
   const flight = useRef<Animation | null>(null);
