@@ -109,7 +109,7 @@ const numbers = (extra: Partial<RawThread>) => prsOf(extra).map((p) => p.number)
 
 test("the pull requests come from T3's list in its order, with the branch one last", () => {
   assert.deepEqual(numbers({ pullRequests: [link(12), link(14)], branchPullRequest: pr(9) }), [12, 14, 9]);
-  assert.deepEqual(prsOf({ pullRequests: [link(12, { snapshot: { title: "Cart", state: "open" } })] }), [{ repository: "acme/storefront", number: 12, url: "https://example.test/acme/storefront/pull/12", title: "Cart" }]);
+  assert.deepEqual(prsOf({ pullRequests: [link(12, { snapshot: { title: "Cart", state: "open" } })] }), [{ repository: "acme/storefront", number: 12, url: "https://example.test/acme/storefront/pull/12", title: "Cart", state: "open", draft: false }]);
   assert.equal(toDashboardThread(thread({ branch: "cart" }), now).branch, "cart");
   assert.equal(toDashboardThread(thread(), now).branch, null);
 });

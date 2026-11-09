@@ -9,6 +9,8 @@ import { useListNav } from "./useListNav.ts";
 export interface ActionMenuItem {
   label: string;
   icon: IconName;
+  iconClassName?: string;
+  iconLabel?: string;
   onSelect: () => void;
   danger?: boolean;
   disabled?: boolean;
@@ -41,7 +43,7 @@ export function ActionMenuRow({ item, id, active, onPick, onHover }: RowProps) {
       onMouseEnter={onHover}
       onClick={onPick}
     >
-      <Icon name={item.icon} />
+      <Icon name={item.icon} className={["icon", item.iconClassName].filter(Boolean).join(" ")} label={item.iconLabel} />
       {item.detail ? (
         <span className="dropdown-text action-menu-text">
           <span className="action-menu-label">{item.label}</span>

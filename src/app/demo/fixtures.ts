@@ -88,6 +88,7 @@ const demoLink = (repository: string, number: number, title: string, stack: { id
 });
 export const DEMO_LONG_PR_TITLE = "ATL-144 Explain each fee of the checkout summary in plain words, with the shipping, tax and service lines";
 const CHECKOUT_STACK = { id: "checkout", layers: [142, 143, 144] };
+const MERGED_PR = { ...demoLink("acme/atlas-web", 137, "Improve chart legends"), snapshot: { title: "Improve chart legends", state: "merged" } };
 const CHART_PR = demoLink("acme/atlas-web", 138, "Dark mode contrast on charts");
 
 interface DemoRun {
@@ -184,6 +185,7 @@ const SPECS: ThreadSpec[] = [
       // A stack of three: the summary, its tests and a copy fix with a long title. The legacy field still names the first one, as T3 0.1.6 keeps it.
       linkedPullRequest: demoPullRequest("acme/atlas-web", 142),
       pullRequests: [
+        MERGED_PR,
         demoLink("acme/atlas-web", 142, "ATL-142 Redesign the checkout summary", CHECKOUT_STACK),
         demoLink("acme/atlas-web", 143, "ATL-143 Tests for the checkout fees row", CHECKOUT_STACK),
         demoLink("acme/atlas-web", 144, DEMO_LONG_PR_TITLE, CHECKOUT_STACK),
@@ -352,7 +354,7 @@ const SPECS: ThreadSpec[] = [
       ],
     ],
     runs: [...earlier("charts", [112, 77, 45, 29, 17]), { id: "run-charts-old0", status: "completed", started: 2899, completed: 2880 }, { id: "run-charts-1", status: "completed", started: 139, completed: 128 }],
-    thread: { pullRequests: [CHART_PR] },
+    thread: { pullRequests: [CHART_PR, MERGED_PR] },
   },
   {
     id: "demo-digest",

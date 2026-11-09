@@ -36,6 +36,8 @@ export interface DashboardThread {
 }
 
 export interface ThreadPullRequest {
+  state?: "open" | "closed" | "merged" | null;
+  draft?: boolean;
   repository: string;
   number: number;
   url: string;

@@ -1,3 +1,4 @@
+import { prStatus } from "../../lib/prStatus.ts";
 import { memo, type Dispatch } from "react";
 import type { DashboardProvider, DashboardThread, ProjectIcon as ProjectIconData, ThreadPullRequest } from "../../../../shared/api.ts";
 import { ActionMenu, Badge, Button, Icon, IconButton, IconButtonLink } from "../../ui/index.ts";
@@ -133,7 +134,7 @@ export function PullRequestsButton({ pullRequests, open, fromSession }: { fromSe
     const label = `Open pull request #${first.number}`;
     return (
       <IconButtonLink variant="ghost" size="sm" href={hashForPr(first, fromSession)} label={unread(first) ? `${label} (unread)` : label} tooltip={label}>
-        <Icon name="gitPullRequest" />
+        <Icon name={prStatus(first).icon} className={`icon ${prStatus(first).className}`} label={prStatus(first).label} />
         {unread(first) && <span className="notif-dot icon-button-dot" aria-hidden="true" />}
       </IconButtonLink>
     );
@@ -141,7 +142,9 @@ export function PullRequestsButton({ pullRequests, open, fromSession }: { fromSe
   const items = newestFirst(pullRequests, open).map((pr) => ({
     label: `#${pr.number} ${pr.repository}`,
     detail: pr.title || undefined,
-    icon: "gitPullRequest" as const,
+    icon: prStatus(pr).icon,
+    iconClassName: prStatus(pr).className,
+    iconLabel: prStatus(pr).label,
     onSelect: () => (window.location.hash = hashForPr(pr, fromSession)),
     unread: unread(pr),
   }));

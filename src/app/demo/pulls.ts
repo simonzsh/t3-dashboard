@@ -6,6 +6,7 @@ import { AUDIT_DIFF, CHARTS_DIFF, CHECKOUT_DIFF, FEES_TESTS_DIFF, ONBOARDING_DIF
 type Conclusion = "SUCCESS" | "FAILURE" | "PENDING";
 
 interface DemoPr {
+  state?: "OPEN" | "MERGED" | "CLOSED";
   repository: string;
   number: number;
   title: string;
@@ -27,6 +28,12 @@ interface DemoPr {
 }
 
 const PRS: DemoPr[] = [
+  {
+    repository: "acme/atlas-web", number: 137, title: "Improve chart legends", author: "ada", draft: false,
+    state: "MERGED", headRef: "chart-legends", created: 4000, updated: 200, decision: "APPROVED",
+    checks: [["build", "SUCCESS"]], reviews: [["grace", "APPROVED"]], scope: "author",
+    body: "Clearer legends for the analytics charts.", diff: CHARTS_DIFF,
+  },
   {
     repository: "acme/atlas-web", number: 142, title: "ATL-142 Redesign the checkout summary", author: "ada", draft: false, headRef: "checkout-summary", created: 2880, updated: 6, decision: "APPROVED",
     checks: [["build", "SUCCESS"], ["unit tests", "SUCCESS"], ["lint", "SUCCESS"]], reviews: [["grace", "APPROVED"]], scope: "author",
@@ -84,7 +91,7 @@ const searchNode = (pr: DemoPr, now: Date, start: Date) => ({
 
 const view = (pr: DemoPr, now: Date, start: Date) => ({
   ...searchNode(pr, now, start),
-  state: "OPEN",
+  state: pr.state ?? "OPEN",
   changedFiles: parseDiff(pr.diff).length,
   body: pr.body,
   reviews: pr.reviews.map(([author, state]) => ({ author: { login: author }, state, submittedAt: new Date(now.getTime() - (pr.updated + 5) * 60_000).toISOString() })),
@@ -104,7 +111,7 @@ export function demoGh(now: () => Date): GhRun {
   return async (args) => {
     if (args[0] === "api") {
       const scope = args.some((arg) => arg.includes("review-requested")) ? "reviewer" : "author";
-      return reply({ data: { search: { nodes: PRS.filter((pr) => pr.scope === scope).map((pr) => searchNode(pr, now(), start)) } } });
+      return reply({ data: { search: { nodes: PRS.filter((pr) => pr.scope === scope && (!pr.state || pr.state === "OPEN")).map((pr) => searchNode(pr, now(), start)) } } });
     }
     const pr = PRS.find((candidate) => candidate.repository === args[args.indexOf("-R") + 1] && String(candidate.number) === args[2]);
     if (!pr) return { code: 1, stdout: "", truncated: false, notFound: true };

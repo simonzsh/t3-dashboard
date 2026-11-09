@@ -1,6 +1,10 @@
 /* Light theme and very dark zinc theme; data-theme is set on <html> before first paint, and data-accent picks the accent color. */
 :root, :root[data-theme="light"] {
   color-scheme: light;
+  --pr-open: #1a7f37;
+  --pr-merged: #8250df;
+  --pr-closed: #cf222e;
+  --pr-draft: #59636e;
   --page-bg: #ffffff;
   --surface-0: #f4f4f5;
   --surface-1: #ffffff;
@@ -24,6 +28,10 @@
 }
 :root[data-theme="dark"] {
   color-scheme: dark;
+  --pr-open: #3fb950;
+  --pr-merged: #a371f7;
+  --pr-closed: #f85149;
+  --pr-draft: #9198a1;
   --page-bg: #09090b;
   --surface-0: #09090b;
   --surface-1: #121214;
@@ -522,7 +530,7 @@ input.dropdown-search { position: absolute; inset: 0 auto 0 0; z-index: 1; width
 .dropdown-footer { border-top: 1px solid var(--line); }
 .dropdown-empty { padding: 6px 8px; font-size: 13px; color: var(--text-secondary); }
 /* Action menus (ActionMenu) reuse the Dropdown rows: an icon, a label, and a red Delete. */
-.dropdown-option[role="menuitem"] > .icon { flex: none; width: 14px; height: 14px; color: var(--text-secondary); }
+.dropdown-option[role="menuitem"] > .icon { flex: none; width: 14px; height: 14px; color: var(--pr-status, var(--text-secondary)); }
 .dropdown-option[role="menuitem"].danger, .dropdown-option[role="menuitem"].danger > .icon { color: var(--danger); }
 .dropdown-option[role="menuitem"] > .notif-dot { margin: 0; }
 /* Long rows (pull request titles) must not stretch the menu: only the detail gives way. */
@@ -1192,7 +1200,7 @@ ol.install-steps { padding-left: 18px; }
 .news-item-title { font-weight: 500; overflow-wrap: anywhere; }
 
 /* One rem width for every child: in ch, the small date line got a narrower box than the text and sat off its left edge. */
-.news-article > * { max-width: 42rem; margin-inline: max(var(--news-list-space), calc((100% - 42rem) / 2)) auto; }
+.news-article > * { max-width: 42rem; margin-inline: max(var(--news-list-space), calc((100% - 42rem) / 2 + var(--news-list-space) / 4)) auto; }
 .news-back { display: none; }
 .news-model { container-type: inline-size; }
 .news-schedule { display: contents; }
@@ -1240,6 +1248,11 @@ ol.install-steps { padding-left: 18px; }
 .pulls-row-title .notif-dot { display: inline-block; margin: 0 0 0 8px; vertical-align: middle; }
 .pulls-row-meta { font-size: 12px; color: var(--text-secondary); overflow-wrap: anywhere; }
 .pulls-row-session { flex: none; }
+.pr-status-open { --pr-status: var(--pr-open); color: var(--pr-status); }
+.pr-status-merged { --pr-status: var(--pr-merged); color: var(--pr-status); }
+.pr-status-closed { --pr-status: var(--pr-closed); color: var(--pr-status); }
+.pr-status-draft, .pr-status-unknown { --pr-status: var(--pr-draft); color: var(--pr-status); }
+.badge.pr-state-badge { background: var(--pr-status); color: #fff; }
 .pulls-badges { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
 /* The stuck file header and tree sit right under the head: room so its last line does not touch them. */
 .pulls-head { display: flex; flex-direction: column; gap: 4px; padding-bottom: 10px; }
