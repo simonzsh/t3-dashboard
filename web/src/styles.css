@@ -358,9 +358,9 @@ main { flex: 1; min-height: 0; overflow: hidden; padding: var(--page-top) var(--
 .robot-antenna::before { content: ""; position: absolute; width: 9px; height: 9px; left: -3px; top: -3px; border-radius: 50%; background: var(--work); box-shadow: 0 0 12px color-mix(in srgb, var(--work) 40%, transparent); }
 .robot-body { left: 50px; top: 62px; width: 48px; height: 31px; border-radius: 14px; }
 .robot-hand { top: 82px; width: 20px; height: 13px; border-radius: 10px; z-index: 4; }
-.robot-arm { position: absolute; top: 67px; width: 13px; height: 26px; border-radius: 9px; background: linear-gradient(90deg, var(--robot-shade), var(--accent)); transform-origin: 50% 0; z-index: 2; }
-.robot-arm.left { left: 37px; rotate: 12deg; }
-.robot-arm.right { right: 35px; rotate: -12deg; }
+.robot-arm { position: absolute; top: 70px; width: 13px; height: 25px; border-radius: 9px; background: linear-gradient(90deg, var(--robot-shade), var(--accent)); transform-origin: 50% 0; z-index: 2; }
+.robot-arm.left { left: 47px; rotate: 12deg; }
+.robot-arm.right { right: 47px; rotate: -12deg; }
 .robot-hand.left { left: 35px; }
 .robot-hand.right { right: 33px; }
 .robot-keyboard { position: absolute; left: 25px; top: 88px; width: 102px; height: 29px; display: grid; grid-template-columns: repeat(5, 1fr); gap: 3px; padding: 5px; border-radius: 7px; background: var(--robot-shade); box-shadow: 0 4px 0 var(--robot-shade), 0 10px 14px #0002; transform: rotateX(48deg); }
