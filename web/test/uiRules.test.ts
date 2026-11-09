@@ -393,6 +393,14 @@ test("a dragged session header keeps its source width and pointer offset", () =>
   assert.doesNotMatch(rule, /(?:^|;)\s*(?:width|min-width):/);
 });
 
+test("full-screen session and pull request headers share the iOS top-edge fix", () => {
+  const rule = css.match(/\.app\.session-shown :is\(\.banner, \.sessions\.compact \.session-window-head\),\s*\.app\.pr-shown :is\(\.banner, \.pulls-detail > \.list-page-head\) \{([^}]+)\}/)?.[1];
+  assert.ok(rule);
+  assert.match(rule, /position: sticky;/);
+  assert.match(rule, /top: 0;/);
+  assert.match(rule, /z-index: 4;/);
+});
+
 test("mobile session header spacing cannot replace its focus tint", () => {
   const rules = [...css.matchAll(/([^{}]+)\{([^{}]+)\}/g)];
   const mobileHeaders = rules.filter(([, selector]) => selector!.includes(".sessions.compact .session-window-head"));

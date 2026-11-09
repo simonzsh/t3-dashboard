@@ -1100,7 +1100,8 @@ ol.install-steps { padding-left: 18px; }
 .app.session-shown .banner { padding-top: max(8px, env(safe-area-inset-top)); }
 .app.session-shown .banner ~ main .sessions.compact .session-window-head { padding-top: 6px; }
 /* iOS Safari blurs the top edge unless a sticky or fixed bar touches it, as the page header does elsewhere. */
-.app.session-shown :is(.banner, .sessions.compact .session-window-head) { position: sticky; top: 0; z-index: 4; }
+.app.session-shown :is(.banner, .sessions.compact .session-window-head),
+.app.pr-shown :is(.banner, .pulls-detail > .list-page-head) { position: sticky; top: 0; z-index: 4; }
 .sessions.compact :is(.session-window-back, .session-window-buttons .icon-button) { min-width: 36px; height: 36px; }
 @media (max-width: 700px) {
   /* Linear rows: the meta takes a second line, so the title keeps the full width. */
