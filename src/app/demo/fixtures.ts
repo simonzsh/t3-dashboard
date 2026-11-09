@@ -372,6 +372,42 @@ const SPECS: ThreadSpec[] = [
     thread: { settledOverride: "settled", settledAt: LAST },
   },
   {
+    id: "demo-settled-copy",
+    projectId: "demo-atlas-web",
+    title: "Review checkout labels",
+    model: CODEX,
+    status: "completed",
+    messages: [
+      ["user", 35, "Review the checkout labels."],
+      ["assistant", 25, "Updated the labels and checked the confirmation screen."],
+    ],
+    thread: { settledOverride: "settled", settledAt: LAST },
+  },
+  {
+    id: "demo-settled-mobile",
+    projectId: "demo-mobile",
+    title: "Fix settings screen spacing",
+    model: CLAUDE,
+    status: "completed",
+    messages: [
+      ["user", 250, "Fix the spacing on the settings screen."],
+      ["assistant", 240, "Adjusted the spacing and checked both phone layouts."],
+    ],
+    thread: { settledOverride: "settled", settledAt: LAST },
+  },
+  {
+    id: "demo-settled-notes",
+    projectId: "demo-assistant",
+    title: "Summarize release feedback",
+    model: SONNET,
+    status: "completed",
+    messages: [
+      ["user", 730, "Summarize the release feedback."],
+      ["assistant", 720, "Grouped the feedback and listed the next actions."],
+    ],
+    thread: { settledOverride: "settled", settledAt: LAST },
+  },
+  {
     id: "demo-deep-links",
     projectId: "demo-mobile",
     title: "Push notification deep links",

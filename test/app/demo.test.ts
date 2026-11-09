@@ -105,7 +105,7 @@ test("the demo shell fills the store with threads in every state", async () => {
   assert.deepEqual([...statuses].sort(), ["finished", "waiting", "working"]);
   const settled = demoFixtures(NOW).threads.filter((thread) => thread.settledOverride === "settled");
   const cutoff = NOW.getTime() - 24 * 3_600_000;
-  assert.ok(settled.some((thread) => Date.parse(thread.settledAt ?? "") >= cutoff));
+  assert.equal(settled.filter((thread) => Date.parse(thread.settledAt ?? "") >= cutoff).length, 4);
   assert.ok(settled.some((thread) => Date.parse(thread.settledAt ?? "") < cutoff));
 });
 
