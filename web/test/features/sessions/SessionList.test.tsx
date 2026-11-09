@@ -142,5 +142,6 @@ test("recent settled stays outside the main scroll body and starts collapsed", (
   assert.match(html, /<div class="slist-body"><\/div><section class="slist-settled"/);
   assert.match(html, /aria-expanded="false"/);
   assert.match(html, /Settled · last 24h/);
-  assert.doesNotMatch(html, /Settled example/);
+  assert.match(html, /class="slist-settled-body" inert="" aria-hidden="true"/);
+  assert.match(html, /Settled example/);
 });

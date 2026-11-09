@@ -166,13 +166,15 @@ function SessionListView({ threads, projects, seen, modelNames, now, openIds, fo
         {(grouped ? projectGroups.length === 0 : shown.length === 0) && settled.length === 0 ? <p className="slist-empty">No sessions yet.</p> : groups}
       </div>
       {settled.length > 0 && (
-        <section className="slist-settled" aria-label="Settled in the last 24 hours">
+        <section className={`slist-settled${settledOpen ? " expanded" : ""}`} aria-label="Settled in the last 24 hours">
           <Pressable className="slist-project-toggle slist-settled-toggle" aria-expanded={settledOpen} onClick={() => setSettledOpen(!settledOpen)}>
             <Chevron open={settledOpen} className="slist-chevron" />
             <span className="slist-project-title">Settled · last 24h</span>
             <span className="slist-total">{settled.length}</span>
           </Pressable>
-          {settledOpen && <div className="slist-settled-body">{settled.map((t) => row(t, true))}</div>}
+          <div className="slist-settled-body" inert={!settledOpen} aria-hidden={!settledOpen}>
+            <div className="slist-settled-content">{settled.map((t) => row(t, true))}</div>
+          </div>
         </section>
       )}
     </aside>
