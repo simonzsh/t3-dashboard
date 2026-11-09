@@ -79,6 +79,15 @@ test("state sorts threads by lastActivityAt descending", () => {
   assert.deepEqual(states[0]!.threads.map((thread) => thread.id), ["new", "mid", "old"]);
 });
 
+test("threads gives every live thread, and none after a removal", () => {
+  const { store } = setup();
+  store.beginSync();
+  store.apply([snapshot([raw("a"), raw("b")]), { kind: "synchronized" }]);
+  assert.deepEqual(store.threads().map((thread) => thread.id).sort(), ["a", "b"]);
+  store.apply([{ kind: "thread.removed", threadId: "a" }]);
+  assert.deepEqual(store.threads().map((thread) => thread.id), ["b"]);
+});
+
 function live() {
   const ctx = setup();
   ctx.store.beginSync();

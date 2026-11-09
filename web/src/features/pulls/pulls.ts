@@ -2,21 +2,22 @@ import type { BadgeVariant } from "../../ui/index.ts";
 import type { DashboardThread } from "../../../../shared/api.ts";
 import type { PrChecks, PrRef, PrReview, PrSummary } from "../../../../shared/pulls.ts";
 
-export type Scope = "all" | "author" | "reviewer";
+export type Scope = "all" | "author" | "reviewer" | "unread";
 
 export const SCOPES: ReadonlyArray<{ id: Scope; label: string }> = [
   { id: "all", label: "All" },
   { id: "author", label: "Mine" },
   { id: "reviewer", label: "To review" },
+  { id: "unread", label: "Unread" },
 ];
 
 export const ALL_REPOSITORIES = "all";
 
-export function filterPrs(prs: PrSummary[], scope: Scope, repository: string, query = ""): PrSummary[] {
+export function filterPrs(prs: PrSummary[], scope: Scope, repository: string, query = "", unread: (pr: PrSummary) => boolean = () => false): PrSummary[] {
   const text = query.trim().toLowerCase().replace(/^#/, "");
   return prs.filter(
     (pr) =>
-      (scope === "all" || pr.roles.includes(scope)) &&
+      (scope === "all" || (scope === "unread" ? unread(pr) : pr.roles.includes(scope))) &&
       (repository === ALL_REPOSITORIES || pr.repository === repository) &&
       (text === "" || [pr.title, pr.repository, String(pr.number), pr.author, pr.headRef].some((field) => field.toLowerCase().includes(text))),
   );
@@ -51,3 +52,8 @@ export const REVIEWS: Record<PrReview, { label: string; variant: BadgeVariant } 
 export const isWebUrl = (url: string): boolean => /^https:\/\//i.test(url);
 
 export const shortRepository = (repository: string): string => repository.slice(repository.indexOf("/") + 1);
+
+// The server keeps the list for a minute. Off the page, the poll only feeds the badge and the session menus.
+export const pullsPollMs = (onPage: boolean): number => (onPage ? 30_000 : 120_000);
+/** Delay before the one read that follows a list the server flagged as stale. */
+export const STALE_RETRY_MS = 1_500;

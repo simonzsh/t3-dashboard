@@ -1,6 +1,7 @@
 import type { ConnectionStatus } from "./connection.ts";
 import type { SessionsUpdate } from "./sessions.ts";
 import type { StashEntry } from "./stash.ts";
+import type { AlertsState } from "./alerts.ts";
 import type { SeenState } from "./seen.ts";
 import type { DashboardProject, DashboardProvider, DashboardThread, ModelDefaults } from "./threads.ts";
 
@@ -30,8 +31,9 @@ export type DashboardEvent =
   | { type: "connection"; data: ConnectionStatus }
   | { type: "sessions"; data: SessionsUpdate }
   | { type: "stash"; data: StashEntry[] }
-  | { type: "seen"; data: SeenState };
+  | { type: "seen"; data: SeenState }
+  | { type: "alerts"; data: AlertsState };
 
 // A record, not a list: a new event type without an entry here fails the type check.
-const EVENT_TYPES: Record<DashboardEvent["type"], true> = { state: true, threads: true, projects: true, providers: true, modelDefaults: true, connection: true, sessions: true, stash: true, seen: true };
+const EVENT_TYPES: Record<DashboardEvent["type"], true> = { state: true, threads: true, projects: true, providers: true, modelDefaults: true, connection: true, sessions: true, stash: true, seen: true, alerts: true };
 export const DASHBOARD_EVENT_TYPES = Object.keys(EVENT_TYPES) as DashboardEvent["type"][];

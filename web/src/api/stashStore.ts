@@ -10,6 +10,16 @@ export function setStash(next: StashEntry[] | ((list: StashEntry[]) => StashEntr
   for (const listener of listeners) listener();
 }
 
+// One read per page: mounting a composer must not read again. A lost event stream marks it stale.
+let loading: Promise<void> | null = null;
+
+export function ensureStash(load: () => Promise<StashEntry[]>): Promise<void> {
+  loading ??= load().then(setStash, () => void (loading = null));
+  return loading;
+}
+
+export const staleStash = (): void => void (loading = null);
+
 function subscribe(listener: () => void): () => void {
   listeners.add(listener);
   return () => void listeners.delete(listener);

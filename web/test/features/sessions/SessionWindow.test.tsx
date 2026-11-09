@@ -4,7 +4,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { PullRequestsButton, SessionWindow } from "../../../src/features/sessions/SessionWindow.tsx";
 import { thread } from "../../fixtures.ts";
 
-const base = { id: "t1", thread: null, title: "Fix login", projectTitle: null, projectIcon: null, focused: true, maximized: false, compact: false, live: true, t3EnvironmentId: null, providers: [], dispatch: () => {} };
+const base = { id: "t1", thread: null, title: "Fix login", projectTitle: null, projectIcon: null, focused: true, maximized: false, compact: false, live: true, t3EnvironmentId: null, providers: [], openPrs: new Map(), alert: null, onToggleAlert: () => {}, dispatch: () => {} };
 
 test("a missing window keeps its classes and shows the message with a close button", () => {
   const html = renderToStaticMarkup(<SessionWindow {...base} missing />);
@@ -69,8 +69,8 @@ test("every control in the session header has the icon button classes, so they s
 });
 test("the pull request menu items open each diff, with the title when T3 knows it", () => {
   const opened: string[] = [];
-  const items = PullRequestsButton({ pullRequests: [linked(12, "Summary"), linked(13)] })!.props.items as Array<{ label: string; onSelect: () => void }>;
-  assert.deepEqual(items.map((item) => item.label), ["#12 acme/storefront – Summary", "#13 acme/storefront"]);
+  const items = PullRequestsButton({ pullRequests: [linked(12, "Summary"), linked(13)], open: new Map() })!.props.items as Array<{ label: string; onSelect: () => void }>;
+  assert.deepEqual(items.map((item) => item.label), ["#13 acme/storefront", "#12 acme/storefront – Summary"]);
   const location = { hash: "" };
   const saved = Object.getOwnPropertyDescriptor(globalThis, "window");
   Object.defineProperty(globalThis, "window", { value: { location }, configurable: true });
@@ -83,5 +83,33 @@ test("the pull request menu items open each diff, with the title when T3 knows i
     if (saved) Object.defineProperty(globalThis, "window", saved);
     else delete (globalThis as { window?: unknown }).window;
   }
-  assert.deepEqual(opened, ["#/pulls/acme/storefront/12", "#/pulls/acme/storefront/13"]);
+  assert.deepEqual(opened, ["#/pulls/acme/storefront/13", "#/pulls/acme/storefront/12"]);
+});
+
+const openOf = (entries: Array<[number, string, boolean]>) => new Map(entries.map(([n, createdAt, unread]) => [`pr:acme/storefront#${n}`, { createdAt, unread }]));
+
+test("the menu marks only the unread open pull requests, whatever the case of the repository", () => {
+  const items = PullRequestsButton({ pullRequests: [linked(12), linked(13), linked(14)], open: openOf([[13, "", true]]) })!.props.items as Array<{ label: string; unread: boolean }>;
+  assert.deepEqual(items.map((item) => [item.label, item.unread]), [["#14 acme/storefront", false], ["#13 acme/storefront", true], ["#12 acme/storefront", false]]);
+  const upper = PullRequestsButton({ pullRequests: [{ ...linked(12), repository: "Acme/Storefront" }, linked(13)], open: openOf([[12, "", true]]) })!.props.items as Array<{ unread: boolean }>;
+  assert.deepEqual(upper.map((item) => item.unread), [false, true]);
+});
+
+test("the menu puts the newest open pull request first, even when T3 lists the branch pull request last", () => {
+  const open = openOf([[10, "2026-02-01T10:00:00.000Z", false], [11, "2026-02-02T10:00:00.000Z", false], [12, "2026-02-03T10:00:00.000Z", true]]);
+  const items = PullRequestsButton({ pullRequests: [linked(11), linked(12), linked(10)], open })!.props.items as Array<{ label: string }>;
+  assert.deepEqual(items.map((item) => item.label), ["#12 acme/storefront", "#11 acme/storefront", "#10 acme/storefront"]);
+});
+
+test("a session with one unread pull request shows the unread ring on its link, and none once read", () => {
+  const html = (unread: boolean) => renderToStaticMarkup(<SessionWindow {...base} openPrs={openOf([[12, "2026-02-01T10:00:00.000Z", unread]])} live={false} missing={false} thread={thread("t1", { pullRequests: [linked(12)] })} />);
+  assert.match(html(true), /aria-label="Open pull request #12 \(unread\)"[^>]*>.*<span class="notif-dot icon-button-dot" aria-hidden="true">/);
+  assert.doesNotMatch(html(false), /notif-dot/);
+});
+
+test("the alert bell shows only when alerts are set up, and reports whether it is armed", () => {
+  const bell = (alert: "armed" | "off" | null) => renderToStaticMarkup(<SessionWindow {...base} alert={alert} missing />);
+  assert.doesNotMatch(bell(null), /Alert/);
+  assert.match(bell("off"), /aria-label="Alert me on my phone"[^>]*aria-pressed="false"|aria-pressed="false"[^>]*aria-label="Alert me on my phone"/);
+  assert.match(bell("armed"), /aria-label="Alert on: click to turn off"[^>]*aria-pressed="true"|aria-pressed="true"[^>]*aria-label="Alert on: click to turn off"/);
 });

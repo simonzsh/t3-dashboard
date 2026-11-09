@@ -1,5 +1,6 @@
 import index from "../../../web/index.html";
 import type { DashboardProvider } from "../../../shared/api.ts";
+import { createAlerts } from "../../domain/alerts.ts";
 import { createActions } from "../../domain/actions.ts";
 import { AutomationRunLog } from "../../domain/automationRuns.ts";
 import { createAutomations } from "../../domain/automations.ts";
@@ -17,10 +18,12 @@ import { createSettings } from "../../domain/settings.ts";
 import { ShellStore } from "../../domain/shellStore.ts";
 import { UpdateManager } from "../../domain/updates.ts";
 import { LinearClient } from "../../integrations/linear/client.ts";
+import { newTopic } from "../../integrations/ntfy/client.ts";
 import { createDashboardServer } from "../../server/server.ts";
 import { siteFromBundle } from "../../server/site.ts";
 import { SseHub } from "../../server/sse.ts";
 import { envAllowedHosts } from "../../config/config.ts";
+import { alertsText, readAlerts } from "../../config/alertsFile.ts";
 import { readLinearKey } from "../../config/linearFile.ts";
 import { VERSION } from "../../config/version.ts";
 import { DEMO_ENVIRONMENT_ID, DEMO_HOME, DEMO_NEWS_DIR, createDemoCacheCleanup, demoNews, demoServerStats } from "./fixtures.ts";
@@ -36,10 +39,30 @@ export async function startDemo(env: Record<string, string | undefined>): Promis
   const hub = new SseHub();
   let providers: DashboardProvider[] = [];
   let modelDefaults = NO_MODEL_DEFAULTS;
+  // Alerts live in memory like the other settings, and the send is only logged: ntfy is never called.
+  const alertFiles = new Map<string, string>();
+  const alerts = createAlerts({
+    initial: readAlerts("alerts.json", (path) => alertFiles.get(path) ?? ""),
+    persist: (file) => void alertFiles.set("alerts.json", alertsText(file)),
+    send: async (_target, message) => void console.log(`Demo alert (not sent): ${message.title} | ${message.message} | ${message.click}`),
+    check: async () => "ok",
+    newTopic,
+    threads: () => store.threads(),
+    projectTitle: (id) => store.project(id)?.title,
+    now: () => new Date(),
+    onChange: (state) => hub.broadcast({ type: "alerts", data: state }),
+    warn: (message) => console.warn(message),
+  });
   const store: ShellStore = new ShellStore({
     now: () => new Date(),
-    onState: () => hub.broadcast({ type: "state", data: getState() }),
-    onThreads: (diff) => hub.broadcast({ type: "threads", data: diff }),
+    onState: () => {
+      hub.broadcast({ type: "state", data: getState() });
+      alerts.observe(store.threads());
+    },
+    onThreads: (diff) => {
+      hub.broadcast({ type: "threads", data: diff });
+      alerts.observe(store.threads());
+    },
     onProjects: (diff) => hub.broadcast({ type: "projects", data: diff }),
   });
   const auth = { current: () => "demo", setup: () => null, refresh: async () => {} };
@@ -106,6 +129,7 @@ export async function startDemo(env: Record<string, string | undefined>): Promis
     sessions: new SessionsStore(null, () => {}),
     stash: new StashStore([], () => {}, { now: () => new Date(), newId: () => crypto.randomUUID() }),
     seen: new SeenStore(null, () => {}),
+    alerts,
     hub,
     board,
     usage: createUsage({ port, threads: () => getState().threads, now: () => new Date() }),

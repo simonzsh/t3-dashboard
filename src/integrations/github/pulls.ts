@@ -7,7 +7,7 @@ import { PrView, SearchResponse, type RawCheck, type SearchNode } from "./schema
 
 const SEARCH_LIMIT = 50;
 export const MAX_DIFF_BYTES = 2 * 1024 * 1024;
-const VIEW_FIELDS = "number,title,url,author,isDraft,state,headRefName,baseRefName,headRefOid,updatedAt,additions,deletions,changedFiles,body,reviewDecision,reviews,statusCheckRollup";
+const VIEW_FIELDS = "number,title,url,author,isDraft,state,headRefName,baseRefName,headRefOid,createdAt,updatedAt,additions,deletions,changedFiles,body,reviewDecision,reviews,statusCheckRollup";
 // gh exits with 4 when it has no valid login.
 const EXIT_NOT_AUTHENTICATED = 4;
 
@@ -15,7 +15,7 @@ const QUERY = `query($q: String!, $n: Int!) {
   search(query: $q, type: ISSUE, first: $n) {
     nodes {
       ... on PullRequest {
-        number title url isDraft headRefName baseRefName updatedAt additions deletions reviewDecision
+        number title url isDraft headRefName headRefOid baseRefName createdAt updatedAt additions deletions reviewDecision
         author { login }
         repository { nameWithOwner }
         commits(last: 1) { nodes { commit { statusCheckRollup { state } } } }
@@ -84,12 +84,14 @@ export function summaryOf(node: SearchNode | null, role: "author" | "reviewer"):
     draft: node.isDraft === true,
     headRef: node.headRefName ?? "",
     baseRef: node.baseRefName ?? "",
+    createdAt: node.createdAt ?? "",
     updatedAt: node.updatedAt ?? "",
     additions: node.additions ?? 0,
     deletions: node.deletions ?? 0,
     checks: rollupOf(node.commits?.nodes?.[0]?.commit?.statusCheckRollup?.state),
     review: reviewOf(node.reviewDecision),
     roles: [role],
+    headSha: node.headRefOid ?? "",
   };
 }
 
@@ -133,6 +135,7 @@ export async function getPull(run: GhRun, repository: string, number: number): P
     draft: raw.isDraft === true,
     headRef: raw.headRefName ?? "",
     baseRef: raw.baseRefName ?? "",
+    createdAt: raw.createdAt ?? "",
     updatedAt: raw.updatedAt ?? "",
     additions: raw.additions ?? 0,
     deletions: raw.deletions ?? 0,

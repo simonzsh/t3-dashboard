@@ -1,7 +1,7 @@
 import { test } from "bun:test";
 import assert from "node:assert/strict";
 import type { Automation, AutomationRun, DashboardProvider, DashboardThread } from "../../../../shared/api.ts";
-import { automationsBadge, capitalize, copyableUrl, filterAutomations, finishedSetups, isEditable, isFinishedReminder, isRunning, runWhen, lastRunLine, latestFinished, latestUnread, liveRun, liveRuns, matchesFilter, modelLabel, nextRunLine, nextRunText, runDuration, runUnread, scheduleText, sortAutomations } from "../../../src/features/automations/automations.ts";
+import { automationsBadge, automationsPollMs, capitalize, copyableUrl, filterAutomations, finishedSetups, isEditable, isFinishedReminder, isRunning, runWhen, lastRunLine, latestFinished, latestUnread, liveRun, liveRuns, matchesFilter, modelLabel, nextRunLine, nextRunText, runDuration, runUnread, scheduleText, sortAutomations } from "../../../src/features/automations/automations.ts";
 import { thread } from "../../fixtures.ts";
 
 function auto(id: string, over: Partial<Automation> = {}): Automation {
@@ -274,4 +274,9 @@ test("runWhen leaves the duration out for a bound chat", () => {
   const now = new Date(at(13));
   assert.match(runWhen(done, now), /3 h/);
   assert.doesNotMatch(runWhen(done, now, true), /·/);
+});
+
+test("automations are polled every 30 seconds on their page and every 2 minutes elsewhere", () => {
+  assert.equal(automationsPollMs(true), 30_000);
+  assert.equal(automationsPollMs(false), 120_000);
 });

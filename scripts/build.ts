@@ -6,7 +6,7 @@ const { values } = parseArgs({
 
 // Autoload is off so a .env or bunfig.toml in the daemon's cwd cannot change it.
 const args = [
-  "build", "--compile", "--minify",
+  "build", "--compile", "--minify", "--splitting",
   "--no-compile-autoload-dotenv", "--no-compile-autoload-bunfig",
   "--define", `BUILD_VERSION=${JSON.stringify(values.version)}`,
   "--production",

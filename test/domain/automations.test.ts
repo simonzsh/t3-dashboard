@@ -498,6 +498,46 @@ test("setEnabled and runNow reach T3, and an unknown automation is not found", a
   await assert.rejects(automations.runNow("task-1"), (error: IntegrationError) => error.kind === "unreachable");
 });
 
+// Counts the T3 list calls and holds each one until released.
+function gatedList() {
+  const { automations, port } = harness();
+  const reads: Array<() => void> = [];
+  const original = port.listScheduledTasks.bind(port);
+  port.listScheduledTasks = async () => {
+    const tasks = await original();
+    await new Promise<void>((resolve) => reads.push(resolve));
+    return tasks;
+  };
+  return { automations, port, reads };
+}
+
+test("two lists at once call listScheduledTasks once", async () => {
+  const { automations, reads } = gatedList();
+  const both = Promise.all([automations.list(), automations.list()]);
+  await Bun.sleep(0);
+  assert.equal(reads.length, 1);
+  reads[0]!();
+  await both;
+});
+
+test("a list after a change does not join a list started before it", async () => {
+  const { automations, port, reads } = gatedList();
+  port.scheduledTasks = [task({})];
+  const before = automations.list();
+  await Bun.sleep(0);
+  const change = automations.setEnabled("task-1", false);
+  await Bun.sleep(0);
+  // reads: the list in flight, then the check of the change. Only the check ends.
+  assert.equal(reads.length, 2);
+  reads[1]!();
+  await change;
+  const after = automations.list();
+  await Bun.sleep(0);
+  assert.equal(reads.length, 3);
+  reads.forEach((release) => release());
+  await Promise.all([before, after]);
+});
+
 const stamped = (taskId: string | null): RawProjection => ({ messages: [{ id: "m", role: "user", ...(taskId && { scheduledTaskId: taskId }) }] });
 const runIds = (result: Awaited<ReturnType<ReturnType<typeof harness>["automations"]["list"]>>, index = 0) => result.automations[index]!.runs.map((run) => run.threadId);
 

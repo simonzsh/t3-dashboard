@@ -1,4 +1,8 @@
 import type {
+  AlertArmBody,
+  AlertsSettings,
+  AlertsState,
+  AlertTestResult,
   ActivityPeriod,
   AssignIssueBody,
   AutomationsResult,
@@ -122,7 +126,12 @@ export function createApi(fetchImpl: Fetch) {
     runAutomation: (id: string) => call<OkResult>(`/api/automations/${encodeURIComponent(id)}/run`, {}),
     getPrs: (refresh = false) => call<PrList>(refresh ? "/api/pulls?refresh=1" : "/api/pulls"),
     getPr: ({ repository, number }: PrRef, refresh = false) => call<PrDetail>(`/api/pulls/${repository}/${number}${refresh ? "?refresh=1" : ""}`),
-    getPrDiff: ({ repository, number }: PrRef, refresh = false) => call<PrDiff>(`/api/pulls/${repository}/${number}/diff${refresh ? "?refresh=1" : ""}`),
+    getPrDiff: ({ repository, number }: PrRef, { sha, refresh }: { sha?: string; refresh?: boolean } = {}) => {
+      const query = new URLSearchParams();
+      if (sha) query.set("sha", sha);
+      if (refresh) query.set("refresh", "1");
+      return call<PrDiff>(`/api/pulls/${repository}/${number}/diff${query.size > 0 ? `?${query}` : ""}`);
+    },
     getNews: () => call<NewsState>("/api/news"),
     getNewsArticle: (date: string) => call<NewsArticle>(`/api/news/${encodeURIComponent(date)}`),
     searchNews: (q: string) => call<{ dates: string[] }>(`/api/news/search?q=${encodeURIComponent(q)}`),
@@ -149,6 +158,13 @@ export function createApi(fetchImpl: Fetch) {
     deleteStash: (id: string) => call<OkResult>(`/api/stash/${encodeURIComponent(id)}/delete`, {}),
     getSeen: () => call<{ seen: SeenState | null }>("/api/seen"),
     markSeen: (change: SeenChange) => call<SeenResult>("/api/seen", change),
+    getAlerts: () => call<AlertsState>("/api/alerts"),
+    armAlert: (id: string, clickUrl: string) => call<AlertsState>(`/api/alerts/threads/${encodeURIComponent(id)}/arm`, { clickUrl } satisfies AlertArmBody),
+    disarmAlert: (id: string) => call<AlertsState>(`/api/alerts/threads/${encodeURIComponent(id)}/disarm`, {}),
+    getAlertsSettings: () => call<AlertsSettings>("/api/settings/alerts"),
+    setupAlerts: () => call<AlertsSettings>("/api/settings/alerts/setup", {}),
+    testAlerts: () => call<AlertTestResult>("/api/settings/alerts/test", {}),
+    disconnectAlerts: () => call<AlertsSettings>("/api/settings/alerts/disconnect", {}),
     getUpdate: () => call<UpdateStatus>("/api/update"),
     checkUpdate: () => call<UpdateStatus>("/api/update/check", {}),
     applyUpdate: () => call<UpdateStatus>("/api/update/apply", {}),

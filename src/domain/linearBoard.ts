@@ -1,4 +1,5 @@
 import type { BoardResult, LinearInboxItem, LinearInboxKind } from "../../shared/api.ts";
+import { cachedRead } from "./cachedRead.ts";
 import type { KeyCheck, LinearClient } from "../integrations/linear/client.ts";
 import type { LinearInboxNode } from "../integrations/linear/schemas.ts";
 
@@ -37,27 +38,24 @@ export function inboxItems(nodes: LinearInboxNode[], now: Date): LinearInboxItem
 /** Issues assigned to the owner of the Linear key and their unread inbox, cached for a minute. */
 export class LinearBoard {
   private readonly options: LinearBoardOptions;
-  private cached: { at: number; board: BoardResult } | null = null;
+  private readonly reads: ReturnType<typeof cachedRead<BoardResult>>;
 
   constructor(options: LinearBoardOptions) {
     this.options = options;
+    this.reads = cachedRead(() => this.read(options.readKey(), options.now()), { ttlMs: CACHE_MS, now: () => options.now().getTime() });
   }
 
   /** Forgets the cached board: call it after the key changed. */
   invalidate(): void {
-    this.cached = null;
+    this.reads.invalidate();
   }
 
   verifyKey(apiKey: string): Promise<KeyCheck> {
     return this.options.client.verifyKey(apiKey);
   }
 
-  async get(refresh = false): Promise<BoardResult> {
-    const now = this.options.now();
-    if (!refresh && this.cached && now.getTime() - this.cached.at < CACHE_MS) return this.cached.board;
-    const board = await this.read(this.options.readKey(), now);
-    this.cached = { at: now.getTime(), board };
-    return board;
+  get(refresh = false): Promise<BoardResult> {
+    return this.reads.get(refresh);
   }
 
   private async read(apiKey: string, now: Date): Promise<BoardResult> {

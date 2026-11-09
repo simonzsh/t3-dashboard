@@ -18,6 +18,7 @@ const node = (number: number, repository: string, extra: Record<string, unknown>
   isDraft: false,
   headRefName: `feature-${number}`,
   baseRefName: "main",
+  createdAt: `2025-12-0${number}T10:00:00Z`,
   updatedAt: `2026-01-0${number}T10:00:00Z`,
   additions: 10,
   deletions: 2,
@@ -45,6 +46,21 @@ test("listPulls runs one search per scope and merges a PR found in both", async 
   assert.equal(draft.draft, true);
   assert.equal(draft.review, "changes_requested");
   assert.equal(draft.headRef, "feature-3");
+  assert.equal(draft.createdAt, "2025-12-03T10:00:00Z");
+  assert.ok(calls[0]!.some((arg) => /\bcreatedAt\b/.test(arg)));
+});
+
+test("a node without createdAt maps to an empty string", async () => {
+  const { run } = fake(() => search(node(1, "acme/api", { createdAt: null })));
+  assert.equal((await listPulls(run))[0]!.createdAt, "");
+});
+
+test("the list reads the head commit of each pull request", async () => {
+  const { run, calls } = fake(() => search(node(1, "acme/api", { headRefOid: "h1" }), node(2, "acme/api")));
+  const prs = await listPulls(run);
+  assert.equal(prs.find((pr) => pr.number === 1)!.headSha, "h1");
+  assert.equal(prs.find((pr) => pr.number === 2)!.headSha, "");
+  assert.ok(calls[0]!.some((arg) => /\bheadRefOid\b/.test(arg)));
 });
 
 test("listPulls maps the check rollup and skips nodes that are not usable pull requests", async () => {
@@ -66,6 +82,7 @@ test("getPull maps the view, the check runs and the review decision", async () =
     headRefName: "cart",
     baseRefName: "main",
     headRefOid: "abc123",
+    createdAt: "2026-01-02T08:00:00Z",
     updatedAt: "2026-01-05T10:00:00Z",
     additions: 5,
     deletions: 1,
@@ -84,6 +101,8 @@ test("getPull maps the view, the check runs and the review decision", async () =
   const pr = await getPull(run, "acme/storefront", 7);
   assert.deepEqual(calls[0]!.slice(0, 5), ["pr", "view", "7", "-R", "acme/storefront"]);
   assert.equal(pr.headSha, "abc123");
+  assert.equal(pr.createdAt, "2026-01-02T08:00:00Z");
+  assert.ok(calls[0]!.at(-1)!.split(",").includes("createdAt"));
   assert.equal(pr.state, "open");
   assert.equal(pr.review, "none");
   assert.equal(pr.checks, "failure");
@@ -101,6 +120,7 @@ test("getPull maps merged and closed states", async () => {
   const base = { url: "https://example.test/p", headRefOid: "abc" };
   assert.equal((await getPull(fake(() => ok(JSON.stringify({ ...base, state: "MERGED" }))).run, "acme/api", 1)).state, "merged");
   assert.equal((await getPull(fake(() => ok(JSON.stringify({ ...base, state: "CLOSED" }))).run, "acme/api", 1)).state, "closed");
+  assert.equal((await getPull(fake(() => ok(JSON.stringify(base))).run, "acme/api", 1)).createdAt, "");
 });
 
 test("getDiff asks for a capped plain diff and passes the truncation flag on", async () => {

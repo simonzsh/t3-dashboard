@@ -1,12 +1,13 @@
 import assert from "node:assert/strict";
 import { test } from "bun:test";
-import { authFile, automationThreadsFile, agentRulesTargets, configDir, linearFile, logFile, newsDir, newsFile, pidFile, stateDir } from "../../src/config/paths.ts";
+import { alertsFile, authFile, automationThreadsFile, agentRulesTargets, configDir, linearFile, logFile, newsDir, newsFile, pidFile, stateDir } from "../../src/config/paths.ts";
 
 test("files live in the config directory, under the home by default", () => {
   assert.equal(configDir({}, "/home/ann"), "/home/ann/.config/t3-dashboard");
   assert.equal(authFile({}, "/home/ann"), "/home/ann/.config/t3-dashboard/auth.json");
   assert.equal(linearFile({}, "/home/ann"), "/home/ann/.config/t3-dashboard/linear.json");
   assert.equal(automationThreadsFile({}, "/home/ann"), "/home/ann/.config/t3-dashboard/automation-threads.json");
+  assert.equal(alertsFile({}, "/home/ann"), "/home/ann/.config/t3-dashboard/alerts.json");
 });
 
 test("T3_DASHBOARD_CONFIG_DIR moves both files, and the Linear variable still wins for its file", () => {
@@ -14,6 +15,7 @@ test("T3_DASHBOARD_CONFIG_DIR moves both files, and the Linear variable still wi
   assert.equal(authFile(env, "/h"), "/x/cfg/auth.json");
   assert.equal(linearFile(env, "/h"), "/x/cfg/linear.json");
   assert.equal(automationThreadsFile(env, "/h"), "/x/cfg/automation-threads.json");
+  assert.equal(alertsFile(env, "/h"), "/x/cfg/alerts.json");
   assert.equal(linearFile({ ...env, T3_DASHBOARD_LINEAR_FILE: "/x/l.json" }, "/h"), "/x/l.json");
 });
 

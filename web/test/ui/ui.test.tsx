@@ -3,6 +3,7 @@ import { test } from "bun:test";
 import { renderToStaticMarkup } from "react-dom/server";
 import { nextRadioIndex, rovingTabIndex } from "../../src/ui/radioKeys.ts";
 import { isPhone, isTouch, PHONE, TOUCH } from "../../src/ui/media.ts";
+import { ActionMenuRow } from "../../src/ui/ActionMenu.tsx";
 import { ActionMenu, Badge, Button, ButtonLink, Chevron, Choice, CountBadge, Dialog, IconButtonLink, Kbd, ListPage, OptionList, SearchField, Segmented, FileInput, Icon, IconButton, PageHeader, Pressable, SecretInput, Sheet, Skeleton, SkeletonGroup, Switch, Tabs, TextArea, TextInput, Tree, SidePanel, SidePanelToggle } from "../../src/ui/index.ts";
 import { pathTree } from "../../src/ui/pathTree.ts";
 
@@ -227,6 +228,13 @@ test("an ActionMenu is a closed menu button with the given name", () => {
   assert.doesNotMatch(out, /role="menu"/);
 });
 
+test("an ActionMenu row shows the unread ring only for an unread item", () => {
+  const row = (unread?: boolean) => html(<ActionMenuRow item={{ label: "#12 repo", icon: "gitPullRequest", onSelect: () => {}, unread }} id="r" active={false} onPick={() => {}} onHover={() => {}} />);
+  assert.match(row(true), /<span class="dropdown-text">#12 repo<\/span><span class="notif-dot" role="img" aria-label="Unread"><\/span>/);
+  assert.doesNotMatch(row(), /notif-dot/);
+  assert.doesNotMatch(row(false), /notif-dot/);
+});
+
 test("a waiting badge carries the person icon and an error badge the alert circle; others carry none", () => {
   const html = (variant: "waiting" | "error" | "done") => renderToStaticMarkup(<Badge variant={variant}>x</Badge>);
   assert.match(html("waiting"), /badge-icon/);
@@ -361,4 +369,12 @@ test("a SidePanel stays mounted when hidden, inert, and its toggle names the nex
   assert.match(html(<SidePanel hidden><i /></SidePanel>), /^<div class="side-panel hidden" inert=""><i><\/i><\/div>$/);
   assert.match(html(<SidePanelToggle hidden show="Show files" hide="Hide files" size="sm" onToggle={() => {}} />), /aria-label="Show files" data-tooltip="Show files" class="icon-button sm ghost"/);
   assert.match(html(<SidePanelToggle hidden={false} show="Show files" hide="Hide files" onToggle={() => {}} />), /aria-label="Hide files"/);
+});
+
+test("underline Tabs mark the bar, and an option can carry an icon and a count", () => {
+  const out = html(<Tabs label="Page" idPrefix="t" value="b" variant="underline" options={[{ id: "a", label: "A", icon: "fileText" }, { id: "b", label: "B", count: 8 }]} onChange={() => {}} />);
+  assert.match(out, /^<div class="tabs underline" role="tablist" aria-label="Page">/);
+  assert.match(out, /id="t-a" aria-selected="false"[^>]*><svg class="icon"[^>]*>.*?<\/svg>A<\/button>/);
+  assert.match(out, /id="t-b" aria-selected="true"[^>]*class="active">B<span class="tabs-count">8<\/span><\/button>/);
+  assert.match(html(<Tabs label="P" idPrefix="p" value="a" options={[{ id: "a", label: "A" }]} onChange={() => {}} />), /^<div class="tabs" role="tablist"/);
 });

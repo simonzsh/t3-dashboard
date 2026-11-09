@@ -26,8 +26,23 @@ export function prFromHash(hash: string): PrRef | null {
   return match && isRepository(match[1]!) ? { repository: match[1]!, number: Number(match[2]) } : null;
 }
 
+/** The Sessions tab opened on one thread: the link inside a phone alert. */
+export const hashForSession = (id: string): string => `#/sessions/${encodeURIComponent(id)}`;
+
+/** The thread of a `#/sessions/<id>` hash; null for any other hash. */
+export function sessionFromHash(hash: string): string | null {
+  const match = /^#\/sessions\/([^/]+)$/.exec(hash);
+  if (!match) return null;
+  try {
+    return decodeURIComponent(match[1]!);
+  } catch {
+    return null;
+  }
+}
+
 // An empty or unknown hash falls back to the Dashboard, so a bad link never shows a blank page.
 export function tabFromHash(hash: string): Tab {
   if (prFromHash(hash)) return "pulls";
+  if (sessionFromHash(hash)) return "sessions";
   return TABS.find(({ id }) => hashForTab(id) === hash)?.id ?? "dashboard";
 }

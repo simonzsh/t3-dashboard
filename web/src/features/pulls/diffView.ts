@@ -4,13 +4,23 @@ import { isTestFile } from "./testFiles.ts";
 // Like GitHub, a big file starts closed, and files stop opening once the diff passes a line budget.
 export const LARGE_FILE = 400;
 const OPEN_BUDGET = 3000;
+// Above this many lines a file is shown without syntax colours: highlighting it would freeze the page.
+export const PLAIN_ABOVE = 1000;
+
+export const isLarge = (file: DiffFile): boolean => file.additions + file.deletions > LARGE_FILE;
+export const canLoad = (file: DiffFile): boolean => !file.binary && !file.truncated && file.hunks.length > 0;
+export const loadLabel = (file: DiffFile): string => `Load diff (${file.additions + file.deletions} lines)`;
+export const shouldHighlight = (file: DiffFile): boolean => file.hunks.reduce((n, hunk) => n + hunk.lines.length, 0) <= PLAIN_ABOVE;
+
+/** Whether an element is within `margin` px of the viewport. A hidden tab has no layout: wait for the observer. */
+export const nearViewport = (laidOut: boolean, rect: { top: number; bottom: number }, viewport: number, margin: number): boolean => laidOut && rect.top < viewport + margin && rect.bottom > -margin;
 
 export function openByDefault(files: DiffFile[]): Set<string> {
   const open = new Set<string>();
   let budget = OPEN_BUDGET;
   for (const file of files) {
     const changed = file.additions + file.deletions;
-    if (changed > LARGE_FILE || changed > budget) continue;
+    if (isLarge(file) || changed > budget) continue;
     open.add(file.path);
     budget -= changed;
   }

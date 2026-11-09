@@ -5,6 +5,7 @@ import { join } from "node:path";
 import { setTimeout as sleep } from "node:timers/promises";
 import index from "../../web/index.html";
 import type { DashboardProvider } from "../../shared/api.ts";
+import { createAlerts } from "../domain/alerts.ts";
 import { createActions } from "../domain/actions.ts";
 import { AutomationGuard } from "../domain/automationGuard.ts";
 import { createAutomations } from "../domain/automations.ts";
@@ -15,6 +16,7 @@ import { envAllowedHosts, envPort } from "../config/config.ts";
 import { ghRunner } from "../integrations/github/gh.ts";
 import { latestTag } from "../integrations/github/releases.ts";
 import { LinearClient } from "../integrations/linear/client.ts";
+import { NtfyClient, newTopic } from "../integrations/ntfy/client.ts";
 import { findT3, runCommand } from "../integrations/t3/cli.ts";
 import { T3Client, validateWith } from "../integrations/t3/client.ts";
 import { environmentIdFile, readEnvironmentId, readServerVersion, resolveOrigin, runtimeFile } from "../integrations/t3/runtime.ts";
@@ -27,6 +29,7 @@ import { createUsage } from "../domain/usage.ts";
 import { readSessions, sessionsText } from "../config/sessionsFile.ts";
 import { readStash, stashText } from "../config/stashFile.ts";
 import { readSeen, seenText } from "../config/seenFile.ts";
+import { alertsText, readAlerts } from "../config/alertsFile.ts";
 import { syncAgentRules } from "../config/agentRules.ts";
 import { readLinearKey } from "../config/linearFile.ts";
 import { readRearmed, rearmedText } from "../config/rearmedFile.ts";
@@ -34,7 +37,7 @@ import { automationRunsText, readAutomationRuns } from "../config/automationRuns
 import { AutomationRunLog } from "../domain/automationRuns.ts";
 import { RearmedStore } from "../domain/rearmedStore.ts";
 import { readAutomationThreads } from "../config/automationThreads.ts";
-import { automationRunsFile, automationThreadsFile, linearFile, newsDir, newsFile, pidFile, rearmedFile, seenFile as seenPath, sessionsFile as sessionsPath, stashFile as stashPath } from "../config/paths.ts";
+import { alertsFile, automationRunsFile, automationThreadsFile, linearFile, newsDir, newsFile, pidFile, rearmedFile, seenFile as seenPath, sessionsFile as sessionsPath, stashFile as stashPath } from "../config/paths.ts";
 import { redirectConsole, writePidFile } from "../config/runFiles.ts";
 import { writeSecret } from "../config/secretFile.ts";
 import { createDashboardServer } from "../server/server.ts";
@@ -125,10 +128,30 @@ export async function start({ port, log, env }: StartOptions): Promise<void> {
   const hub = new SseHub();
   let providers: DashboardProvider[] = [];
   let modelDefaults = NO_MODEL_DEFAULTS;
+  const alertsPath = alertsFile(env, home);
+  const ntfy = new NtfyClient((url, init) => fetch(url, init));
+  const alerts = createAlerts({
+    initial: readAlerts(alertsPath, readText),
+    persist: (file) => writeSecret(alertsPath, alertsText(file)),
+    send: (target, message) => ntfy.publish(target, message),
+    check: (target) => ntfy.check(target),
+    newTopic,
+    threads: () => store.threads(),
+    projectTitle: (id) => store.project(id)?.title,
+    now: () => new Date(),
+    onChange: (state) => hub.broadcast({ type: "alerts", data: state }),
+    warn: (message) => console.warn(message),
+  });
   const store: ShellStore = new ShellStore({
     now: () => new Date(),
-    onState: () => hub.broadcast({ type: "state", data: getState() }),
-    onThreads: (diff) => hub.broadcast({ type: "threads", data: diff }),
+    onState: () => {
+      hub.broadcast({ type: "state", data: getState() });
+      alerts.observe(store.threads());
+    },
+    onThreads: (diff) => {
+      hub.broadcast({ type: "threads", data: diff });
+      alerts.observe(store.threads());
+    },
     onProjects: (diff) => hub.broadcast({ type: "projects", data: diff }),
   });
   const live = new LiveSync({
@@ -225,7 +248,7 @@ export async function start({ port, log, env }: StartOptions): Promise<void> {
   const stash = new StashStore(readStash(stashFile, readText), (entries) => writeSecret(stashFile, stashText(entries)), { now: () => new Date(), newId: () => crypto.randomUUID() });
   const seenFile = seenPath(env, home);
   const seen = new SeenStore(readSeen(seenFile, readText), (value) => writeSecret(seenFile, seenText(value)));
-  const handler = createDashboardServer({ actions, sessions, stash, seen, hub, board, usage, limits, serverStats, cacheCleanup, automations, pulls, news, getState, connection: () => live.connection(), site, settings, setup, updates, allowedHosts: envAllowedHosts(env) });
+  const handler = createDashboardServer({ actions, sessions, stash, seen, alerts, hub, board, usage, limits, serverStats, cacheCleanup, automations, pulls, news, getState, connection: () => live.connection(), site, settings, setup, updates, allowedHosts: envAllowedHosts(env) });
 
   const reclassifier = setInterval(() => store.reclassify(new Date()), RECLASSIFY_MS);
   // It only touches the run threads of its own task, so it runs in dev builds too.

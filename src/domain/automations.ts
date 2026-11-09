@@ -8,6 +8,7 @@ import { AutomationRunLog, recordRuns, runThreads, threadOwners, type RunLog, ty
 import { isHidden } from "./classify.ts";
 import { readScheduledTaskId } from "./threadOwner.ts";
 import { DomainError } from "./errors.ts";
+import { cachedRead } from "./cachedRead.ts";
 import { RearmedStore } from "./rearmedStore.ts";
 import { scheduleLabel } from "./scheduleLabel.ts";
 import type { ShellStore } from "./shellStore.ts";
@@ -162,14 +163,19 @@ export function createAutomations(options: AutomationsOptions): Automations {
     if (!(await viaT3(port.listScheduledTasks())).some((task) => task.id === id)) throw new DomainError("not-found", "This automation no longer exists");
   }
 
+  async function readList(): Promise<AutomationsResult> {
+    const tasks = await viaT3(port.listScheduledTasks());
+    const threads = store.rawThreads();
+    await probe(tasks, threads);
+    runs.record(recordRuns(runs.current(), tasks, threads, now(), links));
+    return toAutomations(tasks, threads, dedicated.read(), (id) => store.project(id)?.title || null, runs.current(), links);
+  }
+
+  // Lists at once share one read; a change detaches it so the next list sees the change.
+  const listing = cachedRead(readList, { ttlMs: 0, now: () => now().getTime() });
+
   return {
-    async list() {
-      const tasks = await viaT3(port.listScheduledTasks());
-      const threads = store.rawThreads();
-      await probe(tasks, threads);
-      runs.record(recordRuns(runs.current(), tasks, threads, now(), links));
-      return toAutomations(tasks, threads, dedicated.read(), (id) => store.project(id)?.title || null, runs.current(), links);
-    },
+    list: () => listing.get(),
 
     async remove(id) {
       const tasks = await viaT3(port.listScheduledTasks());
@@ -177,6 +183,7 @@ export function createAutomations(options: AutomationsOptions): Automations {
       const owners = threadOwners(tasks, runs.current(), links);
       await viaT3(port.deleteScheduledTask(id));
       runs.drop(id);
+      listing.invalidate();
       // Without its task, a run thread loses its automation mark. A bound thread is the user's chat: keep it.
       if (!task || task.threadId || !isReminder(task)) return;
       for (const run of runThreads(task, store.rawThreads(), owners)) {
@@ -192,11 +199,13 @@ export function createAutomations(options: AutomationsOptions): Automations {
     async setEnabled(id, enabled) {
       await known(id);
       await viaT3(port.setScheduledTaskEnabled(id, enabled));
+      listing.invalidate();
     },
 
     async runNow(id) {
       await known(id);
       await viaT3(port.runScheduledTaskNow(id));
+      listing.invalidate();
     },
 
     async update(id, body) {
@@ -228,6 +237,7 @@ export function createAutomations(options: AutomationsOptions): Automations {
         if (marked) rearmed.unmark(id);
         throw error;
       }
+      listing.invalidate();
       if (task.threadId && name !== displayTitle(task)) await viaT3(port.dispatch({ ...renameThreadCommand(task.threadId, name), commandId: newId() }));
     },
 
@@ -253,6 +263,7 @@ export function createAutomations(options: AutomationsOptions): Automations {
           creationSource: "web",
         }),
       );
+      listing.invalidate();
       return { ok: true, id: created.id, webhookUrl: created.webhook?.url ?? null, nextRunAt: created.nextRunAt ?? null };
     },
   };

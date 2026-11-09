@@ -1,4 +1,4 @@
-import { Fragment } from "react";
+import { Fragment, type ReactNode } from "react";
 import type { DashboardThread } from "../../../../shared/api.ts";
 import type { PrDetail, PrRef } from "../../../../shared/pulls.ts";
 import { relativeTime } from "../../lib/format.ts";
@@ -35,6 +35,8 @@ interface Props {
   onShowFiles?: () => void;
   /** On a phone the actions go in one menu, and the meta line scrolls with the diff. */
   phone: boolean;
+  /** The tab list of the page, under the title and meta lines. */
+  tabs?: ReactNode;
 }
 
 /** Repository, author, branches and age, then the state, checks, review and size. */
@@ -74,7 +76,7 @@ function menuItems(props: Props): ActionMenuItem[] {
 
 /** The pull request header: it sits above the scroll box, so the title and actions never leave the screen. */
 export function PrHeader(props: Props) {
-  const { pr, detail, now, sessions, onOpenSession, controls, filesPanel, phone } = props;
+  const { pr, detail, now, sessions, onOpenSession, controls, refreshing, filesPanel, phone, tabs } = props;
   const title = detail?.title ?? `${pr.repository}#${pr.number}`;
   return (
     <header className="pulls-head">
@@ -101,7 +103,7 @@ export function PrHeader(props: Props) {
                   {/* The panel toggle sits just before Refresh, the last action. */}
                   {action.icon === "refresh" && filesPanel && controls.hasFiles && <SidePanelToggle size="sm" hidden={filesPanel.hidden} show="Show files" hide="Hide files" onToggle={filesPanel.onToggle} />}
                   <IconButton size="sm" variant="ghost" label={action.label} tooltip={action.label} disabled={action.disabled} onClick={action.onSelect}>
-                    <Icon name={action.icon} />
+                    <Icon name={action.icon} className={action.icon === "refresh" && refreshing ? "icon spinning" : "icon"} />
                   </IconButton>
                 </Fragment>
               ))}
@@ -110,6 +112,7 @@ export function PrHeader(props: Props) {
         </div>
       </div>
       {detail && !phone && <PrMeta detail={detail} now={now} />}
+      {tabs}
     </header>
   );
 }

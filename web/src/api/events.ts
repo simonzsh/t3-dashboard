@@ -1,7 +1,7 @@
 import { useEffect, useReducer, useState } from "react";
-import type { DashboardEvent, DashboardState, Diff, SeenState, SessionsUpdate } from "../../../shared/api.ts";
+import type { AlertsState, DashboardEvent, DashboardState, Diff, SeenState, SessionsUpdate } from "../../../shared/api.ts";
 import { DASHBOARD_EVENT_TYPES } from "../../../shared/events.ts";
-import { setStash } from "./stashStore.ts";
+import { setStash, staleStash } from "./stashStore.ts";
 
 function applyDiff<T extends { id: string }>(list: T[], diff: Diff<T>): T[] {
   const byId = new Map(list.map((x) => [x.id, x]));
@@ -28,16 +28,18 @@ export function applyEvent(state: DashboardState | null, event: DashboardEvent):
     case "sessions":
     case "stash":
     case "seen":
+    case "alerts":
       return state;
   }
 }
 
-export function useDashboard(): { state: DashboardState | null; sseDown: boolean; remoteSessions: SessionsUpdate | null; remoteSeen: SeenState | null; connects: number } {
+export function useDashboard(): { state: DashboardState | null; sseDown: boolean; remoteSessions: SessionsUpdate | null; remoteSeen: SeenState | null; remoteAlerts: AlertsState | null; connects: number } {
   const [state, dispatch] = useReducer(applyEvent, null);
   const [sseDown, setSseDown] = useState(false);
   const [remoteSessions, setRemoteSessions] = useState<SessionsUpdate | null>(null);
   const [remoteSeen, setRemoteSeen] = useState<SeenState | null>(null);
-  // A reconnect may have missed `sessions` or `seen` events: the count lets them load again.
+  const [remoteAlerts, setRemoteAlerts] = useState<AlertsState | null>(null);
+  // A reconnect may have missed `sessions`, `seen` or `alerts` events: the count lets them load again.
   const [connects, setConnects] = useState(0);
 
   useEffect(() => {
@@ -48,15 +50,19 @@ export function useDashboard(): { state: DashboardState | null; sseDown: boolean
         if (event.type === "sessions") setRemoteSessions(event.data);
         else if (event.type === "stash") setStash(event.data);
         else if (event.type === "seen") setRemoteSeen(event.data);
+        else if (event.type === "alerts") setRemoteAlerts(event.data);
         else dispatch(event);
         setSseDown(false);
       });
     }
     // EventSource reconnects by itself and the server resends `state`.
-    es.onopen = () => setConnects((n) => n + 1);
+    es.onopen = () => {
+      staleStash();
+      setConnects((n) => n + 1);
+    };
     es.onerror = () => setSseDown(true);
     return () => es.close();
   }, []);
 
-  return { state, sseDown, remoteSessions, remoteSeen, connects };
+  return { state, sseDown, remoteSessions, remoteSeen, remoteAlerts, connects };
 }

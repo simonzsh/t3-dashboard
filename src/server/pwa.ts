@@ -36,7 +36,7 @@ const ICONS: Record<string, { path: string; type: string }> = {
 
 /** The manifest, the service worker and the app icons; null for any other path. */
 export function servePwa(pathname: string): Response | null {
-  if (pathname === "/manifest.webmanifest") return new Response(MANIFEST_JSON, { headers: { "content-type": "application/manifest+json" } });
+  if (pathname === "/manifest.webmanifest") return new Response(MANIFEST_JSON, { headers: { "content-type": "application/manifest+json", "cache-control": "public, max-age=86400" } });
   // no-cache: a new worker must reach the browsers on the next visit.
   if (pathname === "/sw.js") return new Response(WORKER, { headers: { "content-type": "text/javascript;charset=utf-8", "cache-control": "no-cache" } });
   const icon = ICONS[pathname];

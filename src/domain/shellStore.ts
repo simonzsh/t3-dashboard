@@ -116,6 +116,11 @@ export class ShellStore {
     return raw.worktreePath || (raw.projectId ? this.live.projects.get(raw.projectId)?.workspaceRoot : null) || null;
   }
 
+  /** Every live thread, unsorted: a cheap view for code that follows status changes. */
+  threads(): DashboardThread[] {
+    return [...this.derived.values()];
+  }
+
   thread(id: string): DashboardThread | undefined {
     return this.derived.get(id);
   }

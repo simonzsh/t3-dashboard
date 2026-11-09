@@ -4,23 +4,25 @@ import { renderToStaticMarkup } from "react-dom/server";
 import type { PrDetail as Detail, PrList, PrSummary } from "../../../../shared/pulls.ts";
 import type { DiffFile } from "../../../../shared/diff.ts";
 import { DiffFiles, HunkRows } from "../../../src/features/pulls/DiffFiles.tsx";
+import * as highlighter from "../../../src/features/pulls/highlight.tsx";
 import { openByDefault } from "../../../src/features/pulls/diffView.ts";
 import { FileNav } from "../../../src/features/pulls/FileNav.tsx";
 import { ChecksPanel, StatusButton } from "../../../src/features/pulls/PrChecks.tsx";
 import { PrHeader, type DiffControls } from "../../../src/features/pulls/PrHeader.tsx";
 import { PrListView } from "../../../src/features/pulls/PullsView.tsx";
-import { PrDetail } from "../../../src/features/pulls/PrDetail.tsx";
+import { PrDetail, tabsOf } from "../../../src/features/pulls/PrDetail.tsx";
 import { memoryStore, thread } from "../../fixtures.ts";
 import { PULLS_LIST_KEY } from "../../../src/features/pulls/prefs.ts";
+import type { OpenPrs } from "../../../src/lib/prSeen.ts";
 
 const now = new Date("2026-01-02T00:00:00Z");
 const pr = (repository: string, number: number, over: Partial<PrSummary> = {}): PrSummary => ({
   repository, number, title: `Change ${number}`, url: `https://example.test/${repository}/pull/${number}`, author: "ada", draft: false, headRef: `feature-${number}`, baseRef: "main",
-  updatedAt: "2026-01-01T23:00:00Z", additions: 7, deletions: 2, checks: "success", review: "approved", roles: ["author"], ...over,
+  createdAt: "2026-01-01T20:00:00Z", updatedAt: "2026-01-01T23:00:00Z", additions: 7, deletions: 2, checks: "success", review: "approved", roles: ["author"], headSha: "", ...over,
 });
 const list = (prs: PrSummary[]): PrList => ({ prs, fetchedAt: now.toISOString() });
-const view = (value: PrList | null, threads = [thread("t1")], error: string | null = null) =>
-  renderToStaticMarkup(<PrListView list={value} error={error} refreshing={false} onRefresh={() => {}} threads={threads} now={now} onOpenThread={() => {}} />);
+const view = (value: PrList | null, threads = [thread("t1")], error: string | null = null, openPrs: OpenPrs = new Map()) =>
+  renderToStaticMarkup(<PrListView list={value} error={error} refreshing={false} onRefresh={() => {}} threads={threads} now={now} onOpenThread={() => {}} openPrs={openPrs} />);
 
 test("the list groups pull requests by repository and links each one to its diff", () => {
   const html = view(list([pr("acme/storefront", 1), pr("acme/api", 2, { draft: true, checks: "failure", review: "changes_requested" })]));
@@ -55,6 +57,21 @@ test("the list starts with the saved filters, and a saved repository that left t
   const gone = withStorage({ [PULLS_LIST_KEY]: JSON.stringify({ scope: "all", repository: "acme/gone" }) }, () => view(prs));
   assert.match(gone, /Change 1[\s\S]*Change 2|Change 2[\s\S]*Change 1/);
   assert.match(gone, /All repositories/);
+});
+
+test("an unread row shows the unread ring, and the Unread filter shows its count and keeps only unread rows", () => {
+  const prs = list([pr("acme/storefront", 1), pr("acme/storefront", 2)]);
+  const open: OpenPrs = new Map([["pr:acme/storefront#1", { createdAt: "2026-01-01T20:00:00.000Z", unread: true }], ["pr:acme/storefront#2", { createdAt: "2026-01-01T20:00:00.000Z", unread: false }]]);
+  const all = view(prs, undefined, null, open);
+  assert.equal(all.match(/class="notif-dot"/g)?.length, 1);
+  assert.match(all, /Change 1<span class="notif-dot" role="img" aria-label="Unread">/);
+  assert.match(all, />Unread 1</);
+  const unread = withStorage({ [PULLS_LIST_KEY]: JSON.stringify({ scope: "unread", repository: "all" }) }, () => view(prs, undefined, null, open));
+  assert.match(unread, /Change 1/);
+  assert.doesNotMatch(unread, /Change 2/);
+  const none = withStorage({ [PULLS_LIST_KEY]: JSON.stringify({ scope: "unread", repository: "all" }) }, () => view(prs));
+  assert.match(none, /All caught up/);
+  assert.match(none, />Unread</);
 });
 
 const linkTo = (number: number) => ({ pullRequests: [{ repository: "acme/storefront", number, url: "https://example.test/x", title: null }] });
@@ -97,7 +114,7 @@ test("each file is a collapsible block with line numbers, counts and highlighted
 
 test("a hunk shows both line numbers, the marks, and the code highlighted on each side", () => {
   const [hunk] = file("src/a.ts").hunks;
-  const html = renderToStaticMarkup(<table><tbody><HunkRows hunk={{ ...hunk!, lines: [...hunk!.lines, { kind: "context", text: "return a;", oldNo: 2, newNo: 2, noNewline: true }] }} lang="typescript" /></tbody></table>);
+  const html = renderToStaticMarkup(<table><tbody><HunkRows hunk={{ ...hunk!, lines: [...hunk!.lines, { kind: "context", text: "return a;", oldNo: 2, newNo: 2, noNewline: true }] }} lang="typescript" hl={highlighter} /></tbody></table>);
   assert.match(html, /<tr class="pr-diff-line del"><td class="pr-diff-no">1<\/td><td class="pr-diff-no"><\/td><td class="pr-diff-mark">-<\/td>/);
   assert.match(html, /<tr class="pr-diff-line add"><td class="pr-diff-no"><\/td><td class="pr-diff-no">1<\/td><td class="pr-diff-mark">\+<\/td>/);
   assert.match(html, /<tr class="pr-diff-line context"><td class="pr-diff-no">2<\/td><td class="pr-diff-no">2<\/td>/);
@@ -108,6 +125,15 @@ test("a hunk shows both line numbers, the marks, and the code highlighted on eac
 
 test("a large file starts collapsed", () => {
   assert.match(diff([file("big.ts", { additions: 500 }), file("src/a.test.ts")]), /aria-expanded="false"/);
+});
+
+test("a large collapsed file offers a button instead of its lines", () => {
+  const big = diff([file("big.ts", { additions: 500 })]);
+  assert.match(big, /Load diff \(501 lines\)/);
+  assert.doesNotMatch(big, /pr-diff-line/);
+  assert.doesNotMatch(diff([file("small.ts")]), /Load diff/);
+  assert.doesNotMatch(diff([file("big.png", { additions: 500, binary: true, hunks: [] })]), /Load diff/);
+  assert.doesNotMatch(diff([file("big.json", { additions: 500, truncated: true, hunks: [] })]), /Load diff/);
 });
 
 test("binary, hidden and empty files explain themselves", () => {
@@ -201,6 +227,33 @@ test("the detail is a list page: the header above the scroll box, the diff insid
   // A static render is narrow: the file list waits in a sheet behind the header button.
   assert.match(html, /aria-label="Changed files"/);
   assert.match(html, /role="dialog" aria-modal="true" aria-label="Changed files"/);
+});
+
+test("the detail has Description and Changes tabs, and opens on the description", () => {
+  const html = page();
+  assert.match(html, /class="tabs underline pulls-tabs" role="tablist" aria-label="Pull request"/);
+  assert.match(html, /id="pr-tab-description" aria-selected="true"[^>]*class="active"><svg[^>]*>.*?<\/svg>Description<\/button>/);
+  assert.match(html, /id="pr-tab-changes" aria-selected="false"[^>]*><svg[^>]*>.*?<\/svg>Changes<span class="tabs-count">1<\/span><\/button>/);
+  assert.doesNotMatch(html, /id="pr-tab-files"/);
+  assert.match(html, /role="tabpanel" id="pr-tab-panel" aria-labelledby="pr-tab-description"/);
+  // The description is shown; the diff is already rendered behind it, hidden.
+  assert.match(html, /<div class="pulls-description">.*No description\./);
+  assert.match(html, /<div class="pulls-changes" hidden="">.*data-pr-diff-file="src\/a.ts"/);
+  const withBody = page({ detail: { ...detail, body: "Fixes **the totals**." } });
+  assert.match(withBody, /<div class="md"><p>Fixes <strong>the totals<\/strong>\.<\/p><\/div>/);
+});
+
+test("the diff lists the files in the order of the file tree", () => {
+  const files = [file("web/src/a.ts"), file("README.md"), file("web/lib/b.ts"), file("web/src/c.ts")];
+  const html = page({ diff: { headSha: "abc", files, truncated: false } });
+  const order = [...html.matchAll(/data-pr-diff-file="([^"]+)"/g)].map((m) => m[1]);
+  assert.deepEqual(order, ["web/src/a.ts", "web/src/c.ts", "web/lib/b.ts", "README.md"]);
+});
+
+test("a phone adds a Files tab; the Changes tab counts the files", () => {
+  assert.deepEqual(tabsOf(false, 3).map((t) => [t.label, t.count]), [["Description", undefined], ["Changes", 3]]);
+  assert.deepEqual(tabsOf(true, 3).map((t) => t.id), ["description", "changes", "files"]);
+  assert.equal(tabsOf(true, 0)[1]!.count, undefined);
 });
 
 test("the detail shows a loader before the data and keeps errors apart", () => {

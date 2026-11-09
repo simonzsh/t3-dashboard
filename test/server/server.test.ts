@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { gunzipSync } from "node:zlib";
 import { afterEach, test } from "bun:test";
 import type { CacheCleanupPreview, CacheCleanupResult, LimitsOverview, ServerStats, UsageOverview, Automation, AutomationsResult, ConnectionStatus, DashboardEvent, DashboardState, NewsState } from "../../shared/api.ts";
 import { LinearClient } from "../../src/integrations/linear/client.ts";
@@ -16,6 +17,9 @@ import type { StashEntry } from "../../shared/stash.ts";
 import type { SharedSessions } from "../../shared/sessions.ts";
 import type { SeenState } from "../../shared/seen.ts";
 import { SeenStore } from "../../src/domain/seenStore.ts";
+import { createAlerts } from "../../src/domain/alerts.ts";
+import type { StoredAlerts } from "../../src/config/alertsFile.ts";
+import type { NtfyMessage, NtfyTarget } from "../../src/integrations/ntfy/client.ts";
 import { createSettings } from "../../src/domain/settings.ts";
 import { createDashboardServer } from "../../src/server/server.ts";
 import type { DashboardHandler } from "../../src/server/server.ts";
@@ -55,6 +59,7 @@ interface StartOptions {
   sessions?: SharedSessions | null;
   stash?: StashEntry[];
   seen?: SeenState | null;
+  alerts?: StoredAlerts;
 }
 
 const CACHE_PREVIEW: CacheCleanupPreview = { supported: true, targets: [{ id: "npm", label: "npm cache", bytes: 300 }, { id: "uv", label: "uv cache", bytes: 200 }], totalBytes: 500 };
@@ -151,10 +156,30 @@ async function start(startOptions: StartOptions = {}) {
   };
   const hub = new SseHub({ batchMs: 10, pingMs: 60_000 });
   let counter = 0;
+  const sentAlerts: Array<{ target: NtfyTarget; message: NtfyMessage }> = [];
+  const savedAlerts: StoredAlerts[] = [];
+  const alerts = createAlerts({
+    initial: startOptions.alerts ?? { server: "https://ntfy.example", topic: null, armed: [] },
+    persist: (file) => void savedAlerts.push(file),
+    send: async (target, message) => void sentAlerts.push({ target, message }),
+    check: async () => "ok",
+    newTopic: () => "topic-made-here",
+    threads: () => store.threads(),
+    projectTitle: (id) => store.project(id)?.title,
+    now: () => now,
+    onChange: (state) => hub.broadcast({ type: "alerts", data: state }),
+    warn: () => {},
+  });
   const store: ShellStore = new ShellStore({
     now: () => now,
-    onState: () => hub.broadcast({ type: "state", data: getState() }),
-    onThreads: (diff) => hub.broadcast({ type: "threads", data: diff }),
+    onState: () => {
+      hub.broadcast({ type: "state", data: getState() });
+      alerts.observe(store.threads());
+    },
+    onThreads: (diff) => {
+      hub.broadcast({ type: "threads", data: diff });
+      alerts.observe(store.threads());
+    },
     onProjects: (diff) => hub.broadcast({ type: "projects", data: diff }),
   });
   const getState = (): DashboardState => store.state(connection, []);
@@ -189,6 +214,7 @@ async function start(startOptions: StartOptions = {}) {
     sessions,
     stash,
     seen,
+    alerts,
     hub,
     board,
     usage,
@@ -207,7 +233,7 @@ async function start(startOptions: StartOptions = {}) {
     allowedHosts: startOptions.allowedHosts,
   });
   running.push(async () => hub.close());
-  return { port, store, hub, server, cleanupCalls, usageCalls, limitsCalls, savedSessions, savedStashes, savedSeen, events, linearCalls, files, setupCalls, updateRuns };
+  return { port, store, hub, server, alerts, sentAlerts, savedAlerts, cleanupCalls, usageCalls, limitsCalls, savedSessions, savedStashes, savedSeen, events, linearCalls, files, setupCalls, updateRuns };
 }
 
 interface Reply {
@@ -672,6 +698,11 @@ test("every POST route refuses a body that is not JSON", async () => {
     "/api/sessions",
     "/api/stash",
     "/api/seen",
+    "/api/alerts/threads/run-1/arm",
+    "/api/alerts/threads/run-1/disarm",
+    "/api/settings/alerts/setup",
+    "/api/settings/alerts/test",
+    "/api/settings/alerts/disconnect",
     "/api/cache-cleanup",
     "/api/setup/retry",
     "/api/setup/token",
@@ -1423,6 +1454,7 @@ test("the manifest, the service worker and the icons are served before the site"
   const { server } = await start({ site: { serve: async () => new Response("<p>app</p>") } });
   const manifest = await call(server, "GET", "/manifest.webmanifest");
   assert.equal(manifest.headers["content-type"], "application/manifest+json");
+  assert.equal(manifest.headers["cache-control"], "public, max-age=86400");
   const body = manifest.json as { display: string; start_url: string; icons: Array<{ src: string; sizes: string; purpose: string }> };
   assert.equal(body.display, "standalone");
   assert.equal(body.start_url, "/");
@@ -1888,6 +1920,8 @@ test("GET /api/project-icons lists the icon presets", async () => {
   const { server } = await start();
   const reply = await call(server, "GET", "/api/project-icons");
   assert.equal(reply.status, 200);
+  assert.equal(reply.headers["cache-control"], "private, max-age=3600");
+  assert.match(reply.headers.etag!, /^W\//);
   assert.equal(reply.json?.icons[0].name, "folder-code");
   assert.equal(reply.json?.icons[0].icon.kind, "lucide");
 });
@@ -2051,12 +2085,67 @@ test("GET /api/pulls/:owner/:repo/:number reads the detail and the diff of a val
   const { server } = await start({
     pulls: {
       detail: async (repository, number, refresh) => (asked.push(["detail", repository, number, refresh]), { title: "T" } as never),
-      diff: async (repository, number) => (asked.push(["diff", repository, number]), diff),
+      diff: async (repository, number, options) => (asked.push(["diff", repository, number, options]), diff),
     },
   });
   assert.deepEqual((await call(server, "GET", "/api/pulls/acme/storefront/12?refresh=1")).json, { title: "T" });
   assert.deepEqual((await call(server, "GET", "/api/pulls/acme/storefront/12/diff")).json, diff);
-  assert.deepEqual(asked, [["detail", "acme/storefront", 12, true], ["diff", "acme/storefront", 12]]);
+  assert.deepEqual(asked, [["detail", "acme/storefront", 12, true], ["diff", "acme/storefront", 12, { sha: undefined, refresh: false }]]);
+});
+
+const PR_DIFF = { headSha: "abc123", files: [], truncated: false };
+const diffPath = "/api/pulls/acme/api/1/diff";
+
+test("a diff answer for the asked head SHA is immutable and carries an etag", async () => {
+  const asked: unknown[] = [];
+  const { server } = await start({ pulls: { diff: async (_repository, _number, options) => (asked.push(options), PR_DIFF) } });
+  const reply = await call(server, "GET", `${diffPath}?sha=abc123`);
+  assert.equal(reply.headers["cache-control"], "private, max-age=31536000, immutable");
+  assert.match(reply.headers.etag!, /^W\/"[0-9a-z]+"$/);
+  assert.equal(reply.headers.vary, "accept-encoding");
+  assert.deepEqual(asked, [{ sha: "abc123", refresh: false }]);
+  const same = await call(server, "GET", `${diffPath}?sha=abc123`, { headers: { "if-none-match": reply.headers.etag! } });
+  assert.deepEqual([same.status, same.text, same.headers["cache-control"], same.headers.etag], [304, "", "private, max-age=31536000, immutable", reply.headers.etag]);
+});
+
+test("a diff answer is not immutable without a SHA, with another head, or on refresh", async () => {
+  const { server } = await start({ pulls: { diff: async () => PR_DIFF } });
+  for (const query of ["", "?sha=old000", "?sha=abc123&refresh=1", "?sha="]) {
+    assert.equal((await call(server, "GET", `${diffPath}${query}`)).headers["cache-control"], "no-cache", query);
+  }
+});
+
+test("a refresh asks the domain to read the head again", async () => {
+  const asked: unknown[] = [];
+  const { server } = await start({ pulls: { diff: async (_repository, _number, options) => (asked.push(options), PR_DIFF) } });
+  await call(server, "GET", `${diffPath}?sha=abc123&refresh=1`);
+  assert.deepEqual(asked, [{ sha: "abc123", refresh: true }]);
+});
+
+test("a malformed sha is a 400 that never reaches the domain", async () => {
+  const { server } = await start({ pulls: { diff: async () => { throw new Error("asked"); } } });
+  for (const sha of ["a b", "x".repeat(65), "a;b", "--flag"]) {
+    const reply = await call(server, "GET", `${diffPath}?sha=${encodeURIComponent(sha)}`);
+    assert.equal(reply.status, 400, sha);
+    assert.equal(reply.headers["cache-control"], "no-store");
+  }
+});
+
+test("the pull request list and detail answer no-cache with an etag, and the list etag ignores fetchedAt", async () => {
+  let list: Record<string, unknown> = { prs: [], fetchedAt: "2026-11-07T10:00:00.000Z" };
+  const { server } = await start({ pulls: { prs: async () => list as never, detail: async () => ({ title: "T" }) as never } });
+  const first = await call(server, "GET", "/api/pulls");
+  assert.equal(first.headers["cache-control"], "no-cache");
+  list = { prs: [], fetchedAt: "2026-11-07T10:05:00.000Z" };
+  const later = await call(server, "GET", "/api/pulls", { headers: { "if-none-match": first.headers.etag! } });
+  assert.equal(later.status, 304);
+  list = { prs: [], fetchedAt: "2026-11-07T10:06:00.000Z", stale: true };
+  const stale = await call(server, "GET", "/api/pulls", { headers: { "if-none-match": first.headers.etag! } });
+  assert.equal(stale.status, 200);
+  assert.notEqual(stale.headers.etag, first.headers.etag);
+  const detail = await call(server, "GET", "/api/pulls/acme/api/1");
+  assert.equal(detail.headers["cache-control"], "no-cache");
+  assert.match(detail.headers.etag!, /^W\//);
 });
 
 test("the pull request routes refuse a bad owner, repository or number with 400 and never ask gh", async () => {
@@ -2084,4 +2173,87 @@ test("a gh failure on the pull request routes becomes a 502 without gh's output"
     assert.equal(reply.status, 502, path);
     assert.equal((reply.json as { error: string }).error, "GitHub CLI is not signed in: run gh auth login on the server");
   }
+});
+
+const CLICK = "https://dash.example/#/sessions/run-1";
+const SET_UP: StoredAlerts = { server: "https://ntfy.example", topic: "secret-topic", armed: [] };
+const alertEvents = (events: DashboardEvent[]) => events.flatMap((event) => (event.type === "alerts" ? [event.data] : []));
+const updateThread = (id: string, status: string, activeRunId: string | null = null): ShellItem => ({ kind: "thread.updated", thread: { id, projectId: "project-1", title: "Thread 2", status, activeRunId, createdAt: "2026-03-02T00:00:00Z" } });
+
+test("GET /api/alerts says whether alerts are set up and what is armed, never the topic", async () => {
+  const { server } = await start();
+  assert.deepEqual((await call(server, "GET", "/api/alerts")).json, { configured: false, armed: [] });
+  const set = await start({ alerts: SET_UP });
+  await post(set.server, "/api/alerts/threads/run-1/arm", { clickUrl: CLICK });
+  const reply = await call(set.server, "GET", "/api/alerts");
+  assert.deepEqual(reply.json, { configured: true, armed: ["run-1"] });
+  assert.equal(reply.text.includes("secret-topic"), false);
+});
+
+test("settings: setup, test and disconnect answer with the settings and broadcast the state", async () => {
+  const { server, events } = await start();
+  assert.deepEqual((await call(server, "GET", "/api/settings/alerts")).json, { connected: false, server: null, topic: null, subscribeUrl: null });
+  assert.equal((await post(server, "/api/settings/alerts/test")).status, 409);
+  const made = await post(server, "/api/settings/alerts/setup", {});
+  assert.deepEqual(made.json, { connected: true, server: "https://ntfy.sh", topic: "topic-made-here", subscribeUrl: "https://ntfy.sh/topic-made-here" });
+  assert.deepEqual((await post(server, "/api/settings/alerts/test")).json, { result: "ok" });
+  assert.equal((await post(server, "/api/settings/alerts/disconnect")).json.connected, false);
+  assert.deepEqual(alertEvents(events), [{ configured: true, armed: [] }, { configured: false, armed: [] }]);
+});
+
+test("arm answers 409 when not set up, 404 for an unknown thread and 400 for a bad link", async () => {
+  const off = await start();
+  assert.equal((await post(off.server, "/api/alerts/threads/run-1/arm", { clickUrl: CLICK })).status, 409);
+  const { server } = await start({ alerts: SET_UP });
+  assert.equal((await post(server, "/api/alerts/threads/nope/arm", { clickUrl: CLICK })).status, 404);
+  assert.equal((await post(server, "/api/alerts/threads/run-1/arm", { clickUrl: "javascript:1" })).status, 400);
+  assert.equal((await post(server, "/api/alerts/threads/run-1/arm", {})).status, 400);
+});
+
+test("an armed thread that finishes sends one alert and broadcasts the state without it; a second change sends none", async () => {
+  const { server, store, events, sentAlerts } = await start({ alerts: SET_UP });
+  assert.deepEqual((await post(server, "/api/alerts/threads/run-1/arm", { clickUrl: CLICK })).json, { configured: true, armed: ["run-1"] });
+  store.apply([updateThread("run-1", "completed")]);
+  assert.equal(sentAlerts.length, 1);
+  assert.deepEqual(sentAlerts[0], { target: { server: "https://ntfy.example", topic: "secret-topic" }, message: { title: "Thread 2", message: "Finished · Project A", priority: 3, click: CLICK } });
+  assert.deepEqual(alertEvents(events).at(-1), { configured: true, armed: [] });
+  store.apply([updateThread("run-1", "running", "run-b")]);
+  store.apply([updateThread("run-1", "completed")]);
+  assert.equal(sentAlerts.length, 1);
+});
+
+test("disarm is idempotent and broadcasts the new state", async () => {
+  const { server, events } = await start({ alerts: SET_UP });
+  await post(server, "/api/alerts/threads/run-1/arm", { clickUrl: CLICK });
+  assert.deepEqual((await post(server, "/api/alerts/threads/run-1/disarm")).json, { configured: true, armed: [] });
+  assert.deepEqual((await post(server, "/api/alerts/threads/run-1/disarm")).json, { configured: true, armed: [] });
+  assert.deepEqual(alertEvents(events), [{ configured: true, armed: ["run-1"] }, { configured: true, armed: [] }]);
+});
+
+test("every GET /api route answers with an explicit cache-control", async () => {
+  const source = await Bun.file(new URL("../../src/server/server.ts", import.meta.url)).text();
+  const paths = [...source.matchAll(/method: "GET",\s*path: "([^"]+)"/g)].map((match) => match[1]!).filter((path) => path !== "/api/events");
+  assert.ok(paths.length >= 25, `found ${paths.length} routes`);
+  const { server } = await start();
+  for (const path of paths) {
+    const url = path.replace(/:number/, "1").replace(/:\w+/g, "x");
+    const reply = await call(server, "GET", url);
+    assert.ok(reply.headers["cache-control"], `${path} answered ${reply.status} without cache-control`);
+  }
+});
+
+test("a JSON answer over 1 KB is compressed for a client that accepts it, and the event stream never is", async () => {
+  const prs = Array.from({ length: 60 }, (_, i) => ({ number: i, title: `Change number ${i}` }));
+  const { server } = await start({ pulls: { prs: async () => ({ prs, fetchedAt: "2026-11-07T10:00:00.000Z" }) as never } });
+  const get = (path: string, encoding: string, signal?: AbortSignal) => server.fetch(new Request(`http://127.0.0.1${path}`, { headers: { host: "127.0.0.1", "accept-encoding": encoding }, signal }));
+  const zipped = await get("/api/pulls", "gzip");
+  assert.equal(zipped.headers.get("content-encoding"), "gzip");
+  assert.equal(JSON.parse(gunzipSync(await zipped.arrayBuffer()).toString()).prs.length, 60);
+  const plain = await get("/api/pulls", "identity");
+  assert.equal(plain.headers.get("content-encoding"), null);
+  const abort = new AbortController();
+  const events = await get("/api/events", "gzip, br", abort.signal);
+  assert.equal(events.headers.get("content-encoding"), null);
+  abort.abort();
+  await events.body?.cancel().catch(() => {});
 });

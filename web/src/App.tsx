@@ -2,6 +2,8 @@ import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } fr
 import type { DashboardThread } from "../../shared/api.ts";
 import { AutomationsView } from "./features/automations/AutomationsView.tsx";
 import { PullsView } from "./features/pulls/PullsView.tsx";
+import { usePulls } from "./features/pulls/usePulls.ts";
+import { openPrIndex, openPrKey, unreadPrCount } from "./lib/prSeen.ts";
 import { NewsSettingsDialog } from "./features/news/NewsSettingsDialog.tsx";
 import { NewsView } from "./features/news/NewsView.tsx";
 import { firstRunBody, unreadNewsCount } from "./features/news/news.ts";
@@ -31,7 +33,7 @@ import { useOpenHistory } from "./features/switcher/useOpenHistory.ts";
 import { SettingsDialog } from "./features/settings/SettingsDialog.tsx";
 import { SetupScreen } from "./features/setup/SetupScreen.tsx";
 import { UpdateDialog } from "./features/update/UpdateDialog.tsx";
-import { neighborId, type Direction } from "./features/sessions/sessions.ts";
+import { neighborId, sessionLinkAction, type Direction } from "./features/sessions/sessions.ts";
 import { useAutomations } from "./features/automations/useAutomations.ts";
 import { automationsBadge } from "./features/automations/automations.ts";
 import { AutomationThreadsContext } from "./lib/automationThreads.tsx";
@@ -42,13 +44,15 @@ import { useSessions } from "./features/sessions/useSessions.ts";
 import { sessionsBadgeCount, useListPrefs } from "./features/sessions/sessionList.ts";
 import { useSessionsSync } from "./features/sessions/useSessionsSync.ts";
 import { useMediaQuery } from "./lib/useMediaQuery.ts";
+import { usePageAttention } from "./lib/usePageAttention.ts";
 import { isTabAction } from "./lib/shortcuts.ts";
 import { useShortcuts } from "./lib/useShortcuts.ts";
 import { useSessionLayout } from "./lib/sessionLayout.ts";
 import { useSidebarCollapsed } from "./lib/sidebar.ts";
 import { agentCounts } from "./lib/agents.ts";
-import { TABS } from "./lib/tabs.ts";
-import { usePrRoute, useTab } from "./lib/useTab.ts";
+import { hashForTab, TABS } from "./lib/tabs.ts";
+import { useAlerts } from "./features/alerts/useAlerts.ts";
+import { usePrRoute, useSessionRoute, useTab } from "./lib/useTab.ts";
 import { useTheme } from "./features/settings/useTheme.ts";
 import { useAccent } from "./features/settings/useAccent.ts";
 import { useTint } from "./features/settings/useTint.ts";
@@ -62,13 +66,16 @@ const NO_IDS: string[] = [];
 const SHEET = "(max-width: 1200px)";
 
 export function App() {
-  const { state, sseDown, remoteSessions, remoteSeen, connects } = useDashboard();
+  const { state, sseDown, remoteSessions, remoteSeen, remoteAlerts, connects } = useDashboard();
   const [tab, setTab] = useTab();
   const prRoute = usePrRoute();
+  const sessionRoute = useSessionRoute();
   // Always loaded while live: it feeds the Automations badge and the automation icon, besides the page.
   const threadIds = useMemo(() => state?.threads.map((t) => t.id) ?? NO_IDS, [state?.threads]);
-  const automations = useAutomations(state?.connection.t3 === "live", threadIds);
+  const automations = useAutomations(state?.connection.t3 === "live", threadIds, tab === "automations");
   const news = useNews(tab === "news");
+  // Always loaded once the state is known: it feeds the Pull requests badge and the session menus, besides the page.
+  const pulls = usePulls(state !== null, tab === "pulls", prRoute === null);
   const [sessions, dispatchSessions] = useSessions();
   const compact = useMediaQuery(PHONE);
   const sheetMode = useMediaQuery(SHEET);
@@ -76,16 +83,18 @@ export function App() {
   // On a phone the Sessions tab is a list; an opened session covers it, with no header or bottom bar.
   const [phoneSession, setPhoneSession] = useState(false);
   const sessionShown = compact && tab === "sessions" && phoneSession && sessions.focusedId !== null;
-  // Only a session in front of the user counts as read or watched: on a phone, not the list.
-  const inFront = tab === "sessions" && (!compact || sessionShown) ? sessions.focusedId : null;
+  // Only a session in front of the user counts as read or watched: on a phone, not the list; never in a hidden or unfocused page.
+  const attention = usePageAttention();
+  const inFront = attention && tab === "sessions" && (!compact || sessionShown) ? sessions.focusedId : null;
   const [openHistory, recordOpened] = useOpenHistory();
-  useSessionsSync({
+  const { loaded: sessionsLoaded } = useSessionsSync({
     sessions,
     dispatch: dispatchSessions,
     threads: state?.connection.t3 === "live" ? state.threads : null,
     remote: remoteSessions,
     connects,
   });
+  const alerts = useAlerts({ remote: remoteAlerts, connects });
   const watching = useRef<(id: string) => boolean>(() => false);
   watching.current = (id) => inFront === id;
   const notify = useNotifications({
@@ -210,6 +219,15 @@ export function App() {
   const setup = useSetupRows(threads, automations.result?.setupThreadIds, automations.reload);
   const automationThreads = useMemo(() => new Set(automations.result?.automationThreadIds ?? NO_IDS), [automations.result?.automationThreadIds]);
   const threadsById = useMemo(() => new Map(threads.map((t) => [t.id, t])), [threads]);
+  // A `#/sessions/<id>` link (a phone alert) opens that session once the saved sessions and live threads are in.
+  const linkLive = state?.connection.t3 === "live";
+  const linkAction = sessionLinkAction(sessionRoute, { loaded: sessionsLoaded, live: linkLive }, threadsById);
+  useEffect(() => {
+    if (linkAction !== "open" && linkAction !== "drop") return;
+    // Replace the link first: setTab then sees "#/sessions" and adds no history entry, so Back leaves the page.
+    location.replace(hashForTab("sessions"));
+    if (linkAction === "open") openRef.current(sessionRoute!, true);
+  }, [linkAction, sessionRoute]);
   const automationsNav = useMemo(() => automationsBadge(automations.result?.automations ?? [], threadsById, notify.seen), [automations.result?.automations, threadsById, notify.seen]);
   const unread = useMemo(() => attentionCount(threadSections(threads, notify.seen)), [threads, notify.seen]);
   const agents = useMemo(() => agentCounts(threads), [threads]);
@@ -221,7 +239,11 @@ export function App() {
   const newsUnread = useMemo(() => unreadNewsCount(news.state?.articles ?? [], notify.seen), [news.state?.articles, notify.seen]);
   // A new identity once the seen state is known, so the page marks its open article again then.
   const { markRead, seenReady: ready } = notify;
-  const readNews = useCallback((mark: { id: string; at: string }) => ready && markRead(mark), [ready, markRead]);
+  const readMark = useCallback((mark: { id: string; at: string }) => ready && markRead(mark), [ready, markRead]);
+  const openPrNow = useMemo(() => openPrIndex(pulls.list?.prs ?? [], notify.seen), [pulls.list?.prs, notify.seen]);
+  // Keyed on its content: a thread read must not rerender every session window.
+  const openPrsKey = openPrKey(openPrNow);
+  const openPrs = useMemo(() => openPrNow, [openPrsKey]);
   const sessionsBadge = useMemo(() => ({ count: sessionsBadgeCount(threads, notify.seen), waiting: agents.waiting > 0 }), [threads, notify.seen, agents.waiting]);
   const dashboardLayout = useDashboardLayout(tab === "dashboard");
   const notifPanel = useNotificationsPanel(sheetMode, tab === "dashboard");
@@ -262,6 +284,7 @@ export function App() {
           sessions={sessionsBadge}
           automations={automationsNav}
           news={newsUnread}
+          pulls={unreadPrCount(openPrs)}
           live={live}
           update={updateNav}
           onTab={showTab}
@@ -344,8 +367,8 @@ export function App() {
                   setup={setup}
                 />
               ) : <Loader />)}
-            {tab === "news" && (news.state ? <NewsView news={news.state} writing={news.writing} now={now} compact={compact} seen={notify.seen} onRead={readNews} onOpenThread={onOpen} onDelete={news.remove} onDeleteAll={news.removeAll} /> : <Loader />)}
-            {tab === "pulls" && (state ? <PullsView route={prRoute} threads={state.threads} now={now} onOpenThread={onOpen} /> : <Loader />)}
+            {tab === "news" && (news.state ? <NewsView news={news.state} writing={news.writing} now={now} compact={compact} seen={notify.seen} onRead={readMark} onOpenThread={onOpen} onDelete={news.remove} onDeleteAll={news.removeAll} /> : <Loader />)}
+            {tab === "pulls" && (state ? <PullsView route={prRoute} threads={state.threads} now={now} onOpenThread={onOpen} pulls={pulls} onRead={readMark} openPrs={openPrs} /> : <Loader />)}
             {tab === "sessions" &&
               (state ? (
                 <SessionsView
@@ -354,6 +377,7 @@ export function App() {
                   threads={state.threads}
                   projects={state.projects}
                   seen={notify.seen}
+                  openPrs={openPrs}
                   now={now}
                   layout={layout}
                   prefs={listPrefs}
@@ -364,6 +388,9 @@ export function App() {
                   sessionShown={sessionShown}
                   onBack={back}
                   onOpen={openSession}
+                  alertsConfigured={alerts.configured}
+                  armedAlerts={alerts.armed}
+                  onToggleAlert={alerts.toggle}
                   onNewSession={newSession}
                   onAddProject={() => setAddingProject(true)}
                   onEditProject={setEditingProject}

@@ -1,4 +1,5 @@
-import type { ApprovalDecision, AssignIssueBody, CreateAutomationBody, CreateProjectBody, CreateThreadBody, ProjectIconSpec, RoutineSchedule, WebhookFilter, WebhookSignature, ModelSelection, RespondBody, RewindBody, SaveNewsBody, SecretAnswerBody, SendMessageBody, ThreadSettingsBody, UpdateAutomationBody, UpdateProjectBody, UploadedAttachment, UserInputAnswers, WorkspaceChoice } from "../../shared/api.ts";
+import type { AlertArmBody, ApprovalDecision, AssignIssueBody, CreateAutomationBody, CreateProjectBody, CreateThreadBody, ProjectIconSpec, RoutineSchedule, WebhookFilter, WebhookSignature, ModelSelection, RespondBody, RewindBody, SaveNewsBody, SecretAnswerBody, SendMessageBody, ThreadSettingsBody, UpdateAutomationBody, UpdateProjectBody, UploadedAttachment, UserInputAnswers, WorkspaceChoice } from "../../shared/api.ts";
+import { isAlertClick } from "../../shared/alerts.ts";
 import { PROJECT_COLOR_NAMES } from "../../shared/projectColors.ts";
 import { ACTIVITY_PERIODS, DEFAULT_ACTIVITY_PERIOD, type ActivityPeriod } from "../../shared/usage.ts";
 import { isRepository, type PrRef } from "../../shared/pulls.ts";
@@ -368,6 +369,14 @@ export function validPrRef(params: Record<string, string>): PrRef {
   return { repository, number };
 }
 
+/** Optional `?sha=`: a head commit the client already holds. It is only a cache key, never passed to gh. */
+export function validSha(params: URLSearchParams): string | undefined {
+  const sha = params.get("sha");
+  if (!sha) return undefined;
+  if (!/^[0-9A-Za-z]{1,64}$/.test(sha)) throw new HttpError(400, "sha must be a commit SHA");
+  return sha;
+}
+
 export function validAssign(body: Record<string, unknown>): Omit<AssignIssueBody, "attachments" | "uploads"> {
   const modelSelection = validSelection(body.modelSelection);
   const projectId = body.projectId ?? "";
@@ -454,6 +463,11 @@ export function validSeen(body: Record<string, unknown>): SeenChange {
   if (isSeenId(body.id) && isSeenTime(body.at)) return { id: body.id, at: body.at };
   if (isSeenTime(body.since)) return { since: body.since };
   throw new HttpError(400, "id and at (a mark), or since (the baseline), are required");
+}
+
+export function validArm(body: Record<string, unknown>): AlertArmBody {
+  if (typeof body.clickUrl !== "string" || !isAlertClick(body.clickUrl)) throw bad("clickUrl must be an http(s) URL");
+  return { clickUrl: body.clickUrl };
 }
 
 export function validEnabled(body: Record<string, unknown>): boolean {
