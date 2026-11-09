@@ -244,7 +244,8 @@ main { flex: 1; min-height: 0; overflow: hidden; padding: var(--page-top) var(--
 /* Small pills: a Badge with the colours of its variant. */
 .session-window-state { flex: none; font-size: 11px; font-weight: 600; padding: 1px 8px; }
 .icon { flex: none; width: 16px; height: 16px; }
-.tooltip { position: fixed; z-index: 60; pointer-events: none; display: flex; align-items: center; gap: 6px; max-width: min(320px, calc(100vw - 8px)); padding: 4px 8px; border-radius: var(--radius-sm); background: var(--text-primary); color: var(--surface-1); font-size: 12px; line-height: 1.3; overflow-wrap: anywhere; box-shadow: var(--shadow); }
+/* Keep measurement independent of the previous position near the right edge. */
+.tooltip { width: max-content; position: fixed; z-index: 60; pointer-events: none; display: flex; align-items: center; gap: 6px; max-width: min(320px, calc(100vw - 8px)); padding: 4px 8px; border-radius: var(--radius-sm); background: var(--text-primary); color: var(--surface-1); font-size: 12px; line-height: 1.3; overflow-wrap: anywhere; box-shadow: var(--shadow); }
 .tooltip kbd { flex: none; padding: 2px 4px; font-size: 10px; color: inherit; background: transparent; border-color: color-mix(in srgb, var(--surface-1) 45%, transparent); }
 .popover { position: fixed; z-index: 50; overflow: auto; }
 .menu { font-size: 12px; display: flex; flex-direction: column; gap: 2px; padding: 4px; border-radius: 10px; background: var(--surface-1); border: 1px solid var(--line); box-shadow: var(--shadow); }
@@ -983,14 +984,16 @@ ol.install-steps { padding-left: 18px; }
 .session-window.dragging { opacity: 0.4; }
 /* Drop preview like the Dashboard's: a layer over the whole window, header included. */
 .session-window.drop-target::after { content: ""; position: absolute; inset: 4px; z-index: 4; pointer-events: none; border: 2px dashed color-mix(in srgb, var(--accent) 60%, transparent); border-radius: var(--radius-lg); background: color-mix(in srgb, var(--accent) 8%, transparent); }
-.sessions-drag-ghost { position: fixed; left: 0; top: 0; z-index: 50; pointer-events: none; max-width: 360px; border: 1px solid var(--line); border-radius: 10px; box-shadow: var(--shadow); opacity: 0.95; }
+/* Keep the source width so a grab near the right edge stays under the pointer. */
+.sessions-drag-ghost { position: fixed; left: 0; top: 0; z-index: 50; pointer-events: none; max-width: none; border: 1px solid var(--line); border-radius: 10px; box-shadow: var(--shadow); opacity: 0.95; }
 .session-window-head .project-icon { width: 14px; height: 14px; }
 .session-window-title { min-width: 0; flex: 1 1 auto; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 600; }
 .session-window-project { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .session-window-state.waiting { box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--warn) 50%, transparent); }
 .session-window-state.running { box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent) 50%, transparent); }
 .session-window-state.error { box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--danger) 50%, transparent); }
-.session-window-buttons { display: flex; gap: 2px; flex: none; }
+.session-window-buttons { display: flex; align-items: center; gap: 2px; flex: none; }
+.session-window-sub .session-window-buttons { margin-left: auto; }
 .session-window-buttons .icon-button { min-width: 0; height: auto; padding: 4px; border-radius: var(--radius-sm); }
 @media (hover: hover) { .session-window-buttons .icon-button:hover { color: var(--text-primary); background: var(--surface-0); } }
 .sessions-missing { flex: 1; display: flex; flex-direction: column; gap: 10px; align-items: center; justify-content: center; padding: 16px; text-align: center; color: var(--text-secondary); }

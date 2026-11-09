@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useSyncExternalStore } from "react";
 import type { PrRef } from "../../../shared/pulls.ts";
-import { hashForTab, prFromHash, sessionFromHash, tabFromHash, type Tab } from "./tabs.ts";
+import { hashForTab, prFromHash, prSourceFromHash, sessionFromHash, tabFromHash, type Tab } from "./tabs.ts";
 
 const subscribe = (onChange: () => void) => {
   window.addEventListener("hashchange", onChange);
@@ -30,4 +30,8 @@ export function usePrRoute(): PrRef | null {
 export function useSessionRoute(): string | null {
   const hash = useSyncExternalStore(subscribe, () => location.hash);
   return useMemo(() => sessionFromHash(hash), [hash]);
+}
+
+export function usePrSource(): string | null {
+  return useSyncExternalStore(subscribe, () => prSourceFromHash(location.hash), () => null);
 }

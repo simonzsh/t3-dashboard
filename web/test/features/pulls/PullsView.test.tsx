@@ -264,3 +264,22 @@ test("the detail shows a loader before the data and keeps errors apart", () => {
   assert.match(failed, /Change 12/);
   assert.match(failed, /role="alert"[^>]*>Could not load the diff/);
 });
+
+test("the source session has a visible return button on desktop and phone", () => {
+  const sourceSession = thread("source", { title: "Source conversation" });
+  for (const phone of [false, true]) {
+    const html = header({ phone, sourceSession, sessions: [thread("other"), sourceSession] });
+    if (phone) {
+      assert.match(html, /aria-label="Back to session"/);
+      assert.doesNotMatch(html, /Back to session<\/button>/);
+      assert.match(html, /class="icon-button sm ghost pulls-back"/);
+    } else {
+      assert.match(html, /Back to session<\/button>/);
+    }
+    assert.doesNotMatch(html, /<span>Source conversation<\/span>/);
+    assert.doesNotMatch(html, /aria-label="Back to pull requests"/);
+    assert.ok(html.indexOf('class="pulls-head-row"') < html.indexOf("Back to session"));
+    assert.ok(html.indexOf("Back to session") < html.indexOf('class="pulls-title"'));
+  }
+  assert.match(header(), /aria-label="Back to pull requests"/);
+});
