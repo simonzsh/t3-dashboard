@@ -549,7 +549,7 @@ test("the demo threads that carry pull requests point at demo pull requests, one
   assert.equal(linked.filter((thread) => thread.pullRequests.some((pr) => pr.number === 138)).length, 2);
 });
 
-test("interrupting an armed demo thread sends one alert, through the fake sender only", async () => {
+test("interrupting an armed demo thread sends one alert, through the fake sender only, and stays armed", async () => {
   const port = new DemoPort(() => NOW);
   const sent: string[] = [];
   const alerts = createAlerts({
@@ -575,5 +575,5 @@ test("interrupting an armed demo thread sends one alert, through the fake sender
   await actions.interrupt(working.id);
   await Bun.sleep(0);
   assert.deepEqual(sent, [`Cancelled|${click}`]);
-  assert.deepEqual(alerts.state().armed, []);
+  assert.deepEqual(alerts.state().armed, [working.id]);
 });
