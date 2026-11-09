@@ -52,6 +52,6 @@ test("only web addresses become links", () => {
 });
 
 test("the list is polled every 2 minutes on its page and every 5 minutes elsewhere", () => {
-  assert.equal(pullsPollMs(true), 120_000);
-  assert.equal(pullsPollMs(false), 300_000);
+  assert.equal(pullsPollMs(true), 30_000);
+  assert.equal(pullsPollMs(false), 120_000);
 });

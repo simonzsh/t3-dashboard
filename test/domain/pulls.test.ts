@@ -38,21 +38,21 @@ function setup() {
 
 const settle = () => Bun.sleep(0);
 
-test("the list is fresh for 60 seconds, served stale up to 10 minutes while a read runs, then awaited", async () => {
+test("the list is fresh for 25 seconds, served stale up to 10 minutes while a read runs, then awaited", async () => {
   const { review, calls, tick } = setup();
   const first = await review.prs();
   assert.equal(calls.length, 2);
   assert.equal(first.fetchedAt, "1970-01-01T00:16:40.000Z");
-  tick(59_000);
+  tick(24_000);
   assert.equal((await review.prs()).stale, undefined);
   assert.equal(calls.length, 2);
   await review.prs(true);
   assert.equal(calls.length, 4);
-  tick(61_000);
+  tick(26_000);
   const stale = await review.prs();
   assert.equal(stale.stale, true);
-  // The list read by `prs(true)` at 59 s is the one served.
-  assert.equal(stale.fetchedAt, new Date(1_059_000).toISOString());
+  // The list read by `prs(true)` at 24 s is the one served.
+  assert.equal(stale.fetchedAt, new Date(1_024_000).toISOString());
   await settle();
   assert.equal(calls.length, 6);
   const next = await review.prs();
@@ -67,7 +67,7 @@ test("the list is fresh for 60 seconds, served stale up to 10 minutes while a re
 test("a reader during a background read waits for it and gets the new list", async () => {
   const { review, calls, tick, hold } = setup();
   await review.prs();
-  tick(61_000);
+  tick(26_000);
   const open = hold();
   const stale = await review.prs();
   assert.equal(stale.stale, true);
@@ -78,14 +78,14 @@ test("a reader during a background read waits for it and gets the new list", asy
   open();
   await reader;
   assert.equal(answer!.stale, undefined);
-  assert.equal(answer!.fetchedAt, new Date(1_061_000).toISOString());
+  assert.equal(answer!.fetchedAt, new Date(1_026_000).toISOString());
   assert.equal(calls.length, 4);
 });
 
 test("a failed background read keeps the old list and raises no unhandled rejection", async () => {
   const { review, calls, tick, fail } = setup();
   const first = await review.prs();
-  tick(61_000);
+  tick(26_000);
   fail(true);
   assert.equal((await review.prs()).fetchedAt, first.fetchedAt);
   await settle();
