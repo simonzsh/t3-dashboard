@@ -135,12 +135,16 @@ export function PullRequestsButton({ pullRequests, open }: { pullRequests: Threa
     );
   }
   const items = newestFirst(pullRequests, open).map((pr) => ({
-    label: `#${pr.number} ${pr.repository}${pr.title ? ` – ${pr.title}` : ""}`,
+    label: `#${pr.number} ${pr.repository}`,
+    detail: pr.title || undefined,
     icon: "gitPullRequest" as const,
     onSelect: () => (window.location.hash = hashForPr(pr)),
     unread: unread(pr),
   }));
-  return <ActionMenu label={`${pullRequests.length} pull requests`} tooltip="Pull requests" icon="gitPullRequest" count={pullRequests.length} items={items} />;
+  // The badge counts the rows with the unread ring, so it goes away once they are all read.
+  const unreadCount = items.filter((item) => item.unread).length;
+  const label = `${pullRequests.length} pull requests${unreadCount ? `, ${unreadCount} unread` : ""}`;
+  return <ActionMenu label={label} tooltip="Pull requests" icon="gitPullRequest" count={unreadCount} items={items} />;
 }
 
 export const SessionWindow = memo(SessionWindowView);

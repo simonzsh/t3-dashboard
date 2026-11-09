@@ -53,9 +53,10 @@ test("a session with one pull request gets a link to its diff on the Pull reques
   assert.doesNotMatch(header([]), /pull request/);
 });
 
-test("a session with several pull requests gets one menu button that counts them", () => {
+test("a session with several pull requests gets one menu button, with no badge when none is unread", () => {
   const html = header([linked(12, "Summary"), linked(13)]);
-  assert.match(html, /<button aria-haspopup="menu" [^>]*aria-label="2 pull requests"[^>]*class="icon-button sm ghost">.*<span class="count-badge icon-button-count" aria-hidden="true">2<\/span><\/button>/);
+  assert.match(html, /<button aria-haspopup="menu" [^>]*aria-label="2 pull requests"[^>]*class="icon-button sm ghost">/);
+  assert.doesNotMatch(html, /count-badge/);
   assert.doesNotMatch(html, /href="#\/pulls/);
 });
 
@@ -69,8 +70,8 @@ test("every control in the session header has the icon button classes, so they s
 });
 test("the pull request menu items open each diff, with the title when T3 knows it", () => {
   const opened: string[] = [];
-  const items = PullRequestsButton({ pullRequests: [linked(12, "Summary"), linked(13)], open: new Map() })!.props.items as Array<{ label: string; onSelect: () => void }>;
-  assert.deepEqual(items.map((item) => item.label), ["#13 acme/storefront", "#12 acme/storefront – Summary"]);
+  const items = PullRequestsButton({ pullRequests: [linked(12, "Summary"), linked(13)], open: new Map() })!.props.items as Array<{ label: string; detail?: string; onSelect: () => void }>;
+  assert.deepEqual(items.map((item) => [item.label, item.detail]), [["#13 acme/storefront", undefined], ["#12 acme/storefront", "Summary"]]);
   const location = { hash: "" };
   const saved = Object.getOwnPropertyDescriptor(globalThis, "window");
   Object.defineProperty(globalThis, "window", { value: { location }, configurable: true });
@@ -93,6 +94,18 @@ test("the menu marks only the unread open pull requests, whatever the case of th
   assert.deepEqual(items.map((item) => [item.label, item.unread]), [["#14 acme/storefront", false], ["#13 acme/storefront", true], ["#12 acme/storefront", false]]);
   const upper = PullRequestsButton({ pullRequests: [{ ...linked(12), repository: "Acme/Storefront" }, linked(13)], open: openOf([[12, "", true]]) })!.props.items as Array<{ unread: boolean }>;
   assert.deepEqual(upper.map((item) => item.unread), [false, true]);
+});
+
+test("the menu badge counts only the unread pull requests, and is gone when all are read", () => {
+  const menu = (unread: number[]) => PullRequestsButton({ pullRequests: [linked(12), linked(13), linked(14)], open: openOf([12, 13, 14].map((n) => [n, "", unread.includes(n)])) })!.props as { count: number; label: string };
+  assert.deepEqual([menu([]).count, menu([13]).count, menu([12, 13, 14]).count], [0, 1, 3]);
+  assert.equal(menu([]).label, "3 pull requests");
+  assert.equal(menu([13]).label, "3 pull requests, 1 unread");
+  const html = (unread: number[]) => renderToStaticMarkup(<SessionWindow {...base} openPrs={openOf([12, 13, 14].map((n) => [n, "", unread.includes(n)]))} live={false} missing={false} thread={thread("t1", { pullRequests: [linked(12), linked(13), linked(14)] })} />);
+  assert.doesNotMatch(html([]), /icon-button-count/);
+  assert.match(html([]), /aria-label="3 pull requests"/);
+  assert.match(html([13]), /icon-button-count[^>]*>1</);
+  assert.match(html([12, 13, 14]), /icon-button-count[^>]*>3</);
 });
 
 test("the menu puts the newest open pull request first, even when T3 lists the branch pull request last", () => {

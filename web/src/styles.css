@@ -516,6 +516,11 @@ input.dropdown-search { position: absolute; inset: 0 auto 0 0; z-index: 1; width
 .dropdown-option[role="menuitem"] > .icon { flex: none; width: 14px; height: 14px; color: var(--text-secondary); }
 .dropdown-option[role="menuitem"].danger, .dropdown-option[role="menuitem"].danger > .icon { color: var(--danger); }
 .dropdown-option[role="menuitem"] > .notif-dot { margin: 0; }
+/* Long rows (pull request titles) must not stretch the menu: only the detail gives way. */
+.action-menu { max-width: min(420px, calc(100vw - 16px)); }
+.action-menu-text { flex-direction: row; align-items: baseline; gap: 4px; }
+.action-menu-label { flex: none; white-space: nowrap; }
+.action-menu-detail { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .dropdown-option[role="menuitem"].disabled { opacity: 0.5; cursor: default; }
 .dropdown-option[role="menuitem"].disabled.active { background: none; }
 .composer-actions { display: flex; align-items: center; gap: 6px; flex: none; margin-left: auto; }
