@@ -399,3 +399,10 @@ test("menu status icons keep their color and accessible name", () => {
   assert.match(out, /class="icon pr-status-merged"/);
   assert.match(out, /aria-label="Merged"/);
 });
+
+test("menu trigger supports a named status icon without coloring its count", () => {
+  const out = html(<ActionMenu label="Pull requests" icon="gitMerge" iconClassName="pr-status-merged" iconLabel="Merged" count={2} items={[]} />);
+  assert.match(out, /class="icon pr-status-merged"/);
+  assert.match(out, /aria-label="Merged"/);
+  assert.match(out, /count-badge/);
+});

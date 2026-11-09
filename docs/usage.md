@@ -316,3 +316,5 @@ Pull request pages and session menus show status icons: green for open, purple f
 News articles sit near the page center with space from the article list and a maximum reading width of 42rem.
 
 In demo mode, the checkout and chart comparison sessions include merged PR #137. Its menu icon and page badge are purple.
+
+The session PR menu icon is green when any PR is open and ready. Otherwise, a remaining draft gives a gray draft icon. All merged gives a purple merge icon; all closed gives a red closed icon. Mixed final or unknown states stay gray. Each menu row keeps its own status.

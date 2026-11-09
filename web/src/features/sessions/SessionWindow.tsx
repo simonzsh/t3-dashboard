@@ -1,4 +1,4 @@
-import { prStatus } from "../../lib/prStatus.ts";
+import { prGroupStatus, prStatus } from "../../lib/prStatus.ts";
 import { memo, type Dispatch } from "react";
 import type { DashboardProvider, DashboardThread, ProjectIcon as ProjectIconData, ThreadPullRequest } from "../../../../shared/api.ts";
 import { ActionMenu, Badge, Button, Icon, IconButton, IconButtonLink } from "../../ui/index.ts";
@@ -151,7 +151,8 @@ export function PullRequestsButton({ pullRequests, open, fromSession }: { fromSe
   // The badge counts the rows with the unread ring, so it goes away once they are all read.
   const unreadCount = items.filter((item) => item.unread).length;
   const label = `${pullRequests.length} pull requests${unreadCount ? `, ${unreadCount} unread` : ""}`;
-  return <ActionMenu label={label} tooltip="Pull requests" icon="gitPullRequest" count={unreadCount} items={items} />;
+  const status = prGroupStatus(pullRequests);
+  return <ActionMenu label={label} tooltip={`Pull requests: ${status.label}`} icon={status.icon} iconClassName={status.className} iconLabel={status.label} count={unreadCount} items={items} />;
 }
 
 export const SessionWindow = memo(SessionWindowView);

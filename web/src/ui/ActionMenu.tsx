@@ -68,6 +68,8 @@ interface Props {
   className?: string;
   /** The trigger's icon, "…" by default. */
   icon?: IconName;
+  iconClassName?: string;
+  iconLabel?: string;
   /** A count badge on the icon's corner: the trigger keeps the exact size of the icon buttons beside it. */
   count?: number;
   /** Visible text after the icon: the trigger is then a text button. */
@@ -77,7 +79,7 @@ interface Props {
 }
 
 /** The "…" button of a row, and its menu of actions. Same menu, rows and keys as the Dropdown. The menu is at most 420 px wide. */
-export function ActionMenu({ label, tooltip, items, className, icon = "moreHorizontal", count, text, variant = "ghost" }: Props) {
+export function ActionMenu({ label, tooltip, items, className, icon = "moreHorizontal", iconClassName, iconLabel, count, text, variant = "ghost" }: Props) {
   const [open, setOpen] = useState(false);
   const anchor = useRef<HTMLButtonElement>(null);
   const list = useRef<HTMLDivElement>(null);
@@ -118,12 +120,12 @@ export function ActionMenu({ label, tooltip, items, className, icon = "moreHoriz
     <>
       {text === undefined ? (
         <IconButton ref={anchor} variant="ghost" size="sm" className={className} label={label} tooltip={tooltip} aria-haspopup="menu" aria-expanded={open} onClick={() => (open ? close(false) : show())}>
-          <Icon name={icon} />
+          <Icon name={icon} className={["icon", iconClassName].filter(Boolean).join(" ")} label={iconLabel} />
           {count !== undefined && <CountBadge count={count} max={9} hidden className="icon-button-count" />}
         </IconButton>
       ) : (
         <Button ref={anchor} variant={variant} size="sm" className={className} aria-label={label} aria-haspopup="menu" aria-expanded={open} onClick={() => (open ? close(false) : show())}>
-          <Icon name={icon} /> {text}
+          <Icon name={icon} className={["icon", iconClassName].filter(Boolean).join(" ")} label={iconLabel} /> {text}
         </Button>
       )}
       {open && (
