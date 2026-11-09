@@ -20,6 +20,8 @@
 | `linear` | `{ viewer { id } }`, then one page of assigned tickets and the inbox, with the board queries. Only if a key exists. |
 | `github` | The latest release has a `tag_name` in version format. Its `SHA256SUMS` file contains a SHA-256 sum for each of the 5 binaries. The script downloads no binary. |
 
+The optional main update channel reads `GET /repos/{repo}/commits/main`, validates the full commit SHA, then reads `GET /repos/{repo}/releases/tags/main-{sha}`. The release tag must match that commit. Downloads use the same immutable release and SHA-256 verification as stable updates. The contract script above continues to check the stable release.
+
 The schemas are in `src/integrations/*/schemas.ts`. The script uses the same schemas as the dashboard.
 
 ### T3 write commands

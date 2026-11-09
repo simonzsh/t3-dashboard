@@ -6,7 +6,7 @@ import { envPort } from "../config/config.ts";
 import { DEFAULT_REPO } from "../integrations/github/releases.ts";
 import { restartService, serviceInstalled, servicePort, waitForService, type InstallDeps } from "../cli/install.ts";
 import type { UpdateDeps } from "../cli/selfUpdate.ts";
-import { VERSION } from "../config/version.ts";
+import { VERSION, updateChannel } from "../config/version.ts";
 
 /** Exit code of a program, or 127 when it did not start. Its output is dropped. */
 async function run(command: string, args: string[]): Promise<number> {
@@ -66,6 +66,7 @@ export function updateDeps(env: Record<string, string | undefined>): UpdateDeps 
   return {
     fetch,
     repo: env.T3_DASHBOARD_REPO ?? DEFAULT_REPO,
+    channel: updateChannel(env, VERSION),
     version: VERSION,
     exe: process.execPath,
     platform: process.platform,

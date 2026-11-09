@@ -1,11 +1,12 @@
 import { createHash } from "node:crypto";
 import { assetName, downloadAsset, latestTag, releaseSums } from "../integrations/github/releases.ts";
-import { isNewer } from "../config/version.ts";
+import { isNewer, type UpdateChannel } from "../config/version.ts";
 
 export interface UpdateDeps {
   fetch: typeof fetch;
   repo: string;
   version: string;
+  channel?: UpdateChannel;
   exe: string;
   platform: string;
   arch: string;
@@ -21,7 +22,7 @@ export interface UpdateDeps {
 
 /** Resolves true when a new binary replaced the old one. */
 export async function update({ check }: { check: boolean }, deps: UpdateDeps): Promise<boolean> {
-  const tag = await latestTag(deps.fetch, deps.repo);
+  const tag = await latestTag(deps.fetch, deps.repo, deps.channel);
   const latest = tag.replace(/^v/, "");
   if (!isNewer(latest, deps.version)) return deps.log(`t3-dashboard ${deps.version} is up to date (latest release: ${latest}).`), false;
   if (check) return deps.log(`Update available: ${deps.version} -> ${latest}.`), false;

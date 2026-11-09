@@ -3,7 +3,7 @@ import { isNewer } from "../config/version.ts";
 
 export interface UpdateManagerOptions {
   version: string;
-  /** Latest release tag, e.g. `v1.2.3`. Throws when there is none or GitHub fails. */
+  /** Latest release for the selected channel. Throws while its build is missing or GitHub fails. */
   latestTag(): Promise<string>;
   /** Why this dashboard cannot update itself, or null when it can. */
   unavailable: string | null;

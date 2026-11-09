@@ -31,6 +31,8 @@ export interface PlanInput {
 
 /** Overrides copied from the install-time env into the service: it starts with a bare one. */
 export const SERVICE_ENV_KEYS = [
+  "T3_DASHBOARD_UPDATE_CHANNEL",
+  "T3_DASHBOARD_REPO",
   "T3_DASHBOARD_TOKEN_FILE",
   "T3_DASHBOARD_CONFIG_DIR",
   "T3_DASHBOARD_LINEAR_FILE",

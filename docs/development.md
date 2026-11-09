@@ -35,6 +35,8 @@ bun run build   # single binary in dist/t3-dashboard
 
 A manual run of the workflow builds the binaries but does not publish a release.
 
+Each push to `main` also builds the five binaries. The workflow publishes an immutable prerelease named `main-<full commit SHA>`, with `SHA256SUMS`. It never marks this build as the latest stable release. The main update channel offers only the published build for the current branch head. A newer push cancels unfinished main builds.
+
 ## Checks
 
 ```sh

@@ -35,6 +35,30 @@ test("latestTag reads tag_name from the GitHub API", async () => {
   await assert.rejects(latestTag(bad, "o/r"), /404/);
 });
 
+test("the main channel reads the release for the current branch head", async () => {
+  const sha = "a".repeat(40);
+  const { fetchImpl, urls } = serve(url => Response.json(url.endsWith("/commits/main") ? { sha } : { tag_name: `main-${sha}` }));
+  assert.equal(await latestTag(fetchImpl, "o/r", "main"), `main-${sha}`);
+  assert.deepEqual(urls, [
+    "https://api.github.com/repos/o/r/commits/main",
+    `https://api.github.com/repos/o/r/releases/tags/main-${sha}`,
+  ]);
+});
+
+test("the main channel rejects invalid commits and a release for another commit", async () => {
+  for (const body of [{}, { sha: 7 }, { sha: "not-a-sha" }]) {
+    const { fetchImpl } = serve(() => Response.json(body));
+    await assert.rejects(latestTag(fetchImpl, "o/r", "main"), IntegrationError);
+  }
+  const { fetchImpl } = serve(url => Response.json(url.endsWith("/commits/main") ? { sha: "a".repeat(40) } : { tag_name: `main-${"b".repeat(40)}` }));
+  await assert.rejects(latestTag(fetchImpl, "o/r", "main"), /does not match main/);
+});
+
+test("a main build that is not published yet is not offered as an update", async () => {
+  const { fetchImpl } = serve(url => url.endsWith("/commits/main") ? Response.json({ sha: "a".repeat(40) }) : new Response(null, { status: 404 }));
+  await assert.rejects(latestTag(fetchImpl, "o/r", "main"), /404/);
+});
+
 test("a release without a usable tag_name is a protocol error that names the field", async () => {
   for (const body of [{}, { tag_name: 3 }]) {
     const { fetchImpl } = serve(() => Response.json(body));

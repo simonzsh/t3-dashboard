@@ -48,7 +48,7 @@ Script options:
 | Windows | "T3 Dashboard" scheduled task at logon |
 
 - The service restarts automatically after a failure.
-- `install` copies these variables into the service, if they are set at installation time: `T3_DASHBOARD_TOKEN_FILE`, `T3_DASHBOARD_CONFIG_DIR`, `T3_DASHBOARD_LINEAR_FILE`, `T3_DASHBOARD_T3_BIN`, `T3_DASHBOARD_GH_BIN`, `T3_DASHBOARD_ALLOWED_HOSTS`, `T3_SERVER_RUNTIME`, `T3CODE_HOME`, `CLAUDE_CONFIG_DIR`, `CODEX_HOME`, `XDG_CONFIG_HOME` and `T3_DASHBOARD_AGENT_RULES`. To change a value, set the variable and run `install` again.
+- `install` copies these variables into the service, if they are set at installation time: `T3_DASHBOARD_UPDATE_CHANNEL`, `T3_DASHBOARD_REPO`, `T3_DASHBOARD_TOKEN_FILE`, `T3_DASHBOARD_CONFIG_DIR`, `T3_DASHBOARD_LINEAR_FILE`, `T3_DASHBOARD_T3_BIN`, `T3_DASHBOARD_GH_BIN`, `T3_DASHBOARD_ALLOWED_HOSTS`, `T3_SERVER_RUNTIME`, `T3CODE_HOME`, `CLAUDE_CONFIG_DIR`, `CODEX_HOME`, `XDG_CONFIG_HOME` and `T3_DASHBOARD_AGENT_RULES`. To change a value, set the variable and run `install` again.
 - `install` and `update` wait at most 15 s for the new binary to answer on the port.
 - If a different program or an older dashboard uses the port, the command stops with this error: "Port 4300 is used by another program or an older dashboard." Stop this program, or install with `--port <n>`.
 - On Linux, `install` needs `systemctl`. Without `systemctl`, use `t3-dashboard start`.
@@ -142,6 +142,21 @@ File format:
 
 ## Updates
 
+### Update channels
+
+Stable binaries follow stable releases by default. Main binaries follow `main` by default. Set `T3_DASHBOARD_UPDATE_CHANNEL=stable` or `main` to override this choice.
+
+The main channel reads the current commit of `main`, then looks for its published build. A missing build is not offered as an update. Each build has immutable binaries and SHA-256 checksums. Settings and the update button show a short commit, such as `main a1b2c3d`. Updates still require a click; no automatic installation occurs.
+
+For a service, set the variable before running `t3-dashboard install --no-open`, or add it to the existing service environment and restart. Installation preserves this variable. To switch channels from a terminal, run:
+
+```sh
+T3_DASHBOARD_UPDATE_CHANNEL=main t3-dashboard update
+T3_DASHBOARD_UPDATE_CHANNEL=stable t3-dashboard update
+```
+
+Switching channels can replace a stable version with a main build, or restore the latest stable version. Source builds named `dev` cannot update themselves.
+
 ### From the dashboard
 
 The dashboard looks for a new GitHub release at startup, then every hour. A network error or a missing release shows nothing.
@@ -212,3 +227,4 @@ The dashboard has no authentication. Each person who can reach the address can c
 | `T3_DASHBOARD_AUTOMATION_GUARD` | off in a dev build | `on` starts the automation guard in a version that Bun starts, for a test against the real T3 Code. The compiled binary always runs it. |
 | `T3_SERVER_RUNTIME` | `<T3CODE_HOME>/userdata/server-runtime.json` | JSON file with the `origin` field. The dashboard reads it again at each connection to T3. Fallback: `http://127.0.0.1:3773`. |
 | `T3_DASHBOARD_REPO` | `simonzsh/t3-dashboard` | GitHub repo of the releases, for `update`, the hourly check and the install scripts. |
+| `T3_DASHBOARD_UPDATE_CHANNEL` | `stable`, or `main` for a main binary | Update source for the button and `update`. Only `stable` and `main` are accepted. |

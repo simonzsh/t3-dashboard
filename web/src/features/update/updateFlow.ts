@@ -1,4 +1,5 @@
 import type { UpdateStatus } from "../../../../shared/api.ts";
+import { displayVersion, isMainVersion } from "../../../../shared/updates.ts";
 
 const POLL_MS = 1000;
 const TIMEOUT_MS = 90_000;
@@ -26,12 +27,14 @@ export async function waitForRestart(from: string, probe: RestartProbe): Promise
   return { kind: "failed", message: "The dashboard did not restart in time. Restart it by hand to finish the update." };
 }
 
-export const updateLabel = (status: UpdateStatus): string => `Update v${status.latest}`;
-export const updateQuestion = (status: UpdateStatus): string => `Update to v${status.latest}?`;
+const updateVersion = (status: UpdateStatus): string => status.latest && isMainVersion(status.latest) ? displayVersion(status.latest) : `v${status.latest}`;
+export const updateLabel = (status: UpdateStatus): string => `Update ${updateVersion(status)}`;
+export const updateTargetLabel = (status: UpdateStatus): string => `Update to ${updateVersion(status)}`;
+export const updateQuestion = (status: UpdateStatus): string => `${updateTargetLabel(status)}?`;
 
 /** What Settings says after a manual check. */
 export function versionNote(status: UpdateStatus): string {
   if (status.current === "dev") return "Development build. Updates come from releases.";
-  if (status.available) return `Version ${status.latest} is available.`;
+  if (status.available) return `Version ${displayVersion(status.latest ?? "")} is available.`;
   return status.latest ? "Up to date" : "No release found yet.";
 }

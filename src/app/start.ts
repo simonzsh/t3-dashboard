@@ -199,12 +199,12 @@ export async function start({ port, log, env }: StartOptions): Promise<void> {
   const setup = { refresh: () => auth.refresh(), paste: (token: string) => auth.paste(token), wake };
 
   const site = siteFromBundle(index);
-  const repo = updateDeps(env).repo;
+  const { repo, channel } = updateDeps(env);
   const timedFetch = ((url, init) => fetch(url, { ...init, signal: AbortSignal.timeout(UPDATE_CHECK_TIMEOUT_MS) })) as typeof fetch;
   const updates = new UpdateManager({
     version: VERSION,
     unavailable: VERSION === "dev" ? "Development build: updates come from releases." : !Bun.isStandaloneExecutable ? "Not running the compiled binary." : null,
-    latestTag: () => latestTag(timedFetch, repo),
+    latestTag: () => latestTag(timedFetch, repo, channel),
     run: async () => {
       const deps = updateDeps(env);
       const service = await deps.serviceInstalled();

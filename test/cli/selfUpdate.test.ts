@@ -97,3 +97,19 @@ test("no restart when the service is not installed", async () => {
   await update({ check: false }, deps);
   assert.equal(calls.includes("restart 2.0.0"), false);
 });
+
+test("the main channel verifies its checksum and restarts on the selected commit", async () => {
+  const { deps, urls, calls } = harness();
+  const sha = "a".repeat(40);
+  deps.channel = "main";
+  const stableFetch = deps.fetch;
+  deps.fetch = (async (url: string) => {
+    if (url.endsWith("/commits/main")) { urls.push(url); return Response.json({ sha }); }
+    if (url.endsWith(`/releases/tags/main-${sha}`)) { urls.push(url); return Response.json({ tag_name: `main-${sha}` }); }
+    return stableFetch(url);
+  }) as typeof fetch;
+  assert.equal(await update({ check: false }, deps), true);
+  assert.ok(urls.includes(`https://github.com/o/r/releases/download/main-${sha}/SHA256SUMS`));
+  assert.ok(urls.includes(`https://github.com/o/r/releases/download/main-${sha}/t3-dashboard-linux-x64`));
+  assert.ok(calls.includes(`restart main-${sha}`));
+});

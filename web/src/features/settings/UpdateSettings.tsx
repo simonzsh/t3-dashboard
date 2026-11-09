@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { versionNote } from "../update/updateFlow.ts";
+import { updateTargetLabel, versionNote } from "../update/updateFlow.ts";
+import { displayVersion } from "../../../../shared/updates.ts";
 import { Button, Icon, IconButton, Loader } from "../../ui/index.ts";
 import type { UpdateControl } from "../update/useUpdate.ts";
 
@@ -19,7 +20,7 @@ export function UpdateSettings({ update, onUpdate }: Props) {
       <div className="settings-row">
         <span>Version</span>
         <span className="row-icons">
-          <code className="key-mask">{status.current}</code>
+          <code className="key-mask">{displayVersion(status.current)}</code>
           <IconButton
             label="Check for updates"
             tooltip="Check for updates"
@@ -35,7 +36,7 @@ export function UpdateSettings({ update, onUpdate }: Props) {
           </IconButton>
           {canUpdate && (
             <Button variant="primary" size="sm" loading={update.updating && "Updating…"} onClick={onUpdate}>
-              {`Update to v${status.latest}`}
+              {updateTargetLabel(status)}
             </Button>
           )}
           {checked && !canUpdate && <small className="about-note">{status.reason && status.current !== "dev" ? status.reason : versionNote(status)}</small>}
