@@ -83,6 +83,7 @@ export function App() {
   // On a phone the Sessions tab is a list; an opened session covers it, with no header or bottom bar.
   const [phoneSession, setPhoneSession] = useState(false);
   const sessionShown = compact && tab === "sessions" && phoneSession && sessions.focusedId !== null;
+  const prShown = compact && tab === "pulls" && prRoute !== null;
   // Only a session in front of the user counts as read or watched: on a phone, not the list; never in a hidden or unfocused page.
   const attention = usePageAttention();
   const inFront = attention && tab === "sessions" && (!compact || sessionShown) ? sessions.focusedId : null;
@@ -275,7 +276,7 @@ export function App() {
 
   return (
     <AutomationThreadsContext.Provider value={automationThreads}>
-      <div className={`app${tab === "sessions" ? " sessions-mode" : ""}${tab === "automations" ? " automations-mode" : ""}${tab === "news" ? " news-mode" : ""}${tab === "pulls" ? " pulls-mode" : ""}${sessionShown ? " session-shown" : ""}${sheetShown ? " sheet-shown" : ""}`}>
+      <div className={`app${tab === "sessions" ? " sessions-mode" : ""}${tab === "automations" ? " automations-mode" : ""}${tab === "news" ? " news-mode" : ""}${tab === "pulls" ? " pulls-mode" : ""}${sessionShown ? " session-shown" : ""}${prShown ? " pr-shown" : ""}${sheetShown ? " sheet-shown" : ""}`}>
         <TooltipLayer />
         <AppNav
           layout={compact ? "bottom" : "side"}

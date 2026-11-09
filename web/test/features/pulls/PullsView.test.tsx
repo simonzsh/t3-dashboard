@@ -164,12 +164,12 @@ test("the header holds the title, the meta line, the badges and the actions on o
   const html = header();
   assert.match(html, /<header class="pulls-head">/);
   assert.match(html, /<a [^>]*href="#\/pulls"[^>]*aria-label="Back to pull requests"/);
-  assert.match(html, /Change 12 <span class="pulls-num">#12<\/span>/);
+  assert.match(html, /class="pulls-title-text"[^>]*>Change 12<\/span><span class="pulls-num">#12<\/span>/);
   assert.match(html, /<code>feature-12<\/code> → <code>main<\/code>/);
   assert.match(html, /aria-label="Checks and reviews"[^>]*aria-haspopup="dialog"[^>]*aria-expanded="false"/);
   assert.match(html, /Checks failed[\s\S]*Review required/);
   assert.match(html, /3 files/);
-  assert.match(html, /<h2 class="pulls-title">Change 12/);
+  assert.match(html, /<h2 class="pulls-title"><span class="pulls-title-text"/);
   assert.match(html, /aria-label="Collapse all"/);
   assert.match(html, /aria-label="Refresh"/);
   assert.doesNotMatch(html, /Collapse tests|Changed files/);
