@@ -34,6 +34,33 @@ export function settleBlockReason(t: DashboardThread): string | null {
   return null;
 }
 
+/** Bulk settlement uses the same availability rules as each row. */
+export function inactiveThreads(threads: readonly DashboardThread[], now: Date): DashboardThread[] {
+  const before = now.getTime() - 3 * 24 * 3_600_000;
+  return threads.filter((t) => !t.settled && settleBlockReason(t) === null && Date.parse(t.lastActivityAt) < before);
+}
+
+/** Reserve 160 ms for the dialog and 560 ms for the flight and arrival bounce. */
+export function settlementFlightDelay(index: number, count: number, elapsed: number): number | null {
+  const lastStart = 1500 - 560;
+  if (elapsed > lastStart) return null;
+  const interval = Math.min(60, (lastStart - 160) / Math.max(1, count - 1));
+  return Math.max(0, 160 + index * interval - elapsed);
+}
+
+/** Keep request load bounded and report partial failures without skipping later sessions. */
+export async function settleThreads(threads: readonly DashboardThread[], onSettle: (id: string, settle: boolean) => Promise<unknown>): Promise<void> {
+  let failed = 0;
+  for (const t of threads) {
+    try {
+      await onSettle(t.id, true);
+    } catch {
+      failed += 1;
+    }
+  }
+  if (failed > 0) throw new Error(`${failed} of ${threads.length} sessions could not be settled.`);
+}
+
 /** The mark before a row: what asks for attention, then a dot for an unread result. */
 export function statusMark(t: DashboardThread, seen: SeenState): StatusMark {
   return attentionState(t) ?? (isUnseen(t, seen) ? "unread" : null);

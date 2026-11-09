@@ -346,7 +346,6 @@ export function App() {
                   sheet={sheetMode}
                   onCloseSheet={closeSheet}
                   onOpen={onOpen}
-                  onSettle={onSettle}
                   seen={notify.seen}
                   seenReady={notify.seenReady}
                   onMarkRead={notify.markSeen}

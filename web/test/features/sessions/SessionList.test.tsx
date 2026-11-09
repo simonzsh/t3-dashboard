@@ -50,10 +50,10 @@ test("a collapsed project hides its threads; flat mode has no project rows", () 
   assert.doesNotMatch(flat, /Model One/);
 });
 
-test("the top band, on the right: add project, collapse all, view toggle, close all, and no hide button", () => {
-  const html = renderToStaticMarkup(<SessionList {...base} />);
+test("the top band, on the right: add project, collapse all, view toggle, close all, settle inactive, and no hide button", () => {
+  const html = renderToStaticMarkup(<SessionList {...base} threads={[...base.threads, thread("old", { lastActivityAt: "2026-01-01T00:00:00.000Z" })]} />);
   const at = (label: string) => html.indexOf(`aria-label="${label}"`);
-  const order = ["Add project", "Collapse all projects", "Show one list by recent activity", "Close all sessions"].map(at);
+  const order = ["Add project", "Collapse all projects", "Show one list by recent activity", "Close all sessions", "Settle inactive sessions"].map(at);
   assert.ok(order[0]! >= 0 && order.every((n, i) => i === 0 || n > order[i - 1]!));
   assert.doesNotMatch(html, /Hide the list/);
 });
@@ -78,6 +78,7 @@ test("flat mode has no fold button; close all is disabled when nothing is open",
 test("an open row has a close button beside it, a closed row has none", () => {
   const html = renderToStaticMarkup(<SessionList {...base} openIds={new Set(["t1"])} focusedId="t1" />);
   assert.match(html, /aria-label="Close Fix login"/);
+  assert.ok(html.indexOf('aria-label="Close Fix login"') < html.indexOf('aria-label="Settle Fix login"'));
   assert.doesNotMatch(html, /aria-label="Close Refund flow"/);
   assert.doesNotMatch(html, /<button[^>]*slist-row[^>]*>(?:(?!<\/button>).)*aria-label="Close/);
 });
@@ -175,4 +176,19 @@ test("section titles show neutral counts of all listed sessions", () => {
   ]} />);
   assert.match(markup, /Active sessions<\/span><span class="count-badge neutral" role="img" aria-label="2 active sessions">2<\/span>/);
   assert.match(markup, /Settled · last 24h<\/span><span class="count-badge neutral" role="img" aria-label="1 settled sessions in the last 24 hours">1<\/span>/);
+});
+
+test("bulk settle is one button with a plain tooltip and a closed confirmation dialog", () => {
+  const old = thread("old", { lastActivityAt: "2026-01-01T00:00:00.000Z" });
+  const html = renderToStaticMarkup(<SessionList {...base} threads={[old, { ...old, id: "running", status: "running" }]} />);
+  assert.match(html, /aria-label="Settle inactive sessions" data-tooltip="Settle inactive sessions"/);
+  assert.doesNotMatch(html, /Settle inactive sessions\?|role="dialog"/);
+  const empty = renderToStaticMarkup(<SessionList {...base} threads={[]} />);
+  assert.doesNotMatch(empty, /aria-label="Settle inactive sessions"/);
+  const unavailable = renderToStaticMarkup(<SessionList {...base} threads={[
+    thread("recent", { lastActivityAt: base.now.toISOString() }),
+    { ...old, id: "running", status: "running" },
+    { ...old, id: "settled", settled: true },
+  ]} />);
+  assert.doesNotMatch(unavailable, /aria-label="Settle inactive sessions"/);
 });

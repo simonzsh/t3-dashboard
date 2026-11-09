@@ -6,7 +6,7 @@ import { NotificationItem } from "./NotificationItem.tsx";
 import { NotificationsCard } from "./NotificationsCard.tsx";
 import { RunningCard } from "./RunningCard.tsx";
 import { LinearCard } from "./LinearCard.tsx";
-import { threadSections, splitRead } from "./sections.ts";
+import { threadSections } from "./sections.ts";
 import { ThreadRow } from "./ThreadRow.tsx";
 import { useLinear } from "./useLinear.ts";
 
@@ -16,9 +16,8 @@ export interface CardsInput {
   sessionIds: ReadonlySet<string>;
   // addOnly: put the agent on the Sessions page without leaving the Dashboard.
   onOpen: (id: string, addOnly: boolean) => void;
-  onSettle: (id: string, settle: boolean) => Promise<unknown>;
   seen: SeenState;
-  /** False until the server answers: every thread would look read, and "Settle all" could settle unread ones. */
+  /** False until the server answers: unread results are not known yet. */
   seenReady: boolean;
   onMarkRead: (id: string) => void;
   /** Changes when the Linear settings change: the board then loads again. */
@@ -26,11 +25,10 @@ export interface CardsInput {
 }
 
 /** The thread cards of the Dashboard and the Notifications panel; Usage, Server and Activity need no thread. */
-export function useDashboardCards({ state, now, sessionIds, onOpen, onSettle, seen, seenReady, onMarkRead, linearVersion }: CardsInput, linearEnabled: boolean): Record<"notifications" | "running" | "linear", ReactNode> {
+export function useDashboardCards({ state, now, sessionIds, onOpen, seen, seenReady, onMarkRead, linearVersion }: CardsInput, linearEnabled: boolean): Record<"notifications" | "running" | "linear", ReactNode> {
   const threads = state.threads;
   const linear = useLinear(linearVersion, linearEnabled);
   const sections = useMemo(() => threadSections(threads, seen), [threads, seen]);
-  const { recent, old } = useMemo(() => splitRead(sections.readIdle, now), [sections, now]);
   const projects = useMemo(() => new Map(state.projects.map((p) => [p.id, p])), [state.projects]);
   const modelNames = useMemo(() => modelNameMap(state.providers), [state.providers]);
   const loading = state.connection.t3 === "live" && !seenReady;
@@ -49,12 +47,9 @@ export function useDashboardCards({ state, now, sessionIds, onOpen, onSettle, se
     notifications: (
       <NotificationsCard
         sections={sections}
-        recent={recent}
-        old={old}
         loading={loading}
         renderItem={({ thread, kind }) => <NotificationItem key={thread.id} kind={kind} {...rowProps(thread)} onMarkRead={onMarkRead} />}
         onMarkAllRead={() => sections.unread.forEach((t) => onMarkRead(t.id))}
-        onSettle={onSettle}
       />
     ),
     running: (
