@@ -8,7 +8,7 @@ import { AutomationMark } from "../../lib/automationThreads.tsx";
 import { ProviderIcon } from "../../lib/ProviderIcon.tsx";
 import { modelLabel } from "../../lib/models.ts";
 import { threadTitle } from "../../lib/threads.ts";
-import { Chevron, CountBadge, Icon, IconButton, Pressable } from "../../ui/index.ts";
+import { Chevron, CountBadge, Icon, IconButton, Pressable, useFlip } from "../../ui/index.ts";
 import { ProjectMenu } from "./ProjectMenu.tsx";
 import { groupByProject, listableThreads, recentSettledThreads, statusMark, type ListPrefs } from "./sessionList.ts";
 
@@ -41,8 +41,12 @@ function SessionListView({ threads, projects, seen, modelNames, now, openIds, fo
   const shown = useMemo(() => listableThreads(threads), [threads]);
   const [settledOpen, setSettledOpen] = useState(false);
   const settled = useMemo(() => recentSettledThreads(threads, now), [threads, now]);
+  const activeList = useRef<HTMLDivElement>(null);
   const settledPanel = useRef<HTMLElement>(null);
   const settledContent = useRef<HTMLDivElement>(null);
+  useFlip(activeList, shown.map((t) => t.id).join(","), { item: "data-session-row" });
+  useFlip(settledContent, settled.map((t) => t.id).join(","), { item: "data-session-row", enabled: settledOpen });
+
   useLayoutEffect(() => {
     const panel = settledPanel.current;
     const content = settledContent.current;
@@ -78,7 +82,7 @@ function SessionListView({ threads, projects, seen, modelNames, now, openIds, fo
     const title = threadTitle(t);
     const isOpen = openIds.has(t.id);
     return (
-      <div key={t.id} className="slist-item">
+      <div key={t.id} className="slist-item" data-session-row={t.id}>
         <Pressable className={`slist-row${isOpen ? " open" : ""}${t.id === focusedId ? " focused" : ""}`} aria-current={t.id === focusedId || undefined} onClick={() => onOpen(t.id)}>
           <span className={`slist-mark${mark ? ` ${mark}` : ""}`} role={mark ? "img" : undefined} aria-label={mark ? MARK_LABELS[mark] : undefined} aria-hidden={mark ? undefined : true}>
             {/* Same icons as the Notifications card: a dot would look like "running" with a yellow or red accent. */}
@@ -190,7 +194,7 @@ function SessionListView({ threads, projects, seen, modelNames, now, openIds, fo
           <Icon name="copyX" />
         </IconButton>
       </div>
-      <div className="slist-body">
+      <div ref={activeList} className="slist-body">
         {(grouped ? projectGroups.length === 0 : shown.length === 0) && settled.length === 0 ? <p className="slist-empty">No sessions yet.</p> : groups}
       </div>
       {settled.length > 0 && (
