@@ -457,3 +457,23 @@ test("incoming questions never autofocus their composer", async () => {
   const dock = await Bun.file("web/src/features/conversation/QuestionDock.tsx").text();
   assert.doesNotMatch(dock, /focusKey|autoFocus|\.focus\(/);
 });
+
+
+test("conversation robots stay in the scrolling messages instead of a fixed dock", () => {
+  const source = readFileSync("web/src/features/conversation/ConversationPanel.tsx", "utf8");
+  const scrollStart = source.indexOf('className="messages"');
+  const scrollEnd = source.indexOf('{!atBottom &&', scrollStart);
+  assert.ok(scrollStart >= 0 && scrollEnd > scrollStart);
+  const robots = [...source.matchAll(/<WorkingRobot (waiting|sleeping|background)\b/g)];
+  assert.deepEqual(robots.map(robot => robot[1]).sort(), ["background", "sleeping", "waiting"]);
+  for (const robot of robots) {
+    assert.ok(robot.index > scrollStart && robot.index < scrollEnd, `${robot[1]} robot must scroll with messages`);
+  }
+  assert.doesNotMatch(source + css, /input-request-dock/);
+});
+
+
+test("background activity keeps a visible robot after the main run ends", () => {
+  const source = readFileSync("web/src/features/conversation/ConversationPanel.tsx", "utf8");
+  assert.match(source, /!running && background && !needsInput && \([\s\S]*?<Loader inline label="Background activity" \/>[\s\S]*?<WorkingRobot background \/>/);
+});

@@ -110,9 +110,16 @@ test("awaitingStep: a running thread whose last entry is the user's message has 
   assert.equal(awaitingStep(entriesOf([user("u", "2026-01-01T10:00:00Z")]), false), false);
 });
 
-test("awaitingStep: a step, a reply or an empty thread ends the wait", () => {
+test("awaitingStep: only a trailing work group supplies its own running indicator", () => {
   const u = user("u", "2026-01-01T10:00:00Z");
   assert.equal(awaitingStep(entriesOf([u], [step("a", "command", "2026-01-01T10:00:05Z")]), true), false);
-  assert.equal(awaitingStep(entriesOf([u, message("m", "2026-01-01T10:00:09Z")]), true), false);
-  assert.equal(awaitingStep([], true), false);
+  assert.equal(awaitingStep(entriesOf([u, message("m", "2026-01-01T10:00:09Z")]), true), true);
+  assert.equal(awaitingStep([], true), true);
+});
+
+
+test("awaitingStep: notices after completed work keep the active run visible", () => {
+  const entries = entriesOf([], [step("a", "command", "2026-01-01T10:00:05Z"), step("n", "notice", "2026-01-01T10:00:09Z")]);
+  assert.equal(awaitingStep(entries, true), true);
+  assert.equal(awaitingStep(entries, false), false);
 });

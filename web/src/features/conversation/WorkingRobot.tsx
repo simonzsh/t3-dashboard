@@ -2,7 +2,8 @@ import { useEffect, useRef, useState } from "react";
 import { Pressable, pauseAnimations, reducedMotion } from "../../ui/index.ts";
 
 /** CSS depth keeps the small mascot light enough for several live sessions. */
-export function WorkingRobot({ thinking = false, waiting = false, sleeping = false }: { thinking?: boolean; waiting?: boolean; sleeping?: boolean }) {
+export function WorkingRobot({ thinking = false, waiting = false, sleeping = false, background = false }: { thinking?: boolean; waiting?: boolean; sleeping?: boolean; background?: boolean }) {
+  const pose = waiting ? "waiting" : background ? "background" : sleeping ? "sleeping" : thinking ? "thinking" : "typing";
   const root = useRef<HTMLButtonElement>(null);
   const [reacting, setReacting] = useState(false);
   const greeting = useRef(false);
@@ -25,10 +26,10 @@ export function WorkingRobot({ thinking = false, waiting = false, sleeping = fal
       animation?.cancel();
       resume();
     };
-  }, [reacting, waiting, thinking, sleeping]);
+  }, [reacting, pose]);
   useEffect(() => {
     const scene = root.current;
-    if (thinking || waiting || sleeping || !scene) return;
+    if (pose !== "typing" || !scene) return;
     const animations = new Set<Animation>();
     const timers = new Set<ReturnType<typeof setTimeout>>();
     let stopped = false;
@@ -94,10 +95,10 @@ export function WorkingRobot({ thinking = false, waiting = false, sleeping = fal
       for (const timer of timers) clearTimeout(timer);
       for (const animation of animations) animation.cancel();
     };
-  }, [thinking, waiting, sleeping]);
+  }, [pose]);
   return (
-    <Pressable ref={root} className={`working-robot ${waiting ? "waiting" : sleeping ? "sleeping" : thinking ? "thinking" : "typing"}${reacting ? " reacting" : ""}`}
-      aria-label={sleeping && !waiting ? "Wake the robot" : "Greet the robot"}
+    <Pressable ref={root} className={`working-robot ${pose}${reacting ? " reacting" : ""}`}
+      aria-label={pose === "sleeping" ? "Wake the robot" : "Greet the robot"}
       onClick={(event) => { event.stopPropagation(); if (!greeting.current) { greeting.current = true; setReacting(true); } }}>
       <div className="robot-size" aria-hidden="true">
         <div className="robot-scene">
@@ -107,9 +108,10 @@ export function WorkingRobot({ thinking = false, waiting = false, sleeping = fal
           <div className="robot-body" />
           <div className="robot-arm left" /><div className="robot-arm right" />
           <div className="robot-hand left" /><div className="robot-hand right" />
-          {waiting && <div className="robot-wave-arm"><i className="robot-forearm" /><i className="robot-palm" /></div>}
+          {pose === "waiting" && <div className="robot-wave-arm"><i className="robot-forearm" /><i className="robot-palm" /></div>}
           <div className="robot-keyboard">{Array.from({ length: 15 }, (_, i) => <i key={i} />)}</div>
-          {sleeping && !waiting && <div className="robot-snooze"><span>z</span><span>z</span><span>Z</span></div>}
+          {pose === "sleeping" && <div className="robot-snooze"><span>z</span><span>z</span><span>Z</span></div>}
+          {pose === "background" && <div className="robot-clock"><span className="robot-clock-hour" /><span className="robot-clock-minute" /></div>}
           <div className="robot-thought"><i /><i /><i /></div>
         </div>
       </div>

@@ -39,8 +39,7 @@ export function timeline(detail: Pick<ThreadDetail, "messages" | "renders" | "st
   return out;
 }
 
-// A run is active but nothing answers the last user message yet: the timeline shows a "Working…" row.
+// A trailing work group owns the live indicator. All other entries need a fallback.
 export function awaitingStep(entries: Entry[], running: boolean): boolean {
-  const last = entries.at(-1);
-  return running && last?.kind === "message" && last.message.role === "user";
+  return running && entries.at(-1)?.kind !== "work";
 }

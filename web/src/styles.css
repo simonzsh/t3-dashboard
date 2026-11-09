@@ -348,8 +348,8 @@ main { flex: 1; min-height: 0; overflow: hidden; padding: var(--page-top) var(--
 @media (prefers-reduced-motion: reduce) { .disclosure { transition: none; } }
 @keyframes breathe { 0%, 100% { opacity: 1; } 50% { opacity: 0.35; } }
 /* Sculpted surfaces and perspective give the mascot depth without a render loop. */
-.working-robot { --robot-light: color-mix(in srgb, var(--accent) 35%, white); --robot-shade: color-mix(in srgb, var(--accent) 65%, black); position: relative; width: 86px; height: 68px; flex: none; margin-left: auto; align-self: center; overflow: hidden; padding: 0; border: 0; border-radius: var(--radius-md); background: none; cursor: pointer; touch-action: manipulation; }
-.robot-size { position: absolute; left: 0; top: 5px; width: 164px; height: 124px; transform: scale(0.5); transform-origin: top left; perspective: 450px; }
+.working-robot { --robot-light: color-mix(in srgb, var(--accent) 35%, white); --robot-shade: color-mix(in srgb, var(--accent) 65%, black); position: relative; width: 94px; height: 76px; flex: none; margin-left: auto; align-self: center; overflow: visible; padding: 0; border: 0; border-radius: var(--radius-md); background: none; cursor: pointer; touch-action: manipulation; }
+.robot-size { position: absolute; left: 4px; top: 10px; width: 164px; height: 124px; transform: scale(0.5); transform-origin: top left; perspective: 450px; }
 .robot-scene { position: relative; width: 148px; height: 114px; transform: rotateX(8deg) rotateY(-14deg); transform-style: preserve-3d; }
 .robot-head, .robot-body, .robot-hand { position: absolute; background: linear-gradient(135deg, var(--robot-light), var(--accent) 55%, var(--robot-shade)); box-shadow: inset -4px -4px 8px color-mix(in srgb, var(--robot-shade) 35%, transparent), inset 2px 2px 4px var(--robot-light), 3px 5px 0 var(--robot-shade); }
 .robot-head { left: 39px; top: 15px; width: 70px; height: 49px; border-radius: 22px; transform: translateZ(18px); animation: robot-nod 2.8s ease-in-out infinite; z-index: 3; }
@@ -386,6 +386,13 @@ main { flex: 1; min-height: 0; overflow: hidden; padding: var(--page-top) var(--
 .robot-palm { left: 0; top: 0; width: 18px; height: 24px; border-radius: 9px 9px 7px 7px; }
 .robot-palm::after { content: ""; position: absolute; left: -4px; bottom: 2px; width: 7px; height: 12px; border-radius: 5px; background: var(--accent); transform: rotate(-25deg); }
 .working-robot.waiting .robot-hand.left { top: 77px; }
+.working-robot.background .robot-head { transform: translateZ(18px) rotate(5deg); animation: none; }
+.robot-clock { position: absolute; left: 119px; top: 5px; width: 29px; height: 29px; border: 2px solid var(--robot-light); border-radius: 50%; background: var(--surface-1); box-shadow: 2px 3px 0 var(--robot-shade); transform: translateZ(24px); }
+.robot-clock::after { content: ""; position: absolute; left: 11px; top: 11px; width: 3px; height: 3px; border-radius: 50%; background: var(--robot-light); }
+.robot-clock span { position: absolute; left: 11px; bottom: 12px; width: 3px; border-radius: 2px; transform-origin: 50% 100%; background: var(--robot-light); }
+.robot-clock-hour { height: 7px; transform: rotate(120deg); }
+.robot-clock-minute { height: 10px; animation: robot-clock-tick 8s linear infinite; }
+@keyframes robot-clock-tick { to { transform: rotate(360deg); } }
 .working-robot.sleeping .robot-head { transform: translateZ(18px) rotate(8deg) translateY(4px); animation: robot-sleep 4s ease-in-out infinite; }
 .working-robot.sleeping .robot-face i { height: 5px; width: 10px; background: none; border-bottom: 3px solid var(--robot-light); border-radius: 0 0 8px 8px; box-shadow: none; animation: none; }
 .working-robot.sleeping .robot-antenna::before { opacity: 0.45; box-shadow: none; }
@@ -412,7 +419,7 @@ main { flex: 1; min-height: 0; overflow: hidden; padding: var(--page-top) var(--
 @keyframes robot-nod { 50% { transform: translateZ(18px) rotateX(8deg) translateY(2px); } }
 @keyframes robot-ponder { 50% { transform: translateZ(18px) rotate(-9deg); } }
 @keyframes robot-blink { 0%, 43%, 47%, 100% { scale: 1 1; } 45% { scale: 1 0.15; } }
-@media (prefers-reduced-motion: reduce) { .working-robot *, .working-robot.thinking .robot-head, .working-robot.waiting .robot-head, .working-robot.waiting .robot-hand.right, .working-robot.sleeping .robot-head { animation: none; } }
+@media (prefers-reduced-motion: reduce) { .working-robot *, .working-robot.thinking .robot-head, .working-robot.waiting .robot-head, .working-robot.waiting .robot-hand.right, .working-robot.sleeping .robot-head, .working-robot.background .robot-head, .working-robot .robot-clock-minute { animation: none; } }
 
 .ui-collapse { height: 0; overflow: hidden; min-width: 0; }
 .ui-collapse > div { display: flow-root; }
@@ -641,7 +648,6 @@ input.dropdown-search { position: absolute; inset: 0 auto 0 0; z-index: 1; width
 .composer-round.send:disabled { opacity: 0.4; }
 .composer-round.stop { color: var(--text-primary); background: var(--surface-0); }
 /* A question from the agent sits on the Composer, which covers its bottom edge, as in T3 Code. */
-.input-request-dock { flex: none; display: flex; flex-direction: column; gap: 8px; padding: 0 14px 8px; max-height: 40%; overflow-y: auto; }
 .question-docked { display: flex; flex-direction: column; min-height: 0; }
 .question-docked .composer { padding-top: 0; }
 .question-docked .composer-card { z-index: 1; }

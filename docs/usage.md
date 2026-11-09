@@ -350,16 +350,21 @@ The fullscreen button remains in the session header.
 Live actions appear in compact cards, without a left rail. Open a card to read its output or diff.
 Working starts expanded during a run. Click its heading to hide or show the cards.
 Cards open in 80 ms and keep loaded details. A running command with no output shows “Waiting for output…”.
-Before the first action arrives, an inline loader appears next to Working.
+Before the first action arrives, an inline loader appears next to “Thinking…”.
+During an active run, this indicator and the thinking robot also appear after replies or notices when no trailing action group shows them.
+If only background tasks or subagents remain active, a loader and the robot appear with “Running in the background…”.
+In this state, the robot watches a small floating clock with a slowly turning hand. Its eyes blink while its arms and keyboard stay still.
 
 A small robot sits to the right of Working, above the cards. It follows the selected accent color.
 Its hands type at varied rhythms, with key feedback timed to contact. It rests its chin on its hand and shows a thought bubble while thinking.
 The robot uses CSS depth. Reduced motion disables its animation and the card transitions.
 
-When a question, approval, or secret needs your reply, the robot raises a hand above the composer.
+When a question, approval, or secret needs your reply, the robot raises a hand at the end of the messages.
+The waiting label and robot scroll with the conversation. They do not reserve a fixed strip above the request panel.
 Pending secrets appear there too. Answered secrets stay in the conversation history.
 Secret requests use the same collapsible panel as questions and approvals, attached to the composer. Pending secrets appear one at a time.
 On mobile, refreshing keeps the focused session open. Returning to the session list also persists across refreshes.
 Incoming questions, approvals, and secret requests do not move keyboard focus or select another session.
-When a session has no active run, background task, pending message, or request, the robot rests above the composer with closed eyes.
+When a session has no active run, background task, pending message, or request, the robot rests after the messages with closed eyes.
+It scrolls with the conversation and does not reserve a fixed strip above the composer.
 Tap or click the robot to greet it. Its eyes become pulsing red hearts and its head tilts gently, then returns to its current pose. A sleeping robot briefly wakes.

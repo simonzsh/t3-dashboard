@@ -254,7 +254,7 @@ const SPECS: ThreadSpec[] = [
       { id: "b3c", type: "system_notice", runId: "run-rate-1", message: "Switched to the fallback model.", at: 2, done: 2 },
       { id: "b4", type: "command_execution", runId: "run-rate-1", input: "bun test src/middleware", status: "running", at: 1 },
     ],
-    thread: { activeRunId: "run-rate-1", runtimeMode: "auto-accept-edits", branch: "rate-limit", branchPullRequest: demoPullRequest("acme/atlas-api", 149) },
+    thread: { activeRunId: "run-rate-1", pendingRuntimeRequest: { id: "b3d", kind: "secret" }, runtimeMode: "auto-accept-edits", branch: "rate-limit", branchPullRequest: demoPullRequest("acme/atlas-api", 149) },
   },
   {
     id: "demo-migration",

@@ -39,3 +39,14 @@ test("the greeting uses two heart eyes without a separate flying heart", () => {
   assert.equal((out.match(/viewBox="0 0 24 24"/g) ?? []).length, 2);
   assert.doesNotMatch(out, /robot-hello/);
 });
+
+
+test("background activity watches instead of typing, thinking or sleeping", () => {
+  const out = renderToStaticMarkup(<WorkingRobot background thinking sleeping />);
+  assert.match(out, /working-robot background/);
+  assert.match(out, /robot-clock-minute/);
+  assert.doesNotMatch(renderToStaticMarkup(<WorkingRobot background waiting />), /robot-clock/);
+  assert.doesNotMatch(out, /robot-snooze|robot-wave-arm/);
+  assert.match(out, /aria-label="Greet the robot"/);
+  assert.match(renderToStaticMarkup(<WorkingRobot background waiting />), /working-robot waiting/);
+});
