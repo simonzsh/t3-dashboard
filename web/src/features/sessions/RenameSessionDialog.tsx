@@ -1,3 +1,4 @@
+import { MAX_TITLE_CHARS } from "../../../../shared/limits.ts";
 import { useState } from "react";
 import { useApi } from "../../api/ApiContext.tsx";
 import { errorMessage } from "../../lib/format.ts";
@@ -8,7 +9,7 @@ export function RenameSessionDialog({ id, title: initialTitle, onClose, onRename
   const [title, setTitle] = useState(initialTitle);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const valid = title.trim().length > 0 && title.trim().length <= 200;
+  const valid = title.trim().length > 0 && title.trim().length <= MAX_TITLE_CHARS;
   async function submit() {
     if (busy || !valid) return;
     setBusy(true);
@@ -26,7 +27,7 @@ export function RenameSessionDialog({ id, title: initialTitle, onClose, onRename
   return <Dialog title="Rename session" onClose={close} onCancel={close} primary={{ label: busy ? "Saving…" : "Save", disabled: busy || !valid, onClick: () => void submit() }}>
     <label className="dialog-field">
       <span>Title</span>
-      <TextInput autoFocus value={title} maxLength={200} disabled={busy} onFocus={(e) => e.currentTarget.select()} onChange={(e) => setTitle(e.target.value)} onKeyDown={(e) => {
+      <TextInput autoFocus value={title} maxLength={MAX_TITLE_CHARS} disabled={busy} onFocus={(e) => e.currentTarget.select()} onChange={(e) => setTitle(e.target.value)} onKeyDown={(e) => {
         if (e.key === "Enter" && !e.nativeEvent.isComposing) { e.preventDefault(); void submit(); }
       }} />
     </label>

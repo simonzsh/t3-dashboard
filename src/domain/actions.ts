@@ -92,9 +92,9 @@ export interface Actions {
   dismiss(threadId: string, requestId: string): Promise<void>;
   /** Hands a secret the agent asked for to T3, or declines the request. The value is never kept or logged. */
   answerSecret(threadId: string, itemId: string, answer: SecretAnswerBody): Promise<void>;
-  /** Rewinds the thread to before a user message; `restoreFiles` also undoes the agent's file edits. */
   renameThread(threadId: string, title: string): Promise<void>;
   regenerateTitle(threadId: string): Promise<void>;
+  /** Rewinds the thread to before this user message; `restoreFiles` also undoes the agent's file edits. */
   rewind(threadId: string, messageId: string, restoreFiles: boolean): Promise<void>;
   settle(threadId: string): Promise<void>;
   unsettle(threadId: string): Promise<void>;

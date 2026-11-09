@@ -4,8 +4,12 @@ import { cloneElement, isValidElement, type ReactNode } from "react";
 export function highlightText(node: ReactNode, query: string): ReactNode {
   const term = query.trim();
   if (!term) return node;
+  const pattern = new RegExp(term.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "giu");
+  return highlightNode(node, pattern);
+}
+
+function highlightNode(node: ReactNode, pattern: RegExp): ReactNode {
   if (typeof node === "string") {
-    const pattern = new RegExp(term.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "giu");
     const parts: ReactNode[] = [];
     let end = 0;
     for (const match of node.matchAll(pattern)) {
@@ -16,9 +20,9 @@ export function highlightText(node: ReactNode, query: string): ReactNode {
     parts.push(node.slice(end));
     return parts;
   }
-  if (Array.isArray(node)) return node.map((child) => highlightText(child, term));
+  if (Array.isArray(node)) return node.map((child) => highlightNode(child, pattern));
   if (isValidElement<{ children?: ReactNode }>(node) && node.props.children !== undefined) {
-    return cloneElement(node, {}, highlightText(node.props.children, term));
+    return cloneElement(node, {}, highlightNode(node.props.children, pattern));
   }
   return node;
 }

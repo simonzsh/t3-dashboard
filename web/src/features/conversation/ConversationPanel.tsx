@@ -235,7 +235,6 @@ function Conversation({ searchRequest = 0, threadId, thread, providers, onOpenTh
     });
   }, [matchKey, matchIndex, searchOpen]);
 
-
   // Bumped on every thread change and cleanup: a late response from an older effect is dropped.
   const epoch = useRef(0);
 
@@ -451,7 +450,7 @@ function Conversation({ searchRequest = 0, threadId, thread, providers, onOpenTh
       </>}
       {searchOpen && <div className="conversation-tools conversation-search" onKeyDown={(e) => {
         if (e.key === "Escape") { e.stopPropagation(); setSearchOpen(false); frame.current?.focus(); }
-        if (e.key === "Enter") { e.preventDefault(); setMatchIndex((i) => (i + (e.shiftKey ? matches.length - 1 : 1)) % (matches.length || 1)); }
+        if (e.key === "Enter" && e.target === searchField.current && !e.nativeEvent.isComposing) { e.preventDefault(); setMatchIndex((i) => (i + (e.shiftKey ? matches.length - 1 : 1)) % (matches.length || 1)); }
       }}>
         <SearchField ref={searchField} aria-label="Search in session" placeholder="Search in session…" value={query} onChange={(e) => { setQuery(e.target.value); setMatchIndex(0); }} />
         <span className="conversation-search-count" role="status">{matches.length ? (matchIndex % matches.length) + 1 : 0}/{matches.length}</span>

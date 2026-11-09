@@ -34,7 +34,7 @@ const CTRL_KEYS: Record<string, ShortcutAction> = {
   b: "toggle-sidebar",
 };
 export const isTabAction = (action: ShortcutAction): action is Tab => TABS.some((tab) => tab.id === action);
-const CTRL_SESSIONS_KEYS: Record<string, ShortcutAction> = { x: "close-window", f: "search-session", o: "toggle-fullscreen" };
+const CTRL_SESSIONS_KEYS: Record<string, ShortcutAction> = { x: "close-window", o: "toggle-fullscreen" };
 // Plain keys that a field needs for itself: they act only outside fields.
 const PLAIN_SESSIONS_KEYS: Record<string, ShortcutAction> = {
   escape: "unmaximize",
@@ -47,7 +47,6 @@ const TYPING = new Set(["INPUT", "TEXTAREA", "SELECT"]);
 
 const isMac = typeof navigator !== "undefined" && /Mac|iPhone|iPad/.test(navigator.platform);
 /** How a Ctrl shortcut reads in a tooltip or a key cap: ⌃N on a Mac, Ctrl+N elsewhere. */
-export const fullscreenShortcut = isMac ? "⌃O" : "Ctrl+O";
 export const ctrlLabel = (key: string): string => (isMac ? `⌃${key}` : `Ctrl+${key}`);
 
 export function matchShortcut(e: KeyInfo, dialogOpen: boolean, inSessions = false): ShortcutAction | null {

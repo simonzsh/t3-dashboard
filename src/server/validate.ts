@@ -6,7 +6,7 @@ import { isRepository, type PrRef } from "../../shared/pulls.ts";
 import { isObject } from "../../shared/guards.ts";
 import { NEWS_LANGUAGES, isTimeOfDay, isWeekday, type NewsLanguage } from "../../shared/news.ts";
 import { normalizeSessions, type SessionsUpdate } from "../../shared/sessions.ts";
-import { IMAGE_TYPES, MAX_ATTACHMENTS, MAX_FILE_BYTES, MAX_IMAGE_BYTES, MAX_IMAGES, MAX_SECRET_CHARS, isRuntimeMode } from "../../shared/limits.ts";
+import { MAX_TITLE_CHARS, IMAGE_TYPES, MAX_ATTACHMENTS, MAX_FILE_BYTES, MAX_IMAGE_BYTES, MAX_IMAGES, MAX_SECRET_CHARS, isRuntimeMode } from "../../shared/limits.ts";
 import { isSeenId, isSeenTime, type SeenChange } from "../../shared/seen.ts";
 import { STASH_TEXT_MAX, type StashBody } from "../../shared/stash.ts";
 import type { FileUpload, ImageUpload } from "../domain/actions.ts";
@@ -174,7 +174,6 @@ export function validCreate(body: Record<string, unknown>): CreateThreadBody {
 
 const FOLDER_PATH = /^(\/|~$|~\/)/;
 const FOLDER_PATH_MAX = 512;
-const PROJECT_TITLE_MAX = 200;
 
 const validPath = (value: unknown): string => {
   const path = typeof value === "string" ? value.trim() : "";
@@ -189,14 +188,14 @@ export const validFolderPath = (params: URLSearchParams): string => validPath(pa
 export function validCreateProject(body: Record<string, unknown>): CreateProjectBody {
   const path = validPath(body.path);
   if (body.title === undefined) return { path };
-  if (typeof body.title !== "string" || body.title.trim().length > PROJECT_TITLE_MAX) throw new HttpError(400, `title must be a string of at most ${PROJECT_TITLE_MAX} characters`);
+  if (typeof body.title !== "string" || body.title.trim().length > MAX_TITLE_CHARS) throw new HttpError(400, `title must be a string of at most ${MAX_TITLE_CHARS} characters`);
   const title = body.title.trim();
   return title ? { path, title } : { path };
 }
 
 export const validTitle = (value: unknown): string => {
   const title = typeof value === "string" ? value.trim() : "";
-  if (title.length === 0 || title.length > PROJECT_TITLE_MAX) throw new HttpError(400, `title must be 1 to ${PROJECT_TITLE_MAX} characters`);
+  if (title.length === 0 || title.length > MAX_TITLE_CHARS) throw new HttpError(400, `title must be 1 to ${MAX_TITLE_CHARS} characters`);
   return title;
 };
 

@@ -10,6 +10,7 @@ export const MAX_FILE_BYTES = 50 * 1024 * 1024;
 export const MAX_IMAGES_TOTAL_BYTES = 80 * 1024 * 1024;
 // A 50 MB file in base64 is 67 MB.
 export const MAX_UPLOAD_BODY_BYTES = 70 * 1024 * 1024;
+export const MAX_TITLE_CHARS = 200;
 export const MAX_SECRET_CHARS = 8192;
 export const IMAGE_TYPES: readonly string[] = ["image/png", "image/jpeg", "image/gif", "image/webp"];
 

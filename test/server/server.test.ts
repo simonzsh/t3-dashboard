@@ -2264,3 +2264,17 @@ test("GET /api/settings/github checks the CLI connection on each request", async
   assert.deepEqual((await call(server, "GET", "/api/settings/github")).json, { status: "not-connected" });
   assert.deepEqual((await call(server, "GET", "/api/settings/github")).json, { status: "connected" });
 });
+
+test("title actions validate manual names and use native metadata commands during a run", async () => {
+  const { server, port } = await start();
+  for (const title of ["", "   ", 42, null, "x".repeat(201)]) {
+    assert.equal((await post(server, "/api/threads/run-1/title", { title })).status, 400);
+  }
+  assert.deepEqual(port.commands, []);
+  assert.equal((await post(server, "/api/threads/run-1/title", { title: " New title " })).status, 200);
+  assert.equal((await post(server, "/api/threads/run-1/regenerate-title", {})).status, 200);
+  assert.deepEqual(port.commands, [
+    { type: "thread.metadata.update", commandId: "id-1", threadId: "run-1", title: "New title" },
+    { type: "thread.metadata.update", commandId: "id-2", threadId: "run-1", regenerateTitle: true },
+  ]);
+});
