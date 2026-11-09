@@ -21,6 +21,7 @@ const base = {
   onAddProject: () => {},
   onEditProject: () => {},
   onDeleteProject: () => {},
+  onSettle: async () => {},
   onClose: () => {},
   onCloseAll: () => {},
 };
@@ -144,4 +145,14 @@ test("recent settled stays outside the main scroll body and starts collapsed", (
   assert.match(html, /Settled · last 24h/);
   assert.match(html, /class="slist-settled-body" inert="" aria-hidden="true"/);
   assert.match(html, /Settled example/);
+});
+
+test("session row actions offer settle or unsettle as siblings of the row", () => {
+  const html = renderToStaticMarkup(<SessionList {...base} threads={[
+    thread("active", { title: "Active example" }),
+    thread("settled", { title: "Settled example", settled: true, settledAt: base.now.toISOString() }),
+  ]} />);
+  assert.match(html, /aria-label="Settle Active example"/);
+  assert.match(html, /aria-label="Unsettle Settled example"/);
+  assert.doesNotMatch(html, /<button[^>]*slist-row[^>]*>(?:(?!<\/button>).)*aria-label="(?:Settle|Unsettle)/);
 });

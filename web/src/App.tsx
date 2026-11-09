@@ -395,6 +395,7 @@ export function App() {
                   onAddProject={() => setAddingProject(true)}
                   onEditProject={setEditingProject}
                   onDeleteProject={setDeletingProject}
+                  onSettle={onSettle}
                 />
               ) : <Loader />}
             </Activity>

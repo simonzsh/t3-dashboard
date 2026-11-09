@@ -1,6 +1,7 @@
 import { memo, useLayoutEffect, useMemo, useRef, useState } from "react";
 import type { DashboardProject, DashboardThread } from "../../../../shared/api.ts";
 import type { SeenState } from "../../../../shared/seen.ts";
+import { useAction } from "../../lib/useAction.ts";
 import { relativeTime } from "../../lib/format.ts";
 import { ProjectIcon } from "../../lib/ProjectIcon.tsx";
 import { AutomationMark } from "../../lib/automationThreads.tsx";
@@ -29,12 +30,14 @@ interface Props {
   onAddProject: () => void;
   onEditProject: (id: string) => void;
   onDeleteProject: (id: string) => void;
+  onSettle: (id: string, settle: boolean) => Promise<unknown>;
   onClose: (id: string) => void;
   onCloseAll: () => void;
 }
 
 /** Every listed thread, by project or by recent activity: a click opens it as a session. */
-function SessionListView({ threads, projects, seen, modelNames, now, openIds, focusedId, prefs, onPrefs, onOpen, onNewSession, onAddProject, onEditProject, onDeleteProject, onClose, onCloseAll }: Props) {
+function SessionListView({ threads, projects, seen, modelNames, now, openIds, focusedId, prefs, onPrefs, onOpen, onNewSession, onAddProject, onEditProject, onDeleteProject, onSettle, onClose, onCloseAll }: Props) {
+  const settleAction = useAction("change the session status");
   const shown = useMemo(() => listableThreads(threads), [threads]);
   const [settledOpen, setSettledOpen] = useState(false);
   const settled = useMemo(() => recentSettledThreads(threads, now), [threads, now]);
@@ -109,11 +112,16 @@ function SessionListView({ threads, projects, seen, modelNames, now, openIds, fo
           </span>
         </Pressable>
         {/* A sibling of the row, not inside it: a button cannot hold another button. */}
-        {isOpen && (
-          <IconButton variant="ghost" size="sm" className="slist-close" label={`Close ${title}`} tooltip="Close session" onClick={() => onClose(t.id)}>
-            <Icon name="x" />
+        <span className="thread-actions">
+          <IconButton variant="ghost" size="sm" label={`${t.settled ? "Unsettle" : "Settle"} ${title}`} tooltip={t.settled ? "Unsettle" : "Settle"} disabled={settleAction.busy} onClick={() => void settleAction.run(() => onSettle(t.id, !t.settled))}>
+            <Icon name={t.settled ? "undo" : "check"} />
           </IconButton>
-        )}
+          {isOpen && (
+            <IconButton variant="ghost" size="sm" label={`Close ${title}`} tooltip="Close session" onClick={() => onClose(t.id)}>
+              <Icon name="x" />
+            </IconButton>
+          )}
+        </span>
       </div>
     );
   };
