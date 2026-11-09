@@ -6,7 +6,7 @@ import { useAction } from "../../lib/useAction.ts";
 import { useCopy } from "../../lib/useCopy.ts";
 import { failure } from "../../lib/format.ts";
 import { useNotify } from "../../lib/notices.tsx";
-import { SETUP_STEPS, testMessage } from "./alertsSettings.ts";
+import { maskedTopic, SETUP_STEPS, testMessage } from "./alertsSettings.ts";
 
 /** Settings > Connections > Alerts: the ntfy topic that carries phone alerts. The server holds it; this block sets it up. */
 export function AlertsSettings() {
@@ -65,7 +65,7 @@ export function AlertsSettings() {
           <span className="conn up">
             <span className="conn-dot" /> Connected
           </span>
-          {settings.topic && <code className="key-mask">{settings.topic}</code>}
+          {settings.topic && <code className="key-mask">{maskedTopic(settings.topic)}</code>}
         </span>
         <span className="row-icons">
           {settings.topic && (
