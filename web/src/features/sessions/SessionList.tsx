@@ -41,9 +41,10 @@ function SessionListView({ threads, projects, seen, modelNames, now, openIds, fo
   const shown = useMemo(() => listableThreads(threads), [threads]);
   const [settledOpen, setSettledOpen] = useState(false);
   const settled = useMemo(() => recentSettledThreads(threads, now), [threads, now]);
+  const listPanel = useRef<HTMLElement>(null);
   const activeList = useRef<HTMLDivElement>(null);
   useLayoutEffect(() => {
-    const list = activeList.current;
+    const list = listPanel.current;
     if (!list) return;
     const animation = enter(list, { y: 8, duration: 240 });
     return () => { animation?.cancel(); };
@@ -54,6 +55,11 @@ function SessionListView({ threads, projects, seen, modelNames, now, openIds, fo
   useEffect(() => () => { flight.current?.cancel(); }, []);
   const settledPanel = useRef<HTMLElement>(null);
   const settledContent = useRef<HTMLDivElement>(null);
+  useLayoutEffect(() => {
+    if (!settledOpen || !settledContent.current) return;
+    const animation = enter(settledContent.current, { y: 8, duration: 240 });
+    return () => { animation?.cancel(); };
+  }, [settledOpen]);
   useFlip(activeList, shown.map((t) => t.id).join(","), { item: "data-session-row" });
   useFlip(settledContent, settled.map((t) => t.id).join(","), { item: "data-session-row", enabled: settledOpen });
 
@@ -195,7 +201,7 @@ function SessionListView({ threads, projects, seen, modelNames, now, openIds, fo
       : shown.map((t) => row(t));
 
   return (
-    <aside className="slist" aria-label="Sessions list">
+    <aside ref={listPanel} className="slist" aria-label="Sessions list">
       <div ref={activeBar} className="slist-bar">
         <span className="slist-bar-title">Active sessions</span>
         <IconButton variant="ghost" size="sm" label="Add project" tooltip="Add project" onClick={onAddProject}>
