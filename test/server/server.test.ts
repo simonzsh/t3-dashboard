@@ -2210,16 +2210,16 @@ test("arm answers 409 when not set up, 404 for an unknown thread and 400 for a b
   assert.equal((await post(server, "/api/alerts/threads/run-1/arm", {})).status, 400);
 });
 
-test("an armed thread that finishes sends one alert and broadcasts the state without it; a second change sends none", async () => {
+test("an armed thread sends one alert at each finish and stays armed", async () => {
   const { server, store, events, sentAlerts } = await start({ alerts: SET_UP });
   assert.deepEqual((await post(server, "/api/alerts/threads/run-1/arm", { clickUrl: CLICK })).json, { configured: true, armed: ["run-1"] });
   store.apply([updateThread("run-1", "completed")]);
   assert.equal(sentAlerts.length, 1);
   assert.deepEqual(sentAlerts[0], { target: { server: "https://ntfy.example", topic: "secret-topic" }, message: { title: "Thread 2", message: "Finished · Project A", priority: 3, click: CLICK } });
-  assert.deepEqual(alertEvents(events).at(-1), { configured: true, armed: [] });
+  assert.deepEqual(alertEvents(events).at(-1), { configured: true, armed: ["run-1"] });
   store.apply([updateThread("run-1", "running", "run-b")]);
   store.apply([updateThread("run-1", "completed")]);
-  assert.equal(sentAlerts.length, 1);
+  assert.equal(sentAlerts.length, 2);
 });
 
 test("disarm is idempotent and broadcasts the new state", async () => {

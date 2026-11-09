@@ -104,7 +104,7 @@ test("arm saves and broadcasts; re-arm replaces the click URL; disarm is idempot
   assert.equal(changes.length, 3);
 });
 
-test("a working thread that finishes sends one alert and disarms; the next change sends none", async () => {
+test("a working thread that finishes sends one alert and stays armed; each new change sends again", async () => {
   const { alerts, sent, changes, observe } = setup();
   await observe([running("a"), running("b")]);
   alerts.arm("a", CLICK("a"));
@@ -112,10 +112,17 @@ test("a working thread that finishes sends one alert and disarms; the next chang
   assert.equal(sent.length, 1);
   assert.deepEqual(sent[0]!.target, { server: "https://ntfy.example", topic: "my-topic" });
   assert.deepEqual(sent[0]!.message, { title: "Thread a", message: "Finished · Dashboard", priority: 3, click: CLICK("a") });
-  assert.deepEqual(changes.at(-1), { configured: true, armed: [] });
-  await observe([running("a"), running("b")]);
+  assert.deepEqual(changes.at(-1), { configured: true, armed: ["a"] });
   await observe([finished("a"), running("b")]);
   assert.equal(sent.length, 1);
+  await observe([running("a"), running("b")]);
+  await observe([waiting("a"), running("b")]);
+  await observe([finished("a"), running("b")]);
+  assert.deepEqual(sent.map((s) => s.message.message), ["Finished · Dashboard", "Needs approval · Dashboard", "Finished · Dashboard"]);
+  alerts.disarm("a");
+  await observe([running("a"), running("b")]);
+  await observe([finished("a"), running("b")]);
+  assert.equal(sent.length, 3);
 });
 
 test("a thread that starts waiting sends a high priority alert; a failed finish too", async () => {
@@ -153,40 +160,30 @@ test("after a restart, an armed thread that already finished sends nothing and s
   assert.equal(sent.length, 1);
 });
 
-test("a failed send still disarms, and the warning holds no topic", async () => {
+test("a failed send keeps the thread armed, and the warning holds no topic", async () => {
   const { alerts, sent, warnings, saved, observe } = setup({ fail: true });
   await observe([running("a")]);
   alerts.arm("a", CLICK("a"));
   await observe([finished("a")]);
   assert.equal(sent.length, 1);
-  assert.deepEqual(alerts.state().armed, []);
-  assert.deepEqual(saved.at(-1)!.armed, []);
+  assert.deepEqual(alerts.state().armed, ["a"]);
+  assert.deepEqual(saved.at(-1)!.armed.map((a) => a.threadId), ["a"]);
   assert.equal(warnings.length, 1);
   assert.equal(warnings[0]!.includes("my-topic"), false);
   await observe([running("a")]);
   await observe([finished("a")]);
-  assert.equal(sent.length, 1);
+  assert.equal(sent.length, 2);
 });
 
-test("the alert is saved as disarmed before the send starts", async () => {
-  const order: string[] = [];
-  const alerts = createAlerts({
-    initial: SET_UP,
-    persist: (file) => void order.push(`persist:${file.armed.length}`),
-    send: async () => void order.push("send"),
-    check: async () => "ok",
-    newTopic: () => "t",
-    threads: () => [running("a")],
-    projectTitle: () => undefined,
-    now: () => new Date(),
-    onChange: () => void order.push("change"),
-    warn: () => {},
-  });
-  alerts.observe([running("a")]);
+test("an alert writes nothing: the armed list does not change", async () => {
+  const { alerts, saved, changes, sent, observe } = setup();
+  await observe([running("a")]);
   alerts.arm("a", CLICK("a"));
-  order.length = 0;
-  alerts.observe([finished("a")]);
-  assert.deepEqual(order, ["persist:0", "change", "send"]);
+  const [writes, broadcasts] = [saved.length, changes.length];
+  await observe([finished("a")]);
+  assert.equal(sent.length, 1);
+  assert.equal(saved.length, writes);
+  assert.equal(changes.length, broadcasts);
 });
 
 test("an armed thread that no longer exists is disarmed without an alert", async () => {
@@ -210,7 +207,7 @@ test("a thread that was already waiting when armed fires only on a new change", 
   assert.equal(sent.length, 1);
 });
 
-test("a failed write still sends the alert and keeps the thread disarmed", async () => {
+test("a failed write, when a deleted thread leaves the list, still sends the other alerts", async () => {
   let failWrites = false;
   const sent: string[] = [];
   const warnings: string[] = [];
@@ -222,21 +219,19 @@ test("a failed write still sends the alert and keeps the thread disarmed", async
     send: async (_target, message) => void sent.push(message.title),
     check: async () => "ok",
     newTopic: () => "t",
-    threads: () => [running("a")],
+    threads: () => [running("a"), running("b")],
     projectTitle: () => undefined,
     now: () => new Date(),
     onChange: () => {},
     warn: (message) => void warnings.push(message),
   });
-  alerts.observe([running("a")]);
+  alerts.observe([running("a"), running("b")]);
   alerts.arm("a", CLICK("a"));
+  alerts.arm("b", CLICK("b"));
   failWrites = true;
   assert.doesNotThrow(() => alerts.observe([finished("a")]));
   await new Promise((resolve) => setTimeout(resolve, 0));
-  assert.equal(sent.length, 1);
-  assert.deepEqual(alerts.state().armed, []);
+  assert.deepEqual(sent, ["Thread a"]);
+  assert.deepEqual(alerts.state().armed, ["a"]);
   assert.equal(warnings.length, 1);
-  alerts.observe([running("a")]);
-  alerts.observe([finished("a")]);
-  assert.equal(sent.length, 1);
 });
