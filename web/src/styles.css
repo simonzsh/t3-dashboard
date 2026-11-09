@@ -848,7 +848,7 @@ ol.install-steps { padding-left: 18px; }
 .nav-alert > .icon { width: 14px; height: 14px; }
 .sidebar-foot { margin-top: auto; display: flex; flex-direction: column; gap: 8px; }
 .sidebar-foot .conn { flex: 1; min-width: 0; padding-inline: 12px; }
-.sidebar .update-pill { display: flex; align-items: center; gap: 10px; height: 32px; padding: 0 7px; border-radius: var(--radius-md); color: var(--accent); background: color-mix(in srgb, var(--accent) 12%, var(--surface-1)); border-color: color-mix(in srgb, var(--accent) 50%, var(--line)); font-size: 12px; font-weight: 500; }
+.sidebar .update-pill { display: flex; align-items: center; gap: 10px; text-align: left; height: 32px; padding: 0 7px; border-radius: var(--radius-md); color: var(--accent); background: color-mix(in srgb, var(--accent) 12%, var(--surface-1)); border-color: color-mix(in srgb, var(--accent) 50%, var(--line)); font-size: 12px; font-weight: 500; }
 .sidebar-actions { display: flex; align-items: center; gap: 2px; }
 .sidebar-collapse { margin-left: auto; }
 .sidebar.collapsed :is(.sidebar-name, .nav-label, .sidebar-search kbd) { opacity: 0; }
