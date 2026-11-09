@@ -4,7 +4,7 @@ import { useApi } from "../../api/ApiContext.tsx";
 import { duration } from "../../lib/format.ts";
 import { ProviderIcon } from "../../lib/ProviderIcon.tsx";
 import { useAction } from "../../lib/useAction.ts";
-import { Chevron, Icon, IconButton, Pressable } from "../../ui/index.ts";
+import { Chevron, Icon, IconButton, Pressable, RunningDot } from "../../ui/index.ts";
 import { useTicker } from "./Steps.tsx";
 import { MAX_AVATARS, SUBAGENT_LABELS, groupElapsedMs, groupStatus, isActive, subagentLine, subagentTone } from "./subagents.ts";
 
@@ -80,16 +80,17 @@ function SubagentRow({ step, threadId, onOpenThread, onChanged }: Omit<RowsProps
   const openable = Boolean(childId && onOpenThread);
   const line = subagentLine(step);
   const label = SUBAGENT_LABELS[sub.state];
+  const status = <>{sub.state === "running" && <RunningDot />}{label}</>;
   const elapsed = elapsedLabel([step], now);
   const body = (
     <>
       <Avatar step={step} />
       <span className="subagent-text">
         <span className="subagent-title">{step.text}</span>
-        <span className={`subagent-line${sub.state === "failed" ? " failed" : ""}`}>{line ?? label}</span>
+        <span className={`subagent-line${sub.state === "failed" ? " failed" : ""}`}>{line ?? <span className="subagent-state">{status}</span>}</span>
       </span>
       <span className="subagent-side">
-        {line && sub.state !== "completed" && <span className={`subagent-state ${subagentTone(step)}`}>{label}</span>}
+        {line && sub.state !== "completed" && <span className={`subagent-state ${subagentTone(step)}`}>{status}</span>}
         {elapsed && <span className="subagent-time">{elapsed}</span>}
         {openable && <Icon name="chevronRight" />}
       </span>

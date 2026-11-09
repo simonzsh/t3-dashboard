@@ -44,6 +44,8 @@ test("groupLabel leaves the time out when a step has no time", () => {
 
 test("step duration omits missing, invalid and reversed timestamps", () => {
   assert.equal(stepDuration(step("2026-01-01T10:00:00Z", "2026-01-01T10:00:03Z")), "3s");
+  assert.equal(stepDuration(step("2026-01-01T10:00:00Z", "2026-01-01T10:00:00Z")), "<1s");
+  assert.equal(stepDuration(step("2026-01-01T10:00:00Z", "2026-01-01T10:00:00.900Z")), "<1s");
   assert.equal(stepDuration(step("2026-01-01T10:00:00Z", null)), null);
   assert.equal(stepDuration(step("invalid", "2026-01-01T10:00:03Z")), null);
   assert.equal(stepDuration(step("2026-01-01T10:00:04Z", "2026-01-01T10:00:03Z")), null);

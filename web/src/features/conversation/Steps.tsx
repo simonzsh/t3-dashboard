@@ -3,10 +3,11 @@ import type { StepDetail, TurnStep } from "../../../../shared/api.ts";
 import { useApi } from "../../api/ApiContext.tsx";
 import { duration, failure } from "../../lib/format.ts";
 import { safeHref } from "../../lib/markdown.tsx";
-import { Chevron, Icon, Loader, Pressable, STATUS_ICONS, useFlip } from "../../ui/index.ts";
+import { Chevron, Icon, Loader, Pressable, RunningDot, STATUS_ICONS, useFlip } from "../../ui/index.ts";
 import { STEP_ICONS, diffLines, groupLabel, remember, stepDuration } from "./steps.ts";
 
 const LIVE_VISIBLE = 4;
+const RECENT_STEPS_MS = 1000;
 const DETAIL_REFRESH_MS = 3000;
 // A finished step never changes: expanding it again costs nothing. Capped, oldest out first.
 const DETAIL_CACHE_MAX = 200;
@@ -23,18 +24,34 @@ export function useTicker(active: boolean): number {
 }
 
 /** One group of agent steps. Collapsed, except the live one, which shows its latest steps. */
-export function WorkGroup({ steps, threadId, live }: { steps: TurnStep[]; threadId: string; live: boolean }) {
+export function WorkGroup({ steps, threadId, live, fresh = false }: { steps: TurnStep[]; threadId: string; live: boolean; fresh?: boolean }) {
   const [open, setOpen] = useState(false);
+  const [recentUntil, setRecentUntil] = useState(() => fresh ? Date.now() + RECENT_STEPS_MS : 0);
+  const stepKey = JSON.stringify(steps.map(step => step.id));
+  const previous = useRef({ stepKey, live });
+  useLayoutEffect(() => {
+    const before = previous.current;
+    previous.current = { stepKey, live };
+    if (before.stepKey !== stepKey || (before.live && !live)) setRecentUntil(Date.now() + RECENT_STEPS_MS);
+  }, [stepKey, live]);
+  useEffect(() => {
+    if (!recentUntil) return;
+    const timer = setTimeout(() => setRecentUntil(0), Math.max(0, recentUntil - Date.now()));
+    return () => clearTimeout(timer);
+  }, [recentUntil]);
+  // Keep the last batch mounted while the completion effect starts its display window.
+  const changed = previous.current.stepKey !== stepKey || (previous.current.live && !live);
+  const recent = changed || recentUntil > Date.now();
   const now = useTicker(live);
   const start = steps[0]?.startedAt;
   const label = live ? (start ? `Working for ${duration(now - Date.parse(start))}` : "Working") : groupLabel(steps);
-  const shown = open ? steps : live ? steps.slice(-LIVE_VISIBLE) : [];
+  const shown = open ? steps : live || recent ? steps.slice(-LIVE_VISIBLE) : [];
   const root = useRef<HTMLDivElement>(null);
   const list = useRef<HTMLUListElement>(null);
   const marker = useRef<HTMLLIElement>(null);
   const shownKey = JSON.stringify(shown.map(step => step.id));
   const activeId = live ? shown.findLast(step => step.status === "running")?.id : undefined;
-  useFlip(root, shownKey, { item: "data-work-step", enabled: live && !open, enter: { y: 6, scale: 1, duration: 220 }, stagger: 45, spring: false });
+  useFlip(root, shownKey, { item: "data-work-step", enabled: (live || recent) && !open, initial: fresh, enter: { y: 6, scale: 1, duration: 650, highlight: "color-mix(in srgb, var(--work) 12%, transparent)" }, stagger: 75, spring: false });
   useLayoutEffect(() => {
     const el = list.current;
     const mark = marker.current;
@@ -57,7 +74,7 @@ export function WorkGroup({ steps, threadId, live }: { steps: TurnStep[]; thread
     <div ref={root} className={`work-group${live ? " live" : ""}`}>
       <Pressable className="work-group-head" aria-expanded={open} onClick={() => setOpen(!open)}>
         <Chevron open={open} />
-        {live && <span className="work-group-dot" aria-hidden="true" />}
+        {live && <RunningDot />}
         {label}
       </Pressable>
       {shown.length > 0 && (

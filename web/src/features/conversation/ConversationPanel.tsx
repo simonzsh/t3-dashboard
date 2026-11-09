@@ -88,6 +88,10 @@ const RenderFrame = memo(function RenderFrame({ render, threadId }: { render: Ht
 
 // A fragment, so each message stays a direct child of .messages. A keystroke does not render the list.
 const Timeline = memo(function Timeline({ detail, threadId, running, editing, onOpenThread, onChanged }: { detail: ThreadDetail; threadId: string; running: boolean; editing: MessageEditing; onOpenThread?: (id: string) => void; onChanged: () => void }) {
+  const knownSteps = useRef(new Set(detail.steps.map(step => step.id)));
+  useLayoutEffect(() => {
+    for (const step of detail.steps) knownSteps.current.add(step.id);
+  }, [detail.steps]);
   const entries = timeline(detail);
   return (
     <>
@@ -100,7 +104,7 @@ const Timeline = memo(function Timeline({ detail, threadId, running, editing, on
             return <RenderFrame key={entry.render.id} render={entry.render} threadId={threadId} />;
           case "work":
             // Keyed by its first step: the group keeps its open state while later steps join it.
-            return <WorkGroup key={entry.steps[0]!.id} steps={entry.steps} threadId={threadId} live={running && i === entries.length - 1} />;
+            return <WorkGroup key={entry.steps[0]!.id} steps={entry.steps} threadId={threadId} fresh={!knownSteps.current.has(entry.steps[0]!.id)} live={running && i === entries.length - 1} />;
           case "subagents":
             return <SubagentRows key={entry.steps[0]!.id} steps={entry.steps} threadId={threadId} onOpenThread={onOpenThread} onChanged={onChanged} />;
           case "step":

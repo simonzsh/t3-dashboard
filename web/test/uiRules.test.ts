@@ -434,3 +434,10 @@ test("session search consumes requests before Activity can restart its effect", 
   assert.match(source, /const handledSearchRequest = useRef\(searchRequest\)/);
   assert.match(source, /if \(searchRequest === handledSearchRequest\.current\) return;\s*handledSearchRequest\.current = searchRequest;\s*if \(!searchRequest\) return;\s*setSearchOpen\(true\)/);
 });
+
+test("running dots use the shared component and its one halo animation", () => {
+  const directDots = sources.filter(({ file, text }) => file !== "ui/RunningDot.tsx" && [...text.matchAll(/className=["']([^"']*)["']/g)].some(match => match[1]!.split(/\s+/).includes("pulse")));
+  assert.deepEqual(directDots.map(source => source.file), []);
+  assert.doesNotMatch(css, /work-group-dot|\.slist-mark\.running::after/);
+  assert.match(css, /\.pulse::after \{[^}]*animation: ping 1\.6s/);
+});

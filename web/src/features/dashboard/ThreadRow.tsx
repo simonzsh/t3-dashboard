@@ -5,7 +5,7 @@ import { threadTitle } from "../../lib/threads.ts";
 import { AutomationMark } from "../../lib/automationThreads.tsx";
 import { ProviderIcon } from "../../lib/ProviderIcon.tsx";
 import { ProjectTag } from "../../lib/ProjectTag.tsx";
-import { Pressable } from "../../ui/index.ts";
+import { Pressable, RunningDot } from "../../ui/index.ts";
 import { openRow, threadAge } from "./threadRows.ts";
 
 interface Props {
@@ -23,7 +23,7 @@ function ThreadRowView({ thread: t, project, modelName, now, inSessions, onOpen 
   return (
     <div className="run-item">
       <Pressable className="run-row" onClick={(e) => openRow(e, t.id, inSessions, onOpen)}>
-        {working && <span className="pulse run-pulse" role="img" aria-label="Running" />}
+        {working && <RunningDot className="run-pulse" label="Running" />}
         <span className="run-text">
           <span className="title-line">
             <span className="notif-title">{threadTitle(t)}</span>

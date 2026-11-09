@@ -102,14 +102,14 @@ function exit(source: Element, from: Rect): Animation | null {
 }
 
 /** Fades the element in from a slight offset or scale: dialogs, menus, new windows. */
-export function enter(el: Element, { x = 0, y = 0, scale = 1, duration = BASE, delay = 0, spring = false }: { x?: number; y?: number; scale?: number; duration?: number; delay?: number; spring?: boolean } = {}): Animation | null {
+export function enter(el: Element, { x = 0, y = 0, scale = 1, duration = BASE, delay = 0, spring = false, highlight }: { x?: number; y?: number; scale?: number; duration?: number; delay?: number; spring?: boolean; highlight?: string } = {}): Animation | null {
   if (reducedMotion()) return null;
   const from = { opacity: 0, translate: `${x}px ${y}px`, scale: `${scale}` };
   const rest = { opacity: 1, translate: "0 0", scale: "1" };
   // The spring overshoots once, then settles: a visible bounce, not a wobble.
   const frames = spring
     ? [{ ...from, easing: "ease-out" }, { opacity: 1, translate: "0 -2px", scale: "1.04", offset: 0.55, easing: "ease-in-out" }, { scale: "0.99", offset: 0.8, easing: "ease-in-out" }, rest]
-    : [from, rest];
+    : highlight ? [{ ...from, backgroundColor: highlight }, { ...rest, backgroundColor: highlight, offset: 0.45 }, { ...rest, backgroundColor: "transparent" }] : [from, rest];
   return el.animate(frames, { duration, delay, fill: "backwards", easing: spring ? "linear" : EASE });
 }
 
@@ -134,13 +134,14 @@ function measure(root: Element, attr: string): Measured {
 }
 
 /** Animates the `[item]` elements under `root` each time `key` changes: kept ones slide to their new rect, new ones fade in, removed ones fade out. */
-export function useFlip(root: RefObject<HTMLElement | null>, key: string, { item, enabled = true, enter: entrance, stagger = 0, spring = true }: { item: string; enabled?: boolean; enter?: Parameters<typeof enter>[1]; stagger?: number; spring?: boolean }) {
+export function useFlip(root: RefObject<HTMLElement | null>, key: string, { item, enabled = true, initial = false, enter: entrance, stagger = 0, spring = true }: { item: string; enabled?: boolean; initial?: boolean; enter?: Parameters<typeof enter>[1]; stagger?: number; spring?: boolean }) {
   const committed = useRef<{ key: string; enabled: boolean } | null>(null);
   const snapshot = useRef<Measured | null>(null);
   const running = useRef(new Set<Animation>());
 
   // Measured during render, while the DOM still shows the old layout (the getSnapshotBeforeUpdate idea).
   const last = committed.current;
+  if (!last && initial && enabled && !snapshot.current) snapshot.current = new Map();
   if (last && last.enabled && enabled && key !== last.key && !snapshot.current && root.current) {
     snapshot.current = measure(root.current, item);
   }
