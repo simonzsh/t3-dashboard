@@ -1,3 +1,4 @@
+import { GitHubSettings } from "./GitHubSettings.tsx";
 import { useState, type ReactNode } from "react";
 import { THEME_SETTINGS, type ThemeSetting } from "./theme.ts";
 import { ACCENTS, type Accent } from "./accent.ts";
@@ -75,6 +76,7 @@ export function SettingsDialog({ theme, onThemeChange, accent, onAccentChange, t
     connections: (
       <>
         <LinearSettings onChange={onLinearChange} />
+        <GitHubSettings />
         <AlertsSettings />
       </>
     ),

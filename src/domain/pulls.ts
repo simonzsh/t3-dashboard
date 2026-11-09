@@ -1,3 +1,4 @@
+import { githubConnection } from "../integrations/github/connection.ts";
 import { parseDiff } from "../../shared/diff.ts";
 import type { PrDetail, PrDiff, PrList } from "../../shared/pulls.ts";
 import { IntegrationError } from "../integrations/errors.ts";
@@ -42,6 +43,10 @@ export class PullRequests {
 
   constructor(options: PullRequestsOptions) {
     this.options = options;
+  }
+
+  connection() {
+    return githubConnection(this.options.run);
   }
 
   async prs(refresh = false): Promise<PrList> {

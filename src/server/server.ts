@@ -43,7 +43,7 @@ export interface DashboardServerOptions {
   serverStats: Pick<ServerStatsReader, "get">;
   cacheCleanup: Pick<CacheCleanup, "sizes" | "clear">;
   automations: Pick<Automations, "list" | "create" | "remove" | "update" | "setEnabled" | "runNow">;
-  pulls: Pick<PullRequests, "prs" | "detail" | "diff">;
+  pulls: Pick<PullRequests, "prs" | "detail" | "diff" | "connection">;
   news: Pick<News, "get" | "article" | "search" | "save" | "runNow" | "remove" | "removeAll">;
   sessions: Pick<SessionsStore, "get" | "set">;
   stash: Pick<StashStore, "list" | "add" | "remove">;
@@ -238,6 +238,7 @@ export function createDashboardServer(options: DashboardServerOptions): Dashboar
         return cachedJson(req, diff, sha && !refresh && diff.headSha === sha ? "private, max-age=31536000, immutable" : NO_CACHE);
       },
     },
+    { method: "GET", path: "/api/settings/github", handle: async () => json(200, await pulls.connection()) },
     { method: "GET", path: "/api/settings", handle: () => json(200, settings.get()) },
     { method: "GET", path: "/api/sessions", handle: () => json(200, { sessions: sessions.get() }) },
     { method: "GET", path: "/api/stash", handle: () => json(200, { entries: stash.list() }) },

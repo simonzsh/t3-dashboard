@@ -109,6 +109,7 @@ export function demoGh(now: () => Date): GhRun {
   const start = now();
   const reply = (value: unknown) => ({ code: 0, stdout: typeof value === "string" ? value : JSON.stringify(value), truncated: false });
   return async (args) => {
+    if (args[0] === "auth") return reply("");
     if (args[0] === "api") {
       const scope = args.some((arg) => arg.includes("review-requested")) ? "reviewer" : "author";
       return reply({ data: { search: { nodes: PRS.filter((pr) => pr.scope === scope && (!pr.state || pr.state === "OPEN")).map((pr) => searchNode(pr, now(), start)) } } });

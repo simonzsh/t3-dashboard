@@ -48,7 +48,7 @@ interface StartOptions {
   linearFetch?: (url: string, init: RequestInit) => Promise<Response>;
   // Notifications the fake Linear answers to the inbox query.
   inbox?: unknown[];
-  pulls?: Partial<Pick<PullRequests, "prs" | "detail" | "diff">>;
+  pulls?: Partial<Pick<PullRequests, "prs" | "detail" | "diff" | "connection">>;
   news?: Partial<Pick<News, "get" | "article" | "search" | "save" | "runNow" | "remove" | "removeAll">>;
   automations?: Pick<Automations, "list" | "create" | "remove" | "update"> & Partial<Pick<Automations, "setEnabled" | "runNow">>;
   // Content of the Linear file. Without it, `linearKey` feeds the board directly.
@@ -222,7 +222,7 @@ async function start(startOptions: StartOptions = {}) {
     serverStats,
     cacheCleanup,
     automations: { setEnabled: async () => {}, runNow: async () => {}, ...automations },
-    pulls: { prs: async () => ({ prs: [], fetchedAt: "2026-11-07T10:00:00.000Z" }), detail: async () => { throw new Error("no detail"); }, diff: async () => { throw new Error("no diff"); }, ...startOptions.pulls },
+    pulls: { connection: async () => ({ status: "connected" }), prs: async () => ({ prs: [], fetchedAt: "2026-11-07T10:00:00.000Z" }), detail: async () => { throw new Error("no detail"); }, diff: async () => { throw new Error("no diff"); }, ...startOptions.pulls },
     news: { get: async () => newsState, article: async (date) => ({ date, title: "T", markdown: "# T" }), search: async () => ({ dates: [] }), save: async () => newsState, runNow: async () => {}, remove: async () => {}, removeAll: async () => 0, ...startOptions.news },
     getState,
     connection: () => connection,
@@ -2256,4 +2256,11 @@ test("a JSON answer over 1 KB is compressed for a client that accepts it, and th
   assert.equal(events.headers.get("content-encoding"), null);
   abort.abort();
   await events.body?.cancel().catch(() => {});
+});
+
+test("GET /api/settings/github checks the CLI connection on each request", async () => {
+  let checks = 0;
+  const { server } = await start({ pulls: { connection: async () => ({ status: ++checks === 1 ? "not-connected" : "connected" }) } });
+  assert.deepEqual((await call(server, "GET", "/api/settings/github")).json, { status: "not-connected" });
+  assert.deepEqual((await call(server, "GET", "/api/settings/github")).json, { status: "connected" });
 });

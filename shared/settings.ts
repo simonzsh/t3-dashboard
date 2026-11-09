@@ -25,3 +25,7 @@ export interface UpdateStatus {
   /** Why the last update failed: the page shows it. */
   error: string | null;
 }
+
+export interface GitHubConnection {
+  status: "connected" | "not-connected" | "not-installed" | "error";
+}
