@@ -174,7 +174,7 @@ function SessionListView({ threads, projects, seen, modelNames, now, openIds, fo
   return (
     <aside className="slist" aria-label="Sessions list">
       <div className="slist-bar">
-        <span className="slist-bar-title">Active</span>
+        <span className="slist-bar-title">Active sessions</span>
         <IconButton variant="ghost" size="sm" label="Add project" tooltip="Add project" onClick={onAddProject}>
           <Icon name="folderPlus" />
         </IconButton>
