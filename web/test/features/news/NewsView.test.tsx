@@ -130,7 +130,7 @@ const two = [{ date: "2026-11-07", title: "News 7 Nov", mtimeMs: 2 }, { date: "2
 
 test("the search row sits above the list with Delete all, and only when there are articles", () => {
   const out = view(state({ articles: two }));
-  assert.match(out, /news-tools[\s\S]*auto-search[\s\S]*aria-label="Search news"[^>]*placeholder="Search news…"[\s\S]*Delete all[\s\S]*news-items/);
+  assert.match(out, /list-toolbar no-wrap[\s\S]*list-toolbar-search[\s\S]*aria-label="Search news"[^>]*placeholder="Search news…"[\s\S]*Delete all[\s\S]*news-items/);
   assert.doesNotMatch(out, /No matching articles/);
   const empty = view(state());
   assert.doesNotMatch(empty, /Search news|Delete all/);

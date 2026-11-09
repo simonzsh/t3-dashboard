@@ -169,7 +169,7 @@ test("list pages: the head sits outside the scroll box, so it never moves, and n
   assert.match(rule(".list-page-head"), /flex: none;/);
   assert.match(rule(".list-page"), /gap: var\(--page-gap\);/);
   // A sticky toolbar inside the scroll box slides by the box's padding as soon as the list scrolls.
-  for (const selector of [".list-page-head", ".auto-toolbar", ".news-list-head"]) assert.doesNotMatch(rule(selector), /sticky|overflow/, selector);
+  for (const selector of [".list-page-head", ".list-toolbar", ".news-list-head"]) assert.doesNotMatch(rule(selector), /sticky|overflow/, selector);
   // Pages only add spacing: the scroll and the size come from the shared rules.
   for (const selector of [".auto-scroll", ".news-list-head"]) assert.doesNotMatch(rule(selector), /overflow-y|min-height/, selector);
   assert.doesNotMatch(css, /\.auto-page \{[^}]*overflow-y/);

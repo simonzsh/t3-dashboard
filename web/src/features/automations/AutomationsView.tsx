@@ -4,7 +4,7 @@ import type { SeenState } from "../../../../shared/seen.ts";
 import { agentStatus } from "../../../../shared/status.ts";
 import { StatusBadge } from "../../lib/StatusBadge.tsx";
 import { ProjectTag } from "../../lib/ProjectTag.tsx";
-import { Badge, Button, Dropdown, Icon, type IconName, ListPage, Pressable, SearchField, Segmented, Sheet, Skeleton, SkeletonGroup } from "../../ui/index.ts";
+import { Badge, Button, Dropdown, Icon, type IconName, ListPage, ListToolbar, Pressable, Segmented, Sheet, Skeleton, SkeletonGroup } from "../../ui/index.ts";
 import { NewAutomationDialog } from "../new-thread/NewAutomationDialog.tsx";
 import { AutomationRow } from "./AutomationRow.tsx";
 import { AutomationSheet } from "./AutomationSheet.tsx";
@@ -154,8 +154,7 @@ export function AutomationsView({ state, now, seen, onOpen, automations, automat
         aria-label="Automations"
         bodyClassName="auto-scroll"
         head={
-          <div className="auto-toolbar">
-            <SearchField className="auto-search" aria-label="Search automations" placeholder="Search automations…" value={query} onChange={(e) => setQuery(e.target.value)} />
+          <ListToolbar search={{ label: "Search automations", value: query, onChange: setQuery }}>
             <Segmented
               label="Filter automations"
               value={prefs.filter}
@@ -168,8 +167,8 @@ export function AutomationsView({ state, now, seen, onOpen, automations, automat
               ]}
               onChange={(filter) => setPrefs({ filter })}
             />
-            <Dropdown label="Sort automations" className="auto-sort" value={prefs.sort} options={SORTS} onPick={(sort) => setPrefs({ sort: sort as AutomationSort })} />
-          </div>
+            <Dropdown label="Sort automations" value={prefs.sort} options={SORTS} onPick={(sort) => setPrefs({ sort: sort as AutomationSort })} />
+          </ListToolbar>
         }
       >
         {sorted.length === 0 && setupRows.length === 0 ? (
