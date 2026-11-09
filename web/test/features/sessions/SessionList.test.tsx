@@ -192,3 +192,15 @@ test("bulk settle is one button with a plain tooltip and a closed confirmation d
   ]} />);
   assert.doesNotMatch(unavailable, /aria-label="Settle inactive sessions"/);
 });
+
+
+test("session actions reserve their width instead of overlapping titles and metadata", async () => {
+  const css = await Bun.file(new URL("../../../src/styles.css", import.meta.url)).text();
+  const item = css.match(/\.slist-item \{([^}]+)\}/)?.[1] ?? "";
+  assert.match(item, /display: grid/);
+  assert.match(item, /grid-template-columns: minmax\(0, 1fr\) auto/);
+  const actions = css.match(/\.slist-item \.thread-actions \{([^}]+)\}/)?.[1] ?? "";
+  assert.match(actions, /position: static/);
+  assert.match(actions, /transform: none/);
+  assert.doesNotMatch(css, /\.slist-row(?:\.open)? \{[^}]*padding-right:/);
+});

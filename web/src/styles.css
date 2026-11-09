@@ -1135,10 +1135,9 @@ ol.install-steps { padding-left: 18px; }
 .slist-project:hover .slist-new, .slist-new:focus-visible, .slist-new[aria-expanded="true"] { opacity: 1; }
 .slist-row { position: relative; display: flex; align-items: flex-start; gap: 8px; width: 100%; padding: 5px 8px 5px 30px; border: 0; border-radius: var(--radius-md); background: none; color: var(--text-primary); text-align: left; }
 .slist-body > .slist-item > .slist-row, .slist-settled-content > .slist-item > .slist-row { padding-left: 12px; }
-/* An open row has a close button on hover; its title leaves room for it. */
-.slist-item { position: relative; }
-.slist-row.open { padding-right: 32px; }
-.slist-item .thread-actions { top: 4px; bottom: auto; right: 4px; }
+/* Keep every action in the layout so titles stop before the buttons, even on touch screens. */
+.slist-item { position: relative; display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; }
+.slist-item .thread-actions { position: static; transform: none; margin-right: 4px; }
 /* Hover only with a real pointer: a tap on a phone would leave the row grey. */
 @media (hover: hover) { .slist-item:hover .slist-row:not(.focused) { background: color-mix(in srgb, var(--text-primary) 5%, transparent); } }
 .slist-row.focused { background: color-mix(in srgb, var(--text-primary) 10%, transparent); }
@@ -1167,9 +1166,7 @@ ol.install-steps { padding-left: 18px; }
 @media (pointer: coarse) {
   .slist-new { opacity: 1; }
   .slist-project-toggle, .slist-new { min-height: 44px; min-width: 44px; }
-  .slist-item .thread-actions { top: 50%; gap: 16px; }
-  .slist-row { padding-right: 40px; }
-  .slist-row.open { padding-right: 88px; }
+  .slist-item .thread-actions { gap: 16px; margin-right: 8px; }
   .slist-row { padding-block: 10px; }
 }
 /* On a phone an opened session covers the page: no header, no bottom bar. */
