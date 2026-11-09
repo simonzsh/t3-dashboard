@@ -734,7 +734,7 @@ ol.install-steps { padding-left: 18px; }
 .glance-row:hover .glance-action .icon-button, .glance-row:focus-within .glance-action .icon-button { opacity: 1; pointer-events: auto; }
 @media (hover: none) { .glance-action .icon-button { opacity: 1; pointer-events: auto; } }
 .auto-page { flex: 1; min-height: 0; display: flex; flex-direction: column; gap: 28px; }
-.auto-section { flex: 1; min-height: 0; display: flex; flex-direction: column; gap: 8px; }
+.auto-section { flex: none; display: flex; flex-direction: column; gap: 8px; }
 .auto-scroll { display: flex; flex-direction: column; }
 .auto-scroll > .auto-card { flex: none; }
 .auto-section-title { margin: 0; font-size: 12px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-secondary); }
@@ -797,7 +797,7 @@ ol.install-steps { padding-left: 18px; }
 .auto-sheet-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
 .auto-sheet-actions .switch { margin-left: auto; }
 .auto-sheet-body { flex: 1; min-height: 0; overflow-y: auto; display: flex; flex-direction: column; gap: 16px; padding: 16px 20px; }
-.auto-facts { display: grid; grid-template-columns: max-content 1fr; gap: 6px 16px; margin: 0; font-size: 13px; }
+.auto-facts { flex: none; display: grid; grid-template-columns: max-content 1fr; gap: 6px 16px; margin: 0; font-size: 13px; }
 .auto-facts dt { color: var(--text-secondary); }
 .auto-facts dd { margin: 0; min-width: 0; }
 .auto-prompt { max-height: 220px; margin: 0; padding: 10px 12px; overflow: auto; border: 1px solid var(--line); border-radius: var(--radius-md); background: var(--surface-1); font: 12px/1.5 var(--font-mono); white-space: pre-wrap; overflow-wrap: anywhere; }
