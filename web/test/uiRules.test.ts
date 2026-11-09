@@ -383,3 +383,10 @@ test("a dragged session header keeps its source width and pointer offset", () =>
   assert.match(rule, /max-width: none;/);
   assert.doesNotMatch(rule, /(?:^|;)\s*(?:width|min-width):/);
 });
+
+test("menu icons preserve semantic status colors before the neutral fallback", () => {
+  const css = readFileSync("web/src/styles.css", "utf8");
+  const rule = css.match(/\.dropdown-option\[role="menuitem"\] > \.icon \{([^}]+)\}/)?.[1];
+  assert.ok(rule);
+  assert.match(rule, /color: var\(--pr-status, var\(--text-secondary\)\)/);
+});

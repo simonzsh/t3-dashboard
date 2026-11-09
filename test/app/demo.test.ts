@@ -544,9 +544,17 @@ test("the demo threads that carry pull requests point at demo pull requests, one
   const threads = store.state({ t3: "live", serverVersion: null, protocolMismatch: false, error: null, setup: null }, []).threads;
   const linked = threads.filter((thread) => thread.pullRequests.length > 0);
   const listed = new Set((await new PullRequests({ run: demoGh(() => NOW), now: () => NOW }).prs()).prs.map((pr) => `${pr.repository}#${pr.number}`));
-  for (const pr of linked.flatMap((thread) => thread.pullRequests)) assert.ok(listed.has(`${pr.repository}#${pr.number}`), `${pr.repository}#${pr.number}`);
+  for (const pr of linked.flatMap((thread) => thread.pullRequests)) {
+    if (pr.state === "merged") {
+      assert.equal(pr.number, 137);
+      assert.ok(!listed.has(`${pr.repository}#${pr.number}`));
+      const result = await demoGh(() => NOW)(["pr", "view", "137", "-R", pr.repository]);
+      assert.equal(JSON.parse(result.stdout).state, "MERGED");
+    } else assert.ok(listed.has(`${pr.repository}#${pr.number}`), `${pr.repository}#${pr.number}`);
+  }
+  assert.equal(linked.filter(thread => thread.pullRequests.some(pr => pr.state === "merged")).length, 2);
   const checkout = linked.find((thread) => thread.branch === "checkout-summary")!;
-  assert.deepEqual(checkout.pullRequests.map((pr) => [pr.number, pr.title]), [[142, "ATL-142 Redesign the checkout summary"], [143, "ATL-143 Tests for the checkout fees row"], [144, DEMO_LONG_PR_TITLE]]);
+  assert.deepEqual(checkout.pullRequests.map((pr) => [pr.number, pr.title]), [[137, "Improve chart legends"], [142, "ATL-142 Redesign the checkout summary"], [143, "ATL-143 Tests for the checkout fees row"], [144, DEMO_LONG_PR_TITLE]]);
   // One pull request in two sessions, so the list shows a session count.
   assert.equal(linked.filter((thread) => thread.pullRequests.some((pr) => pr.number === 138)).length, 2);
 });

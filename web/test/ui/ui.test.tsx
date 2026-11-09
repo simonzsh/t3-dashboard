@@ -393,3 +393,9 @@ test("underline Tabs mark the bar, and an option can carry an icon and a count",
   assert.match(out, /id="t-b" aria-selected="true"[^>]*class="active">B<span class="tabs-count">8<\/span><\/button>/);
   assert.match(html(<Tabs label="P" idPrefix="p" value="a" options={[{ id: "a", label: "A" }]} onChange={() => {}} />), /^<div class="tabs" role="tablist"/);
 });
+
+test("menu status icons keep their color and accessible name", () => {
+  const out = html(<ActionMenuRow item={{ label: "#12 repo", icon: "gitMerge", iconClassName: "pr-status-merged", iconLabel: "Merged", onSelect: () => {} }} id="status" active={false} onPick={() => {}} onHover={() => {}} />);
+  assert.match(out, /class="icon pr-status-merged"/);
+  assert.match(out, /aria-label="Merged"/);
+});

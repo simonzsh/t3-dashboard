@@ -8,7 +8,7 @@ import { StatusButton } from "./PrChecks.tsx";
 import { SessionsButton } from "./SessionsButton.tsx";
 import { isWebUrl } from "./pulls.ts";
 
-const STATE_LABELS = { open: "Open", closed: "Closed", merged: "Merged" } as const;
+import { prStatus } from "../../lib/prStatus.ts";
 
 /** What the collapse controls offer next, and their actions. */
 export interface DiffControls {
@@ -42,13 +42,14 @@ interface Props {
 
 /** Repository, author, branches and age, then the state, checks, review and size. */
 export function PrMeta({ detail, now }: { detail: PrDetail; now: Date }) {
+  const status = prStatus(detail);
   return (
     <div className="pulls-head-meta">
       <p className="pulls-meta">
         {detail.repository} · {detail.author} · <code>{detail.headRef}</code> → <code>{detail.baseRef}</code> · updated {relativeTime(detail.updatedAt, now)}
       </p>
       <div className="pulls-badges">
-        <Badge variant={detail.state === "merged" ? "done" : "neutral"}>{detail.draft ? "Draft" : STATE_LABELS[detail.state]}</Badge>
+        <Badge className={`pr-state-badge ${status.className}`}><Icon name={status.icon} />{status.label}</Badge>
         <StatusButton detail={detail} />
         <Counts additions={detail.additions} deletions={detail.deletions} />
         <span className="pulls-files">{detail.changedFiles} files</span>

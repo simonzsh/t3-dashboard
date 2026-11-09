@@ -28,7 +28,7 @@ const ThreadPullRequestLink = s.object({
   number: s.optional(s.nullable(s.number())),
   url: text(),
   source: text(),
-  snapshot: s.optional(s.nullable(s.object({ title: text() }))),
+  snapshot: s.optional(s.nullable(s.object({ title: text(), state: text(), isDraft: s.optional(s.boolean()) }))),
 });
 
 export const RawThread = s.object({

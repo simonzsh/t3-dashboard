@@ -151,10 +151,10 @@ test("news: the phone rules come after the base rules, so the article fills the 
   assert.doesNotMatch(css.slice(css.indexOf("\n}\n", phone)), /^\.news-(page|back|list|article) \{/m);
 });
 
-test("news: the article text keeps the page's centre, the list in its left margin", () => {
+test("news: the article keeps reading width with a modest offset from the list", () => {
   // List and article share one grid cell; the text only steps right when the page is too narrow for both.
   assert.match(css, /\.news-page > \* \{[^}]*grid-area: 1 \/ 1; \}/);
-  assert.match(css, /\.news-article > \* \{ max-width: 42rem; margin-inline: max\(var\(--news-list-space\), calc\(\(100% - 42rem\) \/ 2\)\) auto; \}/);
+  assert.match(css, /\.news-article > \* \{ max-width: 42rem; margin-inline: max\(var\(--news-list-space\), calc\(\(100% - 42rem\) \/ 2 \+ var\(--news-list-space\) \/ 4\)\) auto; \}/);
 });
 
 test("every page gets the same edges from the page tokens, with no page-specific main", () => {

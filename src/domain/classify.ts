@@ -41,12 +41,12 @@ function categoryOf(kind: string): PendingCategory {
   return kind === "user_input" ? "user-input" : "other";
 }
 
-type RawPullRequest = { repository?: string | null; number?: number | null; url?: string | null; snapshot?: { title?: string | null } | null } | null | undefined;
+type RawPullRequest = { repository?: string | null; number?: number | null; url?: string | null; snapshot?: { title?: string | null; state?: string | null; isDraft?: boolean } | null } | null | undefined;
 
 // A pull request without a usable repository, number or URL is dropped: the link would be dead.
 function usablePullRequest(pr: RawPullRequest): ThreadPullRequest | null {
   if (!pr?.repository || !isRepository(pr.repository) || typeof pr.number !== "number" || !Number.isInteger(pr.number) || pr.number <= 0 || !pr.url) return null;
-  return { repository: pr.repository, number: pr.number, url: pr.url, title: pr.snapshot?.title || null };
+  return { repository: pr.repository, number: pr.number, url: pr.url, title: pr.snapshot?.title || null, state: pr.snapshot?.state === "open" || pr.snapshot?.state === "closed" || pr.snapshot?.state === "merged" ? pr.snapshot.state : null, draft: pr.snapshot?.isDraft ?? false };
 }
 
 /** Mirrors T3's threadPullRequestsOf: its list when it sends one, else the legacy linked pull request; the branch one last. */

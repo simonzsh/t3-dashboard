@@ -310,3 +310,9 @@ In Sessions, typing a letter outside any field writes it in the message field of
 On Windows and Linux, the browser keeps `Ctrl` + `N`, `Ctrl` + `⇧` + `N` and `Ctrl` + `1` to `5` for itself: use the buttons there.
 
 A tooltip gives the name of each button and its shortcut. It stays next to the button, including when you move between buttons near the screen edge. The animations stop if the system asks for reduced motion (`prefers-reduced-motion`).
+
+Pull request pages and session menus show status icons: green for open, purple for merged, red for closed, and gray for draft. Missing session status stays gray.
+
+News articles sit near the page center with space from the article list and a maximum reading width of 42rem.
+
+In demo mode, the checkout and chart comparison sessions include merged PR #137. Its menu icon and page badge are purple.
