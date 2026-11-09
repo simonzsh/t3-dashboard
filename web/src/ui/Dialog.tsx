@@ -71,7 +71,9 @@ export function Dialog({ title, label, onClose, onCancel, cancelLabel = "Cancel"
     const anims = [root && enter(root), el && (phone ? enter(el, { y: el.offsetHeight, duration: 320 }) : enter(el, { y: 16, scale: 0.85, duration: 420, spring: true }))];
     return () => {
       anims.forEach((anim) => anim?.cancel());
-      if (root) leaveCopy(root, ".dialog", phone ? { translate: "0 100%", scale: "1" } : undefined);
+      // Keep the sheet visible as it starts moving down; a fast fade hides the slide.
+      if (root) leaveCopy(root, ".dialog", phone ? { translate: "0 100%", scale: "1" } : undefined,
+        { duration: 280, ...(phone ? { easing: "cubic-bezier(0.4, 0, 1, 1)" } : {}) });
     };
   }, []);
 
