@@ -51,6 +51,7 @@ test("a newly received finished group reveals fast completed steps without a run
   assert.match(out, /1 step · 0s/);
   assert.match(out, /&lt;1s/);
   assert.match(out, /aria-label="Completed"/);
+  assert.match(out, /step command done arrived-live/);
   assert.doesNotMatch(out, /class="pulse"|data-active-step|step command running/);
 });
 
@@ -61,4 +62,10 @@ test("the robot follows live activity and leaves finished groups", () => {
   assert.match(render("command", true), /working-robot typing/);
   assert.match(render("thinking", true), /working-robot thinking/);
   assert.doesNotMatch(render("command", false), /working-robot/);
+});
+
+
+test("loading completed history does not replay the completion effect", () => {
+  const out = renderToStaticMarkup(<WorkGroup steps={[step("old")]} threadId="t" live />);
+  assert.doesNotMatch(out, /arrived-live/);
 });

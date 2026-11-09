@@ -436,7 +436,8 @@ main { flex: 1; min-height: 0; overflow: hidden; padding: var(--page-top) var(--
 .step.failed { border-color: color-mix(in srgb, var(--danger) 45%, var(--line)); }
 .step-head { position: relative; display: flex; align-items: center; gap: 8px; width: 100%; padding: 9px 10px; border: 0; border-radius: var(--radius-sm); background: none; text-align: left; color: var(--text-secondary); min-width: 0; overflow: hidden; transition: background-color 180ms ease, color 180ms ease; }
 .work-group.live .step.running .step-head { background: color-mix(in srgb, var(--work) 5%, transparent); color: var(--text-primary); }
-.work-group.live .step.running .step-head::before { content: ""; position: absolute; inset: 0; pointer-events: none; background: linear-gradient(100deg, transparent 15%, color-mix(in srgb, var(--work) 9%, transparent) 48%, transparent 80%); translate: -100% 0; animation: step-sheen 2.3s ease-in-out infinite; }
+.work-group.live .step.running .step-head::before, .step.done.arrived-live .step-head::before { content: ""; position: absolute; inset: 0; pointer-events: none; background: linear-gradient(100deg, transparent 15%, color-mix(in srgb, var(--work) 9%, transparent) 48%, transparent 80%); translate: -100% 0; animation: step-sheen 2.3s ease-in-out infinite; }
+.step.done.arrived-live .step-head::before { animation: step-sheen 1s ease-in-out 1 forwards; }
 @keyframes step-sheen { to { translate: 100% 0; } }
 button.step-head:hover:not(:disabled) { background: var(--surface-1); color: var(--text-primary); }
 .step-head .icon { flex: none; width: 14px; height: 14px; }
@@ -1516,7 +1517,7 @@ ol.install-steps { padding-left: 18px; }
 }
 /* After every animated rule, so it wins on equal specificity. */
 @media (prefers-reduced-motion: reduce) {
-  .work-group.live .step.running .step-head::before { display: none; }
+  .work-group.live .step.running .step-head::before, .step.done.arrived-live .step-head::before { display: none; }
   .step-head { transition: none; }
   .pulse::after { display: none; }
   .streaming, .step.running .icon, .todo.running .todo-mark, .spinning { animation: none; }

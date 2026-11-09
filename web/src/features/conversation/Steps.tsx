@@ -26,6 +26,10 @@ export function useTicker(active: boolean): number {
 
 /** One group of agent steps. Collapsed, except the live one, which shows its latest steps. */
 export function WorkGroup({ steps, threadId, live, fresh = false, showRobot = true }: { showRobot?: boolean; steps: TurnStep[]; threadId: string; live: boolean; fresh?: boolean }) {
+  const knownSteps = useRef(new Set(fresh ? [] : steps.map(step => step.id)));
+  useLayoutEffect(() => {
+    for (const step of steps) knownSteps.current.add(step.id);
+  }, [steps]);
   const [expanded, setOpen] = useState<boolean | null>(null);
   const [recentUntil, setRecentUntil] = useState(() => fresh ? Date.now() + RECENT_STEPS_MS : 0);
   const stepKey = JSON.stringify(steps.map(step => step.id));
@@ -66,7 +70,7 @@ export function WorkGroup({ steps, threadId, live, fresh = false, showRobot = tr
         <ul className="step-list">
           {shown.map((step) => (
             <li key={step.id} data-work-step={step.id} data-active-step={step.id === activeId || undefined}>
-              <StepRow step={step} threadId={threadId} active={open} />
+              <StepRow step={step} threadId={threadId} active={open} fresh={!knownSteps.current.has(step.id)} />
             </li>
           ))}
         </ul>
@@ -88,9 +92,11 @@ function StepHead({ step }: { step: TurnStep }) {
 }
 
 /** A row that opens to the full command, output, diff or results when T3 has them. */
-export const StepRow = memo(function StepRow({ step, threadId, active = true }: { step: TurnStep; threadId: string; active?: boolean }) {
+export const StepRow = memo(function StepRow({ step, threadId, active = true, fresh = false }: { step: TurnStep; threadId: string; active?: boolean; fresh?: boolean }) {
   const [open, setOpen] = useState(false);
-  const cls = `step ${step.kind} ${step.status}`;
+  // Keep arrival identity across refreshes so a completed card plays its effect only once.
+  const [arrivedLive] = useState(fresh || step.status === "running");
+  const cls = `step ${step.kind} ${step.status}${arrivedLive ? " arrived-live" : ""}`;
   if (!step.expandable) {
     return (
       <div className={cls}>
