@@ -81,6 +81,7 @@ export function WorkingRobot({ thinking = false, waiting = false }: { thinking?:
           <div className="robot-body" />
           <div className="robot-arm left" /><div className="robot-arm right" />
           <div className="robot-hand left" /><div className="robot-hand right" />
+          {waiting && <div className="robot-wave-arm"><i className="robot-forearm" /><i className="robot-palm" /></div>}
           <div className="robot-keyboard">{Array.from({ length: 15 }, (_, i) => <i key={i} />)}</div>
           <div className="robot-thought"><i /><i /><i /></div>
         </div>
