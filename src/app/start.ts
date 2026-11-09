@@ -37,9 +37,10 @@ import { automationRunsText, readAutomationRuns } from "../config/automationRuns
 import { AutomationRunLog } from "../domain/automationRuns.ts";
 import { RearmedStore } from "../domain/rearmedStore.ts";
 import { readAutomationThreads } from "../config/automationThreads.ts";
-import { alertsFile, automationRunsFile, automationThreadsFile, linearFile, newsDir, newsFile, pidFile, rearmedFile, seenFile as seenPath, sessionsFile as sessionsPath, stashFile as stashPath } from "../config/paths.ts";
+import { alertsFile, automationRunsFile, automationThreadsFile, linearFile, newsDir, newsFile, pidFile, rearmedFile, seenFile as seenPath, sessionsFile as sessionsPath, stashFile as stashPath, updatesFile } from "../config/paths.ts";
 import { redirectConsole, writePidFile } from "../config/runFiles.ts";
 import { writeSecret } from "../config/secretFile.ts";
+import { updateChannelText } from "../config/updateFile.ts";
 import { createDashboardServer } from "../server/server.ts";
 import { SessionsStore } from "../domain/sessionsStore.ts";
 import { StashStore } from "../domain/stashStore.ts";
@@ -203,10 +204,13 @@ export async function start({ port, log, env }: StartOptions): Promise<void> {
   const timedFetch = ((url, init) => fetch(url, { ...init, signal: AbortSignal.timeout(UPDATE_CHECK_TIMEOUT_MS) })) as typeof fetch;
   const updates = new UpdateManager({
     version: VERSION,
+    channel,
+    saveChannel: next => writeSecret(updatesFile(env, home), updateChannelText(next)),
     unavailable: VERSION === "dev" ? "Development build: updates come from releases." : !Bun.isStandaloneExecutable ? "Not running the compiled binary." : null,
-    latestTag: () => latestTag(timedFetch, repo, channel),
-    run: async () => {
+    latestTag: selected => latestTag(timedFetch, repo, selected),
+    run: async selected => {
       const deps = updateDeps(env);
+      deps.channel = selected;
       const service = await deps.serviceInstalled();
       const installed = await update({ check: false }, deps);
       // Started by hand: no service restarts the new binary, so this process does it.

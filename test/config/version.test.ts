@@ -41,5 +41,7 @@ test("the update channel defaults to the binary and accepts an explicit override
   assert.equal(updateChannel({}, main), "main");
   assert.equal(updateChannel({ T3_DASHBOARD_UPDATE_CHANNEL: "main" }, "1.2.8"), "main");
   assert.equal(updateChannel({ T3_DASHBOARD_UPDATE_CHANNEL: "stable" }, main), "stable");
+  assert.equal(updateChannel({ T3_DASHBOARD_UPDATE_CHANNEL: "main" }, main, "stable"), "stable");
+  assert.equal(updateChannel({ T3_DASHBOARD_UPDATE_CHANNEL: "stable" }, "1.2.8", "main"), "main");
   assert.throws(() => updateChannel({ T3_DASHBOARD_UPDATE_CHANNEL: "other" }, "1.2.8"), /must be stable or main/);
 });

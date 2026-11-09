@@ -707,6 +707,7 @@ test("every POST route refuses a body that is not JSON", async () => {
     "/api/setup/retry",
     "/api/setup/token",
     "/api/update/check",
+    "/api/update/channel",
     "/api/update/apply",
     "/api/settings/linear/key",
     "/api/settings/linear/disconnect",
@@ -1256,6 +1257,18 @@ test("POST /api/update/apply answers 202 at once and starts the update", async (
   assert.deepEqual(updateRuns, ["run"]);
   const again = await post(server, "/api/update/apply");
   assert.equal(again.status, 409);
+});
+
+test("POST /api/update/channel validates, saves the selected source and keeps installation manual", async () => {
+  const { server, updateRuns } = await start();
+  for (const body of [{}, { channel: "nightly" }, { channel: 3 }]) assert.equal((await post(server, "/api/update/channel", body)).status, 400);
+  const reply = await post(server, "/api/update/channel", { channel: "main" });
+  assert.equal(reply.status, 200);
+  assert.equal(reply.json.channel, "main");
+  assert.equal((await call(server, "GET", "/api/update")).json.channel, "main");
+  assert.deepEqual(updateRuns, []);
+  await post(server, "/api/update/apply");
+  assert.equal((await post(server, "/api/update/channel", { channel: "stable" })).status, 409);
 });
 
 test("POST /api/update/apply answers 409 when this build cannot update", async () => {

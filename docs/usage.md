@@ -318,7 +318,7 @@ On Windows and Linux, the browser keeps `Ctrl` + `N`, `Ctrl` + `⇧` + `N` and `
 
 A tooltip gives the name of each button and its shortcut. It stays next to the button, including when you move between buttons near the screen edge. The animations stop if the system asks for reduced motion (`prefers-reduced-motion`).
 
-The main update channel shows the target commit in the update button, such as "Update main a1b2c3d". Click and confirm to install it. The dashboard waits until the current main build is published. Set `T3_DASHBOARD_UPDATE_CHANNEL=main` in the service environment to select this channel.
+The main update channel shows the target commit in the update button, such as "Update main a1b2c3d". Click and confirm to install it. The dashboard waits until the current main build is published. Choose Stable or Main in Settings → Updates → Update channel. The saved choice survives restarts. Changing it does not install an update.
 
 Dialogs close over 280 ms on desktop and mobile. On a phone, they slide down and fade, including when you drag them down.
 

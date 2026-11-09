@@ -47,6 +47,7 @@ import type {
   ThreadDetail,
   ThreadSettingsBody,
   UpdateStatus,
+  UpdateChannel,
   UploadBody,
   UploadResult,
   CacheCleanupPreview,
@@ -169,6 +170,7 @@ export function createApi(fetchImpl: Fetch) {
     disconnectAlerts: () => call<AlertsSettings>("/api/settings/alerts/disconnect", {}),
     getUpdate: () => call<UpdateStatus>("/api/update"),
     checkUpdate: () => call<UpdateStatus>("/api/update/check", {}),
+    setUpdateChannel: (channel: UpdateChannel) => call<UpdateStatus>("/api/update/channel", { channel }),
     applyUpdate: () => call<UpdateStatus>("/api/update/apply", {}),
     getHealth: () => call<HealthResult>("/api/health"),
     searchThreads: (query: string, limit?: number) =>

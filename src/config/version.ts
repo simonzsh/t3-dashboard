@@ -5,7 +5,8 @@ declare const BUILD_VERSION: string | undefined;
 
 export const VERSION = typeof BUILD_VERSION === "string" ? BUILD_VERSION : "dev";
 
-export function updateChannel(env: Record<string, string | undefined>, version: string): UpdateChannel {
+export function updateChannel(env: Record<string, string | undefined>, version: string, saved?: UpdateChannel | null): UpdateChannel {
+  if (saved) return saved;
   const channel = env.T3_DASHBOARD_UPDATE_CHANNEL;
   if (channel === undefined || channel === "") return isMainVersion(version) ? "main" : "stable";
   if (channel === "stable" || channel === "main") return channel;

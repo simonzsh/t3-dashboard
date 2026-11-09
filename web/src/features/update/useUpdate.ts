@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import type { UpdateStatus } from "../../../../shared/api.ts";
+import type { UpdateChannel, UpdateStatus } from "../../../../shared/api.ts";
 import { useApi } from "../../api/ApiContext.tsx";
 import { waitForRestart } from "./updateFlow.ts";
 import { failure } from "../../lib/format.ts";
@@ -14,6 +14,7 @@ export interface UpdateControl {
   checking: boolean;
   error: string | null;
   check(): Promise<void>;
+  setChannel(channel: UpdateChannel): Promise<void>;
   apply(): Promise<void>;
 }
 
@@ -23,13 +24,17 @@ export function useUpdate(): UpdateControl {
   const [updating, setUpdating] = useState(false);
   const { busy: checking, error, setError, run } = useAction("check for updates");
 
-  // The server checks once a day: the page only reads the answer.
+  // The server checks on its own; the page only reads the answer.
   const load = () => api.getUpdate().then(setStatus, () => {});
   useEffect(() => void load(), []);
   usePoll(load, POLL_MS);
 
   const check = async () => {
     await run(async () => setStatus(await api.checkUpdate()));
+  };
+
+  const setChannel = async (channel: UpdateChannel) => {
+    await run(async () => setStatus(await api.setUpdateChannel(channel)));
   };
 
   const apply = useCallback(async () => {
@@ -52,5 +57,5 @@ export function useUpdate(): UpdateControl {
     setUpdating(false);
   }, [status]);
 
-  return { status, updating, checking, error, check, apply };
+  return { status, updating, checking, error, check, setChannel, apply };
 }

@@ -95,7 +95,7 @@ More details in [docs/install.md](docs/install.md).
 
 The dashboard looks for a new version every hour. When one is available, click the "Update vX.Y.Z" button at the bottom of the sidebar. On a phone, a dot on the Settings button shows it: open Settings, then Updates. In a terminal: `t3-dashboard update`.
 
-To follow `main`, set `T3_DASHBOARD_UPDATE_CHANNEL=main` in the service environment. Each push to `main` publishes a build for its commit. The button shows "Update main <commit>" when that build is ready. Updates still require a click. See [update channels](docs/install.md#update-channels).
+To follow `main`, choose Main in Settings → Updates → Update channel. Each push to `main` publishes a build for its commit. The button shows "Update main <commit>" when that build is ready. Updates still require a click. See [update channels](docs/install.md#update-channels).
 
 ## Uninstall
 
