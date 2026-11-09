@@ -167,3 +167,12 @@ test("blocked sessions hide settle and keep close for an open session", () => {
     assert.match(open, /aria-label="Close Busy"/);
   }
 });
+
+test("section titles show neutral counts of all listed sessions", () => {
+  const markup = renderToStaticMarkup(<SessionList {...base} threads={[
+    ...base.threads,
+    thread("settled", { settled: true, settledAt: base.now.toISOString() }),
+  ]} />);
+  assert.match(markup, /Active sessions<\/span><span class="count-badge neutral" role="img" aria-label="2 active sessions">2<\/span>/);
+  assert.match(markup, /Settled · last 24h<\/span><span class="count-badge neutral" role="img" aria-label="1 settled sessions in the last 24 hours">1<\/span>/);
+});

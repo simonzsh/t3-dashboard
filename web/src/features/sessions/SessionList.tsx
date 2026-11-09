@@ -204,7 +204,10 @@ function SessionListView({ threads, projects, seen, modelNames, now, openIds, fo
   return (
     <aside ref={listPanel} className="slist" aria-label="Sessions list">
       <div ref={activeBar} className="slist-bar">
-        <span className="slist-bar-title">Active sessions</span>
+        <span className="slist-bar-title">
+          <span>Active sessions</span>
+          <CountBadge count={shown.length} tone="neutral" showZero max={Infinity} label={`${shown.length} active sessions`} />
+        </span>
         <IconButton variant="ghost" size="sm" label="Add project" tooltip="Add project" onClick={onAddProject}>
           <Icon name="folderPlus" />
         </IconButton>
@@ -227,8 +230,8 @@ function SessionListView({ threads, projects, seen, modelNames, now, openIds, fo
         <section ref={settledPanel} className={`slist-settled${settledOpen ? " expanded" : ""}`} aria-label="Settled in the last 24 hours">
           <Pressable className="slist-project-toggle slist-settled-toggle" aria-expanded={settledOpen} onClick={() => setSettledOpen(!settledOpen)}>
             <Chevron open={settledOpen} className="slist-chevron" />
-            <span className="slist-project-title">Settled · last 24h</span>
-            <span className="slist-total">{settled.length}</span>
+            <span>Settled · last 24h</span>
+            <CountBadge count={settled.length} tone="neutral" max={Infinity} label={`${settled.length} settled sessions in the last 24 hours`} />
           </Pressable>
           <div className="slist-settled-body" inert={!settledOpen} aria-hidden={!settledOpen}>
             <div ref={settledContent} className="slist-settled-content">{settled.map((t) => row(t, true))}</div>
