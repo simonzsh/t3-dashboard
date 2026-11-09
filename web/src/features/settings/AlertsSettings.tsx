@@ -90,7 +90,7 @@ export function AlertsSettings() {
             </IconButtonLink>
           )}
           <IconButton label="Send test alert" tooltip="Send test alert" size="sm" disabled={test.busy} onClick={() => void test.run(async () => setTested((await api.testAlerts()).result))}>
-            <Icon name="megaphone" strokeWidth={1.8} />
+            <Icon name="bellRing" strokeWidth={1.8} />
           </IconButton>
           <IconButton label="Disconnect" tooltip="Disconnect" size="sm" disabled={action.busy} onClick={() => change(api.disconnectAlerts)}>
             <Icon name="logOut" strokeWidth={1.8} />
