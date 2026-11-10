@@ -132,9 +132,8 @@ export function enter(el: Element, { x = 0, y = 0, scale = 1, duration = BASE, d
 }
 
 /** Slides an element from its old rect to the one it has now (FLIP), above its neighbours while it moves. */
-function flip(el: Element, before: Rect, delay: number, spring = true): Animation | null {
+export function animateFlip(el: Element, before: Rect, after: Rect, delay: number, spring = true): Animation | null {
   if (reducedMotion()) return null;
-  const after = el.getBoundingClientRect();
   if (!moved(before, after)) return null;
   return el.animate(
     [
@@ -186,7 +185,7 @@ export function useFlip(root: RefObject<HTMLElement | null>, key: string, { item
     for (const step of plan) {
       const now = items.get(step.id)?.el;
       const was = before.get(step.id);
-      if (step.kind === "move" && now && was) track(flip(now, was.rect, leaving ? SHORT / 2 : 0, spring));
+      if (step.kind === "move" && now && was) track(animateFlip(now, was.rect, items.get(step.id)!.rect, leaving ? SHORT / 2 : 0, spring));
       else if (step.kind === "enter" && now) track(enter(now, { scale: 0.96, ...entrance, delay: Math.min(entered++ * stagger, SHORT) }));
       else if (step.kind === "leave" && was) track(exit(was.el, was.rect));
     }

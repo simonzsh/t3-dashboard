@@ -379,6 +379,6 @@ Tap or click the robot to greet it. Its eyes become pulsing red hearts and its h
 On desktop, session rows keep their full-width background. Action buttons appear over the row on hover or focus.
 On touch screens, the action buttons always reserve their space beside the title and metadata.
 
-The sidebar and Sessions list slide open and closed. Cards and conversations take their final layout once, then animate into place. Reduced motion disables the slide.
+The sidebar and Sessions list slide open and closed. The slide uses the original 160 ms width transition. Conversation disclosures adjust to width changes without starting extra height animations. Reduced motion disables the slide.
 
-The status robot uses a compact row to keep the latest message closer to the composer.
+The status robot uses a compact row to keep the latest message closer to the composer. The same gap above the robot applies during work and at rest.

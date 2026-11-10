@@ -317,7 +317,7 @@ main { flex: 1; min-height: 0; overflow: hidden; padding: var(--page-top) var(--
 .steps-omitted { font-size: 12px; color: var(--text-secondary); text-align: center; }
 .working-row { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--text-secondary); }
 /* Keep the status mascot close to the last message and composer. */
-.messages > .working-row:last-child { margin-top: -12px; }
+.messages > :is(.working-row, .work-group:has(> .work-group-heading > .working-robot)) { margin-top: -12px; }
 .messages:has(> .working-row:last-child) { padding-bottom: 6px; }
 .working-row .waiting-icon { flex: none; width: 14px; height: 14px; color: var(--warn); }
 .msg.user { align-items: flex-end; }
@@ -889,7 +889,7 @@ ol.install-steps { padding-left: 18px; }
 .ui-sheet-backdrop.open { opacity: 0.5; visibility: visible; transition-delay: 0s; }
 .ui-sheet { position: fixed; z-index: 15; top: var(--header-h, 0px); right: 0; bottom: 0; width: min(380px, 100vw); display: flex; flex-direction: column; background: var(--page-bg); box-shadow: -8px 0 24px color-mix(in srgb, #000 28%, transparent); transform: translateX(100%); visibility: hidden; transition: transform 200ms cubic-bezier(0.2, 0, 0, 1), visibility 0s 200ms; }
 .ui-sheet.wide { width: min(600px, 100vw); }
-.side-panel { flex: none; display: flex; width: var(--side-panel-w, 280px); min-height: 0; overflow: hidden; }
+.side-panel { flex: none; display: flex; width: var(--side-panel-w, 280px); min-height: 0; overflow: hidden; transition: width 160ms ease; }
 .side-panel.hidden { width: 0; }
 .ui-sheet.open { transform: none; visibility: visible; transition-delay: 0s; }
 /* Tree (kit): folders and files, one row look for every file tree. */
@@ -915,7 +915,7 @@ ol.install-steps { padding-left: 18px; }
 .app { display: flex; height: 100dvh; overflow: hidden; }
 .app-column { flex: 1; min-width: 0; min-height: 0; display: flex; flex-direction: column; }
 /* Sidebar: 232 px, or 56 px with icons only. */
-.sidebar { flex: none; width: 232px; display: flex; flex-direction: column; gap: 12px; padding: 12px; overflow: hidden auto; background: var(--header-bg); border-right: 1px solid var(--line); }
+.sidebar { flex: none; width: 232px; display: flex; flex-direction: column; gap: 12px; padding: 12px; overflow: hidden auto; background: var(--header-bg); border-right: 1px solid var(--line); transition: width 160ms ease; }
 /* Collapsing only narrows the bar: every icon keeps its x (centered at 28 px), labels fade and get clipped. */
 .sidebar.collapsed { width: 56px; }
 .sidebar-brand { display: flex; align-items: center; gap: 10px; height: 32px; padding-inline: 3px; }
@@ -948,12 +948,15 @@ ol.install-steps { padding-left: 18px; }
 .sidebar.collapsed .nav-row { position: relative; }
 /* The collapsed sidebar and the bottom bar pin a smaller badge on the icon. */
 :is(.sidebar.collapsed, .bottom-icon) .count-badge { position: absolute; min-width: 16px; height: 16px; padding: 0 4px; font-size: 10px; }
-.sidebar.collapsed .count-badge { top: 0; right: 0; }
-.sidebar.collapsed .nav-alert { position: absolute; top: 4px; right: 4px; }
-/* Stack footer controls in the narrow sidebar. */
+.sidebar.collapsed .count-badge { top: 0; right: 0; animation: sidebar-badge-inline 160ms; }
+@keyframes sidebar-badge-inline { from, to { position: static; min-width: 20px; height: 20px; padding: 0 6px; font-size: 11px; } }
+.sidebar.collapsed .nav-alert { position: absolute; top: 4px; right: 4px; animation: sidebar-alert-inline 160ms; }
+@keyframes sidebar-alert-inline { from, to { position: static; } }
+/* The footer stacks only once the bar is narrow: the animation holds the row while it shrinks. */
 .sidebar.collapsed .sidebar-foot .conn { flex: none; height: 24px; }
-.sidebar.collapsed .sidebar-actions { flex-direction: column; align-items: stretch; }
+.sidebar.collapsed .sidebar-actions { flex-direction: column; align-items: stretch; animation: sidebar-foot-row 160ms; }
 .sidebar.collapsed .sidebar-collapse { margin-left: 0; }
+@keyframes sidebar-foot-row { from, to { flex-direction: row; align-items: center; } }
 /* Bottom bar: the sidebar on a phone. */
 /* No grey square and no callout on a long press: the active pill already shows the tab. */
 .bottom-nav { position: fixed; z-index: 20; inset: auto 0 0; display: flex; height: calc(var(--bottom-bar) + env(safe-area-inset-bottom)); padding: 0 env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left); background: var(--page-bg); border-top: 1px solid var(--line); -webkit-touch-callout: none; user-select: none; }
@@ -1074,7 +1077,8 @@ ol.install-steps { padding-left: 18px; }
 .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
 .sessions { flex: 1; min-height: 0; display: flex; background: var(--page-bg); }
 .sessions.compact { flex-direction: column; }
-.sessions-area { position: relative; flex: 1; min-width: 0; min-height: 0; display: flex; flex-direction: column; }
+/* Bound layout and paint work to each pane while the sidebar changes width. */
+.sessions-area { position: relative; flex: 1; min-width: 0; min-height: 0; display: flex; flex-direction: column; contain: layout paint; }
 /* Phone: position dots shown for a moment after a swipe between sessions. */
 .swipe-dots { position: absolute; z-index: 5; left: 50%; bottom: 112px; translate: -50% 0; display: flex; gap: 6px; padding: 6px 10px; border-radius: 999px; background: color-mix(in srgb, var(--text-primary) 70%, transparent); pointer-events: none; animation: swipe-dots 1.4s ease forwards; }
 .swipe-dots span { width: 6px; height: 6px; border-radius: 50%; background: color-mix(in srgb, var(--surface-0) 45%, transparent); }
@@ -1086,7 +1090,7 @@ ol.install-steps { padding-left: 18px; }
 .sessions-cell.has-below { border-bottom: 1px solid var(--line); }
 .sessions-empty { flex: 1; align-self: flex-start; margin: 24px; }
 .sessions-placeholder { flex: 1; min-height: 0; background: var(--page-bg); }
-.session-window { position: relative; flex: 1; min-width: 0; min-height: 0; display: flex; flex-direction: column; overflow: hidden; background: var(--page-bg); }
+.session-window { position: relative; flex: 1; min-width: 0; min-height: 0; display: flex; flex-direction: column; overflow: hidden; background: var(--page-bg); contain: layout paint; }
 .session-window.maximized { position: absolute; inset: 0; z-index: 3; }
 .session-window-head [data-session-search] { display: none; }
 @media (max-width: 700px) {
@@ -1121,10 +1125,10 @@ ol.install-steps { padding-left: 18px; }
 @media (hover: hover) { .session-window-buttons .icon-button:hover { color: var(--text-primary); background: var(--surface-0); } }
 .sessions-missing { flex: 1; display: flex; flex-direction: column; gap: 10px; align-items: center; justify-content: center; padding: 16px; text-align: center; color: var(--text-secondary); }
 /* The sessions list: a panel left of the strip, or the whole page on a phone. */
-/* Apply panel widths at once to avoid repeated conversation layout. */
+/* The list keeps its width while its slot slides shut. */
 .settle-dialog p { margin: 0; }
 .settle-dialog .hint { color: var(--text-secondary); font-size: 12px; }
-.slist { flex: none; width: 280px; min-height: 0; display: flex; flex-direction: column; border-right: 1px solid var(--line); background: var(--page-bg); }
+.slist { flex: none; width: 280px; min-height: 0; display: flex; flex-direction: column; border-right: 1px solid var(--line); background: var(--page-bg); contain: layout paint; }
 .slist-body { flex: 1; min-height: 0; overflow-y: auto; padding: 6px; }
 .slist-settled { flex: none; display: flex; flex-direction: column; height: var(--settled-bar-height, 43px); transition: height 160ms ease; min-height: 0; overflow: hidden; border-top: 1px solid var(--line); background: var(--page-bg); }
 .slist-settled.expanded { height: min(50%, var(--settled-height)); }

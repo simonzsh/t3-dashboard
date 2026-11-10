@@ -138,3 +138,24 @@ test("the retained idle animation resumes once, without touching an existing pau
   assert.equal(running.plays, 1);
   assert.equal(paused.plays, 0);
 });
+
+test("FLIP uses the batch measurement without layout reads between animation writes", async () => {
+  const { animateFlip } = await import("../../src/ui/motion.ts");
+  const original = Object.getOwnPropertyDescriptor(globalThis, "matchMedia");
+  let count = 0;
+  const element = {
+    getBoundingClientRect() { throw new Error("unexpected layout read"); },
+    animate() { count++; return {} as Animation; },
+  } as unknown as Element;
+  try {
+    Object.defineProperty(globalThis, "matchMedia", { configurable: true, value: () => ({ matches: false }) });
+    const before = { left: 0, top: 10, width: 200, height: 40 };
+    const after = { ...before, top: 50 };
+    animateFlip(element, before, after, 0);
+    assert.equal(count, 1);
+    assert.equal(animateFlip(element, after, after, 0), null);
+  } finally {
+    if (original) Object.defineProperty(globalThis, "matchMedia", original);
+    else Reflect.deleteProperty(globalThis, "matchMedia");
+  }
+});

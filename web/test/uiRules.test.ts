@@ -498,11 +498,27 @@ test("the background robot clock uses accent color for its outline and hands", (
   }
 });
 
-test("panel toggles do not use uncoordinated CSS width transitions", () => {
+test("panels retain the original slide without scaling the page", () => {
   const css = readFileSync(join(import.meta.dir, "../src/styles.css"), "utf8");
   for (const selector of [".sidebar", ".side-panel"]) {
     const rule = css.slice(css.indexOf(selector + " {")).split("}")[0]!;
-    assert.doesNotMatch(rule, /transition:[^;]*(?:width|all)/);
+    assert.match(rule, /transition: width 160ms ease;/);
   }
-  assert.doesNotMatch(css, /animation: sidebar-(?:badge-inline|alert-inline|foot-row)/);
+  const nav = readFileSync(join(import.meta.dir, "../src/features/shell/AppNav.tsx"), "utf8");
+  assert.doesNotMatch(nav, /usePanelMotion/);
+});
+
+test("working and resting robots share the compact message gap", () => {
+  const css = readFileSync(join(import.meta.dir, "../src/styles.css"), "utf8");
+  assert.ok(css.includes(".messages > :is(.working-row, .work-group:has(> .work-group-heading > .working-robot)) { margin-top: -12px; }"));
+  assert.ok(!css.includes(".messages > .working-row:last-child { margin-top:"));
+});
+
+test("session panes contain layout and paint work during panel slides", () => {
+  const css = readFileSync(join(import.meta.dir, "../src/styles.css"), "utf8");
+  for (const selector of [".sessions-area", ".session-window", ".slist"]) {
+    const rule = css.slice(css.indexOf(selector + " {")).split("}")[0]!;
+    assert.match(rule, /contain: layout paint;/, selector);
+    assert.doesNotMatch(rule, /contain:[^;]*size/, "pane sizes must still follow the layout");
+  }
 });
