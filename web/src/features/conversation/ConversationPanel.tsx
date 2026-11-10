@@ -1,4 +1,5 @@
 import { createContext, memo, useContext, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import type { ChatMessage, DashboardProvider, HtmlRender, DashboardThread, ThreadDetail, ThreadSettingsBody, TurnStep, UploadedAttachment } from "../../../../shared/api.ts";
 import { runActive } from "../../../../shared/status.ts";
 import { highlightText } from "../../lib/highlightText.tsx";
@@ -219,7 +220,7 @@ function Conversation({ searchRequest = 0, threadId, thread, providers, onOpenTh
   }, [searchRequest]);
   const matches = useMemo(() => query.trim() ? (detail?.messages ?? []).filter((m) => m.text.toLocaleLowerCase().includes(query.trim().toLocaleLowerCase())).map((m) => m.id) : [], [detail, query]);
   useEffect(() => {
-    const read = () => {
+    const read = (point: { left: number; top: number } | null) => {
       const selected = window.getSelection();
       const text = selected && scroller.current?.contains(selected.anchorNode) && scroller.current?.contains(selected.focusNode) ? selected.toString().trim() : "";
       setSelection(text);
@@ -227,7 +228,7 @@ function Conversation({ searchRequest = 0, threadId, thread, providers, onOpenTh
       const rects = selected.getRangeAt(0).getClientRects();
       const composer = touch ? frame.current?.querySelector(".composer-card")?.getBoundingClientRect() : null;
       // iOS owns the menu beside the selection. Keep our touch action by the composer.
-      const rect = composer ? { left: composer.left, top: composer.top, width: composer.width, height: 0 } : rects[rects.length - 1];
+      const rect = composer ? { left: composer.left, top: composer.top, width: composer.width, height: 0 } : point ? { ...point, width: 0, height: 0 } : rects[rects.length - 1];
       setSelectionRect(rect ? { left: rect.left, top: rect.top, width: rect.width, height: rect.height } : null);
     };
     const hide = () => { setSelection(""); setSelectionRect(null); };
@@ -455,7 +456,7 @@ function Conversation({ searchRequest = 0, threadId, thread, providers, onOpenTh
       }}
     >
       {selection && selectionRect && !detail?.subagentThread && <>
-        <span ref={quoteAnchor} className="selection-quote-anchor" style={selectionRect} aria-hidden="true" />
+        {createPortal(<span ref={quoteAnchor} className="selection-quote-anchor" style={selectionRect} aria-hidden="true" />, document.body)}
         <Popover key={JSON.stringify(selectionRect)} anchor={quoteAnchor} align="end" preferAbove={touch} className={touch ? "selection-quote selection-quote-touch" : "selection-quote"} onClose={() => setSelection("")}>
           <Button size={touch ? "md" : "sm"} onPointerDown={(e) => e.preventDefault()} onMouseDown={(e) => e.preventDefault()} onClick={() => {
             setDraft(mergeDraft(drafts.get(threadId) ?? "", selection.split("\n").map((line) => `> ${line}`).join("\n") + "\n\n"));

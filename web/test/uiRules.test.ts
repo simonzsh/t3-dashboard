@@ -522,3 +522,8 @@ test("session panes contain layout and paint work during panel slides", () => {
     assert.doesNotMatch(rule, /contain:[^;]*size/, "pane sizes must still follow the layout");
   }
 });
+
+test("citation viewport anchor escapes the contained session pane", () => {
+  const source = readFileSync(join(import.meta.dir, "../src/features/conversation/ConversationPanel.tsx"), "utf8");
+  assert.match(source, /createPortal\(<span ref=\{quoteAnchor\}[^\n]+document\.body\)/);
+});
