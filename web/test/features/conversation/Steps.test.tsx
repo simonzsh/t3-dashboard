@@ -70,14 +70,12 @@ test("loading completed history does not replay the completion effect", () => {
   assert.doesNotMatch(out, /arrived-live/);
 });
 
-test("fast commands keep typing through later thinking and outside the visible steps", () => {
-  const history = [step("fast"), ...Array.from({ length: 5 }, (_, i) => step(String(i), { kind: "thinking" }))];
-  const out = renderToStaticMarkup(<WorkGroup steps={history} threadId="t" live />);
-  assert.match(out, /working-robot typing/);
-  const next = renderToStaticMarkup(<WorkGroup steps={[step("thought", { kind: "thinking" })]} typing threadId="t" live />);
-  assert.match(next, /working-robot typing/);
-  const fresh = renderToStaticMarkup(<WorkGroup steps={[step("thought", { kind: "thinking" })]} typing={false} threadId="t" live />);
-  assert.match(fresh, /working-robot thinking/);
+test("fast commands type until a later thinking step takes over", () => {
+  const render = (steps: TurnStep[]) => renderToStaticMarkup(<WorkGroup steps={steps} threadId="t" live />);
+  assert.match(render([step("fast")]), /working-robot typing/);
+  const thoughts = step("thought", { kind: "thinking", status: "running", completedAt: null });
+  assert.match(render([step("fast"), thoughts]), /working-robot thinking/);
+  assert.match(render([step("fast"), thoughts, step("next")]), /working-robot typing/);
 });
 
 test("a failed command makes the robot think until the next action", () => {

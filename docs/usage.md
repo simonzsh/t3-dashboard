@@ -356,11 +356,11 @@ Cards open in 80 ms and keep loaded details. A running command with no output sh
 Before the first action arrives, an inline loader appears next to “Thinking…”.
 During an active run, this indicator and the thinking robot also appear after replies or notices when no trailing action group shows them.
 If only background tasks or subagents remain active, a loader and the robot appear with “Running in the background…”.
-In this state, the robot watches a small floating clock with a slowly turning hand. Its eyes blink while its arms and keyboard stay still.
+In this state, the robot watches a small floating clock with a slowly turning hand. The clock outline and hands use the accent color in both themes. Its eyes blink while its arms and keyboard stay still.
 
 A small robot sits to the right of Working, above the cards. Its body stays white and gray. The antenna light, eye glow, and small activity marks follow the selected accent color.
 Its hands type at varied rhythms, with key feedback timed to contact. It rests its chin on its hand and shows a thought bubble while thinking.
-The robot thinks at the start of a run. After the first action, it keeps typing between calls. A failed command makes it think until the next action starts.
+The robot thinks at the start of a run. It types during work, including short calls, and returns to its thinking pose when thinking resumes. A failed command makes it think until the next action starts.
 The robot uses CSS depth. Reduced motion disables its animation and the card transitions.
 
 When a question, approval, or secret needs your reply, the robot raises a hand at the end of the messages.

@@ -483,3 +483,17 @@ test("background activity keeps a visible robot after the main run ends", () => 
   const source = readFileSync("web/src/features/conversation/ConversationPanel.tsx", "utf8");
   assert.match(source, /!running && background && !needsInput && \([\s\S]*?<Loader inline label="Background activity" \/>[\s\S]*?<WorkingRobot background \/>/);
 });
+
+test("the Thinking fallback always gives the robot a thinking pose", () => {
+  const source = readFileSync(new URL("../src/features/conversation/ConversationPanel.tsx", import.meta.url), "utf8");
+  assert.match(source, /<span>Thinking…<\/span>\s*<WorkingRobot thinking \/>/);
+});
+
+test("the background robot clock uses accent color for its outline and hands", () => {
+  const css = readFileSync(join(import.meta.dir, "../src/styles.css"), "utf8");
+  for (const selector of [".robot-clock", ".robot-clock::after", ".robot-clock span"]) {
+    const rule = css.slice(css.indexOf(selector + " {")).split("}")[0]!;
+    assert.ok(rule.includes("var(--accent)"), selector);
+    assert.ok(!rule.includes("var(--robot-light)"), selector);
+  }
+});

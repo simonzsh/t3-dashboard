@@ -121,7 +121,7 @@ const Timeline = memo(function Timeline({ detail, threadId, running, editing, on
         <div className="working-row">
           <Loader inline label="Thinking" />
           <span>Thinking…</span>
-          <WorkingRobot thinking={!typing} />
+          <WorkingRobot thinking />
         </div>
       )}
     </>
