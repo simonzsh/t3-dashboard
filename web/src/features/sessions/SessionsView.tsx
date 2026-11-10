@@ -1,3 +1,4 @@
+import { useSessionPanelMotion } from "./useSessionPanelMotion.ts";
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type Dispatch, type PointerEvent, type ReactNode, type TouchEvent } from "react";
 import type { DashboardProject, DashboardProvider, DashboardThread } from "../../../../shared/api.ts";
 import type { SeenState } from "../../../../shared/seen.ts";
@@ -242,6 +243,7 @@ export function SessionsView({ sessions, dispatch, threads, projects, seen, open
   const wasLive = useRef(new Set<string>());
   for (const id of sessions.ids) if (byId.has(id)) wasLive.current.add(id);
   const root = useRef<HTMLDivElement>(null);
+  useSessionPanelMotion(root, !phone && sessions.ids.length > 0);
   const { focusedId, maximized } = sessions;
   // Windows slide, open and close when the strip changes; the phone shows one session, with no motion.
   useFlip(root, `${layout}|${sessions.ids.join(",")}|${maximized}`, { item: "data-session-window", enabled: !phone });
