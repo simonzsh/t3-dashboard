@@ -2,6 +2,7 @@ import { test } from "bun:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { renderToStaticMarkup } from "react-dom/server";
+import { RobotVisibilityContext } from "../../../src/lib/robotPreference.ts";
 import { WorkingRobot } from "../../../src/features/conversation/WorkingRobot.tsx";
 
 test("waiting takes priority over thinking and typing", () => {
@@ -68,5 +69,13 @@ test("coffee motion brings the cup and drinking arm in front of the head", () =>
     const depths = [...part.matchAll(/translateZ\((\d+)px\).*offset: 0\.(?:42|52|65|73)/g)];
     assert.equal(depths.length, 4);
     assert.ok(depths.every(match => Number(match[1]) > 18), "held parts must clear the head depth");
+  }
+});
+
+test("the visibility setting removes every robot pose", () => {
+  for (const props of [{}, { thinking: true }, { waiting: true }, { sleeping: true }, { background: true }]) {
+    assert.equal(renderToStaticMarkup(
+      <RobotVisibilityContext.Provider value={false}><WorkingRobot {...props} /></RobotVisibilityContext.Provider>,
+    ), "");
   }
 });

@@ -48,6 +48,7 @@ import { usePageAttention } from "./lib/usePageAttention.ts";
 import { isTabAction } from "./lib/shortcuts.ts";
 import { useShortcuts } from "./lib/useShortcuts.ts";
 import { usePersisted } from "./lib/storage.ts";
+import { RobotVisibilityContext, loadRobotVisibility, saveRobotVisibility } from "./lib/robotPreference.ts";
 import { loadPhoneSession, savePhoneSession } from "./lib/phoneSession.ts";
 import { useSessionLayout } from "./lib/sessionLayout.ts";
 import { useSidebarCollapsed } from "./lib/sidebar.ts";
@@ -128,6 +129,7 @@ export function App() {
   const [theme, setTheme] = useTheme();
   const [accent, setAccent] = useAccent();
   const [tint, setTint] = useTint();
+  const [showRobot, setShowRobot] = usePersisted(loadRobotVisibility, saveRobotVisibility);
   const [layout, setLayout] = useSessionLayout();
   const [now, setNow] = useState(() => new Date());
   const [sidebarCollapsed, toggleSidebar] = useSidebarCollapsed();
@@ -283,6 +285,7 @@ export function App() {
   }
 
   return (
+    <RobotVisibilityContext.Provider value={showRobot}>
     <AutomationThreadsContext.Provider value={automationThreads}>
       <div className={`app${tab === "sessions" ? " sessions-mode" : ""}${tab === "automations" ? " automations-mode" : ""}${tab === "news" ? " news-mode" : ""}${tab === "pulls" ? " pulls-mode" : ""}${sessionShown ? " session-shown" : ""}${prShown ? " pr-shown" : ""}${sheetShown ? " sheet-shown" : ""}`}>
         <TooltipLayer />
@@ -474,6 +477,8 @@ export function App() {
             onAccentChange={setAccent}
             tint={tint}
             onTintChange={setTint}
+            showRobot={showRobot}
+            onShowRobotChange={setShowRobot}
             onLinearChange={() => setLinearVersion((version) => version + 1)}
             update={update}
             onUpdate={() => {
@@ -485,5 +490,6 @@ export function App() {
         )}
       </div>
     </AutomationThreadsContext.Provider>
+    </RobotVisibilityContext.Provider>
   );
 }

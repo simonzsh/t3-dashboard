@@ -1,8 +1,15 @@
-import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useContext, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { Pressable, pauseAnimations, reducedMotion } from "../../ui/index.ts";
+import { RobotVisibilityContext } from "../../lib/robotPreference.ts";
+
+interface Props { thinking?: boolean; waiting?: boolean; sleeping?: boolean; background?: boolean }
+
+export function WorkingRobot(props: Props) {
+  return useContext(RobotVisibilityContext) ? <AnimatedRobot {...props} /> : null;
+}
 
 /** CSS depth keeps the small mascot light enough for several live sessions. */
-export function WorkingRobot({ thinking = false, waiting = false, sleeping = false, background = false }: { thinking?: boolean; waiting?: boolean; sleeping?: boolean; background?: boolean }) {
+function AnimatedRobot({ thinking = false, waiting = false, sleeping = false, background = false }: Props) {
   const pose = waiting ? "waiting" : background ? "background" : sleeping ? "sleeping" : thinking ? "thinking" : "typing";
   const previousPose = useRef(pose);
   const interrupted = useRef<Keyframe[] | null>(null);
