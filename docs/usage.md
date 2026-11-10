@@ -339,7 +339,7 @@ Hover over a session in the list and open its **…** menu. Session and project 
 Choose **Rename** first to edit the title, or double-click the title in the session header. Enter saves the title; Cancel leaves it unchanged.
 Title regeneration stays available while an agent runs or waits for your answer.
 Choose **Regenerate title** (the refresh icon), toggle phone alerts when configured, or open the session in T3 Code. This action uses the same T3 logo as the session header.
-Select message text, then choose the quotation icon with **Cite** beside the selection to append a Markdown quote to your draft. On touch screens, **Cite** appears above the composer to avoid the native selection menu. The button closes on Escape. On desktop, it also closes on scroll.
+Select message text, then choose the quotation icon with **Cite** beside the selection to append a Markdown quote to your draft. On touch screens, **Cite** appears above the composer to avoid the native selection menu. The button closes on Escape. On desktop, it appears beside the mouse release point and closes on scroll.
 The button appears only after you finish selecting text. On desktop, it stays hidden while you drag or extend the selection with the keyboard. On touch screens, it returns when selection changes or scrolling settle, including after you move a native selection handle.
 On desktop, Ctrl+F (Cmd+F on macOS) opens search directly, with no permanent search toolbar. On mobile, tap the search icon beside the other actions in the session header. The field opens with the keyboard. Search matches message text without case sensitivity.
 Returning to Sessions does not replay an earlier search request. A search that you closed stays closed.
