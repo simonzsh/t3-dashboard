@@ -23,6 +23,8 @@ export function timeline(detail: Pick<ThreadDetail, "messages" | "renders" | "st
 
   const out: Entry[] = [];
   for (const entry of entries) {
+    // Checkpoints support rewind but add no conversation content.
+    if (entry.kind === "step" && entry.step.notice === "checkpoint") continue;
     const previous = out.at(-1);
     if (entry.kind === "step" && entry.step.kind === "subagent") {
       if (previous?.kind === "subagents" && sameGroup(previous.steps[0]!, entry.step)) previous.steps.push(entry.step);

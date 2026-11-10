@@ -225,7 +225,7 @@ function Conversation({ searchRequest = 0, threadId, thread, providers, onOpenTh
       setSelectionRect(rect ? { left: rect.left, top: rect.top, width: rect.width, height: rect.height } : null);
     };
     const hide = () => { setSelection(""); setSelectionRect(null); };
-    return watchSelection(document, window, read, hide);
+    return watchSelection(document, window, read, hide, touch);
   }, [touch]);
   useEffect(() => {
     if (searchOpen) searchField.current?.focus();

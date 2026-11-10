@@ -123,3 +123,17 @@ test("awaitingStep: notices after completed work keep the active run visible", (
   assert.equal(awaitingStep(entries, true), true);
   assert.equal(awaitingStep(entries, false), false);
 });
+
+test("checkpoints stay available in the data without appearing or splitting work", () => {
+  const checkpoint: TurnStep = { ...step("cp", "notice", "2026-01-01T10:02:00Z"), notice: "checkpoint" };
+  const error: TurnStep = { ...step("error", "notice", "2026-01-01T10:04:00Z"), notice: "error" };
+  const detail = {
+    messages: [message("reply", "2026-01-01T10:05:00Z")], renders: [],
+    steps: [step("a", "command", "2026-01-01T10:01:00Z"), checkpoint,
+      step("b", "command", "2026-01-01T10:03:00Z"), error,
+      { ...checkpoint, id: "final-cp", startedAt: "2026-01-01T10:06:00Z" }],
+  };
+  assert.deepEqual(labels(detail), ["work(a,b)", "error", "reply"]);
+  assert.equal(detail.steps.length, 5);
+  assert.equal(detail.steps[1], checkpoint);
+});
