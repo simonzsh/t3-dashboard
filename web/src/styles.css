@@ -315,6 +315,9 @@ main { flex: 1; min-height: 0; overflow: hidden; padding: var(--page-top) var(--
 .msg-copied { color: var(--text-secondary); }
 .steps-omitted { font-size: 12px; color: var(--text-secondary); text-align: center; }
 .working-row { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--text-secondary); }
+/* Keep the status mascot close to the last message and composer. */
+.messages > .working-row:last-child { margin-top: -12px; }
+.messages:has(> .working-row:last-child) { padding-bottom: 6px; }
 .working-row .waiting-icon { flex: none; width: 14px; height: 14px; color: var(--warn); }
 .msg.user { align-items: flex-end; }
 .msg.user .bubble { max-width: min(85%, 640px); padding: 8px 13px; border-radius: 16px 16px 4px 16px; overflow-wrap: anywhere; background: color-mix(in srgb, var(--accent) 13%, var(--surface-1)); border: 1px solid color-mix(in srgb, var(--accent) 24%, var(--line)); color: var(--text-primary); }
@@ -352,8 +355,8 @@ main { flex: 1; min-height: 0; overflow: hidden; padding: var(--page-top) var(--
 @media (prefers-reduced-motion: reduce) { .disclosure { transition: none; } }
 @keyframes breathe { 0%, 100% { opacity: 1; } 50% { opacity: 0.35; } }
 /* Sculpted surfaces and perspective give the mascot depth without a render loop. */
-.working-robot { position: relative; width: 94px; height: 76px; flex: none; margin-left: auto; align-self: center; overflow: visible; padding: 0; border: 0; border-radius: var(--radius-md); background: none; cursor: pointer; touch-action: manipulation; }
-.robot-size { position: absolute; left: 4px; top: 10px; width: 164px; height: 124px; transform: scale(0.5); transform-origin: top left; perspective: 450px; }
+.working-robot { position: relative; width: 94px; height: 64px; flex: none; margin-left: auto; align-self: center; overflow: visible; padding: 0; border: 0; border-radius: var(--radius-md); background: none; cursor: pointer; touch-action: manipulation; }
+.robot-size { position: absolute; left: 4px; top: 4px; width: 164px; height: 124px; transform: scale(0.5); transform-origin: top left; perspective: 450px; }
 .robot-scene { position: relative; width: 148px; height: 114px; transform: rotateX(8deg) rotateY(-14deg); transform-style: preserve-3d; }
 .robot-head, .robot-body, .robot-hand { position: absolute; background: linear-gradient(135deg, var(--robot-light), var(--robot-body) 55%, var(--robot-shade)); box-shadow: inset -4px -4px 8px color-mix(in srgb, var(--robot-shade) 35%, transparent), inset 2px 2px 4px var(--robot-light), 3px 5px 0 var(--robot-shade); }
 .robot-head { left: 39px; top: 15px; width: 70px; height: 49px; border-radius: 22px; transform: translateZ(18px); animation: robot-nod 2.8s ease-in-out infinite; z-index: 3; }
