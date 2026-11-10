@@ -285,6 +285,7 @@ main { flex: 1; min-height: 0; overflow: hidden; padding: var(--page-top) var(--
 .conversation-tools { display: flex; align-items: center; gap: 4px; padding: 4px 8px; flex-wrap: wrap; border-bottom: 1px solid var(--line); }
 .conversation-tools .search-field { flex: 1; min-width: 100px; }
 .conversation-search { gap: 8px; padding: 12px; }
+.conversation > .ui-collapse { flex: none; }
 .conversation-search-count { flex: none; padding-inline: 4px; color: var(--text-secondary); font-size: 12px; font-variant-numeric: tabular-nums; white-space: nowrap; }
 .search-highlight { background: color-mix(in srgb, var(--accent) 24%, transparent); color: inherit; }
 .msg.search-match .search-highlight { background: var(--accent); color: var(--on-accent); }

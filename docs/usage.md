@@ -345,6 +345,7 @@ On desktop, Ctrl+F (Cmd+F on macOS) opens search directly, with no permanent sea
 Returning to Sessions does not replay an earlier search request. A search that you closed stays closed.
 Matching text is highlighted inside messages. The active message uses a stronger highlight. Closing search removes the highlights.
 The search bar separates the field, result counter, and navigation buttons with space.
+The search bar expands and fades in over 200 ms when opened. It collapses over 200 ms when closed. Reduced-motion settings disable these animations.
 The counter counts matching messages. Use the arrows or Enter and Shift+Enter to move between them. Escape closes search.
 The fullscreen button remains in the session header.
 

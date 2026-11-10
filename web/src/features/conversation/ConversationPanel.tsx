@@ -5,7 +5,7 @@ import { highlightText } from "../../lib/highlightText.tsx";
 import { useMediaQuery } from "../../lib/useMediaQuery.ts";
 import { useApi } from "../../api/ApiContext.tsx";
 import { watchSelection } from "./selection.ts";
-import { Button, Popover, SearchField, Icon, IconButton, Loader, STATUS_ICONS, TOUCH } from "../../ui/index.ts";
+import { Button, Collapse, Popover, SearchField, Icon, IconButton, Loader, STATUS_ICONS, TOUCH, enter } from "../../ui/index.ts";
 import { attachmentUrl } from "../../api/client.ts";
 import { type PendingMessage, countSame, isSettled, pendingLabel, sentMessages } from "./pending.ts";
 import { MarkdownText } from "./MarkdownText.tsx";
@@ -202,6 +202,12 @@ function Conversation({ searchRequest = 0, threadId, thread, providers, onOpenTh
   const touch = useMediaQuery(TOUCH);
   const quoteAnchor = useRef<HTMLSpanElement>(null);
   const searchField = useRef<HTMLInputElement>(null);
+  const searchBar = useRef<HTMLDivElement>(null);
+  useLayoutEffect(() => {
+    if (!searchOpen || !searchBar.current) return;
+    const animation = enter(searchBar.current, { y: -8, duration: 200 });
+    return () => animation?.cancel();
+  }, [searchOpen]);
   const handledSearchRequest = useRef(searchRequest);
   useLayoutEffect(() => {
     // Activity restarts effects on return; a remount must also ignore old requests.
@@ -459,7 +465,7 @@ function Conversation({ searchRequest = 0, threadId, thread, providers, onOpenTh
           }}><Icon name="quote" />Cite</Button>
         </Popover>
       </>}
-      {searchOpen && <div className="conversation-tools conversation-search" onKeyDown={(e) => {
+      <Collapse open={searchOpen} duration={200}><div ref={searchBar} className="conversation-tools conversation-search" onKeyDown={(e) => {
         if (e.key === "Escape") { e.stopPropagation(); setSearchOpen(false); frame.current?.focus(); }
         if (e.key === "Enter" && e.target === searchField.current && !e.nativeEvent.isComposing) { e.preventDefault(); setMatchIndex((i) => (i + (e.shiftKey ? matches.length - 1 : 1)) % (matches.length || 1)); }
       }}>
@@ -468,7 +474,7 @@ function Conversation({ searchRequest = 0, threadId, thread, providers, onOpenTh
         <IconButton variant="ghost" label="Previous result" disabled={!matches.length} onClick={() => setMatchIndex((i) => (i + matches.length - 1) % matches.length)}><Icon name="arrowUp" /></IconButton>
         <IconButton variant="ghost" label="Next result" disabled={!matches.length} onClick={() => setMatchIndex((i) => (i + 1) % matches.length)}><Icon name="arrowDown" /></IconButton>
         <IconButton variant="ghost" label="Close search" onClick={() => setSearchOpen(false)}><Icon name="x" /></IconButton>
-      </div>}
+      </div></Collapse>
       <div className="messages-frame">
         <div
           className="messages"
