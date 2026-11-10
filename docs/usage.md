@@ -103,7 +103,8 @@ Each session contains a conversation.
 - The dot beside "Working" uses the same expanding halo as running indicators in session lists, badges and the Dashboard.
 - A running subagent shows the same animated dot before its "Running" label.
 - Click a command to see its output and exit code. Click a file change to see its diff. Click a tool or a search to see its input and results. A note says when T3 Code cut a long text.
-- A to-do list, a proposed plan and a notice (checkpoint, compaction, error) have their own block.
+- A to-do list, a proposed plan and a notice (compaction, error) have their own block.
+- Checkpoint notices are hidden. Their restore points remain available for "Edit from here".
 - Like T3 Code, a subagent has a row with its provider logo, title, latest line, status and time. Two or more subagents of one turn share a "N subagents" header that opens a card of rows. Click a row to open its thread in a session. The session takes its name from the thread, follows a running subagent, and stays open after a reload. Like T3 Code, it has no message field: a bar shows the model, the run time, "Runs on its own" and "Open parent", which opens the parent thread. `@` search there uses the folder of the parent thread. The stop icon stops a running subagent.
 - Between your message and the first step, a "Working…" row shows while the run is active.
 - Point at a message (or tab to it) to see a row of icons under it. On a touch screen, the row always shows. The copy icon copies the text of the message (Markdown) and shows "Copied".
@@ -338,8 +339,8 @@ Hover over a session in the list and open its **…** menu. Session and project 
 Choose **Rename** first to edit the title, or double-click the title in the session header. Enter saves the title; Cancel leaves it unchanged.
 Title regeneration stays available while an agent runs or waits for your answer.
 Choose **Regenerate title** (the refresh icon), toggle phone alerts when configured, or open the session in T3 Code. This action uses the same T3 logo as the session header.
-Select message text, then choose the quotation icon with **Cite** beside the selection to append a Markdown quote to your draft. On touch screens, **Cite** appears above the composer to avoid the native selection menu. The button closes on scroll or Escape.
-The button appears only after you finish selecting text. It stays hidden while you drag or extend the selection with the keyboard.
+Select message text, then choose the quotation icon with **Cite** beside the selection to append a Markdown quote to your draft. On touch screens, **Cite** appears above the composer to avoid the native selection menu. The button closes on Escape. On desktop, it also closes on scroll.
+The button appears only after you finish selecting text. On desktop, it stays hidden while you drag or extend the selection with the keyboard. On touch screens, it returns when selection changes or scrolling settle, including after you move a native selection handle.
 On desktop, Ctrl+F (Cmd+F on macOS) opens search directly, with no permanent search toolbar. On mobile, tap the search icon beside the other actions in the session header. The field opens with the keyboard. Search matches message text without case sensitivity.
 Returning to Sessions does not replay an earlier search request. A search that you closed stays closed.
 Matching text is highlighted inside messages. The active message uses a stronger highlight. Closing search removes the highlights.

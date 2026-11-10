@@ -9,12 +9,12 @@ const fire = (target: EventTarget, type: string, fields: Record<string, unknown>
   target.dispatchEvent(event);
 };
 
-function setup() {
+function setup(touch = false) {
   const events = new EventTarget();
   const viewport = new EventTarget();
   let visible = false;
   let reads = 0;
-  const stop = watchSelection(events, viewport, () => { visible = true; reads++; }, () => { visible = false; });
+  const stop = watchSelection(events, viewport, () => { visible = true; reads++; }, () => { visible = false; }, touch);
   return { events, viewport, stop, visible: () => visible, reads: () => reads };
 }
 
@@ -79,4 +79,35 @@ test("scroll, cancellation, blur and cleanup cancel a pending citation", async (
       assert.equal(s.visible(), false, type);
     } finally { s.stop(); }
   }
+});
+
+test("touch handles can extend selection without sending pointerup", async () => {
+  const s = setup(true);
+  try {
+    fire(s.events, "selectionchange");
+    await settled();
+    assert.equal(s.visible(), true);
+    fire(s.events, "pointerdown");
+    fire(s.events, "selectionchange");
+    await settled();
+    assert.equal(s.visible(), true);
+    assert.equal(s.reads(), 2);
+  } finally { s.stop(); }
+});
+
+test("touch selection is read again after native cancellation and scrolling", async () => {
+  const s = setup(true);
+  try {
+    fire(s.events, "pointerdown");
+    fire(s.events, "selectionchange");
+    fire(s.events, "pointercancel");
+    fire(s.viewport, "scroll");
+    await settled();
+    assert.equal(s.visible(), true);
+    assert.equal(s.reads(), 1);
+    fire(s.events, "selectionchange");
+    s.stop();
+    await settled();
+    assert.equal(s.reads(), 1);
+  } finally { s.stop(); }
 });
