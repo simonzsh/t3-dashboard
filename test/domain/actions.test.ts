@@ -213,6 +213,28 @@ test("sending a queued message starts it when no run is active", async () => {
   assert.deepEqual(commands.map((c) => [c.type, c.runId]), [["queued-run.start", "q1"]]);
 });
 
+test("sending a queued message while a run waits preserves the queue and sends nothing", async () => {
+  const { actions, commands } = stopHarness({ "thread-1": { runs: [{ id: "run-1", status: "waiting" }, { id: "q1", status: "queued" }] } });
+  await assert.rejects(actions.sendQueued("thread-1", "q1"), (error: unknown) =>
+    error instanceof DomainError && error.code === "conflict" && /waiting/.test(error.message));
+  assert.equal(commands.length, 0);
+  await actions.editQueued("thread-1", "q1", "updated");
+  assert.equal(commands[0]?.type, "queued-run.edit");
+});
+
+test("a stopped run in the projection overrides a stale shell run id", async () => {
+  const { port } = stopHarness({ "thread-1": { runs: [{ id: "old", status: "interrupted" }, { id: "q1", status: "queued" }] } });
+  const commands: Command[] = [];
+  port.dispatch = async (command) => void commands.push(command);
+  const actions = createActions({
+    port,
+    store: { thread: () => ({ activeRunId: "old" }) as ReturnType<ShellStore["thread"]>, project: () => undefined, backgroundTasks: () => [], workspaceOf: () => null, projectByRoot: () => undefined },
+    board: { get: async () => ({ configured: false, ok: false, error: null, issues: [], readAt: "2026-11-10T12:00:00Z", inbox: [], inboxError: null }) },
+  });
+  await actions.sendQueued("thread-1", "q1");
+  assert.equal(commands[0]?.type, "queued-run.start");
+});
+
 test("a run that is not queued is a conflict and sends no command", async () => {
   const { actions, commands } = stopHarness({ "thread-1": queuedProjection });
   for (const run of ["run-1", "done", "unknown"]) {

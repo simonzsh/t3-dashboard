@@ -1,7 +1,7 @@
 import { createContext, memo, useContext, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import type { ChatMessage, DashboardProvider, HtmlRender, DashboardThread, ThreadDetail, ThreadSettingsBody, TurnStep, UploadedAttachment } from "../../../../shared/api.ts";
-import { runActive } from "../../../../shared/status.ts";
+import { queuedSendBlockedReason, runActive } from "../../../../shared/status.ts";
 import { highlightText } from "../../lib/highlightText.tsx";
 import { useMediaQuery } from "../../lib/useMediaQuery.ts";
 import { useApi } from "../../api/ApiContext.tsx";
@@ -528,7 +528,7 @@ function Conversation({ searchRequest = 0, threadId, thread, providers, onOpenTh
               ))}
             </div>
           )}
-          {detail && <QueuedMessages threadId={threadId} queue={detail.queue} held={detail.queueHeld} running={running} onChanged={() => void load()} />}
+          {detail && <QueuedMessages threadId={threadId} queue={detail.queue} held={detail.queueHeld} sendBlockedReason={queuedSendBlockedReason(t?.status)} onChanged={() => void load()} />}
           {/* Sent during a run: it waits below the queue, as T3 shows it. */}
           {detail && running && pending.map((p) => <PendingBubble key={p.id} message={p} />)}
           {detail && !running && background && !needsInput && (

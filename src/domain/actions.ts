@@ -2,7 +2,7 @@ import { homedir } from "node:os";
 import { posix } from "node:path";
 import { marked } from "marked";
 import type { AssignIssueBody, ComposerCommands, CreateProjectBody, CreateThreadBody, FileSearchResult, FolderBrowseResult, LinearIssue, ModelSelection, ProjectIconChoices, ProjectRefs, ProjectVcsStatus, RespondBody, SecretAnswerBody, SendMessageBody, StepDetail, ThreadDetail, ThreadSearchResult, ThreadSettingsBody, UpdateProjectBody, UploadedAttachment } from "../../shared/api.ts";
-import { ACTIVE_STATUSES, RUNNING_RUN_STATUSES } from "../../shared/status.ts";
+import { ACTIVE_STATUSES, RUNNING_RUN_STATUSES, queuedSendBlockedReason } from "../../shared/status.ts";
 import { IntegrationError } from "../integrations/errors.ts";
 import {
   approvalCommand,
@@ -443,7 +443,11 @@ export function createActions(options: ActionsOptions): Actions {
     async sendQueued(threadId, runId) {
       const projection = await queuedRun(threadId, runId);
       // The fresh projection first: after a Stop, the shell can still name the stopped run.
-      const target = projection.runs?.findLast((run) => RUNNING_RUN_STATUSES.has(run.status ?? ""))?.id ?? (await activeRunId(threadId, projection));
+      const active = projection.runs?.findLast((run) => RUNNING_RUN_STATUSES.has(run.status ?? ""));
+      const blocked = queuedSendBlockedReason(active?.status);
+      if (blocked) throw new DomainError("conflict", blocked);
+      const shellRunId = store.thread(threadId)?.activeRunId;
+      const target = active?.id ?? (shellRunId && !projection.runs?.some((run) => run.id === shellRunId) ? shellRunId : null);
       await send(target ? promoteQueuedCommand(threadId, runId, target) : startQueuedCommand(threadId, runId));
     },
 

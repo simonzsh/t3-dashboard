@@ -526,6 +526,15 @@ test("queue routes send the matching T3 command", async () => {
   ]);
 });
 
+test("queue send returns a clear conflict while the active run waits", async () => {
+  const { server, port } = await start();
+  port.projection = { runs: [{ id: "run-a", status: "waiting" }, { id: "q1", status: "queued" }] };
+  const reply = await post(server, "/api/threads/run-1/queue/q1/send");
+  assert.equal(reply.status, 409);
+  assert.match(JSON.stringify(reply.json), /This run is waiting/);
+  assert.deepEqual(port.commands, []);
+});
+
 test("queue routes: a blank edit is 400, a run that left the queue is 409, and nothing is sent", async () => {
   const { server, port } = await start();
   port.projection = { runs: [{ id: "q1", status: "queued" }, { id: "r1", status: "running" }] };

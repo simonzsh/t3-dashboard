@@ -14,8 +14,11 @@ type ThreadFields = Pick<DashboardThread, "status" | "pending" | "activeRunId" |
 export type AgentStatus = "waiting" | "working" | "finished" | "idle";
 export type ThreadState = "waiting" | "running" | "done" | "error" | "idle";
 
-/** A run is in progress: it can be stopped or steered (background subagents alone cannot). */
+/** A run is in progress and can be stopped (background subagents alone cannot). */
 export const runActive = (t: Pick<ThreadFields, "status" | "activeRunId">) => ACTIVE_STATUSES.has(t.status) || t.activeRunId !== null;
+
+export const queuedSendBlockedReason = (status: string | undefined): string | null =>
+  status === "waiting" ? "This run is waiting. Send this message when it resumes, or stop the run first." : null;
 const isWorking = (t: ThreadFields) => runActive(t) || t.backgroundWork;
 export const hasFailed = (t: Pick<ThreadFields, "status" | "lastError">) => t.status === "failed" || t.lastError !== null;
 

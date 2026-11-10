@@ -13,12 +13,12 @@ interface Props {
   queue: QueuedMessage[];
   /** After a Stop, T3 holds the queue until "Send now". */
   held: boolean;
-  running: boolean;
+  sendBlockedReason?: string | null;
   /** Called after each action, even a failed one: the queue may have moved on in T3. */
   onChanged: () => void;
 }
 
-export function QueuedMessages({ threadId, queue, held, running, onChanged }: Props) {
+export function QueuedMessages({ threadId, queue, held, sendBlockedReason, onChanged }: Props) {
   if (queue.length === 0) return null;
   return (
     <section className="queue" aria-label={`Up next: ${queue.length} queued message${queue.length === 1 ? "" : "s"}`}>
@@ -28,14 +28,14 @@ export function QueuedMessages({ threadId, queue, held, running, onChanged }: Pr
       </div>
       <ol>
         {queue.map((item) => (
-          <QueuedItem key={item.runId} threadId={threadId} item={item} running={running} onChanged={onChanged} />
+          <QueuedItem key={item.runId} threadId={threadId} item={item} sendBlockedReason={sendBlockedReason} onChanged={onChanged} />
         ))}
       </ol>
     </section>
   );
 }
 
-function QueuedItem({ threadId, item, running, onChanged }: { threadId: string; item: QueuedMessage; running: boolean; onChanged: () => void }) {
+function QueuedItem({ threadId, item, sendBlockedReason, onChanged }: { threadId: string; item: QueuedMessage; sendBlockedReason?: string | null; onChanged: () => void }) {
   const api = useApi();
   const { busy, run } = useAction("update the queued message");
   const touch = useMediaQuery(TOUCH);
@@ -101,10 +101,10 @@ function QueuedItem({ threadId, item, running, onChanged }: { threadId: string; 
         <div className="queued-actions">
           <IconButton
             label="Send now"
-            tooltip="Send now"
+            tooltip={sendBlockedReason ?? "Send now"}
             size="sm"
             variant="ghost"
-            disabled={busy}
+            disabled={busy || Boolean(sendBlockedReason)}
             onClick={() => void act(() => api.sendQueued(threadId, item.runId))}
           >
             <Icon name="arrowUp" />
