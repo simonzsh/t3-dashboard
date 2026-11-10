@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { DashboardProject, DashboardProvider, LinearIssue, ModelDefaults, UploadedAttachment } from "../../../../shared/api.ts";
 import { useApi } from "../../api/ApiContext.tsx";
 import { browserStorage } from "../../lib/storage.ts";
@@ -30,6 +30,12 @@ interface Props {
 
 export function NewThreadDialog({ projects, providers, defaults, onClose, onCreated, issue, projectId: preset = null }: Props) {
   const api = useApi();
+  const completed = useRef(false);
+  const finish = (threadId: string) => {
+    // Restoring the old composer would select its session again through onFocusCapture.
+    completed.current = true;
+    onCreated(threadId);
+  };
   // A Linear issue preselects the last project chosen for its team.
   const [projectId, setProjectId] = useState(() => (issue ? loadAssignProject(browserStorage(), issue.team.key, projects) : (preset ?? loadNewAgentProject(browserStorage(), projects))));
   const { selection, setSelection, mode, changeSettings } = useAgentSettings(() => presetSelection(projects.find((p) => p.id === projectId), providers, defaults.selection), defaults.runtimeMode ?? DEFAULT_RUNTIME_MODE);
@@ -65,13 +71,13 @@ export function NewThreadDialog({ projects, providers, defaults, onClose, onCrea
     if (issue) {
       const { threadId } = await api.assignIssue({ issueId: issue.id, projectId, text, modelSelection: selection, ...extra });
       saveAssignProject(browserStorage(), issue.team.key, projectId);
-      return onCreated(threadId);
+      return finish(threadId);
     }
     const title = titleFromMessage(text);
     if (title === "") throw new Error("Write a message.");
     const { threadId } = await api.createThread({ projectId, title, text, modelSelection: selection, ...extra });
     saveNewAgentProject(browserStorage(), projectId);
-    onCreated(threadId);
+    finish(threadId);
   }
 
   return (
@@ -88,7 +94,7 @@ export function NewThreadDialog({ projects, providers, defaults, onClose, onCrea
         />
       )}
       {/* Hidden, not unmounted: the composer frees its attachments on unmount. */}
-      <Dialog title={issue ? "Assign to an agent" : "New Session"} className="new-agent" onClose={onClose} hidden={addingProject}>
+      <Dialog title={issue ? "Assign to an agent" : "New Session"} className="new-agent" onClose={onClose} hidden={addingProject} restoreFocus={() => !completed.current}>
         {issue && (
           <a className="issue-banner" href={issue.url} target="_blank" rel="noreferrer">
             <span className="issue-banner-id">{issue.identifier}</span>

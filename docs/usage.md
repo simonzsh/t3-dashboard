@@ -142,7 +142,7 @@ The New Session button (key `N`) starts a new session.
 1. Select a T3 project, or keep "No project". Without a project, the session goes into the "No project" project of T3 Code.
 2. Write the task. The first line becomes the title of the session.
 3. If necessary, change the model or the access mode, or attach files. `@` search does not work here: the thread does not exist yet.
-4. Send. The conversation opens in Sessions.
+4. Send. The conversation opens in Sessions and becomes the focused session. Cancel returns keyboard focus to the previous control.
 
 - Every session starts with one T3 call, `orchestration.launchThread`, like the T3 Code client. T3 Code 0.1 or newer is needed; an older T3 Code gives the error "Starting a session needs T3 Code 0.1 or newer".
 - `POST /api/threads` and `POST /api/board/assign` take one optional field, `workspace`, which is one of:

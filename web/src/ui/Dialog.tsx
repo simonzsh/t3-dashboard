@@ -31,6 +31,8 @@ interface Props {
   className?: string;
   /** Kept mounted but out of sight and deaf to Escape, e.g. while another dialog takes its place. */
   hidden?: boolean;
+  /** Checked on unmount. Return false when success opens a different view. */
+  restoreFocus?: () => boolean;
   children?: ReactNode;
 }
 
@@ -57,7 +59,7 @@ export function trapTab(e: KeyboardEvent<HTMLElement>) {
   }
 }
 
-export function Dialog({ title, label, onClose, onCancel, cancelLabel = "Cancel", primary, secondary, className, hidden = false, children }: Props) {
+export function Dialog({ title, label, onClose, onCancel, cancelLabel = "Cancel", primary, secondary, className, hidden = false, restoreFocus, children }: Props) {
   useEscape(hidden ? ignore : onClose);
   const titleId = useId();
   const box = useRef<HTMLDivElement>(null);
@@ -142,6 +144,8 @@ export function Dialog({ title, label, onClose, onCancel, cancelLabel = "Cancel"
 
   // Read before the children's effects: a menu that opens on mount takes the focus there.
   const previous = useRef<HTMLElement | null>(null);
+  const canRestoreFocus = useRef(restoreFocus);
+  canRestoreFocus.current = restoreFocus;
   useLayoutEffect(() => {
     previous.current = document.activeElement as HTMLElement | null;
   }, []);
@@ -151,7 +155,9 @@ export function Dialog({ title, label, onClose, onCancel, cancelLabel = "Cancel"
     const root = box.current;
     const active = document.activeElement;
     if (root && !root.contains(active) && !active?.closest(".popover")) root.querySelector<HTMLElement>(FOCUSABLE)?.focus();
-    return () => previous.current?.focus?.();
+    return () => {
+      if (canRestoreFocus.current?.() !== false) previous.current?.focus?.();
+    };
   }, []);
 
   // In document.body, so no transformed or clipping parent can trap the fixed backdrop. Static renders have no document.
