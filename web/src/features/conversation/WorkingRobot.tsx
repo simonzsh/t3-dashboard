@@ -61,6 +61,8 @@ export function WorkingRobot({ thinking = false, waiting = false, sleeping = fal
     const animations = new Set<Animation>();
     const timers = new Set<ReturnType<typeof setTimeout>>();
     let stopped = false;
+    let drinking = false;
+    let nextSip = performance.now() + 12000 + Math.random() * 18000;
     const later = (callback: () => void, delay: number) => {
       const timer = setTimeout(() => {
         timers.delete(timer);
@@ -77,6 +79,7 @@ export function WorkingRobot({ thinking = false, waiting = false, sleeping = fal
       };
     };
     const keys = scene.querySelectorAll(".robot-keyboard i");
+    const face = scene.querySelector(".robot-face")!;
     // Each hand finishes its stroke before the next one starts. No timer can cut it short.
     const startHand = (right: boolean) => {
       const hand = scene.querySelector(right ? ".robot-hand.right" : ".robot-hand.left")!;
@@ -85,6 +88,56 @@ export function WorkingRobot({ thinking = false, waiting = false, sleeping = fal
         if (stopped) return;
         if (reducedMotion() || document.hidden) {
           later(stroke, 250);
+          return;
+        }
+        if (drinking || greeting.current) {
+          later(stroke, 250);
+          return;
+        }
+        if (right && performance.now() >= nextSip) {
+          drinking = true;
+          const cup = scene.querySelector(".robot-cup")!;
+          const duration = 4200 + Math.random() * 800;
+          later(() => face.classList.add("sipping"), duration * 0.42);
+          later(() => face.classList.remove("sipping"), duration * 0.76);
+          const easing = "cubic-bezier(0.45, 0, 0.55, 1)";
+          // Reveal the cup only while the hand holds it.
+          play(cup, [
+            { opacity: 0, transform: "translateZ(32px) translate(0, 0) rotate(0deg)", offset: 0, easing },
+            { opacity: 0, transform: "translateZ(32px) translate(0, 0) rotate(0deg)", offset: 0.18, easing },
+            { opacity: 1, transform: "translateZ(32px) translate(0, 0) rotate(0deg)", offset: 0.2, easing },
+            { opacity: 1, transform: "translateZ(32px) translate(-42px, -19px) rotate(0deg)", offset: 0.42, easing },
+            { opacity: 1, transform: "translateZ(32px) translate(-45px, -22px) rotate(-18deg)", offset: 0.52, easing },
+            { opacity: 1, transform: "translateZ(32px) translate(-45px, -22px) rotate(-18deg)", offset: 0.65, easing },
+            { opacity: 1, transform: "translateZ(32px) translate(-42px, -19px) rotate(0deg)", offset: 0.73, easing },
+            { opacity: 1, transform: "translateZ(32px) translate(0, 0) rotate(0deg)", offset: 0.9, easing },
+            { opacity: 0, transform: "translateZ(32px) translate(0, 0) rotate(0deg)", offset: 0.92, easing },
+            { opacity: 0, transform: "translateZ(32px) translate(0, 0) rotate(0deg)" },
+          ], duration);
+          play(arm, [
+            { transform: "translateZ(0px) rotate(0deg)", easing },
+            { transform: "translateZ(28px) rotate(-56deg) scaleY(2.05)", offset: 0.2, easing },
+            { transform: "translateZ(28px) rotate(-88deg) scaleY(0.5)", offset: 0.42, easing },
+            { transform: "translateZ(28px) rotate(-136deg) scaleY(0.5)", offset: 0.52, easing },
+            { transform: "translateZ(28px) rotate(-136deg) scaleY(0.5)", offset: 0.65, easing },
+            { transform: "translateZ(28px) rotate(-88deg) scaleY(0.5)", offset: 0.73, easing },
+            { transform: "translateZ(28px) rotate(-56deg) scaleY(2.05)", offset: 0.9, easing },
+            { transform: "translateZ(0px) rotate(0deg)" },
+          ], duration);
+          play(hand, [
+            { transform: "translateZ(0px) translate(0, 0)", easing },
+            { transform: "translateZ(28px) translate(37px, 0)", offset: 0.2, easing },
+            { transform: "translateZ(28px) translate(-5px, -19px)", offset: 0.42, easing },
+            { transform: "translateZ(28px) translate(-8px, -22px) rotate(-18deg)", offset: 0.52, easing },
+            { transform: "translateZ(28px) translate(-8px, -22px) rotate(-18deg)", offset: 0.65, easing },
+            { transform: "translateZ(28px) translate(-5px, -19px)", offset: 0.73, easing },
+            { transform: "translateZ(28px) translate(37px, 0)", offset: 0.9, easing },
+            { transform: "translateZ(0px) translate(0, 0)" },
+          ], duration, () => {
+            drinking = false;
+            nextSip = performance.now() + 20000 + Math.random() * 35000;
+            stroke();
+          });
           return;
         }
         const column = (right ? 3 : 0) + Math.floor(Math.random() * 2);
@@ -120,6 +173,7 @@ export function WorkingRobot({ thinking = false, waiting = false, sleeping = fal
     later(() => startHand(true), 470);
     return () => {
       stopped = true;
+      face.classList.remove("sipping");
       for (const timer of timers) clearTimeout(timer);
       for (const animation of animations) animation.cancel();
     };
@@ -134,6 +188,7 @@ export function WorkingRobot({ thinking = false, waiting = false, sleeping = fal
             {[0, 1].map(eye => <svg key={eye} viewBox="0 0 24 24"><path d="M12 21 3 12C-3 5 6-2 12 5 18-2 27 5 21 12Z" /></svg>)}
           </span></div></div>
           <div className="robot-body" />
+          <div className="robot-cup" />
           <div className="robot-arm left" /><div className="robot-arm right" />
           <div className="robot-hand left" /><div className="robot-hand right" />
           <div className="robot-wave-arm"><i className="robot-forearm" /><i className="robot-palm" /></div>

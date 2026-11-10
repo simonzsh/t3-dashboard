@@ -364,6 +364,8 @@ A small robot sits to the right of Working, above the cards. Its body stays whit
 Its hands type at varied rhythms, with key feedback timed to contact. It rests its chin on its hand and shows a thought bubble while thinking.
 The robot thinks at the start of a run. It types during work, including short calls, and returns to its thinking pose when thinking resumes. A failed command makes it think until the next action starts.
 Pose changes move the head and arms over 320 ms. Activity symbols fade between poses.
+While typing, the robot occasionally reaches for its cup, takes a sip, and sets it back down before resuming. In demo mode, open “ATL-142 Redesign the checkout summary” to see the typing and coffee animation. The cup is visible only while held. Its eyes rise smoothly into happy curves during the sip, then return to their usual shape. Random pauses separate each sip.
+
 The robot uses CSS depth. Reduced motion disables its animation and the card transitions.
 
 When a question, approval, or secret needs your reply, the robot raises a hand at the end of the messages.

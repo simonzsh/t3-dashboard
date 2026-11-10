@@ -211,7 +211,8 @@ const SPECS: ThreadSpec[] = [
       { id: "a7b", type: "command_execution", runId: "run-checkout-2", input: "bun run typecheck", output: "web/src/checkout/Fees.tsx(4,10): error TS2305: Module './format' has no exported member 'toCurrency'.", exitCode: 2, at: 2, done: 2 },
       { id: "a8", type: "dynamic_tool", runId: "run-checkout-2", toolName: "mcp__browser__preview_open", input: { url: "http://localhost:5173/checkout" }, output: [{ type: "text", text: "Opened http://localhost:5173/checkout (375 x 812)" }], at: 2, done: 1 },
       { id: "a8b", type: "compaction", runId: "run-checkout-2", summary: "Earlier steps were summarized to save context.", beforeTokenCount: 84000, afterTokenCount: 12000, at: 1, done: 1 },
-      { id: "a9", type: "reasoning", runId: "run-checkout-2", text: "Compare the new layout with the design spec.", status: "running", at: 1 },
+      { id: "a9", type: "reasoning", runId: "run-checkout-2", text: "Compare the new layout with the design spec.", at: 1, done: 1 },
+      { id: "a10", type: "command_execution", runId: "run-checkout-2", input: "bun test web/src/checkout --update-snapshots", status: "running", at: 0 },
     ],
     subagents: [
       { id: "sub-format", runId: "run-checkout-2", title: "Audit price formatting helpers", status: "completed", result: "Two helpers format prices: `formatPrice` and `toCurrency`. Only `formatPrice` handles locales; the summary now uses it everywhere.", at: 5, done: 3 },
