@@ -21,15 +21,18 @@ export function observeSessionPanelMotion(area: HTMLElement, app: HTMLElement): 
     if (!sidebar && !list) return;
     const animation = panel.getAnimations().find(a => "transitionProperty" in a && a.transitionProperty === "width");
     const frames = (animation?.effect as KeyframeEffect | null)?.getKeyframes();
+    const from = Number.parseFloat(String(frames?.[0]?.width));
     const target = Number.parseFloat(String(frames?.at(-1)?.width));
-    if (!Number.isFinite(target)) return;
+    if (!Number.isFinite(from) || !Number.isFinite(target)) return;
 
     cancelAnimationFrame(frame);
     frame = 0;
-    panels.set(panel, target);
+    // transitionrun can arrive after the first sampled frame. Recover both
+    // endpoints instead of freezing a width already partway through the slide.
+    panels.set(panel, Math.min(from, target));
     const listPanel = area.parentElement?.querySelector<HTMLElement>(":scope > .side-panel");
     const available = (area.parentElement?.clientWidth ?? 0) - (listPanel?.getBoundingClientRect().width ?? 0);
-    const delta = [...panels].reduce((sum, [element, end]) => sum + element.getBoundingClientRect().width - end, 0);
+    const delta = [...panels].reduce((sum, [element, minWidth]) => sum + element.getBoundingClientRect().width - minWidth, 0);
     // Use the wider endpoint to fill the area in both directions, without stretching text.
     const width = Math.max(area.getBoundingClientRect().width, available, available + delta);
     area.style.flex = "none";

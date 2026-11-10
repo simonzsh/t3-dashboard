@@ -246,6 +246,7 @@ function Conversation({ searchRequest = 0, threadId, thread, providers, onOpenTh
       const active = searchOpen && node.dataset.messageId === matches[matchIndex % (matches.length || 1)];
       node.classList.toggle("search-match", active);
       if (active) {
+        setAtBottom(false);
         stick.current = false;
         smoothing.current = false;
         node.scrollIntoView({ block: "center" });

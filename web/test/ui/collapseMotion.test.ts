@@ -53,3 +53,40 @@ test("width reflow cancels height motion; content changes and explicit toggles s
     else Reflect.deleteProperty(globalThis, "matchMedia");
   }
 });
+
+test("width reflow does not measure the old height of each disclosure", () => {
+  const original = Object.getOwnPropertyDescriptor(globalThis, "matchMedia");
+  let reads = 0;
+  const inner = { offsetWidth: 600, offsetHeight: 200 };
+  const element = {
+    get offsetHeight() { reads++; return 0; },
+    style: { height: "" },
+    animate() { return { cancel() {} }; },
+  };
+  try {
+    Object.defineProperty(globalThis, "matchMedia", { configurable: true, value: () => ({ matches: false }) });
+    const motion = new CollapseMotion();
+    const resize = () => motion.resize(element as unknown as HTMLElement, inner as HTMLElement, true, 80);
+    resize();
+    reads = 0;
+    inner.offsetWidth = 500;
+    inner.offsetHeight = 240;
+    resize();
+    assert.equal(reads, 0, "reflow must not read the previous layout before snapping");
+    assert.equal(element.style.height, "240px");
+    inner.offsetWidth = 450;
+    resize();
+    assert.equal(reads, 0, "stable heights must not cause old-layout reads either");
+    const observed = {
+      get offsetWidth() { throw new Error("observer sizes must avoid layout reads"); },
+      get offsetHeight() { throw new Error("observer sizes must avoid layout reads"); },
+    };
+    motion.resize(element as unknown as HTMLElement, observed as unknown as HTMLElement, true, 80, { width: 400, height: 260 });
+    assert.equal(element.style.height, "260px");
+    assert.equal(reads, 0, "observer-driven reflow must skip old-layout reads");
+    motion.cancel();
+  } finally {
+    if (original) Object.defineProperty(globalThis, "matchMedia", original);
+    else Reflect.deleteProperty(globalThis, "matchMedia");
+  }
+});

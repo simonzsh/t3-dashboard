@@ -68,6 +68,6 @@ The animations use the Web Animations API (`element.animate`), without a library
 
 The pure calculations (FLIP offset, target, plan) are in `flip.ts` and have unit tests.
 
-- `Collapse` animates open, close, and content height changes. `duration` sets the transition time in milliseconds (80 by default). Width changes update height immediately to prevent resize cascades. Closed content stays inert after its first opening. Reduced motion disables transitions.
+- `Collapse` animates open, close, and content height changes. `duration` sets the transition time in milliseconds (80 by default). Width changes update height immediately to prevent resize cascades. Resize callbacks reuse observer dimensions and skip old-height reads when snapping. Closed content stays inert after its first opening. Reduced motion disables transitions.
 
 - `pauseAnimations(element)` returns an idempotent restore function. It resumes only retained, paused animations on a connected element.

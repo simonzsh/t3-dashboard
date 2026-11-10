@@ -1,5 +1,5 @@
 import { useSessionPanelMotion } from "./useSessionPanelMotion.ts";
-import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type Dispatch, type PointerEvent, type ReactNode, type TouchEvent } from "react";
+import { memo, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type Dispatch, type PointerEvent, type ReactNode, type TouchEvent } from "react";
 import type { DashboardProject, DashboardProvider, DashboardThread } from "../../../../shared/api.ts";
 import type { SeenState } from "../../../../shared/seen.ts";
 import { threadTitle } from "../../lib/threads.ts";
@@ -224,7 +224,7 @@ function useWindowDrag(enabled: boolean, dispatch: Dispatch<SessionsAction>) {
   };
 }
 
-export function SessionsView({ sessions, dispatch, threads, projects, seen, openPrs, now, layout, prefs, onPrefs, t3EnvironmentId, providers, phone, sessionShown, onBack, onOpen, alertsConfigured, armedAlerts, onToggleAlert, onNewSession, onEditProject, onDeleteProject, onSettle }: Props) {
+function SessionsViewContent({ sessions, dispatch, threads, projects, seen, openPrs, now, layout, prefs, onPrefs, t3EnvironmentId, providers, phone, sessionShown, onBack, onOpen, alertsConfigured, armedAlerts, onToggleAlert, onNewSession, onEditProject, onDeleteProject, onSettle }: Props) {
   const modelNames = useMemo(() => modelNameMap(providers), [providers]);
   const openIds = useMemo(() => new Set(sessions.ids), [sessions.ids]);
   // On a phone, closing the open session goes back to the list.
@@ -291,9 +291,13 @@ export function SessionsView({ sessions, dispatch, threads, projects, seen, open
   );
   const closeAll = useCallback(() => dispatch({ type: "closeAll" }), [dispatch]);
   const closeOne = useCallback((id: string) => dispatch({ type: "close", id }), [dispatch]);
+  const menuContext = useCallback(
+    (id: string) => ({ t3EnvironmentId, alert: alertMode(alertsConfigured, armedAlerts, id), onToggleAlert }),
+    [t3EnvironmentId, alertsConfigured, armedAlerts, onToggleAlert],
+  );
   const list = () => (
     <SessionList
-      menuContext={(id) => ({ t3EnvironmentId, alert: alertMode(alertsConfigured, armedAlerts, id), onToggleAlert })}
+      menuContext={menuContext}
       threads={threads}
       projects={projects}
       seen={seen}
@@ -389,3 +393,6 @@ export function SessionsView({ sessions, dispatch, threads, projects, seen, open
     </div>
   );
 }
+
+// Shell-only updates, such as a sidebar toggle, must not redraw every session row.
+export const SessionsView = memo(SessionsViewContent);
