@@ -7,7 +7,7 @@ import { AlertsSettings } from "./AlertsSettings.tsx";
 import { InstallSettings } from "./InstallSettings.tsx";
 import { LinearSettings } from "./LinearSettings.tsx";
 import { UpdateSettings } from "./UpdateSettings.tsx";
-import { Dialog, Icon, onRadioKeyDown, Pressable, rovingTabIndex, Segmented, Tabs, type IconName } from "../../ui/index.ts";
+import { Dialog, Icon, onRadioKeyDown, Pressable, rovingTabIndex, Segmented, Switch, Tabs, type IconName } from "../../ui/index.ts";
 
 interface Props {
   theme: ThemeSetting;
@@ -16,6 +16,8 @@ interface Props {
   onAccentChange: (accent: Accent) => void;
   tint: boolean;
   onTintChange: (on: boolean) => void;
+  showRobot: boolean;
+  onShowRobotChange: (on: boolean) => void;
   onLinearChange: () => void;
   update: UpdateControl;
   onUpdate: () => void;
@@ -39,7 +41,7 @@ const SURFACES = [
 ] as const;
 const THEME_ICONS: Record<ThemeSetting, IconName> = { system: "monitor", light: "sun", dark: "moon" };
 
-export function SettingsDialog({ theme, onThemeChange, accent, onAccentChange, tint, onTintChange, onLinearChange, update, onUpdate, onClose }: Props) {
+export function SettingsDialog({ theme, onThemeChange, accent, onAccentChange, tint, onTintChange, showRobot, onShowRobotChange, onLinearChange, update, onUpdate, onClose }: Props) {
   const [section, setSection] = useState<SectionId>("appearance");
 
   const panels: Record<SectionId, ReactNode> = {
@@ -70,6 +72,10 @@ export function SettingsDialog({ theme, onThemeChange, accent, onAccentChange, t
               />
             ))}
           </div>
+        </div>
+        <div className="settings-row">
+          <span>Show robot</span>
+          <Switch label="Show robot" checked={showRobot} onChange={onShowRobotChange} />
         </div>
       </>
     ),

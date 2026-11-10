@@ -18,6 +18,7 @@ import { RewindDialog } from "./RewindDialog.tsx";
 import { attachmentFiles, mergeDraft } from "./rewind.ts";
 import { PendingRequestView } from "./PendingRequestView.tsx";
 import { ApprovalDock, dockedRequest, useQuestionDock } from "./QuestionDock.tsx";
+import { RobotVisibilityContext } from "../../lib/robotPreference.ts";
 import { WorkingRobot } from "./WorkingRobot.tsx";
 import { WorkGroup } from "./Steps.tsx";
 import { pendingSecrets } from "./secretRequest.ts";
@@ -173,6 +174,7 @@ export function ConversationPanel(props: Props) {
 }
 
 function Conversation({ searchRequest = 0, threadId, thread, providers, onOpenThread, onTitle }: Props) {
+  const showRobot = useContext(RobotVisibilityContext);
   const api = useApi();
   const [detail, setDetail] = useState<ThreadDetail | null>(() => detailCache.get(threadId) ?? null);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -539,7 +541,7 @@ function Conversation({ searchRequest = 0, threadId, thread, providers, onOpenTh
           {needsInput && (
             <div className="working-row"><Icon name={STATUS_ICONS.waiting} className="waiting-icon" /><span>Waiting for your reply</span><WorkingRobot waiting /></div>
           )}
-          {detail && !running && !background && !needsInput && pending.length === 0 && (
+          {showRobot && detail && !running && !background && !needsInput && pending.length === 0 && (
             <div className="working-row"><WorkingRobot sleeping /></div>
           )}
         </div>
