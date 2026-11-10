@@ -1,7 +1,7 @@
-import type { CSSProperties } from "react";
+import { useRef, type CSSProperties } from "react";
 import { ctrlLabel } from "../../lib/shortcuts.ts";
 import { TABS, type Tab } from "../../lib/tabs.ts";
-import { CountBadge, Icon, IconButton, Kbd, Logo, Pressable, STATUS_ICONS } from "../../ui/index.ts";
+import { CountBadge, Icon, IconButton, Kbd, Logo, Pressable, STATUS_ICONS, usePanelMotion } from "../../ui/index.ts";
 
 interface NavUpdate {
   label: string;
@@ -69,11 +69,13 @@ function Badges({ id, unread, sessions, automations, news, pulls }: Pick<Props, 
 }
 
 function Sidebar({ tab, unread, sessions, automations, news, pulls, live, update, collapsed, onToggleCollapsed, onTab, onSearch, onSettings, onUpdate }: Omit<Props, "layout">) {
+  const root = useRef<HTMLElement>(null);
+  usePanelMotion(root, collapsed);
   // Collapsed rows hold only an icon: the tooltip gives the name back.
   const hint = (text: string) => (collapsed ? text : undefined);
   const collapse = collapsed ? "Expand the sidebar" : "Collapse the sidebar";
   return (
-    <nav className={`sidebar${collapsed ? " collapsed" : ""}`} aria-label="Pages">
+    <nav ref={root} className={`sidebar${collapsed ? " collapsed" : ""}`} aria-label="Pages">
       <div className="sidebar-brand">
         <Logo />
         <span className="sidebar-name">T3 Dashboard</span>

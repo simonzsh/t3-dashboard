@@ -498,7 +498,7 @@ test("the background robot clock uses accent color for its outline and hands", (
   }
 });
 
-test("panel toggles do not animate layout widths", () => {
+test("panel toggles do not use uncoordinated CSS width transitions", () => {
   const css = readFileSync(join(import.meta.dir, "../src/styles.css"), "utf8");
   for (const selector of [".sidebar", ".side-panel"]) {
     const rule = css.slice(css.indexOf(selector + " {")).split("}")[0]!;

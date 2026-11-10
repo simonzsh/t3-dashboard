@@ -1,12 +1,15 @@
-import type { ReactNode } from "react";
+import { useRef, type ReactNode } from "react";
+import { usePanelMotion } from "./panelMotion.ts";
 import { Icon } from "./Icon.tsx";
 import { IconButton } from "./IconButton.tsx";
 import type { ControlSize } from "./Button.tsx";
 
 /** A side column that closes without repeated layout. It stays mounted and is inert while hidden. */
 export function SidePanel({ hidden, className, children }: { hidden: boolean; className?: string; children: ReactNode }) {
+  const root = useRef<HTMLDivElement>(null);
+  usePanelMotion(root, hidden);
   return (
-    <div className={["side-panel", hidden && "hidden", className].filter(Boolean).join(" ")} inert={hidden}>
+    <div ref={root} className={["side-panel", hidden && "hidden", className].filter(Boolean).join(" ")} inert={hidden}>
       {children}
     </div>
   );
