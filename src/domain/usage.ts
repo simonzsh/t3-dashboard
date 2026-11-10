@@ -140,7 +140,7 @@ export function createUsage({ port, threads, now }: UsageOptions) {
       const hit = cache.get(key);
       if (!refresh && hit && now().getTime() - hit.at < CACHE_MS) return hit.overview;
       const pending = inFlight.get(key);
-      if (pending) return pending;
+      if (pending) return !refresh && hit ? hit.overview : pending;
       const read = build(zone, period)
         .then((overview) => {
           cache.set(key, { at: now().getTime(), overview });
@@ -148,6 +148,11 @@ export function createUsage({ port, threads, now }: UsageOptions) {
         })
         .finally(() => inFlight.delete(key));
       inFlight.set(key, read);
+      // Keep reloads responsive while T3 scans its session files.
+      if (!refresh && hit) {
+        void read.catch(() => {});
+        return hit.overview;
+      }
       return read;
     },
   };
