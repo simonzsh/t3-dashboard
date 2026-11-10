@@ -111,3 +111,21 @@ test("touch selection is read again after native cancellation and scrolling", as
     assert.equal(s.reads(), 1);
   } finally { s.stop(); }
 });
+
+test("mouse release keeps its viewport position through delayed selection events", async () => {
+  const events = new EventTarget();
+  const viewport = new EventTarget();
+  let point: { left: number; top: number } | null = null;
+  const stop = watchSelection(events, viewport, value => { point = value; }, () => {});
+  try {
+    fire(events, "pointerdown");
+    fire(events, "pointerup", { clientX: 220, clientY: 180 });
+    fire(events, "selectionchange");
+    await settled();
+    assert.deepEqual(point, { left: 220, top: 180 });
+    fire(events, "keydown", { key: "Shift" });
+    fire(events, "keyup", { key: "Shift" });
+    await settled();
+    assert.equal(point, null);
+  } finally { stop(); }
+});
