@@ -204,3 +204,9 @@ test("session actions reserve their width instead of overlapping titles and meta
   assert.match(actions, /transform: none/);
   assert.doesNotMatch(css, /\.slist-row(?:\.open)? \{[^}]*padding-right:/);
 });
+
+test("desktop session actions give their space back until hover, focus, or an open menu", async () => {
+  const css = await Bun.file(new URL("../../../src/styles.css", import.meta.url)).text();
+  assert.match(css, /@media \(hover: hover\) and \(pointer: fine\)\s*\{\s*\.slist-item:not\(:hover\):not\(:focus-within\):not\(:has\(\[aria-expanded="true"\]\)\) \.thread-actions\s*\{[^}]*max-width: 0;[^}]*overflow: hidden;[^}]*margin-right: 0;[^}]*padding: 0;/);
+  assert.match(css, /\.slist-item:focus-within \.thread-actions\s*\{[^}]*opacity: 1;[^}]*pointer-events: auto;/);
+});
