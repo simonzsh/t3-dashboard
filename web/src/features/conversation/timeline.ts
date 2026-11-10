@@ -45,3 +45,21 @@ export function timeline(detail: Pick<ThreadDetail, "messages" | "renders" | "st
 export function awaitingStep(entries: Entry[], running: boolean): boolean {
   return running && entries.at(-1)?.kind !== "work";
 }
+
+export function timelineKey(entry: Entry): string {
+  switch (entry.kind) {
+    case "message": return `message:${entry.message.id}`;
+    case "render": return `render:${entry.render.id}`;
+    case "step": return `step:${entry.step.id}`;
+    default: return `${entry.kind}:${entry.steps[0]!.id}`;
+  }
+}
+
+/** Keep a stable first row while reading; searching can reveal older rows. */
+export function historyStart(entries: Entry[], first: string | null, following: boolean, searchMessageId: string | null, batch: number): number {
+  const recent = Math.max(0, entries.length - batch);
+  const previous = first === null ? -1 : entries.findIndex(entry => timelineKey(entry) === first);
+  const start = following || previous < 0 ? recent : previous;
+  const match = searchMessageId === null ? -1 : entries.findIndex(entry => entry.kind === "message" && entry.message.id === searchMessageId);
+  return match < 0 ? start : Math.min(start, match);
+}

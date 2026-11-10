@@ -1,4 +1,4 @@
-import { createContext, memo, useContext, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { createContext, memo, useCallback, useContext, useEffect, useLayoutEffect, useMemo, useRef, useState, type RefObject } from "react";
 import { createPortal } from "react-dom";
 import type { ChatMessage, DashboardProvider, HtmlRender, DashboardThread, ThreadDetail, ThreadSettingsBody, TurnStep, UploadedAttachment } from "../../../../shared/api.ts";
 import { queuedSendBlockedReason, runActive } from "../../../../shared/status.ts";
@@ -33,6 +33,7 @@ import { failure, formatMessageTime } from "../../lib/format.ts";
 import { useDocumentTheme } from "../../lib/useDocumentTheme.ts";
 import { omittedLabel } from "./steps.ts";
 import { robotShouldType } from "./steps.ts";
+import { useProgressiveHistory } from "./useProgressiveHistory.ts";
 import { awaitingStep, timeline } from "./timeline.ts";
 import { LIVE_RELOAD_MS, SEND_POLL_WINDOW_MS, detailRunning, pollDelay } from "./reload.ts";
 import { SubagentBar } from "./SubagentBar.tsx";
@@ -92,18 +93,20 @@ const RenderFrame = memo(function RenderFrame({ render, threadId }: { render: Ht
 });
 
 // A fragment, so each message stays a direct child of .messages. A keystroke does not render the list.
-const Timeline = memo(function Timeline({ detail, threadId, running, editing, onOpenThread, onChanged }: { detail: ThreadDetail; threadId: string; running: boolean; editing: MessageEditing; onOpenThread?: (id: string) => void; onChanged: () => void }) {
+const Timeline = memo(function Timeline({ detail, threadId, running, editing, onOpenThread, onChanged, scroller, following, searchMessageId, onReadHistory }: { onReadHistory: () => void; scroller: RefObject<HTMLDivElement | null>; following: boolean; searchMessageId: string | null; detail: ThreadDetail; threadId: string; running: boolean; editing: MessageEditing; onOpenThread?: (id: string) => void; onChanged: () => void }) {
   const knownSteps = useRef(new Set(detail.steps.map(step => step.id)));
   useLayoutEffect(() => {
     for (const step of detail.steps) knownSteps.current.add(step.id);
   }, [detail.steps]);
-  const entries = timeline(detail);
+  const entries = useMemo(() => timeline(detail), [detail]);
+  const history = useProgressiveHistory(entries, scroller, following, searchMessageId, onReadHistory);
   const typing = robotShouldType(detail.steps.filter(step => step.runId === detail.activity?.runId));
   const waiting = detail.pendingRequests.length > 0 || pendingSecrets(detail.steps).length > 0;
   return (
     <>
-      {detail.stepsOmitted > 0 && <div className="steps-omitted">{omittedLabel(detail.stepsOmitted)}</div>}
-      {entries.map((entry, i) => {
+      {history.start > 0 && <div ref={history.marker} className="steps-omitted"><Button variant="link" size="sm" onClick={history.loadEarlier}>Load earlier messages</Button></div>}
+      {history.start === 0 && detail.stepsOmitted > 0 && <div className="steps-omitted">{omittedLabel(detail.stepsOmitted)}</div>}
+      {entries.slice(history.start).map((entry, i) => {
         switch (entry.kind) {
           case "message":
             return <Message key={entry.message.id} message={entry.message} threadId={threadId} editing={editing} />;
@@ -111,7 +114,7 @@ const Timeline = memo(function Timeline({ detail, threadId, running, editing, on
             return <RenderFrame key={entry.render.id} render={entry.render} threadId={threadId} />;
           case "work":
             // Keyed by its first step: the group keeps its open state while later steps join it.
-            return <WorkGroup typing={typing} showRobot={!waiting} key={entry.steps[0]!.id} steps={entry.steps} threadId={threadId} fresh={!knownSteps.current.has(entry.steps[0]!.id)} live={running && i === entries.length - 1} />;
+            return <WorkGroup typing={typing} showRobot={!waiting} key={entry.steps[0]!.id} steps={entry.steps} threadId={threadId} fresh={!knownSteps.current.has(entry.steps[0]!.id)} live={running && i + history.start === entries.length - 1} />;
           case "subagents":
             return <SubagentRows key={entry.steps[0]!.id} steps={entry.steps} threadId={threadId} onOpenThread={onOpenThread} onChanged={onChanged} />;
           case "step":
@@ -352,6 +355,11 @@ function Conversation({ searchRequest = 0, threadId, thread, providers, onOpenTh
   }, [sentAt]);
 
   useStickToBottom(scroller, stick);
+  const readHistory = useCallback(() => {
+    stick.current = false;
+    smoothing.current = false;
+    setAtBottom(false);
+  }, []);
 
   function touched() {
     lastInput.current = performance.now();
@@ -520,7 +528,7 @@ function Conversation({ searchRequest = 0, threadId, thread, providers, onOpenTh
           {!detail && loadError && <p className="empty">This conversation could not be loaded.</p>}
           {detail && detail.messages.length === 0 && detail.renders.length === 0 && detail.steps.length === 0 && <p className="empty">No messages</p>}
           {!detail && !loadError && <Loader />}
-          {detail && <SearchQuery.Provider value={searchOpen ? query : ""}><Timeline detail={detail} threadId={threadId} running={running} editing={messageEditing} onOpenThread={onOpenThread} onChanged={load} /></SearchQuery.Provider>}
+          {detail && <SearchQuery.Provider value={searchOpen ? query : ""}><Timeline onReadHistory={readHistory} scroller={scroller} following={atBottom} searchMessageId={searchOpen ? matches[matchIndex % (matches.length || 1)] ?? null : null} detail={detail} threadId={threadId} running={running} editing={messageEditing} onOpenThread={onOpenThread} onChanged={load} /></SearchQuery.Provider>}
           {detail && !running && pending.map((p) => <PendingBubble key={p.id} message={p} />)}
           {otherRequests.length > 0 && (
             <div className="requests">
