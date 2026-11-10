@@ -14,7 +14,11 @@ export function Collapse({ open, children, duration = 80 }: { open: boolean; chi
     if (!el || !inner) return;
     const resize = () => motion.resize(el, inner, open, duration);
     resize();
-    const observer = new ResizeObserver(resize);
+    const observer = new ResizeObserver(([entry]) => {
+      const box = entry?.borderBoxSize?.[0];
+      if (!box) { resize(); return; }
+      motion.resize(el, inner, open, duration, { width: Math.round(box.inlineSize), height: Math.round(box.blockSize) });
+    });
     observer.observe(inner);
     return () => observer.disconnect();
   }, [open, seen, duration, motion]);

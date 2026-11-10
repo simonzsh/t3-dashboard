@@ -7,6 +7,7 @@ class Box extends EventTarget {
   parentElement: Box | null = null;
   list: Box | null = null;
   target = 0;
+  from: number | null = null;
   readonly kind: string;
   clientWidth: number;
   constructor(kind: string, width: number) { super(); this.kind = kind; this.clientWidth = width; }
@@ -14,7 +15,7 @@ class Box extends EventTarget {
   querySelector() { return this.list; }
   getBoundingClientRect() { return { width: parseFloat(this.style.width) || this.clientWidth }; }
   getAnimations() {
-    return [{ transitionProperty: "width", effect: { getKeyframes: () => [{ width: this.clientWidth + "px" }, { width: this.target + "px" }] } }];
+    return [{ transitionProperty: "width", effect: { getKeyframes: () => [{ width: (this.from ?? this.clientWidth) + "px" }, { width: this.target + "px" }] } }];
   }
 }
 
@@ -130,5 +131,17 @@ test("window resize and cleanup restore normal layout; unrelated panels are igno
     assert.equal(area.style.width, "");
     emit("transitionrun", sidebar);
     assert.equal(area.style.width, "", "cleanup removes listeners");
+  });
+});
+
+test("a delayed transitionrun recovers the wider endpoint instead of freezing an intermediate width", () => {
+  fixture(({ area, sidebar, page, emit }) => {
+    sidebar.from = 56;
+    sidebar.clientWidth = 180;
+    sidebar.target = 232;
+    page.clientWidth = 1100;
+    area.clientWidth = 820;
+    emit("transitionrun", sidebar);
+    assert.equal(area.style.width, "944px");
   });
 });
