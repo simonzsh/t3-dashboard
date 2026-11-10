@@ -1,7 +1,7 @@
 import { test } from "bun:test";
 import assert from "node:assert/strict";
 import type { ChatMessage, HtmlRender, StepKind, TurnStep } from "../../../../shared/api.ts";
-import { awaitingStep, timeline, type Entry } from "../../../src/features/conversation/timeline.ts";
+import { awaitingStep, historyStart, timelineKey, timeline, type Entry } from "../../../src/features/conversation/timeline.ts";
 
 const message = (id: string, createdAt: string): ChatMessage => ({ id, role: "assistant", text: id, createdAt, streaming: false, attachments: [], rewindable: false });
 const render = (id: string, createdAt: string): HtmlRender => ({ id, attachmentId: id, title: id, height: 100, createdAt });
@@ -136,4 +136,29 @@ test("checkpoints stay available in the data without appearing or splitting work
   assert.deepEqual(labels(detail), ["work(a,b)", "error", "reply"]);
   assert.equal(detail.steps.length, 5);
   assert.equal(detail.steps[1], checkpoint);
+});
+
+
+test("history starts with a bounded recent batch and follows new messages", () => {
+  const entries: Entry[] = Array.from({ length: 100 }, (_, i) => ({ kind: "message", at: "", message: message(`m${i}`, "") }));
+  assert.equal(historyStart(entries, null, true, null, 40), 60);
+  assert.equal(historyStart(entries, "message:m10", true, null, 40), 60);
+  assert.equal(historyStart(entries.slice(0, 20), null, true, null, 40), 0);
+  assert.equal(historyStart([], null, true, null, 40), 0);
+});
+
+test("reading preserves the first row across insertions and resets after rewind removes it", () => {
+  const entries: Entry[] = Array.from({ length: 100 }, (_, i) => ({ kind: "message", at: "", message: message(`m${i}`, "") }));
+  assert.equal(historyStart(entries, "message:m20", false, null, 40), 20);
+  const inserted: Entry = { kind: "message", at: "", message: message("older", "") };
+  assert.equal(historyStart([inserted, ...entries], "message:m20", false, null, 40), 21);
+  assert.equal(historyStart(entries.slice(0, 10), "message:m20", false, null, 40), 0);
+});
+
+test("search reveals an unloaded result without hiding newer rows or confusing entry kinds", () => {
+  const entries: Entry[] = Array.from({ length: 100 }, (_, i) => ({ kind: "message", at: "", message: message(`m${i}`, "") }));
+  assert.equal(historyStart(entries, null, true, "m5", 40), 5);
+  assert.equal(historyStart(entries, "message:m20", false, "m80", 40), 20);
+  assert.equal(historyStart(entries, null, true, "missing", 40), 60);
+  assert.notEqual(timelineKey(entries[0]!), timelineKey({ kind: "render", at: "", render: render("m0", "") }));
 });
