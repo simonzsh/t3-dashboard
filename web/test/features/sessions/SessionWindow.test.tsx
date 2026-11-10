@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import { renderToStaticMarkup } from "react-dom/server";
 import { PullRequestsButton, SessionWindow } from "../../../src/features/sessions/SessionWindow.tsx";
 import { thread } from "../../fixtures.ts";
+import { AutomationThreadsContext } from "../../../src/lib/automationThreads.tsx";
 
 const base = { id: "t1", thread: null, title: "Fix login", projectTitle: null, projectIcon: null, focused: true, maximized: false, compact: false, live: true, t3EnvironmentId: null, providers: [], openPrs: new Map(), alert: null, onToggleAlert: () => {}, dispatch: () => {} };
 
@@ -18,6 +19,18 @@ test("the header has a grip, Fullscreen and Close", () => {
   const html = renderToStaticMarkup(<SessionWindow {...base} missing />);
   assert.match(html, /session-window-grip/);
   assert.match(html, /aria-label="Fullscreen"/);
+});
+
+test("the automation mark shares the title group before the window controls", () => {
+  for (const compact of [false, true]) {
+    const html = renderToStaticMarkup(
+      <AutomationThreadsContext.Provider value={new Set([base.id])}>
+        <SessionWindow {...base} compact={compact} missing />
+      </AutomationThreadsContext.Provider>,
+    );
+    assert.match(html, /class="title-line session-window-heading"><span class="session-window-title"[^>]*>Fix login<\/span><span class="auto-mark"[^>]*>.*?<\/span><\/span><span class="session-window-buttons">/);
+    assert.doesNotMatch(html.slice(html.indexOf('class="session-window-buttons"')), /auto-mark/);
+  }
 });
 
 test("the sub-line names the project only when the thread and its project are known", () => {

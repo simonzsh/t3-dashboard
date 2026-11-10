@@ -72,10 +72,12 @@ function SessionWindowView({ id, thread, title, projectTitle, projectIcon, missi
               <Icon name="arrowLeft" />
             </IconButton>
           )}
-          <span onDoubleClick={() => { if (!missing) setRenaming(true); }} className="session-window-title" data-tooltip={title} data-tooltip-clipped>
-            {title}
+          <span className="title-line session-window-heading">
+            <span onDoubleClick={() => { if (!missing) setRenaming(true); }} className="session-window-title" data-tooltip={title} data-tooltip-clipped>
+              {title}
+            </span>
+            <AutomationMark id={id} />
           </span>
-          <AutomationMark id={id} />
           {badge === "running" ? (
             <RunningBadge className="session-window-state" />
           ) : (
