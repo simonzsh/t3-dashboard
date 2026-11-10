@@ -497,3 +497,12 @@ test("the background robot clock uses accent color for its outline and hands", (
     assert.ok(!rule.includes("var(--robot-light)"), selector);
   }
 });
+
+test("panel toggles do not animate layout widths", () => {
+  const css = readFileSync(join(import.meta.dir, "../src/styles.css"), "utf8");
+  for (const selector of [".sidebar", ".side-panel"]) {
+    const rule = css.slice(css.indexOf(selector + " {")).split("}")[0]!;
+    assert.doesNotMatch(rule, /transition:[^;]*(?:width|all)/);
+  }
+  assert.doesNotMatch(css, /animation: sidebar-(?:badge-inline|alert-inline|foot-row)/);
+});

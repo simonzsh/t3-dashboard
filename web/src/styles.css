@@ -885,7 +885,7 @@ ol.install-steps { padding-left: 18px; }
 .ui-sheet-backdrop.open { opacity: 0.5; visibility: visible; transition-delay: 0s; }
 .ui-sheet { position: fixed; z-index: 15; top: var(--header-h, 0px); right: 0; bottom: 0; width: min(380px, 100vw); display: flex; flex-direction: column; background: var(--page-bg); box-shadow: -8px 0 24px color-mix(in srgb, #000 28%, transparent); transform: translateX(100%); visibility: hidden; transition: transform 200ms cubic-bezier(0.2, 0, 0, 1), visibility 0s 200ms; }
 .ui-sheet.wide { width: min(600px, 100vw); }
-.side-panel { flex: none; display: flex; width: var(--side-panel-w, 280px); min-height: 0; overflow: hidden; transition: width 160ms ease; }
+.side-panel { flex: none; display: flex; width: var(--side-panel-w, 280px); min-height: 0; overflow: hidden; }
 .side-panel.hidden { width: 0; }
 .ui-sheet.open { transform: none; visibility: visible; transition-delay: 0s; }
 /* Tree (kit): folders and files, one row look for every file tree. */
@@ -911,7 +911,7 @@ ol.install-steps { padding-left: 18px; }
 .app { display: flex; height: 100dvh; overflow: hidden; }
 .app-column { flex: 1; min-width: 0; min-height: 0; display: flex; flex-direction: column; }
 /* Sidebar: 232 px, or 56 px with icons only. */
-.sidebar { flex: none; width: 232px; display: flex; flex-direction: column; gap: 12px; padding: 12px; overflow: hidden auto; background: var(--header-bg); border-right: 1px solid var(--line); transition: width 160ms ease; }
+.sidebar { flex: none; width: 232px; display: flex; flex-direction: column; gap: 12px; padding: 12px; overflow: hidden auto; background: var(--header-bg); border-right: 1px solid var(--line); }
 /* Collapsing only narrows the bar: every icon keeps its x (centered at 28 px), labels fade and get clipped. */
 .sidebar.collapsed { width: 56px; }
 .sidebar-brand { display: flex; align-items: center; gap: 10px; height: 32px; padding-inline: 3px; }
@@ -944,15 +944,12 @@ ol.install-steps { padding-left: 18px; }
 .sidebar.collapsed .nav-row { position: relative; }
 /* The collapsed sidebar and the bottom bar pin a smaller badge on the icon. */
 :is(.sidebar.collapsed, .bottom-icon) .count-badge { position: absolute; min-width: 16px; height: 16px; padding: 0 4px; font-size: 10px; }
-.sidebar.collapsed .count-badge { top: 0; right: 0; animation: sidebar-badge-inline 160ms; }
-@keyframes sidebar-badge-inline { from, to { position: static; min-width: 20px; height: 20px; padding: 0 6px; font-size: 11px; } }
-.sidebar.collapsed .nav-alert { position: absolute; top: 4px; right: 4px; animation: sidebar-alert-inline 160ms; }
-@keyframes sidebar-alert-inline { from, to { position: static; } }
-/* The footer stacks only once the bar is narrow: the animation holds the row while it shrinks. */
+.sidebar.collapsed .count-badge { top: 0; right: 0; }
+.sidebar.collapsed .nav-alert { position: absolute; top: 4px; right: 4px; }
+/* Stack footer controls in the narrow sidebar. */
 .sidebar.collapsed .sidebar-foot .conn { flex: none; height: 24px; }
-.sidebar.collapsed .sidebar-actions { flex-direction: column; align-items: stretch; animation: sidebar-foot-row 160ms; }
+.sidebar.collapsed .sidebar-actions { flex-direction: column; align-items: stretch; }
 .sidebar.collapsed .sidebar-collapse { margin-left: 0; }
-@keyframes sidebar-foot-row { from, to { flex-direction: row; align-items: center; } }
 /* Bottom bar: the sidebar on a phone. */
 /* No grey square and no callout on a long press: the active pill already shows the tab. */
 .bottom-nav { position: fixed; z-index: 20; inset: auto 0 0; display: flex; height: calc(var(--bottom-bar) + env(safe-area-inset-bottom)); padding: 0 env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left); background: var(--page-bg); border-top: 1px solid var(--line); -webkit-touch-callout: none; user-select: none; }
@@ -1120,7 +1117,7 @@ ol.install-steps { padding-left: 18px; }
 @media (hover: hover) { .session-window-buttons .icon-button:hover { color: var(--text-primary); background: var(--surface-0); } }
 .sessions-missing { flex: 1; display: flex; flex-direction: column; gap: 10px; align-items: center; justify-content: center; padding: 16px; text-align: center; color: var(--text-secondary); }
 /* The sessions list: a panel left of the strip, or the whole page on a phone. */
-/* Same slide as the app sidebar: the slot narrows, the list keeps its width inside. */
+/* Apply panel widths at once to avoid repeated conversation layout. */
 .settle-dialog p { margin: 0; }
 .settle-dialog .hint { color: var(--text-secondary); font-size: 12px; }
 .slist { flex: none; width: 280px; min-height: 0; display: flex; flex-direction: column; border-right: 1px solid var(--line); background: var(--page-bg); }
