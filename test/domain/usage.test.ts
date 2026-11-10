@@ -225,6 +225,7 @@ test("keeps a thread's runs until its activity changes", async () => {
   await usage.get("UTC", 7, false);
   tick(2 * MINUTE);
   await usage.get("UTC", 7, false);
+  await usage.get("UTC", 7, true);
   assert.equal(port.projectionCalls, 1);
   state.threads = [thread("a", "2026-11-06T12:01:00Z")];
   port.projection = runs("2026-11-06T09:00:00Z", "2026-11-06T12:01:00Z");
@@ -288,4 +289,21 @@ test("calls in flight share one read for the same zone and period only", async (
 test("an unknown zone fails loudly instead of using another one", async () => {
   const { usage } = setup();
   await assert.rejects(usage.get("Mars/Base", 7, false));
+});
+
+test("serves cached activity during a slow refresh and shares the scan", async () => {
+  const { port, usage, tick } = setup();
+  const cached = await usage.get("UTC", 7, false);
+  tick(11_000);
+  let release!: () => void;
+  port.usageGate = () => new Promise<void>((resolve) => { release = resolve; });
+  port.usage = { buckets: [{ day: "2026-11-06", costUsd: 42 }] };
+  assert.equal(await usage.get("UTC", 7, false), cached);
+  assert.equal(await usage.get("UTC", 7, false), cached);
+  const forced = usage.get("UTC", 7, true);
+  assert.equal(port.usageCalls.length, 2);
+  release();
+  const updated = await forced;
+  assert.equal(updated.current.costUsd, 42);
+  assert.equal(await usage.get("UTC", 7, false), updated);
 });
