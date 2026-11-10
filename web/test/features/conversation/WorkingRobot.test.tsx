@@ -15,13 +15,13 @@ test("a resting robot closes its eyes and shows sleep marks", () => {
   const out = renderToStaticMarkup(<WorkingRobot sleeping />);
   assert.match(out, /working-robot sleeping/);
   assert.match(out, /robot-snooze/);
-  assert.doesNotMatch(out, /working-robot typing|robot-wave-arm/);
+  assert.doesNotMatch(out, /working-robot typing/);
 });
 
 test("a request wakes the robot even when sleeping is set", () => {
   const out = renderToStaticMarkup(<WorkingRobot sleeping waiting />);
   assert.match(out, /working-robot waiting/);
-  assert.doesNotMatch(out, /robot-snooze/);
+  assert.doesNotMatch(out, /working-robot sleeping/);
 });
 
 test("the robot is a named keyboard and touch accessible button", () => {
@@ -45,8 +45,17 @@ test("background activity watches instead of typing, thinking or sleeping", () =
   const out = renderToStaticMarkup(<WorkingRobot background thinking sleeping />);
   assert.match(out, /working-robot background/);
   assert.match(out, /robot-clock-minute/);
-  assert.doesNotMatch(renderToStaticMarkup(<WorkingRobot background waiting />), /robot-clock/);
-  assert.doesNotMatch(out, /robot-snooze|robot-wave-arm/);
+  assert.doesNotMatch(renderToStaticMarkup(<WorkingRobot background waiting />), /working-robot background/);
+  assert.doesNotMatch(out, /working-robot sleeping|working-robot waiting/);
   assert.match(out, /aria-label="Greet the robot"/);
   assert.match(renderToStaticMarkup(<WorkingRobot background waiting />), /working-robot waiting/);
+});
+
+test("all poses retain the moving parts so transitions can fade and move them", () => {
+  for (const props of [{}, { thinking: true }, { waiting: true }, { sleeping: true }, { background: true }]) {
+    const out = renderToStaticMarkup(<WorkingRobot {...props} />);
+    for (const part of ["robot-head", "robot-hand right", "robot-wave-arm", "robot-snooze", "robot-clock", "robot-thought"]) {
+      assert.ok(out.includes(part), part);
+    }
+  }
 });

@@ -194,19 +194,16 @@ test("bulk settle is one button with a plain tooltip and a closed confirmation d
 });
 
 
-test("session actions reserve their width instead of overlapping titles and metadata", async () => {
+test("only touch session actions reserve a separate layout column", async () => {
   const css = await Bun.file(new URL("../../../src/styles.css", import.meta.url)).text();
   const item = css.match(/\.slist-item \{([^}]+)\}/)?.[1] ?? "";
-  assert.match(item, /display: grid/);
-  assert.match(item, /grid-template-columns: minmax\(0, 1fr\) auto/);
+  assert.match(item, /position: relative/);
+  assert.doesNotMatch(item, /display: grid/);
   const actions = css.match(/\.slist-item \.thread-actions \{([^}]+)\}/)?.[1] ?? "";
-  assert.match(actions, /position: static/);
-  assert.match(actions, /transform: none/);
-  assert.doesNotMatch(css, /\.slist-row(?:\.open)? \{[^}]*padding-right:/);
-});
-
-test("desktop session actions give their space back until hover, focus, or an open menu", async () => {
-  const css = await Bun.file(new URL("../../../src/styles.css", import.meta.url)).text();
-  assert.match(css, /@media \(hover: hover\) and \(pointer: fine\)\s*\{\s*\.slist-item:not\(:hover\):not\(:focus-within\):not\(:has\(\[aria-expanded="true"\]\)\) \.thread-actions\s*\{[^}]*max-width: 0;[^}]*overflow: hidden;[^}]*margin-right: 0;[^}]*padding: 0;/);
-  assert.match(css, /\.slist-item:focus-within \.thread-actions\s*\{[^}]*opacity: 1;[^}]*pointer-events: auto;/);
+  assert.match(actions, /top: 4px; bottom: auto; right: 4px;/);
+  assert.doesNotMatch(actions, /position: static/);
+  const touch = css.slice(css.indexOf("@media (pointer: coarse) {", css.indexOf(".slist-item {")));
+  assert.match(touch, /\.slist-item \{[^}]*display: grid;[^}]*grid-template-columns: minmax\(0, 1fr\) auto;/);
+  assert.match(touch, /\.slist-item \.thread-actions \{[^}]*position: static;[^}]*transform: none;/);
+  assert.match(touch, /\.slist-row\.open \{ padding-right: 8px; \}/);
 });

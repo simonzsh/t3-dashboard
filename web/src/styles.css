@@ -370,7 +370,7 @@ main { flex: 1; min-height: 0; overflow: hidden; padding: var(--page-top) var(--
 .robot-hand.right { right: 33px; }
 .robot-keyboard { position: absolute; left: 25px; top: 88px; width: 102px; height: 29px; display: grid; grid-template-columns: repeat(5, 1fr); gap: 3px; padding: 5px; border-radius: 7px; background: var(--robot-shade); box-shadow: 0 4px 0 var(--robot-shade), 0 10px 14px #0002; transform: rotateX(48deg); }
 .robot-keyboard i { border-radius: 2px; background: var(--robot-light); box-shadow: 0 1px 0 var(--robot-light); }
-.robot-thought { position: absolute; right: -16px; top: -2px; display: none; align-items: center; justify-content: center; gap: 4px; width: 49px; height: 32px; border: 1px solid var(--line); border-radius: 50%; background: var(--surface-1); box-shadow: var(--shadow); transform: translateZ(24px); z-index: 5; }
+.robot-thought { position: absolute; right: -16px; top: -2px; display: flex; opacity: 0; align-items: center; justify-content: center; gap: 4px; width: 49px; height: 32px; border: 1px solid var(--line); border-radius: 50%; background: var(--surface-1); box-shadow: var(--shadow); transform: translateZ(24px); z-index: 5; }
 .robot-thought::before, .robot-thought::after { content: ""; position: absolute; border: 1px solid var(--line); border-radius: 50%; background: var(--surface-1); }
 .robot-thought::before { width: 9px; height: 9px; left: 4px; bottom: -9px; }
 .robot-thought::after { width: 5px; height: 5px; left: -2px; bottom: -15px; }
@@ -378,13 +378,15 @@ main { flex: 1; min-height: 0; overflow: hidden; padding: var(--page-top) var(--
 .robot-thought i { width: 5px; height: 5px; border-radius: 50%; background: var(--work); animation: breathe 1.4s infinite; }
 .robot-thought i:nth-child(2) { animation-delay: 200ms; }
 .robot-thought i:nth-child(3) { animation-delay: 400ms; }
-.working-robot.thinking .robot-thought { display: flex; }
+.working-robot.thinking .robot-thought { opacity: 1; }
 .working-robot.thinking .robot-head { transform: translate3d(5px, 6px, 18px) rotate(-10deg); animation: none; }
 .working-robot.thinking .robot-hand { animation: none; }
 .working-robot.thinking .robot-hand.right { top: 63px; right: 30px; transform: translateZ(24px) rotate(-10deg); }
 .working-robot.waiting .robot-head { animation: robot-ponder 3s ease-in-out infinite; }
-.working-robot.waiting .robot-arm.right, .working-robot.waiting .robot-hand.right { display: none; }
+.working-robot.waiting .robot-arm.right, .working-robot.waiting .robot-hand.right { opacity: 0; }
 .robot-wave-arm { position: absolute; left: 87px; top: 33px; width: 18px; height: 46px; z-index: 4; transform: translateZ(6px) rotate(48deg); transform-origin: 50% 100%; animation: robot-wave 1.8s ease-in-out infinite; }
+.robot-wave-arm, .robot-clock, .robot-snooze { opacity: 0; }
+.working-robot.waiting .robot-wave-arm, .working-robot.background .robot-clock, .working-robot.sleeping .robot-snooze { opacity: 1; }
 .robot-forearm, .robot-palm { position: absolute; background: linear-gradient(120deg, var(--robot-light), var(--robot-body) 60%, var(--robot-shade)); box-shadow: inset -2px -2px 4px var(--robot-shade); }
 .robot-forearm { left: 3px; top: 17px; width: 12px; height: 29px; border-radius: 8px; }
 .robot-palm { left: 0; top: 0; width: 18px; height: 24px; border-radius: 9px 9px 7px 7px; }
@@ -1142,13 +1144,10 @@ ol.install-steps { padding-left: 18px; }
 .slist-project:hover .slist-new, .slist-new:focus-visible, .slist-new[aria-expanded="true"] { opacity: 1; }
 .slist-row { position: relative; display: flex; align-items: flex-start; gap: 8px; width: 100%; padding: 5px 8px 5px 30px; border: 0; border-radius: var(--radius-md); background: none; color: var(--text-primary); text-align: left; }
 .slist-body > .slist-item > .slist-row, .slist-settled-content > .slist-item > .slist-row { padding-left: 12px; }
-/* Visible actions reserve their width so titles cannot overlap them. */
-.slist-item { position: relative; display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; }
-.slist-item .thread-actions { position: static; transform: none; margin-right: 4px; }
-@media (hover: hover) and (pointer: fine) {
-  .slist-item:not(:hover):not(:focus-within):not(:has([aria-expanded="true"])) .thread-actions { max-width: 0; overflow: hidden; margin-right: 0; padding: 0; }
-  .slist-item:focus-within .thread-actions { opacity: 1; pointer-events: auto; }
-}
+/* Desktop actions overlay the full-width row, as before the touch layout fix. */
+.slist-item { position: relative; }
+.slist-row.open { padding-right: 32px; }
+.slist-item .thread-actions { top: 4px; bottom: auto; right: 4px; }
 /* Hover only with a real pointer: a tap on a phone would leave the row grey. */
 @media (hover: hover) { .slist-item:hover .slist-row:not(.focused) { background: color-mix(in srgb, var(--text-primary) 5%, transparent); } }
 .slist-row.focused { background: color-mix(in srgb, var(--text-primary) 10%, transparent); }
@@ -1177,7 +1176,9 @@ ol.install-steps { padding-left: 18px; }
 @media (pointer: coarse) {
   .slist-new { opacity: 1; }
   .slist-project-toggle, .slist-new { min-height: 44px; min-width: 44px; }
-  .slist-item .thread-actions { gap: 16px; margin-right: 8px; }
+  .slist-item { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; }
+  .slist-item .thread-actions { position: static; transform: none; gap: 16px; margin-right: 8px; }
+  .slist-row.open { padding-right: 8px; }
   .slist-row { padding-block: 10px; }
 }
 /* On a phone an opened session covers the page: no header, no bottom bar. */
