@@ -136,11 +136,28 @@ test("user-input request: value falls back to label, defaults, and not_resumable
         { label: "Slow", description: null, value: "Slow" },
       ],
       multiSelect: true,
-      allowCustomAnswer: false,
+      allowCustomAnswer: true,
       required: false,
     },
     { id: "q2", header: null, question: "Anything else?", options: [], multiSelect: false, allowCustomAnswer: true, required: true },
   ]);
+});
+
+test("user-input allows typed answers unless T3 explicitly disables them", () => {
+  for (const options of [[], [{ label: "First" }]]) {
+    for (const allowCustomAnswer of [undefined, true, false]) {
+      const detail = toThreadDetail("thread-1", {
+        runtimeRequests: [{ id: "r", kind: "user_input", status: "pending" }],
+        turnItems: [{ type: "user_input_request", requestId: "r", questions: [
+          { id: "q", question: "Your answer?", options, ...(allowCustomAnswer === undefined ? {} : { allowCustomAnswer }) },
+        ] }],
+      }, undefined);
+      const request = detail.pendingRequests[0]!;
+      assert.equal(request.category, "user-input");
+      if (request.category !== "user-input") throw new Error("Expected a user-input request");
+      assert.equal(request.questions[0]!.allowCustomAnswer, allowCustomAnswer !== false);
+    }
+  }
 });
 
 test("user-input request is dismissable only when a message can answer it", () => {

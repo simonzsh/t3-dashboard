@@ -22,7 +22,7 @@ function pendingDetail(request: RawRuntimeRequest, items: RawTurnItem[]): Pendin
       question: question.question ?? "",
       options: (question.options ?? []).map((option) => ({ label: option.label, description: option.description ?? null, value: option.value ?? option.label })),
       multiSelect: question.multiSelect ?? false,
-      allowCustomAnswer: question.allowCustomAnswer ?? false,
+      allowCustomAnswer: question.allowCustomAnswer !== false,
       required: question.required ?? false,
     }));
     return { category: "user-input", ...base, questions, dismissable: request.kind === "user_input" && request.responseCapability?.type === "message" };
