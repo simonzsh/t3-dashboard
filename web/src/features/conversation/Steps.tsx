@@ -4,7 +4,7 @@ import { useApi } from "../../api/ApiContext.tsx";
 import { duration, failure } from "../../lib/format.ts";
 import { safeHref } from "../../lib/markdown.tsx";
 import { Chevron, Collapse, Icon, Pressable, RunningDot, STATUS_ICONS, useFlip } from "../../ui/index.ts";
-import { STEP_ICONS, diffLines, groupLabel, remember, stepDuration } from "./steps.ts";
+import { STEP_ICONS, diffLines, groupLabel, robotShouldType, remember, stepDuration } from "./steps.ts";
 import { WorkingRobot } from "./WorkingRobot.tsx";
 
 const LIVE_VISIBLE = 4;
@@ -25,7 +25,7 @@ export function useTicker(active: boolean): number {
 }
 
 /** One group of agent steps. Collapsed, except the live one, which shows its latest steps. */
-export function WorkGroup({ steps, threadId, live, fresh = false, showRobot = true }: { showRobot?: boolean; steps: TurnStep[]; threadId: string; live: boolean; fresh?: boolean }) {
+export function WorkGroup({ steps, threadId, live, fresh = false, showRobot = true, typing = robotShouldType(steps) }: { typing?: boolean; showRobot?: boolean; steps: TurnStep[]; threadId: string; live: boolean; fresh?: boolean }) {
   const knownSteps = useRef(new Set(fresh ? [] : steps.map(step => step.id)));
   useLayoutEffect(() => {
     for (const step of steps) knownSteps.current.add(step.id);
@@ -64,7 +64,7 @@ export function WorkGroup({ steps, threadId, live, fresh = false, showRobot = tr
           {live && <RunningDot />}
           {label}
         </Pressable>
-        {live && showRobot && <WorkingRobot thinking={!activeId || shown.find(step => step.id === activeId)?.kind === "thinking"} />}
+        {live && showRobot && <WorkingRobot thinking={!typing} />}
       </div>
       <Collapse open={open}>
         <ul className="step-list">

@@ -69,3 +69,9 @@ export function remember<V>(cache: Map<string, V>, key: string, value: V, max: n
 }
 
 export const omittedLabel = (count: number): string => `${count} earlier ${count === 1 ? "step" : "steps"} not shown`;
+
+// Completed tools count too: short calls can arrive without a running event.
+export function robotShouldType(steps: TurnStep[]): boolean {
+  const action = steps.findLast(step => !["thinking", "notice", "secret"].includes(step.kind));
+  return !!action && !(action.kind === "command" && action.status === "failed");
+}

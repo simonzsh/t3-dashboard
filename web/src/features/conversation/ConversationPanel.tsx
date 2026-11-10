@@ -30,6 +30,7 @@ import { NoticeProvider, useNotify } from "../../lib/notices.tsx";
 import { failure, formatMessageTime } from "../../lib/format.ts";
 import { useDocumentTheme } from "../../lib/useDocumentTheme.ts";
 import { omittedLabel } from "./steps.ts";
+import { robotShouldType } from "./steps.ts";
 import { awaitingStep, timeline } from "./timeline.ts";
 import { LIVE_RELOAD_MS, SEND_POLL_WINDOW_MS, detailRunning, pollDelay } from "./reload.ts";
 import { SubagentBar } from "./SubagentBar.tsx";
@@ -95,6 +96,7 @@ const Timeline = memo(function Timeline({ detail, threadId, running, editing, on
     for (const step of detail.steps) knownSteps.current.add(step.id);
   }, [detail.steps]);
   const entries = timeline(detail);
+  const typing = robotShouldType(detail.steps.filter(step => step.runId === detail.activity?.runId));
   const waiting = detail.pendingRequests.length > 0 || pendingSecrets(detail.steps).length > 0;
   return (
     <>
@@ -107,7 +109,7 @@ const Timeline = memo(function Timeline({ detail, threadId, running, editing, on
             return <RenderFrame key={entry.render.id} render={entry.render} threadId={threadId} />;
           case "work":
             // Keyed by its first step: the group keeps its open state while later steps join it.
-            return <WorkGroup showRobot={!waiting} key={entry.steps[0]!.id} steps={entry.steps} threadId={threadId} fresh={!knownSteps.current.has(entry.steps[0]!.id)} live={running && i === entries.length - 1} />;
+            return <WorkGroup typing={typing} showRobot={!waiting} key={entry.steps[0]!.id} steps={entry.steps} threadId={threadId} fresh={!knownSteps.current.has(entry.steps[0]!.id)} live={running && i === entries.length - 1} />;
           case "subagents":
             return <SubagentRows key={entry.steps[0]!.id} steps={entry.steps} threadId={threadId} onOpenThread={onOpenThread} onChanged={onChanged} />;
           case "step":
@@ -119,7 +121,7 @@ const Timeline = memo(function Timeline({ detail, threadId, running, editing, on
         <div className="working-row">
           <Loader inline label="Thinking" />
           <span>Thinking…</span>
-          <WorkingRobot thinking />
+          <WorkingRobot thinking={!typing} />
         </div>
       )}
     </>

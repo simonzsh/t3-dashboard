@@ -57,6 +57,10 @@
   --focus-ring: 2px solid var(--accent);
   --radius-sm: 6px;
   --radius-md: 8px;
+  --robot-light: #fafafa;
+  --robot-body: #d4d4d8;
+  --robot-shade: #71717a;
+  --robot-face: #18181b;
   /* "Working" follows the accent color: running icons, dots and badges. */
   --work: var(--accent);
   --work-text: color-mix(in srgb, var(--accent) 75%, var(--text-primary));
@@ -348,18 +352,18 @@ main { flex: 1; min-height: 0; overflow: hidden; padding: var(--page-top) var(--
 @media (prefers-reduced-motion: reduce) { .disclosure { transition: none; } }
 @keyframes breathe { 0%, 100% { opacity: 1; } 50% { opacity: 0.35; } }
 /* Sculpted surfaces and perspective give the mascot depth without a render loop. */
-.working-robot { --robot-light: color-mix(in srgb, var(--accent) 35%, white); --robot-shade: color-mix(in srgb, var(--accent) 65%, black); position: relative; width: 94px; height: 76px; flex: none; margin-left: auto; align-self: center; overflow: visible; padding: 0; border: 0; border-radius: var(--radius-md); background: none; cursor: pointer; touch-action: manipulation; }
+.working-robot { position: relative; width: 94px; height: 76px; flex: none; margin-left: auto; align-self: center; overflow: visible; padding: 0; border: 0; border-radius: var(--radius-md); background: none; cursor: pointer; touch-action: manipulation; }
 .robot-size { position: absolute; left: 4px; top: 10px; width: 164px; height: 124px; transform: scale(0.5); transform-origin: top left; perspective: 450px; }
 .robot-scene { position: relative; width: 148px; height: 114px; transform: rotateX(8deg) rotateY(-14deg); transform-style: preserve-3d; }
-.robot-head, .robot-body, .robot-hand { position: absolute; background: linear-gradient(135deg, var(--robot-light), var(--accent) 55%, var(--robot-shade)); box-shadow: inset -4px -4px 8px color-mix(in srgb, var(--robot-shade) 35%, transparent), inset 2px 2px 4px var(--robot-light), 3px 5px 0 var(--robot-shade); }
+.robot-head, .robot-body, .robot-hand { position: absolute; background: linear-gradient(135deg, var(--robot-light), var(--robot-body) 55%, var(--robot-shade)); box-shadow: inset -4px -4px 8px color-mix(in srgb, var(--robot-shade) 35%, transparent), inset 2px 2px 4px var(--robot-light), 3px 5px 0 var(--robot-shade); }
 .robot-head { left: 39px; top: 15px; width: 70px; height: 49px; border-radius: 22px; transform: translateZ(18px); animation: robot-nod 2.8s ease-in-out infinite; z-index: 3; }
-.robot-face { position: absolute; inset: 10px 9px 9px; border-radius: 15px; background: linear-gradient(150deg, color-mix(in srgb, var(--accent) 25%, black), color-mix(in srgb, var(--accent) 10%, black)); display: flex; justify-content: center; align-items: center; gap: 14px; box-shadow: inset 0 2px 4px #000; }
+.robot-face { position: absolute; inset: 10px 9px 9px; border-radius: 15px; background: linear-gradient(150deg, var(--robot-face), #09090b); display: flex; justify-content: center; align-items: center; gap: 14px; box-shadow: inset 0 2px 4px #000; }
 .robot-face i { width: 7px; height: 13px; border-radius: 8px; background: var(--robot-light); box-shadow: 0 0 8px color-mix(in srgb, var(--accent) 55%, transparent); animation: robot-blink 5s infinite; }
 .robot-antenna { position: absolute; left: 33px; top: -13px; width: 4px; height: 14px; background: var(--robot-shade); }
 .robot-antenna::before { content: ""; position: absolute; width: 9px; height: 9px; left: -3px; top: -3px; border-radius: 50%; background: var(--work); box-shadow: 0 0 12px color-mix(in srgb, var(--work) 40%, transparent); }
 .robot-body { left: 50px; top: 62px; width: 48px; height: 31px; border-radius: 14px; }
 .robot-hand { top: 82px; width: 20px; height: 13px; border-radius: 10px; z-index: 4; }
-.robot-arm { position: absolute; top: 70px; width: 13px; height: 25px; border-radius: 9px; background: linear-gradient(90deg, var(--robot-shade), var(--accent)); transform-origin: 50% 0; z-index: 2; }
+.robot-arm { position: absolute; top: 70px; width: 13px; height: 25px; border-radius: 9px; background: linear-gradient(90deg, var(--robot-shade), var(--robot-body)); transform-origin: 50% 0; z-index: 2; }
 .robot-arm.left { left: 47px; rotate: 12deg; }
 .robot-arm.right { right: 47px; rotate: -12deg; }
 .robot-hand.left { left: 35px; }
@@ -381,10 +385,10 @@ main { flex: 1; min-height: 0; overflow: hidden; padding: var(--page-top) var(--
 .working-robot.waiting .robot-head { animation: robot-ponder 3s ease-in-out infinite; }
 .working-robot.waiting .robot-arm.right, .working-robot.waiting .robot-hand.right { display: none; }
 .robot-wave-arm { position: absolute; left: 87px; top: 33px; width: 18px; height: 46px; z-index: 4; transform: translateZ(6px) rotate(48deg); transform-origin: 50% 100%; animation: robot-wave 1.8s ease-in-out infinite; }
-.robot-forearm, .robot-palm { position: absolute; background: linear-gradient(120deg, var(--robot-light), var(--accent) 60%, var(--robot-shade)); box-shadow: inset -2px -2px 4px var(--robot-shade); }
+.robot-forearm, .robot-palm { position: absolute; background: linear-gradient(120deg, var(--robot-light), var(--robot-body) 60%, var(--robot-shade)); box-shadow: inset -2px -2px 4px var(--robot-shade); }
 .robot-forearm { left: 3px; top: 17px; width: 12px; height: 29px; border-radius: 8px; }
 .robot-palm { left: 0; top: 0; width: 18px; height: 24px; border-radius: 9px 9px 7px 7px; }
-.robot-palm::after { content: ""; position: absolute; left: -4px; bottom: 2px; width: 7px; height: 12px; border-radius: 5px; background: var(--accent); transform: rotate(-25deg); }
+.robot-palm::after { content: ""; position: absolute; left: -4px; bottom: 2px; width: 7px; height: 12px; border-radius: 5px; background: var(--robot-body); transform: rotate(-25deg); }
 .working-robot.waiting .robot-hand.left { top: 77px; }
 .working-robot.background .robot-head { transform: translateZ(18px) rotate(5deg); animation: none; }
 .robot-clock { position: absolute; left: 119px; top: 5px; width: 29px; height: 29px; border: 2px solid var(--robot-light); border-radius: 50%; background: var(--surface-1); box-shadow: 2px 3px 0 var(--robot-shade); transform: translateZ(24px); }
