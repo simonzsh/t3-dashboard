@@ -372,3 +372,6 @@ Incoming questions, approvals, and secret requests do not move keyboard focus or
 When a session has no active run, background task, pending message, or request, the robot rests after the messages with closed eyes.
 It scrolls with the conversation and does not reserve a fixed strip above the composer.
 Tap or click the robot to greet it. Its eyes become pulsing red hearts and its head tilts gently, then returns to its current pose. A sleeping robot briefly wakes.
+
+On desktop, session titles use the full row until you hover, focus the row, or open its action menu.
+On touch screens, the action buttons always reserve their space beside the title and metadata.
