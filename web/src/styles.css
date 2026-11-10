@@ -391,9 +391,9 @@ main { flex: 1; min-height: 0; overflow: hidden; padding: var(--page-top) var(--
 .robot-palm::after { content: ""; position: absolute; left: -4px; bottom: 2px; width: 7px; height: 12px; border-radius: 5px; background: var(--robot-body); transform: rotate(-25deg); }
 .working-robot.waiting .robot-hand.left { top: 77px; }
 .working-robot.background .robot-head { transform: translateZ(18px) rotate(5deg); animation: none; }
-.robot-clock { position: absolute; left: 119px; top: 5px; width: 29px; height: 29px; border: 2px solid var(--robot-light); border-radius: 50%; background: var(--surface-1); box-shadow: 2px 3px 0 var(--robot-shade); transform: translateZ(24px); }
-.robot-clock::after { content: ""; position: absolute; left: 11px; top: 11px; width: 3px; height: 3px; border-radius: 50%; background: var(--robot-light); }
-.robot-clock span { position: absolute; left: 11px; bottom: 12px; width: 3px; border-radius: 2px; transform-origin: 50% 100%; background: var(--robot-light); }
+.robot-clock { position: absolute; left: 119px; top: 5px; width: 29px; height: 29px; border: 2px solid var(--accent); border-radius: 50%; background: var(--surface-1); box-shadow: 2px 3px 0 var(--robot-shade); transform: translateZ(24px); }
+.robot-clock::after { content: ""; position: absolute; left: 11px; top: 11px; width: 3px; height: 3px; border-radius: 50%; background: var(--accent); }
+.robot-clock span { position: absolute; left: 11px; bottom: 12px; width: 3px; border-radius: 2px; transform-origin: 50% 100%; background: var(--accent); }
 .robot-clock-hour { height: 7px; transform: rotate(120deg); }
 .robot-clock-minute { height: 10px; animation: robot-clock-tick 8s linear infinite; }
 @keyframes robot-clock-tick { to { transform: rotate(360deg); } }

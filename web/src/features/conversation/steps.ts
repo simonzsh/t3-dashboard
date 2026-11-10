@@ -72,6 +72,6 @@ export const omittedLabel = (count: number): string => `${count} earlier ${count
 
 // Completed tools count too: short calls can arrive without a running event.
 export function robotShouldType(steps: TurnStep[]): boolean {
-  const action = steps.findLast(step => !["thinking", "notice", "secret"].includes(step.kind));
-  return !!action && !(action.kind === "command" && action.status === "failed");
+  const action = steps.findLast(step => !["notice", "secret"].includes(step.kind));
+  return !!action && action.kind !== "thinking" && !(action.kind === "command" && action.status === "failed");
 }
