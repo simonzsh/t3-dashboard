@@ -361,6 +361,7 @@ In this state, the robot watches a small floating clock with a slowly turning ha
 A small robot sits to the right of Working, above the cards. Its body stays white and gray. The antenna light, eye glow, and small activity marks follow the selected accent color.
 Its hands type at varied rhythms, with key feedback timed to contact. It rests its chin on its hand and shows a thought bubble while thinking.
 The robot thinks at the start of a run. It types during work, including short calls, and returns to its thinking pose when thinking resumes. A failed command makes it think until the next action starts.
+Pose changes move the head and arms over 320 ms. Activity symbols fade between poses.
 The robot uses CSS depth. Reduced motion disables its animation and the card transitions.
 
 When a question, approval, or secret needs your reply, the robot raises a hand at the end of the messages.
@@ -373,5 +374,5 @@ When a session has no active run, background task, pending message, or request, 
 It scrolls with the conversation and does not reserve a fixed strip above the composer.
 Tap or click the robot to greet it. Its eyes become pulsing red hearts and its head tilts gently, then returns to its current pose. A sleeping robot briefly wakes.
 
-On desktop, session titles use the full row until you hover, focus the row, or open its action menu.
+On desktop, session rows keep their full-width background. Action buttons appear over the row on hover or focus.
 On touch screens, the action buttons always reserve their space beside the title and metadata.
