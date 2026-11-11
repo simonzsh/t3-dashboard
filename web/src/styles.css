@@ -1088,9 +1088,22 @@ ol.install-steps { padding-left: 18px; }
 .swipe-dots span.active { background: var(--surface-0); }
 @keyframes swipe-dots { 0%, 70% { opacity: 1; } 100% { opacity: 0; } }
 /* Columns at least 380 px wide that share the free width, then scroll sideways. The strip is not positioned: a fullscreen window sizes itself on .sessions-area and stays out of the scroll. */
-.sessions-strip { flex: 1; min-height: 0; display: grid; grid-auto-flow: column; grid-auto-columns: minmax(380px, 1fr); overflow-x: auto; overflow-y: hidden; overscroll-behavior-x: contain; }
+.sessions-strip { flex: 1; min-height: 0; display: flex; overflow-x: auto; overflow-y: hidden; overscroll-behavior-x: contain; }
+.sessions-tiles { flex: 1; display: grid; min-height: 0; }
+.session-divider { position: relative; pointer-events: none; z-index: 2; min-width: 0; min-height: 0; }
+.session-divider > .resize-handle { pointer-events: auto; }
+.sessions-area:has(.session-window.maximized) .session-divider { display: none; }
 .sessions-cell { display: flex; min-width: 0; min-height: 0; border-right: 1px solid var(--line); }
 .sessions-cell.has-below { border-bottom: 1px solid var(--line); }
+.resize-handle { position: absolute; z-index: 5; border: 0; padding: 0; background: transparent; touch-action: none; }
+.resize-handle::after { content: ""; position: absolute; background: transparent; }
+.resize-handle:hover::after, .resize-handle:focus-visible::after, .resize-handle:active::after { background: var(--accent); }
+.resize-handle-x::after { right: 0; top: 0; bottom: 0; width: 3px; }
+.resize-handle-y::after { bottom: 0; left: 0; right: 0; height: 3px; }
+.resize-handle-x { right: 0; top: 0; bottom: 0; width: 6px; cursor: col-resize; }
+.resize-handle-y { bottom: 0; left: 0; right: 0; height: 6px; cursor: row-resize; }
+
+
 .sessions-empty { flex: 1; align-self: flex-start; margin: 24px; }
 .sessions-placeholder { flex: 1; min-height: 0; background: var(--page-bg); }
 .session-window { position: relative; flex: 1; min-width: 0; min-height: 0; display: flex; flex-direction: column; overflow: hidden; background: var(--page-bg); contain: layout paint; }

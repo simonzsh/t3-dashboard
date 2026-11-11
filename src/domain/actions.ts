@@ -185,7 +185,14 @@ export function createActions(options: ActionsOptions): Actions {
     const message = await outgoing(threadId, images, uploads);
     let branch: string | null = null;
     if (root !== undefined && choice?.type === "root" && choice.branch !== undefined) {
-      branch = choice.create ? await t3(port.createRef(root, choice.branch)) : await t3(port.switchRef(root, choice.branch));
+      try {
+        branch = choice.create ? await t3(port.createRef(root, choice.branch)) : await t3(port.switchRef(root, choice.branch));
+      } catch (error) {
+        if (error instanceof IntegrationError && error.kind === "refused") {
+          throw new IntegrationError("Git refused the branch change. Select New worktree to start from this branch without changing the project folder. Otherwise resolve the checkout in Git.", { system: "t3", kind: "refused" });
+        }
+        throw error;
+      }
       // A remote ref becomes a local tracking branch: ask git its name rather than keep "origin/x".
       branch ??= (await t3(port.vcsStatus(root))).refName ?? null;
     }

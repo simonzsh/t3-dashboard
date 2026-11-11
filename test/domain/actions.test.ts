@@ -599,7 +599,7 @@ test("createThread creates a new branch before the launch", async () => {
 test("createThread launches nothing when the checkout fails", async () => {
   const { actions, port } = fakeHarness();
   port.switchError = new IntegrationError("Your local changes would be overwritten", { system: "t3", kind: "refused" });
-  await assert.rejects(actions.createThread({ ...create, workspace: { type: "root", branch: "dev" } }, []), (error: unknown) => error instanceof IntegrationError && error.kind === "refused");
+  await assert.rejects(actions.createThread({ ...create, workspace: { type: "root", branch: "dev" } }, []), (error: unknown) => error instanceof IntegrationError && error.kind === "refused" && error.message.includes("Select New worktree"));
   assert.deepEqual(port.launches, []);
   assert.deepEqual(port.uploads, []);
 });

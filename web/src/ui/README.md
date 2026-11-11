@@ -71,3 +71,5 @@ The pure calculations (FLIP offset, target, plan) are in `flip.ts` and have unit
 - `Collapse` animates open, close, and content height changes. `duration` sets the transition time in milliseconds (80 by default). Width changes update height immediately to prevent resize cascades. Resize callbacks reuse observer dimensions and skip old-height reads when snapping. Closed content stays inert after its first opening. Reduced motion disables transitions.
 
 - `pauseAnimations(element)` returns an idempotent restore function. It resumes only retained, paused animations on a connected element.
+
+- `ResizeHandle` resizes along an axis with pointer capture or arrow keys. Double-click or Home resets the size.

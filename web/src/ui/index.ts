@@ -43,3 +43,5 @@ export { useListNav, type ListNav, type ListNavOptions } from "./useListNav.ts";
 export { SecretInput, TextArea, TextInput } from "./TextInput.tsx";
 
 export { Collapse } from "./Collapse.tsx";
+
+export { ResizeHandle } from "./ResizeHandle.tsx";

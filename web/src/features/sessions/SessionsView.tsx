@@ -1,12 +1,13 @@
+import { paneLayout, paneGrid, resizePanes, type PaneSizes, type Divider } from "./sessionSizing.ts";
 import { useSessionPanelMotion } from "./useSessionPanelMotion.ts";
 import { memo, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type Dispatch, type PointerEvent, type ReactNode, type TouchEvent } from "react";
 import type { DashboardProject, DashboardProvider, DashboardThread } from "../../../../shared/api.ts";
 import type { SeenState } from "../../../../shared/seen.ts";
 import { threadTitle } from "../../lib/threads.ts";
 import { modelNameMap } from "../../lib/models.ts";
-import { alertMode, cellOf, neighborId, perColumn, spansRows, type SessionsAction, type SessionsState } from "./sessions.ts";
+import { alertMode, neighborId, perColumn, type SessionsAction, type SessionsState } from "./sessions.ts";
 import { focusSessionField, revealSessionWindow } from "./dom.ts";
-import { enter, Kbd, SidePanel, useFlip } from "../../ui/index.ts";
+import { enter, Kbd, ResizeHandle, SidePanel, useFlip } from "../../ui/index.ts";
 import type { SessionLayout } from "../../lib/sessionLayout.ts";
 import { ctrlLabel, startsTyping } from "../../lib/shortcuts.ts";
 import { swipeDirection } from "../../lib/swipe.ts";
@@ -46,10 +47,18 @@ interface Props {
   onSettle: (id: string, settle: boolean) => Promise<unknown>;
 }
 
-/** Fixed-width columns in a strip that scrolls sideways; grid view stacks two sessions per column. */
+/** Nested pane groups share the available space without moving mounted conversations. */
 export function SessionsStrip({ ids, layout, pinned = null, render }: { ids: readonly string[]; layout: SessionLayout; pinned?: string | null; render: (id: string, near: boolean) => ReactNode }) {
-  const rows = Math.min(perColumn(layout), ids.length);
+  const [sizes, setSizes] = useState<PaneSizes>({});
   const strip = useRef<HTMLDivElement>(null);
+  const tilesRoot = useRef<HTMLDivElement>(null);
+  const { tiles, dividers } = paneLayout(ids.length, layout, sizes);
+  const grid = paneGrid(tiles);
+  const resize = (divider: Divider, delta: number, reset = false) => {
+    const root = tilesRoot.current;
+    if (!root) return;
+    setSizes(prev => resizePanes(prev, divider, delta, divider.axis === "x" ? root.clientWidth : root.clientHeight, reset));
+  };
   // Cells within about one column of the viewport: the others skip their conversation (no fetch, no live reload).
   const [near, setNear] = useState<ReadonlySet<string>>(new Set());
   const idKey = ids.join(",");
@@ -71,20 +80,25 @@ export function SessionsStrip({ ids, layout, pinned = null, render }: { ids: rea
     root.querySelectorAll(".sessions-cell").forEach((cell) => observer.observe(cell));
     return () => observer.disconnect();
   }, [idKey]);
-  // A move in the DOM resets the conversation scroll: cells stay sorted by id and only their coordinates change.
-  const cells = ids.map((id, index) => ({ id, index, ...cellOf(index, layout) })).sort((a, b) => a.id.localeCompare(b.id));
+  const cells = tiles.map(tile => ({ ...tile, id: ids[tile.slot]! })).sort((a, b) => a.id.localeCompare(b.id));
   return (
-    <div ref={strip} className="sessions-strip" style={{ gridTemplateRows: `repeat(${rows}, minmax(0, 1fr))` }}>
-      {cells.map(({ id, index, column, row }) => (
-        <div
-          key={id}
-          data-cell={id}
-          className={`sessions-cell${row === 0 && rows > 1 && index + 1 < ids.length ? " has-below" : ""}`}
-          style={{ gridColumn: column + 1, gridRow: spansRows(index, ids.length, layout) ? "1 / -1" : row + 1 }}
-        >
-          {render(id, near.has(id) || id === pinned)}
-        </div>
-      ))}
+    <div ref={strip} className="sessions-strip">
+      <div ref={tilesRoot} className="sessions-tiles" style={{
+        minWidth: Math.ceil(ids.length / perColumn(layout)) * 380,
+        gridTemplateColumns: grid.gridTemplateColumns, gridTemplateRows: grid.gridTemplateRows,
+      }}>
+        {cells.map(tile => (
+          <div key={tile.id} data-cell={tile.id} className={`sessions-cell${tile.y + tile.height < 1 ? " has-below" : ""}`} style={grid.position(tile)}>
+            {render(tile.id, near.has(tile.id) || tile.id === pinned)}
+          </div>
+        ))}
+        {dividers.map(divider => (
+          <div key={`${divider.key}:${divider.index}`} className="session-divider" style={grid.position(divider.rect)}>
+            <ResizeHandle axis={divider.axis} label={divider.axis === "x" ? "Resize neighboring panels" : "Resize panel groups"}
+              onDelta={delta => resize(divider, delta)} onReset={() => resize(divider, 0, true)} />
+          </div>
+        ))}
+      </div>
     </div>
   );
 }
