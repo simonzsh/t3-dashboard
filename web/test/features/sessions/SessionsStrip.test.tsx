@@ -28,9 +28,8 @@ test("a swap changes the coordinates but not the order of the cells in the DOM",
 });
 
 test("column view has one row; grid view has two, and the odd last session spans both", () => {
-  assert.match(html(["a", "b", "c"], "columns"), /grid-template-rows:repeat\(1, minmax\(0, 1fr\)\)/);
-  assert.match(html(["a", "b", "c"], "grid"), /grid-template-rows:repeat\(2, minmax\(0, 1fr\)\)/);
-  assert.deepEqual(cells(["a", "b", "c"], "grid").map((c) => [c.id, c.column, c.row]), [["a", "1", "1"], ["b", "1", "2"], ["c", "2", "1 / -1"]]);
+  assert.deepEqual(cells(["a", "b"], "columns").map(c => c.row), ["1 / 2", "1 / 2"]);
+  assert.deepEqual(cells(["a", "b", "c"], "grid").map((c) => [c.id, c.column, c.row]), [["a", "1 / 2", "1 / 2"], ["b", "1 / 2", "2 / 3"], ["c", "2 / 3", "1 / 3"]]);
 });
 
 test("only a session with another one under it gets the hairline below", () => {
