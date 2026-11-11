@@ -448,6 +448,11 @@ test("running dots use the shared component and its one halo animation", () => {
   assert.match(css, /\.pulse::after \{[^}]*animation: ping 1\.6s/);
 });
 
+test("subagent fallback status leaves room for the running halo without unclipping progress text", () => {
+  assert.match(css, /\.subagent-title, \.subagent-line \{[^}]*overflow: hidden;/);
+  assert.match(css, /\.subagent-line:has\(> \.subagent-state\) \{[^}]*overflow: visible;/);
+});
+
 test("settings notes and action rows can wrap inside the dialog", () => {
   const note = css.match(/\.about-note \{([^}]+)\}/)?.[1];
   assert.ok(note);

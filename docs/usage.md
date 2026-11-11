@@ -102,7 +102,7 @@ Each session contains a conversation. It starts with the latest 40 timeline entr
 - Follow the steps of the run in the conversation. Consecutive steps (reasoning, commands, tools, file changes, searches) form one group. The group of the active run shows its last 4 steps under "Working for …". Other groups are closed: click one to see its steps.
 - New steps fade in, rise slightly and receive a brief highlight, even when they arrive already completed. Batched steps appear in sequence. The last four steps remain visible for one second after their group finishes, with their real status. Older steps fade out as the list moves up. The latest active step has a moving rail marker; this marker does not show a completion percentage. Running rows have a subtle moving sheen. Completed steps show a check and their duration when known; durations below one second show "<1s". Returning to Sessions does not replay arrivals. Reduced motion disables these animations.
 - The dot beside "Working" uses the same expanding halo as running indicators in session lists, badges and the Dashboard.
-- A running subagent shows the same animated dot before its "Running" label.
+- A running subagent shows the same animated dot before its "Running" label. The full halo stays visible beside the label.
 - Click a command to see its output and exit code. Click a file change to see its diff. Click a tool or a search to see its input and results. A note says when T3 Code cut a long text.
 - A to-do list, a proposed plan and a notice (compaction, error) have their own block.
 - Checkpoint notices are hidden. Their restore points remain available for "Edit from here".

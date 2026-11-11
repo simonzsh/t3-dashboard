@@ -521,6 +521,8 @@ a.step-result-title { color: var(--accent); }
 .subagent-title, .subagent-line { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .subagent-title { font-size: 12px; font-weight: 500; }
 .subagent-line { font-size: 11px; color: var(--text-secondary); }
+/* The fallback status has no long text to truncate, and its halo needs room. */
+.subagent-line:has(> .subagent-state) { overflow: visible; }
 .subagent-side { flex: none; display: flex; align-items: center; gap: 8px; font-size: 11px; color: var(--text-secondary); }
 .subagent-side .icon { width: 14px; height: 14px; }
 .subagent-time { flex: none; font-size: 11px; color: var(--text-secondary); font-variant-numeric: tabular-nums; }
