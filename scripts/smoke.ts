@@ -1,6 +1,7 @@
 import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { pidFile } from "../src/config/paths.ts";
 
 const dir = mkdtempSync(join(tmpdir(), "t3-dashboard-smoke-"));
 const exe = join(dir, process.platform === "win32" ? "t3-dashboard.exe" : "t3-dashboard");
@@ -89,7 +90,7 @@ try {
   expect(icon.status === 200 && icon.headers.get("content-type") === "image/png", "/icons/icon-512.png is not served");
   expect(version.stdout.toString().startsWith("t3-dashboard "), "--version prints no version");
   expect(unknown.exitCode === 2, "an unknown command does not exit with 2");
-  const pidPath = join(dir, ".local", "state", "t3-dashboard", "dashboard.pid");
+  const pidPath = pidFile({}, dir, process.platform);
   expect(existsSync(pidPath) && readFileSync(pidPath, "utf8").trim() === String(child.pid), "the pid file is missing or wrong");
   expect((await fetch(`${base}/api/health`)).status === 200, "/api/health is not 200");
   expect((await fetch(`${base}/api/health`, { headers: { host: "evil.example" } })).status === 403, "a foreign Host is not refused");
