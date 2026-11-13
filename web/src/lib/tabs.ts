@@ -5,7 +5,7 @@ import type { IconName } from "../ui/index.ts";
 export type Tab = "dashboard" | "sessions" | "pulls" | "automations" | "news";
 
 export const TABS: ReadonlyArray<{ id: Tab; label: string; icon: IconName; description: string; /** Bottom bar label, when the full one is too wide. */ short?: string }> = [
-  { id: "dashboard", label: "Dashboard", icon: "layoutPanels", description: "Usage limits, activity, and every agent that needs you." },
+  { id: "dashboard", label: "Home", icon: "layoutPanels", description: "Usage limits, activity, and every agent that needs you." },
   { id: "sessions", label: "Sessions", icon: "messagesSquare", description: "Your open conversations side by side, scrolling sideways." },
   { id: "pulls", label: "Pull requests", short: "PRs", icon: "gitPullRequest", description: "Your open pull requests and the ones waiting for your review." },
   { id: "automations", label: "Automations", icon: "calendarClock", description: "Scheduled agents and their latest runs." },
@@ -41,7 +41,7 @@ export function sessionFromHash(hash: string): string | null {
   }
 }
 
-// An empty or unknown hash falls back to the Dashboard, so a bad link never shows a blank page.
+// An empty or unknown hash falls back to Home, so a bad link never shows a blank page.
 export function tabFromHash(hash: string): Tab {
   if (prFromHash(hash)) return "pulls";
   if (sessionFromHash(hash)) return "sessions";
