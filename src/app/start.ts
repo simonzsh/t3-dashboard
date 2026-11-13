@@ -14,6 +14,8 @@ import { createNews } from "../domain/news.ts";
 import { TokenManager } from "../domain/tokenManager.ts";
 import { envAllowedHosts, envPort } from "../config/config.ts";
 import { ghRunner } from "../integrations/github/gh.ts";
+import { tailscaleRunner } from "../integrations/tailscale/cli.ts";
+import { createRemoteAccess } from "../domain/remoteAccess.ts";
 import { latestTag } from "../integrations/github/releases.ts";
 import { LinearClient } from "../integrations/linear/client.ts";
 import { NtfyClient, newTopic } from "../integrations/ntfy/client.ts";
@@ -252,7 +254,10 @@ export async function start({ port, log, env }: StartOptions): Promise<void> {
   const stash = new StashStore(readStash(stashFile, readText), (entries) => writeSecret(stashFile, stashText(entries)), { now: () => new Date(), newId: () => crypto.randomUUID() });
   const seenFile = seenPath(env, home);
   const seen = new SeenStore(readSeen(seenFile, readText), (value) => writeSecret(seenFile, seenText(value)));
-  const handler = createDashboardServer({ actions, sessions, stash, seen, alerts, hub, board, usage, limits, serverStats, cacheCleanup, automations, pulls, news, getState, connection: () => live.connection(), site, settings, setup, updates, allowedHosts: envAllowedHosts(env) });
+  const listenPort = port ?? envPort(env);
+  const remoteAccess = createRemoteAccess({ port: listenPort, run: tailscaleRunner(env), now: () => Date.now() });
+  void remoteAccess.refreshHost();
+  const handler = createDashboardServer({ actions, sessions, stash, seen, alerts, hub, board, usage, limits, serverStats, cacheCleanup, automations, pulls, news, getState, connection: () => live.connection(), site, settings, setup, updates, remoteAccess, allowedHosts: envAllowedHosts(env) });
 
   const reclassifier = setInterval(() => store.reclassify(new Date()), RECLASSIFY_MS);
   // It only touches the run threads of its own task, so it runs in dev builds too.
@@ -268,7 +273,7 @@ export async function start({ port, log, env }: StartOptions): Promise<void> {
   if (managed || env.T3_DASHBOARD_AUTOMATION_GUARD === "on") guard.start();
   const server = await listen({
     hostname: "127.0.0.1",
-    port: port ?? envPort(env),
+    port: listenPort,
     fetch: handler.fetch,
     routes: site.devRoutes,
     development: site.devRoutes !== undefined,

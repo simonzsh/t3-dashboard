@@ -48,7 +48,7 @@ Script options:
 | Windows | "T3 Dashboard" scheduled task at logon |
 
 - The service restarts automatically after a failure.
-- `install` copies these variables into the service, if they are set at installation time: `T3_DASHBOARD_UPDATE_CHANNEL`, `T3_DASHBOARD_REPO`, `T3_DASHBOARD_TOKEN_FILE`, `T3_DASHBOARD_CONFIG_DIR`, `T3_DASHBOARD_LINEAR_FILE`, `T3_DASHBOARD_T3_BIN`, `T3_DASHBOARD_GH_BIN`, `T3_DASHBOARD_ALLOWED_HOSTS`, `T3_SERVER_RUNTIME`, `T3CODE_HOME`, `CLAUDE_CONFIG_DIR`, `CODEX_HOME`, `XDG_CONFIG_HOME` and `T3_DASHBOARD_AGENT_RULES`. To change a value, set the variable and run `install` again.
+- `install` copies these variables into the service, if they are set at installation time: `T3_DASHBOARD_UPDATE_CHANNEL`, `T3_DASHBOARD_REPO`, `T3_DASHBOARD_TOKEN_FILE`, `T3_DASHBOARD_CONFIG_DIR`, `T3_DASHBOARD_LINEAR_FILE`, `T3_DASHBOARD_T3_BIN`, `T3_DASHBOARD_GH_BIN`, `T3_DASHBOARD_TAILSCALE_BIN`, `T3_DASHBOARD_ALLOWED_HOSTS`, `T3_SERVER_RUNTIME`, `T3CODE_HOME`, `CLAUDE_CONFIG_DIR`, `CODEX_HOME`, `XDG_CONFIG_HOME` and `T3_DASHBOARD_AGENT_RULES`. To change a value, set the variable and run `install` again.
 - `install` and `update` wait at most 15 s for the new binary to answer on the port.
 - If a different program or an older dashboard uses the port, the command stops with this error: "Port 4300 is used by another program or an older dashboard." Stop this program, or install with `--port <n>`.
 - On Linux, `install` needs `systemctl`. Without `systemctl`, use `t3-dashboard start`.
@@ -202,7 +202,17 @@ The logs never contain a token or an API key. The `dashboard.pid` file is in the
 
 The server listens only on `127.0.0.1`. By default, it refuses `Host` and `Origin` headers other than `127.0.0.1` and `localhost`.
 
-To open the dashboard from a different device, use a proxy on a private network, for example `tailscale serve`:
+To open the dashboard from a different device, use a proxy on a private network. The dashboard supports Tailscale.
+
+Automatic setup:
+
+1. Install Tailscale on this machine and on your phone, and sign in to the same tailnet. Turn on MagicDNS and HTTPS certificates in the Tailscale admin console.
+2. Open Settings > App. When Tailscale runs but does not share the dashboard, press Enable. The dashboard runs `tailscale serve --bg --https=<port> http://127.0.0.1:<port>`.
+3. The dashboard accepts the MagicDNS name of this machine, read from `tailscale status`. You do not need `T3_DASHBOARD_ALLOWED_HOSTS` for it.
+
+If Enable fails, the panel shows the reason and the command to run by hand. The dashboard never changes a Serve entry that exists already.
+
+Manual setup:
 
 1. Expose the port with `tailscale serve`.
 2. Put the machine name in `T3_DASHBOARD_ALLOWED_HOSTS`, for example `box.tailnet.ts.net`.
@@ -220,6 +230,7 @@ The dashboard has no authentication. Each person who can reach the address can c
 | `T3_DASHBOARD_ALLOWED_HOSTS` | none | Comma-separated host names, without a port. They are added to `127.0.0.1` and `localhost` for the `Host` and `Origin` headers. See [Remote access](#remote-access). |
 | `T3_DASHBOARD_T3_BIN` | automatic search | Absolute path of `t3`. |
 | `T3_DASHBOARD_GH_BIN` | automatic search | Absolute path of `gh`, the GitHub CLI that the Pull requests page uses. |
+| `T3_DASHBOARD_TAILSCALE_BIN` | automatic search | Absolute path of `tailscale`, which Settings > App uses to find the address of the dashboard on your tailnet. |
 | `T3_DASHBOARD_LINEAR_FILE` | `<config>/linear.json` | File of the Linear config. |
 | `T3CODE_HOME` | `~/.t3` | Base folder of T3 Code. The dashboard also gives it to `t3 auth session issue`. |
 | `CLAUDE_CONFIG_DIR` | `~/.claude` | Folder of the `CLAUDE.md` file that gets the agent rules. |

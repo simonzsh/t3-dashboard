@@ -29,6 +29,8 @@ import { VERSION } from "../../config/version.ts";
 import { DEMO_ENVIRONMENT_ID, DEMO_HOME, DEMO_NEWS_DIR, createDemoCacheCleanup, demoNews, demoSeen, demoServerStats } from "./fixtures.ts";
 import { DemoPort, demoLinearFetch } from "./port.ts";
 import { demoGh } from "./pulls.ts";
+import { demoTailscale } from "./tailscale.ts";
+import { createRemoteAccess } from "../../domain/remoteAccess.ts";
 
 const DEMO_PORT = 3001;
 const RECLASSIFY_MS = 60_000;
@@ -124,6 +126,8 @@ export async function startDemo(env: Record<string, string | undefined>): Promis
       },
     },
   });
+  const requested = Number(env.PORT);
+  const demoPort = Number.isInteger(requested) && requested > 0 ? requested : DEMO_PORT;
   const handler = createDashboardServer({
     actions,
     sessions: new SessionsStore(null, () => {}),
@@ -145,15 +149,15 @@ export async function startDemo(env: Record<string, string | undefined>): Promis
     settings,
     setup,
     updates,
+    remoteAccess: createRemoteAccess({ port: demoPort, run: demoTailscale(), now: () => Date.now() }),
     allowedHosts: envAllowedHosts(env),
   });
 
   const reclassifier = setInterval(() => store.reclassify(new Date()), RECLASSIFY_MS);
   live.start();
-  const requested = Number(env.PORT);
   const server = Bun.serve({
     hostname: "127.0.0.1",
-    port: Number.isInteger(requested) && requested > 0 ? requested : DEMO_PORT,
+    port: demoPort,
     fetch: handler.fetch,
     routes: site.devRoutes,
     development: site.devRoutes !== undefined,

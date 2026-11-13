@@ -159,7 +159,7 @@ Every 60 seconds `news.sweep()` archives the finished run threads of this task, 
 
 - The T3 token and the Linear key stay on the server. The browser never sees them.
 - The server listens only on `127.0.0.1`.
-- Each request checks the `Host` and `Origin` headers: `127.0.0.1`, `localhost` or a name from `T3_DASHBOARD_ALLOWED_HOSTS`.
+- Each request checks the `Host` and `Origin` headers: `127.0.0.1`, `localhost` a name from `T3_DASHBOARD_ALLOWED_HOSTS`, or the MagicDNS name of this machine, read from `tailscale status` (it resolves only on the tailnet).
 - The server sends no CORS header.
 - Each `POST` requires the `application/json` type. This check blocks requests from a different site (CSRF). The body is 1 MB maximum, or 25 MB for a message with images.
 - The responses prevent the display of the dashboard in a frame of a different site (`X-Frame-Options: DENY`).

@@ -31,6 +31,7 @@ import { VERSION } from "../../src/config/version.ts";
 import { FakePort } from "../helpers/fakePort.ts";
 import { linearInbox, linearInboxNode, linearNode, linearPage } from "../helpers/linear.ts";
 import type { RawConfig, ShellItem } from "../../src/integrations/t3/schemas.ts";
+import type { RemoteAccessService } from "../../src/domain/remoteAccess.ts";
 
 const now = new Date("2026-03-20T12:00:00.000Z");
 const connection: ConnectionStatus = { t3: "live", serverVersion: "1.0.0", protocolMismatch: false, error: null, setup: null };
@@ -50,6 +51,7 @@ interface StartOptions {
   inbox?: unknown[];
   pulls?: Partial<Pick<PullRequests, "prs" | "detail" | "diff" | "connection">>;
   news?: Partial<Pick<News, "get" | "article" | "search" | "save" | "runNow" | "remove" | "removeAll">>;
+  remoteAccess?: Partial<Pick<RemoteAccessService, "status" | "enable" | "host" | "refreshHost">>;
   automations?: Pick<Automations, "list" | "create" | "remove" | "update"> & Partial<Pick<Automations, "setEnabled" | "runNow">>;
   // Content of the Linear file. Without it, `linearKey` feeds the board directly.
   linear?: unknown;
@@ -230,6 +232,7 @@ async function start(startOptions: StartOptions = {}) {
     settings,
     setup,
     updates,
+    remoteAccess: { status: async () => ({ state: "not-installed" }), enable: async () => ({ state: "not-installed" }), host: () => null, refreshHost: async () => {}, ...startOptions.remoteAccess },
     allowedHosts: startOptions.allowedHosts,
   });
   running.push(async () => hub.close());
@@ -700,6 +703,39 @@ test("allowed hosts extend the local ones for Host and Origin, ports ignored", a
   assert.equal(await get({ host: "127.0.0.1", origin: "http://localhost:5173" }), 200);
 });
 
+test("the MagicDNS host is allowed once known, and an unknown host refreshes it once", async () => {
+  let host: string | null = null;
+  let refreshes = 0;
+  const { server } = await start({ remoteAccess: { host: () => host, refreshHost: async () => void refreshes++ } });
+  const get = (headers: Record<string, string>) => call(server, "GET", "/api/health", { headers }).then((reply) => reply.status);
+  assert.equal(await get({ host: "box.tail.ts.net:4300" }), 403);
+  assert.equal(refreshes, 1);
+  host = "box.tail.ts.net";
+  assert.equal(await get({ host: "Box.tail.ts.net:4300", origin: "https://box.tail.ts.net:4300" }), 200);
+  assert.equal(refreshes, 1);
+  assert.equal(await get({ host: "box.tail.ts.net", origin: "http://evil.example" }), 403);
+  assert.equal(await get({ host: "evil.example", origin: "https://box.tail.ts.net" }), 403);
+  assert.equal(await get({ host: "127.0.0.1" }), 200);
+});
+
+test("a host found by the refresh is allowed in the same request", async () => {
+  let host: string | null = null;
+  const { server } = await start({ remoteAccess: { host: () => host, refreshHost: async () => void (host = "box.tail.ts.net") } });
+  assert.equal((await call(server, "GET", "/api/health", { headers: { host: "box.tail.ts.net" } })).status, 200);
+});
+
+test("settings: remote access answers its status, and enable answers the new state", async () => {
+  const state = { state: "ready", url: "https://box.tail.ts.net:4300" } as const;
+  const { server } = await start({ remoteAccess: { status: async () => ({ state: "stopped" }), enable: async () => state } });
+  const status = await call(server, "GET", "/api/settings/remote-access");
+  assert.equal(status.status, 200);
+  assert.deepEqual(status.json, { state: "stopped" });
+  const enable = await post(server, "/api/settings/remote-access/enable", {});
+  assert.equal(enable.status, 200);
+  assert.deepEqual(enable.json, state);
+  assert.equal((await call(server, "POST", "/api/settings/remote-access/enable", { headers: { "content-type": "text/plain" }, raw: "{}" })).status, 400);
+});
+
 test("every POST route refuses a body that is not JSON", async () => {
   const { server, port } = await start();
   const posts = [
@@ -712,6 +748,7 @@ test("every POST route refuses a body that is not JSON", async () => {
     "/api/settings/alerts/setup",
     "/api/settings/alerts/test",
     "/api/settings/alerts/disconnect",
+    "/api/settings/remote-access/enable",
     "/api/cache-cleanup",
     "/api/setup/retry",
     "/api/setup/token",
