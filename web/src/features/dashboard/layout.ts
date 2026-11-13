@@ -5,7 +5,7 @@ export const DASHBOARD_LAYOUT_KEY = "t3-dashboard-layout";
 const CARDS = ["activity", "usage", "running", "server", "linear"] as const;
 export type DashboardCard = (typeof CARDS)[number];
 
-export const CARD_TITLES: Record<DashboardCard, string> = { usage: "Usage", server: "Server", activity: "Activity", running: "Running", linear: "Linear" };
+export const CARD_TITLES: Record<DashboardCard, string> = { usage: "Usage", server: "Machine", activity: "Activity", running: "Running", linear: "Linear" };
 
 export type CardWidth = "half" | "full";
 export type CardColumn = "left" | "right";

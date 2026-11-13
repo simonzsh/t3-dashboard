@@ -24,7 +24,7 @@ export interface CardsInput {
   linearVersion: number;
 }
 
-/** The thread cards of the Dashboard and the Notifications panel; Usage, Server and Activity need no thread. */
+/** The thread cards of the Dashboard and the Notifications panel; Usage, Machine and Activity need no thread. */
 export function useDashboardCards({ state, now, sessionIds, onOpen, seen, seenReady, onMarkRead, linearVersion }: CardsInput, linearEnabled: boolean): Record<"notifications" | "running" | "linear", ReactNode> {
   const threads = state.threads;
   const linear = useLinear(linearVersion, linearEnabled);

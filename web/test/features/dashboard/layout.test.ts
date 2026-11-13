@@ -23,7 +23,7 @@ import { memoryStore } from "../../fixtures.ts";
 const D = DEFAULT_LAYOUT;
 const ids = (l: DashboardLayout) => l.order.map((p) => p.id);
 const half = (id: string, column: string) => ({ id, width: "half", column });
-// Usage alone, Activity full, then Running and Up next left of Server.
+// Usage alone, Activity full, then Running and Up next left of Machine.
 const Y = validateLayout({ order: [half("usage", "left"), { id: "activity", width: "full", column: "left" }, half("running", "left"), half("server", "right"), half("linear", "left")], hidden: [] });
 const col = (row: number, column: "left" | "right", index: number) => ({ kind: "column", row, column, index }) as const;
 const gap = (row: number, column: "left" | "right" = "left") => ({ kind: "gap", row, column }) as const;
@@ -57,7 +57,7 @@ test("full cards side by side leave no empty band, and half cards alone make one
 });
 
 test("the cards have their titles, and Notifications is not a card", () => {
-  assert.deepEqual([CARD_TITLES.usage, CARD_TITLES.server, CARD_TITLES.activity, CARD_TITLES.running, CARD_TITLES.linear], ["Usage", "Server", "Activity", "Running", "Linear"]);
+  assert.deepEqual([CARD_TITLES.usage, CARD_TITLES.server, CARD_TITLES.activity, CARD_TITLES.running, CARD_TITLES.linear], ["Usage", "Machine", "Activity", "Running", "Linear"]);
   assert.equal("notifications" in CARD_TITLES, false);
 });
 
