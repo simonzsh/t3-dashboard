@@ -42,7 +42,6 @@ export function sessionFromHash(hash: string): string | null {
 }
 
 // An empty or unknown hash falls back to Home, so a bad link never shows a blank page.
-// The old `#/dashboard` links land there too.
 export function tabFromHash(hash: string): Tab {
   if (prFromHash(hash)) return "pulls";
   if (sessionFromHash(hash)) return "sessions";

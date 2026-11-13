@@ -33,7 +33,7 @@ test("no hash opens Home", () => {
 });
 
 test("an unknown hash opens Home", () => {
-  for (const hash of ["#/agents", "#/inbox", "#/dashboard", "#/board", "#/settings", "#/Sessions", "#/sessions/a/b", "#/sessions/", "#/constructor", "#/__proto__", "sessions"]) assert.equal(tabFromHash(hash), "home", hash);
+  for (const hash of ["#/agents", "#/inbox", "#/board", "#/settings", "#/Sessions", "#/sessions/a/b", "#/sessions/", "#/constructor", "#/__proto__", "sessions"]) assert.equal(tabFromHash(hash), "home", hash);
 });
 
 test("a pull request hash opens the Pull requests page and reads back as its reference", () => {
