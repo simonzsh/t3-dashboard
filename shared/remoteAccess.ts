@@ -1,8 +1,22 @@
 // Remote access: the address a phone on the same tailnet opens.
 export type RemoteAccess =
-  /** No tailscale program found. */
-  | { state: "not-installed" }
-  /** Installed, but tailscaled is down, logged out or not "Running". */
+  | {
+      /** No tailscale program found. */
+      state: "not-installed";
+      /** The command that installs Tailscale on this machine's OS; null when there is no safe one-liner. */
+      installCommand: string | null;
+    }
+  | {
+      /** tailscaled runs, but this machine is not signed in. */
+      state: "needs-login";
+      /** The sign-in page Tailscale gave; null until Sign in is pressed or when none is known. */
+      loginUrl: string | null;
+      /** Why the last Sign in failed, one sentence; null before any try. */
+      error: string | null;
+      /** The command the user can run by hand. */
+      command: string;
+    }
+  /** Installed, but tailscaled is down or not "Running". */
   | { state: "stopped" }
   | {
       /** Tailscale runs, but nothing serves our port. */
