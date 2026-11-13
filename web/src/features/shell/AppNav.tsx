@@ -36,7 +36,7 @@ interface Props {
 const WAITING = "An agent is waiting for your reply";
 
 function Badges({ id, unread, sessions, automations, news, pulls }: Pick<Props, "unread" | "sessions" | "automations" | "news" | "pulls"> & { id: Tab }) {
-  if (id === "dashboard") return <CountBadge count={unread} max={9} label={`${unread} unread`} />;
+  if (id === "home") return <CountBadge count={unread} max={9} label={`${unread} unread`} />;
   if (id === "automations") {
     return (
       <>

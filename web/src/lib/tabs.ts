@@ -2,10 +2,10 @@ import type { PrRef } from "../../../shared/pulls.ts";
 import { isRepository } from "../../../shared/pulls.ts";
 import type { IconName } from "../ui/index.ts";
 
-export type Tab = "dashboard" | "sessions" | "pulls" | "automations" | "news";
+export type Tab = "home" | "sessions" | "pulls" | "automations" | "news";
 
 export const TABS: ReadonlyArray<{ id: Tab; label: string; icon: IconName; description: string; /** Bottom bar label, when the full one is too wide. */ short?: string }> = [
-  { id: "dashboard", label: "Home", icon: "house", description: "Usage limits, activity, and every agent that needs you." },
+  { id: "home", label: "Home", icon: "house", description: "Usage limits, activity, and every agent that needs you." },
   { id: "sessions", label: "Sessions", icon: "messagesSquare", description: "Your open conversations side by side, scrolling sideways." },
   { id: "pulls", label: "Pull requests", short: "PRs", icon: "gitPullRequest", description: "Your open pull requests and the ones waiting for your review." },
   { id: "automations", label: "Automations", icon: "calendarClock", description: "Scheduled agents and their latest runs." },
@@ -42,10 +42,11 @@ export function sessionFromHash(hash: string): string | null {
 }
 
 // An empty or unknown hash falls back to Home, so a bad link never shows a blank page.
+// The old `#/dashboard` links land there too.
 export function tabFromHash(hash: string): Tab {
   if (prFromHash(hash)) return "pulls";
   if (sessionFromHash(hash)) return "sessions";
-  return TABS.find(({ id }) => hashForTab(id) === hash)?.id ?? "dashboard";
+  return TABS.find(({ id }) => hashForTab(id) === hash)?.id ?? "home";
 }
 
 /** The source session belongs to this PR address, not to global navigation history. */

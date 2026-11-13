@@ -47,7 +47,7 @@ test("one layout button names the view it switches to", () => {
 test("the layout toggle is hidden when it is off, and on other pages", () => {
   assert.doesNotMatch(render("sessions", { compact: true }), /Switch to (grid|column) view/);
   assert.match(render("sessions", { compact: true }), /New Session/);
-  for (const tab of ["dashboard", "automations"] as const) assert.doesNotMatch(render(tab), /Switch to (grid|column) view/);
+  for (const tab of ["home", "automations"] as const) assert.doesNotMatch(render(tab), /Switch to (grid|column) view/);
 });
 
 test("Automations shows New Automation only", () => {
@@ -59,44 +59,44 @@ test("Automations shows New Automation only", () => {
 });
 
 test("Dashboard shows the bell, then Edit layout", () => {
-  const out = render("dashboard");
+  const out = render("home");
   assert.ok(out.indexOf('aria-label="Notifications"') >= 0 && out.indexOf('aria-label="Notifications"') < out.indexOf("Edit layout"));
   assert.doesNotMatch(out, /New Session|New Automation/);
 });
 
 test("the bell is pressed while the panel is open, and its tooltip names the next action", () => {
-  const open = render("dashboard", { notificationsOpen: true });
+  const open = render("home", { notificationsOpen: true });
   assert.match(open, /aria-pressed="true"/);
   assert.match(open, /data-tooltip="Hide notifications"/);
-  const closed = render("dashboard");
+  const closed = render("home");
   assert.match(closed, /aria-pressed="false"/);
   assert.match(closed, /data-tooltip="Show notifications"/);
 });
 
 test("the bell badge shows the unread count, 9+ above nine, and nothing at zero", () => {
-  const some = render("dashboard", { unread: 3 });
+  const some = render("home", { unread: 3 });
   assert.match(some, /aria-label="Notifications, 3 unread"/);
   assert.match(some, /class="count-badge"[^>]*>3</);
-  const many = render("dashboard", { unread: 12 });
+  const many = render("home", { unread: 12 });
   assert.match(many, /aria-label="Notifications, 12 unread"/);
   assert.match(many, />9\+</);
-  assert.doesNotMatch(render("dashboard"), /count-badge/);
+  assert.doesNotMatch(render("home"), /count-badge/);
 });
 
 test("the bell shows only on Dashboard and not in edit mode", () => {
-  assert.doesNotMatch(render("dashboard", { editingLayout: true }), /Notifications/);
+  assert.doesNotMatch(render("home", { editingLayout: true }), /Notifications/);
   for (const tab of ["sessions", "automations"] as const) assert.doesNotMatch(render(tab), /Notifications/);
 });
 
 test("in edit mode Dashboard shows Reset, then the primary Done", () => {
-  const out = render("dashboard", { editingLayout: true });
+  const out = render("home", { editingLayout: true });
   assert.ok(out.indexOf(">Reset<") < out.indexOf(">Done<"));
   assert.match(out, /class="btn md primary"[^>]*>Done/);
   assert.doesNotMatch(out, /Edit layout/);
 });
 
 test("Reset is disabled while the layout is the default", () => {
-  assert.match(render("dashboard", { editingLayout: true, layoutIsDefault: true }), /<button[^>]*disabled=""[^>]*>Reset/);
+  assert.match(render("home", { editingLayout: true, layoutIsDefault: true }), /<button[^>]*disabled=""[^>]*>Reset/);
 });
 
 test("on a phone the page action is an icon button, with the search button", () => {
@@ -111,21 +111,21 @@ test("without the dashboard state Sessions and Automations show no create button
 });
 
 test("on a phone Dashboard has the bell, Edit layout as an icon, then Reset and Done while editing", () => {
-  const out = render("dashboard", { compact: true });
+  const out = render("home", { compact: true });
   assert.ok(out.indexOf('aria-label="Notifications"') < out.indexOf('aria-label="Edit layout"'));
   assert.match(out, /aria-label="Edit layout"/);
   assert.match(out, /aria-label="Search"/);
-  const editing = render("dashboard", { compact: true, editingLayout: true });
+  const editing = render("home", { compact: true, editingLayout: true });
   assert.match(editing, /aria-label="Reset"/);
   assert.match(editing, /aria-label="Done"/);
 });
 
 test("on a phone every page header ends with Search and Settings", () => {
-  for (const tab of ["dashboard", "sessions", "automations", "news"] as const) {
+  for (const tab of ["home", "sessions", "automations", "news"] as const) {
     const out = render(tab, { compact: true });
     assert.ok(out.indexOf('aria-label="Search"') < out.indexOf('aria-label="Settings"'), tab);
   }
-  assert.doesNotMatch(render("dashboard"), /aria-label="Settings"/);
+  assert.doesNotMatch(render("home"), /aria-label="Settings"/);
 });
 
 test("on a phone the Settings button shows a dot when an update is ready", () => {

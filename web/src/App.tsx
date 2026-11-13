@@ -258,9 +258,9 @@ export function App() {
   const openPrsKey = openPrKey(openPrNow);
   const openPrs = useMemo(() => openPrNow, [openPrsKey]);
   const sessionsBadge = useMemo(() => ({ count: sessionsBadgeCount(threads, notify.seen), waiting: agents.waiting > 0 }), [threads, notify.seen, agents.waiting]);
-  const dashboardLayout = useDashboardLayout(tab === "dashboard");
-  const notifPanel = useNotificationsPanel(sheetMode, tab === "dashboard");
-  const dashboardOpen = tab === "dashboard" && state !== null;
+  const dashboardLayout = useDashboardLayout(tab === "home");
+  const notifPanel = useNotificationsPanel(sheetMode, tab === "home");
+  const dashboardOpen = tab === "home" && state !== null;
   // The sheet locks the page scroll while it shows.
   const sheetShown = sheetMode && notifPanel.open && dashboardOpen && !dashboardLayout.editing;
   const closeSheet = () => {
@@ -345,7 +345,7 @@ export function App() {
           <ConnectionBanner connection={state?.connection ?? null} sseDown={sseDown} />
           <NotificationToasts toasts={notify.toasts} projects={state?.projects ?? []} onOpen={(id) => openInSessions(id, true)} onDismiss={notify.dismiss} />
           <main>
-            {tab === "dashboard" &&
+            {tab === "home" &&
               (state ? (
                 <DashboardView
                   state={state}

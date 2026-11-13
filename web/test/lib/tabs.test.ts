@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { TABS, hashForPr, hashForSession, hashForTab, prFromHash, prSourceFromHash, sessionFromHash, tabFromHash } from "../../src/lib/tabs.ts";
 
 test("the tabs are Dashboard, Sessions, Pull requests, Automations and News", () => {
-  assert.deepEqual(TABS.map((t) => [t.id, t.label]), [["dashboard", "Home"], ["sessions", "Sessions"], ["pulls", "Pull requests"], ["automations", "Automations"], ["news", "News"]]);
+  assert.deepEqual(TABS.map((t) => [t.id, t.label]), [["home", "Home"], ["sessions", "Sessions"], ["pulls", "Pull requests"], ["automations", "Automations"], ["news", "News"]]);
 });
 
 test("each tab has a one-line description", () => {
@@ -11,7 +11,7 @@ test("each tab has a one-line description", () => {
 });
 
 test("each tab has its own hash", () => {
-  assert.equal(hashForTab("dashboard"), "#/dashboard");
+  assert.equal(hashForTab("home"), "#/home");
   assert.equal(hashForTab("sessions"), "#/sessions");
   assert.equal(hashForTab("automations"), "#/automations");
   assert.equal(hashForTab("news"), "#/news");
@@ -19,21 +19,21 @@ test("each tab has its own hash", () => {
 });
 
 test("a tab hash reads back as its tab", () => {
-  assert.equal(tabFromHash("#/dashboard"), "dashboard");
+  assert.equal(tabFromHash("#/home"), "home");
   assert.equal(tabFromHash("#/sessions"), "sessions");
   assert.equal(tabFromHash("#/automations"), "automations");
   assert.equal(tabFromHash("#/news"), "news");
   assert.equal(tabFromHash("#/pulls"), "pulls");
 });
 
-test("no hash opens Dashboard", () => {
-  assert.equal(tabFromHash(""), "dashboard");
-  assert.equal(tabFromHash("#"), "dashboard");
-  assert.equal(tabFromHash("#/"), "dashboard");
+test("no hash opens Home", () => {
+  assert.equal(tabFromHash(""), "home");
+  assert.equal(tabFromHash("#"), "home");
+  assert.equal(tabFromHash("#/"), "home");
 });
 
-test("an unknown hash opens Dashboard", () => {
-  for (const hash of ["#/agents", "#/inbox", "#/home", "#/board", "#/settings", "#/Sessions", "#/sessions/a/b", "#/sessions/", "#/constructor", "#/__proto__", "sessions"]) assert.equal(tabFromHash(hash), "dashboard", hash);
+test("an unknown hash opens Home", () => {
+  for (const hash of ["#/agents", "#/inbox", "#/dashboard", "#/board", "#/settings", "#/Sessions", "#/sessions/a/b", "#/sessions/", "#/constructor", "#/__proto__", "sessions"]) assert.equal(tabFromHash(hash), "home", hash);
 });
 
 test("a pull request hash opens the Pull requests page and reads back as its reference", () => {
@@ -47,7 +47,7 @@ test("a pull request hash opens the Pull requests page and reads back as its ref
 test("a malformed pull request hash opens the Dashboard", () => {
   for (const hash of ["#/pulls/", "#/pulls/acme", "#/pulls/acme/storefront", "#/pulls/acme/storefront/0", "#/pulls/acme/storefront/x", "#/pulls/acme/storefront/12/diff", "#/pulls/-evil/storefront/1", "#/pulls/acme/../1", "#/Pulls/acme/storefront/1", "#/git/acme/storefront/1", "#/pulls/acme/storefront/012"]) {
     assert.equal(prFromHash(hash), null, hash);
-    assert.equal(tabFromHash(hash), "dashboard", hash);
+    assert.equal(tabFromHash(hash), "home", hash);
   }
 });
 
