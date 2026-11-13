@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import type { RemoteAccess } from "../../../../shared/api.ts";
 import { useApi } from "../../api/ApiContext.tsx";
 import { useAction } from "../../lib/useAction.ts";
@@ -94,7 +94,7 @@ export function RemoteAccessView({ access, loadError, checking, enabling, onEnab
   }
 }
 
-function NeedsEnable({ access, enabling, onEnable, checkButton }: { access: Extract<RemoteAccess, { state: "needs-enable" }>; enabling: boolean; onEnable(): void; checkButton: React.ReactNode }) {
+function NeedsEnable({ access, enabling, onEnable, checkButton }: { access: Extract<RemoteAccess, { state: "needs-enable" }>; enabling: boolean; onEnable(): void; checkButton: ReactNode }) {
   const copy = useCopy("copy the command");
   const failed = access.error !== null;
   const enableButton = <Button variant="primary" size="sm" loading={enabling ? "Enabling…" : false} onClick={onEnable}>{failed ? "Enable again" : "Enable"}</Button>;
