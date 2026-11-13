@@ -7,6 +7,7 @@ export function demoTailscale(): TailscaleRun {
   let servePort: number | null = null;
   return async (args) => {
     const ok = (value: unknown) => ({ code: 0, stdout: JSON.stringify(value), stderr: "" });
+    if (args[0] === "login") return { code: null, stdout: "To authenticate, visit:\n\n\thttps://login.tailscale.com/a/demo\n", stderr: "" };
     if (args[0] === "status") return ok({ BackendState: "Running", Self: { DNSName: `${NAME}.` } });
     if (args[1] === "status") {
       if (servePort === null) return ok({});

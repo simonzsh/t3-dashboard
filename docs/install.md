@@ -207,7 +207,7 @@ To open the dashboard from a different device, use a proxy on a private network.
 Automatic setup:
 
 1. Install Tailscale on this machine and on your phone, and sign in to the same tailnet. Turn on MagicDNS and HTTPS certificates in the Tailscale admin console.
-2. Open Settings > App. When Tailscale runs but does not share the dashboard, press Enable. The dashboard runs `tailscale serve --bg --https=<port> http://127.0.0.1:<port>`.
+2. Open Settings > App. If Tailscale is missing, the panel shows the command that installs it (Linux and Windows). If this machine is not signed in, press Sign in: the panel shows a sign-in link and a QR code. Then, when Tailscale runs but does not share the dashboard, press Enable. The dashboard runs `tailscale serve --bg --https=<port> http://127.0.0.1:<port>`.
 3. The dashboard accepts the MagicDNS name of this machine, read from `tailscale status`. You do not need `T3_DASHBOARD_ALLOWED_HOSTS` for it.
 
 If Enable fails, the panel shows the reason and the command to run by hand. The dashboard never changes a Serve entry that exists already.

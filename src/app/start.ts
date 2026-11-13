@@ -255,7 +255,7 @@ export async function start({ port, log, env }: StartOptions): Promise<void> {
   const seenFile = seenPath(env, home);
   const seen = new SeenStore(readSeen(seenFile, readText), (value) => writeSecret(seenFile, seenText(value)));
   const listenPort = port ?? envPort(env);
-  const remoteAccess = createRemoteAccess({ port: listenPort, run: tailscaleRunner(env), now: () => Date.now() });
+  const remoteAccess = createRemoteAccess({ port: listenPort, platform: process.platform, run: tailscaleRunner(env), now: () => Date.now() });
   void remoteAccess.refreshHost();
   const handler = createDashboardServer({ actions, sessions, stash, seen, alerts, hub, board, usage, limits, serverStats, cacheCleanup, automations, pulls, news, getState, connection: () => live.connection(), site, settings, setup, updates, remoteAccess, allowedHosts: envAllowedHosts(env) });
 

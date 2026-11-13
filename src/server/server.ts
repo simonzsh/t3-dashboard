@@ -57,7 +57,7 @@ export interface DashboardServerOptions {
   settings: Settings;
   setup: SetupControl;
   updates: Pick<UpdateManager, "status" | "check" | "apply" | "setChannel">;
-  remoteAccess: Pick<RemoteAccessService, "status" | "enable" | "host" | "refreshHost">;
+  remoteAccess: Pick<RemoteAccessService, "status" | "enable" | "login" | "host" | "refreshHost">;
   /** Lowercase hostnames, without port, accepted besides 127.0.0.1 and localhost. */
   allowedHosts?: string[];
 }
@@ -248,6 +248,7 @@ export function createDashboardServer(options: DashboardServerOptions): Dashboar
     { method: "GET", path: "/api/alerts", handle: () => json(200, alerts.state()) },
     { method: "GET", path: "/api/settings/remote-access", handle: async () => json(200, await remoteAccess.status()) },
     { method: "POST", path: "/api/settings/remote-access/enable", handle: async () => json(200, await remoteAccess.enable()) },
+    { method: "POST", path: "/api/settings/remote-access/login", handle: async () => json(200, await remoteAccess.login()) },
     { method: "GET", path: "/api/settings/alerts", handle: () => json(200, alerts.settings()) },
     { method: "GET", path: "/api/update", handle: () => json(200, updates.status()) },
     {

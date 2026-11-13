@@ -149,7 +149,7 @@ export async function startDemo(env: Record<string, string | undefined>): Promis
     settings,
     setup,
     updates,
-    remoteAccess: createRemoteAccess({ port: demoPort, run: demoTailscale(), now: () => Date.now() }),
+    remoteAccess: createRemoteAccess({ port: demoPort, platform: "linux", run: demoTailscale(), now: () => Date.now() }),
     allowedHosts: envAllowedHosts(env),
   });
 

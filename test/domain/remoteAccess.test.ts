@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "bun:test";
-import { createRemoteAccess, remoteUrl } from "../../src/domain/remoteAccess.ts";
+import { createRemoteAccess, installCommand, loginCommand, remoteUrl } from "../../src/domain/remoteAccess.ts";
 import type { TailscaleResult, TailscaleRun } from "../../src/integrations/tailscale/cli.ts";
 import type { ServeStatus } from "../../src/integrations/tailscale/schemas.ts";
 
@@ -68,14 +68,17 @@ function fake(): Fake {
   return state;
 }
 
-const make = (ts: Fake, now = () => 0) => createRemoteAccess({ port: 4300, run: (args, options) => ts.run(args, options), now });
+const make = (ts: Fake, now = () => 0, platform: NodeJS.Platform = "linux") => createRemoteAccess({ port: 4300, platform, run: (args, options) => ts.run(args, options), now });
 const serveCalls = (ts: Fake) => ts.calls.filter((args) => args[0] === "serve" && args[1] !== "status");
 
 test("status maps Tailscale states", async () => {
   const ts = fake();
   ts.self = { code: null, missing: true };
-  assert.deepEqual(await make(ts).status(), { state: "not-installed" });
-  ts.self = { stdout: JSON.stringify({ BackendState: "NeedsLogin" }) };
+  assert.deepEqual(await make(ts).status(), { state: "not-installed", installCommand: "curl -fsSL https://tailscale.com/install.sh | sh" });
+  assert.deepEqual(await make(ts, () => 0, "darwin").status(), { state: "not-installed", installCommand: null });
+  ts.self = { stdout: JSON.stringify({ BackendState: "Stopped" }) };
+  assert.deepEqual(await make(ts).status(), { state: "stopped" });
+  ts.self = { code: 1 };
   assert.deepEqual(await make(ts).status(), { state: "stopped" });
   ts.self = { stdout: JSON.stringify({ BackendState: "Running", Self: { DNSName: "" } }) };
   const off = await make(ts).status();
@@ -112,6 +115,8 @@ test("enable does nothing when ready, stopped or not installed", async () => {
   assert.equal((await make(ts).enable()).state, "ready");
   ts.self = { stdout: JSON.stringify({ BackendState: "Stopped" }) };
   assert.equal((await make(ts).enable()).state, "stopped");
+  ts.self = { stdout: JSON.stringify({ BackendState: "NeedsLogin" }) };
+  assert.equal((await make(ts).enable()).state, "needs-login");
   ts.self = { code: null, missing: true };
   assert.equal((await make(ts).enable()).state, "not-installed");
   assert.deepEqual(serveCalls(ts), []);
@@ -216,4 +221,72 @@ test("parallel refreshHost calls share one read", async () => {
   const access = make(ts);
   await Promise.all([access.refreshHost(), access.refreshHost()]);
   assert.equal(ts.calls.length, 1);
+});
+
+test("installCommand and loginCommand depend on the platform", () => {
+  assert.equal(installCommand("linux"), "curl -fsSL https://tailscale.com/install.sh | sh");
+  assert.equal(installCommand("win32"), "winget install --id tailscale.tailscale");
+  assert.equal(installCommand("darwin"), null);
+  assert.equal(loginCommand("linux"), "sudo tailscale up --operator=$USER");
+  assert.equal(loginCommand("darwin"), "tailscale up");
+  assert.equal(loginCommand("win32"), "tailscale up");
+});
+
+const needsLogin = (authUrl?: string) => ({ stdout: JSON.stringify({ BackendState: "NeedsLogin", ...(authUrl ? { AuthURL: authUrl } : {}) }) });
+
+test("status is needs-login with the sign-in link Tailscale gave, and no allowed host", async () => {
+  const ts = fake();
+  const access = make(ts);
+  await access.status();
+  assert.equal(access.host(), NAME);
+  ts.self = needsLogin("https://login.tailscale.com/a/x");
+  assert.deepEqual(await access.status(), { state: "needs-login", loginUrl: "https://login.tailscale.com/a/x", error: null, command: "sudo tailscale up --operator=$USER" });
+  assert.equal(access.host(), null);
+  ts.self = needsLogin();
+  assert.equal(((await make(ts, () => 0, "win32").status()) as { command: string }).command, "tailscale up");
+});
+
+test("login runs tailscale login once and gives the sign-in link", async () => {
+  const ts = fake();
+  ts.self = needsLogin();
+  const base = ts.run;
+  ts.run = async (args, options) => (args[0] === "login" ? (ts.calls.push(args), { code: null, stdout: "", stderr: "visit https://login.tailscale.com/a/new\n" }) : base(args, options));
+  const access = make(ts);
+  const [a, b] = await Promise.all([access.login(), access.login()]);
+  assert.deepEqual(a, { state: "needs-login", loginUrl: "https://login.tailscale.com/a/new", error: null, command: "sudo tailscale up --operator=$USER" });
+  assert.deepEqual(a, b);
+  assert.equal(ts.calls.filter((args) => args[0] === "login").length, 1);
+});
+
+test("login does nothing when the machine is not waiting for a sign-in", async () => {
+  const ts = fake();
+  assert.equal((await make(ts).login()).state, "needs-enable");
+  assert.deepEqual(ts.calls.filter((args) => args[0] === "login"), []);
+});
+
+test("login turns a failure into a sentence", async () => {
+  const ts = fake();
+  ts.self = needsLogin();
+  const base = ts.run;
+  let outcome: Partial<TailscaleResult> = {};
+  ts.run = async (args, options) => (args[0] === "login" ? { code: 1, stdout: "", stderr: "", ...outcome } : base(args, options));
+  const error = async () => ((await make(ts).login()) as { error: string }).error;
+  outcome = { stderr: "Access denied" };
+  assert.match(await error(), /^Tailscale refused: only root or the Tailscale operator can sign in/);
+  outcome = { code: null };
+  assert.match(await error(), /^Tailscale did not give a sign-in link in time/);
+  outcome = { stderr: "boom" };
+  assert.match(await error(), /^Tailscale could not start the sign-in/);
+});
+
+test("login reads the status again when tailscale login ends with exit 0 and no link", async () => {
+  const ts = fake();
+  ts.self = needsLogin();
+  const base = ts.run;
+  ts.run = async (args, options) => {
+    if (args[0] !== "login") return base(args, options);
+    ts.self = { stdout: JSON.stringify({ BackendState: "Running", Self: { DNSName: `${NAME}.` } }) };
+    return { code: 0, stdout: "Success.", stderr: "" };
+  };
+  assert.equal((await make(ts).login()).state, "needs-enable");
 });

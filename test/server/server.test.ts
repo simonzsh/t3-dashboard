@@ -51,7 +51,7 @@ interface StartOptions {
   inbox?: unknown[];
   pulls?: Partial<Pick<PullRequests, "prs" | "detail" | "diff" | "connection">>;
   news?: Partial<Pick<News, "get" | "article" | "search" | "save" | "runNow" | "remove" | "removeAll">>;
-  remoteAccess?: Partial<Pick<RemoteAccessService, "status" | "enable" | "host" | "refreshHost">>;
+  remoteAccess?: Partial<Pick<RemoteAccessService, "status" | "enable" | "login" | "host" | "refreshHost">>;
   automations?: Pick<Automations, "list" | "create" | "remove" | "update"> & Partial<Pick<Automations, "setEnabled" | "runNow">>;
   // Content of the Linear file. Without it, `linearKey` feeds the board directly.
   linear?: unknown;
@@ -232,7 +232,7 @@ async function start(startOptions: StartOptions = {}) {
     settings,
     setup,
     updates,
-    remoteAccess: { status: async () => ({ state: "not-installed" }), enable: async () => ({ state: "not-installed" }), host: () => null, refreshHost: async () => {}, ...startOptions.remoteAccess },
+    remoteAccess: { status: async () => ({ state: "not-installed", installCommand: null }), enable: async () => ({ state: "not-installed", installCommand: null }), login: async () => ({ state: "not-installed", installCommand: null }), host: () => null, refreshHost: async () => {}, ...startOptions.remoteAccess },
     allowedHosts: startOptions.allowedHosts,
   });
   running.push(async () => hub.close());
@@ -734,6 +734,15 @@ test("settings: remote access answers its status, and enable answers the new sta
   assert.equal(enable.status, 200);
   assert.deepEqual(enable.json, state);
   assert.equal((await call(server, "POST", "/api/settings/remote-access/enable", { headers: { "content-type": "text/plain" }, raw: "{}" })).status, 400);
+});
+
+test("settings: remote access login answers the new state and refuses a non-JSON body", async () => {
+  const state = { state: "needs-login", loginUrl: "https://login.tailscale.com/a/x", error: null, command: "tailscale up" } as const;
+  const { server } = await start({ remoteAccess: { login: async () => state } });
+  const login = await post(server, "/api/settings/remote-access/login", {});
+  assert.equal(login.status, 200);
+  assert.deepEqual(login.json, state);
+  assert.equal((await call(server, "POST", "/api/settings/remote-access/login", { headers: { "content-type": "text/plain" }, raw: "{}" })).status, 400);
 });
 
 test("every POST route refuses a body that is not JSON", async () => {

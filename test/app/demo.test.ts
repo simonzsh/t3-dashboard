@@ -650,8 +650,9 @@ test("the demo Tailscale starts without a serve entry and serves once enabled", 
   assert.deepEqual(issues(ServeStatus, before), []);
   assert.deepEqual(before, {});
 
-  const access = createRemoteAccess({ port: 4321, run, now: () => 0 });
+  const access = createRemoteAccess({ port: 4321, platform: "linux", run, now: () => 0 });
   assert.equal((await access.status()).state, "needs-enable");
   assert.deepEqual(await access.enable(), { state: "ready", url: "https://dashboard.example.ts.net:4321" });
   assert.deepEqual(issues(ServeStatus, JSON.parse((await run(["serve", "status", "--json"], options)).stdout)), []);
+  assert.match((await run(["login"], options)).stdout, /https:\/\/login\.tailscale\.com\/a\/demo/);
 });

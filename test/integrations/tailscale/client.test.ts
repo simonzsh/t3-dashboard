@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { test } from "bun:test";
 import { IntegrationError } from "../../../src/integrations/errors.ts";
 import type { TailscaleResult, TailscaleRun } from "../../../src/integrations/tailscale/cli.ts";
-import { enableServe, readSelf, readServe, serveArgs, serveCommand } from "../../../src/integrations/tailscale/client.ts";
+import { enableServe, readSelf, readServe, serveArgs, serveCommand, startLogin } from "../../../src/integrations/tailscale/client.ts";
 
 const answer = (result: Partial<TailscaleResult>): TailscaleRun => async () => ({ code: 0, stdout: "", stderr: "", ...result });
 const status = (value: unknown) => answer({ stdout: JSON.stringify(value) });
@@ -10,7 +10,7 @@ const status = (value: unknown) => answer({ stdout: JSON.stringify(value) });
 test("readSelf tells a missing program, a stopped Tailscale and a running one", async () => {
   assert.deepEqual(await readSelf(answer({ code: null, missing: true })), { kind: "missing" });
   assert.deepEqual(await readSelf(answer({ code: 1 })), { kind: "down" });
-  assert.deepEqual(await readSelf(status({ BackendState: "NeedsLogin" })), { kind: "down" });
+  assert.deepEqual(await readSelf(status({ BackendState: "Stopped" })), { kind: "down" });
   assert.deepEqual(await readSelf(status({ BackendState: "Running", Self: { DNSName: "Box.Tail.ts.net." } })), { kind: "running", dnsName: "box.tail.ts.net" });
   assert.deepEqual(await readSelf(status({ BackendState: "Running", Self: { DNSName: "" } })), { kind: "running", dnsName: null });
   assert.deepEqual(await readSelf(status({ BackendState: "Running", Self: null })), { kind: "running", dnsName: null });
@@ -65,4 +65,28 @@ test("enableServe returns the approve link, even when the command timed out", as
   const expected = { ok: false, reason: "needs-approval", approveUrl: "https://login.tailscale.com/f/serve?node=abc123" };
   assert.deepEqual(await enableServe(answer({ code: null, stdout }), 4300), expected);
   assert.deepEqual(await enableServe(answer({ code: 1, stderr: stdout }), 4300), expected);
+});
+
+test("readSelf tells a machine that must sign in, and keeps only an https sign-in link", async () => {
+  const url = "https://login.tailscale.com/a/abc";
+  assert.deepEqual(await readSelf(status({ BackendState: "NeedsLogin", AuthURL: url })), { kind: "needs-login", authUrl: url });
+  assert.deepEqual(await readSelf(status({ BackendState: "NeedsMachineAuth", AuthURL: "" })), { kind: "needs-login", authUrl: null });
+  assert.deepEqual(await readSelf(status({ BackendState: "NeedsLogin" })), { kind: "needs-login", authUrl: null });
+  assert.deepEqual(await readSelf(status({ BackendState: "NeedsLogin", AuthURL: "http://evil.example/a" })), { kind: "needs-login", authUrl: null });
+});
+
+test("startLogin takes the sign-in link from a run that timed out", async () => {
+  const calls: Array<{ args: string[]; timeoutMs: number }> = [];
+  const stderr = "\nTo authenticate, visit:\n\n\thttps://login.tailscale.com/a/abc123\n";
+  const run: TailscaleRun = async (args, { timeoutMs }) => (calls.push({ args, timeoutMs }), { code: null, stdout: "", stderr });
+  assert.deepEqual(await startLogin(run), { ok: true, url: "https://login.tailscale.com/a/abc123" });
+  assert.deepEqual(calls, [{ args: ["login"], timeoutMs: 10_000 }]);
+  assert.deepEqual(await startLogin(answer({ code: 0, stdout: "Success." })), { ok: true, url: null });
+});
+
+test("startLogin names the cause of a failure", async () => {
+  const fail = (result: Partial<TailscaleResult>) => startLogin(answer({ code: 1, ...result }));
+  assert.deepEqual(await fail({ stderr: "Access denied: checkprefs access denied" }), { ok: false, reason: "denied" });
+  assert.deepEqual(await fail({ stderr: "something odd" }), { ok: false, reason: "failed" });
+  assert.deepEqual(await fail({ code: null }), { ok: false, reason: "timeout" });
 });

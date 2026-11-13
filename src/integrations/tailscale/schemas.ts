@@ -2,6 +2,7 @@ import { s, type Infer } from "../contract.ts";
 
 export const TailscaleStatus = s.object({
   BackendState: s.string(),
+  AuthURL: s.optional(s.string()),
   Self: s.optional(s.nullable(s.object({ DNSName: s.optional(s.string()) }))),
 });
 
