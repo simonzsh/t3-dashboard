@@ -87,7 +87,7 @@ export function RemoteAccessView({ access, loadError, checking, enabling, signin
       </div>;
     case "stopped":
       return <div className="install-box">
-        <p className="install-steps">Tailscale is installed but not running or not signed in.</p>
+        <p className="install-steps">Tailscale is installed but not running.</p>
         <ol className="install-steps">{signIn}</ol>
       </div>;
     case "needs-login":

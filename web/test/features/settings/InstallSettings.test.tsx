@@ -67,7 +67,7 @@ test("signing in disables the button and says so", () => {
 
 test("stopped asks to sign in, without the install step", () => {
   const html = render({ access: { state: "stopped" } });
-  assert.match(html, /not running or not signed in/);
+  assert.match(html, /installed but not running\./);
   assert.doesNotMatch(html, /tailscale\.com\/download/);
 });
 
