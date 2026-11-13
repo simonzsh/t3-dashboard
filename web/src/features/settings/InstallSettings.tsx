@@ -107,7 +107,7 @@ function NeedsEnable({ access, enabling, onEnable, checkButton }: { access: Extr
           <code className="install-command">{access.command}</code>
           <IconButton size="sm" label="Copy the command" tooltip="Copy the command" onClick={() => copy.copy(access.command)}><Icon name={copy.copied ? "check" : "copy"} /></IconButton>
         </span>
-      </> : <p className="install-steps">Tailscale runs, but it does not share the dashboard yet. Enable makes it reachable from your devices on your tailnet only.</p>}
+      </> : <p className="install-steps">Tailscale runs, but it does not share the dashboard yet. Enable makes it reachable only through your tailnet. The dashboard has no login, so share it only with devices you trust.</p>}
       <span className="linear-controls">{enableButton}{enabling && <Loader inline label="Enabling" />}{failed && checkButton}</span>
     </div>
   );
