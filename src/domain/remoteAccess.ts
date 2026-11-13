@@ -65,15 +65,17 @@ export function createRemoteAccess({ port, run, now }: RemoteAccessOptions): Rem
   const needsEnable = (error: string | null, approveUrl: string | null = null): RemoteAccess => ({ state: "needs-enable", command: serveCommand(port), error, approveUrl });
 
   /** The answer, with the serve list it came from when Tailscale runs but does not serve us yet. */
-  async function read(): Promise<{ access: RemoteAccess; serve?: ServeStatus }> {
+  // serve is null when Tailscale did not list its Serve entries.
+  async function read(): Promise<{ access: RemoteAccess; serve?: ServeStatus | null }> {
     try {
       const self = await readSelf(run);
+      // The name stops being allowed once Tailscale no longer gives it.
+      knownHost = self.kind === "running" ? self.dnsName : null;
       if (self.kind === "missing") return { access: { state: "not-installed" } };
       if (self.kind === "down") return { access: { state: "stopped" } };
       if (self.dnsName === null) return { access: { state: "error", message: MAGIC_DNS_OFF } };
-      knownHost = self.dnsName;
-      const serve = (await readServe(run)) ?? {};
-      const url = remoteUrl(serve, self.dnsName, port);
+      const serve = await readServe(run);
+      const url = serve ? remoteUrl(serve, self.dnsName, port) : null;
       return url ? { access: { state: "ready", url } } : { access: needsEnable(null), serve };
     } catch (error) {
       if (error instanceof IntegrationError) return { access: { state: "error", message: error.message } };
@@ -84,7 +86,8 @@ export function createRemoteAccess({ port, run, now }: RemoteAccessOptions): Rem
   async function runEnable(): Promise<RemoteAccess> {
     const { access, serve } = await read();
     if (access.state !== "needs-enable") return access;
-    // Never take over a port that Tailscale already serves for something else.
+    // Never take over a port that Tailscale already serves, or may serve, for something else.
+    if (serve === null) return needsEnable("Tailscale did not list its Serve entries. Run the command below by hand.");
     if (serve?.TCP?.[String(port)]) return needsEnable(`Tailscale already uses port ${port} for something else. Change it by hand.`);
     const result = await enableServe(run, port);
     if (!result.ok) return needsEnable(FAILURES[result.reason], result.approveUrl);
@@ -102,7 +105,7 @@ export function createRemoteAccess({ port, run, now }: RemoteAccessOptions): Rem
       lastRefresh = now();
       refreshing = readSelf(run)
         .then((self) => {
-          if (self.kind === "running" && self.dnsName !== null) knownHost = self.dnsName;
+          knownHost = self.kind === "running" ? self.dnsName : null;
         })
         .catch(() => {})
         .finally(() => (refreshing = null));

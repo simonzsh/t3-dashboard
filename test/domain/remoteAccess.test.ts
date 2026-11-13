@@ -129,6 +129,25 @@ test("enable never serves over a port that Tailscale already uses", async () => 
   assert.deepEqual(serveCalls(ts), []);
 });
 
+test("enable never serves when Tailscale does not list its Serve entries", async () => {
+  const ts = fake();
+  ts.serve = { code: 1, stderr: "Access denied" };
+  const result = await make(ts).enable();
+  assert.equal(result.state, "needs-enable");
+  assert.match((result as { error: string }).error, /^Tailscale did not list its Serve entries/);
+  assert.deepEqual(serveCalls(ts), []);
+});
+
+test("the allowed host is cleared once Tailscale stops", async () => {
+  const ts = fake();
+  const access = make(ts);
+  await access.status();
+  assert.equal(access.host(), NAME);
+  ts.self = { stdout: JSON.stringify({ BackendState: "Stopped" }) };
+  assert.equal((await access.status()).state, "stopped");
+  assert.equal(access.host(), null);
+});
+
 test("enable turns a failure into a sentence, and keeps the approve link", async () => {
   const ts = fake();
   ts.serveCommand = () => ({ code: 1, stderr: "Access denied" });
