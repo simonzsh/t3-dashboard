@@ -7,7 +7,12 @@ on:
 
 jobs:
   check:
-    runs-on: ubuntu-latest
+    # The binary ships for macOS and Windows too, so test it there.
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v5
       - uses: oven-sh/setup-bun@v2
