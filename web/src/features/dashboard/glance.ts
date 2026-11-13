@@ -29,6 +29,17 @@ export interface GlanceCounts {
   overdue: number;
 }
 
+/** A counter of the card: a click on it lists every signal of this counter. */
+export type GlanceFilter = "urgent" | "assigned" | "mentions" | "due";
+
+// Each counter counts exactly the signals of these kinds, so a filtered list has as many rows as its counter.
+const FILTER_KINDS: Record<GlanceFilter, readonly SignalKind[]> = {
+  urgent: ["urgent"],
+  assigned: ["assigned"],
+  mentions: ["mention", "comment-mention"],
+  due: ["overdue", "due-soon"],
+};
+
 const IDENTIFIER = /\b[A-Z][A-Z0-9]*-\d+\b/g;
 
 /** Issue identifiers named in thread titles: assigning an issue titles the thread after it. */
@@ -53,8 +64,11 @@ function issueSignal(issue: LinearIssue, kind: SignalKind): Signal {
   return { key: `${kind}:${issue.id}`, kind, issueId: issue.id, identifier: issue.identifier, title: issue.title, url: issue.url, actor: null, at: issue.updatedAt, dueDate: issue.dueDate };
 }
 
-/** The counters and the feed of the Linear card (the inbox arrives newest first). The feed shows each issue once, by its strongest signal. */
-export function glance(board: BoardResult, now: Date): { counts: GlanceCounts; feed: Signal[] } {
+/**
+ * The counters and the feed of the Linear card (the inbox arrives newest first). The feed shows each issue once, by its strongest signal.
+ * With a filter, the feed is every signal of that counter, with no limit.
+ */
+export function glance(board: BoardResult, now: Date, filter: GlanceFilter | null = null): { counts: GlanceCounts; feed: Signal[] } {
   const { issues, inbox } = board;
   const inboxUp = board.inboxError === null;
   const daysLeft = (i: LinearIssue) => (i.dueDate === null ? null : daysUntilDue(i.dueDate, now));
@@ -78,6 +92,7 @@ export function glance(board: BoardResult, now: Date): { counts: GlanceCounts; f
     ...urgent.sort(byRecent).map((i) => issueSignal(i, "urgent")),
     ...dueSoon.sort(byDue).map((i) => issueSignal(i, "due-soon")),
   ];
+  if (filter) return { counts, feed: signals.filter((s) => FILTER_KINDS[filter].includes(s.kind)) };
   const shown = new Set<string>();
   const feed = signals.filter((s) => !shown.has(s.issueId) && shown.add(s.issueId)).slice(0, FEED_LIMIT);
   return { counts, feed };

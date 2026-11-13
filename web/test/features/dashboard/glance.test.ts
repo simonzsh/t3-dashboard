@@ -125,6 +125,28 @@ test("the feed holds at most five rows", () => {
   assert.equal(out.counts.urgent, 9);
 });
 
+test("a filter lists every signal of its counter, with no limit and no merge", () => {
+  const value = board({
+    issues: [...Array.from({ length: 7 }, (_, i) => issue(`P-${i}`, { priority: 1 })), issue("D-1", { dueDate: day(-1) }), issue("D-2", { dueDate: day(1) })],
+    // IN-1 is mentioned twice: each notification counts, so each one is a row.
+    inbox: [inboxItem(1, "mention"), inboxItem(2, "comment-mention"), inboxItem(3, "assigned"), inboxItem(4, "mention", { id: "n4b", issue: inboxItem(1, "mention").issue })],
+  });
+  const all = glance(value, NOW);
+  for (const filter of ["urgent", "assigned", "mentions", "due"] as const) {
+    const out = glance(value, NOW, filter);
+    assert.equal(out.feed.length, all.counts[filter], filter);
+    assert.deepEqual(out.counts, all.counts);
+  }
+  assert.deepEqual(glance(value, NOW, "mentions").feed.map((s) => s.kind), ["mention", "comment-mention", "mention"]);
+  assert.deepEqual(glance(value, NOW, "due").feed.map((s) => s.identifier), ["D-1", "D-2"]);
+});
+
+test("an urgent issue in the inbox still lists under Urgent", () => {
+  const urgent = issue("IN-1", { priority: 1 });
+  const out = glance(board({ issues: [urgent], inbox: [inboxItem(1, "assigned")] }), NOW, "urgent");
+  assert.deepEqual(out.feed.map((s) => s.key), ["urgent:id-IN-1"]);
+});
+
 test("days until due counts local calendar days", () => {
   assert.equal(daysUntilDue(day(0), NOW), 0);
   assert.equal(daysUntilDue(day(2), NOW), 2);

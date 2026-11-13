@@ -1,9 +1,9 @@
 import { useState } from "react";
 import type { BoardResult, DashboardProject, DashboardProvider, DashboardThread, LinearIssue, ModelDefaults } from "../../../../shared/api.ts";
 import { relativeTime } from "../../lib/format.ts";
-import { Button, CardHead, Icon, IconButton, LinearMark, type IconName } from "../../ui/index.ts";
+import { Button, CardHead, Icon, IconButton, LinearMark, Pressable, type IconName } from "../../ui/index.ts";
 import { NewThreadDialog } from "../new-thread/NewThreadDialog.tsx";
-import { daysUntilDue, glance, linkedIdentifiers, type GlanceCounts, type Signal, type SignalKind } from "./glance.ts";
+import { daysUntilDue, glance, linkedIdentifiers, type GlanceCounts, type GlanceFilter, type Signal, type SignalKind } from "./glance.ts";
 
 const KINDS: Record<SignalKind, { icon: IconName; label: string }> = {
   mention: { icon: "bell", label: "Mentioned you" },
@@ -14,23 +14,57 @@ const KINDS: Record<SignalKind, { icon: IconName; label: string }> = {
   "due-soon": { icon: "calendarClock", label: "Due soon" },
 };
 
-function Counter({ label, value, caption, danger }: { label: string; value: number | null; caption?: string; danger?: boolean }) {
-  return (
-    <div className={`glance-counter${danger ? " danger" : ""}`}>
+interface CounterProps {
+  label: string;
+  value: number | null;
+  caption?: string;
+  danger?: boolean;
+  active: boolean;
+  onToggle: () => void;
+}
+
+function Counter({ label, value, caption, danger, active, onToggle }: CounterProps) {
+  const body = (
+    <>
       <span className="stat-label">{label}</span>
       <span className="glance-value">{value ?? "–"}</span>
       {caption && <span className="stat-caption">{caption}</span>}
-    </div>
+    </>
+  );
+  const className = `glance-counter${danger ? " danger" : ""}`;
+  // An empty counter has nothing to list, unless it is the active one: it must stay clickable to clear the filter.
+  if (!active && !value) return <div className={className}>{body}</div>;
+  return (
+    <Pressable className={`${className} glance-filter`} aria-pressed={active} tooltip={active ? "Show the latest items" : `Show all: ${label}`} onClick={onToggle}>
+      {body}
+    </Pressable>
   );
 }
 
-function Counters({ counts }: { counts: GlanceCounts }) {
+const COUNTERS: { filter: GlanceFilter; label: string }[] = [
+  { filter: "urgent", label: "Urgent" },
+  { filter: "assigned", label: "Newly assigned" },
+  { filter: "mentions", label: "Mentions" },
+  { filter: "due", label: "Due" },
+];
+
+function Counters({ counts, filter, onFilter }: { counts: GlanceCounts; filter: GlanceFilter | null; onFilter: (next: GlanceFilter | null) => void }) {
   return (
     <div className="glance-counters">
-      <Counter label="Urgent" value={counts.urgent} />
-      <Counter label="Newly assigned" value={counts.assigned} />
-      <Counter label="Mentions" value={counts.mentions} />
-      <Counter label="Due" value={counts.due} caption={counts.overdue > 0 ? `${counts.overdue} overdue` : undefined} danger={counts.overdue > 0} />
+      {COUNTERS.map(({ filter: own, label }) => {
+        const overdue = own === "due" && counts.overdue > 0;
+        return (
+          <Counter
+            key={own}
+            label={label}
+            value={counts[own]}
+            caption={overdue ? `${counts.overdue} overdue` : undefined}
+            danger={overdue}
+            active={filter === own}
+            onToggle={() => onFilter(filter === own ? null : own)}
+          />
+        );
+      })}
     </div>
   );
 }
@@ -95,7 +129,11 @@ interface Props extends DialogProps {
 export function LinearCard({ board, now, loading, threads, started, onRefresh, projects, providers, modelDefaults, onOpen, onStarted }: Props) {
   // Held here, not in the row: a poll can drop or rekey the row while the dialog is open.
   const [choosing, setChoosing] = useState<LinearIssue | null>(null);
-  const { counts, feed } = glance(board, now);
+  const [chosen, setChosen] = useState<GlanceFilter | null>(null);
+  // A counter that turns to "–" (inbox down) has no list: fall back to the latest items.
+  const latest = glance(board, now);
+  const filter = chosen !== null && latest.counts[chosen] !== null ? chosen : null;
+  const { counts, feed } = filter ? glance(board, now, filter) : latest;
   const linked = linkedIdentifiers(threads);
   const issues = new Map(board.issues.map((i) => [i.id, i]));
   const assignable = (s: Signal) => {
@@ -119,7 +157,7 @@ export function LinearCard({ board, now, loading, threads, started, onRefresh, p
       />
       {board.ok ? (
         <>
-          <Counters counts={counts} />
+          <Counters counts={counts} filter={filter} onFilter={setChosen} />
           {board.inboxError !== null && <p className="glance-note">Inbox not available</p>}
           {feed.length > 0 ? (
             <div className="glance-feed">
@@ -128,7 +166,7 @@ export function LinearCard({ board, now, loading, threads, started, onRefresh, p
               ))}
             </div>
           ) : (
-            <p className="card-empty">All clear.</p>
+            <p className="card-empty">{filter ? "Nothing left here." : "All clear."}</p>
           )}
         </>
       ) : (
