@@ -56,7 +56,6 @@ export async function startLogin(run: TailscaleRun): Promise<{ ok: true; url: st
 
 export type ServeFailure = "denied" | "https-off" | "needs-approval" | "timeout" | "failed";
 
-
 export async function enableServe(run: TailscaleRun, port: number): Promise<{ ok: true } | { ok: false; reason: ServeFailure; approveUrl: string | null }> {
   const result = await run(serveArgs(port), { timeoutMs: SERVE_TIMEOUT_MS });
   if (result.code === 0) return { ok: true };
