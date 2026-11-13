@@ -152,6 +152,7 @@ export function createApi(fetchImpl: Fetch) {
     getGitHubConnection: () => call<GitHubConnection>("/api/settings/github"),
     getRemoteAccess: () => call<RemoteAccess>("/api/settings/remote-access"),
     enableRemoteAccess: () => call<RemoteAccess>("/api/settings/remote-access/enable", {}),
+    loginRemoteAccess: () => call<RemoteAccess>("/api/settings/remote-access/login", {}),
     getSettings: () => call<SettingsResult>("/api/settings"),
     retrySetup: () => call<ConnectionStatus>("/api/setup/retry", {}),
     pasteToken: (token: string) => call<ConnectionStatus>("/api/setup/token", { token }),
