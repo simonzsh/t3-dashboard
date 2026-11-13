@@ -234,14 +234,14 @@ test("edit mode shows a bar with a drag handle and the move buttons on every car
   assert.equal(out.match(/class="card-edit-bar" draggable="true"/g)?.length, 4);
   assert.match(out, /aria-label="Make Activity half width"/);
   assert.match(out, /aria-label="Make Usage full width"/);
-  assert.match(out, /aria-label="Hide Server"/);
+  assert.match(out, /aria-label="Hide Machine"/);
   assert.equal(out.match(/class="dashboard-slot-body" inert=""/g)?.length, 4);
 });
 
 test("a card that cannot move up or down has that button disabled", () => {
   const out = render(state(), { editing: true });
-  for (const label of ["Move Activity up", "Move Server down", "Move Usage down"]) assert.match(out, new RegExp(`<button disabled=""[^>]*aria-label="${label}"`));
-  for (const label of ["Move Usage up", "Move Running down", "Move Server up", "Move Activity down"]) assert.doesNotMatch(out, new RegExp(`<button disabled=""[^>]*aria-label="${label}"`));
+  for (const label of ["Move Activity up", "Move Machine down", "Move Usage down"]) assert.match(out, new RegExp(`<button disabled=""[^>]*aria-label="${label}"`));
+  for (const label of ["Move Usage up", "Move Running down", "Move Machine up", "Move Activity down"]) assert.doesNotMatch(out, new RegExp(`<button disabled=""[^>]*aria-label="${label}"`));
 });
 
 test("edit mode lists hidden cards so they can be shown again", () => {
@@ -350,7 +350,7 @@ test("the wide panel is a plain aside: no dialog role, no close button, nothing 
   assert.doesNotMatch(out, /class="dashboard-main" inert/);
 });
 
-test("the Server card sits in its slot, and its stats show", () => {
+test("the Machine card sits in its slot, and its stats show", () => {
   const out = render(state());
   assert.match(out, /class="dashboard-slot server"/);
   assert.match(out, /devbox · Linux · up 1 h/);

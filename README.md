@@ -36,7 +36,7 @@ The screenshots come from the demo mode: the projects, agents and conversations 
 
 **Dashboard**
 
-- See what needs you at a glance: a Notifications panel lists agents that wait for a reply or failed, and unread results. The bell and the Dashboard entry in the sidebar show how many items need you or are unread. A Usage card shows the usage limits of each provider that reports them: quota used, pace and time to the reset. A Server card shows the CPU, memory and disk of the machine. An Activity card shows turns, sessions and spend for the last 7, 30 or 90 days, with a chart.
+- See what needs you at a glance: a Notifications panel lists agents that wait for a reply or failed, and unread results. The bell and the Dashboard entry in the sidebar show how many items need you or are unread. A Usage card shows the usage limits of each provider that reports them: quota used, pace and time to the reset. A Machine card shows the CPU, memory and disk of the machine. An Activity card shows turns, sessions and spend for the last 7, 30 or 90 days, with a chart.
 - See your urgent, due, assigned and mentioned Linear issues at a glance, and assign an issue to an agent.
 - Open a conversation in Sessions with one click.
 - Press Ctrl+K (Cmd+K on Mac) to open the switcher and jump to a conversation by title, project or message, from any screen. The words you type are highlighted in the matching messages. Before you type, it suggests the agents that wait for you, then your recent ones.

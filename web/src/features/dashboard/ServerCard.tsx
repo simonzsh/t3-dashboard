@@ -50,7 +50,7 @@ function Tiles({ stats }: { stats: ServerStats }) {
 // Same footprint as the tiles, so the card keeps its height.
 function ServerSkeleton() {
   return (
-    <SkeletonGroup label="Loading server stats">
+    <SkeletonGroup label="Loading machine stats">
       <div className="stat-tiles">
         {[0, 1, 2].map((i) => (
           <div className="stat-tile" key={i}>
@@ -73,7 +73,7 @@ export function ServerCard({ state, now }: { state: ReadState<ServerStats>; now:
       <CardHead
         id="dashboard-server-head"
         icon="server"
-        title="Server"
+        title="Machine"
         note={stats ? hostLine(stats) : undefined}
         actions={
           <>
@@ -83,7 +83,7 @@ export function ServerCard({ state, now }: { state: ReadState<ServerStats>; now:
                 <Icon name="broom" />
               </IconButton>
             )}
-            <IconButton size="sm" variant="ghost" label="Refresh server stats" tooltip="Refresh server stats" disabled={loading} aria-busy={loading} onClick={refresh}>
+            <IconButton size="sm" variant="ghost" label="Refresh machine stats" tooltip="Refresh machine stats" disabled={loading} aria-busy={loading} onClick={refresh}>
               <Icon name="refresh" className={loading ? "icon spinning" : "icon"} />
             </IconButton>
           </>
@@ -94,7 +94,7 @@ export function ServerCard({ state, now }: { state: ReadState<ServerStats>; now:
       ) : (
         <>
           <Tiles stats={stats} />
-          {error && <p className="dashboard-note error" role="alert">Could not refresh server stats. {error}</p>}
+          {error && <p className="dashboard-note error" role="alert">Could not refresh machine stats. {error}</p>}
           {cleanup.summary && <p className="dashboard-note cache-summary" role="status">{cleanup.summary}</p>}
         </>
       )}

@@ -1001,7 +1001,7 @@ ol.install-steps { padding-left: 18px; }
 .dashboard-slot { min-width: 0; }
 /* One column below 900 px: bands and columns step aside, so cards read band by band, left stack then right. */
 .dashboard-band, .dashboard-col { display: contents; }
-/* Two stacks per band once a half fits the three tiles of Usage and Server; no rows, so a tall card leaves no gap. */
+/* Two stacks per band once a half fits the three tiles of Usage and Machine; no rows, so a tall card leaves no gap. */
 @container (min-width: 900px) {
   .dashboard-band { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
   .dashboard-col { display: flex; flex-direction: column; gap: 16px; min-width: 0; }

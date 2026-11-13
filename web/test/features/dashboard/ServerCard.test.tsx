@@ -21,9 +21,9 @@ const NOW = new Date("2026-11-06T12:03:00.000Z");
 const render = (over: Partial<ReadState<ServerStats>> = {}) => renderToStaticMarkup(<ServerCard state={state(over)} now={NOW} />);
 const text = (html: string) => html.replace(/<[^>]+>/g, "");
 
-test("the card is titled Server and shows three tiles", () => {
+test("the card is titled Machine and shows three tiles", () => {
   const out = render();
-  assert.match(out, /<h2 id="dashboard-server-head">Server<\/h2>/);
+  assert.match(out, /<h2 id="dashboard-server-head">Machine<\/h2>/);
   assert.equal(out.match(/class="stat-tile"/g)?.length, 3);
   for (const label of ["CPU", "Memory", "Disk"]) assert.match(out, new RegExp(`class="stat-label">${label}<`));
 });
@@ -64,7 +64,7 @@ test("a disk that cannot be read shows a dash and a note", () => {
 
 test("the host, the OS and the uptime sit next to the title, with a tooltip", () => {
   const out = render();
-  assert.match(out, /<h2 id="dashboard-server-head">Server<\/h2><span class="card-note" data-tooltip="devbox · Linux · up 19 d"[^>]*>devbox · Linux · up 19 d<\/span>/);
+  assert.match(out, /<h2 id="dashboard-server-head">Machine<\/h2><span class="card-note" data-tooltip="devbox · Linux · up 19 d"[^>]*>devbox · Linux · up 19 d<\/span>/);
 });
 
 test("the head shows how old the read is", () => {
@@ -73,7 +73,7 @@ test("the head shows how old the read is", () => {
 
 test("before the first answer there is a skeleton with three tiles; a failed first read shows the error", () => {
   const loading = render({ value: null, loading: true });
-  assert.match(loading, /role="status" aria-busy="true" aria-label="Loading server stats"/);
+  assert.match(loading, /role="status" aria-busy="true" aria-label="Loading machine stats"/);
   assert.equal(loading.match(/class="stat-tile"/g)?.length, 3);
   const failed = render({ value: null, error: "boom" });
   assert.match(failed, /<p class="dashboard-note error" role="alert">boom<\/p>/);
@@ -83,18 +83,18 @@ test("before the first answer there is a skeleton with three tiles; a failed fir
 test("a failed refresh keeps the tiles and says so", () => {
   const out = render({ error: "boom" });
   assert.match(out, /class="stat-value">23%</);
-  assert.match(text(out), /Could not refresh server stats\. boom/);
+  assert.match(text(out), /Could not refresh machine stats\. boom/);
 });
 
 test("a refresh button reads again, and spins while it loads", () => {
   const idle = render();
-  assert.match(idle, /<button[^>]*aria-label="Refresh server stats"/);
+  assert.match(idle, /<button[^>]*aria-label="Refresh machine stats"/);
   assert.doesNotMatch(idle, /spinning/);
   const busy = render({ loading: true });
-  assert.match(busy, /<button[^>]*disabled=""[^>]*aria-label="Refresh server stats"/);
+  assert.match(busy, /<button[^>]*disabled=""[^>]*aria-label="Refresh machine stats"/);
   assert.match(busy, /icon spinning/);
-  assert.match(busy, /<button[^>]*aria-busy="true"[^>]*aria-label="Refresh server stats"/);
-  assert.match(idle, /<button[^>]*aria-busy="false"[^>]*aria-label="Refresh server stats"/);
+  assert.match(busy, /<button[^>]*aria-busy="true"[^>]*aria-label="Refresh machine stats"/);
+  assert.match(idle, /<button[^>]*aria-busy="false"[^>]*aria-label="Refresh machine stats"/);
 });
 
 test("a Clear caches button sits in the head on Linux and macOS and is hidden on Windows", () => {
