@@ -2,7 +2,8 @@ import { useEffect, useState } from "react";
 import type { SettingsResult } from "../../../../shared/api.ts";
 import { useApi } from "../../api/ApiContext.tsx";
 import { KEY_PATH, KEY_URL, maskedKey } from "./linearSettings.ts";
-import { Icon, IconButton, Loader } from "../../ui/index.ts";
+import { Icon, IconButton } from "../../ui/index.ts";
+import { SettingsRowPending } from "./SettingsRowPending.tsx";
 import { LinearKeyForm } from "./LinearKeyForm.tsx";
 import { useAction } from "../../lib/useAction.ts";
 import { failure } from "../../lib/format.ts";
@@ -33,7 +34,7 @@ export function LinearSettings({ onChange }: Props) {
     onChange();
   }
 
-  if (!settings) return loadError ? <p className="empty">The Linear settings could not be loaded.</p> : <Loader />;
+  if (!settings) return <SettingsRowPending title="Linear" error={loadError && "Could not load"} />;
   const { linear } = settings;
 
   return (

@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
 import type { AlertsSettings as AlertsSettingsData, AlertTestResult } from "../../../../shared/api.ts";
 import { useApi } from "../../api/ApiContext.tsx";
-import { Button, Icon, IconButton, IconButtonLink, Loader } from "../../ui/index.ts";
+import { Button, Icon, IconButton, IconButtonLink } from "../../ui/index.ts";
+import { SettingsRowPending } from "./SettingsRowPending.tsx";
 import { useAction } from "../../lib/useAction.ts";
 import { useCopy } from "../../lib/useCopy.ts";
 import { failure } from "../../lib/format.ts";
@@ -26,7 +27,7 @@ export function AlertsSettings() {
     });
   }, []);
 
-  if (!settings) return loadError ? <p className="empty">The alert settings could not be loaded.</p> : <Loader />;
+  if (!settings) return <SettingsRowPending title="Alerts" error={loadError && "Could not load"} />;
 
   const change = (fn: () => Promise<AlertsSettingsData>) =>
     void action.run(async () => {
