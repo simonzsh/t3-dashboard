@@ -12,7 +12,7 @@ interface Props {
   /** The sidebar on a wide screen, the bottom bar on a phone: only one is in the page. */
   layout: "side" | "bottom";
   tab: Tab;
-  /** Dashboard items that wait for you and were not read yet. */
+  /** Home items that wait for you and were not read yet. */
   unread: number;
   /** Sessions entry: running and unread rows of the sessions list, and whether an agent waits for you. */
   sessions: { count: number; waiting: boolean };
@@ -36,7 +36,7 @@ interface Props {
 const WAITING = "An agent is waiting for your reply";
 
 function Badges({ id, unread, sessions, automations, news, pulls }: Pick<Props, "unread" | "sessions" | "automations" | "news" | "pulls"> & { id: Tab }) {
-  if (id === "dashboard") return <CountBadge count={unread} max={9} label={`${unread} unread`} />;
+  if (id === "home") return <CountBadge count={unread} max={9} label={`${unread} unread`} />;
   if (id === "automations") {
     return (
       <>

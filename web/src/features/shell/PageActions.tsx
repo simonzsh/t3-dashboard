@@ -75,17 +75,17 @@ function Action({ compact, label, icon, variant = "secondary", withIcon = false,
   );
 }
 
-/** The header buttons of a page: Sessions hides the list, picks its layout and starts a session, Automations a task, News edits its settings and runs it, Dashboard shows the Notifications bell and edits its layout. */
+/** The header buttons of a page: Sessions hides the list, picks its layout and starts a session, Automations a task, News edits its settings and runs it, Home shows the Notifications bell and edits its layout. */
 export function PageActions({ tab, compact, ready, editingLayout, layoutIsDefault, layout, onLayoutChange, listHidden, onToggleList, onNewSession, onAddProject, onNewAutomation, newsCanRun, newsRunning, onNewsRun, onNewsSettings, onSearch, onSettings, updateReady, onEditLayout, onDoneLayout, onResetLayout, unread, notificationsOpen, onToggleNotifications }: Props) {
   let main = null;
-  if (tab === "dashboard" && editingLayout) {
+  if (tab === "home" && editingLayout) {
     main = (
       <>
         <Action compact={compact} label="Reset" icon="undo" disabled={layoutIsDefault} onClick={onResetLayout} />
         <Action compact={compact} label="Done" icon="check" variant="primary" onClick={onDoneLayout} />
       </>
     );
-  } else if (tab === "dashboard") {
+  } else if (tab === "home") {
     const bell = notificationsOpen ? "Hide notifications" : "Show notifications";
     main = (
       <>

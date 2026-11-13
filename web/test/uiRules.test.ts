@@ -193,7 +193,7 @@ test("menus come from the kit, so hover and keys behave the same everywhere", ()
 const css = await Bun.file(new URL("../src/styles.css", import.meta.url)).text();
 const SHELL_START = "/* page-shell:start";
 const SHELL_END = "/* page-shell:end */";
-const PAGE_ROOTS = [".dashboard", ".auto-page", ".news-page", ".pulls-page", ".sessions"];
+const PAGE_ROOTS = [".home-page", ".auto-page", ".news-page", ".pulls-page", ".sessions"];
 const SPACING = /(^|;)\s*(padding|margin|max-width)(-[a-z-]+)?\s*:/;
 
 // Flat rules, media queries opened: [selector list, declarations].
@@ -424,7 +424,7 @@ test("menu icons preserve semantic status colors before the neutral fallback", (
 });
 
 test("agent status consumers use the shared icon mapping", () => {
-  const consumers = ["ui/Badge.tsx", "features/sessions/SessionList.tsx", "features/shell/AppNav.tsx", "features/dashboard/sections.ts"];
+  const consumers = ["ui/Badge.tsx", "features/sessions/SessionList.tsx", "features/shell/AppNav.tsx", "features/home/sections.ts"];
   for (const file of consumers) {
     const source = allSources.find(source => source.file === file);
     assert.ok(source, file);

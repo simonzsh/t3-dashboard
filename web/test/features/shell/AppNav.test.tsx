@@ -22,10 +22,10 @@ const base = {
 const side = (over = {}) => renderToStaticMarkup(<AppNav layout="side" {...base} {...over} />);
 const bottom = (over = {}) => renderToStaticMarkup(<AppNav layout="bottom" {...base} {...over} />);
 
-test("the sidebar lists Dashboard, Sessions, Pull requests, Automations and News, with the open page marked current", () => {
+test("the sidebar lists Home, Sessions, Pull requests, Automations and News, with the open page marked current", () => {
   const out = side();
   assert.match(out, /<nav class="sidebar/);
-  assert.deepEqual([...out.matchAll(/data-tab="(\w+)"/g)].map((m) => m[1]), ["dashboard", "sessions", "pulls", "automations", "news"]);
+  assert.deepEqual([...out.matchAll(/data-tab="(\w+)"/g)].map((m) => m[1]), ["home", "sessions", "pulls", "automations", "news"]);
   assert.match(out, /aria-current="page"[^>]*data-tab="sessions"|data-tab="sessions"[^>]*aria-current="page"/);
   assert.equal(out.match(/aria-current="page"/g)?.length, 1);
 });
@@ -40,7 +40,7 @@ test("the sidebar has the search button with its shortcut hint", () => {
   assert.match(side(), /Search…[\s\S]*?<kbd>⌘K<\/kbd>/);
 });
 
-test("the sidebar shows unread on Dashboard, running or unread on Sessions and a hollow diamond for a waiting agent", () => {
+test("the sidebar shows unread on Home, running or unread on Sessions and a hollow diamond for a waiting agent", () => {
   const out = side({ unread: 12, sessions: { count: 2, waiting: true } });
   assert.match(out, /aria-label="12 unread">9\+</);
   assert.match(out, /aria-label="2 running or unread">2</);
@@ -71,7 +71,7 @@ test("the bottom bar has the five pages only (Settings is in the phone header), 
   const out = bottom();
   assert.match(out, /<nav class="bottom-nav"/);
   assert.doesNotMatch(out, /sidebar|Search…/);
-  assert.deepEqual([...out.matchAll(/data-tab="(\w+)"/g)].map((m) => m[1]), ["dashboard", "sessions", "pulls", "automations", "news"]);
+  assert.deepEqual([...out.matchAll(/data-tab="(\w+)"/g)].map((m) => m[1]), ["home", "sessions", "pulls", "automations", "news"]);
   assert.doesNotMatch(out, /Settings/);
   assert.equal(out.match(/aria-current="page"/g)?.length, 1);
 });

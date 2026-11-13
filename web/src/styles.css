@@ -778,7 +778,7 @@ ol.install-steps { padding-left: 18px; }
 .project-tag { flex: 0 1 auto; display: inline-flex; align-items: center; gap: 5px; min-width: 0; max-width: 180px; color: var(--text-secondary); font-size: 12px; }
 .project-tag .project-icon { width: 14px; height: 14px; }
 .project-tag-text { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-/* Dashboard cards: a header with an icon, a title, a count and icon buttons. */
+/* Home cards: a header with an icon, a title, a count and icon buttons. */
 .card-head { display: flex; align-items: center; gap: 8px; min-height: 44px; padding: 0 12px 0 16px; border-bottom: 1px solid var(--line); }
 .card-head > .icon { flex: none; width: 16px; height: 16px; color: var(--text-secondary); }
 .card-head h2 { margin: 0; font-size: 13px; font-weight: 600; }
@@ -997,21 +997,21 @@ ol.install-steps { padding-left: 18px; }
 .page-description { margin: 0; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--text-secondary); font-size: 12px; }
 .page-actions { flex: none; display: flex; align-items: center; gap: 8px; }
 .page-actions .icon { width: 18px; height: 18px; }
-/* Dashboard: full cards and bands of two stacking columns in one scroll area, and the Notifications panel on the right when open. */
-.dashboard { display: grid; grid-template-columns: minmax(0, 1fr); align-items: start; gap: 16px; }
-.dashboard.with-panel { grid-template-columns: minmax(0, 1fr) 340px; }
-.dashboard-main { min-width: 0; display: flex; flex-direction: column; gap: 16px; container-type: inline-size; }
-.dashboard-cards { min-width: 0; display: flex; flex-direction: column; gap: 16px; }
+/* Home: full cards and bands of two stacking columns in one scroll area, and the Notifications panel on the right when open. */
+.home-page { display: grid; grid-template-columns: minmax(0, 1fr); align-items: start; gap: 16px; }
+.home-page.with-panel { grid-template-columns: minmax(0, 1fr) 340px; }
+.home-main { min-width: 0; display: flex; flex-direction: column; gap: 16px; container-type: inline-size; }
+.home-cards { min-width: 0; display: flex; flex-direction: column; gap: 16px; }
 /* Sticky: the panel stays in view while the cards scroll; the card cap (100dvh - 120px) keeps it on screen. */
-.dashboard-panel { position: sticky; top: 0; min-width: 0; }
-.dashboard-slot { min-width: 0; }
+.home-panel { position: sticky; top: 0; min-width: 0; }
+.home-slot { min-width: 0; }
 /* One column below 900 px: bands and columns step aside, so cards read band by band, left stack then right. */
-.dashboard-band, .dashboard-col { display: contents; }
+.home-band, .home-col { display: contents; }
 /* Two stacks per band once a half fits the three tiles of Usage and Machine; no rows, so a tall card leaves no gap. */
 @container (min-width: 900px) {
-  .dashboard-band { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
-  .dashboard-col { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
-  .dashboard-cards.editing .dashboard-col { min-height: 64px; }
+  .home-band { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+  .home-col { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+  .home-cards.editing .home-col { min-height: 64px; }
 }
 /* No room for the right column: Notifications is a side sheet under the header, with a backdrop. Closed, it is off screen and not focusable. */
 @media (max-width: 1200px) {
@@ -1019,21 +1019,21 @@ ol.install-steps { padding-left: 18px; }
   .ui-sheet .notif-list { max-height: none; }
 }
 /* Drop preview: the size of the dragged card, where it will land. */
-.dashboard-drop { min-height: 64px; border: 2px dashed color-mix(in srgb, var(--accent) 60%, transparent); border-radius: var(--radius-lg); background: color-mix(in srgb, var(--accent) 8%, transparent); }
+.home-drop { min-height: 64px; border: 2px dashed color-mix(in srgb, var(--accent) 60%, transparent); border-radius: var(--radius-lg); background: color-mix(in srgb, var(--accent) 8%, transparent); }
 /* Edit mode: each card has a bar on top, and the grid accepts drops even when it is empty. */
-.dashboard-cards.editing { min-height: 96px; padding: 8px; border: 1px dashed var(--line); border-radius: var(--radius-lg); }
-.dashboard-slot.dragging { opacity: 0.4; }
-.dashboard-hidden { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; color: var(--text-secondary); font-size: 12px; }
+.home-cards.editing { min-height: 96px; padding: 8px; border: 1px dashed var(--line); border-radius: var(--radius-lg); }
+.home-slot.dragging { opacity: 0.4; }
+.home-hidden { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; color: var(--text-secondary); font-size: 12px; }
 /* Edit mode: the bar lies over the card header (44 px), so the header itself is the handle. */
-.dashboard-cards.editing .dashboard-slot { position: relative; }
-.dashboard-cards.editing .dashboard-card { border-color: color-mix(in srgb, var(--accent) 60%, var(--line)); }
+.home-cards.editing .home-slot { position: relative; }
+.home-cards.editing .card { border-color: color-mix(in srgb, var(--accent) 60%, var(--line)); }
 .card-edit-bar { position: absolute; z-index: 2; top: 1px; left: 1px; right: 1px; height: 44px; display: flex; align-items: center; justify-content: flex-end; padding: 0 8px; border-radius: var(--radius-lg) var(--radius-lg) 0 0; cursor: grab; }
 .card-edit-bar:hover { background: color-mix(in srgb, var(--accent) 7%, transparent); }
 .card-edit-bar:active { cursor: grabbing; }
 .card-edit-buttons { display: flex; align-items: center; gap: 2px; }
 /* The edit buttons take the place of the card's own header buttons. */
-.dashboard-cards.editing .card-actions { visibility: hidden; }
-.dashboard-card { background: var(--surface-1); border: 1px solid var(--line); border-radius: var(--radius-lg); }
+.home-cards.editing .card-actions { visibility: hidden; }
+.card { background: var(--surface-1); border: 1px solid var(--line); border-radius: var(--radius-lg); }
 .activity-card { overflow: hidden; }
 .limits-card { overflow: hidden; }
 .server-card { overflow: hidden; }
@@ -1091,8 +1091,8 @@ ol.install-steps { padding-left: 18px; }
 .activity-tip { position: absolute; top: 12px; z-index: 2; display: flex; flex-direction: column; gap: 2px; padding: 8px 10px; border: 1px solid var(--line); border-radius: var(--radius-md); background: var(--surface-1); box-shadow: var(--shadow); font-size: 12px; white-space: nowrap; pointer-events: none; }
 .activity-tip span { color: var(--text-secondary); }
 .activity-tip b { margin-left: 6px; color: var(--text-primary); font-weight: 600; font-variant-numeric: tabular-nums; }
-.dashboard-note { margin: 0; padding: 20px; color: var(--text-secondary); }
-.dashboard-note.error { color: var(--err-text); }
+.card-message { margin: 0; padding: 20px; color: var(--text-secondary); }
+.card-message.error { color: var(--err-text); }
 .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
 .sessions { flex: 1; min-height: 0; display: flex; background: var(--page-bg); }
 .sessions.compact { flex-direction: column; }
@@ -1140,7 +1140,7 @@ ol.install-steps { padding-left: 18px; }
 .sessions:not(.compact) .session-window.maximized .session-window-head { cursor: default; }
 .sessions-dragging, .sessions-dragging * { cursor: grabbing !important; user-select: none !important; }
 .session-window.dragging { opacity: 0.4; }
-/* Drop preview like the Dashboard's: a layer over the whole window, header included. */
+/* Drop preview like Home's: a layer over the whole window, header included. */
 .session-window.drop-target::after { content: ""; position: absolute; inset: 4px; z-index: 4; pointer-events: none; border: 2px dashed color-mix(in srgb, var(--accent) 60%, transparent); border-radius: var(--radius-lg); background: color-mix(in srgb, var(--accent) 8%, transparent); }
 /* Keep the source width so a grab near the right edge stays under the pointer. */
 .sessions-drag-ghost { position: fixed; left: 0; top: 0; z-index: 50; pointer-events: none; max-width: none; border: 1px solid var(--line); border-radius: 10px; box-shadow: var(--shadow); opacity: 0.95; }
@@ -1251,8 +1251,8 @@ ol.install-steps { padding-left: 18px; }
   .limits-tile.stat-tile + .limits-tile { border-left: 0; border-top: 1px solid var(--line); }
   .skeleton-bars { height: 140px; padding-right: 12px; }
   /* One column: every card is as wide as the page, never wider. */
-  .dashboard { display: flex; flex-direction: column; align-items: stretch; gap: 16px; }
-  .dashboard-slot { width: 100%; min-width: 0; }
+  .home-page { display: flex; flex-direction: column; align-items: stretch; gap: 16px; }
+  .home-slot { width: 100%; min-width: 0; }
   /* The sheet is as wide as the screen and stops above the bottom bar. */
   .ui-sheet-backdrop { bottom: calc(var(--bottom-bar) + env(safe-area-inset-bottom)); }
   .ui-sheet { bottom: calc(var(--bottom-bar) + env(safe-area-inset-bottom)); width: 100vw; }
@@ -1267,9 +1267,9 @@ ol.install-steps { padding-left: 18px; }
   .notif-bell .count-badge { top: 2px; right: 2px; }
   .page-actions .header-new { border-radius: 12px; }
   .app-column { padding-bottom: calc(var(--bottom-bar) + env(safe-area-inset-bottom)); }
-  /* The Dashboard scrolls the page itself, so Safari's floating address bar sits over the content instead of under a cut-off box. */
+  /* The Home scrolls the page itself, so Safari's floating address bar sits over the content instead of under a cut-off box. */
   .app:not(.sessions-mode, .automations-mode, .news-mode, .pulls-mode) { height: auto; min-height: 100dvh; overflow: visible; }
-  .app:not(.sessions-mode, .automations-mode, .news-mode, .pulls-mode) :is(main, .dashboard) { flex: none; overflow: visible; }
+  .app:not(.sessions-mode, .automations-mode, .news-mode, .pulls-mode) :is(main, .home-page) { flex: none; overflow: visible; }
   /* The keyboard covers the bottom bar and the home indicator: the composer sits right on top of it. */
   .keyboard-open .bottom-nav { display: none; }
   .keyboard-open .app .app-column { padding-bottom: 0; }

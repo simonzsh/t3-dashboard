@@ -12,7 +12,7 @@ export function RunningBadge({ className }: { className?: string }) {
   );
 }
 
-/** The status of an agent as a badge: shared by the Dashboard rows and the automation rows. */
+/** The status of an agent as a badge: shared by Home rows and the automation rows. */
 export function StatusBadge({ thread, status }: { thread: DashboardThread; status: AgentStatus }) {
   if (status === "waiting") return <Badge variant="waiting">{thread.pending ? pendingLabel(thread.pending.category) : "Waiting"}</Badge>;
   if (status === "working") {

@@ -77,7 +77,7 @@ export function sessionsBadgeCount(threads: readonly DashboardThread[], seen: Se
   return listableThreads(threads).filter((t) => inBadge(t, seen)).length;
 }
 
-/** Settled threads leave the list, except one that runs or waits: like on the Dashboard, it is never missed. */
+/** Settled threads leave the list, except one that runs or waits: like on Home, it is never missed. */
 export function listableThreads(threads: readonly DashboardThread[]): DashboardThread[] {
   return threads
     .filter((t) => {

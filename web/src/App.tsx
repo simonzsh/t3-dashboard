@@ -8,13 +8,13 @@ import { NewsSettingsDialog } from "./features/news/NewsSettingsDialog.tsx";
 import { NewsView } from "./features/news/NewsView.tsx";
 import { firstRunBody, unreadNewsCount } from "./features/news/news.ts";
 import { useNews } from "./features/news/useNews.ts";
-import { DashboardView } from "./features/dashboard/DashboardView.tsx";
-import { isDefaultLayout, type DashboardCard } from "./features/dashboard/layout.ts";
-import { useDashboardLayout } from "./features/dashboard/useDashboardLayout.ts";
-import { useNotificationsPanel } from "./features/dashboard/useNotificationsPanel.ts";
-import { useActivity } from "./features/dashboard/useActivity.ts";
-import { useLimits } from "./features/dashboard/useLimits.ts";
-import { useServerStats } from "./features/dashboard/useServerStats.ts";
+import { HomeView } from "./features/home/HomeView.tsx";
+import { isDefaultLayout, type HomeCard } from "./features/home/layout.ts";
+import { useHomeLayout } from "./features/home/useHomeLayout.ts";
+import { useNotificationsPanel } from "./features/home/useNotificationsPanel.ts";
+import { useActivity } from "./features/home/useActivity.ts";
+import { useLimits } from "./features/home/useLimits.ts";
+import { useServerStats } from "./features/home/useServerStats.ts";
 import { AppNav } from "./features/shell/AppNav.tsx";
 import { PageActions } from "./features/shell/PageActions.tsx";
 import { ConnectionBanner } from "./features/setup/ConnectionBanner.tsx";
@@ -27,7 +27,7 @@ import { NewThreadDialog } from "./features/new-thread/NewThreadDialog.tsx";
 import { NotificationToasts } from "./features/notifications/NotificationToasts.tsx";
 import { useNotifications } from "./features/notifications/useNotifications.ts";
 import { useSetupRows } from "./features/automations/useSetupRows.ts";
-import { attentionCount, threadSections } from "./features/dashboard/sections.ts";
+import { attentionCount, threadSections } from "./features/home/sections.ts";
 import { Switcher } from "./features/switcher/Switcher.tsx";
 import { useOpenHistory } from "./features/switcher/useOpenHistory.ts";
 import { SettingsDialog } from "./features/settings/SettingsDialog.tsx";
@@ -258,17 +258,17 @@ export function App() {
   const openPrsKey = openPrKey(openPrNow);
   const openPrs = useMemo(() => openPrNow, [openPrsKey]);
   const sessionsBadge = useMemo(() => ({ count: sessionsBadgeCount(threads, notify.seen), waiting: agents.waiting > 0 }), [threads, notify.seen, agents.waiting]);
-  const dashboardLayout = useDashboardLayout(tab === "dashboard");
-  const notifPanel = useNotificationsPanel(sheetMode, tab === "dashboard");
-  const dashboardOpen = tab === "dashboard" && state !== null;
+  const homeLayout = useHomeLayout(tab === "home");
+  const notifPanel = useNotificationsPanel(sheetMode, tab === "home");
+  const homeOpen = tab === "home" && state !== null;
   // The sheet locks the page scroll while it shows.
-  const sheetShown = sheetMode && notifPanel.open && dashboardOpen && !dashboardLayout.editing;
+  const sheetShown = sheetMode && notifPanel.open && homeOpen && !homeLayout.editing;
   const closeSheet = () => {
     notifPanel.close();
     document.querySelector<HTMLElement>(".notif-bell")?.focus();
   };
   // A hidden card reads nothing; showing it again reads at once.
-  const cardShown = (id: DashboardCard) => dashboardOpen && !dashboardLayout.layout.hidden.includes(id);
+  const cardShown = (id: HomeCard) => homeOpen && !homeLayout.layout.hidden.includes(id);
   const activity = useActivity(cardShown("activity"));
   const limits = useLimits(cardShown("usage"));
   const server = useServerStats(cardShown("server"));
@@ -317,8 +317,8 @@ export function App() {
                 tab={tab}
                 compact={compact}
                 ready={state !== null && (tab !== "news" || news.state !== null)}
-                editingLayout={dashboardLayout.editing}
-                layoutIsDefault={isDefaultLayout(dashboardLayout.layout)}
+                editingLayout={homeLayout.editing}
+                layoutIsDefault={isDefaultLayout(homeLayout.layout)}
                 layout={layout}
                 onLayoutChange={setLayout}
                 listHidden={listPrefs.hidden}
@@ -333,9 +333,9 @@ export function App() {
                 onSearch={openSearch}
                 onSettings={() => setSettingsOpen(true)}
                 updateReady={updateNav !== null}
-                onEditLayout={() => dashboardLayout.setEditing(true)}
-                onDoneLayout={() => dashboardLayout.setEditing(false)}
-                onResetLayout={dashboardLayout.reset}
+                onEditLayout={() => homeLayout.setEditing(true)}
+                onDoneLayout={() => homeLayout.setEditing(false)}
+                onResetLayout={homeLayout.reset}
                 unread={unread}
                 notificationsOpen={notifPanel.open}
                 onToggleNotifications={notifPanel.toggle}
@@ -345,18 +345,18 @@ export function App() {
           <ConnectionBanner connection={state?.connection ?? null} sseDown={sseDown} />
           <NotificationToasts toasts={notify.toasts} projects={state?.projects ?? []} onOpen={(id) => openInSessions(id, true)} onDismiss={notify.dismiss} />
           <main>
-            {tab === "dashboard" &&
+            {tab === "home" &&
               (state ? (
-                <DashboardView
+                <HomeView
                   state={state}
                   limits={limits}
                   server={server}
                   activity={activity}
                   now={now}
                   sessionIds={sessionIds}
-                  layout={dashboardLayout.layout}
-                  editing={dashboardLayout.editing}
-                  onLayout={dashboardLayout.setLayout}
+                  layout={homeLayout.layout}
+                  editing={homeLayout.editing}
+                  onLayout={homeLayout.setLayout}
                   panelOpen={notifPanel.open}
                   sheet={sheetMode}
                   onCloseSheet={closeSheet}

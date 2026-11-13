@@ -43,16 +43,16 @@ test("a queued message has a dashed bubble", () => {
   assert.match(rule(".msg.user.queued .bubble"), /border-style: dashed;/);
 });
 
-test("on a phone every dashboard card slot is full width and may shrink", () => {
+test("on a phone every Home card slot is full width and may shrink", () => {
   const phone = css.slice(css.indexOf("@media (max-width: 700px)"));
-  assert.match(phone, /\.dashboard \{[^}]*align-items: stretch/);
-  assert.match(phone, /\.dashboard-slot \{[^}]*width: 100%; min-width: 0/);
+  assert.match(phone, /\.home-page \{[^}]*align-items: stretch/);
+  assert.match(phone, /\.home-slot \{[^}]*width: 100%; min-width: 0/);
 });
 
-test("dashboard bands are two stacking columns from 900 px, and one flow below", () => {
-  assert.match(css, /\.dashboard-band, \.dashboard-col \{ display: contents; \}/);
+test("Home bands are two stacking columns from 900 px, and one flow below", () => {
+  assert.match(css, /\.home-band, \.home-col \{ display: contents; \}/);
   const wide = css.slice(css.indexOf("@container (min-width: 900px)"));
-  assert.match(wide, /\.dashboard-band \{ display: grid; grid-template-columns: repeat\(2, minmax\(0, 1fr\)\)/);
+  assert.match(wide, /\.home-band \{ display: grid; grid-template-columns: repeat\(2, minmax\(0, 1fr\)\)/);
   assert.doesNotMatch(css, /grid-column: span/);
 });
 
@@ -64,8 +64,8 @@ test("on a phone the three stat tiles stay in one row", () => {
 });
 
 test("the Notifications panel is sticky on a wide screen, with no block above the cards", () => {
-  assert.match(rule(".dashboard-panel"), /position: sticky; top: 0;/);
-  assert.match(rule(".dashboard.with-panel"), /340px/);
+  assert.match(rule(".home-panel"), /position: sticky; top: 0;/);
+  assert.match(rule(".home-page.with-panel"), /340px/);
   assert.doesNotMatch(css, /position: static; grid-row: 1|max-height: 60dvh|position: fixed; inset: 0; z-index: 15|notifications-shown/);
 });
 

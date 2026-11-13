@@ -63,8 +63,8 @@ const FEATURE_EDGES = new Map([
   ["features/new-thread -> features/projects", "the New Session dialog swaps to the Add project form"],
   ["features/automations -> features/new-thread", "a row opens the automation dialog to edit the task"],
   ["features/automations -> features/conversation", "the Model column reuses the model lookup of the composer"],
-  ["features/dashboard -> features/settings", "the Linear setup card reuses the key form"],
-  ["features/dashboard -> features/new-thread", "assigning a ticket opens the New Session dialog"],
+  ["features/home -> features/settings", "the Linear setup card reuses the key form"],
+  ["features/home -> features/new-thread", "assigning a ticket opens the New Session dialog"],
   ["features/news -> features/new-thread", "the news settings preselect a model like the New Session dialog"],
   ["features/news -> features/conversation", "the news settings reuse the model picker of the composer"],
   ["features/settings -> features/update", "the Updates tab shows the update status"],
@@ -118,8 +118,8 @@ test("the rules catch a forbidden import", () => {
   assert.equal(allowed("integrations/t3/", "domain"), false);
   assert.equal(allowed("integrations/t3/", "integrations/linear/"), false);
   assert.equal(allowed("server", "integrations/t3/"), false);
-  assert.equal(allowed("ui", "features/dashboard"), false);
-  assert.equal(allowed("lib", "features/dashboard"), false);
-  assert.equal(allowed("features/dashboard", "features/sessions"), false);
+  assert.equal(allowed("ui", "features/home"), false);
+  assert.equal(allowed("lib", "features/home"), false);
+  assert.equal(allowed("features/home", "features/sessions"), false);
   assert.equal(allowed("shared", "domain"), false);
 });
