@@ -8,6 +8,7 @@ on:
 jobs:
   check:
     # The binary ships for macOS and Windows too, so test it there.
+    # Unit tests use POSIX paths and sh fakes, so Windows runs only the typecheck and the smoke.
     strategy:
       fail-fast: false
       matrix:
@@ -19,5 +20,8 @@ jobs:
         with:
           bun-version: 1.4.2
       - run: bun install --frozen-lockfile
-      - run: bun run check
+      - if: runner.os != 'Windows'
+        run: bun run check
+      - if: runner.os == 'Windows'
+        run: bun run typecheck
       - run: bun run smoke
