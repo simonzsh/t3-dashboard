@@ -43,6 +43,7 @@ export async function readServe(run: TailscaleRun): Promise<ServeStatus | null> 
 
 /** `tailscale login` blocks until the user signs in, so a timeout after the link is the normal path. */
 export const LOGIN_TIMEOUT_MS = 10_000;
+/** Sign-in and approval pages share one host. */
 const LOGIN_LINK = /https:\/\/login\.tailscale\.com\/\S+/;
 const DENIED = /access denied|permission denied|operator|must be root|sudo/i;
 
@@ -55,13 +56,12 @@ export async function startLogin(run: TailscaleRun): Promise<{ ok: true; url: st
 
 export type ServeFailure = "denied" | "https-off" | "needs-approval" | "timeout" | "failed";
 
-const APPROVE_LINK = /https:\/\/login\.tailscale\.com\/\S+/;
 
 export async function enableServe(run: TailscaleRun, port: number): Promise<{ ok: true } | { ok: false; reason: ServeFailure; approveUrl: string | null }> {
   const result = await run(serveArgs(port), { timeoutMs: SERVE_TIMEOUT_MS });
   if (result.code === 0) return { ok: true };
   // Tailscale prints the approve link, then waits: it can be in a timed-out run.
-  const approveUrl = (result.stdout + "\n" + result.stderr).match(APPROVE_LINK)?.[0] ?? null;
+  const approveUrl = (result.stdout + "\n" + result.stderr).match(LOGIN_LINK)?.[0] ?? null;
   const reason: ServeFailure = approveUrl
     ? "needs-approval"
     : result.code === null
