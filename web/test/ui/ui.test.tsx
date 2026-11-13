@@ -177,7 +177,7 @@ test("Tabs is a tab list with the active tab selected and the only tab stop", ()
 });
 
 test("the shell icons exist and draw a path", () => {
-  for (const name of ["messagesSquare", "layoutPanels", "panelLeft", "chart"] as const) assert.match(html(<Icon name={name} />), /<path d="/, name);
+  for (const name of ["messagesSquare", "layoutPanels", "house", "panelLeft", "chart"] as const) assert.match(html(<Icon name={name} />), /<path d="/, name);
 });
 
 test("a PageHeader is a header with a title, a description and its actions", () => {
