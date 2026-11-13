@@ -2,7 +2,7 @@ import { test } from "bun:test";
 import assert from "node:assert/strict";
 import { TABS, hashForPr, hashForSession, hashForTab, prFromHash, prSourceFromHash, sessionFromHash, tabFromHash } from "../../src/lib/tabs.ts";
 
-test("the tabs are Dashboard, Sessions, Pull requests, Automations and News", () => {
+test("the tabs are Home, Sessions, Pull requests, Automations and News", () => {
   assert.deepEqual(TABS.map((t) => [t.id, t.label]), [["home", "Home"], ["sessions", "Sessions"], ["pulls", "Pull requests"], ["automations", "Automations"], ["news", "News"]]);
 });
 
@@ -44,7 +44,7 @@ test("a pull request hash opens the Pull requests page and reads back as its ref
   assert.deepEqual(prFromHash("#/pulls/my-org/shop.web/7"), { repository: "my-org/shop.web", number: 7 });
 });
 
-test("a malformed pull request hash opens the Dashboard", () => {
+test("a malformed pull request hash opens Home", () => {
   for (const hash of ["#/pulls/", "#/pulls/acme", "#/pulls/acme/storefront", "#/pulls/acme/storefront/0", "#/pulls/acme/storefront/x", "#/pulls/acme/storefront/12/diff", "#/pulls/-evil/storefront/1", "#/pulls/acme/../1", "#/Pulls/acme/storefront/1", "#/git/acme/storefront/1", "#/pulls/acme/storefront/012"]) {
     assert.equal(prFromHash(hash), null, hash);
     assert.equal(tabFromHash(hash), "home", hash);

@@ -58,7 +58,7 @@ test("Automations shows New Automation only", () => {
   assert.doesNotMatch(out, /New Session|Edit layout/);
 });
 
-test("Dashboard shows the bell, then Edit layout", () => {
+test("Home shows the bell, then Edit layout", () => {
   const out = render("home");
   assert.ok(out.indexOf('aria-label="Notifications"') >= 0 && out.indexOf('aria-label="Notifications"') < out.indexOf("Edit layout"));
   assert.doesNotMatch(out, /New Session|New Automation/);
@@ -83,12 +83,12 @@ test("the bell badge shows the unread count, 9+ above nine, and nothing at zero"
   assert.doesNotMatch(render("home"), /count-badge/);
 });
 
-test("the bell shows only on Dashboard and not in edit mode", () => {
+test("the bell shows only on Home and not in edit mode", () => {
   assert.doesNotMatch(render("home", { editingLayout: true }), /Notifications/);
   for (const tab of ["sessions", "automations"] as const) assert.doesNotMatch(render(tab), /Notifications/);
 });
 
-test("in edit mode Dashboard shows Reset, then the primary Done", () => {
+test("in edit mode Home shows Reset, then the primary Done", () => {
   const out = render("home", { editingLayout: true });
   assert.ok(out.indexOf(">Reset<") < out.indexOf(">Done<"));
   assert.match(out, /class="btn md primary"[^>]*>Done/);
@@ -110,7 +110,7 @@ test("without the dashboard state Sessions and Automations show no create button
   assert.equal(render("automations", { ready: false }), "");
 });
 
-test("on a phone Dashboard has the bell, Edit layout as an icon, then Reset and Done while editing", () => {
+test("on a phone Home has the bell, Edit layout as an icon, then Reset and Done while editing", () => {
   const out = render("home", { compact: true });
   assert.ok(out.indexOf('aria-label="Notifications"') < out.indexOf('aria-label="Edit layout"'));
   assert.match(out, /aria-label="Edit layout"/);

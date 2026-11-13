@@ -181,9 +181,9 @@ test("the shell icons exist and draw a path", () => {
 });
 
 test("a PageHeader is a header with a title, a description and its actions", () => {
-  const out = html(<PageHeader title="Dashboard" description="Usage and agents." actions={<Button>New</Button>} />);
+  const out = html(<PageHeader title="Home" description="Usage and agents." actions={<Button>New</Button>} />);
   assert.match(out, /^<header class="page-header">/);
-  assert.match(out, /<h1 class="page-title">Dashboard<\/h1>/);
+  assert.match(out, /<h1 class="page-title">Home<\/h1>/);
   assert.match(out, /<p class="page-description">Usage and agents\.<\/p>/);
   assert.match(out, /<div class="page-actions"><button/);
 });

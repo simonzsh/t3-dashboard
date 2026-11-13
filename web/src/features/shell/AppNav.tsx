@@ -12,7 +12,7 @@ interface Props {
   /** The sidebar on a wide screen, the bottom bar on a phone: only one is in the page. */
   layout: "side" | "bottom";
   tab: Tab;
-  /** Dashboard items that wait for you and were not read yet. */
+  /** Home items that wait for you and were not read yet. */
   unread: number;
   /** Sessions entry: running and unread rows of the sessions list, and whether an agent waits for you. */
   sessions: { count: number; waiting: boolean };

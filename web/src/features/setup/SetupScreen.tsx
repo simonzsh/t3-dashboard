@@ -33,7 +33,7 @@ export function SetupScreen({ setup }: { setup: SetupInfo }) {
           <Logo />
           <span>T3 Dashboard</span>
         </div>
-        <section className="dashboard-card setup-card" aria-labelledby="setup-title">
+        <section className="card setup-card" aria-labelledby="setup-title">
           <CardHead
             id="setup-title"
             icon={setup.reason === "token-needed" ? "lock" : "server"}

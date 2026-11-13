@@ -8,7 +8,7 @@ import { findModel } from "../conversation/composer.ts";
 const DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 const DAY_MS = 86_400_000;
 
-// A setup thread shows as a row only while the agent works or waits; idle with no task, it returns to the Dashboard lists.
+// A setup thread shows as a row only while the agent works or waits; idle with no task, it returns to the Home lists.
 export function setupThreads(threads: DashboardThread[], setupThreadIds: readonly string[]): DashboardThread[] {
   const byId = new Map(threads.map((t) => [t.id, t]));
   return setupThreadIds.flatMap((id) => {
