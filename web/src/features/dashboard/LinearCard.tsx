@@ -35,7 +35,7 @@ function Counter({ label, value, caption, danger, active, onToggle }: CounterPro
   // An empty counter has nothing to list, unless it is the active one: it must stay clickable to clear the filter.
   if (!active && !value) return <div className={className}>{body}</div>;
   return (
-    <Pressable className={`${className} glance-filter`} aria-pressed={active} tooltip={active ? "Show the latest items" : `Show all: ${label}`} onClick={onToggle}>
+    <Pressable className={`${className} glance-filter`} aria-pressed={active} onClick={onToggle}>
       {body}
     </Pressable>
   );

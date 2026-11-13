@@ -75,7 +75,7 @@ test("the Due counter turns to the error tone only when an issue is overdue", ()
 
 test("a counter with items is a toggle button; an empty one is plain text", () => {
   const out = render(board({ inbox: [mention(1), mention(2)] }));
-  assert.match(out, /<button type="button" data-tooltip="Show all: Mentions" class="glance-counter glance-filter" aria-pressed="false">/);
+  assert.match(out, /<button type="button" class="glance-counter glance-filter" aria-pressed="false">/);
   assert.equal((out.match(/glance-filter/g) ?? []).length, 1);
   assert.match(out, /<div class="glance-counter"><span class="stat-label">Urgent<\/span>/);
 });
