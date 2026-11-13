@@ -18,3 +18,8 @@ test("update settings show the saved channel and disable its picker during an in
   assert.match(busy, /role="radiogroup" aria-label="Update channel" aria-disabled="true"/);
   assert.equal(busy.match(/role="radio"[^>]*disabled=""[^>]*tabindex="-1"/g)?.length, 2);
 });
+
+test("update settings load with the inline row loader", () => {
+  const update = { status: null, updating: false, checking: false, error: null, check: async () => {}, setChannel: async () => {}, apply: async () => {} } as UpdateControl;
+  assert.match(renderToStaticMarkup(<UpdateSettings update={update} onUpdate={() => {}} />), /<span>Version<\/span>.*class="loader inline"/);
+});

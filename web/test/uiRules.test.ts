@@ -532,3 +532,11 @@ test("citation viewport anchor escapes the contained session pane", () => {
   const source = readFileSync(join(import.meta.dir, "../src/features/conversation/ConversationPanel.tsx"), "utf8");
   assert.match(source, /createPortal\(<span ref=\{quoteAnchor\}[^\n]+document\.body\)/);
 });
+
+// A section that loads keeps its title: a full-area loader would make each section of the dialog look different.
+test("settings sections load with the inline row loader only", () => {
+  const block = sources
+    .filter(({ file }) => file.startsWith("features/settings/"))
+    .flatMap(({ file, text }) => [...text.matchAll(/<Loader\b[^>]*>/g)].filter((m) => !/\binline\b/.test(m[0])).map((m) => `${file}: ${m[0]}`));
+  assert.deepEqual(block, []);
+});

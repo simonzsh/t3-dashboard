@@ -1,7 +1,8 @@
 import { useState } from "react";
 import { updateTargetLabel, versionNote } from "../update/updateFlow.ts";
 import { displayVersion } from "../../../../shared/updates.ts";
-import { Button, Icon, IconButton, Loader, Segmented } from "../../ui/index.ts";
+import { Button, Icon, IconButton, Segmented } from "../../ui/index.ts";
+import { SettingsRowPending } from "./SettingsRowPending.tsx";
 import type { UpdateControl } from "../update/useUpdate.ts";
 
 interface Props {
@@ -13,7 +14,7 @@ export function UpdateSettings({ update, onUpdate }: Props) {
   const { status } = update;
   // The automatic checks stay silent: a note shows only after a click.
   const [checked, setChecked] = useState(false);
-  if (!status) return <Loader />;
+  if (!status) return <SettingsRowPending title="Version" />;
   const canUpdate = status.available && status.canUpdate;
   return (
     <>
