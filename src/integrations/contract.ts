@@ -82,6 +82,15 @@ export const s = {
     },
   }),
 
+  /** An object used as a map. Issues name the key "*", never the key itself: keys can be host names. */
+  record: <T>(item: Schema<T>): Schema<Record<string, T>> => ({
+    expected: "object",
+    check(value, path, out) {
+      if (!isRecord(value)) return miss(out, path, "object", value);
+      for (const entry of Object.values(value)) item.check(entry, child(path, "*"), out);
+    },
+  }),
+
   // When every branch fails on the value itself, one issue lists them all; else the closest branch speaks.
   union: <A, B>(a: Schema<A>, b: Schema<B>): Schema<A | B> => {
     const expected = `${a.expected} or ${b.expected}`;

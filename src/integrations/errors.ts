@@ -1,4 +1,4 @@
-export type IntegrationSystem = "t3" | "linear" | "github" | "ntfy";
+export type IntegrationSystem = "t3" | "linear" | "github" | "ntfy" | "tailscale";
 
 /** unreachable: no answer; refused: an answer that says no; protocol: an answer we cannot read. */
 export type IntegrationErrorKind = "unreachable" | "refused" | "protocol" | "not-authenticated";
