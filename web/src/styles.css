@@ -832,6 +832,14 @@ ol.install-steps { padding-left: 18px; }
 .glance-counter + .glance-counter { border-left: 1px solid var(--line); }
 .glance-value { font-size: 20px; font-weight: 600; line-height: 1.2; letter-spacing: -0.01em; font-variant-numeric: tabular-nums; }
 .glance-counter.danger .glance-value, .glance-counter.danger .stat-caption { color: var(--danger); }
+/* A counter with items is a toggle that lists them all: it keeps the tile look, with a hover and a pressed tint. */
+.glance-filter { margin: 0; border: 0; border-radius: 0; background: none; text-align: left; }
+.glance-filter:focus-visible { outline-offset: -2px; }
+/* Beats the accent border of a hovered button: the divider between tiles stays grey. */
+.glance-counters .glance-filter:hover { border-color: var(--line); }
+@media (hover: hover) { .glance-filter:hover { background: color-mix(in srgb, var(--text-primary) 5%, transparent); } }
+.glance-filter[aria-pressed="true"] { background: color-mix(in srgb, var(--accent) 10%, transparent); box-shadow: inset 0 -2px 0 var(--accent); }
+.glance-filter[aria-pressed="true"] .stat-label { color: var(--accent); }
 .glance-note { margin: 0; padding: 8px 16px; border-bottom: 1px solid var(--line); color: var(--text-secondary); font-size: 12px; }
 .glance-error { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
 .glance-row { position: relative; display: grid; grid-template-columns: 16px minmax(0, 1fr) auto var(--control-sm); align-items: center; gap: 8px; min-width: 0; padding: 4px 8px 4px 16px; border-bottom: 1px solid var(--line); font-size: 13px; }

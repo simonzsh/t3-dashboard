@@ -63,14 +63,21 @@ test("the card is titled Linear, with the update time and a refresh button", () 
 
 test("four counters show the figures of the board", () => {
   const out = render(board({ issues: [issue("A-1", { priority: 1 }), issue("A-2", { dueDate: day(-1) })], inbox: [mention(1), mention(2, { kind: "assigned" })] }));
-  const counters = [...out.matchAll(/<div class="glance-counter[^"]*"><span class="stat-label">([^<]+)<\/span><span class="glance-value">([^<]+)<\/span>/g)].map((m) => [m[1], m[2]]);
+  const counters = [...out.matchAll(/class="glance-counter[^"]*"[^>]*><span class="stat-label">([^<]+)<\/span><span class="glance-value">([^<]+)<\/span>/g)].map((m) => [m[1], m[2]]);
   assert.deepEqual(counters, [["Urgent", "1"], ["Newly assigned", "1"], ["Mentions", "1"], ["Due", "1"]]);
 });
 
 test("the Due counter turns to the error tone only when an issue is overdue", () => {
-  assert.match(render(board({ issues: [issue("A-1", { dueDate: day(-2) })] })), /class="glance-counter danger"/);
+  assert.match(render(board({ issues: [issue("A-1", { dueDate: day(-2) })] })), /class="glance-counter danger glance-filter"/);
   assert.match(text(render(board({ issues: [issue("A-1", { dueDate: day(-2) })] }))), /1 overdue/);
   assert.doesNotMatch(render(board({ issues: [issue("A-1", { dueDate: day(1) })] })), /glance-counter danger/);
+});
+
+test("a counter with items is a toggle button; an empty one is plain text", () => {
+  const out = render(board({ inbox: [mention(1), mention(2)] }));
+  assert.match(out, /<button type="button" class="glance-counter glance-filter" aria-pressed="false">/);
+  assert.equal((out.match(/glance-filter/g) ?? []).length, 1);
+  assert.match(out, /<div class="glance-counter"><span class="stat-label">Urgent<\/span>/);
 });
 
 test("a failed inbox shows dashes for its counters and a note, and keeps the rest", () => {
