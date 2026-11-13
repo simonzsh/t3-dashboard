@@ -61,3 +61,11 @@ test("boolean and number reject other types", () => {
   assert.deepEqual(issues(s.boolean(), "true"), [{ path: "(root)", expected: "boolean", actual: "string" }]);
   assert.deepEqual(issues(s.number(), "1"), [{ path: "(root)", expected: "number", actual: "string" }]);
 });
+
+test("record checks every entry and names the key as * in issues", () => {
+  const Map = s.object({ x: s.record(s.object({ on: s.boolean() })) });
+  assert.deepEqual(issues(Map, { x: {} }), []);
+  assert.deepEqual(issues(Map, { x: { "box.tail.ts.net:4300": { on: true } } }), []);
+  assert.deepEqual(issues(Map, { x: { "box.tail.ts.net:4300": { on: "yes" } } }), [{ path: "x.*.on", expected: "boolean", actual: "string" }]);
+  assert.deepEqual(issues(Map, { x: [] }), [{ path: "x", expected: "object", actual: "array" }]);
+});

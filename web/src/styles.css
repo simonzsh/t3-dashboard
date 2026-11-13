@@ -761,6 +761,12 @@ html:has(.dialog-backdrop:not([hidden])), html:has(.ui-sheet.open) { overflow: h
 .settings-row > .row-icons { max-width: 100%; flex-wrap: wrap; }
 .install-steps { margin: 0; color: var(--text-secondary); font-size: 12px; line-height: 1.5; }
 ol.install-steps { padding-left: 18px; }
+.install-box { display: flex; flex-direction: column; align-items: flex-start; gap: 8px; max-width: 100%; }
+/* Scanners need dark modules on white, in both themes. */
+.install-qr { width: 176px; height: 176px; border-radius: var(--radius-sm); background: #fff; color: #000; }
+.install-url { overflow-wrap: anywhere; }
+.install-command { display: block; max-width: 100%; overflow-x: auto; white-space: nowrap; font-size: 12px; }
+.install-error { margin: 0; color: var(--danger); font-size: 12px; line-height: 1.5; }
 .swatches { display: flex; flex-wrap: wrap; gap: 5px; }
 .swatch { width: 28px; height: 28px; padding: 0; border-radius: 8px; border: 1px solid var(--line); background-size: cover; background-position: center; }
 .swatch.active { box-shadow: 0 0 0 2px var(--surface-1), 0 0 0 4px var(--accent); }

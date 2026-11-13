@@ -16,6 +16,7 @@ import type { ServerStatsReader } from "../domain/serverStats.ts";
 import type { Usage } from "../domain/usage.ts";
 import type { Settings } from "../domain/settings.ts";
 import type { UpdateManager } from "../domain/updates.ts";
+import type { RemoteAccessService } from "../domain/remoteAccess.ts";
 import { VERSION } from "../config/version.ts";
 import { compressJson } from "./compress.ts";
 import { HttpError, toHttp } from "./httpError.ts";
@@ -56,6 +57,7 @@ export interface DashboardServerOptions {
   settings: Settings;
   setup: SetupControl;
   updates: Pick<UpdateManager, "status" | "check" | "apply" | "setChannel">;
+  remoteAccess: Pick<RemoteAccessService, "status" | "enable" | "login" | "host" | "refreshHost">;
   /** Lowercase hostnames, without port, accepted besides 127.0.0.1 and localhost. */
   allowedHosts?: string[];
 }
@@ -85,12 +87,10 @@ function hostnameOf(value: string): string | null {
   }
 }
 
-function checkOrigin(req: Request, allowed: ReadonlySet<string>): void {
+function originAllowed(req: Request, allows: (name: string) => boolean): boolean {
   const host = req.headers.get("host");
   const origin = req.headers.get("origin");
-  const hostOk = host !== null && allowed.has(hostnameOf(host) ?? "");
-  const originOk = origin === null || allowed.has(hostnameOf(origin) ?? "");
-  if (!hostOk || !originOk) throw new HttpError(403, "Forbidden host or origin");
+  return host !== null && allows(hostnameOf(host) ?? "") && (origin === null || allows(hostnameOf(origin) ?? ""));
 }
 
 async function readJson(req: Request, maxBytes = MAX_BODY_BYTES): Promise<Record<string, unknown>> {
@@ -165,8 +165,10 @@ function matchRoute(pattern: string[], segments: string[]): Record<string, strin
 }
 
 export function createDashboardServer(options: DashboardServerOptions): DashboardHandler {
-  const { actions, sessions, stash, seen, alerts, hub, board, usage, limits, serverStats, cacheCleanup, automations, news, pulls, getState, connection, site, settings, setup, updates } = options;
+  const { actions, sessions, stash, seen, alerts, hub, board, usage, limits, serverStats, cacheCleanup, automations, news, pulls, getState, connection, site, settings, setup, updates, remoteAccess } = options;
   const allowedHosts = new Set([...LOCAL_HOSTS, ...(options.allowedHosts ?? [])]);
+  // The MagicDNS name of this machine resolves only on the tailnet, so it is safe to accept.
+  const allows = (name: string) => allowedHosts.has(name) || (name !== "" && name === remoteAccess.host());
   const ok = (extra: Record<string, unknown> = {}) => json(200, { ok: true, ...extra });
   const done = async (work: Promise<unknown>) => (await work, ok());
 
@@ -244,6 +246,9 @@ export function createDashboardServer(options: DashboardServerOptions): Dashboar
     { method: "GET", path: "/api/stash", handle: () => json(200, { entries: stash.list() }) },
     { method: "GET", path: "/api/seen", handle: () => json(200, { seen: seen.get() }) },
     { method: "GET", path: "/api/alerts", handle: () => json(200, alerts.state()) },
+    { method: "GET", path: "/api/settings/remote-access", handle: async () => json(200, await remoteAccess.status()) },
+    { method: "POST", path: "/api/settings/remote-access/enable", handle: async () => json(200, await remoteAccess.enable()) },
+    { method: "POST", path: "/api/settings/remote-access/login", handle: async () => json(200, await remoteAccess.login()) },
     { method: "GET", path: "/api/settings/alerts", handle: () => json(200, alerts.settings()) },
     { method: "GET", path: "/api/update", handle: () => json(200, updates.status()) },
     {
@@ -451,7 +456,11 @@ export function createDashboardServer(options: DashboardServerOptions): Dashboar
   }
 
   async function handle(req: Request, server: Server<undefined> | undefined): Promise<Response> {
-    checkOrigin(req, allowedHosts);
+    if (!originAllowed(req, allows)) {
+      // Throttled: covers a server that started before tailscaled.
+      await remoteAccess.refreshHost();
+      if (!originAllowed(req, allows)) throw new HttpError(403, "Forbidden host or origin");
+    }
     let segments: string[];
     let pathname: string;
     try {

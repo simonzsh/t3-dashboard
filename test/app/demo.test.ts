@@ -1,5 +1,8 @@
 import assert from "node:assert/strict";
 import { test } from "bun:test";
+import { demoTailscale } from "../../src/app/demo/tailscale.ts";
+import { createRemoteAccess } from "../../src/domain/remoteAccess.ts";
+import { ServeStatus, TailscaleStatus } from "../../src/integrations/tailscale/schemas.ts";
 import { DemoPort, demoLinearFetch } from "../../src/app/demo/port.ts";
 import { DEMO_HOME, DEMO_NEWS_DIR, createDemoCacheCleanup, demoNews, demoFixtures, demoSeen, DEMO_LONG_PR_TITLE, demoServerStats, demoUsageBuckets } from "../../src/app/demo/fixtures.ts";
 import { issues } from "../../src/integrations/contract.ts";
@@ -637,4 +640,19 @@ test("the demo secret request takes priority over its running command", () => {
   assert.equal(threadState(thread), "waiting");
   assert.equal(agentStatus(thread), "waiting");
   assert.equal(thread.activeRunId, "run-rate-1");
+});
+
+test("the demo Tailscale starts without a serve entry and serves once enabled", async () => {
+  const run = demoTailscale();
+  const options = { timeoutMs: 1000 };
+  assert.deepEqual(issues(TailscaleStatus, JSON.parse((await run(["status", "--json"], options)).stdout)), []);
+  const before = JSON.parse((await run(["serve", "status", "--json"], options)).stdout);
+  assert.deepEqual(issues(ServeStatus, before), []);
+  assert.deepEqual(before, {});
+
+  const access = createRemoteAccess({ port: 4321, platform: "linux", run, now: () => 0 });
+  assert.equal((await access.status()).state, "needs-enable");
+  assert.deepEqual(await access.enable(), { state: "ready", url: "https://dashboard.example.ts.net:4321" });
+  assert.deepEqual(issues(ServeStatus, JSON.parse((await run(["serve", "status", "--json"], options)).stdout)), []);
+  assert.match((await run(["login"], options)).stdout, /https:\/\/login\.tailscale\.com\/a\/demo/);
 });
