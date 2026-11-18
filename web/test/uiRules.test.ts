@@ -486,12 +486,19 @@ test("conversation robots stay in the scrolling messages instead of a fixed dock
 
 test("background activity keeps a visible robot after the main run ends", () => {
   const source = readFileSync("web/src/features/conversation/ConversationPanel.tsx", "utf8");
-  assert.match(source, /!running && background && !needsInput && \([\s\S]*?<Loader inline label="Background activity" \/>[\s\S]*?<WorkingRobot background \/>/);
+  assert.match(source, /!running && background && !needsInput && \([\s\S]*?<WorkingRobot background \/>\s*<Loader inline label="Background activity" \/>/);
+});
+
+test("the robot starts at the left of each status row, including when asleep", () => {
+  const source = readFileSync("web/src/features/conversation/ConversationPanel.tsx", "utf8");
+  assert.match(source, /<div className="working-row"><WorkingRobot waiting \/>/);
+  assert.match(source, /<div className="working-row"><WorkingRobot sleeping \/><\/div>/);
+  assert.doesNotMatch(css, /\.working-robot\s*\{[^}]*margin-left:\s*auto/);
 });
 
 test("the Thinking fallback always gives the robot a thinking pose", () => {
-  const source = readFileSync(new URL("../src/features/conversation/ConversationPanel.tsx", import.meta.url), "utf8");
-  assert.match(source, /<span>Thinking…<\/span>\s*<WorkingRobot thinking \/>/);
+  const source = readFileSync(new URL("../src/features/conversation/TurnStart.tsx", import.meta.url), "utf8");
+  assert.match(source, /<WorkingRobot thinking \/>[^\n]*\n\s*<span[^>]*>Thinking…<\/span>/);
 });
 
 test("the background robot clock uses accent color for its outline and hands", () => {

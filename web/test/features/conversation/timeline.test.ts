@@ -110,6 +110,12 @@ test("awaitingStep: a running thread whose last entry is the user's message has 
   assert.equal(awaitingStep(entriesOf([user("u", "2026-01-01T10:00:00Z")]), false), false);
 });
 
+test("awaitingStep: a new turn owns the indicator while its user message is pending", () => {
+  const entries = entriesOf([], [step("a", "command", "2026-01-01T10:00:05Z")]);
+  assert.equal(awaitingStep(entries, true, true), true);
+  assert.equal(awaitingStep(entries, false, true), false);
+});
+
 test("awaitingStep: only a trailing work group supplies its own running indicator", () => {
   const u = user("u", "2026-01-01T10:00:00Z");
   assert.equal(awaitingStep(entriesOf([u], [step("a", "command", "2026-01-01T10:00:05Z")]), true), false);

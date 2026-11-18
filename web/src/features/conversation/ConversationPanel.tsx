@@ -8,7 +8,9 @@ import { useApi } from "../../api/ApiContext.tsx";
 import { watchSelection } from "./selection.ts";
 import { Button, Collapse, Popover, SearchField, Icon, IconButton, Loader, STATUS_ICONS, TOUCH, enter } from "../../ui/index.ts";
 import { attachmentUrl } from "../../api/client.ts";
-import { type PendingMessage, countSame, isSettled, pendingLabel, sentMessages } from "./pending.ts";
+import { type PendingMessage, countSame, isSettled, sentMessages } from "./pending.ts";
+import { PendingBubble } from "./PendingBubble.tsx";
+import { TurnStart } from "./TurnStart.tsx";
 import { MarkdownText } from "./MarkdownText.tsx";
 import { QueuedMessages } from "./QueuedMessages.tsx";
 import { Composer } from "./Composer.tsx";
@@ -34,7 +36,7 @@ import { useDocumentTheme } from "../../lib/useDocumentTheme.ts";
 import { omittedLabel } from "./steps.ts";
 import { robotShouldType } from "./steps.ts";
 import { useProgressiveHistory } from "./useProgressiveHistory.ts";
-import { awaitingStep, timeline } from "./timeline.ts";
+import { awaitingStep, timeline, type Entry } from "./timeline.ts";
 import { LIVE_RELOAD_MS, SEND_POLL_WINDOW_MS, detailRunning, pollDelay } from "./reload.ts";
 import { SubagentBar } from "./SubagentBar.tsx";
 
@@ -93,15 +95,13 @@ const RenderFrame = memo(function RenderFrame({ render, threadId }: { render: Ht
 });
 
 // A fragment, so each message stays a direct child of .messages. A keystroke does not render the list.
-const Timeline = memo(function Timeline({ detail, threadId, running, editing, onOpenThread, onChanged, scroller, following, searchMessageId, onReadHistory }: { onReadHistory: () => void; scroller: RefObject<HTMLDivElement | null>; following: boolean; searchMessageId: string | null; detail: ThreadDetail; threadId: string; running: boolean; editing: MessageEditing; onOpenThread?: (id: string) => void; onChanged: () => void }) {
+const Timeline = memo(function Timeline({ detail, entries, threadId, live, waiting, editing, onOpenThread, onChanged, scroller, following, searchMessageId, onReadHistory }: { onReadHistory: () => void; scroller: RefObject<HTMLDivElement | null>; following: boolean; searchMessageId: string | null; detail: ThreadDetail; entries: Entry[]; threadId: string; live: boolean; waiting: boolean; editing: MessageEditing; onOpenThread?: (id: string) => void; onChanged: () => void }) {
   const knownSteps = useRef(new Set(detail.steps.map(step => step.id)));
   useLayoutEffect(() => {
     for (const step of detail.steps) knownSteps.current.add(step.id);
   }, [detail.steps]);
-  const entries = useMemo(() => timeline(detail), [detail]);
   const history = useProgressiveHistory(entries, scroller, following, searchMessageId, onReadHistory);
   const typing = robotShouldType(detail.steps.filter(step => step.runId === detail.activity?.runId));
-  const waiting = detail.pendingRequests.length > 0 || pendingSecrets(detail.steps).length > 0;
   return (
     <>
       {history.start > 0 && <div ref={history.marker} className="steps-omitted"><Button variant="link" size="sm" onClick={history.loadEarlier}>Load earlier messages</Button></div>}
@@ -114,7 +114,7 @@ const Timeline = memo(function Timeline({ detail, threadId, running, editing, on
             return <RenderFrame key={entry.render.id} render={entry.render} threadId={threadId} />;
           case "work":
             // Keyed by its first step: the group keeps its open state while later steps join it.
-            return <WorkGroup typing={typing} showRobot={!waiting} key={entry.steps[0]!.id} steps={entry.steps} threadId={threadId} fresh={!knownSteps.current.has(entry.steps[0]!.id)} live={running && i + history.start === entries.length - 1} />;
+            return <WorkGroup typing={typing} showRobot={!waiting} key={entry.steps[0]!.id} steps={entry.steps} threadId={threadId} fresh={!knownSteps.current.has(entry.steps[0]!.id)} live={live && i + history.start === entries.length - 1} />;
           case "subagents":
             return <SubagentRows key={entry.steps[0]!.id} steps={entry.steps} threadId={threadId} onOpenThread={onOpenThread} onChanged={onChanged} />;
           case "step":
@@ -122,13 +122,6 @@ const Timeline = memo(function Timeline({ detail, threadId, running, editing, on
             return <StandaloneStep key={entry.step.id} step={entry.step} threadId={threadId} />;
         }
       })}
-      {!waiting && awaitingStep(entries, running) && (
-        <div className="working-row">
-          <Loader inline label="Thinking" />
-          <span>Thinking…</span>
-          <WorkingRobot thinking />
-        </div>
-      )}
     </>
   );
 });
@@ -144,15 +137,6 @@ function StandaloneStep({ step, threadId }: { step: TurnStep; threadId: string }
     default:
       return <NoticeRow step={step} />;
   }
-}
-
-function PendingBubble({ message: p }: { message: PendingMessage }) {
-  return (
-    <div className="msg user pending">
-      <div className="bubble">{p.text}</div>
-      <small>{pendingLabel(p.attachments)}</small>
-    </div>
-  );
 }
 
 interface Props {
@@ -328,6 +312,9 @@ function Conversation({ searchRequest = 0, threadId, thread, providers, onOpenTh
   }, [title]);
 
   const messageEditing = useMemo(() => ({ onEdit: setEditing, disabled: running }), [running]);
+  const entries = useMemo(() => detail ? timeline(detail) : [], [detail]);
+  const starting = pending.filter((message) => !message.duringRun);
+  const thinking = awaitingStep(entries, running, starting.length > 0);
   const secrets = pendingSecrets(detail?.steps ?? []);
   const needsInput = secrets.length > 0 || (detail?.pendingRequests.length ?? 0) > 0;
   const docked = detail ? dockedRequest(detail.pendingRequests) : null;
@@ -372,7 +359,14 @@ function Conversation({ searchRequest = 0, threadId, thread, providers, onOpenTh
   }
 
   async function send(body: string, uploads: UploadedAttachment[]): Promise<void> {
-    const entry: PendingMessage = { id: crypto.randomUUID(), text: body, attachments: uploads.length, sentAt: Date.now(), baseline: countSame(detail ? sentMessages(detail) : [], body) };
+    const entry: PendingMessage = {
+      id: crypto.randomUUID(),
+      text: body,
+      attachments: uploads.map(({ type, ...file }) => ({ ...file, kind: type })),
+      duringRun: running,
+      sentAt: Date.now(),
+      baseline: countSame(detail ? sentMessages(detail) : [], body),
+    };
     setPending((list) => [...list, entry]);
     stick.current = true;
     setAtBottom(true);
@@ -526,10 +520,10 @@ function Conversation({ searchRequest = 0, threadId, thread, providers, onOpenTh
           }}
         >
           {!detail && loadError && <p className="empty">This conversation could not be loaded.</p>}
-          {detail && detail.messages.length === 0 && detail.renders.length === 0 && detail.steps.length === 0 && <p className="empty">No messages</p>}
+          {detail && detail.messages.length === 0 && detail.renders.length === 0 && detail.steps.length === 0 && pending.length === 0 && <p className="empty">No messages</p>}
           {!detail && !loadError && <Loader />}
-          {detail && <SearchQuery.Provider value={searchOpen ? query : ""}><Timeline onReadHistory={readHistory} scroller={scroller} following={atBottom} searchMessageId={searchOpen ? matches[matchIndex % (matches.length || 1)] ?? null : null} detail={detail} threadId={threadId} running={running} editing={messageEditing} onOpenThread={onOpenThread} onChanged={load} /></SearchQuery.Provider>}
-          {detail && !running && pending.map((p) => <PendingBubble key={p.id} message={p} />)}
+          {detail && <SearchQuery.Provider value={searchOpen ? query : ""}><Timeline onReadHistory={readHistory} scroller={scroller} following={atBottom} searchMessageId={searchOpen ? matches[matchIndex % (matches.length || 1)] ?? null : null} detail={detail} entries={entries} threadId={threadId} live={running && !thinking} waiting={needsInput} editing={messageEditing} onOpenThread={onOpenThread} onChanged={load} /></SearchQuery.Provider>}
+          <TurnStart pending={starting} threadId={threadId} thinking={thinking && !needsInput && (detail !== null || starting.length > 0)} />
           {otherRequests.length > 0 && (
             <div className="requests">
               {otherRequests.map((r) => (
@@ -538,22 +532,22 @@ function Conversation({ searchRequest = 0, threadId, thread, providers, onOpenTh
             </div>
           )}
           {detail && <QueuedMessages threadId={threadId} queue={detail.queue} held={detail.queueHeld} sendBlockedReason={queuedSendBlockedReason(t?.status)} onChanged={() => void load()} />}
-          {/* Sent during a run: it waits below the queue, as T3 shows it. */}
-          {detail && running && pending.map((p) => <PendingBubble key={p.id} message={p} />)}
+          {pending.filter((message) => message.duringRun).map((p) => <PendingBubble key={p.id} message={p} threadId={threadId} />)}
           {detail && !running && background && !needsInput && (
             <div className="working-row">
+              <WorkingRobot background />
               <Loader inline label="Background activity" />
               <span>Running in the background…</span>
-              <WorkingRobot background />
             </div>
           )}
           {needsInput && (
-            <div className="working-row"><Icon name={STATUS_ICONS.waiting} className="waiting-icon" /><span>Waiting for your reply</span><WorkingRobot waiting /></div>
+            <div className="working-row"><WorkingRobot waiting /><Icon name={STATUS_ICONS.waiting} className="waiting-icon" /><span>Waiting for your reply</span></div>
           )}
           {showRobot && detail && !running && !background && !needsInput && pending.length === 0 && (
             <div className="working-row"><WorkingRobot sleeping /></div>
           )}
         </div>
+        <div className="message-impacts" aria-hidden="true" />
         {!atBottom && (
           <IconButton
             className="to-bottom"

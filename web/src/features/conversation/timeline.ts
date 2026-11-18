@@ -41,9 +41,9 @@ export function timeline(detail: Pick<ThreadDetail, "messages" | "renders" | "st
   return out;
 }
 
-// A trailing work group owns the live indicator. All other entries need a fallback.
-export function awaitingStep(entries: Entry[], running: boolean): boolean {
-  return running && entries.at(-1)?.kind !== "work";
+// The previous run's work group can still be last while the new message is pending.
+export function awaitingStep(entries: Entry[], running: boolean, starting = false): boolean {
+  return running && (starting || entries.at(-1)?.kind !== "work");
 }
 
 export function timelineKey(entry: Entry): string {

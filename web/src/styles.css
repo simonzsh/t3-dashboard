@@ -322,6 +322,13 @@ main { flex: 1; min-height: 0; overflow: hidden; padding: var(--page-top) var(--
 .working-row .waiting-icon { flex: none; width: 14px; height: 14px; color: var(--warn); }
 .msg.user { align-items: flex-end; }
 .msg.user .bubble { max-width: min(85%, 640px); padding: 8px 13px; border-radius: 16px 16px 4px 16px; overflow-wrap: anywhere; background: color-mix(in srgb, var(--accent) 13%, var(--surface-1)); border: 1px solid color-mix(in srgb, var(--accent) 24%, var(--line)); color: var(--text-primary); }
+.msg.user .message-arrival { transform-origin: right bottom; }
+.message-impacts { position: absolute; inset: 0; overflow: clip; pointer-events: none; }
+.message-impact { position: absolute; }
+.message-impact-wave, .message-impact-flash { position: absolute; inset: 0; border-radius: 16px 16px 4px 16px; opacity: 0; }
+.message-impact-wave { border: 2px solid var(--accent); }
+.message-impact-flash { box-shadow: 0 0 18px 5px var(--accent); }
+.message-impact-spark { position: absolute; border-radius: 999px; background: var(--accent); opacity: 0; }
 .msg.system { align-items: center; }
 .msg.system .md { max-width: 90%; font-size: 12px; color: var(--text-secondary); text-align: center; white-space: pre-wrap; }
 .msg.system small { display: none; }
@@ -356,7 +363,7 @@ main { flex: 1; min-height: 0; overflow: hidden; padding: var(--page-top) var(--
 @media (prefers-reduced-motion: reduce) { .disclosure { transition: none; } }
 @keyframes breathe { 0%, 100% { opacity: 1; } 50% { opacity: 0.35; } }
 /* Sculpted surfaces and perspective give the mascot depth without a render loop. */
-.working-robot { position: relative; width: 94px; height: 64px; flex: none; margin-left: auto; align-self: center; overflow: visible; padding: 0; border: 0; border-radius: var(--radius-md); background: none; cursor: pointer; touch-action: manipulation; }
+.working-robot { position: relative; width: 94px; height: 64px; flex: none; align-self: center; overflow: visible; padding: 0; border: 0; border-radius: var(--radius-md); background: none; cursor: pointer; touch-action: manipulation; }
 .robot-size { position: absolute; left: 4px; top: 4px; width: 164px; height: 124px; transform: scale(0.5); transform-origin: top left; perspective: 450px; }
 .robot-scene { position: relative; width: 148px; height: 114px; transform: rotateX(8deg) rotateY(-14deg); transform-style: preserve-3d; }
 .robot-head, .robot-body, .robot-hand { position: absolute; background: linear-gradient(135deg, var(--robot-light), var(--robot-body) 55%, var(--robot-shade)); box-shadow: inset -4px -4px 8px color-mix(in srgb, var(--robot-shade) 35%, transparent), inset 2px 2px 4px var(--robot-light), 3px 5px 0 var(--robot-shade); }
@@ -439,7 +446,7 @@ main { flex: 1; min-height: 0; overflow: hidden; padding: var(--page-top) var(--
 
 /* Timeline: work groups, steps, diffs and the blocks that stand alone. */
 .work-group { display: flex; flex-direction: column; gap: 4px; font-size: 13px; color: var(--text-secondary); min-width: 0; }
-.work-group-heading { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.work-group-heading { display: flex; align-items: center; gap: 8px; }
 .work-group-head { display: inline-flex; align-items: center; gap: 8px; padding: 2px 0; border: 0; background: none; color: var(--text-secondary); font-size: 12px; font-variant-numeric: tabular-nums; }
 .work-group-head:hover:not(:disabled) { color: var(--text-primary); }
 .work-group.live .work-group-head { font-size: 13px; }
@@ -1582,8 +1589,6 @@ ol.install-steps { padding-left: 18px; }
 .msg.user.queued .bubble.editing { min-width: min(85%, 280px); border-color: color-mix(in srgb, var(--accent) 60%, var(--line)); color: var(--text-primary); }
 .msg.user.queued .bubble.editing textarea { display: block; width: 100%; box-sizing: border-box; }
 .queued-actions { display: flex; align-items: center; gap: 2px; font-size: 12px; color: var(--text-secondary); }
-.msg.pending { opacity: 0.6; }
-.msg.pending small { opacity: 0.85; }
 .about-note { max-width: 100%; color: var(--text-secondary); font-size: 12px; white-space: normal; overflow-wrap: anywhere; }
 /* Light-only polish, scoped so dark stays untouched. :where() keeps the base specificity: hover, focus and state rules still win, as in dark. */
 :where(:root:not([data-theme="dark"])) kbd { background: var(--surface-0); border-color: transparent; opacity: 1; }
