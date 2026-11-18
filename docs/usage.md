@@ -357,9 +357,9 @@ Live actions appear in compact cards, without a left rail. Open a card to read i
 Working starts expanded during a run. Click its heading to hide or show the cards.
 Newly received cards keep a brief one-second activity sweep after completion, including actions that finish in less than a second. Completed history does not replay this effect.
 Cards open in 80 ms and keep loaded details. A running command with no output shows “Waiting for output…”.
-Before the first action arrives, an inline loader appears next to “Thinking…”.
-During an active run, this indicator and the thinking robot also appear after replies or notices when no trailing action group shows them.
-If only background tasks or subagents remain active, a loader and the robot appear with “Running in the background…”.
+Before the first action arrives, the robot appears next to “Thinking…”. It also appears after replies or notices during an active run if no action group follows.
+If only background tasks or subagents remain active, the robot appears next to “Running in the background…”.
+Both rows use the inline loader when the robot is off.
 In this state, the robot watches a small floating clock with a slowly turning hand. The clock outline and hands use the accent color in both themes. Its eyes blink while its arms and keyboard stay still.
 
 A small robot stays on the left of the conversation in every pose. Its body stays white and gray. The antenna light, eye glow, and small activity marks follow the selected accent color.

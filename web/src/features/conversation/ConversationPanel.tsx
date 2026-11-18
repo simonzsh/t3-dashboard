@@ -10,6 +10,7 @@ import { Button, Collapse, Popover, SearchField, Icon, IconButton, Loader, STATU
 import { attachmentUrl } from "../../api/client.ts";
 import { type PendingMessage, countSame, isSettled, sentMessages } from "./pending.ts";
 import { PendingBubble } from "./PendingBubble.tsx";
+import { ActivityRow } from "./ActivityRow.tsx";
 import { TurnStart } from "./TurnStart.tsx";
 import { MarkdownText } from "./MarkdownText.tsx";
 import { QueuedMessages } from "./QueuedMessages.tsx";
@@ -533,13 +534,7 @@ function Conversation({ searchRequest = 0, threadId, thread, providers, onOpenTh
           )}
           {detail && <QueuedMessages threadId={threadId} queue={detail.queue} held={detail.queueHeld} sendBlockedReason={queuedSendBlockedReason(t?.status)} onChanged={() => void load()} />}
           {pending.filter((message) => message.duringRun).map((p) => <PendingBubble key={p.id} message={p} threadId={threadId} />)}
-          {detail && !running && background && !needsInput && (
-            <div className="working-row">
-              <WorkingRobot background />
-              <Loader inline label="Background activity" />
-              <span>Running in the background…</span>
-            </div>
-          )}
+          {detail && !running && background && !needsInput && <ActivityRow background />}
           {needsInput && (
             <div className="working-row"><WorkingRobot waiting /><Icon name={STATUS_ICONS.waiting} className="waiting-icon" /><span>Waiting for your reply</span></div>
           )}
