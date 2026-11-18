@@ -4,10 +4,9 @@ import { useApi } from "../../api/ApiContext.tsx";
 import { duration, failure } from "../../lib/format.ts";
 import { safeHref } from "../../lib/markdown.tsx";
 import { Chevron, Collapse, Icon, Pressable, RunningDot, STATUS_ICONS, useFlip } from "../../ui/index.ts";
-import { STEP_ICONS, diffLines, groupLabel, robotShouldType, remember, stepDuration } from "./steps.ts";
+import { STEP_ICONS, diffLines, groupLabel, robotShouldType, remember, stepDuration, workGroupView, type WorkGroupChoice } from "./steps.ts";
 import { WorkingRobot } from "./WorkingRobot.tsx";
 
-const LIVE_VISIBLE = 4;
 const RECENT_STEPS_MS = 1000;
 const DETAIL_REFRESH_MS = 3000;
 // A finished step never changes: expanding it again costs nothing. Capped, oldest out first.
@@ -30,13 +29,14 @@ export function WorkGroup({ steps, threadId, live, fresh = false, showRobot = tr
   useLayoutEffect(() => {
     for (const step of steps) knownSteps.current.add(step.id);
   }, [steps]);
-  const [expanded, setOpen] = useState<boolean | null>(null);
+  const [choice, setChoice] = useState<WorkGroupChoice | null>(null);
   const [recentUntil, setRecentUntil] = useState(() => fresh ? Date.now() + RECENT_STEPS_MS : 0);
   const stepKey = JSON.stringify(steps.map(step => step.id));
   const previous = useRef({ stepKey, live });
   useLayoutEffect(() => {
     const before = previous.current;
     previous.current = { stepKey, live };
+    if (live && !before.live) setChoice(null);
     if (before.stepKey !== stepKey || (before.live && !live)) setRecentUntil(Date.now() + RECENT_STEPS_MS);
   }, [stepKey, live]);
   useEffect(() => {
@@ -50,17 +50,16 @@ export function WorkGroup({ steps, threadId, live, fresh = false, showRobot = tr
   const now = useTicker(live);
   const start = steps[0]?.startedAt;
   const label = live ? (start ? `Working for ${duration(now - Date.parse(start))}` : "Working") : groupLabel(steps);
-  const open = expanded ?? (live || recent);
-  const shown = expanded === true ? steps : steps.slice(-LIVE_VISIBLE);
+  const { open, shown, animate } = workGroupView(steps, live, recent, choice);
   const root = useRef<HTMLDivElement>(null);
   const shownKey = JSON.stringify(shown.map(step => step.id));
   const activeId = live ? shown.findLast(step => step.status === "running")?.id : undefined;
-  useFlip(root, shownKey, { item: "data-work-step", enabled: (live || recent) && expanded === null, initial: fresh, enter: { y: 6, scale: 1, duration: 650, highlight: "color-mix(in srgb, var(--work) 12%, transparent)" }, stagger: 75, spring: false });
+  useFlip(root, shownKey, { item: "data-work-step", enabled: animate, initial: fresh, enter: { y: 6, scale: 1, duration: 650, highlight: "color-mix(in srgb, var(--work) 12%, transparent)" }, stagger: 75, spring: false });
   return (
     <div ref={root} className={`work-group${live ? " live" : ""}`}>
       <div className="work-group-heading">
         {live && showRobot && <WorkingRobot thinking={!typing} />}
-        <Pressable className="work-group-head" aria-expanded={open} onClick={() => setOpen(!open)}>
+        <Pressable className="work-group-head" aria-expanded={open} onClick={() => setChoice({ live, open: !open })}>
           <Chevron open={open} />
           {live && <RunningDot />}
           {label}

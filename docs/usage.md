@@ -355,7 +355,8 @@ The fullscreen button remains in the session header.
 ### Live action cards
 
 Live actions appear in compact cards, without a left rail. Open a card to read its output or diff.
-Working starts expanded during a run. Click its heading to hide or show the cards.
+Working starts expanded during a run. Click its heading to hide the cards or show the last four again.
+The group folds about one second after it finishes. Open the finished group to see all its steps.
 Newly received cards keep a brief one-second activity sweep after completion, including actions that finish in less than a second. Completed history does not replay this effect.
 Cards open in 80 ms and keep loaded details. A running command with no output shows “Waiting for output…”.
 Before the first action arrives, the robot appears next to “Thinking…”. It also appears after replies or notices during an active run if no action group follows.

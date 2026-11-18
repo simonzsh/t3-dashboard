@@ -1,9 +1,21 @@
 import { test } from "bun:test";
 import assert from "node:assert/strict";
 import type { TurnStep } from "../../../../shared/api.ts";
-import { diffLines, groupLabel, omittedLabel, remember, stepDuration } from "../../../src/features/conversation/steps.ts";
+import { diffLines, groupLabel, omittedLabel, remember, stepDuration, workGroupView } from "../../../src/features/conversation/steps.ts";
 
 const step = (startedAt: string, completedAt: string | null): TurnStep => ({ id: startedAt, runId: null, kind: "command", status: "done", startedAt, completedAt, text: "", detail: null, expandable: false, exitCode: null });
+
+test("reopening a live group shows at most four steps and still lets it close after the run", () => {
+  const steps = ["a", "b", "c", "d", "e", "f"].map(id => step(id, null));
+  const closed = { live: true, open: false };
+  const reopened = { live: true, open: true };
+  assert.equal(workGroupView(steps, true, false, closed).open, false);
+  assert.deepEqual(workGroupView(steps, true, false, reopened), { open: true, shown: steps.slice(-4), animate: true });
+  assert.equal(workGroupView(steps, false, true, reopened).open, true);
+  assert.equal(workGroupView(steps, false, true, closed).open, false);
+  assert.equal(workGroupView(steps, false, false, reopened).open, false);
+  assert.deepEqual(workGroupView(steps, false, false, { live: false, open: true }), { open: true, shown: steps, animate: false });
+});
 
 test("diffLines tells added, removed, hunk and context lines", () => {
   const diff = ["diff --git a/x b/x", "--- a/x", "+++ b/x", "@@ -1,3 +1,3 @@", " keep", "-old", "+new", "--- not a header", "\\ No newline at end of file"].join("\n");
