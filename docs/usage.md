@@ -103,7 +103,7 @@ Each session contains a conversation. It starts with the latest 40 timeline entr
 - Answer a question from the agent: it shows above the message field, one question at a time. Pick an option (click it or press its number), or type your own answer in the field. The field accepts text unless T3 explicitly disables custom answers, including when the question has no options. Then click "Next", and "Submit" on the last question. The cross dismisses the question when T3 allows it; the stop button stops the turn. The chevron hides the question.
 - Follow the steps of the run in the conversation. Consecutive steps (reasoning, commands, tools, file changes, searches) form one group. The group of the active run shows its last 4 steps under "Working for …". Other groups are closed: click one to see its steps.
 - New steps fade in, rise slightly and receive a brief highlight, even when they arrive already completed. Batched steps appear in sequence. The last four steps remain visible for one second after their group finishes, with their real status. Older steps fade out as the list moves up. The latest active step has a moving rail marker; this marker does not show a completion percentage. Running rows have a subtle moving sheen. Completed steps show a check and their duration when known; durations below one second show "<1s". Returning to Sessions does not replay arrivals. Reduced motion disables these animations.
-- If the robot is off, the dot beside "Working" uses the same expanding halo as running indicators in session lists, badges and Home.
+- The dot beside "Working" uses the same expanding halo as running indicators in session lists, badges and Home.
 - A running subagent shows the same animated dot before its "Running" label. The full halo stays visible beside the label.
 - Click a command to see its output and exit code. Click a file change to see its diff. Click a tool or a search to see its input and results. A note says when T3 Code cut a long text.
 - A to-do list, a proposed plan and a notice (compaction, error) have their own block.
@@ -371,8 +371,8 @@ While typing, the robot occasionally reaches for its cup, takes a sip, and sets 
 
 The robot uses CSS depth. Reduced motion disables its animation and the card transitions.
 
-When a question, approval, or secret needs your reply, the robot raises a hand at the end of the messages. If the robot is off, the waiting icon takes its place.
-The waiting label and robot scroll with the conversation. They do not reserve a fixed strip above the request panel.
+When a question, approval, or secret needs your reply, the robot raises a hand at the end of the messages.
+The waiting label keeps its orange diamond with or without the robot. The row scrolls with the conversation.
 Pending secrets appear there too. Answered secrets stay in the conversation history.
 Secret requests use the same collapsible panel as questions and approvals, attached to the composer. Pending secrets appear one at a time.
 On mobile, refreshing keeps the focused session open. Returning to the session list also persists across refreshes.
