@@ -2,6 +2,7 @@ import { test } from "bun:test";
 import assert from "node:assert/strict";
 import { renderToStaticMarkup } from "react-dom/server";
 import type { TurnStep } from "../../../../shared/api.ts";
+import { RobotVisibilityContext } from "../../../src/lib/robotPreference.ts";
 import { WorkGroup } from "../../../src/features/conversation/Steps.tsx";
 
 const step = (id: string, over: Partial<TurnStep> = {}): TurnStep => ({ id, runId: null, kind: "command", status: "done", startedAt: "2026-01-01T10:00:00Z", completedAt: "2026-01-01T10:00:03Z", text: `cmd ${id}`, detail: null, expandable: true, exitCode: null, ...over });
@@ -17,8 +18,17 @@ test("a finished group is collapsed and shows its count and time", () => {
 test("the live group shows its last four steps", () => {
   const out = renderToStaticMarkup(<WorkGroup steps={steps} threadId="t" live />);
   assert.match(out, /class="working-robot [^"]+".*Working for /);
+  assert.doesNotMatch(out, /class="pulse"/);
   for (const id of ["c", "d", "e", "f"]) assert.match(out, new RegExp(`cmd ${id}`));
   for (const id of ["a", "b"]) assert.doesNotMatch(out, new RegExp(`cmd ${id}`));
+});
+
+test("the live group uses the running dot when the robot is disabled", () => {
+  const out = renderToStaticMarkup(
+    <RobotVisibilityContext.Provider value={false}><WorkGroup steps={steps} threadId="t" live /></RobotVisibilityContext.Provider>,
+  );
+  assert.match(out, /class="pulse" aria-hidden="true".*Working for /);
+  assert.doesNotMatch(out, /class="working-robot/);
 });
 
 test("a failed command shows its exit code", () => {
@@ -33,7 +43,6 @@ test("only the latest running card is active, without a rail", () => {
   assert.equal(out.match(/data-active-step=/g)?.length, 1);
   assert.doesNotMatch(out, /step-marker/);
   assert.match(out, /class="work-group-heading"/);
-  assert.match(out, /class="pulse" aria-hidden="true"/);
 });
 
 test("completed steps keep their action and show the completion icon and duration", () => {

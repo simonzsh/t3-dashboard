@@ -475,7 +475,7 @@ test("conversation robots stay in the scrolling messages instead of a fixed dock
   const scrollStart = source.indexOf('className="messages"');
   const scrollEnd = source.indexOf('{!atBottom &&', scrollStart);
   assert.ok(scrollStart >= 0 && scrollEnd > scrollStart);
-  const robots = [...source.matchAll(/<(?:WorkingRobot (waiting|sleeping)|ActivityRow (background))\b/g)];
+  const robots = [...source.matchAll(/<(?:WorkingRobot (sleeping)\b|ActivityRow activity="(background|waiting)")/g)];
   assert.deepEqual(robots.map(robot => robot[1] ?? robot[2]).sort(), ["background", "sleeping", "waiting"]);
   for (const robot of robots) {
     assert.ok(robot.index > scrollStart && robot.index < scrollEnd, `${robot[1] ?? robot[2]} robot must scroll with messages`);
@@ -486,19 +486,19 @@ test("conversation robots stay in the scrolling messages instead of a fixed dock
 
 test("background activity keeps a visible robot after the main run ends", () => {
   const source = readFileSync("web/src/features/conversation/ConversationPanel.tsx", "utf8");
-  assert.match(source, /!running && background && !needsInput && <ActivityRow background \/>/);
+  assert.match(source, /!running && background && !needsInput && <ActivityRow activity="background" \/>/);
 });
 
 test("the robot starts at the left of each status row, including when asleep", () => {
   const source = readFileSync("web/src/features/conversation/ConversationPanel.tsx", "utf8");
-  assert.match(source, /<div className="working-row"><WorkingRobot waiting \/>/);
+  assert.match(source, /needsInput && <ActivityRow activity="waiting" \/>/);
   assert.match(source, /<div className="working-row"><WorkingRobot sleeping \/><\/div>/);
   assert.doesNotMatch(css, /\.working-robot\s*\{[^}]*margin-left:\s*auto/);
 });
 
 test("the Thinking fallback uses the activity row", () => {
   const source = readFileSync(new URL("../src/features/conversation/TurnStart.tsx", import.meta.url), "utf8");
-  assert.match(source, /thinking && <ActivityRow \/>/);
+  assert.match(source, /thinking && <ActivityRow activity="thinking" \/>/);
 });
 
 test("the background robot clock uses accent color for its outline and hands", () => {

@@ -6,7 +6,7 @@ export function TurnStart({ pending, threadId, thinking }: { pending: PendingMes
   return (
     <>
       {pending.map((message) => <PendingBubble key={message.id} message={message} threadId={threadId} />)}
-      {thinking && <ActivityRow />}
+      {thinking && <ActivityRow activity="thinking" />}
     </>
   );
 }
