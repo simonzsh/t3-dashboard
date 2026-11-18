@@ -1,7 +1,7 @@
 import { test } from "bun:test";
 import assert from "node:assert/strict";
 import type { ChatMessage, HtmlRender, StepKind, TurnStep } from "../../../../shared/api.ts";
-import { awaitingStep, historyStart, timelineKey, timeline, type Entry } from "../../../src/features/conversation/timeline.ts";
+import { awaitingStep, historyStart, queuedArrivals, timelineKey, timeline, type Entry } from "../../../src/features/conversation/timeline.ts";
 
 const message = (id: string, createdAt: string): ChatMessage => ({ id, role: "assistant", text: id, createdAt, streaming: false, attachments: [], rewindable: false });
 const render = (id: string, createdAt: string): HtmlRender => ({ id, attachmentId: id, title: id, height: 100, createdAt });
@@ -15,6 +15,17 @@ const label = (e: Entry): string => {
   return `work(${e.steps.map((s) => s.id).join(",")})`;
 };
 const labels = (detail: Parameters<typeof timeline>[0]) => timeline(detail).map(label);
+
+test("only a queued message that enters the conversation plays the arrival effect", () => {
+  const queued = (id: string) => ({ runId: `run-${id}`, messageId: id, text: "hello", attachments: [], createdAt: "", editable: true });
+  const previous = { messages: [], queue: ["sent", "cancelled", "waiting"].map(queued) };
+  const sent: ChatMessage = { ...message("sent", "2026-01-01T10:00:00Z"), role: "user", text: "hello" };
+  const next = { messages: [sent, { ...sent, id: "direct" }], queue: [queued("waiting")] };
+
+  assert.deepEqual(queuedArrivals(previous, next), new Set(["sent"]));
+  assert.deepEqual(queuedArrivals(previous, previous), new Set());
+  assert.deepEqual(queuedArrivals(next, { ...next }), new Set());
+});
 
 test("pages sit between messages by time, equal times keep message order", () => {
   const entries = timeline({
