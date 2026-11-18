@@ -1,4 +1,5 @@
-import { reducedMotion } from "../../ui/index.ts";
+import { useLayoutEffect, useRef } from "react";
+import { enter, reducedMotion } from "../../ui/index.ts";
 
 const SPARK_COUNT = 14;
 const EASE_OUT = "cubic-bezier(.18, .64, .24, 1)";
@@ -24,7 +25,7 @@ export function impactSparks(width: number, height: number) {
   });
 }
 
-export function playMessageImpact(bubble: HTMLElement): void {
+function playMessageImpact(bubble: HTMLElement): void {
   if (reducedMotion()) return;
   const layer = bubble.closest(".messages-frame")?.querySelector<HTMLElement>(":scope > .message-impacts");
   if (!layer) return;
@@ -57,4 +58,26 @@ export function playMessageImpact(bubble: HTMLElement): void {
     ], duration, { left: `${left}px`, top: `${top}px`, width: `${size}px`, height: `${thickness}px`, rotate: `${angle}rad` }),
   );
   void Promise.allSettled([flash, wave, ...sparks]).then(() => impact.remove());
+}
+
+export function useMessageArrival(playOnMount: boolean) {
+  const bubble = useRef<HTMLDivElement>(null);
+  const arrival = useRef(playOnMount);
+  useLayoutEffect(() => {
+    if (!arrival.current) return;
+    const element = bubble.current;
+    let active = true;
+    let animation: Animation | null = null;
+    // Let the message list scroll to the new bubble before measuring its impact.
+    queueMicrotask(() => {
+      if (!active || !element?.isConnected) return;
+      playMessageImpact(element);
+      animation = enter(element, { y: 8, scale: 0.94, spring: true });
+    });
+    return () => {
+      active = false;
+      animation?.cancel();
+    };
+  }, []);
+  return bubble;
 }

@@ -11,6 +11,15 @@ export type Entry =
 // These steps fold into a work group; the others (plan, todo, notice) deserve their own block.
 const GROUPED: ReadonlySet<StepKind> = new Set(["thinking", "command", "tool", "file", "search", "web"]);
 
+type MessageSnapshot = Pick<ThreadDetail, "queue" | "messages">;
+
+/** A queue entry arrives when the same message ID becomes visible in the timeline. */
+export function queuedArrivals(previous: MessageSnapshot, next: MessageSnapshot): Set<string> {
+  if (previous === next || !previous.queue.length) return new Set();
+  const queued = new Set(previous.queue.map(message => message.messageId));
+  return new Set(next.messages.filter(message => message.role === "user" && queued.has(message.id)).map(message => message.id));
+}
+
 // Pages and steps sit between messages by time; a stable sort keeps the order T3 gave.
 // A step with no time takes the time of the step before it.
 export function timeline(detail: Pick<ThreadDetail, "messages" | "renders" | "steps">): Entry[] {

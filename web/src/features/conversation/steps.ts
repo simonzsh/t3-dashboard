@@ -35,6 +35,24 @@ export function groupLabel(steps: TurnStep[]): string {
   return span === null ? count : `${count} · ${duration(span)}`;
 }
 
+const LIVE_VISIBLE = 4;
+
+export interface WorkGroupChoice {
+  live: boolean;
+  open: boolean;
+}
+
+export function workGroupView(steps: TurnStep[], live: boolean, recent: boolean, choice: WorkGroupChoice | null) {
+  const manual = choice?.live === live ? choice.open : undefined;
+  const open = manual ?? (live || (recent && choice?.open !== false));
+  const fullHistory = !live && manual === true;
+  return {
+    open,
+    shown: fullHistory ? steps : steps.slice(-LIVE_VISIBLE),
+    animate: open && !fullHistory && (live || recent),
+  };
+}
+
 export interface DiffLine {
   type: "add" | "del" | "hunk" | "ctx";
   text: string;

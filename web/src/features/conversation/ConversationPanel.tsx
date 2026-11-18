@@ -10,6 +10,7 @@ import { Button, Collapse, Popover, SearchField, Icon, IconButton, Loader, STATU
 import { attachmentUrl } from "../../api/client.ts";
 import { type PendingMessage, countSame, isSettled, sentMessages } from "./pending.ts";
 import { PendingBubble } from "./PendingBubble.tsx";
+import { ActivityRow } from "./ActivityRow.tsx";
 import { TurnStart } from "./TurnStart.tsx";
 import { MarkdownText } from "./MarkdownText.tsx";
 import { QueuedMessages } from "./QueuedMessages.tsx";
@@ -36,7 +37,8 @@ import { useDocumentTheme } from "../../lib/useDocumentTheme.ts";
 import { omittedLabel } from "./steps.ts";
 import { robotShouldType } from "./steps.ts";
 import { useProgressiveHistory } from "./useProgressiveHistory.ts";
-import { awaitingStep, timeline, type Entry } from "./timeline.ts";
+import { awaitingStep, queuedArrivals, timeline, type Entry } from "./timeline.ts";
+import { useMessageArrival } from "./messageImpact.ts";
 import { LIVE_RELOAD_MS, SEND_POLL_WINDOW_MS, detailRunning, pollDelay } from "./reload.ts";
 import { SubagentBar } from "./SubagentBar.tsx";
 
@@ -56,7 +58,8 @@ interface MessageEditing {
   disabled: boolean;
 }
 
-const Message = memo(function Message({ message: m, threadId, editing }: { message: ChatMessage; threadId: string; editing: MessageEditing }) {
+const Message = memo(function Message({ message: m, threadId, editing, arriving }: { message: ChatMessage; threadId: string; editing: MessageEditing; arriving: boolean }) {
+  const bubble = useMessageArrival(arriving);
   const query = useContext(SearchQuery);
   const time = formatMessageTime(m.createdAt);
   const attachments = <MessageAttachments threadId={threadId} attachments={m.attachments} />;
@@ -64,7 +67,7 @@ const Message = memo(function Message({ message: m, threadId, editing }: { messa
     <div className={`msg ${m.role}`} data-message-id={m.id}>
       {m.role === "user" ? (
         (m.text || m.attachments.length > 0) && (
-          <div className="bubble md">
+          <div ref={bubble} className="bubble md">
             {attachments}
             {m.text && <MarkdownText text={m.text} query={query} threadId={threadId} breaks />}
           </div>
@@ -97,9 +100,14 @@ const RenderFrame = memo(function RenderFrame({ render, threadId }: { render: Ht
 // A fragment, so each message stays a direct child of .messages. A keystroke does not render the list.
 const Timeline = memo(function Timeline({ detail, entries, threadId, live, waiting, editing, onOpenThread, onChanged, scroller, following, searchMessageId, onReadHistory }: { onReadHistory: () => void; scroller: RefObject<HTMLDivElement | null>; following: boolean; searchMessageId: string | null; detail: ThreadDetail; entries: Entry[]; threadId: string; live: boolean; waiting: boolean; editing: MessageEditing; onOpenThread?: (id: string) => void; onChanged: () => void }) {
   const knownSteps = useRef(new Set(detail.steps.map(step => step.id)));
+  const previousDetail = useRef(detail);
+  const arrivals = queuedArrivals(previousDetail.current, detail);
   useLayoutEffect(() => {
     for (const step of detail.steps) knownSteps.current.add(step.id);
   }, [detail.steps]);
+  useLayoutEffect(() => {
+    previousDetail.current = detail;
+  }, [detail]);
   const history = useProgressiveHistory(entries, scroller, following, searchMessageId, onReadHistory);
   const typing = robotShouldType(detail.steps.filter(step => step.runId === detail.activity?.runId));
   return (
@@ -109,7 +117,7 @@ const Timeline = memo(function Timeline({ detail, entries, threadId, live, waiti
       {entries.slice(history.start).map((entry, i) => {
         switch (entry.kind) {
           case "message":
-            return <Message key={entry.message.id} message={entry.message} threadId={threadId} editing={editing} />;
+            return <Message key={entry.message.id} message={entry.message} threadId={threadId} editing={editing} arriving={arrivals.has(entry.message.id)} />;
           case "render":
             return <RenderFrame key={entry.render.id} render={entry.render} threadId={threadId} />;
           case "work":
@@ -533,15 +541,12 @@ function Conversation({ searchRequest = 0, threadId, thread, providers, onOpenTh
           )}
           {detail && <QueuedMessages threadId={threadId} queue={detail.queue} held={detail.queueHeld} sendBlockedReason={queuedSendBlockedReason(t?.status)} onChanged={() => void load()} />}
           {pending.filter((message) => message.duringRun).map((p) => <PendingBubble key={p.id} message={p} threadId={threadId} />)}
-          {detail && !running && background && !needsInput && (
-            <div className="working-row">
-              <WorkingRobot background />
-              <Loader inline label="Background activity" />
-              <span>Running in the background…</span>
-            </div>
-          )}
+          {detail && !running && background && !needsInput && <ActivityRow background />}
           {needsInput && (
-            <div className="working-row"><WorkingRobot waiting /><Icon name={STATUS_ICONS.waiting} className="waiting-icon" /><span>Waiting for your reply</span></div>
+            <div className="working-row">
+              {showRobot ? <WorkingRobot waiting /> : <Icon name={STATUS_ICONS.waiting} className="waiting-icon" />}
+              <span>Waiting for your reply</span>
+            </div>
           )}
           {showRobot && detail && !running && !background && !needsInput && pending.length === 0 && (
             <div className="working-row"><WorkingRobot sleeping /></div>

@@ -475,10 +475,10 @@ test("conversation robots stay in the scrolling messages instead of a fixed dock
   const scrollStart = source.indexOf('className="messages"');
   const scrollEnd = source.indexOf('{!atBottom &&', scrollStart);
   assert.ok(scrollStart >= 0 && scrollEnd > scrollStart);
-  const robots = [...source.matchAll(/<WorkingRobot (waiting|sleeping|background)\b/g)];
-  assert.deepEqual(robots.map(robot => robot[1]).sort(), ["background", "sleeping", "waiting"]);
+  const robots = [...source.matchAll(/<(?:WorkingRobot (waiting|sleeping)|ActivityRow (background))\b/g)];
+  assert.deepEqual(robots.map(robot => robot[1] ?? robot[2]).sort(), ["background", "sleeping", "waiting"]);
   for (const robot of robots) {
-    assert.ok(robot.index > scrollStart && robot.index < scrollEnd, `${robot[1]} robot must scroll with messages`);
+    assert.ok(robot.index > scrollStart && robot.index < scrollEnd, `${robot[1] ?? robot[2]} robot must scroll with messages`);
   }
   assert.doesNotMatch(source + css, /input-request-dock/);
 });
@@ -486,19 +486,19 @@ test("conversation robots stay in the scrolling messages instead of a fixed dock
 
 test("background activity keeps a visible robot after the main run ends", () => {
   const source = readFileSync("web/src/features/conversation/ConversationPanel.tsx", "utf8");
-  assert.match(source, /!running && background && !needsInput && \([\s\S]*?<WorkingRobot background \/>\s*<Loader inline label="Background activity" \/>/);
+  assert.match(source, /!running && background && !needsInput && <ActivityRow background \/>/);
 });
 
 test("the robot starts at the left of each status row, including when asleep", () => {
   const source = readFileSync("web/src/features/conversation/ConversationPanel.tsx", "utf8");
-  assert.match(source, /<div className="working-row"><WorkingRobot waiting \/>/);
+  assert.match(source, /<div className="working-row">\s*\{showRobot \? <WorkingRobot waiting \/> : <Icon name=\{STATUS_ICONS\.waiting\} className="waiting-icon" \/>\}\s*<span>Waiting for your reply<\/span>/);
   assert.match(source, /<div className="working-row"><WorkingRobot sleeping \/><\/div>/);
   assert.doesNotMatch(css, /\.working-robot\s*\{[^}]*margin-left:\s*auto/);
 });
 
-test("the Thinking fallback always gives the robot a thinking pose", () => {
+test("the Thinking fallback uses the activity row", () => {
   const source = readFileSync(new URL("../src/features/conversation/TurnStart.tsx", import.meta.url), "utf8");
-  assert.match(source, /<WorkingRobot thinking \/>[^\n]*\n\s*<span[^>]*>Thinking…<\/span>/);
+  assert.match(source, /thinking && <ActivityRow \/>/);
 });
 
 test("the background robot clock uses accent color for its outline and hands", () => {

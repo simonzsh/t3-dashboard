@@ -83,6 +83,7 @@ Each session contains a conversation. It starts with the latest 40 timeline entr
 - When T3 Code links pull requests to the session, or finds an open pull request for its branch, the header shows a pull request button. With one pull request, the button ("Open pull request #12") opens the Pull requests page on its diff. A hollow ring on its corner shows that you have not opened it yet. With several (a stack, for example), the button opens a menu: one line per pull request ("#12 acme/storefront – title", the title when T3 Code knows it), which opens its diff. A badge on the button shows the number of pull requests that you have not opened yet (the lines with a hollow ring); when you have opened them all, the button has no badge. The menu is at most 420 px wide: a long title ends with "…", and the number, the repository and the ring stay in view. Point at a cut title to read it in full. The newest pull request is at the top: the open pull requests come first, by creation date, then the others (merged or closed) in reverse order of T3 Code, which lists its links oldest first. A hollow ring (the unread mark of the whole dashboard) after a line shows an open pull request that you have not opened yet. A pull request that is merged, closed or not in your open list shows no ring. A stack layer that you removed in T3 Code does not show.
 - Write a message and send it with `Enter`. Its bubble appears at once with a small bounce. A short wave and sparks in your accent color spread around it. Reduced motion skips these effects. During a run, the message waits in the "Up next" list (dashed border). T3 Code sends it when the turn ends.
 - Under each queued message, three icons: "Send now" (the same arrow as Send), edit, remove. During a run, "Send now" steers: the message goes into the current run now. After a Stop, T3 Code holds the queue, and "Send now" starts a turn with this message.
+- A queued message plays the same arrival effect when it moves into the conversation.
 - While a run is waiting, "Send now" is disabled. The message stays queued. Wait for the run to resume, or stop it first. You can still edit or remove the message.
 - When editing a queued message, press `Enter` to save, `Shift+Enter` to add a line, or `Escape` to cancel. On touch screens, `Enter` adds a line; tap Save to save.
 - Attach files with the paperclip, by drag and drop anywhere on the conversation (a dashed frame shows the drop area; it does not work in a subagent thread), or by paste. A chip shows each upload ("uploading", ready or "failed" with a retry button). Send waits for all uploads. The limits are those of T3 Code: 100 files, 10 MB for each image (PNG, JPEG, GIF or WebP), 50 MB for each other file and 80 MB of images in all.
@@ -102,7 +103,7 @@ Each session contains a conversation. It starts with the latest 40 timeline entr
 - Answer a question from the agent: it shows above the message field, one question at a time. Pick an option (click it or press its number), or type your own answer in the field. The field accepts text unless T3 explicitly disables custom answers, including when the question has no options. Then click "Next", and "Submit" on the last question. The cross dismisses the question when T3 allows it; the stop button stops the turn. The chevron hides the question.
 - Follow the steps of the run in the conversation. Consecutive steps (reasoning, commands, tools, file changes, searches) form one group. The group of the active run shows its last 4 steps under "Working for …". Other groups are closed: click one to see its steps.
 - New steps fade in, rise slightly and receive a brief highlight, even when they arrive already completed. Batched steps appear in sequence. The last four steps remain visible for one second after their group finishes, with their real status. Older steps fade out as the list moves up. The latest active step has a moving rail marker; this marker does not show a completion percentage. Running rows have a subtle moving sheen. Completed steps show a check and their duration when known; durations below one second show "<1s". Returning to Sessions does not replay arrivals. Reduced motion disables these animations.
-- The dot beside "Working" uses the same expanding halo as running indicators in session lists, badges and Home.
+- When the robot is off, a dot beside "Working" uses the same expanding halo as running indicators in session lists, badges and Home.
 - A running subagent shows the same animated dot before its "Running" label. The full halo stays visible beside the label.
 - Click a command to see its output and exit code. Click a file change to see its diff. Click a tool or a search to see its input and results. A note says when T3 Code cut a long text.
 - A to-do list, a proposed plan and a notice (compaction, error) have their own block.
@@ -354,12 +355,13 @@ The fullscreen button remains in the session header.
 ### Live action cards
 
 Live actions appear in compact cards, without a left rail. Open a card to read its output or diff.
-Working starts expanded during a run. Click its heading to hide or show the cards.
+Working starts expanded during a run. Click its heading to hide the cards or show the last four again.
+The group folds about one second after it finishes. Open the finished group to see all its steps.
 Newly received cards keep a brief one-second activity sweep after completion, including actions that finish in less than a second. Completed history does not replay this effect.
 Cards open in 80 ms and keep loaded details. A running command with no output shows “Waiting for output…”.
-Before the first action arrives, an inline loader appears next to “Thinking…”.
-During an active run, this indicator and the thinking robot also appear after replies or notices when no trailing action group shows them.
-If only background tasks or subagents remain active, a loader and the robot appear with “Running in the background…”.
+Before the first action arrives, the robot appears next to “Thinking…”. It also appears after replies or notices during an active run if no action group follows.
+If only background tasks or subagents remain active, the robot appears next to “Running in the background…”.
+Both rows use the inline loader when the robot is off.
 In this state, the robot watches a small floating clock with a slowly turning hand. The clock outline and hands use the accent color in both themes. Its eyes blink while its arms and keyboard stay still.
 
 A small robot stays on the left of the conversation in every pose. Its body stays white and gray. The antenna light, eye glow, and small activity marks follow the selected accent color.
@@ -371,7 +373,7 @@ While typing, the robot occasionally reaches for its cup, takes a sip, and sets 
 The robot uses CSS depth. Reduced motion disables its animation and the card transitions.
 
 When a question, approval, or secret needs your reply, the robot raises a hand at the end of the messages.
-The waiting label and robot scroll with the conversation. They do not reserve a fixed strip above the request panel.
+When the robot is off, the orange diamond appears next to the waiting label. The row scrolls with the conversation.
 Pending secrets appear there too. Answered secrets stay in the conversation history.
 Secret requests use the same collapsible panel as questions and approvals, attached to the composer. Pending secrets appear one at a time.
 On mobile, refreshing keeps the focused session open. Returning to the session list also persists across refreshes.
