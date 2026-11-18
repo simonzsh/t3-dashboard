@@ -59,12 +59,12 @@ export function WorkGroup({ steps, threadId, live, fresh = false, showRobot = tr
   return (
     <div ref={root} className={`work-group${live ? " live" : ""}`}>
       <div className="work-group-heading">
+        {live && showRobot && <WorkingRobot thinking={!typing} />}
         <Pressable className="work-group-head" aria-expanded={open} onClick={() => setOpen(!open)}>
           <Chevron open={open} />
           {live && <RunningDot />}
           {label}
         </Pressable>
-        {live && showRobot && <WorkingRobot thinking={!typing} />}
       </div>
       <Collapse open={open}>
         <ul className="step-list">

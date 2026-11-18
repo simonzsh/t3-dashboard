@@ -8,11 +8,12 @@ import { PreviewDialog } from "./AttachmentPreview.tsx";
 import { attachmentTarget, type PreviewTarget } from "./attachmentPreview.ts";
 
 /** The images and files of a message. A click opens the preview; a file with no preview downloads. */
-export function MessageAttachments({ threadId, attachments }: { threadId: string; attachments: ChatAttachment[] }) {
+export function MessageAttachments({ threadId, attachments, pending = false }: { threadId: string; attachments: ChatAttachment[]; pending?: boolean }) {
   const [open, setOpen] = useState<PreviewTarget | null>(null);
   const theme = useDocumentTheme();
-  const images = attachments.filter((file) => file.kind === "image");
-  const files = attachments.filter((file) => file.kind === "file");
+  // Staged uploads may still be waiting for a thread attachment ID.
+  const images = pending ? [] : attachments.filter((file) => file.kind === "image");
+  const files = pending ? attachments : attachments.filter((file) => file.kind === "file");
   if (attachments.length === 0) return null;
   return (
     <div className="msg-attachments">
@@ -28,7 +29,6 @@ export function MessageAttachments({ threadId, attachments }: { threadId: string
       {files.length > 0 && (
         <div className="msg-files">
           {files.map((file) => {
-            const target = attachmentTarget(threadId, file, theme);
             const content = (
               <>
                 <Icon name="paperclip" />
@@ -36,6 +36,8 @@ export function MessageAttachments({ threadId, attachments }: { threadId: string
                 {file.sizeBytes !== null && <span className="msg-file-size">{formatBytes(file.sizeBytes)}</span>}
               </>
             );
+            if (pending) return <span key={file.id} className="msg-file">{content}</span>;
+            const target = attachmentTarget(threadId, file, theme);
             return target ? (
               <Pressable key={file.id} className="msg-file" onClick={() => setOpen(target)}>
                 {content}

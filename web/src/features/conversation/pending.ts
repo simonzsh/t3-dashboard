@@ -1,10 +1,12 @@
-import type { ChatMessage, ThreadDetail } from "../../../../shared/api.ts";
+import type { ChatAttachment, ChatMessage, ThreadDetail } from "../../../../shared/api.ts";
 
 // A message sent from the panel, shown before the thread detail contains it.
 export interface PendingMessage {
   id: string;
   text: string;
-  attachments: number;
+  attachments: ChatAttachment[];
+  // The live status can change before the sent message reaches the thread.
+  duringRun: boolean;
   sentAt: number;
   // How many user messages with this text the thread had at send time: the browser and server clocks may differ.
   baseline: number;
@@ -28,7 +30,3 @@ export function isSettled(p: PendingMessage, messages: Sent[], now: number): boo
 
 export const countSame = (messages: Sent[], text: string): number =>
   messages.filter((m) => m.role === "user" && m.text === text).length;
-
-export function pendingLabel(attachments: number): string {
-  return attachments ? `Sending… · ${attachments} attachment${attachments === 1 ? "" : "s"}` : "Sending…";
-}

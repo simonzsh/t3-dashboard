@@ -16,7 +16,7 @@ test("a finished group is collapsed and shows its count and time", () => {
 
 test("the live group shows its last four steps", () => {
   const out = renderToStaticMarkup(<WorkGroup steps={steps} threadId="t" live />);
-  assert.match(out, /Working for /);
+  assert.match(out, /class="working-robot [^"]+".*Working for /);
   for (const id of ["c", "d", "e", "f"]) assert.match(out, new RegExp(`cmd ${id}`));
   for (const id of ["a", "b"]) assert.doesNotMatch(out, new RegExp(`cmd ${id}`));
 });
