@@ -543,7 +543,10 @@ function Conversation({ searchRequest = 0, threadId, thread, providers, onOpenTh
           {pending.filter((message) => message.duringRun).map((p) => <PendingBubble key={p.id} message={p} threadId={threadId} />)}
           {detail && !running && background && !needsInput && <ActivityRow background />}
           {needsInput && (
-            <div className="working-row"><WorkingRobot waiting /><Icon name={STATUS_ICONS.waiting} className="waiting-icon" /><span>Waiting for your reply</span></div>
+            <div className="working-row">
+              {showRobot ? <WorkingRobot waiting /> : <Icon name={STATUS_ICONS.waiting} className="waiting-icon" />}
+              <span>Waiting for your reply</span>
+            </div>
           )}
           {showRobot && detail && !running && !background && !needsInput && pending.length === 0 && (
             <div className="working-row"><WorkingRobot sleeping /></div>

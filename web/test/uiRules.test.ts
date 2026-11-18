@@ -491,7 +491,7 @@ test("background activity keeps a visible robot after the main run ends", () => 
 
 test("the robot starts at the left of each status row, including when asleep", () => {
   const source = readFileSync("web/src/features/conversation/ConversationPanel.tsx", "utf8");
-  assert.match(source, /<div className="working-row"><WorkingRobot waiting \/><Icon name=\{STATUS_ICONS\.waiting\} className="waiting-icon" \/><span>Waiting for your reply<\/span><\/div>/);
+  assert.match(source, /<div className="working-row">\s*\{showRobot \? <WorkingRobot waiting \/> : <Icon name=\{STATUS_ICONS\.waiting\} className="waiting-icon" \/>\}\s*<span>Waiting for your reply<\/span>/);
   assert.match(source, /<div className="working-row"><WorkingRobot sleeping \/><\/div>/);
   assert.doesNotMatch(css, /\.working-robot\s*\{[^}]*margin-left:\s*auto/);
 });

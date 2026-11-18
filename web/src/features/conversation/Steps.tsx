@@ -1,8 +1,9 @@
-import { memo, useEffect, useLayoutEffect, useRef, useState } from "react";
+import { memo, useContext, useEffect, useLayoutEffect, useRef, useState } from "react";
 import type { StepDetail, TurnStep } from "../../../../shared/api.ts";
 import { useApi } from "../../api/ApiContext.tsx";
 import { duration, failure } from "../../lib/format.ts";
 import { safeHref } from "../../lib/markdown.tsx";
+import { RobotVisibilityContext } from "../../lib/robotPreference.ts";
 import { Chevron, Collapse, Icon, Pressable, RunningDot, STATUS_ICONS, useFlip } from "../../ui/index.ts";
 import { STEP_ICONS, diffLines, groupLabel, robotShouldType, remember, stepDuration, workGroupView, type WorkGroupChoice } from "./steps.ts";
 import { WorkingRobot } from "./WorkingRobot.tsx";
@@ -25,6 +26,7 @@ export function useTicker(active: boolean): number {
 
 /** One group of agent steps. Collapsed, except the live one, which shows its latest steps. */
 export function WorkGroup({ steps, threadId, live, fresh = false, showRobot = true, typing = robotShouldType(steps) }: { typing?: boolean; showRobot?: boolean; steps: TurnStep[]; threadId: string; live: boolean; fresh?: boolean }) {
+  const robotEnabled = useContext(RobotVisibilityContext);
   const knownSteps = useRef(new Set(fresh ? [] : steps.map(step => step.id)));
   useLayoutEffect(() => {
     for (const step of steps) knownSteps.current.add(step.id);
@@ -58,10 +60,10 @@ export function WorkGroup({ steps, threadId, live, fresh = false, showRobot = tr
   return (
     <div ref={root} className={`work-group${live ? " live" : ""}`}>
       <div className="work-group-heading">
-        {live && showRobot && <WorkingRobot thinking={!typing} />}
+        {live && showRobot && robotEnabled && <WorkingRobot thinking={!typing} />}
         <Pressable className="work-group-head" aria-expanded={open} onClick={() => setChoice({ live, open: !open })}>
           <Chevron open={open} />
-          {live && <RunningDot />}
+          {live && !robotEnabled && <RunningDot />}
           {label}
         </Pressable>
       </div>
