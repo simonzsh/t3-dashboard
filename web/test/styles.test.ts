@@ -10,6 +10,10 @@ test("the page header has no backdrop blur and a near-opaque background", () => 
   assert.match(line, /var\(--header-bg\) 97%/);
 });
 
+test("iOS text autosizing is off: wide iPhones showed oversized text", () => {
+  assert.match(rule("html"), /-webkit-text-size-adjust: 100%/);
+});
+
 test("the bottom bar clears the iPhone home indicator", () => {
   assert.match(rule(".bottom-nav"), /env\(safe-area-inset-bottom\)/);
 });

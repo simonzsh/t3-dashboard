@@ -105,7 +105,8 @@
 }
 * { box-sizing: border-box; }
 /* iOS paints a grey box on every pressed control; the app shows its own pressed states. */
-html { -webkit-tap-highlight-color: transparent; }
+/* iOS inflates some text on wide screens (foldables, landscape): keep the sizes we set. */
+html { -webkit-tap-highlight-color: transparent; -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
 body { margin: 0; font: 14px/1.45 Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif; background: var(--page-bg); color: var(--text-primary); -webkit-font-smoothing: antialiased; }
 ::selection { background: color-mix(in srgb, var(--accent) 28%, transparent); }
 /* Never the browser blue: every focusable element gets the accent ring. */
