@@ -10,6 +10,12 @@ test("mergeDraft keeps what the user already typed, like T3 Code", () => {
   assert.equal(mergeDraft("draft", ""), "draft");
 });
 
+test("mergeDraft restores a failed message before the text typed since", () => {
+  assert.equal(mergeDraft("sent", ""), "sent");
+  assert.equal(mergeDraft("sent", "typed during the send"), "sent\n\ntyped during the send");
+  assert.equal(mergeDraft("", "typed during the send"), "typed during the send");
+});
+
 const attachment = (id: string, name: string, mimeType: string | null): ChatAttachment => ({ id, name, kind: "file", mimeType, sizeBytes: 3 });
 
 test("attachmentFiles downloads each attachment as a File with its name and type", async () => {

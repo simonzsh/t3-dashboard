@@ -378,14 +378,16 @@ function Conversation({ searchRequest = 0, threadId, thread, providers, onOpenTh
     setPending((list) => [...list, entry]);
     stick.current = true;
     setAtBottom(true);
+    // The field empties at once, like T3 Code; a failed send puts the text back before what was typed since.
+    setDraft("");
     try {
       // No mode: a message sent during a run waits in T3's queue.
       await api.sendMessage(threadId, { text: body, ...(uploads.length && { uploads }) });
     } catch (e) {
       setPending((list) => list.filter((p) => p.id !== entry.id));
+      setDraft(mergeDraft(body, drafts.get(threadId) ?? ""));
       throw e;
     }
-    setDraft("");
     setSentAt(Date.now());
     void load();
   }
