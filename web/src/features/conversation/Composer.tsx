@@ -99,9 +99,11 @@ interface Props {
   submitLabel?: string;
   /** The field takes no text, e.g. a question with options only. */
   readOnly?: boolean;
+  /** The parent empties the text at send: the files leave at once too, and come back if the send fails. */
+  clearOnSend?: boolean;
 }
 
-export function Composer({ providers, selection, runtimeMode, running, stoppable = running, draft, onDraft, onSend, onStop, onSettings, placeholder, autoFocus = false, focusKey, errorResetKey, allowEmpty = false, noImages = false, restore, searchFiles, loadCommands, contextUsage = null, onCompact, onEscape, stash, hideSubmit = false, submitLabel, readOnly = false }: Props) {
+export function Composer({ providers, selection, runtimeMode, running, stoppable = running, draft, onDraft, onSend, onStop, onSettings, placeholder, autoFocus = false, focusKey, errorResetKey, allowEmpty = false, noImages = false, restore, searchFiles, loadCommands, contextUsage = null, onCompact, onEscape, stash, hideSubmit = false, submitLabel, readOnly = false, clearOnSend = false }: Props) {
   const api = useApi();
   // Picks show at once, until new values come in the props or the change fails.
   // Each field has its own override: a model reload never drops a pending mode pick, and the reverse.
@@ -358,11 +360,16 @@ export function Composer({ providers, selection, runtimeMode, running, stoppable
 
   async function submit() {
     if (!canSend) return;
-    const uploads = files.map((f) => f.attachment!);
+    const sent = files;
+    const uploads = sent.map((f) => f.attachment!);
+    if (clearOnSend) setFiles([]);
     if (await attempt(() => onSend(draft.trim(), uploads), setSending)) {
-      files.forEach((f) => sentKeys.current.add(f.key));
-      files.forEach((f) => f.preview && URL.revokeObjectURL(f.preview));
-      setFiles([]);
+      sent.forEach((f) => sentKeys.current.add(f.key));
+      sent.forEach((f) => f.preview && URL.revokeObjectURL(f.preview));
+      setFiles((current) => current.filter((f) => !sent.includes(f)));
+    } else if (clearOnSend) {
+      // Before the files added during the send, like the text.
+      setFiles((current) => [...sent, ...current]);
     }
   }
 

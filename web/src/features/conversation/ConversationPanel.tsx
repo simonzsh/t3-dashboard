@@ -433,6 +433,7 @@ function Conversation({ searchRequest = 0, threadId, thread, providers, onOpenTh
       draft={text}
       onDraft={setDraft}
       onSend={send}
+      clearOnSend
       searchFiles={(q) => api.searchFiles(threadId, q, 20).then((r) => r.entries)}
       loadCommands={(provider) => api.getComposerCommands(threadId, provider)}
       contextUsage={detail?.contextUsage ?? null}
