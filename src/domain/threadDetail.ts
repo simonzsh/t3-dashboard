@@ -345,6 +345,16 @@ function rendersOf(items: RawTurnItem[]): HtmlRender[] {
   return [...byId.values()].sort((a, b) => a.createdAt.localeCompare(b.createdAt));
 }
 
+const MAX_SENT_CHARS = 4000;
+const SEND_TO_USER = /(?:^|[_.:/ ])send_to_user$/i;
+
+// Like T3 Code: a completed send_to_user call (or code-mode `execute`) shows its Markdown as an agent message.
+function sentMessageOf(item: RawTurnItem): string | null {
+  if (item.type !== "dynamic_tool" || item.status !== "completed" || !(item.toolName === "execute" || SEND_TO_USER.test(item.toolName ?? ""))) return null;
+  const text = (item.output as { sentMessage?: unknown } | null | undefined)?.sentMessage;
+  return typeof text === "string" && text.trim() !== "" && text.length <= MAX_SENT_CHARS ? text : null;
+}
+
 const toAttachments = (message: RawMessage): ChatAttachment[] =>
   (message.attachments ?? []).flatMap((file) => (file.type === "image" || file.type === "file" ? [{ id: file.id, name: file.name ?? file.type, kind: file.type, mimeType: file.mimeType ?? null, sizeBytes: file.sizeBytes ?? null }] : []));
 
@@ -402,18 +412,29 @@ export function toThreadDetail(threadId: string, projection: RawProjection, thre
     ...queuedRuns.map((run) => run.userMessageId),
     ...items.filter((item) => item.type === "user_message" && item.inputIntent === "queued_turn" && item.runId && cancelled.has(item.runId)).map((item) => item.messageId),
   ]);
-  const messages: ChatMessage[] = (projection.messages ?? [])
+  const chat = (projection.messages ?? [])
     .filter((message) => visible.has(message.id) && !hidden.has(message.id))
-    .sort((a, b) => visible.get(a.id)!.index - visible.get(b.id)!.index)
     .map((message) => ({
-      id: message.id,
-      role: message.role,
-      text: message.text ?? "",
-      createdAt: visible.get(message.id)!.at ?? message.createdAt ?? "",
-      streaming: message.streaming ?? false,
-      attachments: toAttachments(message),
-      rewindable: message.role === "user" && rewind.has(message.id),
+      index: visible.get(message.id)!.index,
+      message: {
+        id: message.id,
+        role: message.role,
+        text: message.text ?? "",
+        createdAt: visible.get(message.id)!.at ?? message.createdAt ?? "",
+        streaming: message.streaming ?? false,
+        attachments: toAttachments(message),
+        rewindable: message.role === "user" && rewind.has(message.id),
+      } satisfies ChatMessage,
     }));
+  const sentIds = new Set<string>();
+  const sent = (projection.visibleTurnItems ?? []).map(unwrap).flatMap((item, index) => {
+    const text = sentMessageOf(item);
+    if (text === null || !item.id || sentIds.has(item.id)) return [];
+    sentIds.add(item.id);
+    const message: ChatMessage = { id: item.id, role: "assistant", text, createdAt: item.startedAt ?? item.completedAt ?? "", streaming: false, attachments: [], rewindable: false };
+    return [{ index, message }];
+  });
+  const messages = [...chat, ...sent].sort((a, b) => a.index - b.index).map(({ message }) => message);
   const queue = queuedRuns.flatMap((run): QueuedMessage[] => {
     const message = (projection.messages ?? []).find((candidate) => candidate.id === run.userMessageId);
     if (!run.userMessageId || !message) return [];

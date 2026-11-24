@@ -115,6 +115,7 @@ Each session contains a conversation. It starts with the latest 40 timeline entr
 - Files that you sent show under the message as chips: click one to download it.
 - See the images and videos that the agent refers to in its messages.
 - See the pages from the T3 Code `html_render` tool. The dashboard shows them in an isolated frame (sandbox), with the theme colors.
+- See the messages an agent shows with the T3 Code `send_to_user` tool during a turn. The dashboard shows them as agent messages, at the same place as T3 Code.
 
 #### Conversation API
 

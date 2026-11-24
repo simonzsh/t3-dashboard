@@ -516,6 +516,32 @@ test("lists html_render pages once, oldest first", () => {
   ]);
 });
 
+test("shows send_to_user messages as agent messages in their place, like T3 Code", () => {
+  const send = (id: string, at: string, extra: Record<string, unknown> = {}) => ({ id, type: "dynamic_tool", status: "completed", toolName: "mcp__t3-code__send_to_user", startedAt: at, output: { sentMessage: `draft ${id}` }, ...extra });
+  const detail = toThreadDetail("t", {
+    messages: [{ id: "u1", role: "user", text: "write it" }, { id: "a1", role: "assistant", text: "I wrote the draft above." }],
+    visibleTurnItems: [
+      { item: { id: "i-u1", type: "user_message", messageId: "u1", startedAt: "2026-03-01T10:00:00Z" } },
+      { item: send("s1", "2026-03-01T10:00:05Z") },
+      { item: send("s2", "2026-03-01T10:00:06Z", { toolName: "t3-code.send_to_user" }) },
+      { item: send("code", "2026-03-01T10:00:06Z", { toolName: "execute" }) },
+      { item: send("running", "2026-03-01T10:00:07Z", { status: "running" }) },
+      { item: send("other", "2026-03-01T10:00:08Z", { toolName: "mcp__slack__send_message" }) },
+      { item: send("blank", "2026-03-01T10:00:09Z", { output: { sentMessage: "  " } }) },
+      { item: send("long", "2026-03-01T10:00:09Z", { output: { sentMessage: "x".repeat(4001) } }) },
+      { item: { id: "i-a1", type: "assistant_message", messageId: "a1", startedAt: "2026-03-01T10:00:10Z" } },
+    ],
+  } as RawProjection, undefined);
+  assert.deepEqual(detail.messages.map((message) => [message.id, message.role, message.text]), [
+    ["u1", "user", "write it"],
+    ["s1", "assistant", "draft s1"],
+    ["s2", "assistant", "draft s2"],
+    ["code", "assistant", "draft code"],
+    ["a1", "assistant", "I wrote the draft above."],
+  ]);
+  assert.equal(detail.messages[1]!.createdAt, "2026-03-01T10:00:05Z");
+});
+
 const queuedProjection = (extra: Partial<RawProjection> = {}): RawProjection => ({
   messages: [
     { id: "m1", role: "user", text: "Start", createdAt: "2026-03-01T10:00:00Z" },
