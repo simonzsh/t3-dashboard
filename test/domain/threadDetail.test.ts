@@ -524,6 +524,7 @@ test("shows send_to_user messages as agent messages in their place, like T3 Code
       { item: { id: "i-u1", type: "user_message", messageId: "u1", startedAt: "2026-03-01T10:00:00Z" } },
       { item: send("s1", "2026-03-01T10:00:05Z") },
       { item: send("s2", "2026-03-01T10:00:06Z", { toolName: "t3-code.send_to_user" }) },
+      { item: send("code", "2026-03-01T10:00:06Z", { toolName: "execute" }) },
       { item: send("running", "2026-03-01T10:00:07Z", { status: "running" }) },
       { item: send("other", "2026-03-01T10:00:08Z", { toolName: "mcp__slack__send_message" }) },
       { item: send("blank", "2026-03-01T10:00:09Z", { output: { sentMessage: "  " } }) },
@@ -535,6 +536,7 @@ test("shows send_to_user messages as agent messages in their place, like T3 Code
     ["u1", "user", "write it"],
     ["s1", "assistant", "draft s1"],
     ["s2", "assistant", "draft s2"],
+    ["code", "assistant", "draft code"],
     ["a1", "assistant", "I wrote the draft above."],
   ]);
   assert.equal(detail.messages[1]!.createdAt, "2026-03-01T10:00:05Z");
