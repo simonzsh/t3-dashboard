@@ -23,8 +23,10 @@
     "delegatedCompletion": "optional",
     "deliveryIntent": "optional: auto | restart | steer",
     "dispatchMode": "required: defer_start | queue_after_active | restart_active | start_immediately | steer_active",
+    "freshContext": "optional",
     "guestMessageId": "optional",
     "idleCompaction": "optional: beforeCacheExpires | onReturn",
+    "linkedSender": "optional",
     "manualContinuationOfRunId": "optional",
     "messageId": "required",
     "modelSelection": "optional",
@@ -33,6 +35,8 @@
     "scheduledTaskId": "optional",
     "senderThreadId": "optional",
     "sourcePlanRef": "optional",
+    "steerFollowUpAfterRunOrdinal": "optional",
+    "steerFollowUpOfRunId": "optional",
     "text": "required",
     "threadId": "required",
     "titleSeed": "optional",
@@ -92,6 +96,7 @@
   "thread.metadata.update": {
     "branch": "optional",
     "commandId": "required",
+    "continuation": "optional",
     "expectedBranch": "optional",
     "expectedEmpty": "optional",
     "expectedWorktreePath": "optional",
@@ -114,6 +119,7 @@
   },
   "thread.settle": {
     "commandId": "required",
+    "expectedLatestRunId": "optional",
     "settledAt": "optional",
     "threadId": "required"
   },
@@ -126,6 +132,7 @@
   "thread.unsettle": {
     "commandId": "required",
     "reason": "required: user",
+    "restoreUnsettledAt": "optional",
     "threadId": "required"
   },
   "thread.user-input.dismiss": {
